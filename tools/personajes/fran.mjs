@@ -1,7 +1,8 @@
 // Fran, three-quarter view facing right. Head-local units: skull centre at (0,0),
 // about 100 units from chin to crown. Construction lines (see guides()):
 //   eye line y=-2 · brow line y=-15 · nose base y=18 · mouth y=30 · face front x≈46.
-import { smooth, ellipse, path, stroke, g, shape, pivot } from './svg.mjs';
+import { smooth, ellipse, path, stroke, g, shape } from './svg.mjs';
+import { makeBody } from './cuerpo.mjs';
 
 export const C = {
   skin: '#e8b296',
@@ -232,13 +233,6 @@ export function head({ mood = 'neutral', mouthKind, blink = false, look = 0, swa
 }
 
 // ---------------------------------------------------------------- body
-// Body space: feet at y=0, facing right. Rest pose: arms and legs straight.
-
-export const B = {
-  tee: '#2e8a8c', teeShadow: '#1f6567', teeLight: '#4fb0ae', teeLine: '#154647',
-  jeans: '#3e5279', jeansShadow: '#2c3b5a', jeansLight: '#566c96', jeansLine: '#1d2840',
-  shoe: '#2f3138', shoeLight: '#4b4e57', shoeLine: '#15161a', sole: '#ece7dc', soleShadow: '#c9c2b4',
-};
 
 export const HEAD_AT = { x: 10, y: -221, s: 0.82 };
 
@@ -251,104 +245,28 @@ export const JOINTS = {
   muslo_delante: [13, -104], pierna_delante: [13, -55], pie_delante: [13, -10],
 };
 
-const TORSO = smooth([
-  [-22, -196], [-33, -189], [-37, -172], [-38, -150], [-36, -130], [-34, -116], [-31, -107], [0, -104], [26, -106], [38, -110],
-  [44, -122], [47, -138], [45, -156], [40, -174], [30, -188], [14, -197], [-6, -199],
-]);
+/** Stocky build, teal tee, jeans and dark sneakers. */
+export const body = makeBody({
+  skin: C,
+  top: { style: 'tee', base: '#2e8a8c', shadow: '#1f6567', deep: '#174f51', light: '#4fb0ae', line: '#154647', seamBack: '#123e40' },
+  pants: { base: '#3e5279', shadow: '#2c3b5a', deep: '#222e47', light: '#566c96', line: '#1d2840' },
+  shoes: { style: 'sneaker', base: '#2f3138', back: '#26282e', light: '#4b4e57', line: '#15161a', sole: '#ece7dc', soleBack: '#c9c2b4' },
+  joints: JOINTS,
+  torso: [
+    [-22, -196], [-33, -189], [-37, -172], [-38, -150], [-36, -130], [-34, -116], [-31, -107], [0, -104], [26, -106], [38, -110],
+    [44, -122], [47, -138], [45, -156], [40, -174], [30, -188], [14, -197], [-6, -199],
+  ],
+  belly: 1,
+  limb: 10,
+  thigh: 19,
+  headAt: HEAD_AT,
+  head: (face) => head(face),
+});
 
-function torso() {
-  const neck = shape(smooth([[-4, -210], [14, -210], [16, -192], [-6, -192]]), C.skinShadow, [], C.skinLine, 1.2);
-  const hips = shape(smooth([[-34, -118], [39, -118], [41, -92, 'c'], [-33, -92, 'c']]), B.jeans, [
-    path(smooth([[-36, -120], [-20, -120], [-20, -90], [-36, -90]]), B.jeansShadow),
-  ], B.jeansLine, 1.4);
-  const tee = shape(TORSO, B.tee, [
-    // Side plane away from us, and the belly's underside.
-    path(smooth([[-46, -204], [-20, -200], [-24, -150], [-20, -100], [-46, -96]]), B.teeShadow),
-    path(smooth([[-38, -112], [0, -116], [40, -118], [52, -106], [-38, -96]]), B.teeShadow, { opacity: 0.8 }),
-    // Light on the chest and the top of the belly.
-    path(ellipse(30, -168, 11, 16, -0.25), B.teeLight, { opacity: 0.9 }),
-    path(ellipse(41, -136, 5, 11, -0.2), B.teeLight, { opacity: 0.5 }),
-    // Crew neck rib at the back, and a small print like the one on his shirt.
-    stroke(smooth([[-14, -195], [-2, -191], [12, -194]], false), B.teeShadow, 3),
-    stroke(smooth([[26, -122], [31, -125], [36, -121]], false), B.teeLight, 1.4, { opacity: 0.7 }),
-  ], B.teeLine, 1.6);
-  return neck + hips + tee;
-}
-
-function arm(side) {
-  const back = side === 'detras';
-  const [sx, sy] = JOINTS[`brazo_sup_${side}`];
-  const [ex, ey] = JOINTS[`antebrazo_${side}`];
-  const [wx, wy] = JOINTS[`mano_${side}`];
-  const skin = back ? C.skinShadow : C.skin;
-  // Short sleeve: a rounded cap over the shoulder that flares a little at the hem.
-  const sleeve = smooth([[sx - 13, sy - 4], [sx - 6, sy - 13], [sx + 7, sy - 14], [sx + 15, sy - 5], [sx + 16, sy + 12], [sx + 15, sy + 24, 'c'], [sx - 15, sy + 24, 'c'], [sx - 15, sy + 10]]);
-  const upper = smooth([[sx - 11, sy + 4], [sx + 11, sy + 4], [ex + 10, ey - 2], [ex + 1, ey + 9], [ex - 10, ey - 2]]);
-  const fore = smooth([[ex - 10, ey - 5], [ex + 10, ey - 5], [wx + 8, wy - 2], [wx, wy + 5], [wx - 8, wy - 2]]);
-  const hand = smooth([[wx - 9, wy - 4], [wx + 8, wy - 4], [wx + 10, wy + 7], [wx + 9, wy + 17], [wx + 2, wy + 23], [wx - 6, wy + 21], [wx - 10, wy + 10]]);
-  const thumb = smooth([[wx + 6, wy + 1], [wx + 12, wy + 5], [wx + 13, wy + 12], [wx + 9, wy + 13], [wx + 6, wy + 8]]);
-  const skinShade = [path(smooth([[sx - 24, sy], [sx - 4, sy], [ex - 3, ey + 40], [wx - 24, wy + 40]]), back ? C.skinDeep : C.skinShadow, { opacity: 0.8 })];
-  return g(`brazo_${side}`, [
-    g(`mano_${side}`, [
-      shape(hand, skin, [...skinShade, stroke(smooth([[wx - 3, wy + 8], [wx - 2, wy + 16]], false), C.skinShadow, 1.2)], C.skinLine, 1.4),
-      shape(thumb, skin, [], C.skinLine, 1.2),
-      pivot(`mano_${side}`, wx, wy),
-    ]),
-    g(`antebrazo_${side}`, [shape(fore, skin, skinShade, C.skinLine, 1.4), pivot(`antebrazo_${side}`, ex, ey)]),
-    g(`brazo_sup_${side}`, [
-      shape(upper, skin, skinShade, C.skinLine, 1.4),
-      shape(sleeve, back ? B.teeShadow : B.tee, [
-        path(smooth([[sx - 20, sy - 16], [sx - 5, sy - 16], [sx - 6, sy + 30], [sx - 20, sy + 30]]), back ? '#174f51' : B.teeShadow),
-        back ? '' : path(ellipse(sx + 7, sy - 4, 5, 9), B.teeLight, { opacity: 0.7 }),
-        stroke(`M${sx - 16} ${sy + 20}L${sx + 16} ${sy + 20}`, back ? '#123e40' : B.teeShadow, 1.6),
-      ], B.teeLine, 1.5),
-      pivot(`brazo_sup_${side}`, sx, sy),
-    ]),
-  ]);
-}
-
-function leg(side) {
-  const back = side === 'detras';
-  const [hx, hy] = JOINTS[`muslo_${side}`];
-  const [kx, ky] = JOINTS[`pierna_${side}`];
-  const [ax, ay] = JOINTS[`pie_${side}`];
-  const base = back ? B.jeansShadow : B.jeans;
-  const thigh = smooth([[hx - 19, hy - 8], [hx + 19, hy - 8], [kx + 15.5, ky], [kx + 1, ky + 9], [kx - 15, ky]]);
-  const shin = smooth([[kx - 14, ky - 6], [kx + 14, ky - 6], [ax + 14, ay - 2, 'c'], [ax + 1, ay + 2], [ax - 14, ay - 2, 'c']]);
-  const shoe = smooth([[ax - 15, ay - 8], [ax + 4, ay - 10], [ax + 18, ay - 6], [ax + 28, ay + 1], [ax + 28, ay + 8, 'c'], [ax - 16, ay + 8, 'c'], [ax - 17, ay]]);
-  const shade = [
-    path(smooth([[hx - 24, hy - 10], [hx - 7, hy - 10], [kx - 6, ky], [ax - 7, ay], [ax - 24, ay]]), back ? '#222e47' : B.jeansShadow),
-    back ? '' : path(smooth([[hx + 7, hy], [hx + 13, hy], [kx + 11, ky], [ax + 10, ay - 4], [ax + 6, ay - 4], [kx + 6, ky]]), B.jeansLight, { opacity: 0.7 }),
-  ];
-  return g(`pierna_${side}_grupo`, [
-    g(`muslo_${side}`, [shape(thigh, base, shade, B.jeansLine, 1.5), pivot(`muslo_${side}`, hx, hy)]),
-    g(`pierna_${side}`, [
-      shape(shin, base, [...shade, stroke(`M${ax - 13} ${ay - 7}L${ax + 13} ${ay - 7}`, B.jeansShadow, 1.6)], B.jeansLine, 1.5),
-      pivot(`pierna_${side}`, kx, ky),
-    ]),
-    g(`pie_${side}`, [
-      shape(shoe, back ? '#26282e' : B.shoe, [
-        path(smooth([[ax - 18, ay + 3], [ax + 30, ay + 3], [ax + 30, ay + 10], [ax - 18, ay + 10]]), back ? B.soleShadow : B.sole),
-        back ? '' : path(ellipse(ax + 8, ay - 5, 8, 3, -0.15), B.shoeLight),
-        back ? '' : stroke(smooth([[ax + 2, ay - 8], [ax + 6, ay - 4], [ax + 10, ay - 7]], false), B.sole, 1.2, { opacity: 0.8 }),
-      ], B.shoeLine, 1.4),
-      pivot(`pie_${side}`, ax, ay),
-    ]),
-  ]);
-}
-
-/** Whole character in the rest pose, layered like the kit's artist template. */
-export function body(face = {}) {
-  const h = HEAD_AT;
-  return g('personaje', [
-    arm('detras'),
-    leg('detras'),
-    leg('delante'),
-    g('torso', [torso(), pivot('torso', ...JOINTS.torso)]),
-    g('cabeza', [g(null, head(face), { transform: `translate(${h.x} ${h.y}) scale(${h.s})` }), pivot('cabeza', ...JOINTS.cabeza)]),
-    arm('delante'),
-  ]);
-}
+export const INFO = {
+  name: 'Fran',
+  traits: 'bigote que baja a una perilla larga, cejas gruesas y rectas, canas en las patillas, camiseta verde azulada y complexión ancha.',
+};
 
 // ---------------------------------------------------------------- turnaround (head)
 
