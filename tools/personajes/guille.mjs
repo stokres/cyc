@@ -255,10 +255,10 @@ export function headProfile() {
 
 // ---------------------------------------------------------------- body
 
-export const HEAD_AT = { x: 10, y: -239, s: 0.8 };
+export const HEAD_AT = { x: 5, y: -241, s: 0.8 };
 
 export const JOINTS = {
-  cabeza: [6, -214],
+  cabeza: [3, -214],
   torso: [0, -118],
   brazo_sup_detras: [-16, -201], antebrazo_detras: [-17, -158], mano_detras: [-17, -118],
   brazo_sup_delante: [8, -199], antebrazo_delante: [9, -156], mano_delante: [9, -116],
@@ -270,14 +270,15 @@ export const JOINTS = {
 export const body = makeBody({
   skin: C,
   top: {
-    style: 'shirt', base: '#c3904a', shadow: '#9c6b30', deep: '#79511f', light: '#ddb26d', line: '#4a3010', seamBack: '#5f3f17', button: '#efe3c6',
-    pattern: { leaf: '#8f6028', vein: '#6c4519', flower: '#ead6aa' },
+    // Loud on purpose: bright mustard with green palm leaves, red hibiscus and white flowers.
+    style: 'shirt', base: '#e2a32e', shadow: '#b67c1c', deep: '#8a5a10', light: '#f5c95f', line: '#5a3a08', seamBack: '#6e4810', button: '#fff6e0',
+    pattern: { leaf: '#2c8a52', vein: '#1b5c35', flower: '#fff4dc', hibiscus: '#d93b33', centre: '#ffd34a', opacity: 0.95, scale: 1.15 },
   },
   pants: { base: '#46608f', shadow: '#334a73', deep: '#273a5c', light: '#6380b2', line: '#1d2a44' },
   shoes: { style: 'sneaker', base: '#ad7a4a', back: '#8d6038', light: '#cd9c6b', line: '#4d3018', sole: '#efe8dc', soleBack: '#c9c1b2', lace: '#efe8dc' },
   joints: JOINTS,
   torso: [
-    [-22, -214], [-36, -207], [-40, -190], [-38, -170], [-34, -150], [-30, -132], [-28, -121], [0, -118], [24, -120], [32, -124],
+    [-12, -212], [-22, -209], [-30, -202], [-34, -189], [-35, -170], [-33, -150], [-30, -132], [-28, -121], [0, -118], [24, -120], [32, -124],
     [36, -140], [40, -160], [43, -178], [38, -196], [26, -208], [12, -215], [-6, -217],
   ],
   belly: 0,
@@ -290,5 +291,5 @@ export const body = makeBody({
 export const INFO = {
   name: 'Guille',
   defaultMood: 'neutral',
-  traits: 'el más alto y de complexión atlética, pelo oscuro algo largo, cejas gruesas, solo una sombra de barba, sonrisa amplia, camisa hawaiana en ocres y vaqueros.',
+  traits: 'el más alto y de complexión atlética, pelo oscuro algo largo, cejas gruesas, solo una sombra de barba, sonrisa amplia, camisa hawaiana bien cantosa y vaqueros.',
 };

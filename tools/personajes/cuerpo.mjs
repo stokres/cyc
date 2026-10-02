@@ -18,21 +18,31 @@ function hawaiian(x0, y0, w, h, P, seed = 3, n = 18) {
   let st = seed;
   const r = () => ((st = (st * 16807) % 2147483647) / 2147483647);
   const out = [];
+  const op = P.opacity ?? 0.75;
   for (let i = 0; i < n; i++) {
     const x = x0 + r() * w;
     const y = y0 + r() * h;
     const a = r() * Math.PI;
-    const sz = 5 + r() * 4;
-    if (r() < 0.7) {
+    const kind = r();
+    const sz = (5 + r() * 4) * (P.scale ?? 1);
+    if (kind < (P.hibiscus ? 0.5 : 0.7)) {
       const pts = [[0, -sz], [sz * 0.42, -sz * 0.2], [sz * 0.3, sz * 0.5], [0, sz], [-sz * 0.3, sz * 0.5], [-sz * 0.42, -sz * 0.2]].map(([px, py]) => [x + px * Math.cos(a) - py * Math.sin(a), y + px * Math.sin(a) + py * Math.cos(a)]);
-      out.push(path(smooth(pts), P.leaf, { opacity: 0.75 }));
-      out.push(stroke(`M${(pts[0][0] + 0).toFixed(1)} ${pts[0][1].toFixed(1)}L${pts[3][0].toFixed(1)} ${pts[3][1].toFixed(1)}`, P.vein, 0.7, { opacity: 0.6 }));
+      out.push(path(smooth(pts), P.leaf, { opacity: op }));
+      out.push(stroke(`M${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}L${pts[3][0].toFixed(1)} ${pts[3][1].toFixed(1)}`, P.vein, 0.7, { opacity: 0.6 }));
+    } else if (P.hibiscus && kind < 0.8) {
+      // Big hibiscus: five round petals and a bright centre.
+      const pr = sz * 0.42;
+      for (let k = 0; k < 5; k++) {
+        const b = a + (k / 5) * Math.PI * 2;
+        out.push(path(ellipse(x + Math.cos(b) * pr, y + Math.sin(b) * pr, pr * 0.85, pr * 0.85), P.hibiscus, { opacity: 0.95 }));
+      }
+      out.push(path(ellipse(x, y, pr * 0.45, pr * 0.45), P.centre ?? P.flower));
     } else {
       for (let k = 0; k < 5; k++) {
         const b = a + (k / 5) * Math.PI * 2;
-        out.push(path(ellipse(x + Math.cos(b) * 2.4, y + Math.sin(b) * 2.4, 1.8, 1.8), P.flower, { opacity: 0.8 }));
+        out.push(path(ellipse(x + Math.cos(b) * 2.4, y + Math.sin(b) * 2.4, 1.8, 1.8), P.flower, { opacity: 0.85 }));
       }
-      out.push(path(ellipse(x, y, 1.2, 1.2), P.leaf));
+      out.push(path(ellipse(x, y, 1.2, 1.2), P.centre ?? P.leaf));
     }
   }
   return out;
@@ -53,8 +63,12 @@ export function makeBody(cfg) {
   function torso() {
     const [nx, ny] = J.cabeza;
     const neck = shape(smooth([[nx - 10, ny - 14], [nx + 8, ny - 14], [nx + 10, top + 4], [nx - 12, top + 4]]), S.skinShadow, [], S.skinLine, 1.2);
-    const hips = shape(smooth([[back + 4, hipY - 14], [front - 8, hipY - 14], [front - 6, hipY + 12, 'c'], [back + 5, hipY + 12, 'c']]), Pn.base, [
-      path(smooth([[back + 2, hipY - 16], [back + 18, hipY - 16], [back + 18, hipY + 14], [back + 2, hipY + 14]]), Pn.shadow),
+    // Waistband: no wider than the two thighs together, so it never pokes out under the top.
+    const tw = cfg.thigh ?? 19;
+    const hl = J.muslo_detras[0] - tw + 1;
+    const hr = J.muslo_delante[0] + tw - 1;
+    const hips = shape(smooth([[hl, hipY - 14], [hr, hipY - 14], [hr, hipY + 4], [hr - 4, hipY + 10, 'c'], [hl + 4, hipY + 10, 'c'], [hl, hipY + 4]]), Pn.base, [
+      path(smooth([[hl - 2, hipY - 16], [hl + 14, hipY - 16], [hl + 14, hipY + 14], [hl - 2, hipY + 14]]), Pn.shadow),
     ], Pn.line, 1.4);
     const shading = [
       // Side plane away from us, and the underside above the hem.
@@ -87,8 +101,12 @@ export function makeBody(cfg) {
         ...[0.15, 0.3, 0.45, 0.6, 0.75, 0.9].map((k) => stroke(`M${back + (front - back) * k} ${hipY - 11}l0 9`, T.deep, 1.1, { opacity: 0.8 })),
         path(pk, T.shadow, { opacity: 0.55 }),
         stroke(pk, T.deep, 1.6),
-        stroke(smooth([[front - 22, top + 6], [front - 23, top + 26], [front - 21, top + 34]], false), T.string, 1.6),
-        stroke(smooth([[front - 14, top + 5], [front - 13, top + 24], [front - 12, top + 31]], false), T.string, 1.6),
+        ...(T.hood === false
+          ? [stroke(smooth([[-16, top + 3], [-2, top + 8], [14, top + 4]], false), T.light, 4)]
+          : [
+              stroke(smooth([[front - 22, top + 6], [front - 23, top + 26], [front - 21, top + 34]], false), T.string, 1.6),
+              stroke(smooth([[front - 14, top + 5], [front - 13, top + 24], [front - 12, top + 31]], false), T.string, 1.6),
+            ]),
       );
     } else if (T.style === 'sweater') {
       // Crew neck rib and ribbed hem.
@@ -122,10 +140,10 @@ export function makeBody(cfg) {
       // Collar flaps lying open on the shoulders.
       const px = front - 13;
       const flapF = smooth([[nx + 14, top - 4], [nx + 24, top - 2], [px + 4, top + 16], [px + 1, top + 24, 'c'], [nx + 12, top + 6]]);
-      const flapB = smooth([[nx - 10, top - 4], [nx + 2, top - 6], [nx - 2, top + 8], [nx - 14, top + 10]]);
+      const flapB = smooth([[nx - 9, top - 1], [nx + 2, top - 3], [nx - 1, top + 6], [nx - 10, top + 6]]);
       collar = shape(flapB, T.shadow, [], T.line, 1.3) + shape(flapF, T.base, [path(ellipse(nx + 20, top + 4, 4, 7, -0.6), T.light, { opacity: 0.8 })], T.line, 1.4);
     }
-    if (T.style === 'hoodie') {
+    if (T.style === 'hoodie' && T.hood !== false) {
       // The hood rests on the back of the shoulders, behind the head.
       const hood = smooth([[nx - 30, top + 12], [nx - 30, top - 6], [nx - 20, top - 16], [nx - 4, top - 18], [nx + 8, top - 10], [nx + 10, top + 4], [nx - 6, top + 8]]);
       collar = shape(hood, T.base, [path(ellipse(nx - 10, top - 4, 9, 9), T.deep), path(ellipse(nx - 24, top + 2, 6, 10), T.shadow)], T.line, 1.5);
@@ -225,12 +243,27 @@ export function makeBody(cfg) {
         isBack ? '' : stroke(smooth([[ax + 2, ay - 8], [ax + 6, ay - 4], [ax + 10, ay - 7]], false), Sh.lace ?? Sh.sole, 1.2, { opacity: 0.8 }),
       ], Sh.line, 1.4);
     }
+    let shinArt;
+    if (Pn.length === 'shorts') {
+      // Shorts that end below the knee: a strip of shin and the ankle show, then a low sock.
+      const t = Pn.hem ?? 0.6;
+      const hxm = kx + (ax - kx) * t;
+      const hym = ky + (ay - ky) * t;
+      const leg = smooth([[kx - 10, ky], [kx + 10, ky], [ax + 8, ay - 4, 'c'], [ax - 8, ay - 4, 'c']]);
+      const cloth = smooth([[kx - 15, ky - 6], [kx + 15, ky - 6], [hxm + 16.5, hym, 'c'], [hxm - 16.5, hym, 'c']]);
+      shinArt = [
+        shape(leg, isBack ? S.skinShadow : S.skin, [
+          path(smooth([[kx - 16, ky], [kx - 3, ky], [ax - 2, ay], [ax - 16, ay]]), isBack ? S.skinDeep : S.skinShadow, { opacity: 0.8 }),
+          path(smooth([[ax - 10, ay - 11], [ax + 10, ay - 11], [ax + 10, ay - 2], [ax - 10, ay - 2]]), Pn.sock ?? '#ece7dc'),
+        ], S.skinLine, 1.3),
+        shape(cloth, base, [...shade, stroke(`M${hxm - 15} ${hym - 4}L${hxm + 15} ${hym - 4}`, Pn.shadow, 1.6)], Pn.line, 1.5),
+      ].join('');
+    } else {
+      shinArt = shape(shin, base, [...shade, stroke(`M${ax - 13} ${ay - 7}L${ax + 13} ${ay - 7}`, Pn.shadow, 1.6)], Pn.line, 1.5);
+    }
     return g(`pierna_${side}_grupo`, [
       g(`muslo_${side}`, [shape(thigh, base, shade, Pn.line, 1.5), pivot(`muslo_${side}`, hx, hy)]),
-      g(`pierna_${side}`, [
-        shape(shin, base, [...shade, stroke(`M${ax - 13} ${ay - 7}L${ax + 13} ${ay - 7}`, Pn.shadow, 1.6)], Pn.line, 1.5),
-        pivot(`pierna_${side}`, kx, ky),
-      ]),
+      g(`pierna_${side}`, [shinArt, pivot(`pierna_${side}`, kx, ky)]),
       g(`pie_${side}`, [foot, pivot(`pie_${side}`, ax, ay)]),
     ]);
   }

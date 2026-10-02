@@ -282,10 +282,10 @@ export const JOINTS = {
   muslo_delante: [12, -114], pierna_delante: [12, -60], pie_delante: [12, -10],
 };
 
-/** Slim and tall: maroon hoodie, black jeans, white trainers. */
+/** Slim and tall: maroon crew-neck sweatshirt, black jeans, white trainers. */
 export const body = makeBody({
   skin: C,
-  top: { style: 'hoodie', base: '#7b2432', shadow: '#5b1824', deep: '#43101a', light: '#9b3646', line: '#2c0a10', string: '#e9e2d6' },
+  top: { style: 'hoodie', hood: false, base: '#7b2432', shadow: '#5b1824', deep: '#43101a', light: '#9b3646', line: '#2c0a10' },
   pants: { base: '#2b2c32', shadow: '#1f2025', deep: '#16171a', light: '#40434c', line: '#0c0c0e' },
   shoes: { style: 'sneaker', base: '#ecebe6', back: '#cfccc4', light: '#ffffff', line: '#8a877f', sole: '#dcd7cb', soleBack: '#bdb8ad', lace: '#c4bfb4' },
   joints: JOINTS,

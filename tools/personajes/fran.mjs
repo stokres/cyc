@@ -261,7 +261,8 @@ export const JOINTS = {
 export const body = makeBody({
   skin: C,
   top: { style: 'tee', base: '#2e8a8c', shadow: '#1f6567', deep: '#174f51', light: '#4fb0ae', line: '#154647', seamBack: '#123e40' },
-  pants: { base: '#3e5279', shadow: '#2c3b5a', deep: '#222e47', light: '#566c96', line: '#1d2840' },
+  // His famous «pantaloneta»: denim shorts that stop below the knee.
+  pants: { base: '#3e5279', shadow: '#2c3b5a', deep: '#222e47', light: '#566c96', line: '#1d2840', length: 'shorts', hem: 0.5, sock: '#e9e4da' },
   shoes: { style: 'sneaker', base: '#2f3138', back: '#26282e', light: '#4b4e57', line: '#15161a', sole: '#ece7dc', soleBack: '#c9c2b4' },
   joints: JOINTS,
   torso: [
@@ -278,7 +279,7 @@ export const body = makeBody({
 export const INFO = {
   name: 'Fran',
   defaultMood: 'neutral',
-  traits: 'bigote que baja a una perilla larga, cejas gruesas y rectas, canas en las patillas, camiseta verde azulada y complexión ancha.',
+  traits: 'bigote que baja a una perilla larga, cejas gruesas y rectas, canas en las patillas, camiseta verde azulada, su pantaloneta por debajo de la rodilla y complexión ancha.',
 };
 
 // ---------------------------------------------------------------- turnaround (head)

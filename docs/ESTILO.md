@@ -66,10 +66,10 @@ Imágenes de referencia del kit, solo como referencia de ambiente: `docs/referen
 
 | Amigo | Rasgos |
 |---|---|
-| Fran | Barba oscura grande y poblada, pelo oscuro con alguna cana, cejas gruesas, camiseta verde azulada, complexión ancha |
+| Fran | Barba oscura grande y poblada, pelo oscuro con alguna cana, cejas gruesas, camiseta verde azulada, pantaloneta (pantalón corto por debajo de la rodilla con un poco de espinilla y calcetín a la vista), complexión ancha |
 | Pablo | Pelo castaño revuelto hacia arriba, barba corta, pendiente de aro, chaqueta oscura de borreguillo abierta, vaqueros y zapatillas blancas. Cara de siempre tranquila; al reír, sonrisa con dientes y ojos en ^^ |
-| Chuchi | Calvo con brillo, gafas cuadradas de pasta marrón oscuro, barba pelirroja recortada, media sonrisa, sudadera granate con capucha, vaquero negro y zapatillas blancas; delgado y alto |
-| Guille | El más alto, atlético, pelo oscuro algo largo, cejas gruesas, solo sombra de barba, mandíbula marcada, camisa hawaiana ocre discreta, vaqueros y zapatillas marrones |
+| Chuchi | Calvo con brillo, gafas cuadradas de pasta marrón oscuro, barba pelirroja recortada, media sonrisa, sudadera granate sin capucha, vaquero negro y zapatillas blancas; delgado y alto |
+| Guille | El más alto, atlético, pelo oscuro algo largo, cejas gruesas, solo sombra de barba, mandíbula marcada, camisa hawaiana cantosa (mostaza con hibiscos rojos y hojas verdes), espalda recta, vaqueros y zapatillas marrones |
 
 **Expresiones de todos:** de siempre, contento, sorprendido, triste (interior de las cejas hacia arriba) y enfadado (interior de las cejas hacia abajo y párpado caído hacia la nariz), más cinco bocas para hablar y parpadeo.
 
