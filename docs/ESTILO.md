@@ -24,7 +24,8 @@ Imágenes de referencia del kit, solo como referencia de ambiente: `docs/referen
 | Personajes vectoriales por piezas con huesos (B21–B23) | **Se conserva** | Permite animar caricaturas con poco coste |
 | Interfaz de cristal ahumado y filetes dorados (B24–B26) | **Se conserva** | Funciona bien sobre escenas nocturnas |
 | Acuarela por capas (A1–A17) | **Se aplaza** a los recuerdos (sección 8) | Cara de producir y no hace falta para la demo |
-| Render diferido WebGL2 (G-buffer de 5 MRT, reflejos en pantalla, volumétricos, bloom por mips) | **Descartado** | Pensado para un M3 Pro; en un móvil de gama media no llega a 60 fps |
+| Arte vectorial convertido en texturas con relieve e iluminado en el render | **Se conserva** (fase 2) | Es lo que da el volumen y la luz del kit |
+| Render diferido completo (G-buffer de 5 MRT, reflejos en pantalla, volumétricos reales, bloom por mips) | **Se aligera** | Versión para móvil: menos luces por píxel, efectos a media resolución, haces como sprites y reflejos con la escena invertida |
 | Motor `shared/engine.js` (T4) | **Descartado** | Está atado a la demo del faro (faro, generador, candado, gaviota) |
 | Fuente Cochin | **Descartada** | Solo existe en Apple; en Android no se vería |
 | T1–T2: 1920×1080 a 60 fps en un MacBook | **Sustituidos** por T1–T4 de esta guía | El objetivo es el móvil |
@@ -54,7 +55,8 @@ Imágenes de referencia del kit, solo como referencia de ambiente: `docs/referen
 
 ## 5. Personajes
 
-- **P1 · Vectoriales por piezas**, dibujados con código o importados desde SVG, y animados con huesos (`src/art/rig.ts`).
+- **P1 · Vectoriales por piezas en SVG** (`art/personajes/`), con los nombres de capa y puntos de giro de la plantilla del kit, y animados con huesos. Se generan con `tools/personajes/` y una persona puede redibujarlos encima.
+- **P1b · Construcción de la cabeza:** eje de la cara y líneas de cejas, ojos, nariz y boca; en tres cuartos el puente de la nariz va entre los dos ojos. Cada personaje se revisa lado a lado con su foto (solo en local) y a tamaño de móvil.
 - **P2 · Línea fina de silueta** en un tono oscuro de su propio color. Sin contornos negros.
 - **P3 · Cabeza grande:** la cabeza mide alrededor de un tercio del personaje para que la cara se lea a unos 50 px de alto en un móvil.
 - **P4 · Vista de tres cuartos** con los dos ojos visibles, en lugar de perfil puro. Se refleja en espejo para mirar al otro lado.
@@ -82,7 +84,7 @@ Imágenes de referencia del kit, solo como referencia de ambiente: `docs/referen
 - **T1 · Resolución lógica:** 1080 de alto. El ancho depende del móvil, y las escenas se pintan a 2400 de ancho para que los móviles alargados (19,5:9, 20:9) vean más escenario en lugar de bandas negras.
 - **T2 · Rendimiento:** 60 fps en los móviles del grupo en calidad «media»; nunca por debajo de 30 fps en calidad «baja». La calidad automática baja un nivel si el juego no sostiene 40 fps durante 2 segundos. El menú tiene «Ver rendimiento» para medirlo en cada móvil.
 - **T3 · Solo recursos propios** o con licencia clara. Las fotos del grupo son solo referencia: no se publican ni se suben al repositorio.
-- **T4 · Canvas 2D y nada más**, sin WebGL obligatorio, para que funcione igual en iPhone y Android.
+- **T4 · WebGL2 con respaldo en Canvas 2D** (decidido el 2 de octubre de 2026): WebGL2 para la luz con relieve y la atmósfera; Canvas 2D para móviles que no lo tengan.
 
 ## 8. Acuarela para los recuerdos (aplazado)
 
