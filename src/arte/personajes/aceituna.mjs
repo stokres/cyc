@@ -97,6 +97,34 @@ export function head({ blink = false, pant = false, happy = false } = {}) {
   ]);
 }
 
+/** Front view of her head, for dialogue portraits. Centred on (0, 0), ~100 units tall. */
+export function headFront({ blink = false, pant = false, happy = false } = {}) {
+  const earL = smooth([[-22, -26], [-34, -46], [-38, -66], [-30, -64], [-18, -50], [-10, -34]]);
+  const earR = smooth([[22, -26], [34, -46], [38, -66], [30, -64], [18, -50], [10, -34]]);
+  const eye = (x) => (blink
+    ? stroke(smooth([[x - 6, -6], [x, -2.5], [x + 6, -6]], false), C.furSheen, 2.2)
+    : [path(ellipse(x, -6, 6.2, happy ? 4.6 : 7), C.eye), path(ellipse(x + 2, -8.5, 2.2, 2.2), '#ffffff'), path(ellipse(x - 2, -3.5, 1, 1), '#ffffff', { opacity: 0.7 })].join(''));
+  return [
+    shape(earL, C.fur, [path(smooth([[-24, -34], [-32, -56], [-26, -52], [-18, -38]]), C.furDeep)], C.line, 1.4),
+    shape(earR, C.fur, [path(smooth([[24, -34], [32, -56], [26, -52], [18, -38]]), C.furDeep)], C.line, 1.4),
+    // Collar and tag under the chin.
+    shape(smooth([[-24, 26], [0, 34], [24, 26], [22, 34], [0, 42], [-22, 34]]), C.collar, [path(smooth([[-22, 31], [0, 38], [22, 31], [22, 34], [0, 42], [-22, 34]]), C.collarDark)], '#5e1612', 1.2),
+    shape(ellipse(0, 46, 4.5, 5), C.tag, [path(ellipse(-1, 45, 1.5, 1.8), '#fff2b0')], '#7a5714', 1),
+    shape(smooth([[0, -40], [20, -36], [30, -20], [30, 2], [24, 20], [12, 30], [0, 32], [-12, 30], [-24, 20], [-30, 2], [-30, -20], [-20, -36]]), C.fur, [
+      path(smooth([[-30, -10], [-18, -34], [0, -40], [-6, -30], [-20, -14]]), C.furLight, { opacity: 0.8 }),
+      path(smooth([[30, 0], [24, 20], [12, 30], [18, 12]]), C.furShadow),
+    ], C.line, 1.5),
+    eye(-12), eye(12),
+    stroke(happy ? 'M-17 -15Q-12 -18 -7 -15M7 -15Q12 -18 17 -15' : 'M-17 -14Q-12 -16 -7 -15M7 -15Q12 -16 17 -14', C.furSheen, 1.6, { opacity: 0.85 }),
+    // Muzzle, nose and mouth.
+    shape(smooth([[-14, 6], [0, 2], [14, 6], [16, 16], [8, 24], [0, 25], [-8, 24], [-16, 16]]), C.muzzle, [], C.line, 1.2),
+    shape(smooth([[-6, 6], [6, 6], [7, 10], [0, 14], [-7, 10]]), C.nose, [path(ellipse(-2, 7.5, 2.4, 1.2), '#8a8898')], C.line, 1),
+    pant
+      ? [path(smooth([[-6, 18], [6, 18], [5, 28], [0, 31], [-5, 28]]), C.tongue), stroke('M-9 16Q0 21 9 16', C.line, 1.4)].join('')
+      : stroke('M0 14L0 18M-8 17Q-4 21 0 18Q4 21 8 17', C.line, 1.4),
+  ].join('');
+}
+
 /** Standing dog: bones cola, pata_*, cabeza (pivot at the neck). */
 export function body() {
   return g('perro', [

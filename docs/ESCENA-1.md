@@ -82,4 +82,4 @@ Fran ya está en el Río y no hay nadie. Cada amigo está atascado en su sitio y
 - Foto de Aceituna para ajustar su aspecto.
 - Hora del despertar. Se ha supuesto que anochece (sobre las 20:35, el reloj de la cocina) y que la calle ya es de noche.
 - Nombres reales de las calles, si se quieren en las placas. Ahora solo pone «USERA».
-- La luz con relieve en WebGL2 (fase 2 del plan); ahora el juego usa la luz horneada en Canvas 2D.
+- La luz con relieve en WebGL2 está hecha a modo de prueba (`motor.setRelieve`, y se apaga con calidad «baja»); pendiente de decidir si se queda, más suave o solo en los personajes.

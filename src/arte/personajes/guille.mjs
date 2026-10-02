@@ -3,6 +3,7 @@
 // Likeness: dark hair worn a bit longer, thick dark brows, dark eyes, strong
 // straight nose, defined jaw with only a shadow of stubble, wide smile that
 // creases the cheeks. Tallest of the crew, athletic, muted ochre Hawaiian shirt.
+import { ojos, cejas, boca, bocaDelAnimo } from './frente.mjs';
 import { smooth, ellipse, path, stroke, g, shape, angryLid } from './svg.mjs';
 import { makeBody } from './cuerpo.mjs';
 
@@ -186,7 +187,7 @@ export function guides() {
 
 // ---------------------------------------------------------------- turnaround (head)
 
-export function headFront({ mood = 'neutral' } = {}) {
+export function headFront({ mood = 'neutral', mouthKind, blink = false } = {}) {
   const mirror = (pts) => [...pts, ...pts.slice().reverse().map(([x, y]) => [-x, y])];
   const skull = smooth(mirror([[0, -60], [26, -56], [40, -42], [44, -20], [45, 2], [43, 24], [37, 40], [26, 50], [12, 54]]).slice(0, -1));
   const hair = smooth([
@@ -199,7 +200,6 @@ export function headFront({ mood = 'neutral' } = {}) {
     path(ellipse(x + 1.3, -3.4, 1.3, 1.3), '#ffffff'),
     path(smooth([[x - 7, -10], [x + 7, -10], [x + 5.5, -4.8], [x, -5.8], [x - 5.5, -4.6]]), C.skinShadow),
   ]);
-  const happy = mood === 'happy';
   return [
     shape(skull, C.skin, [
       path(smooth([[-50, -60], [-30, -60], [-36, 0], [-30, 56], [-50, 56]]), C.skinShadow),
@@ -215,18 +215,15 @@ export function headFront({ mood = 'neutral' } = {}) {
     shape(ellipse(45, 4, 7, 12), C.skin, [path(ellipse(44, 5, 3.5, 7), C.skinShadow)], C.skinLine, 1.3),
     shape(hair, C.hair, [path(smooth([[-52, -30], [-34, -40], [-38, 6], [-52, 6]]), C.hairShadow), stroke(smooth([[-26, -60], [-4, -66], [18, -64]], false), C.hairLight, 2.6, { opacity: 0.8 })], C.hairShadow, 1.6),
     shape(lock, C.hair, [stroke(smooth([[2, -42], [14, -42], [22, -34]], false), C.hairLight, 1.6)], C.hairShadow, 1.2),
-    happy
-      ? [path(smooth([[-17, 27], [0, 29.5], [17, 27], [12, 35], [0, 38.5], [-12, 35]]), C.mouth), path(smooth([[-15.5, 27.5], [0, 30], [15.5, 27.5], [13.5, 31], [0, 33.5], [-13.5, 31]]), C.teeth), stroke(smooth([[-11, 38], [0, 40.5], [11, 38]], false), C.lip, 2.3), stroke(smooth([[-22, 18], [-24, 27], [-21, 34]], false), C.skinShadow, 1.2), stroke(smooth([[22, 18], [24, 27], [21, 34]], false), C.skinShadow, 1.2)].join('')
-      : [stroke(smooth([[-10, 29.5], [0, 31], [10, 29.5]], false), C.mouth, 2.1), stroke(smooth([[-7, 33.5], [0, 35], [7, 33.5]], false), C.lip, 2.2)].join(''),
+    boca({ C, kind: mouthKind ?? bocaDelAnimo(mood), y: 29.5, w: 11, reposo: [stroke(smooth([[-10, 29.5], [0, 31], [10, 29.5]], false), C.mouth, 2.1), stroke(smooth([[-7, 33.5], [0, 35], [7, 33.5]], false), C.lip, 2.2)].join(''), sonrisa: [path(smooth([[-17, 27], [0, 29.5], [17, 27], [12, 35], [0, 38.5], [-12, 35]]), C.mouth), path(smooth([[-15.5, 27.5], [0, 30], [15.5, 27.5], [13.5, 31], [0, 33.5], [-13.5, 31]]), C.teeth), stroke(smooth([[-11, 38], [0, 40.5], [11, 38]], false), C.lip, 2.3), stroke(smooth([[-22, 18], [-24, 27], [-21, 34]], false), C.skinShadow, 1.2), stroke(smooth([[22, 18], [24, 27], [21, 34]], false), C.skinShadow, 1.2)].join('') }),
     path(smooth([[-3, -6], [3, -6], [5, 6], [7.5, 12], [5, 17], [0, 18], [-5, 17], [-7.5, 12], [-5, 6]]), C.skin),
     path(smooth([[-7.5, 12], [-5, 17], [0, 18], [5, 17], [7.5, 12], [6, 19], [0, 21], [-6, 19]]), C.skinShadow),
     stroke(smooth([[-5.5, 4], [-7.5, 12], [-5, 17]], false), C.skinDeep, 1.2),
     path(ellipse(-3.5, 16, 1.9, 1.2), C.skinDeep),
     path(ellipse(3.5, 16, 1.9, 1.2), C.skinDeep),
     path(ellipse(2, 7, 2.3, 5), C.skinLight),
-    happy ? stroke(smooth([[-20, 0], [-16, -4.5], [-12, 0]], false), C.eye, 2.6) + stroke(smooth([[12, 0], [16, -4.5], [20, 0]], false), C.eye, 2.6) : eyeF(-16) + eyeF(16),
-    path(smooth([[-27, -15], [-21, -20], [-10, -20.5], [-5, -17], [-7, -14.5], [-17, -16], [-25, -12.5]]), C.brow),
-    path(smooth([[27, -15], [21, -20], [10, -20.5], [5, -17], [7, -14.5], [17, -16], [25, -12.5]]), C.brow),
+    ojos({ C, eye: eyeF, mood, blink, rx: 4.3, ry: 4.9 }),
+    cejas({ izq: path(smooth([[-27, -15], [-21, -20], [-10, -20.5], [-5, -17], [-7, -14.5], [-17, -16], [-25, -12.5]]), C.brow), der: path(smooth([[27, -15], [21, -20], [10, -20.5], [5, -17], [7, -14.5], [17, -16], [25, -12.5]]), C.brow), mood }),
   ].join('');
 }
 

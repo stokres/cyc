@@ -655,6 +655,8 @@ export function escena() {
     BASE: P.BASE,
     CX: P.CX,
     M,
+    // Key light for relief: dusk through the terrace, to the right.
+    clave: [0.7, -0.35, 0.6],
     ambient: '#5f5d80',
     walk: { y0: 846, y1: 936, x0: 150, x1: 3330 },
     start: { X: 1830, y: 900 },

@@ -7,7 +7,11 @@ import { mkdirSync } from 'node:fs';
 
 const [url = 'http://localhost:5173/', out = 'revisiones/partida'] = process.argv.slice(2);
 mkdirSync(out, { recursive: true });
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+// Software WebGL, so the relief renderer runs too (without it the game falls back to Canvas 2D).
+const browser = await chromium.launch({
+  executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
+});
 const page = await browser.newPage({ viewport: { width: 844, height: 390 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.stack || String(e)));
@@ -16,6 +20,7 @@ await page.addInitScript(() => localStorage.clear());
 await page.goto(url);
 await page.waitForFunction(() => window.__cyc, null, { timeout: 30000 });
 await page.evaluate(() => window.__cyc.listo());
+console.log('render:', await page.evaluate(() => window.__cyc.g.motor.modo));
 
 let n = 0;
 const shot = (name) => page.screenshot({ path: `${out}/${String(++n).padStart(2, '0')}-${name}.png` });

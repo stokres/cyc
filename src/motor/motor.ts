@@ -1,24 +1,47 @@
-// The stage: two canvases (behind and in front of the characters) and the SVG
-// in between where the actors live. Owns the camera, baking, per-frame drawing
-// and the light that tints the actors.
-import { depth, drawLateral, hexRGB, hornear, lienzo, type Escena, type Horneado, type RGB, type Zona } from './escena';
+// The stage: what is behind the characters, the SVG where the actors live, and
+// what is in front of them. Owns the camera, baking, per-frame drawing and the
+// light that falls on the actors.
+//
+// Two renderers (docs/ESTILO.md, T4):
+// - WebGL2 with relief light (gl.ts): the default on any phone that has it.
+// - Canvas 2D with the baked light: quality «baja» and phones without WebGL2.
+import { depth, drawLateral, hexRGB, hornear, lienzo, tirasLateral, type Escena, type Horneado, type Lateral, type Modo, type RGB, type Zona } from './escena';
+import { esquinas, RenderGL } from './gl';
 import { VIVO } from './vivo';
 import type { Actor } from './actores';
 
 const NS = 'http://www.w3.org/2000/svg';
 export const H = 1080;
+const FONDO: [number, number, number, number] = [11 / 255, 15 / 255, 30 / 255, 1];
 
 export type Calidad = 'alta' | 'media' | 'baja';
 const ESCALA: Record<Calidad, number> = { alta: 1, media: 0.75, baja: 0.55 };
 
+/** Where the strongest light near a point comes from (for relief on the actors). */
+export interface LuzPrincipal {
+  dx: number;
+  dy: number;
+  fuerza: number;
+}
+
 export class Motor {
-  readonly back: HTMLCanvasElement;
-  readonly front: HTMLCanvasElement;
+  // Canvas 2D path.
+  private back2d: HTMLCanvasElement;
+  private front2d: HTMLCanvasElement;
+  private bctx: CanvasRenderingContext2D;
+  private fctx: CanvasRenderingContext2D;
+  // WebGL path: GL canvases plus 2D overlays for the animated light.
+  private backGL: HTMLCanvasElement;
+  private frontGL: HTMLCanvasElement;
+  private vivoB: HTMLCanvasElement;
+  private vivoF: HTMLCanvasElement;
+  private vbctx: CanvasRenderingContext2D;
+  private vfctx: CanvasRenderingContext2D;
+  private glB: RenderGL | null = null;
+  private glF: RenderGL | null = null;
   readonly svg: SVGSVGElement;
   readonly defs: SVGDefsElement;
   readonly world: SVGGElement;
-  private bctx: CanvasRenderingContext2D;
-  private fctx: CanvasRenderingContext2D;
   private cache = new Map<string, Horneado>();
   S: Escena | null = null;
   private baked: Horneado | null = null;
@@ -30,6 +53,7 @@ export class Motor {
   vw = 1920;
   px = 1;
   calidad: Calidad;
+  modo: Modo = '2d';
   /** Camera centre on the back plane. */
   cam = 0;
   camGoal = 0;
@@ -43,23 +67,53 @@ export class Motor {
   onResize: (() => void) | null = null;
 
   constructor(readonly root: HTMLElement) {
-    this.back = lienzo(1, 1);
-    this.back.className = 'capa';
+    const capa = () => {
+      const c = lienzo(1, 1);
+      c.className = 'capa';
+      return c;
+    };
+    this.back2d = capa();
+    this.backGL = capa();
+    this.vivoB = capa();
+    this.front2d = capa();
+    this.frontGL = capa();
+    this.vivoF = capa();
     this.svg = document.createElementNS(NS, 'svg') as SVGSVGElement;
     this.svg.setAttribute('class', 'capa actores');
     this.svg.setAttribute('preserveAspectRatio', 'none');
     this.defs = document.createElementNS(NS, 'defs') as SVGDefsElement;
     this.world = document.createElementNS(NS, 'g') as SVGGElement;
     this.svg.append(this.defs, this.world);
-    this.front = lienzo(1, 1);
-    this.front.className = 'capa';
-    this.front.id = 'scene';
-    root.prepend(this.back, this.svg, this.front);
-    this.bctx = this.back.getContext('2d', { alpha: false })!;
-    this.fctx = this.front.getContext('2d')!;
+    root.prepend(this.back2d, this.backGL, this.vivoB, this.svg, this.front2d, this.frontGL, this.vivoF);
+    this.bctx = this.back2d.getContext('2d', { alpha: false })!;
+    this.fctx = this.front2d.getContext('2d')!;
+    this.vbctx = this.vivoB.getContext('2d')!;
+    this.vfctx = this.vivoF.getContext('2d')!;
     this.calidad = matchMedia('(pointer: coarse)').matches ? 'media' : 'alta';
+    this.glB = RenderGL.crear(this.backGL, true);
+    this.glF = this.glB ? RenderGL.crear(this.frontGL, false) : null;
+    this.elegirModo();
     this.resize();
     new ResizeObserver(() => this.resize()).observe(root);
+  }
+
+  /** The canvas behind the characters that is on screen now. */
+  get back() {
+    return this.modo === 'gl' ? this.backGL : this.back2d;
+  }
+
+  get conRelieve() {
+    return this.modo === 'gl';
+  }
+
+  private elegirModo() {
+    this.modo = this.glB && this.glF && this.calidad !== 'baja' && this.relieve ? 'gl' : '2d';
+    const gl = this.modo === 'gl';
+    for (const c of [this.backGL, this.frontGL, this.vivoB, this.vivoF]) c.hidden = !gl;
+    for (const c of [this.back2d, this.front2d]) c.hidden = gl;
+    // Taps land on the top-most visible canvas (see core/input.ts).
+    for (const c of [this.front2d, this.vivoF]) c.id = '';
+    (gl ? this.vivoF : this.front2d).id = 'scene';
   }
 
   // ------------------------------------------------------------ size and quality
@@ -76,48 +130,93 @@ export class Motor {
     this.cssH = r.height;
     this.vw = (this.cssW / this.cssH) * H;
     const px = this.pxFor();
-    for (const c of [this.back, this.front]) {
-      c.width = Math.round(this.vw * px);
-      c.height = Math.round(H * px);
+    const W = Math.round(this.vw * px);
+    const Hp = Math.round(H * px);
+    const visibles = this.modo === 'gl' ? [this.backGL, this.frontGL, this.vivoB, this.vivoF] : [this.back2d, this.front2d];
+    for (const c of [this.back2d, this.front2d, this.backGL, this.frontGL, this.vivoB, this.vivoF]) {
+      const on = visibles.includes(c);
+      c.width = on ? W : 1;
+      c.height = on ? Hp : 1;
     }
     this.svg.setAttribute('viewBox', `0 0 ${this.vw.toFixed(1)} ${H}`);
     const old = this.px;
     this.px = px;
     // Re-bake when the resolution changes a lot (rotation, quality change).
     if (this.S && Math.abs(px - old) / old > 0.2) {
-      this.cache.clear();
+      this.vaciar();
       void this.cargar(this.S);
     }
     this.clampCam(true);
     this.onResize?.();
   }
 
-  setCalidad(q: Calidad) {
-    if (q === this.calidad) return;
-    this.calidad = q;
+  /** Relief light on or off (off = the Canvas 2D renderer at the same resolution). */
+  relieve = true;
+
+  setRelieve(on: boolean) {
+    if (on === this.relieve) return;
+    this.relieve = on;
+    this.vaciar();
+    this.elegirModo();
     this.px = 0.0001;
     this.resize();
   }
 
+  setCalidad(q: Calidad) {
+    if (q === this.calidad) return;
+    this.calidad = q;
+    this.vaciar();
+    this.elegirModo();
+    this.px = 0.0001;
+    this.resize();
+  }
+
+  /** Drop every baked scene (and its GPU textures). */
+  private vaciar() {
+    for (const b of this.cache.values()) {
+      for (const L of b.capas) for (const p of L.piezas) if (p.tex) (L.z === 'front' ? this.glF : this.glB)?.liberar(p.tex);
+      for (const Lw of b.laterales) if (Lw.tex) this.glB?.liberar(Lw.tex);
+    }
+    this.cache.clear();
+  }
+
   // ------------------------------------------------------------ scenes
 
+  private clave(S: Escena) {
+    return `${S.id}@${this.px.toFixed(3)}@${this.modo}`;
+  }
+
+  private async hornearYSubir(S: Escena, onProgress?: (p: number) => void) {
+    const b = await hornear(S, this.px, onProgress, this.modo);
+    if (b.modo === 'gl') {
+      for (const L of b.capas) for (const p of L.piezas) (L.z === 'front' ? this.glF : this.glB)!.subir(p);
+      for (const Lw of b.laterales) this.glB!.subir(Lw);
+    }
+    return b;
+  }
+
   async cargar(S: Escena, onProgress?: (p: number) => void) {
-    const key = `${S.id}@${this.px.toFixed(3)}`;
+    const key = this.clave(S);
     let b = this.cache.get(key);
     if (!b) {
-      b = await hornear(S, this.px, onProgress);
+      b = await this.hornearYSubir(S, onProgress);
       this.cache.set(key, b);
     }
     this.S = S;
     this.baked = b;
     this.lights = S.lights.map((l) => ({ X: l.X, y: l.y, r: l.r, power: l.power, c: hexRGB(l.color) }));
     this.amb = hexRGB(S.ambient);
+    if (this.glB) {
+      const k = S.clave ?? [0.45, -0.75, 0.5];
+      this.glB.clave = k;
+      this.glF!.clave = k;
+    }
   }
 
   /** Bake a scene ahead of time so the door to it opens instantly. */
   async precargar(S: Escena) {
-    const key = `${S.id}@${this.px.toFixed(3)}`;
-    if (!this.cache.has(key)) this.cache.set(key, await hornear(S, this.px));
+    const key = this.clave(S);
+    if (!this.cache.has(key)) this.cache.set(key, await this.hornearYSubir(S));
   }
 
   f(y: number) {
@@ -183,6 +282,26 @@ export class Motor {
     return [Math.min(1.3, m[0] * 1.1 + 0.06), Math.min(1.3, m[1] * 1.1 + 0.06), Math.min(1.3, m[2] * 1.1 + 0.07)];
   }
 
+  /** Direction the light mostly comes from at a point (lamps weighted by reach, plus the key light). */
+  luzPrincipal(X: number, y: number): LuzPrincipal {
+    const k = this.S?.clave ?? [0.45, -0.75, 0.5];
+    let dx = k[0] * 0.3;
+    let dy = k[1] * 0.3;
+    let fuerza = 0;
+    for (const l of this.lights) {
+      const ex = (l.X - X) / l.r;
+      const ey = (l.y - y) / l.r;
+      const d2 = ex * ex + ey * ey;
+      if (d2 >= 1) continue;
+      const w = (1 - d2) * (1 - d2) * l.power * (l.c[0] * 0.3 + l.c[1] * 0.59 + l.c[2] * 0.11);
+      const n = Math.hypot(ex, ey) || 1;
+      dx += (ex / n) * w;
+      dy += (ey / n) * w;
+      fuerza += w;
+    }
+    return { dx, dy, fuerza };
+  }
+
   // ------------------------------------------------------------ frame
 
   update(dt: number) {
@@ -208,6 +327,7 @@ export class Motor {
         a.place(this.screenX(a.X, k), a.y, this.escala(k));
       }
       a.setTint(this.tintAt(a.X, a.y - 250));
+      a.setRelieve(this.conRelieve ? this.luzPrincipal(a.X, a.y - 250) : null);
     }
     // Depth order.
     const order = this.actores.filter((a) => a.visible).sort((a, b) => a.y + a.z - (b.y + b.z));
@@ -222,27 +342,25 @@ export class Motor {
   dibujar() {
     const S = this.S;
     const B = this.baked;
+    if (this.modo === 'gl') return this.dibujarGL();
     const b = this.bctx;
     const f = this.fctx;
     b.setTransform(1, 0, 0, 1, 0, 0);
     b.fillStyle = '#0b0f1e';
-    b.fillRect(0, 0, this.back.width, this.back.height);
+    b.fillRect(0, 0, this.back2d.width, this.back2d.height);
     f.setTransform(1, 0, 0, 1, 0, 0);
-    f.clearRect(0, 0, this.front.width, this.front.height);
-    if (!S || !B) return;
-    const px = B.px === this.px ? this.px : B.px;
+    f.clearRect(0, 0, this.front2d.width, this.front2d.height);
+    if (!S || !B || B.modo !== '2d') return;
+    const px = B.px;
     for (const L of B.capas) {
       if (this.ocultas.has(L.id)) continue;
       const ctx = L.z === 'front' ? f : b;
       if (L.floor) {
         // x_screen = u + a + sh*y: one shear makes every row move at its own depth.
-        const sh = (S.CX - this.cam) / (S.BASE - S.HOR);
-        const a = this.vw / 2 - S.CX - S.HOR * sh;
+        const [sh, a] = this.cizalla();
         ctx.setTransform(px, 0, px * sh, px, px * a, 0);
         for (const p of L.piezas) {
-          const xa = p.x0 + a + sh * (sh > 0 ? p.y0 : p.y0 + p.h);
-          const xb = p.x0 + p.w + a + sh * (sh > 0 ? p.y0 + p.h : p.y0);
-          if (xa > this.vw || xb < 0) continue;
+          if (!this.pisoVisible(p, sh, a)) continue;
           ctx.drawImage(p.c, p.x0, p.y0, p.w, p.h);
         }
         ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -256,8 +374,74 @@ export class Motor {
         }
       }
       for (const Lw of B.laterales) if (Lw.after === L.id) drawLateral(ctx, S, Lw, this.vw, this.cam, px);
-      VIVO[S.id]?.({ ctx, capa: L.id, S, px, t: this.t, off: (k) => this.off(k) });
-      this.extra?.(ctx, L.id);
+      this.vivo(ctx, L.id);
+    }
+  }
+
+  private cizalla(): [number, number] {
+    const S = this.S!;
+    const sh = (S.CX - this.cam) / (S.BASE - S.HOR);
+    return [sh, this.vw / 2 - S.CX - S.HOR * sh];
+  }
+
+  private pisoVisible(p: { x0: number; y0: number; w: number; h: number }, sh: number, a: number) {
+    const xa = p.x0 + a + sh * (sh > 0 ? p.y0 : p.y0 + p.h);
+    const xb = p.x0 + p.w + a + sh * (sh > 0 ? p.y0 + p.h : p.y0);
+    return !(xa > this.vw || xb < 0);
+  }
+
+  private vivo(ctx: CanvasRenderingContext2D, capa: string) {
+    const S = this.S!;
+    VIVO[S.id]?.({ ctx, capa, S, px: this.px, t: this.t, off: (k) => this.off(k) });
+    this.extra?.(ctx, capa);
+  }
+
+  private dibujarGL() {
+    const S = this.S;
+    const B = this.baked;
+    const gB = this.glB!;
+    const gF = this.glF!;
+    const W = this.backGL.width;
+    const Hp = this.backGL.height;
+    gB.empezar(W, Hp, FONDO);
+    gF.empezar(W, Hp, [0, 0, 0, 0]);
+    for (const c of [this.vbctx, this.vfctx]) {
+      c.setTransform(1, 0, 0, 1, 0, 0);
+      c.clearRect(0, 0, W, Hp);
+    }
+    if (!S || !B || B.modo !== 'gl') return;
+    const px = B.px;
+    for (const L of B.capas) {
+      if (this.ocultas.has(L.id)) continue;
+      const front = L.z === 'front';
+      const g = front ? gF : gB;
+      if (L.floor) {
+        const [sh, a] = this.cizalla();
+        const m: [number, number, number, number, number, number] = [px, 0, px * sh, px, px * a, 0];
+        for (const p of L.piezas) {
+          if (!p.tex || !this.pisoVisible(p, sh, a)) continue;
+          g.dibujar(p.tex, { esquinas: esquinas(m, p.x0, p.y0, p.x0 + p.w, p.y0 + p.h), capa: [p.x0, p.y0, p.x0 + p.w, p.y0 + p.h] }, p.luces);
+        }
+      } else {
+        const off = this.off(L.k ?? 1);
+        for (const p of L.piezas) {
+          if (!p.tex || (p.si && !this.cond(p.si))) continue;
+          const x = p.x0 + off;
+          if (x > this.vw || x + p.w < 0) continue;
+          const X0 = Math.round(x * px);
+          const Y0 = Math.round(p.y0 * px);
+          const m: [number, number, number, number, number, number] = [1, 0, 0, 1, X0, Y0];
+          g.dibujar(p.tex, { esquinas: esquinas(m, 0, 0, p.tex.w, p.tex.h), capa: [p.x0, p.y0, p.x0 + p.w, p.y0 + p.h] }, p.luces);
+        }
+      }
+      for (const Lw of B.laterales) {
+        if (Lw.after !== L.id || !Lw.tex) continue;
+        const { w: tw, h: th } = Lw.tex;
+        for (const t of tirasLateral(S, Lw as unknown as Lateral, tw, th, this.vw, this.cam, px)) {
+          g.dibujar(Lw.tex, { esquinas: esquinas(t.m, t.s0, 0, t.s0 + t.sw, th), uv: [t.s0 / tw, 0, (t.s0 + t.sw) / tw, 1], capa: [0, 0, 1, 1] }, [], gB.relieve * 0.8);
+        }
+      }
+      this.vivo(front ? this.vfctx : this.vbctx, L.id);
     }
   }
 }

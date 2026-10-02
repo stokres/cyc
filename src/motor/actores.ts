@@ -19,6 +19,8 @@ function el(tag: string, attrs: Record<string, string | number> = {}, parent?: E
 export interface ArteDePersonaje {
   body(face?: object, outfit?: string): string;
   head(o?: { mood?: string; mouthKind?: string; blink?: boolean }): string;
+  /** Front view, for dialogue portraits. */
+  headFront(o?: { mood?: string; mouthKind?: string; blink?: boolean }): string;
   JOINTS: Record<string, [number, number]>;
   INFO: { name: string; defaultMood?: string; traits?: string };
 }
@@ -52,11 +54,62 @@ export class Actor {
     const n = ++uid;
     this.wrap = el('g', {}, world) as SVGGElement;
     this.shadowEl = el('ellipse', { cx: 0, cy: 0, rx: shadow[0], ry: shadow[1], fill: '#120c10', opacity: shadow[0] ? 0.32 : 0 }, this.wrap) as SVGEllipseElement;
+    const ident = '1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0';
+    // Plain light: the scene's colour, pulled towards grey (Canvas 2D renderer).
     const f = el('filter', { id: `luz-${n}`, 'color-interpolation-filters': 'sRGB', x: '-20%', y: '-20%', width: '140%', height: '140%' }, defs);
-    this.cm = el('feColorMatrix', { type: 'matrix', values: '1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0' }, f);
+    this.cm = el('feColorMatrix', { type: 'matrix', values: ident }, f);
+    // Relief light (WebGL renderer): the figure's own shapes become a soft
+    // bas-relief, lit from wherever the strongest lamp nearby is.
+    const r = el('filter', { id: `relieve-${n}`, 'color-interpolation-filters': 'sRGB', x: '-20%', y: '-20%', width: '140%', height: '140%' }, defs);
+    el('feGaussianBlur', { in: 'SourceAlpha', stdDeviation: 5, result: 'ha' }, r);
+    el('feColorMatrix', { in: 'SourceGraphic', type: 'luminanceToAlpha', result: 'lum' }, r);
+    el('feGaussianBlur', { in: 'lum', stdDeviation: 1.4, result: 'hl' }, r);
+    el('feComposite', { in: 'ha', in2: 'hl', operator: 'arithmetic', k1: 0, k2: 0.7, k3: 0.3, k4: 0, result: 'h' }, r);
+    const dl = el('feDiffuseLighting', { in: 'h', surfaceScale: 9, diffuseConstant: 1, 'lighting-color': '#ffffff', result: 'd' }, r);
+    this.dir = el('feDistantLight', { azimuth: -90, elevation: 55 }, dl);
+    this.mezcla = el('feComposite', { in: 'SourceGraphic', in2: 'd', operator: 'arithmetic', k1: 0.6, k2: 0.4, k3: 0, k4: 0, result: 'lit' }, r);
+    el('feComposite', { in: 'lit', in2: 'SourceAlpha', operator: 'in', result: 'litA' }, r);
+    this.cmR = el('feColorMatrix', { in: 'litA', type: 'matrix', values: ident }, r);
+    this.filtros = [`url(#luz-${n})`, `url(#relieve-${n})`];
     this.flip = el('g', {}, this.wrap) as SVGGElement;
-    this.inner = el('g', { filter: `url(#luz-${n})` }, this.flip) as SVGGElement;
+    this.inner = el('g', { filter: this.filtros[0] }, this.flip) as SVGGElement;
     this.inner.innerHTML = art;
+  }
+
+  private dir: SVGElement;
+  private mezcla: SVGElement;
+  private cmR: SVGElement;
+  private filtros: [string, string];
+  private relieve = { on: false, az: 0, el: 0, k: 0 };
+
+  /**
+   * Relief light from a direction (screen space, y down), or null for flat light.
+   * Values are only touched when they change enough to be seen.
+   */
+  setRelieve(l: { dx: number; dy: number; fuerza: number } | null) {
+    const on = !!l;
+    if (on !== this.relieve.on) {
+      this.relieve.on = on;
+      this.inner.setAttribute('filter', this.filtros[on ? 1 : 0]);
+    }
+    if (!l) return;
+    const az = (Math.atan2(l.dy, l.dx * this.face) * 180) / Math.PI;
+    const elev = 35 + 25 * (1 - Math.min(1, l.fuerza * 2));
+    const k = 0.35 + 0.35 * Math.min(1, l.fuerza * 2);
+    const R = this.relieve;
+    if (Math.abs(az - R.az) + Math.abs(elev - R.el) > 3) {
+      R.az = az;
+      R.el = elev;
+      this.dir.setAttribute('azimuth', az.toFixed(1));
+      this.dir.setAttribute('elevation', elev.toFixed(1));
+    }
+    if (Math.abs(k - R.k) > 0.03) {
+      R.k = k;
+      // Flat surfaces keep their brightness: N·L on the flat is sin(elevation).
+      const s = Math.sin((elev * Math.PI) / 180);
+      this.mezcla.setAttribute('k1', (k / s).toFixed(3));
+      this.mezcla.setAttribute('k2', (1 - k).toFixed(3));
+    }
   }
 
   get moving() {
@@ -66,7 +119,9 @@ export class Actor {
   setTint(t: RGB) {
     if (Math.abs(t[0] - this.tint[0]) + Math.abs(t[1] - this.tint[1]) + Math.abs(t[2] - this.tint[2]) < 0.01) return;
     this.tint = t;
-    this.cm.setAttribute('values', `${t[0].toFixed(3)} 0 0 0 0 0 ${t[1].toFixed(3)} 0 0 0 0 0 ${t[2].toFixed(3)} 0 0 0 0 0 1 0`);
+    const v = `${t[0].toFixed(3)} 0 0 0 0 0 ${t[1].toFixed(3)} 0 0 0 0 0 ${t[2].toFixed(3)} 0 0 0 0 0 1 0`;
+    this.cm.setAttribute('values', v);
+    this.cmR.setAttribute('values', v);
   }
 
   lookAt(X: number) {

@@ -159,9 +159,8 @@ button:focus-visible {
 }
 
 .reparto .cara svg {
-  width: 112%;
-  height: 112%;
-  margin: -2% 0 0 -4%;
+  width: 100%;
+  height: 100%;
 }
 
 .reparto .nombre {
@@ -402,9 +401,8 @@ button:focus-visible {
 }
 
 .dialogo .retrato svg {
-  width: 118%;
-  height: 118%;
-  margin: -4% 0 0 -9%;
+  width: 100%;
+  height: 100%;
 }
 
 .dialogo .cuerpo {
@@ -849,9 +847,8 @@ button:focus-visible {
 }
 
 .burbuja .cara svg {
-  width: 130%;
-  height: 130%;
-  margin: -6% 0 0 -15%;
+  width: 100%;
+  height: 100%;
 }
 
 .burbuja .globo {

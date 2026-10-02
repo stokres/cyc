@@ -901,6 +901,8 @@ export function escena() {
     M,
     ZW,
     speed: 300,
+    // Key light for relief: the moon, up and to the right.
+    clave: [0.45, -0.75, 0.5],
     ambient: '#3c4470',
     walk: { y0: 830, y1: 935, x0: 140, x1: 8060 },
     start: { X: 420, y: 860 },
@@ -955,7 +957,8 @@ export function escena() {
     spots: {
       cruz: { x: 4880, y: 164 },
       tele: { x: 6860, y: 430 },
-      cruce: { k: KS, x0: at(4300, KS), x1: at(6900, KS), y: yOf(KS) - 10 },
+      // a0..a1: the side street's far end; b0..b1: its mouth between the facades.
+      cruce: { k: KS, x0: at(4300, KS), x1: at(6900, KS), y: yOf(KS) - 10, a0: at(4900, KS), a1: at(6200, KS), b0: 4900, b1: 6200 },
     },
   };
 }

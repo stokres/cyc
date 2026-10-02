@@ -1,6 +1,7 @@
 // Fran, three-quarter view facing right. Head-local units: skull centre at (0,0),
 // about 100 units from chin to crown. Construction lines (see guides()):
 //   eye line y=-2 · brow line y=-15 · nose base y=18 · mouth y=30 · face front x≈46.
+import { ojos, cejas, boca, bocaDelAnimo } from './frente.mjs';
 import { smooth, ellipse, path, stroke, g, shape } from './svg.mjs';
 import { makeBody } from './cuerpo.mjs';
 
@@ -300,7 +301,7 @@ export const INFO = {
 // ---------------------------------------------------------------- turnaround (head)
 
 /** Front view: symmetric, for portraits and moments facing the camera. */
-export function headFront({ mood = 'neutral' } = {}) {
+export function headFront({ mood = 'neutral', mouthKind, blink = false } = {}) {
   const mirror = (pts) => [...pts, ...pts.slice().reverse().map(([x, y, c]) => (c ? [-x, y, c] : [-x, y]))];
   const skull = smooth(mirror([[0, -58], [26, -55], [40, -40], [45, -18], [46, 2], [43, 22], [35, 37], [20, 45]]).slice(0, -1));
   const hair = smooth([
@@ -316,7 +317,6 @@ export function headFront({ mood = 'neutral' } = {}) {
     path(ellipse(x + 1.4, -3.4, 1.4, 1.4), '#ffffff'),
     path(smooth([[x - 7, -10], [x + 7, -10], [x + 5.5, -5.6], [x, -6.6], [x - 5.5, -5.4]]), C.skinShadow),
   ]);
-  const happy = mood === 'happy';
   return [
     shape(skull, C.skin, [
       path(smooth([[-50, -60], [-30, -60], [-36, 0], [-30, 50], [-50, 50]]), C.skinShadow),
@@ -339,9 +339,7 @@ export function headFront({ mood = 'neutral' } = {}) {
       path(ellipse(8, 50, 10, 12), C.beardLight, { opacity: 0.5 }),
       ...[[-20, 40], [-8, 44], [6, 44], [18, 40]].map(([x, y]) => stroke(smooth([[x, y], [x * 0.9, y + 10], [x * 0.7, y + 18]], false), C.beardLight, 1.3, { opacity: 0.7 })),
     ], C.beardLine, 1.6),
-    happy
-      ? path(smooth([[-14, 30], [0, 33], [14, 30], [10, 39], [0, 42], [-10, 39]]), C.mouth) + path(smooth([[-12, 30.5], [0, 33], [12, 30.5], [11, 33], [0, 35], [-11, 33]]), C.teeth)
-      : [stroke(smooth([[-10, 31], [0, 32.5], [10, 31]], false), C.mouth, 1.8), path(smooth([[-8, 32], [0, 35], [8, 32], [5, 36.5], [0, 37.5], [-5, 36.5]]), C.lip)].join(''),
+    boca({ C, kind: mouthKind ?? bocaDelAnimo(mood), y: 31, w: 11, reposo: [stroke(smooth([[-10, 31], [0, 32.5], [10, 31]], false), C.mouth, 1.8), path(smooth([[-8, 32], [0, 35], [8, 32], [5, 36.5], [0, 37.5], [-5, 36.5]]), C.lip)].join(''), sonrisa: path(smooth([[-14, 30], [0, 33], [14, 30], [10, 39], [0, 42], [-10, 39]]), C.mouth) + path(smooth([[-12, 30.5], [0, 33], [12, 30.5], [11, 33], [0, 35], [-11, 33]]), C.teeth) }),
     shape(mustache, C.beard, [path(ellipse(8, 22, 8, 2.5), C.beardLight, { opacity: 0.6 })], C.beardLine, 1.3),
     // Nose seen from the front: a soft bulb with shadowed nostrils.
     path(smooth([[-3, -6], [3, -6], [5, 6], [8, 12], [5, 17], [0, 18], [-5, 17], [-8, 12], [-5, 6]]), C.skin),
@@ -350,9 +348,8 @@ export function headFront({ mood = 'neutral' } = {}) {
     path(ellipse(-3.5, 16, 2, 1.3), C.skinDeep),
     path(ellipse(3.5, 16, 2, 1.3), C.skinDeep),
     path(ellipse(2, 8, 2.5, 5), C.skinLight),
-    happy ? stroke(smooth([[-21, 0], [-16, -5], [-11, 0]], false), C.eye, 2.6) + stroke(smooth([[11, 0], [16, -5], [21, 0]], false), C.eye, 2.6) : eyeF(-16) + eyeF(16),
-    path(smooth([[-27, -15], [-20, -19.5], [-8, -18.5], [-5, -15.5], [-8, -13], [-20, -14], [-26, -12]]), C.brow),
-    path(smooth([[27, -15], [20, -19.5], [8, -18.5], [5, -15.5], [8, -13], [20, -14], [26, -12]]), C.brow),
+    ojos({ C, eye: eyeF, mood, blink, rx: 4.4, ry: 5.4 }),
+    cejas({ izq: path(smooth([[-27, -15], [-20, -19.5], [-8, -18.5], [-5, -15.5], [-8, -13], [-20, -14], [-26, -12]]), C.brow), der: path(smooth([[27, -15], [20, -19.5], [8, -18.5], [5, -15.5], [8, -13], [20, -14], [26, -12]]), C.brow), mood }),
   ].join('');
 }
 

@@ -33,7 +33,8 @@ export const COLOR_ACEITUNA = '#c8433a';
 /** Portrait (SVG markup) for the dialogue box and the character dock. */
 export function retrato(id: PjId | 'aceituna', o: { mood?: string; mouthKind?: string; blink?: boolean } = {}) {
   if (id === 'aceituna') {
-    return `<svg viewBox="16 -106 68 68" aria-hidden="true">${aceituna.head({ blink: o.blink, pant: o.mouthKind === 'a' || o.mouthKind === 'o', happy: o.mood === 'happy' })}</svg>`;
+    return `<svg viewBox="-52 -74 104 126" aria-hidden="true">${aceituna.headFront({ blink: o.blink, pant: o.mouthKind === 'a' || o.mouthKind === 'o', happy: o.mood === 'happy' })}</svg>`;
   }
-  return `<svg viewBox="-65 -95 135 160" aria-hidden="true">${REPARTO[id].arte.head({ mood: o.mood, mouthKind: o.mouthKind, blink: o.blink })}</svg>`;
+  // Portraits face the camera (front view), unlike the 3/4 characters in the scene.
+  return `<svg viewBox="-62 -82 124 150" aria-hidden="true">${REPARTO[id].arte.headFront({ mood: o.mood, mouthKind: o.mouthKind, blink: o.blink })}</svg>`;
 }

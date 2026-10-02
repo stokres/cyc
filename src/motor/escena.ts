@@ -128,29 +128,47 @@ export interface Escena {
   shafts?: Array<{ X0: number; X1: number; dX: number; k1: number; color: string; power: number }>;
   spots: Record<string, Record<string, number>>;
   zonas: Record<string, Zona>;
+  /** Key light (towards the light, y down), for relief: the moon, the dusk window... */
+  clave?: [number, number, number];
+}
+
+/** Textures the WebGL renderer made for a piece (see gl.ts). */
+export interface TexturasGL {
+  alb: WebGLTexture;
+  nrm: WebGLTexture;
+  luz: WebGLTexture | null;
+  emi: WebGLTexture | null;
+  /** Size of the albedo in pixels. */
+  w: number;
+  h: number;
 }
 
 export interface PiezaHorneada {
+  /** Canvas 2D: the finished piece. GL: same as `alb` until uploaded. */
   c: HTMLCanvasElement;
   x0: number;
   y0: number;
   w: number;
   h: number;
   si?: string;
+  alb?: HTMLCanvasElement;
+  luz?: HTMLCanvasElement | null;
+  emi?: HTMLCanvasElement | null;
+  luces?: LuzCapa[];
+  tex?: TexturasGL;
 }
 
 export interface CapaHorneada extends Omit<Capa, 'pieces' | 'body'> {
   piezas: PiezaHorneada[];
 }
 
-export interface LateralHorneado extends Omit<Lateral, 'body' | 'emissive'> {
-  c: HTMLCanvasElement;
-}
+export interface LateralHorneado extends Omit<Lateral, 'body' | 'emissive'>, Omit<PiezaHorneada, 'x0' | 'y0' | 'w' | 'h' | 'si'> {}
 
 export interface Horneado {
   capas: CapaHorneada[];
   laterales: LateralHorneado[];
   px: number;
+  modo: Modo;
 }
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -263,33 +281,78 @@ export const depth = (S: Escena) => ({
   yOf: (k: number) => S.HOR + (S.BASE - S.HOR) * k,
 });
 
-async function bakeLateral(S: Escena, Lw: Lateral, px: number): Promise<LateralHorneado> {
+/**
+ * How a piece is baked:
+ * - '2d': one canvas, albedo x light map + emissive (Canvas 2D renderer).
+ * - 'gl': the three kept apart (albedo, a low-res light map, emissive), so the
+ *   WebGL renderer can add relief lighting on top (see gl.ts).
+ */
+export type Modo = '2d' | 'gl';
+
+/** Lights already moved into a layer's own coordinates, for the relief shader. */
+export interface LuzCapa {
+  x: number;
+  y: number;
+  r: number;
+  power: number;
+  c: RGB;
+  flat: number;
+}
+
+interface Capas3 {
+  alb: HTMLCanvasElement;
+  luz: HTMLCanvasElement | null;
+  emi: HTMLCanvasElement | null;
+}
+
+/** The low-res light map is enough for the GL renderer: light is smooth. */
+const LUZ_GL = 0.25;
+
+function componer({ alb, luz, emi }: Capas3) {
+  const c = alb;
+  if (luz) {
+    const lm = luz.width === c.width ? luz : lienzo(c.width, c.height);
+    if (lm !== luz) {
+      const lx = lm.getContext('2d')!;
+      lx.imageSmoothingQuality = 'high';
+      lx.drawImage(luz, 0, 0, c.width, c.height);
+    }
+    multiplyLight(c, lm);
+  }
+  if (emi) c.getContext('2d')!.drawImage(emi, 0, 0);
+  return c;
+}
+
+async function bakeLateral(S: Escena, Lw: Lateral, px: number, modo: Modo): Promise<LateralHorneado> {
   const q = px * (Lw.res ?? 0.6);
   const w = Lw.len * S.M;
   const h = Lw.h * S.M;
-  const c = await raster(Lw.body, 0, -h, w, h, q);
-  const ctx = c.getContext('2d')!;
-  if (Lw.texts) drawTexts(ctx, Lw.texts, 0, -h, q, false);
+  const alb = await raster(Lw.body, 0, -h, w, h, q);
+  if (Lw.texts) drawTexts(alb.getContext('2d')!, Lw.texts, 0, -h, q, false);
   // Night light: ambient, a little more towards the street mouth.
-  const lm = lienzo(c.width, c.height);
+  const ql = modo === 'gl' ? q * LUZ_GL : q;
+  const lm = lienzo(w * ql, h * ql);
   const lx = lm.getContext('2d')!;
-  const gr = lx.createLinearGradient(Lw.face > 0 ? 0 : c.width, 0, Lw.face > 0 ? c.width : 0, 0);
+  const gr = lx.createLinearGradient(Lw.face > 0 ? 0 : lm.width, 0, Lw.face > 0 ? lm.width : 0, 0);
   gr.addColorStop(0, cssRGB(hexRGB(Lw.near ?? S.ambient)));
   gr.addColorStop(1, cssRGB(hexRGB(Lw.far ?? S.ambient)));
   lx.fillStyle = gr;
-  lx.fillRect(0, 0, c.width, c.height);
-  lx.setTransform(q, 0, 0, q, 0, h * q);
+  lx.fillRect(0, 0, lm.width, lm.height);
+  lx.setTransform(ql, 0, 0, ql, 0, h * ql);
   lx.globalCompositeOperation = 'lighter';
   for (const l of Lw.lights ?? []) pool(lx, l.x, l.y, l.r, l.r * (l.flat ?? 1), hexRGB(l.color), l.power);
-  multiplyLight(c, lm);
-  if (Lw.emissive) ctx.drawImage(await raster(Lw.emissive, 0, -h, w, h, q), 0, 0);
-  if (Lw.texts) drawTexts(ctx, Lw.texts, 0, -h, q, true);
+  let emi: HTMLCanvasElement | null = null;
+  if (Lw.emissive || Lw.texts?.some((t) => t.emissive)) {
+    emi = Lw.emissive ? await raster(Lw.emissive, 0, -h, w, h, q) : lienzo(alb.width, alb.height);
+    if (Lw.texts) drawTexts(emi.getContext('2d')!, Lw.texts, 0, -h, q, true);
+  }
   const { body: _b, emissive: _e, ...rest } = Lw;
-  return { ...rest, c };
+  if (modo === 'gl') return { ...rest, c: alb, alb, luz: lm, emi, luces: [] };
+  return { ...rest, c: componer({ alb, luz: lm, emi }) };
 }
 
 /** Rasterise and light every layer at `px` device pixels per scene unit. */
-export async function hornear(S: Escena, px: number, onProgress?: (p: number) => void): Promise<Horneado> {
+export async function hornear(S: Escena, px: number, onProgress?: (p: number) => void, modo: Modo = '2d'): Promise<Horneado> {
   const D = depth(S);
   const amb = hexRGB(S.ambient);
   const lights = S.lights.map((l) => ({ ...l, c: hexRGB(l.color) }));
@@ -307,21 +370,33 @@ export async function hornear(S: Escena, px: number, onProgress?: (p: number) =>
   let done = 0;
   for (const L of S.layers) {
     const piezas: PiezaHorneada[] = [];
+    // The scene lights as this layer sees them (relief shader).
+    const usadas = L.lit && L.lights !== false ? lights : [];
+    const lucesCapa: LuzCapa[] = usadas.map((l) => {
+      if (L.floor) {
+        const fy = l.fy ?? Math.max(S.BASE + 20, l.y);
+        const k = D.f(fy);
+        return { x: S.CX + k * (l.X - S.CX), y: fy, r: l.r * k, power: l.power, c: l.c, flat: l.flat ?? 0.42 };
+      }
+      const k = L.k ?? 1;
+      return { x: S.CX + k * (l.X - S.CX), y: l.y, r: l.r * k, power: l.power, c: l.c, flat: 1 };
+    });
     for (const p of tiles(L)) {
       const w = p.x1 - p.x0;
       const h = p.y1 - p.y0;
-      const c = await raster(p.body, p.x0, p.y0, w, h, px);
-      const ctx = c.getContext('2d')!;
-      if (L.texts) drawTexts(ctx, L.texts, p.x0, p.y0, px, false);
+      const alb = await raster(p.body, p.x0, p.y0, w, h, px);
+      if (L.texts) drawTexts(alb.getContext('2d')!, L.texts, p.x0, p.y0, px, false);
+      let lm: HTMLCanvasElement | null = null;
       if (L.lit) {
         // Light map in this layer's own coordinates.
-        const lm = lienzo(c.width, c.height);
+        const ql = modo === 'gl' ? px * LUZ_GL : px;
+        lm = lienzo(w * ql, h * ql);
         const lx = lm.getContext('2d')!;
-        lx.setTransform(px, 0, 0, px, -p.x0 * px, -p.y0 * px);
+        lx.setTransform(ql, 0, 0, ql, -p.x0 * ql, -p.y0 * ql);
         lx.fillStyle = cssRGB(L.ambient ? hexRGB(L.ambient) : amb);
         lx.fillRect(p.x0, p.y0, w, h);
         lx.globalCompositeOperation = 'lighter';
-        for (const l of L.lights === false ? [] : lights) {
+        for (const l of usadas) {
           if (L.floor) {
             const fy = l.fy ?? Math.max(S.BASE + 20, l.y);
             const k = D.f(fy);
@@ -332,13 +407,13 @@ export async function hornear(S: Escena, px: number, onProgress?: (p: number) =>
           }
         }
         if (L.floor) {
-          for (const s of S.shafts ?? []) {
+          for (const s2 of S.shafts ?? []) {
             const gp = (X: number, k: number) => [S.CX + k * (X - S.CX), D.yOf(k)];
-            const pts = [gp(s.X0, 1), gp(s.X1, 1), gp(s.X1 + s.dX, s.k1), gp(s.X0 + s.dX, s.k1)];
-            const gr = lx.createLinearGradient(0, S.BASE, 0, D.yOf(s.k1));
-            const sc = hexRGB(s.color);
-            gr.addColorStop(0, cssRGB(sc, s.power));
-            gr.addColorStop(1, cssRGB(sc, s.power * 0.15));
+            const pts = [gp(s2.X0, 1), gp(s2.X1, 1), gp(s2.X1 + s2.dX, s2.k1), gp(s2.X0 + s2.dX, s2.k1)];
+            const gr = lx.createLinearGradient(0, S.BASE, 0, D.yOf(s2.k1));
+            const sc = hexRGB(s2.color);
+            gr.addColorStop(0, cssRGB(sc, s2.power));
+            gr.addColorStop(1, cssRGB(sc, s2.power * 0.15));
             lx.fillStyle = gr;
             lx.beginPath();
             pts.forEach(([x, y], i) => (i ? lx.lineTo(x, y) : lx.moveTo(x, y)));
@@ -346,19 +421,26 @@ export async function hornear(S: Escena, px: number, onProgress?: (p: number) =>
             lx.fill();
           }
         }
-        multiplyLight(c, lm);
       }
       const emissive = p.emissive ?? L.emissive;
-      if (emissive) ctx.drawImage(await raster(emissive, p.x0, p.y0, w, h, px), 0, 0);
-      if (L.texts) drawTexts(ctx, L.texts, p.x0, p.y0, px, true);
-      if (L.glows) {
-        ctx.save();
-        ctx.setTransform(px, 0, 0, px, -p.x0 * px, -p.y0 * px);
-        ctx.globalCompositeOperation = 'lighter';
-        for (const gl of L.glows) glow(ctx, gl.x, gl.y, gl.r, gl.color, gl.a);
-        ctx.restore();
+      let emi: HTMLCanvasElement | null = null;
+      if (emissive || L.glows || L.texts?.some((t) => t.emissive)) {
+        emi = emissive ? await raster(emissive, p.x0, p.y0, w, h, px) : lienzo(alb.width, alb.height);
+        const ex = emi.getContext('2d')!;
+        if (L.texts) drawTexts(ex, L.texts, p.x0, p.y0, px, true);
+        if (L.glows) {
+          ex.save();
+          ex.setTransform(px, 0, 0, px, -p.x0 * px, -p.y0 * px);
+          ex.globalCompositeOperation = 'lighter';
+          for (const gl of L.glows) glow(ex, gl.x, gl.y, gl.r, gl.color, gl.a);
+          ex.restore();
+        }
       }
-      piezas.push({ c, x0: p.x0, y0: p.y0, w, h, si: p.si });
+      const base = { x0: p.x0, y0: p.y0, w, h, si: p.si };
+      if (modo === 'gl') {
+        const cerca = lucesCapa.filter((l) => l.x + l.r > p.x0 && l.x - l.r < p.x1 && l.y + l.r * l.flat > p.y0 && l.y - l.r * l.flat < p.y1);
+        piezas.push({ ...base, c: alb, alb, luz: lm, emi, luces: cerca.slice(0, 16) });
+      } else piezas.push({ ...base, c: componer({ alb, luz: lm, emi }) });
       onProgress?.(++done / total);
     }
     const { pieces: _p, body: _b, ...rest } = L;
@@ -366,28 +448,29 @@ export async function hornear(S: Escena, px: number, onProgress?: (p: number) =>
   }
   const laterales: LateralHorneado[] = [];
   for (const Lw of S.laterals ?? []) {
-    laterales.push(await bakeLateral(S, Lw, px));
+    laterales.push(await bakeLateral(S, Lw, px, modo));
     onProgress?.(++done / total);
   }
-  return { capas, laterales, px };
+  return { capas, laterales, px, modo };
 }
 
-/** Draw a wall running into depth as sheared strips, so its foot follows the ground. */
-export function drawLateral(ctx: CanvasRenderingContext2D, S: Escena, Lw: LateralHorneado, vw: number, cam: number, px: number) {
+/**
+ * A wall running into depth, cut into strips. Each strip is an affine transform
+ * from texture pixels to device pixels, sheared so its foot follows the ground.
+ */
+export function tirasLateral(S: Escena, Lw: Lateral, tw: number, th: number, vw: number, cam: number, px: number) {
   const N = 36;
   const zw = S.ZW ?? 8;
   const xs = (d: number): [number, number] => {
     const k = zw / (zw + d);
     return [vw / 2 + k * (Lw.X - cam), k];
   };
+  const out: Array<{ m: [number, number, number, number, number, number]; s0: number; sw: number }> = [];
   const [a0] = xs(0);
   const [a1] = xs(Lw.len);
   // Only the face that looks at the camera is drawn.
-  if ((a1 - a0) * Lw.face <= 0) return;
-  const tw = Lw.c.width;
-  const th = Lw.c.height;
+  if ((a1 - a0) * Lw.face <= 0) return out;
   const yb = (k: number) => S.HOR + (S.BASE - S.HOR) * k;
-  ctx.save();
   for (let i = 0; i < N; i++) {
     // Strips are denser near the camera, where the wall is wider on screen.
     const u0 = i / N;
@@ -407,8 +490,19 @@ export function drawLateral(ctx: CanvasRenderingContext2D, S: Escena, Lw: Latera
     const b = slope * a;
     const f = yl * px - b * s0 - d * th;
     // 4% wider around the strip centre so neighbouring strips overlap without seams.
-    ctx.setTransform(a * 1.04, b, 0, d, e - 0.04 * a * (s0 + sw / 2), f);
-    ctx.drawImage(Lw.c, s0, 0, sw, th, s0, 0, sw, th);
+    out.push({ m: [a * 1.04, b, 0, d, e - 0.04 * a * (s0 + sw / 2), f], s0, sw });
+  }
+  return out;
+}
+
+/** Canvas 2D: draw a lateral wall strip by strip. */
+export function drawLateral(ctx: CanvasRenderingContext2D, S: Escena, Lw: LateralHorneado, vw: number, cam: number, px: number) {
+  const tw = Lw.c.width;
+  const th = Lw.c.height;
+  ctx.save();
+  for (const t of tirasLateral(S, Lw as unknown as Lateral, tw, th, vw, cam, px)) {
+    ctx.setTransform(...t.m);
+    ctx.drawImage(Lw.c, t.s0, 0, t.sw, th, t.s0, 0, t.sw, th);
   }
   ctx.restore();
 }

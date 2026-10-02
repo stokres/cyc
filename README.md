@@ -27,6 +27,7 @@ npm run typecheck
 node scripts/playthrough.mjs http://localhost:5173/ revisiones/partida   # partida completa del piloto en viewport de móvil
 node scripts/shots.mjs http://localhost:5173/ revisiones/captura.png 844x390 3
 node tools/personajes/lamina-crew.mjs                                     # lámina de la crew (artifact/crew-lamina.html)
+node tools/personajes/frentes.mjs                                         # caras de frente de los retratos, por ánimo y boca (revisiones/frentes.png)
 node tools/escenas/exportar.mjs                                           # capas de las escenas en art/escenas/
 ```
 

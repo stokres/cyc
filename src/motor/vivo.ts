@@ -82,6 +82,18 @@ function calle({ ctx, capa, S, px, t, off }: Vivo) {
     if (cyc < 0.25) {
       const u = cyc / 0.25;
       ctx.save();
+      // Only seen down the side street: the facades and its walls hide the rest
+      // (the WebGL renderer draws this over every back layer).
+      const L = Math.max(off(T.k) + T.a0, off(1) + T.b0);
+      const R = Math.min(off(T.k) + T.a1, off(1) + T.b1);
+      if (R <= L) {
+        ctx.restore();
+        return;
+      }
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.beginPath();
+      ctx.rect(L * px, 0, (R - L) * px, ctx.canvas.height);
+      ctx.clip();
       ctx.setTransform(px, 0, 0, px, off(T.k) * px, 0);
       ctx.globalCompositeOperation = 'lighter';
       const x = T.x0 + (T.x1 - T.x0) * u;
