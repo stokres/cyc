@@ -1,8 +1,57 @@
-# Escena 1 · Calle de Usera (encargo)
+# Escena 1 · Casa de Fran y calle de Usera
 
-Descripción del encargo, 2 de octubre de 2026. Pendiente de recibir las referencias gráficas.
+Encargo del 2 de octubre de 2026, con las referencias del grupo (plano del piso, foto del Bar del Río y foto del dragón de Usera). Las fotos son solo referencia y no están en el repositorio.
 
-- **Calle de Usera**, como en el mockup, pero **más larga**: la cámara recorre varias pantallas.
-- **Bar El Río:** el bar de la crew. Llegarán fotos de referencia.
-- **Al fondo, pero visible: un parque infantil muy grande** con un **tobogán en forma de dragón chino**. Llegarán fotos de referencia.
-- Construcción con profundidad (fase 3 del plan): perspectiva con punto de fuga, 5–6 planos con parallax, elementos en primer plano y bruma entre planos.
+## Historia (arranque)
+
+- Empieza en **casa de Fran**, solo. Se despierta de una siesta en el sofá.
+- Comparte piso con una pareja que nunca está. Su perra, **Aceituna** (negra, pequeña y muy maja), es de la pareja, pero quien la cuida es Fran. Está por el piso.
+- La salida a la calle está **a la derecha del todo** del piso.
+- **Primer objetivo:** conseguir que los demás lleguen a la primera quedada en Usera. El grupo todavía no se llama Camiones y Caravanas; el nombre llega después.
+- El primer puzle o minijuego del piso está pendiente de que el grupo lo explique.
+
+## Piso de Fran (`tools/escenas/piso.mjs`)
+
+- **Distribución del plano**, de izquierda a derecha: cocina, frigorífico, chimenea, terraza y baño. Después van el recibidor y la puerta de la calle. A la izquierda se ve la puerta del dormitorio.
+- **Primer plano:** la mesa frente a la cocina y el sofá frente a la chimenea, de espaldas a la cámara. Fran duerme en el sofá.
+- **Capas, de fondo a frente:**
+  1. Cielo y tejados al anochecer, que solo se ven por los cristales.
+  2. La terraza.
+  3. La pared.
+  4. El suelo en perspectiva.
+  5. Los personajes y los objetos del suelo.
+  6. Los muebles de primer plano.
+- **Luz:** anochece. Entra luz malva por la terraza, y dan luz cálida la chimenea, el aplique, la lámpara de arco y la lámpara del recibidor.
+
+## Calle (`tools/escenas/calle.mjs`)
+
+Es una calle larga (8.200 unidades, unas tres pantallas y media), de noche. De izquierda a derecha:
+
+1. **Portal de Fran:** un edificio de ladrillo, una ventana con reja y una mercería cerrada con grafitis.
+2. **Comercios:** una frutería con cajas en la acera y una bollería china con farolillos.
+3. **Parque infantil grande**, con verja, árboles, bancos y farolas de bola. **El dragón chino** se ve al fondo, entre las traseras de los bloques vecinos.
+4. **Esquina con farmacia** y **cruce** con paso de cebra. La calle transversal se ve en perspectiva real.
+5. **Calle peatonal con el Bar del Río**, inspirado en la foto pero sin copiarla al detalle. Lleva toldo negro, cartel luminoso, carta de raciones, puerta azul a la izquierda y portal salmón con el 40 a la derecha. Delante tiene la **terraza**: mesas de aluminio y sillas de plástico negras.
+
+**Marcas:** no se usan las de la foto (cerveza, café). En su lugar hay carteles genéricos.
+
+## Cámara y profundidad (fase 3 del plan)
+
+- **Modelo de cámara único.** La pared del fondo o las fachadas están a profundidad 1, y cada capa está a su profundidad real:
+  - El parallax de cada capa es exacto.
+  - Los objetos de una capa más cercana se colocan con `u = CX + k·(X − CX)`.
+- **Suelo:** se dibuja con una cizalla, de modo que cada fila se mueve a su profundidad. Así es un suelo en perspectiva de verdad.
+- **Paredes que se alejan** (calle transversal y medianeras del parque): se dibujan en tiras, una por profundidad.
+- **Luz, como pide la guía (L4):**
+  - Cada capa se pinta en «luz de día» y se hornea una vez multiplicada por su mapa de luz.
+  - Las fuentes de luz se dibujan después.
+  - Lo que cambia se anima en vivo: fuego, polvo en el aire, cruz de farmacia, tele del bar y algún coche al fondo.
+- **Personajes:** reciben el tinte de la luz del sitio donde están.
+
+## Pendiente
+
+- Confirmar el nombre: «Bar del Río» (el del toldo) o «Bar El Río».
+- Foto de Aceituna para ajustar su aspecto.
+- Hora del despertar. Se ha supuesto que anochece (sobre las 20:35, el reloj de la cocina) y que la calle ya es de noche.
+- Nombres reales de las calles, si se quieren en las placas. Ahora solo pone «USERA».
+- Pasar las escenas al juego (WebGL2 con respaldo en Canvas 2D) junto con la crew.

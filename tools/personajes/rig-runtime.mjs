@@ -126,7 +126,7 @@ export class Rig {
       this.visT += dt;
       if (this.visT > 0.085) { this.visT = 0; this.talkI = (this.talkI + 1) % this.text.length; this.viseme = MOUTH(this.text[this.talkI]); }
     } else this.viseme = 'auto';
-    const key = this.mood + '|' + this.viseme + '|' + (this.blink ? 1 : 0);
+    const key = this.mood + '|' + this.viseme + '|' + (this.blink || this.eyesClosed ? 1 : 0);
     if (key !== this.lastKey) { this.headArt.innerHTML = this.headSvg(key); this.lastKey = key; }
     // Beard and hair lag behind the bob of the body.
     const vy = clampV((P.root[1] - this.lastRootY) / Math.max(dt, 1 / 30), 40);
