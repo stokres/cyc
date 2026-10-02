@@ -1,5 +1,7 @@
 // Plays the pilot from start to finish on a phone-sized viewport, like a player:
-// wake Fran, solve the flat puzzle, go out and walk to the Bar del Río.
+// choose Fran, wake him, switch to Pablo halfway and finish his (placeholder)
+// story, go back to Fran, solve the flat puzzle and walk towards the Bar del Río,
+// then finish Chuchi's and Guille's, and watch the four arrive together.
 // Fails on any console error or if a step does not do what it should.
 // Usage: node scripts/playthrough.mjs [url] [outDir]   (add ?relieve to the url to play it with relief light)
 import { chromium } from 'playwright';
@@ -40,7 +42,7 @@ async function charla() {
       return;
     }
     await wait(120);
-    const s = await page.evaluate(() => ({ busy: window.__cyc.g.ocupadoAhora, d: document.querySelector('.dialogo')?.innerText ?? null, over: !!document.querySelector('.cubierta.movil, .cubierta.minijuego') }));
+    const s = await page.evaluate(() => ({ busy: window.__cyc.g.ocupadoAhora, d: document.querySelector('.dialogo')?.innerText ?? null, over: !!document.querySelector('.cubierta.movil, .cubierta.minijuego, .cubierta.rotulo, .cubierta.eleccion, .cubierta.titulo') }));
     if (s.over) return;
     if (s.d !== null) {
       const t = s.d.replace(/\s*▸\s*$/, '').replace(/\n/g, ' · ');
@@ -129,6 +131,35 @@ async function girar(vueltas) {
   await charla();
 }
 
+/** Pick a protagonist on the start screen (or the one between stories). */
+async function escoger(id) {
+  await page.waitForSelector('.cubierta.eleccion');
+  await wait(300);
+  await page.click(`.eleccion-pj[data-id="${id}"]`);
+  await wait(300);
+  await page.waitForFunction(() => !document.querySelector('.velo.on'), null, { timeout: 30000 });
+  await charla();
+}
+
+/** End of a story: the title card over the fade. */
+async function rotulo(id) {
+  await page.waitForSelector('.cubierta.rotulo', { timeout: 30000 });
+  await shot(`camino-${id}`);
+  const ok = await page.evaluate((id) => window.__cyc.g.estado.llegados.includes(id), id);
+  check(ok, `${id} no va de camino`);
+  await wait(700);
+  await page.click('.cubierta.rotulo');
+  await wait(300);
+}
+
+/** A placeholder story: the object, then the way out. */
+async function provisional(id) {
+  await shot(id);
+  await paso(`${id}: la cosa de su historia`, async () => tocar(await verZona('cosa')), `cosa.${id}`);
+  await paso(`${id}: salir hacia el Río`, async () => tocar(await verZona('salida')));
+  await rotulo(id);
+}
+
 async function paso(nombre, fn, comprobar) {
   console.log(`· ${nombre}`);
   await fn();
@@ -138,11 +169,25 @@ async function paso(nombre, fn, comprobar) {
 // ---------------------------------------------------------------- the pilot
 await shot('titulo');
 await page.touchscreen.tap(420, 200);
-await wait(800);
-await charla();
+await page.waitForSelector('.cubierta.eleccion');
+await wait(400);
+await shot('eleccion');
+await escoger('fran');
 await shot('dormido');
 await paso('Despertar a Fran', () => tocar([420, 200]), 'despierto');
 await shot('despierto');
+await paso('Cambiar a Pablo desde el selector', async () => {
+  await page.click('.reparto .pj:nth-child(2)');
+  await wait(300);
+  await page.waitForFunction(() => window.__cyc.g.escena === 'casaPablo' && !document.querySelector('.velo.on'), null, { timeout: 30000 });
+  await charla();
+}, 'empezado.pablo');
+await provisional('pablo');
+await paso('Volver con Fran, donde lo dejamos', async () => {
+  await escoger('fran');
+  const ok = await page.evaluate(() => window.__cyc.g.escena === 'piso' && window.__cyc.g.estado.activo === 'fran');
+  check(ok, 'no vuelve al piso de Fran');
+}, 'despierto');
 await paso('Mirar el reloj (mantener pulsado)', async () => mantener(await verZona('reloj')), 'horaVista');
 await paso('Coger el móvil y leer el grupo', async () => {
   await tocar(await verZona('movil'));
@@ -194,23 +239,41 @@ await paso('Salir a la calle', async () => {
   await charla();
 }, 'enCalle');
 await shot('calle');
-await paso('Andar hasta el Bar del Río', async () => {
+await paso('Andar hacia el Bar del Río', async () => {
   for (let i = 0; i < 60; i++) {
-    const [x] = await zonaCss('bar');
-    if (x > 80 && x < 760) break;
+    if (await page.$('.cubierta.rotulo')) break;
     await page.touchscreen.tap(690, 355);
     await charla();
     await wait(900);
     if (i === 10) await shot('parque');
     if (i === 20) await shot('cruce');
   }
-  await page.waitForFunction(() => !window.__cyc.g.activo.moving, null, { timeout: 20000 });
-  await tocar(await verZona('bar'));
-  await wait(400);
 }, 'bar');
-await shot('fin');
-const estado = await page.evaluate(() => ({ hora: window.__cyc.g.hora, inv: window.__cyc.g.estado.inv.fran }));
-console.log(`  Llega al Río a las ${estado.hora}. Bolsa: ${estado.inv.join(', ')}`);
+const fran = await page.evaluate(() => ({ hora: window.__cyc.g.hora, inv: window.__cyc.g.estado.inv.fran }));
+console.log(`  Fran ve el Río a las ${fran.hora}. Bolsa: ${fran.inv.join(', ')}`);
+await rotulo('fran');
+await escoger('chuchi');
+await provisional('chuchi');
+await escoger('guille');
+await provisional('guille');
+await paso('Los cuatro llegan a la vez', async () => {
+  await page.waitForFunction(() => window.__cyc.g.escena === 'calle' && !document.querySelector('.velo.on'), null, { timeout: 30000 });
+  // The narrator, then the four walk in together and Fran speaks first.
+  await page.waitForSelector('.dialogo.narrador', { timeout: 30000 });
+  await wait(300);
+  await page.touchscreen.tap(420, 150);
+  await wait(150);
+  await page.touchscreen.tap(420, 150);
+  await page.waitForSelector('.dialogo:not(.narrador)', { timeout: 30000 });
+  await wait(600);
+  await shot('llegan');
+  await charla();
+  await page.waitForSelector('.cubierta.titulo', { timeout: 30000 });
+  const e = await page.evaluate(() => ({ final: window.__cyc.g.estado.final, aqui: Object.values(window.__cyc.g.estado.donde).filter((d) => d.escena === 'calle').length, hora: window.__cyc.g.hora }));
+  check(e.final && e.aqui === 4, 'la escena final no tiene a los cuatro');
+  console.log(`  Llegan los cuatro a las ${e.hora}`);
+  await shot('fin');
+});
 
 await browser.close();
 if (errors.length) {

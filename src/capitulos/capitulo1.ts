@@ -1,14 +1,23 @@
-// Chapter 1, phase 1: Fran wakes up from his nap at 20:35. He was meant to be at
-// the Bar del Río at nine. The couple he shares with have locked the door from
+// Chapter 1: four stories, one per protagonist, that end at the Bar del Río.
+// The player starts with whoever they like and can switch at any time; when a
+// story ends, that protagonist fades out on the way and, once the four are on
+// their way, they all arrive at the terrace together.
+//
+// Fran's story: he wakes up from his nap at 20:35. He was meant to be at the
+// Bar del Río at nine. The couple he shares with have locked the door from
 // outside, Aceituna is lying on his keys, and he is in his boxers.
+// Pablo's, Chuchi's and Guille's are placeholders (a room and a way out) until
+// their stories are written.
 //
 // Mechanics, one per step: walk, look (long press), use and pick up, the bag,
 // using an item on something, using it on yourself, and a touch minigame.
 // Every line comes from src/textos/capitulo1.md.
 import { escena as piso } from '../arte/escenas/piso.mjs';
 import { escena as calle } from '../arte/escenas/calle.mjs';
+import { escena as provisional } from '../arte/escenas/provisional.mjs';
 import type { Aventura, Capitulo, ZonaLogica } from '../juego/aventura';
 import type { Estado } from '../juego/estado';
+import type { PjId } from '../juego/reparto';
 import type { Escena } from '../motor/escena';
 import { dialogo, texto } from '../juego/textos';
 import { abrirMovil } from '../ui/movil';
@@ -21,26 +30,35 @@ const SOFA = { u: 2455, k: 1.42, y: 790 };
 /** Olives rolling on the kitchen floor after the jar pops. */
 let aceitunas: Array<{ X: number; y: number }> = [];
 
+/** Where each placeholder story happens. */
+const CASA: Record<Exclude<PjId, 'fran'>, string> = { pablo: 'casaPablo', chuchi: 'casaChuchi', guille: 'granja' };
+
 function estadoInicial(): Estado {
   return {
-    v: 2,
+    v: 3,
     activo: 'fran',
-    jugables: ['fran'],
-    donde: { fran: { escena: 'piso', X: 1830, y: 900, face: 1 } },
+    jugables: ['fran', 'pablo', 'chuchi', 'guille'],
+    llegados: [],
+    donde: {
+      fran: { escena: 'piso', X: 1830, y: 900, face: 1 },
+      pablo: { escena: CASA.pablo, X: 760, y: 890, face: 1 },
+      chuchi: { escena: CASA.chuchi, X: 760, y: 890, face: 1 },
+      guille: { escena: CASA.guille, X: 760, y: 890, face: 1 },
+    },
     ropa: { fran: 'casa' },
     inv: { fran: [], pablo: [], chuchi: [], guille: [] },
     flags: {},
-    minutos: HORA(20, 35),
+    minutos: { fran: HORA(20, 35), pablo: HORA(20, 30), chuchi: HORA(20, 20), guille: HORA(20, 10) },
     usos: {},
   };
 }
 
 /** Fran's nerves go up with the clock. */
 async function nervios(g: Aventura) {
-  if (g.estado.minutos >= HORA(20, 45) && !g.flag('nervios1')) {
+  if (g.estado.minutos.fran >= HORA(20, 45) && !g.flag('nervios1')) {
     g.poner('nervios1');
     await g.hablar('nervios.1');
-  } else if (g.estado.minutos >= HORA(20, 55) && !g.flag('nervios2') && !g.flag('vestido')) {
+  } else if (g.estado.minutos.fran >= HORA(20, 55) && !g.flag('nervios2') && !g.flag('vestido')) {
     g.poner('nervios2');
     await g.hablar('nervios.2');
   }
@@ -289,32 +307,112 @@ function zonasCalle(g: Aventura): Record<string, ZonaLogica> {
     peluqueria: {},
     bar: {
       async usar() {
-        if (g.flag('bar')) return g.hablar('mirar.bar');
-        g.poner('bar');
-        g.avanzarReloj(6);
-        await g.hablar('llegada.bar');
-        g.onFin?.();
+        if (g.estado.final || g.llegado('fran')) return g.hablar('mirar.bar');
+        await llegaFran(g);
       },
     },
   };
+}
+
+/** Fran sees the Río at the end of the street: fade out before he gets there. */
+async function llegaFran(g: Aventura) {
+  g.poner('bar');
+  g.avanzarReloj(5);
+  await g.hablar('llegada.fran');
+  await g.enCamino('fran');
+}
+
+/** A placeholder story: a room, one object that hints at the story, and the way out. */
+function zonasProvisional(g: Aventura, quien: Exclude<PjId, 'fran'>): Record<string, ZonaLogica> {
+  return {
+    ventana: {
+      mirar: () => g.hablar(`prov.${quien}.ventana`),
+      usar: () => g.hablar(`prov.${quien}.ventana`),
+    },
+    cosa: {
+      nombre: () => texto(`zona.cosa.${quien}`),
+      mirar: () => g.hablar(`prov.${quien}.cosa`),
+      async usar() {
+        g.poner(`cosa.${quien}`);
+        g.avanzarReloj(5);
+        await g.hablar(`prov.${quien}.usar`);
+      },
+    },
+    salida: {
+      nombre: () => texto('zona.salida'),
+      mirar: () => g.hablar(`prov.${quien}.salida.mirar`),
+      async usar() {
+        if (!g.flag(`cosa.${quien}`)) return g.hablar(`prov.${quien}.salida.antes`);
+        g.avanzarReloj(4);
+        await g.hablar(`prov.${quien}.salida`);
+        await g.enCamino(quien);
+      },
+    },
+  };
+}
+
+/** The four of them reach the terrace of the Río at the same time. */
+async function final(g: Aventura) {
+  const e = g.estado;
+  const hora = Math.max(...Object.values(e.minutos));
+  for (const id of e.jugables) e.minutos[id] = hora;
+  // Each one comes from a different side; they walk in together.
+  const desde: Record<PjId, [number, number, number, number]> = {
+    fran: [5450, 900, 6640, 905],
+    pablo: [5300, 860, 6330, 872],
+    chuchi: [8300, 872, 6980, 875],
+    guille: [8450, 930, 7160, 930],
+  };
+  for (const id of e.jugables) {
+    const [X, y] = desde[id];
+    e.donde[id] = { escena: 'calle', X, y, face: X < 6800 ? 1 : -1 };
+  }
+  g.vestir('fran', 'calle');
+  e.activo = 'fran';
+  g.poner('bar');
+  await g.irA('calle');
+  g.foco = 6820;
+  await g.hablar('final.antes');
+  await Promise.all(e.jugables.map((id) => g.andar(desde[id][2], desde[id][3], id)));
+  for (const id of e.jugables) g.pjs.get(id)?.lookAt(6820);
+  await g.esperar(300);
+  await g.hablar('final');
+  g.foco = null;
+  g.onFin?.();
 }
 
 export const capitulo1: Capitulo = {
   escenas: {
     piso: () => piso() as unknown as Escena,
     calle: () => calle() as unknown as Escena,
+    // Placeholders until the real stories arrive (src/arte/escenas/provisional.mjs).
+    casaPablo: () => provisional({ id: 'casaPablo', name: 'Casa de Pablo', pared: '#d9c3a0', techo: '#c4ae8c', rodapie: '#8a5a3a', suelo: ['#a8744a', '#b07c50', '#9c6c44'], ambient: '#5a5070', objeto: 'escritorio', luz: '#ffcf8a', semilla: 3 }) as unknown as Escena,
+    casaChuchi: () => provisional({ id: 'casaChuchi', name: 'Casa de Chuchi', pared: '#cfd8c8', techo: '#b8c2b0', rodapie: '#f0ebe0', suelo: ['#c9a87c', '#d2b286', '#bf9e72'], ambient: '#4e5878', objeto: 'juguetes', luz: '#ffe0b0', semilla: 5 }) as unknown as Escena,
+    granja: () => provisional({ id: 'granja', name: 'La granja', pared: '#9c7450', techo: '#7a5a3c', rodapie: '#5a4028', suelo: ['#8a7a5a', '#94845e', '#7e6e50'], ambient: '#4a4a62', objeto: 'bascula', luz: '#ffd890', semilla: 8 }) as unknown as Escena,
   },
 
   estadoInicial,
 
   zonas(g, escena) {
-    return escena === 'piso' ? zonasPiso(g) : zonasCalle(g);
+    if (escena === 'piso') return zonasPiso(g);
+    if (escena === 'calle') return zonasCalle(g);
+    const quien = (Object.keys(CASA) as Array<keyof typeof CASA>).find((id) => CASA[id] === escena)!;
+    return zonasProvisional(g, quien);
   },
 
-  async empezar(g) {
-    await g.hablar('intro');
-    g.hud.ayuda(texto('objetivo.despierta'), 8);
+  situacion: (quien) => texto(`situacion.${quien}`),
+
+  async empezar(g, quien) {
+    if (quien === 'fran') {
+      await g.hablar('intro');
+      g.hud.ayuda(texto('objetivo.despierta'), 8);
+      return;
+    }
+    await g.hablar(`intro.${quien}`);
+    g.ayudaUnaVez('cambiar');
   },
+
+  final,
 
   async alEntrar(g, escena) {
     if (escena === 'piso') {
@@ -333,8 +431,16 @@ export const capitulo1: Capitulo = {
 
   },
 
+  tick(g) {
+    // Fran walking past the crossing sees the Río: his story ends there.
+    const F = g.pjs.get('fran');
+    if (g.escena === 'calle' && g.estado.activo === 'fran' && !g.llegado('fran') && !g.estado.final && !g.ocupadoAhora && !g.hud.enDialogo && F && F.X > 6150) {
+      void g.ejecutar(() => llegaFran(g));
+    }
+  },
+
   tocar(g) {
-    if (g.escena === 'piso' && !g.flag('despierto')) {
+    if (g.escena === 'piso' && g.estado.activo === 'fran' && !g.flag('despierto')) {
       void g.ejecutar(() => despertar(g));
       return true;
     }
@@ -354,6 +460,7 @@ export const capitulo1: Capitulo = {
       // Test mode: the crew on the terrace, chatting.
       return g.hablar(`charla.${quien}`);
     }
+    if (quien !== 'fran') return g.hablar(mirar || !item ? `mirar.${quien}` : 'nadacontigo');
     const ropa = g.estado.ropa[quien] ?? 'calle';
     if (mirar || !item) return g.hablar(`mirar.fran.${ropa === 'casa' ? 'casa' : 'calle'}`);
     if (item === 'ropa') return vestirse(g);
@@ -364,12 +471,13 @@ export const capitulo1: Capitulo = {
   },
 
   async mirarObjeto(g, item) {
-    await g.decir('fran', texto(`objeto.${item}.texto`));
+    await g.decir(g.estado.activo, texto(`objeto.${item}.texto`));
   },
 
   objetivo(g) {
-    if (g.estado.activo !== 'fran') return null;
-    if (g.flag('bar')) return texto('objetivo.fin');
+    if (g.estado.final) return texto('objetivo.fin');
+    const quien = g.estado.activo;
+    if (quien !== 'fran') return texto(g.flag(`cosa.${quien}`) ? 'objetivo.bar' : `objetivo.${quien}`);
     if (g.escena === 'calle') return texto('objetivo.bar');
     if (!g.flag('despierto')) return null;
     if (!g.flag('horaVista')) return texto('objetivo.hora');
@@ -381,6 +489,8 @@ export const capitulo1: Capitulo = {
 
   pista(g) {
     const f = (k: string) => g.flag(k);
+    const quien = g.estado.activo;
+    if (quien !== 'fran') return texto(f(`cosa.${quien}`) ? `pista.${quien}.salir` : `pista.${quien}`);
     if (g.escena === 'calle') return texto('pista.bar');
     if (!f('horaVista')) return texto('pista.hora');
     if (!f('movil')) return texto('pista.movil');

@@ -47,20 +47,6 @@ async function logoClaro(): Promise<string> {
   return c.toDataURL('image/png');
 }
 
-/** Test mode: the four of them on the terrace of the Río, to try the character dock. */
-async function modoPrueba(g: Aventura) {
-  const e = g.estado;
-  e.jugables = ['fran', 'pablo', 'chuchi', 'guille'];
-  e.donde.pablo = { escena: 'calle', X: 6620, y: 900, face: 1 };
-  e.donde.chuchi = { escena: 'calle', X: 6860, y: 872, face: -1 };
-  e.donde.guille = { escena: 'calle', X: 7230, y: 930, face: -1 };
-  await g.ejecutar(async () => {
-    if (g.escena === 'calle') await g.irA('calle');
-    g.refrescar();
-  });
-  g.hud.aviso(texto('prueba.aviso'));
-}
-
 async function arrancar() {
   cargarTextos(textosInterfaz, textosCapitulo);
   const root = document.getElementById('game')!;
@@ -136,7 +122,6 @@ async function arrancar() {
           'div',
           { class: 'fila' },
           h('button', { class: 'btn primario', onclick: (e) => (e.stopPropagation(), cerrar()) }, texto('menu.continuar')),
-          h('button', { class: 'btn', onclick: (e) => (e.stopPropagation(), cerrar(), void modoPrueba(g)) }, texto('menu.prueba')),
           reiniciar,
         ),
       ),
@@ -167,7 +152,6 @@ async function arrancar() {
           'div',
           { class: 'fila' },
           h('button', { class: 'btn primario', onclick: (e) => (e.stopPropagation(), el.remove()) }, texto('fin.seguir')),
-          h('button', { class: 'btn', onclick: (e) => (e.stopPropagation(), el.remove(), void modoPrueba(g)) }, texto('menu.prueba')),
           h('button', { class: 'btn fantasma', onclick: (e) => (e.stopPropagation(), borrarEstado(), location.reload()) }, texto('fin.reiniciar')),
         ),
       ),
@@ -191,7 +175,8 @@ async function arrancar() {
   orientacion();
 
   // ---------------------------------------------------------- title
-  const nueva = !guardado;
+  // A new game until someone's story has started (the save exists as soon as a scene loads).
+  const nueva = !g.estado.jugables.some((id) => g.flag(`empezado.${id}`));
   const titulo = g.hud.cubrir(
     'titulo',
     h(
@@ -209,7 +194,9 @@ async function arrancar() {
     if (matchMedia('(pointer: coarse)').matches) document.documentElement.requestFullscreen?.().catch(() => {});
     await cargada;
     g.hud.setVisible(true);
-    if (nueva) await g.ejecutar(() => g.cap.empezar(g));
+    if (nueva) await g.ejecutar(() => g.empezarPartida());
+    // Saved between two stories: choose who goes next.
+    else if (g.llegado(g.estado.activo) && !g.estado.final) await g.ejecutar(async () => g.cambiarA(await g.escogerQuien(texto('eleccion.siguiente'))));
   });
 
   // Test hook for scripts/playthrough.mjs.

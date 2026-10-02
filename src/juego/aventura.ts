@@ -33,8 +33,12 @@ export interface Capitulo {
   mirarObjeto(g: Aventura, item: string): Promise<void>;
   objetivo(g: Aventura): string | null;
   pista(g: Aventura): string;
-  /** Called once when a new game starts. */
-  empezar(g: Aventura): Promise<void>;
+  /** One line per protagonist for the start screen: where their story begins. */
+  situacion(quien: PjId): string;
+  /** First time a protagonist is played: their story's opening. */
+  empezar(g: Aventura, quien: PjId): Promise<void>;
+  /** All four are on their way: the four of them arrive at the bar together. */
+  final(g: Aventura): Promise<void>;
   alEntrar?(g: Aventura, escena: string): Promise<void>;
   /** First look at every tap; return true to swallow it (e.g. waking Fran up). */
   tocar?(g: Aventura): boolean;
@@ -43,6 +47,7 @@ export interface Capitulo {
 }
 
 const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));
+export const horaDe = (m: number) => `${Math.floor(m / 60) % 24}:${String(m % 60).padStart(2, '0')}`;
 const MARGEN = 26; // extra tap margin around every zone (rule I4)
 
 export class Aventura {
@@ -107,14 +112,18 @@ export class Aventura {
     this.estado.flags[k] = v;
   }
 
+  /** The clock of the story being played (each protagonist has their own). */
   get hora() {
-    const m = this.estado.minutos;
-    return `${Math.floor(m / 60) % 24}:${String(m % 60).padStart(2, '0')}`;
+    return horaDe(this.estado.minutos[this.estado.activo]);
   }
 
   avanzarReloj(min: number) {
-    this.estado.minutos += min;
+    this.estado.minutos[this.estado.activo] += min;
     this.refrescar();
+  }
+
+  llegado(id: PjId) {
+    return this.estado.llegados.includes(id);
   }
 
   tiene(item: string, quien: PjId = this.estado.activo) {
@@ -162,7 +171,10 @@ export class Aventura {
     this.hud.setBolsa(e.inv[e.activo]);
     const nombreLugar = (id: string) => texto('selector.fuera', { lugar: texto(`lugar.${id}`) });
     this.hud.setReparto(
-      e.jugables.map((id) => ({ id, aqui: e.donde[id]?.escena === this.escena, lugar: nombreLugar(e.donde[id]?.escena ?? '') })),
+      e.jugables.map((id) => {
+        const camino = this.llegado(id) && !e.final;
+        return { id, aqui: !camino && e.donde[id]?.escena === this.escena, lugar: camino ? texto('selector.camino') : nombreLugar(e.donde[id]?.escena ?? ''), camino };
+      }),
       e.activo,
     );
   }
@@ -192,7 +204,10 @@ export class Aventura {
     this.motor.actores = [];
     for (const id of PROTAS) {
       const d = this.estado.donde[id];
-      if (!d || d.escena !== escena) continue;
+      if (!d || d.escena !== escena) {
+        this.pjs.get(id)?.wrap.remove();
+        continue;
+      }
       let p = this.pjs.get(id);
       if (!p) {
         p = new Personaje(this.motor.world, this.motor.defs, id, REPARTO[id].arte, this.estado.ropa[id] ?? REPARTO[id].ropa, PROTAS.indexOf(id));
@@ -232,25 +247,82 @@ export class Aventura {
     if (!this.rapido) await espera(450);
   }
 
-  /** Pick another protagonist; if they are elsewhere, the game goes there. */
+  /** Pick another protagonist from the dock; if they are elsewhere, the game goes there. */
   async elegir(id: PjId) {
     if (this.ocupado || this.hud.enDialogo) return;
     if (id === this.estado.activo) {
       this.motor.seguir(this.activo?.X ?? 0);
       return;
     }
+    if (this.llegado(id) && !this.estado.final) {
+      this.hud.aviso(texto('selector.yaencamino', { quien: REPARTO[id].nombre }));
+      return;
+    }
     this.sound.tap();
+    await this.ejecutar(() => this.cambiarA(id));
+  }
+
+  /** Switch to a protagonist (inside a script): load their scene, and the first time, their opening. */
+  async cambiarA(id: PjId) {
     this.hud.seleccionar(null);
     this.estado.activo = id;
     const d = this.estado.donde[id];
-    if (d && d.escena !== this.escena) await this.ejecutar(() => this.irA(d.escena));
-    else this.refrescar();
+    if (d && (d.escena !== this.escena || !this.S)) await this.irA(d.escena);
+    else {
+      this.refrescar();
+      if (this.velo.classList.contains('on')) await this.velar(false);
+    }
     const p = this.pjs.get(id);
-    if (p) {
+    if (p && !this.estado.final) {
       p.mood = 'happy';
       setTimeout(() => (p.mood = REPARTO[id].arte.INFO.defaultMood ?? 'neutral'), 1200);
       this.etiquetaEn(REPARTO[id].nombre, p.X, p.y - 300 * this.motor.escala(this.motor.f(p.y)) / this.motor.escala(1));
     }
+    if (!this.flag(`empezado.${id}`)) {
+      this.poner(`empezado.${id}`);
+      await this.cap.empezar(this, id);
+    }
+  }
+
+  /** The start screen (and the one between stories): choose who to play. */
+  async escogerQuien(titulo: string) {
+    const e = this.estado;
+    const id = await this.hud.eleccion(
+      titulo,
+      e.jugables.map((id) => ({ id, situacion: this.cap.situacion(id), camino: this.llegado(id) })),
+    );
+    this.sound.tap();
+    return id;
+  }
+
+  /** A new game: choose who starts. */
+  async empezarPartida() {
+    await this.cambiarA(await this.escogerQuien(texto('eleccion.titulo')));
+  }
+
+  /**
+   * The protagonist's story is over: fade out before they reach the bar, so the
+   * four can arrive together at the end. Then choose who goes next, or the final.
+   */
+  async enCamino(id: PjId = this.estado.activo) {
+    const e = this.estado;
+    if (!e.llegados.includes(id)) e.llegados.push(id);
+    delete e.donde[id];
+    const p = this.pjs.get(id);
+    if (p) p.visible = false;
+    this.hud.seleccionar(null);
+    this.hud.cerrarDialogo();
+    await this.velar(true);
+    this.velo.querySelector('span')!.textContent = '';
+    const faltan = e.jugables.filter((p) => !this.llegado(p)).map((p) => REPARTO[p].nombre);
+    const lista = faltan.length > 1 ? `${faltan.slice(0, -1).join(', ')} ${texto('lista.y')} ${faltan[faltan.length - 1]}` : faltan[0];
+    await this.hud.rotulo(texto(`camino.${id}`), faltan.length ? texto(faltan.length > 1 ? 'camino.faltan' : 'camino.falta', { quien: lista }) : texto('camino.todos'), id);
+    if (!faltan.length) {
+      e.final = true;
+      await this.cap.final(this);
+      return;
+    }
+    await this.cambiarA(await this.escogerQuien(texto('eleccion.siguiente')));
   }
 
   // ------------------------------------------------------------ scripting API
@@ -295,9 +367,13 @@ export class Aventura {
     }
   }
 
-  /** Play a dialogue block from the texts. */
+  /**
+   * Play a dialogue block from the texts. A block `clave.<protagonist>` (for
+   * example `nofunciona.pablo`) wins over `clave` when that protagonist is playing.
+   */
   async hablar(clave: string, vars: Record<string, string | number> = {}) {
-    for (const l of dialogo(clave, { hora: this.hora, ...vars })) await this.linea(l);
+    const propia = `${clave}.${this.estado.activo}`;
+    for (const l of dialogo(hayDialogo(propia) ? propia : clave, { hora: this.hora, ...vars })) await this.linea(l);
   }
 
   async linea(l: Linea) {

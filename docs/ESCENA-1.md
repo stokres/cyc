@@ -2,13 +2,33 @@
 
 Encargo del 2 de octubre de 2026, con las referencias del grupo (plano del piso, foto del Bar del Río y foto del dragón de Usera). Las fotos son solo referencia y no están en el repositorio.
 
-## Historia (arranque)
+## Estructura del capítulo 1: cuatro historias que acaban en el Río
+
+Decidido el 2 de octubre de 2026:
+
+- **Al empezar se elige con quién:** Fran, Pablo, Chuchi o Guille. Cada uno tiene su propia historia, en su sitio, con sus puzles y su reloj.
+- **Se puede cambiar de personaje en cualquier momento** desde la columna de la izquierda; cada uno sigue donde lo dejaste. Si te atascas con uno, sigues con otro. Ningún puzle depende de que otro personaje haga algo antes.
+- **Al terminar su historia, cada uno se funde a negro antes de llegar al bar,** con un rótulo («Fran ya va de camino al Río») y una marca ✓ en el selector. Ya no se puede jugar con él.
+- **Cuando van los cuatro,** escena final en la terraza del Río: llegan a la vez desde sitios distintos, cada uno convencido de que era el último.
+- El grupo de WhatsApp puede servir de hilo común y de pista suave entre historias (pendiente).
+
+| Quién | Dónde empieza | Estado |
+|---|---|---|
+| Fran | Su piso; se ha quedado dormido en el sofá | Hecha (el puzle de abajo); acaba al ver el Río desde el cruce |
+| Pablo | Atrapado en su propia narración: el narrador le lleva la contraria y tiene que escapar de ella (muy meta) | Provisional |
+| Chuchi | Contratiempos con las hijas, sin que salgan ellas | Provisional |
+| Guille | Pesando cerdos; tiene que terminar y quitarse el olor a cerdo | Provisional |
+
+Las historias provisionales son una habitación genérica (`src/arte/escenas/provisional.mjs`) con un objeto que apunta a la historia y una puerta: tocar el objeto y salir. Están para probar la estructura de principio a fin hasta que el grupo dé el contexto de cada una.
+
+**Pendiente del grupo** para escribirlas: dónde empieza cada uno, quién más puede salir (novias, compañeros de piso, la pareja de Chuchi; si las niñas se oyen fuera de plano), anécdotas o frases reales, duración de cada historia, si cada uno trae algo que importe en el bar, y si el narrador de Pablo es un personaje con voz propia.
+
+## Historia de Fran (arranque)
 
 - Empieza en **casa de Fran**, solo. Se despierta de una siesta en el sofá.
 - Comparte piso con una pareja que nunca está. Su perra, **Aceituna** (negra, pequeña y muy maja), es de la pareja, pero quien la cuida es Fran. Está por el piso.
 - La salida a la calle está **a la derecha del todo** del piso.
-- **Primer objetivo:** conseguir que los demás lleguen a la primera quedada en Usera. El grupo todavía no se llama Camiones y Caravanas; el nombre llega después.
-- El primer puzle o minijuego del piso está pendiente de que el grupo lo explique.
+- **Objetivo del capítulo:** que los cuatro lleguen a la primera quedada en Usera. El grupo todavía no se llama Camiones y Caravanas; el nombre llega después.
 
 ## Piso de Fran (`tools/escenas/piso.mjs`)
 
@@ -67,14 +87,13 @@ Se pueden cambiar por la actual o sumarse:
 - **Aceituna no le deja irse.** Se planta en la puerta con ojos tristes. Fran tiene que montarle su propio plan de jueves: la tele con «Saber y ganar», un calcetín suyo que huela a él y su pelota escondida en el sofá.
 - **El móvil sin batería.** El cargador lo ha mordisqueado Aceituna y sin móvil no puede avisar de que llega tarde. Fran tiene que sacar batería de donde sea: el tocadiscos, la lámpara de arco, el telefonillo.
 
-## Fase 2: que vayan llegando (ideas)
+## Ideas para las otras tres historias
 
-Fran ya está en el Río y no hay nadie. Cada amigo está atascado en su sitio y el selector permite saltar a él, como en *Day of the Tentacle*:
+Primeras ideas, para corregir con el contexto del grupo:
 
-- **Chuchi:** las niñas no se duermen. Minijuego de cuento o nana, y escaparse sin que se despierten. Si además le llaman del trabajo por algo urgente, peor.
-- **Pablo:** atrapado en un ensayo de impro que no acaba, o en un cortejo de camino al bar. Necesita una salida dramática bien escrita.
-- **Guille:** viene de pesar cerdos y huele a purín. Su novia no le deja salir hasta ducharse, y se ha acabado el gel.
-- **Fran,** desde la terraza, usa el móvil para ir desbloqueándolos («échate otra caña» como argumento universal).
+- **Pablo:** el narrador (las cajas de texto sin retrato) le lleva la contraria: «Pablo intentó abrir la puerta. La puerta estaba cerrada. Siempre lo estuvo». Para escapar tiene que discutirle, reescribir las acotaciones con un boli o colarle un giro de guion. Se puede jugar con la propia interfaz (la bolsa, la bombilla, el reloj).
+- **Guille:** el último cerdo no quiere subirse a la báscula (minijuego). Luego el olor: la ducha no va, se acaba el jabón… Mientras huela a purín la gente se aparta y los perros le siguen, y eso puede ser parte del puzle.
+- **Chuchi:** la casa sembrada de juguetes (pisar un Lego), las llaves en la cocinita de juguete, una pegatina de unicornio en la espalda que no ve, la canción infantil metida en la cabeza, el vigilabebés que pita justo al salir. Y quizá «un último bug» del trabajo.
 
 ## Pendiente
 

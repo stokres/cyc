@@ -16,6 +16,23 @@ Todo lo que se dice en el juego está aquí. Cámbialo a tu gusto y recarga.
 Los textos de este capítulo son provisionales: están para probar el puzle.
 -->
 
+// ---------------------------------------------------------------- las cuatro historias
+
+situacion.fran = Se ha quedado dormido en el sofá.
+situacion.pablo = Atrapado en su propia narración.
+situacion.chuchi = Con las niñas en casa. Bueno, más o menos.
+situacion.guille = Todavía en la granja, pesando cerdos.
+
+camino.fran = Fran ya va de camino al Río
+camino.pablo = Pablo ya va de camino al Río
+camino.chuchi = Chuchi ya va de camino al Río
+camino.guille = Guille ya va de camino al Río
+camino.faltan = Faltan {quien}.
+camino.falta = Falta {quien}.
+camino.todos = ¡Ya van los cuatro!
+
+ayuda.cambiar = Puedes cambiar de personaje cuando quieras desde la columna de la izquierda.
+
 ## intro
 > Usera. Jueves, ocho y pico de la tarde.
 > Fran se ha echado «una siestecita de diez minutos».
@@ -36,7 +53,7 @@ objetivo.salir = Sal de casa: a las 21:00 en el Bar del Río
 objetivo.llaves = Recupera tus llaves
 objetivo.vestirse = Vístete: en calzoncillos no se va al Río
 objetivo.bar = Ve al Bar del Río
-objetivo.fin = ¿Dónde se ha metido todo el mundo?
+objetivo.fin = ¡Los cuatro en el Río!
 
 pista.hora = El reloj de la cocina está encima de la ventana. Mantén el dedo sobre él para mirarlo.
 pista.movil = Tu móvil no para de vibrar encima de la mesa.
@@ -427,18 +444,151 @@ FRAN: La peluquería Rosi. Rosi me corta la barba. Bueno, me la negocia.
 ## mirar.bar
 FRAN (contento): El Bar del Río. Nuestro bar. Las mejores bravas al sur del Manzanares.
 
-## llegada.bar
-FRAN (contento): ¡Ya estoy! ¡Perdón, perdón, que me he...!
-FRAN (sorprendido): ¿Y estos? ¿No hay nadie?
-FRAN: Las {hora}, tardísimo... ¡y he llegado el primero!
-FRAN (nervioso): Pues nada. Habrá que hacer que vengan. Uno por uno.
+## llegada.fran
+FRAN (contento): ¡Ahí está el Río! Con su terraza y sus sillas de plástico.
+FRAN (nervioso): Las {hora}. Estos ya estarán por la segunda caña. Pongo cara de «el tráfico».
+
+// ---------------------------------------------------------------- final: los cuatro llegan a la vez
+
+## final.antes
+> Bar del Río. A la misma hora, por cuatro sitios distintos...
+
+## final
+FRAN (sorprendido): ¿Pero qué...? ¿Llegáis ahora?
+PABLO (contento): Llego tarde con estilo. Es una entrada en escena.
+CHUCHI: Yo llego tarde porque tengo dos hijas. Tengo bula.
+GUILLE (contento): ¡Maño! ¡Pues ya estamos todos! Y nadie ha pedido, ¿no?
+FRAN: Los cuatro a las {hora}, a la vez. Esto no lo escribe ni Pablo.
+PABLO (chulo): Hombre, yo lo habría escrito mejor.
+> Y así empezó lo de los jueves. Pero esa es otra historia.
 
 fin.titulo = Fin del piloto
-fin.texto = Fran ha llegado al Río... y no hay nadie. En la fase 2 tendrás que conseguir que vayan llegando Pablo, Chuchi y Guille.
+fin.texto = Los cuatro han llegado al Río. Las historias de Pablo, Chuchi y Guille son provisionales: pronto tendrán sus propios puzles.
 
-// ---------------------------------------------------------------- modo prueba (selector)
+// ---------------------------------------------------------------- historias provisionales (Pablo, Chuchi y Guille)
 
-prueba.aviso = Modo prueba: la crew está en la terraza del Río. Cambia de personaje desde la columna de la izquierda.
+zona.salida = Puerta
+zona.cosa.pablo = Escritorio
+zona.cosa.chuchi = Caja de juguetes
+zona.cosa.guille = Báscula
+
+objetivo.pablo = Escapa de la narración
+objetivo.chuchi = Sal de casa sin despertar a nadie
+objetivo.guille = Termina de pesar y quítate el olor
+pista.pablo = (Historia provisional) Mira el escritorio y luego sal por la puerta.
+pista.pablo.salir = La puerta de la derecha lleva al Río.
+pista.chuchi = (Historia provisional) Toca la caja de juguetes y luego sal por la puerta.
+pista.chuchi.salir = La puerta de la derecha lleva al Río.
+pista.guille = (Historia provisional) Usa la báscula y luego sal por la puerta.
+pista.guille.salir = La puerta de la derecha lleva al Río.
+
+## intro.pablo
+> Casa de Pablo. Jueves, ocho y media.
+PABLO: Un momento. ¿Quién ha dicho eso?
+> El narrador. Siempre ha estado aquí, Pablo.
+PABLO (sorprendido): Pues qué incómodo. ¿Me narras todo? ¿También cuando me miro al espejo?
+> (Historia provisional: pronto Pablo tendrá que escapar de la narración.)
+
+## intro.chuchi
+> Casa de Chuchi. Jueves, ocho y veinte.
+CHUCHI: Las dos dormidas. Por fin. Ahora, sin hacer ruido, me pongo los zapatos y...
+> Algo cruje bajo su pie.
+CHUCHI (enfadado): Un Lego. Siempre hay un Lego.
+> (Historia provisional: pronto vendrán los contratiempos de Chuchi.)
+
+## intro.guille
+> Una granja a las afueras. Jueves, ocho y diez.
+GUILLE (contento): ¡Treinta y nueve cerdos pesados! Solo falta uno y me voy al Río.
+GUILLE: El último es el más gordo. Y el más listo. Me está mirando mal.
+> (Historia provisional: pronto Guille tendrá que pesar al cerdo y quitarse el olor.)
+
+## prov.pablo.ventana
+PABLO: Usera de noche. Si esto fuera una obra, ahora sonaría un cajón flamenco.
+
+## prov.pablo.cosa
+PABLO: Mi escritorio. Mi máquina de escribir y la obra nueva: «El jueves que casi no fue».
+> Qué título tan bueno. Lo podría haber escrito yo.
+
+## prov.pablo.usar
+PABLO (chulo): Si soy el autor, me escribo una salida. «Pablo abrió la puerta y se fue al Río». Ya está.
+> Bueno. Vale. Por esta vez.
+
+## prov.pablo.salida.mirar
+PABLO: La puerta. Hasta ahora el narrador no me ha dejado ni acercarme.
+
+## prov.pablo.salida.antes
+> Pablo intentó abrir la puerta. La puerta no se abrió. Era una puerta muy narrativa.
+PABLO (enfadado): ¡Eso no se lo cree nadie!
+
+## prov.pablo.salida
+> Pablo abrió la puerta y se fue al Río.
+PABLO (contento): ¡Gracias! Hacemos buen equipo, tú y yo.
+
+## prov.chuchi.ventana
+CHUCHI: Ni un ruido en la calle. Que siga así hasta que salga.
+
+## prov.chuchi.cosa
+CHUCHI: La caja de juguetes. Ahí dentro hay más tecnología que en mi oficina.
+
+## prov.chuchi.usar
+> Chuchi recoge los juguetes del suelo, uno a uno, en silencio.
+CHUCHI (sorprendido): ¡Mis llaves! En la cocinita de juguete. Junto a una tortilla de fieltro.
+
+## prov.chuchi.salida.mirar
+CHUCHI: La puerta. Sin llaves es decoración.
+
+## prov.chuchi.salida.antes
+CHUCHI (nervioso): ¿Y mis llaves? Estaban aquí. Seguro que alguien ha jugado a las casitas con ellas.
+
+## prov.chuchi.salida
+CHUCHI (chulo): Cerrando despacito... Libre. Hoy no existo para nadie.
+
+## prov.guille.ventana
+GUILLE: Campo, cerdos y un cierzo que no es el de Zaragoza, pero se intenta.
+
+## prov.guille.cosa
+GUILLE: La báscula. Ciento cuarenta kilos marcó el último. Como yo después de unas migas.
+
+## prov.guille.usar
+> Guille convence al último cerdo para subir a la báscula. Le cuesta.
+GUILLE (contento): ¡Ciento cincuenta y dos kilos! Apuntado. Y ahora, a la ducha, que huelo a purín.
+GUILLE: Bueno, la ducha está rota. Me echo colonia. Mucha colonia.
+
+## prov.guille.salida.mirar
+GUILLE: La puerta. Al otro lado, el coche y luego el Río.
+
+## prov.guille.salida.antes
+GUILLE: No puedo irme sin pesar al último. Me miraría mal en sueños.
+
+## prov.guille.salida
+GUILLE (contento): ¡Me voy, cerdicos! Mañana más.
+
+## mirar.pablo
+PABLO (chulo): Camisa planchada y sonrisa de estreno. Listo para un público exigente.
+
+## mirar.chuchi
+CHUCHI: Gafas, ropa de salir y una pegatina de unicornio en la manga. Bueno, eso último lo quito.
+
+## mirar.guille
+GUILLE: Botas de granja y olor a cerdo. Elegancia rural.
+
+## nofunciona.pablo
+PABLO: Eso no tiene arco dramático.
+
+## nofunciona.chuchi
+CHUCHI: Eso no compila.
+
+## nofunciona.guille
+GUILLE: ¡Maño, eso no va ahí!
+
+## nadacontigo.pablo
+PABLO: No sé qué quieres que haga yo con eso.
+
+## nadacontigo.chuchi
+CHUCHI: No sé qué quieres que haga yo con eso.
+
+## nadacontigo.guille
+GUILLE: No sé qué quieres que haga yo con eso.
 
 ## charla.fran
 FRAN (contento): ¡Venga, que esta la pago yo! Bueno, la siguiente. La siguiente seguro.

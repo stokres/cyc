@@ -47,6 +47,8 @@ export interface EntradaReparto {
   id: PjId;
   aqui: boolean;
   lugar: string;
+  /** Story finished, on the way to the bar. */
+  camino?: boolean;
 }
 
 export class Hud {
@@ -121,7 +123,7 @@ export class Hud {
         const b = h(
           'button',
           {
-            class: 'pj',
+            class: `pj${e.camino ? ' camino' : ''}`,
             'aria-pressed': String(e.id === activo),
             'aria-label': `${F.nombre}${e.aqui ? '' : ` (${e.lugar})`}`,
             style: `--color:${F.color}`,
@@ -129,7 +131,7 @@ export class Hud {
           },
           h('span', { class: 'cara' }),
           h('span', { class: 'nombre' }, F.nombre),
-          e.aqui ? null : h('span', { class: 'lugar' }, e.lugar),
+          e.camino ? h('span', { class: 'hecho', 'aria-hidden': 'true' }, '✓') : null,
         );
         b.querySelector('.cara')!.innerHTML = retrato(e.id, { mood: F.arte.INFO.defaultMood });
         return b;
@@ -309,6 +311,52 @@ export class Hud {
 
   setVisible(v: boolean) {
     this.root.dataset.oculto = String(!v);
+  }
+
+  /** Who to play: one big card per protagonist, with where their story starts. */
+  eleccion(titulo: string, opciones: Array<{ id: PjId; situacion: string; camino: boolean }>): Promise<PjId> {
+    return new Promise((resolve) => {
+      const tarjetas = opciones.map((o) => {
+        const F = REPARTO[o.id];
+        const b = h(
+          'button',
+          {
+            class: `eleccion-pj${o.camino ? ' camino' : ''}`,
+            'data-id': o.id,
+            style: `--color:${F.color}`,
+            disabled: o.camino,
+            onclick: (e) => {
+              e.stopPropagation();
+              el.remove();
+              resolve(o.id);
+            },
+          },
+          h('span', { class: 'cara' }),
+          h('span', { class: 'nombre' }, F.nombre),
+          h('span', { class: 'situacion' }, o.camino ? texto('selector.camino') : o.situacion),
+        );
+        b.querySelector('.cara')!.innerHTML = retrato(o.id, { mood: o.camino ? 'happy' : F.arte.INFO.defaultMood });
+        return b;
+      });
+      const el = this.cubrir('eleccion', h('div', { class: 'pila' }, h('h2', {}, titulo), h('div', { class: 'quienes' }, ...tarjetas)));
+    });
+  }
+
+  /** A title card over the faded scene (a story ends); resolves on tap. */
+  rotulo(titulo: string, sub: string, quien?: PjId): Promise<void> {
+    return new Promise((resolve) => {
+      const cara = quien ? h('div', { class: 'cara', style: `--color:${REPARTO[quien].color}` }) : null;
+      if (cara && quien) cara.innerHTML = retrato(quien, { mood: 'happy' });
+      const el = this.cubrir('rotulo', h('div', { class: 'pila' }, cara, h('h2', {}, titulo), h('p', {}, sub), h('div', { class: 'toca' }, texto('rotulo.toca'))));
+      // A tap meant for the last line of dialogue must not skip the card.
+      const desde = performance.now();
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (performance.now() - desde < 600) return;
+        el.remove();
+        resolve();
+      });
+    });
   }
 
   /** Full-screen card (title, pause menu, end of the pilot). */
