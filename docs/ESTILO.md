@@ -1,0 +1,97 @@
+# Guía de estilo · Camiones y Caravanas
+
+**Versión 1.0 · 2 de octubre de 2026**
+
+Adaptación para móvil del «Kit de estilo · Juegos de equipo v1.2». Del kit se conserva la dirección visual y se descarta lo que solo funciona en un portátil potente. Esta guía es la fuente de verdad del estilo del juego.
+
+Imágenes de referencia del kit, solo como referencia de ambiente: `docs/referencias/`.
+
+## 1. Resumen
+
+- **Estilo: cartoon cinematográfico nocturno.** Formas redondeadas y simples, pocas tintas por material y luz de película: ambiente frío y luces prácticas cálidas.
+- **Personajes caricaturizados y reconocibles en un móvil.** Cabezas grandes, rasgos distintivos exagerados y retratos grandes en los diálogos.
+- **Prohibido:** contornos negros, trucos de lente (aberración cromática, viñeta fuerte, destellos de lente) y fotorrealismo.
+- **La luz explica la escena, no la tapa.** En caso de duda, menos efectos.
+- **Móvil primero:** todo se juzga en un móvil en horizontal, no en un monitor.
+
+## 2. Qué se conserva del kit y qué no
+
+| Del kit | Decisión | Motivo |
+|---|---|---|
+| Cartoon cinematográfico (B1–B20) | **Se conserva**, reescrito abajo | Encaja con una noche de jueves en Usera |
+| Contraste frío/cálido, charcos de luz, suelo mojado | **Se conserva** | Es el corazón del ambiente |
+| Contornos en tono oscuro del propio color (B9–B10) | **Se conserva** | Da legibilidad sin línea negra |
+| Personajes vectoriales por piezas con huesos (B21–B23) | **Se conserva** | Permite animar caricaturas con poco coste |
+| Interfaz de cristal ahumado y filetes dorados (B24–B26) | **Se conserva** | Funciona bien sobre escenas nocturnas |
+| Acuarela por capas (A1–A17) | **Se aplaza** a los recuerdos (sección 8) | Cara de producir y no hace falta para la demo |
+| Render diferido WebGL2 (G-buffer de 5 MRT, reflejos en pantalla, volumétricos, bloom por mips) | **Descartado** | Pensado para un M3 Pro; en un móvil de gama media no llega a 60 fps |
+| Motor `shared/engine.js` (T4) | **Descartado** | Está atado a la demo del faro (faro, generador, candado, gaviota) |
+| Fuente Cochin | **Descartada** | Solo existe en Apple; en Android no se vería |
+| T1–T2: 1920×1080 a 60 fps en un MacBook | **Sustituidos** por T1–T4 de esta guía | El objetivo es el móvil |
+| Lista de comprobación en cada entrega | **Solo en hitos** | Demasiado proceso para un proyecto entre amigos |
+| Blender, pixel art y el resto de mockups | **Descartados** | Ya los descartaba el propio kit (D6) |
+
+## 3. Formas y color
+
+- **F1:** siluetas redondeadas y simplificadas que se lean en un móvil.
+- **F2:** el detalle baja con la distancia. Textura (ladrillos, baldosas) solo cerca; al fondo, manchas casi planas.
+- **F3:** 2–3 tonos por material pintados en el arte: base, sombra y luz. Ni sombras proyectadas ni brillos pintados: los pone el render.
+- **F4:** bruma entre planos para separar la profundidad.
+- **F5:** partículas de clima (llovizna) en varias capas de profundidad, iluminadas por las luces que cruzan.
+- **F6:** un único grano sutil para todo el fotograma. Se apaga en calidad baja.
+- **C1:** una paleta dominante por escena con contraste de temperatura. En la calle de Usera: azul noche y ladrillo apagado frente al sodio de las farolas, el ámbar del bar, el rojo del neón del chino y el blanco frío del bazar.
+- **C2:** los acentos saturados se reservan para los personajes, los objetos interactivos y los focos de la escena.
+- **C3:** la luz no cambia el tono de los acentos. Los personajes reciben la luz de la escena atenuada hacia su gris, para que la camiseta de Fran siga siendo verde azulada bajo el neón.
+
+## 4. Luz
+
+- **L1:** una luz principal clara por escena. En la calle, la luna desde arriba a la derecha.
+- **L2:** las luces prácticas (farolas, ventanas, rótulos) dejan charcos de luz en el suelo, con brillo húmedo si está mojado.
+- **L3:** los personajes reciben las luces de la escena, tienen contraluz del lado de la luz más fuerte y sombra de contacto. Nunca pueden parecer pegados.
+- **L4:** la luz estática se precalcula una vez (fondo × mapa de luz). Solo se anima en vivo lo que cambia: neón, farolillos, coches que pasan.
+- **L5 (contención):** el resplandor solo aparece en las fuentes de luz y nunca tapa la silueta de lo que ilumina. Si al quitar un efecto la escena no pierde legibilidad ni ambiente, ese efecto sobra.
+- **L6:** los eventos de luz (un coche que pasa, el neón que parpadea) reiluminan la escena de forma breve.
+
+## 5. Personajes
+
+- **P1 · Vectoriales por piezas**, dibujados con código o importados desde SVG, y animados con huesos (`src/art/rig.ts`).
+- **P2 · Línea fina de silueta** en un tono oscuro de su propio color. Sin contornos negros.
+- **P3 · Cabeza grande:** la cabeza mide alrededor de un tercio del personaje para que la cara se lea a unos 50 px de alto en un móvil.
+- **P4 · Vista de tres cuartos** con los dos ojos visibles, en lugar de perfil puro. Se refleja en espejo para mirar al otro lado.
+- **P5 · Retrato grande en cada diálogo**, con boca sincronizada con el texto, parpadeo y expresión. Es donde de verdad se luce el parecido.
+- **P6 · Física secundaria:** barba, pelo y ropa reaccionan al movimiento.
+- **P7 · Rasgos de cada amigo**, exagerados para que se reconozcan:
+
+| Amigo | Rasgos |
+|---|---|
+| Fran | Barba oscura grande y poblada, pelo oscuro con alguna cana, cejas gruesas, camiseta verde azulada, complexión ancha |
+| Pablo | Sonrisa grande con dientes, pelo castaño revuelto hacia arriba, barba corta, pendiente de aro, chaqueta oscura con cuello de borreguillo |
+| Chuchi | Calvo con brillo, gafas redondas de pasta negra, barba pelirroja recortada, jersey negro, media sonrisa irónica, el más alto |
+| Cuarto amigo | Pendiente: faltan sus fotos |
+
+## 6. Interfaz
+
+- **I1:** paneles redondeados de cristal ahumado con filete dorado.
+- **I2:** títulos y nombres en Graduate (eco del rótulo universitario del logo); texto en Alegreya Sans. Las dos son de Google Fonts con licencia libre (OFL).
+- **I3:** texto siempre legible: sobre panel o con contorno oscuro, y nunca por debajo de 14 px CSS.
+- **I4:** zonas táctiles de al menos 44 px CSS. Los objetos de la escena tienen además un margen extra de 26 unidades alrededor.
+- **I5:** la interfaz respeta las zonas seguras (notch, barra de inicio) y deja libre el centro de la escena.
+
+## 7. Requisitos técnicos
+
+- **T1 · Resolución lógica:** 1080 de alto. El ancho depende del móvil, y las escenas se pintan a 2400 de ancho para que los móviles alargados (19,5:9, 20:9) vean más escenario en lugar de bandas negras.
+- **T2 · Rendimiento:** 60 fps en los móviles del grupo en calidad «media»; nunca por debajo de 30 fps en calidad «baja». La calidad automática baja un nivel si el juego no sostiene 40 fps durante 2 segundos. El menú tiene «Ver rendimiento» para medirlo en cada móvil.
+- **T3 · Solo recursos propios** o con licencia clara. Las fotos del grupo son solo referencia: no se publican ni se suben al repositorio.
+- **T4 · Canvas 2D y nada más**, sin WebGL obligatorio, para que funcione igual en iPhone y Android.
+
+## 8. Acuarela para los recuerdos (aplazado)
+
+La idea del kit que más vale la pena: un **mundo en gris que recupera el color** según se resuelven los puzles, para reconstruir lo que pasó anoche o revivir anécdotas míticas. Si se hace:
+
+- se construye por capas, nunca como filtro sobre la escena normal;
+- los personajes siguen nítidos y con su color;
+- se precalcula como el resto del fondo, para que no cueste nada por fotograma.
+
+## 9. Revisión
+
+En cada hito se hacen capturas en un móvil en horizontal (844×390 a 3×, como un iPhone) y a 1920×1080, se comparan con las capturas del hito anterior y se juega una partida completa sin errores de consola (`node scripts/playthrough.mjs`).
