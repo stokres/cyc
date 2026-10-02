@@ -11,6 +11,8 @@
     "skipLibCheck": true,
     "types": ["vite/client"],
     "isolatedModules": true,
+    "allowJs": true,
+    "checkJs": false,
     "noEmit": true
   },
   "include": ["src"]

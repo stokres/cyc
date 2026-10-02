@@ -258,12 +258,27 @@ export const JOINTS = {
 };
 
 /** Stocky build, teal tee, jeans and dark sneakers. */
+/** Fran's wardrobe. 'calle' is his look; 'casa' is what he naps in. */
+export const OUTFITS = {
+  calle: {
+    top: { style: 'tee', base: '#2e8a8c', shadow: '#1f6567', deep: '#174f51', light: '#4fb0ae', line: '#154647', seamBack: '#123e40' },
+    // His famous «pantaloneta»: denim shorts that stop below the knee.
+    pants: { base: '#3e5279', shadow: '#2c3b5a', deep: '#222e47', light: '#566c96', line: '#1d2840', length: 'shorts', hem: 0.5, sock: '#e9e4da' },
+    shoes: { style: 'sneaker', base: '#2f3138', back: '#26282e', light: '#4b4e57', line: '#15161a', sole: '#ece7dc', soleBack: '#c9c2b4' },
+  },
+  casa: {
+    // Old festival tee with a stain and a hole, boxers with hearts, felt slippers.
+    top: { style: 'tee', base: '#9a9ea6', shadow: '#7a7e86', deep: '#62666e', light: '#b8bcc2', line: '#4a4e56', seamBack: '#555960', stain: '#b0562e', hole: true },
+    pants: { base: '#eeeaf2', shadow: '#cfc9d8', deep: '#b6aec2', light: '#ffffff', line: '#6e6680', length: 'boxers', hem: 0.42, hearts: '#d8323a', sock: '#e9e4da' },
+    shoes: { style: 'slipper', base: '#3a4a6e', back: '#2e3c5a', light: '#56688e', line: '#1a2236', sole: '#c9c2b4', soleBack: '#a9a294' },
+  },
+};
+
 export const body = makeBody({
   skin: C,
-  top: { style: 'tee', base: '#2e8a8c', shadow: '#1f6567', deep: '#174f51', light: '#4fb0ae', line: '#154647', seamBack: '#123e40' },
-  // His famous «pantaloneta»: denim shorts that stop below the knee.
-  pants: { base: '#3e5279', shadow: '#2c3b5a', deep: '#222e47', light: '#566c96', line: '#1d2840', length: 'shorts', hem: 0.5, sock: '#e9e4da' },
-  shoes: { style: 'sneaker', base: '#2f3138', back: '#26282e', light: '#4b4e57', line: '#15161a', sole: '#ece7dc', soleBack: '#c9c2b4' },
+  outfits: OUTFITS,
+  outfit: 'calle',
+  ...OUTFITS.calle,
   joints: JOINTS,
   torso: [
     [-22, -196], [-33, -189], [-37, -172], [-38, -150], [-36, -130], [-34, -116], [-31, -107], [0, -104], [26, -106], [38, -110],

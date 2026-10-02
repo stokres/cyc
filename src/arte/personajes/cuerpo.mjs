@@ -48,7 +48,22 @@ function hawaiian(x0, y0, w, h, P, seed = 3, n = 18) {
   return out;
 }
 
-export function makeBody(cfg) {
+/**
+ * Wardrobe: `cfg.outfits = { calle: { top, pants, shoes }, casa: {...} }` and
+ * `cfg.outfit` names the default one. body(face, outfit) draws any of them with
+ * the same joints, so every outfit animates with the same rig.
+ */
+export function makeBody(base) {
+  const cache = {};
+  return function body(face = {}, outfit = base.outfit) {
+    const o = outfit && base.outfits ? base.outfits[outfit] : null;
+    const key = o ? outfit : '_';
+    const fn = (cache[key] ??= buildBody(o ? { ...base, ...o } : base));
+    return fn(face);
+  };
+}
+
+function buildBody(cfg) {
   const J = cfg.joints;
   const S = cfg.skin;
   const T = cfg.top;
@@ -83,6 +98,9 @@ export function makeBody(cfg) {
         stroke(smooth([[-14, top + 1], [-2, top + 5], [12, top + 2]], false), T.shadow, 3),
         stroke(smooth([[26, hipY - 18], [31, hipY - 21], [36, hipY - 17]], false), T.light, 1.4, { opacity: 0.7 }),
       );
+      // House tee: a sauce stain and a hole over the belly.
+      if (T.stain) shading.push(path(smooth([[front - 26, top + 40], [front - 16, top + 36], [front - 12, top + 46], [front - 20, top + 52], [front - 28, top + 48]]), T.stain, { opacity: 0.7 }));
+      if (T.hole) shading.push(path(ellipse(front - 10, hipY - 30, 4, 3, 0.3), S.skinShadow), path(ellipse(front - 10.5, hipY - 30.5, 2.6, 1.8, 0.3), S.skin));
     } else if (T.style === 'shirt') {
       // Open camp collar showing the neck, a button placket and a muted print.
       const px = front - 13;
@@ -228,7 +246,14 @@ export function makeBody(cfg) {
     ];
     const Sh = cfg.shoes;
     let foot;
-    if (Sh.style === 'boot') {
+    if (Sh.style === 'slipper') {
+      // House slippers: low felt shape, no laces.
+      const sl = smooth([[ax - 14, ay - 4], [ax + 6, ay - 7], [ax + 20, ay - 3], [ax + 27, ay + 3], [ax + 27, ay + 8, 'c'], [ax - 15, ay + 8, 'c'], [ax - 16, ay + 2]]);
+      foot = shape(sl, isBack ? Sh.back : Sh.base, [
+        path(smooth([[ax - 18, ay + 5], [ax + 30, ay + 5], [ax + 30, ay + 10], [ax - 18, ay + 10]]), isBack ? Sh.soleBack : Sh.sole),
+        isBack ? '' : path(ellipse(ax + 10, ay - 2, 9, 3, -0.1), Sh.light, { opacity: 0.8 }),
+      ], Sh.line, 1.4);
+    } else if (Sh.style === 'boot') {
       const boot = smooth([[ax - 15, ay - 18], [ax + 6, ay - 18], [ax + 12, ay - 8], [ax + 26, ay - 3], [ax + 28, ay + 8, 'c'], [ax - 16, ay + 8, 'c'], [ax - 17, ay - 4]]);
       foot = shape(boot, isBack ? Sh.back : Sh.base, [
         path(smooth([[ax - 18, ay + 3], [ax + 30, ay + 3], [ax + 30, ay + 10], [ax - 18, ay + 10]]), isBack ? Sh.soleBack : Sh.sole),
@@ -244,7 +269,29 @@ export function makeBody(cfg) {
       ], Sh.line, 1.4);
     }
     let shinArt;
-    if (Pn.length === 'shorts') {
+    let thighArt = shape(thigh, base, shade, Pn.line, 1.5);
+    if (Pn.length === 'boxers') {
+      // Boxer shorts: cloth only on the top of the thigh, bare legs and socks below.
+      const t = Pn.hem ?? 0.45;
+      const bx = hx + (kx - hx) * t;
+      const by = hy + (ky - hy) * t;
+      const skinThigh = smooth([[hx - tw + 3, hy - 4], [hx + tw - 3, hy - 4], [kx + tw - 6, ky], [kx + 1, ky + 8], [kx - tw + 6, ky]]);
+      const cloth = smooth([[hx - tw - 1, hy - 9], [hx + tw + 1, hy - 9], [bx + tw + 1.5, by, 'c'], [bx - tw - 1.5, by, 'c']]);
+      const hearts = Pn.hearts ? [[-6, 0.25], [6, 0.5], [-4, 0.75], [8, 0.15]].map(([dx, k]) => {
+        const x = hx + (bx - hx) * k + dx;
+        const y = hy - 4 + (by - hy) * k;
+        return path(`M${x} ${y + 2.6}l-2.6 -2.6a1.5 1.5 0 0 1 2.6 -1.7a1.5 1.5 0 0 1 2.6 1.7z`, Pn.hearts);
+      }) : [];
+      thighArt = [
+        shape(skinThigh, isBack ? S.skinShadow : S.skin, [path(smooth([[hx - 24, hy], [hx - 6, hy], [kx - 6, ky], [kx - 22, ky]]), isBack ? S.skinDeep : S.skinShadow, { opacity: 0.8 })], S.skinLine, 1.3),
+        shape(cloth, base, [...shade, ...hearts, stroke(`M${bx - tw} ${by - 3}L${bx + tw} ${by - 3}`, Pn.shadow, 1.4)], Pn.line, 1.5),
+      ].join('');
+      const leg = smooth([[kx - 10, ky - 4], [kx + 10, ky - 4], [ax + 8, ay - 4, 'c'], [ax - 8, ay - 4, 'c']]);
+      shinArt = shape(leg, isBack ? S.skinShadow : S.skin, [
+        path(smooth([[kx - 16, ky], [kx - 3, ky], [ax - 2, ay], [ax - 16, ay]]), isBack ? S.skinDeep : S.skinShadow, { opacity: 0.8 }),
+        path(smooth([[ax - 10, ay - 16], [ax + 10, ay - 16], [ax + 10, ay - 2], [ax - 10, ay - 2]]), Pn.sock ?? '#ece7dc'),
+      ], S.skinLine, 1.3);
+    } else if (Pn.length === 'shorts') {
       // Shorts that end below the knee: a strip of shin and the ankle show, then a low sock.
       const t = Pn.hem ?? 0.6;
       const hxm = kx + (ax - kx) * t;
@@ -262,7 +309,7 @@ export function makeBody(cfg) {
       shinArt = shape(shin, base, [...shade, stroke(`M${ax - 13} ${ay - 7}L${ax + 13} ${ay - 7}`, Pn.shadow, 1.6)], Pn.line, 1.5);
     }
     return g(`pierna_${side}_grupo`, [
-      g(`muslo_${side}`, [shape(thigh, base, shade, Pn.line, 1.5), pivot(`muslo_${side}`, hx, hy)]),
+      g(`muslo_${side}`, [thighArt, pivot(`muslo_${side}`, hx, hy)]),
       g(`pierna_${side}`, [shinArt, pivot(`pierna_${side}`, kx, ky)]),
       g(`pie_${side}`, [foot, pivot(`pie_${side}`, ax, ay)]),
     ]);

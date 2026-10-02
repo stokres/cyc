@@ -1,7 +1,7 @@
 // Aceituna: the couple's small black dog, whom Fran looks after more than anyone.
 // Same units as the crew (Fran is ~270 tall), three-quarter view facing right.
 // Black fur reads through a bluish base, a lighter top light and a red collar.
-import { smooth, ellipse, path, stroke, g, shape } from '../personajes/svg.mjs';
+import { smooth, ellipse, path, stroke, g, shape } from './svg.mjs';
 
 const C = {
   fur: '#2c2b35',

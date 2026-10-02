@@ -48,10 +48,38 @@ Es una calle larga (8.200 unidades, unas tres pantallas y media), de noche. De i
   - Lo que cambia se anima en vivo: fuego, polvo en el aire, cruz de farmacia, tele del bar y algún coche al fondo.
 - **Personajes:** reciben el tinte de la luz del sitio donde están.
 
+## Puzle inicial (en el piloto)
+
+Fran se ha quedado dormido y había quedado a las 21:00 en el Río. Lo que le impide salir:
+
+1. **La puerta** está cerrada con llave por fuera: la pareja se ha ido de finde sin saber que él estaba en casa.
+2. **Las llaves** no están en el cuenco: Aceituna está tumbada encima y no se mueve.
+3. **El soborno:** Aceituna solo se mueve por aceitunas. En la mesa solo quedan huesos; en la nevera hay un tarro que no hay quien abra. Con agua caliente se abre de golpe y las aceitunas salen volando.
+4. **Va en calzoncillos de corazones:** su pantaloneta está tendida en la terraza.
+
+El paso a paso y las mecánicas que enseña están en `docs/JUGABILIDAD.md`.
+
+## Otras ideas para el arranque
+
+Se pueden cambiar por la actual o sumarse:
+
+- **La pantaloneta centrifugando.** Está en la lavadora y la puerta se ha bloqueado con el programa más largo del mundo. Fran tiene que engañar a la lavadora: bajar el diferencial, encontrar la contraseña del wifi para la app de la pareja... Sin pantaloneta no sale.
+- **Aceituna no le deja irse.** Se planta en la puerta con ojos tristes. Fran tiene que montarle su propio plan de jueves: la tele con «Saber y ganar», un calcetín suyo que huela a él y su pelota escondida en el sofá.
+- **El móvil sin batería.** El cargador lo ha mordisqueado Aceituna y sin móvil no puede avisar de que llega tarde. Fran tiene que sacar batería de donde sea: el tocadiscos, la lámpara de arco, el telefonillo.
+
+## Fase 2: que vayan llegando (ideas)
+
+Fran ya está en el Río y no hay nadie. Cada amigo está atascado en su sitio y el selector permite saltar a él, como en *Day of the Tentacle*:
+
+- **Chuchi:** las niñas no se duermen. Minijuego de cuento o nana, y escaparse sin que se despierten. Si además le llaman del trabajo por algo urgente, peor.
+- **Pablo:** atrapado en un ensayo de impro que no acaba, o en un cortejo de camino al bar. Necesita una salida dramática bien escrita.
+- **Guille:** viene de pesar cerdos y huele a purín. Su novia no le deja salir hasta ducharse, y se ha acabado el gel.
+- **Fran,** desde la terraza, usa el móvil para ir desbloqueándolos («échate otra caña» como argumento universal).
+
 ## Pendiente
 
 - Confirmar el nombre: «Bar del Río» (el del toldo) o «Bar El Río».
 - Foto de Aceituna para ajustar su aspecto.
 - Hora del despertar. Se ha supuesto que anochece (sobre las 20:35, el reloj de la cocina) y que la calle ya es de noche.
 - Nombres reales de las calles, si se quieren en las placas. Ahora solo pone «USERA».
-- Pasar las escenas al juego (WebGL2 con respaldo en Canvas 2D) junto con la crew.
+- La luz con relieve en WebGL2 (fase 2 del plan); ahora el juego usa la luz horneada en Canvas 2D.

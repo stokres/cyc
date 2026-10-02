@@ -4,8 +4,8 @@
 // light. Output: artifact/crew-lamina.html. Usage: node tools/personajes/lamina-crew.mjs
 import { build } from 'esbuild';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import * as crew from './crew.mjs';
-import { svg } from './svg.mjs';
+import * as crew from '../../src/arte/personajes/crew.mjs';
+import { svg } from '../../src/arte/personajes/svg.mjs';
 
 mkdirSync('artifact', { recursive: true });
 mkdirSync('art/personajes', { recursive: true });
@@ -14,7 +14,7 @@ for (const id of ['fran', 'pablo', 'chuchi', 'guille']) {
 }
 
 const bundle = await build({
-  entryPoints: ['tools/personajes/crew.mjs'],
+  entryPoints: ['src/arte/personajes/crew.mjs'],
   bundle: true,
   format: 'iife',
   globalName: 'CREW',

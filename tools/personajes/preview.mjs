@@ -7,7 +7,7 @@ const name = process.argv[2] ?? 'cabeza';
 const who = process.env.PJ ?? 'fran';
 const out = `revisiones/${who}`;
 mkdirSync(out, { recursive: true });
-const F = await import(`./${who}.mjs?${Date.now()}`);
+const F = await import(`../../src/arte/personajes/${who}.mjs?${Date.now()}`);
 // Optional reference photo for side-by-side review (local only, never committed): FOTO=/ruta/foto.jpg
 const photo = (h) => (process.env.FOTO ? `<figure><img src="${process.env.FOTO}" height="${h}"><figcaption>Foto (solo revisión local)</figcaption></figure>` : '');
 const cell = (vb, body, w = 520, label = '') => `<figure><svg viewBox="${vb}" width="${w}">${body}</svg><figcaption>${label}</figcaption></figure>`;

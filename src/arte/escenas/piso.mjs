@@ -9,7 +9,7 @@
 //   suelo    (rows) floor with per-row parallax: real perspective as the camera pans
 //   [characters and floor props, sorted by depth]
 //   muebles  (1.42) foreground: dining table and the sofa (seen from behind)
-import { bed, bowls } from './aceituna.mjs';
+import { bed, bowls } from '../personajes/aceituna.mjs';
 import {
   smooth, ellipse, path, stroke, g, shape, rect, circle, line, poly, polyD, rectD, rr, lin, rad, gpath,
   mat, box, bevel, tiles, foliage, pottedPlant, framed, persp, rng,
@@ -229,7 +229,13 @@ function living() {
   ], { transform: 'translate(2006 502) rotate(3)' }));
   // Prints above the fireplace (abstract, as in the plan).
   out.push(framed(1612, 250, 168, 196, [rect(1640, 282, 112, 132, '#9fb79a'), rect(1652, 296, 72, 104, '#7f9f80'), circle(1730, 300, 16, '#d9844f')].join('')));
-  out.push(framed(1852, 250, 168, 196, [rect(1880, 282, 112, 132, '#ecc46e'), rect(1898, 300, 76, 96, '#d9a441'), line(1888, 380, 1984, 300, '#c8433a', 3)].join('')));
+  // Poster of Fran's own stand-up show (lettering is drawn with the game fonts, see POSTER_TEXTS).
+  out.push(framed(1852, 250, 168, 196, [
+    rect(1860, 258, 152, 180, '#e8742e'),
+    path(smooth([[1880, 438], [1884, 380], [1904, 352], [1936, 344], [1968, 352], [1988, 380], [1992, 438]]), '#2e3a5a'),
+    path(ellipse(1936, 352, 24, 28), '#e8b296'), path(smooth([[1914, 352], [1916, 372], [1936, 392], [1956, 372], [1958, 352], [1946, 366], [1926, 366]]), '#2a201c'),
+    path(smooth([[1908, 346], [1910, 322], [1924, 312], [1936, 316], [1950, 310], [1964, 324], [1964, 346], [1954, 332], [1920, 332]]), '#2b221e'),
+  ].join(''), { mount: '#e8742e' }));
   // Tall plant in a basket between the fireplace and the terrace.
   out.push(basketPlant(2170, 772, 1.05, 31));
   return out.join('');
@@ -318,7 +324,6 @@ function hall() {
   for (const x of [2928, 3054]) out.push(box(x, 614, 8, 158, WALNUT, { r: 2, sh: 0, li: 0, lw: 1.2 }));
   out.push(rect(2928, 700, 134, 6, WALNUT.shadow));
   out.push(shape(smooth([[2952, 586], [3004, 586], [2998, 600], [2978, 604], [2958, 600]]), '#3f6f8f', [rect(2952, 596, 52, 8, '#2c5470')], '#183248', 1.3));
-  out.push(stroke('M2966 588L2976 580L2984 588', '#d9c27a', 2.5), circle(2988, 584, 4, '#c8a04a'));
   out.push(box(3032, 560, 20, 40, mat('#e9e2d4', '#c9c0ae', '#f7f3ea', '#8a8070'), { r: 8 }));
   out.push(shape(polyD([[3022, 514], [3062, 514], [3070, 552], [3014, 552]]), '#f2e2c0', [rect(3014, 544, 60, 8, '#d9c39a')], '#8a7550', 1.3));
   // Front door: walnut, four panels, brass knob, peephole and chain.
@@ -335,6 +340,11 @@ function hall() {
   out.push(gpath(rectD(3370, 62, 30, 740), lin(3370, 0, 3400, 0, [[0, '#2e2620', 0], [1, '#2e2620', 0.3]])));
   return out.join('');
 }
+
+export const POSTER_TEXTS = [
+  { x: 1936, y: 274, s: 'MÁS PATXI', size: 24, font: 'display', color: '#fff4e0', maxW: 140 },
+  { x: 1936, y: 296, s: 'QUE NUNCA', size: 17, font: 'display', color: '#2e3a5a', maxW: 120 },
+];
 
 function backWall() {
   const holes = [...KHOLES, ...THOLES].map(([x, y, w, h]) => rect(x, y, w, h, 'black')).join('');
@@ -409,6 +419,15 @@ function exterior() {
   return out.join('');
 }
 
+/** Fran's teal T-shirt and his pantaloneta, drying. A piece of its own: it goes when he takes them. */
+function terraceClothes() {
+  const yR = P.yOf(0.88);
+  return [
+    shape(smooth([[2380, yR - 150, 'c'], [2450, yR - 150, 'c'], [2462, yR - 128], [2448, yR - 124], [2446, yR - 70, 'c'], [2386, yR - 70, 'c'], [2384, yR - 124], [2370, yR - 128]]), '#2e8a8c', [rect(2430, yR - 150, 30, 90, '#1f6567')], '#154647', 1.4),
+    shape(smooth([[2464, yR - 152, 'c'], [2516, yR - 152, 'c'], [2520, yR - 84, 'c'], [2496, yR - 84, 'c'], [2490, yR - 120], [2484, yR - 84, 'c'], [2460, yR - 84, 'c']]), '#3e5279', [rect(2464, yR - 152, 52, 8, '#566c96'), rect(2500, yR - 150, 18, 66, '#2c3b5a')], '#1d2840', 1.4),
+  ].join('');
+}
+
 function terrace() {
   // Behind the glass: terracotta floor, white railing, an olive tree and the drying rack.
   const out = [];
@@ -418,11 +437,10 @@ function terrace() {
   // Railing.
   out.push(rect(2120, yR - 216, 600, 10, '#f1ede6'), rect(2120, yR - 206, 600, 3, '#c9c3b8'));
   for (let x = 2130; x < 2720; x += 18) out.push(rect(x, yR - 206, 5, 200, '#ece8e0'));
-  // Drying rack with Fran's teal T-shirt, a towel and socks.
-  out.push(stroke(`M2350 ${yR}L2420 ${yR - 160}L2490 ${yR}`, '#b8bcc0', 3), stroke(`M2360 ${yR - 150}L2560 ${yR - 150}`, '#b8bcc0', 3));
-  out.push(shape(smooth([[2380, yR - 150, 'c'], [2450, yR - 150, 'c'], [2462, yR - 128], [2448, yR - 124], [2446, yR - 70, 'c'], [2386, yR - 70, 'c'], [2384, yR - 124], [2370, yR - 128]]), '#2e8a8c', [rect(2430, yR - 150, 30, 90, '#1f6567')], '#154647', 1.4));
-  out.push(shape(rr(2466, yR - 152, 50, 100, 4), '#f0c9a0', [rect(2466, yR - 70, 50, 8, '#d9844f')], '#9a6a40', 1.3));
-  out.push(shape(rr(2526, yR - 152, 14, 40, 4), '#e9e4da', [], '#8a8070', 1), shape(rr(2544, yR - 152, 14, 44, 4), '#e9e4da', [], '#8a8070', 1));
+  // Drying rack with a towel and odd socks (Fran's clothes hang on it too, see terraceClothes).
+  out.push(stroke(`M2350 ${yR}L2420 ${yR - 160}L2490 ${yR}`, '#b8bcc0', 3), stroke(`M2360 ${yR - 150}L2580 ${yR - 150}`, '#b8bcc0', 3));
+  out.push(shape(rr(2526, yR - 152, 50, 100, 4), '#f0c9a0', [rect(2526, yR - 70, 50, 8, '#d9844f')], '#9a6a40', 1.3));
+  out.push(shape(rr(2584, yR - 152, 14, 40, 4), '#e9e4da', [], '#8a8070', 1));
   // Olive tree in a big pot.
   out.push(foliage(2230, yR - 230, 80, 70, ['#55663e', '#6e8050', '#8a9c66', '#a6b680'], 5, { n: 18 }));
   out.push(stroke(`M2226 ${yR - 60}Q2236 ${yR - 140} 2222 ${yR - 200}`, '#6e5a44', 7));
@@ -526,10 +544,11 @@ function table() {
   out.push(box(u0 - 16, top + 2, u1 - u0 + 32, 26, T, { r: 3, sh: 0.3, li: 0.15 }));
   for (const x of [u0 + 4, u1 - 34]) out.push(box(x, top + 26, 30, yF - top - 26, T, { r: 3, sh: 0.05, li: 0 }));
   out.push(box(u0 + 34, top + 26, u1 - u0 - 68, 16, T, { r: 2, sh: 0.4, li: 0 }));
-  // On the table: Fran's phone, a bowl of olives (a nod to the dog) and an empty can.
+  // On the table: Fran's phone, a bowl of olive stones (a nod to the dog) and an empty can.
   out.push(shape(polyD([[u0 + 120, top - 12], [u0 + 186, top - 12], [u0 + 192, top - 2], [u0 + 116, top - 2]]), '#1d1f26', [rect(u0 + 120, top - 11, 66, 3, '#3a3e48')], '#0e0f13', 1));
   out.push(shape(smooth([[u0 + 300, top - 10], [u0 + 380, top - 10], [u0 + 370, top + 4], [u0 + 340, top + 8], [u0 + 310, top + 4]]), '#f0e8d8', [rect(u0 + 300, top, 80, 8, '#d0c6b2')], '#8a8070', 1.3));
-  for (const [dx, dy] of [[318, -14], [334, -18], [350, -14], [364, -18], [342, -10], [326, -8]]) out.push(shape(ellipse(u0 + dx, top + dy, 9, 7), '#6b7a2e', [path(ellipse(u0 + dx - 3, top + dy - 2, 3, 2), '#a6b65a')], '#3a4410', 1));
+  // Only the stones are left: Fran ate every olive before his nap.
+  for (const [dx, dy] of [[318, -12], [336, -15], [354, -12], [345, -8], [328, -7]]) out.push(shape(ellipse(u0 + dx, top + dy, 6, 4, 0.4), '#d8c49a', [path(ellipse(u0 + dx - 2, top + dy - 1, 2, 1.2), '#f2e6c8')], '#8a6a3a', 0.8));
   out.push(shape(rr(u0 + 430, top - 70, 32, 64, 5), '#c8433a', [rect(u0 + 452, top - 70, 10, 64, '#9e2e27'), rect(u0 + 430, top - 46, 32, 16, '#f2ead8')], '#6e1c17', 1.3));
   // Pendant lamp over the table (off), hanging from the ceiling out of frame.
   out.push(line(530, -40, 530, 70, '#2a2522', 3));
@@ -597,6 +616,17 @@ function frontEmissive() {
   ].join('');
 }
 
+/** Fran's keys, left on Aceituna's bed (she was lying on them). Character units. */
+function keysOnBed() {
+  return [
+    path(ellipse(6, -18, 22, 5), '#000', { opacity: 0.18 }),
+    stroke('M-8 -20a7 7 0 1 0 0.1 0', '#c9a14f', 2.6),
+    stroke('M-2 -22L18 -26M12 -25l0 4M16 -26l0 4', '#d9dcd8', 3),
+    stroke('M-6 -18L10 -12M6 -13l1 4', '#c9a14f', 3),
+    path(ellipse(24, -22, 7, 4), '#c8433a'),
+  ].join('');
+}
+
 // ---------------------------------------------------------------- scene
 
 /** u-range a layer at depth factor k must cover for any phone width (16:9 to 21:9 and 4:3). */
@@ -630,9 +660,15 @@ export function escena() {
     start: { X: 1830, y: 900 },
     layers: [
       { id: 'exterior', k: 0.4, x0: ext[0], x1: ext[1], y0: 0, y1: 800, body: exterior(), lit: false },
-      { id: 'terraza', k: 0.88, x0: 2100, x1: 2720, y0: 240, y1: 780, body: terrace(), lit: true },
       {
-        id: 'pared', k: 1, x0: -60, x1: W + 20, y0: 0, y1: 805, body: backWall(), lit: true, emissive: wallEmissive(),
+        id: 'terraza', k: 0.88, lit: true,
+        pieces: [
+          { x0: 2100, x1: 2720, y0: 240, y1: 780, body: terrace() },
+          { x0: 2360, x1: 2530, y0: P.yOf(0.88) - 160, y1: P.yOf(0.88) - 70, body: terraceClothes(), si: '!ropaCogida' },
+        ],
+      },
+      {
+        id: 'pared', k: 1, x0: -60, x1: W + 20, y0: 0, y1: 805, body: backWall(), lit: true, emissive: wallEmissive(), texts: POSTER_TEXTS,
         glows: [
           { x: 1470, y: 352, r: 120, color: '#ffc27a', a: 0.55 },
           { x: 3042, y: 534, r: 90, color: '#ffc27a', a: 0.5 },
@@ -655,6 +691,7 @@ export function escena() {
     props: [
       { id: 'cama', X: 2440, y: 870, svg: bed(), z: -40 },
       { id: 'cuencos', X: 1190, y: 850, svg: bowls(), z: -40 },
+      { id: 'llaves', X: 2440, y: 871, svg: keysOnBed(), z: -30, si: 'llavesALaVista' },
     ],
     // Lights in back-wall coordinates. `fy` is where the light pools on the floor.
     lights: [
@@ -669,9 +706,32 @@ export function escena() {
     shafts: [{ X0: 2331, X1: 2589, dX: -520, k1: 1.48, color: '#d6b0d8', power: 0.32 }],
     spots: {
       sofa: { u: 2085, k: KF, zx: 1960, zy: 640 },
-      salida: { X: 3196, y: 860, label: 'Salir a la calle' },
       cama: { X: 2440, y: 870 },
       cuencos: { X: 1190, y: 850 },
+      aceitunas: { X: 760, y: 900 },
+      fuego: { X: 1816, y: 720 },
+    },
+    // Tap areas: screen box at depth k (u = horizontal position in that layer), and where Fran stands.
+    zonas: {
+      reloj: { u: 595, k: 1, w: 90, top: 112, bottom: 208, X: 600, y: 862 },
+      ventana: { u: 595, k: 1, w: 340, top: 250, bottom: 500, X: 600, y: 862 },
+      grifo: { u: 636, k: 1, w: 120, top: 436, bottom: 562, X: 630, y: 862 },
+      nevera: { u: 1190, k: 1, w: 226, top: 296, bottom: 790, X: 1190, y: 866 },
+      movil: { u: 423, k: KF, w: 150, top: 735, bottom: 800, X: 650, y: 930 },
+      huesos: { u: 610, k: KF, w: 120, top: 735, bottom: 800, X: 700, y: 930 },
+      tocadiscos: { u: 1428, k: 1, w: 120, top: 576, bottom: 642, X: 1440, y: 866 },
+      chimenea: { u: 1816, k: 1, w: 300, top: 600, bottom: 790, X: 1816, y: 866 },
+      cuadro: { u: 1696, k: 1, w: 170, top: 250, bottom: 446, X: 1700, y: 866 },
+      cartel: { u: 1936, k: 1, w: 170, top: 250, bottom: 446, X: 1936, y: 866 },
+      sofa: { u: 2086, k: KF, w: 720, top: 740, bottom: 850, X: 1960, y: 880 },
+      terraza: { u: 2460, k: 1, w: 300, top: 260, bottom: 748, X: 2420, y: 860 },
+      bano: { u: 2790, k: 1, w: 180, top: 262, bottom: 772, X: 2790, y: 860 },
+      perchero: { u: 2990, k: 1, w: 150, top: 296, bottom: 570, X: 2990, y: 860 },
+      llavero: { u: 2978, k: 1, w: 80, top: 566, bottom: 612, X: 2980, y: 860 },
+      puerta: { u: 3196, k: 1, w: 200, top: 254, bottom: 772, X: 3196, y: 858 },
+      telefonillo: { u: 3355, k: 1, w: 64, top: 420, bottom: 540, X: 3290, y: 858 },
+      // Keys on Aceituna's bed, once she gets up (bed at X 2440 on the floor row y 871).
+      llaves: { u: P.CX + P.f(871) * (2440 - P.CX), k: P.f(871), w: 130, top: 810, bottom: 880, X: 2300, y: 900 },
     },
   };
 }

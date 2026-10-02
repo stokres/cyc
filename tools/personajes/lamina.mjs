@@ -3,8 +3,8 @@
 // and art/personajes/fran.svg (the layered source, kit-template conventions).
 // Usage: node tools/personajes/lamina.mjs
 import { mkdirSync, writeFileSync } from 'node:fs';
-import * as F from './fran.mjs';
-import { svg } from './svg.mjs';
+import * as F from '../../src/arte/personajes/fran.mjs';
+import { svg } from '../../src/arte/personajes/svg.mjs';
 
 mkdirSync('artifact', { recursive: true });
 mkdirSync('art/personajes', { recursive: true });

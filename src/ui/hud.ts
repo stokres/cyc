@@ -1,9 +1,8 @@
-// DOM overlay: crew switcher, tools, inventory, dialogue, cards.
-import { css, hex, mul, RGB } from '../core/color';
-import { CAST, CREW_ORDER, CrewId, Mood } from '../art/cast';
-import { drawBust, FaceState } from '../art/rig';
-import { drawItem, ITEMS } from '../art/items';
-import { ItemId } from '../game/state';
+// DOM overlay over the scene: character dock, tools, objective and clock,
+// bag, dialogue box with an animated portrait, first-time help and labels.
+import { icono } from '../arte/objetos.mjs';
+import { REPARTO, retrato, COLOR_ACEITUNA, NOMBRE_ACEITUNA, type PjId } from '../juego/reparto';
+import { texto, type Quien } from '../juego/textos';
 
 type Attrs = Record<string, string | boolean | ((e: Event) => void)>;
 
@@ -18,296 +17,326 @@ export function h<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Attrs = 
   return el;
 }
 
-const ICONS = {
-  eye: '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
-  bulb: '<svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></svg>',
+const ICONOS = {
+  ojo: '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+  pista: '<svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></svg>',
   menu: '<svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
-  bag: '<svg viewBox="0 0 24 24"><path d="M5 8h14l-1.2 12H6.2z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>',
+  bolsa: '<svg viewBox="0 0 24 24"><path d="M5 8h14l-1.2 12H6.2z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>',
+  mirar: '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+  mano: '<svg viewBox="0 0 24 24"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12m0-1.5v-2a1.5 1.5 0 0 1 3 0V12m0-1a1.5 1.5 0 0 1 3 0v1.5m0 0a1.5 1.5 0 0 1 3 0V16a6 6 0 0 1-6 6h-1.6a6 6 0 0 1-4.6-2.2L4.3 16a1.6 1.6 0 0 1 2.4-2l1.3 1.4"/></svg>',
 };
 
-function iconButton(name: keyof typeof ICONS, label: string, onclick: () => void) {
-  const b = h('button', { class: 'round glass', 'aria-label': label, title: label, onclick: (e) => (e.stopPropagation(), onclick()) });
-  b.innerHTML = ICONS[name];
+function boton(nombre: keyof typeof ICONOS, label: string, onclick: () => void, clase = 'redondo vidrio') {
+  const b = h('button', { class: clase, 'aria-label': label, title: label, onclick: (e) => (e.stopPropagation(), onclick()) });
+  b.innerHTML = ICONOS[nombre];
   return b;
 }
 
-const PORTRAIT_LIGHT: RGB = [1.02, 0.96, 0.9];
+const VISEMA = (c: string) => ('aá'.includes(c) ? 'a' : 'oóuú'.includes(c) ? 'o' : 'eéií'.includes(c) ? 'e' : 'mbp'.includes(c) ? 'm' : c === ' ' || c === ',' || c === '.' ? 'reposo' : 'e');
 
-export function paintPortrait(c: HTMLCanvasElement, id: CrewId, face: FaceState, zoom = 1) {
-  const ctx = c.getContext('2d')!;
-  const d = CAST[id];
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.clearRect(0, 0, c.width, c.height);
-  const k = (c.width / 260) * zoom;
-  ctx.setTransform(k, 0, 0, k, c.width / 2 - 8 * k, c.height * (zoom > 1 ? 0.5 : 0.42));
-  const cache = new Map<string, string>();
-  drawBust(ctx, d, face, (x) => {
-    let v = cache.get(x);
-    if (!v) cache.set(x, (v = css(mul(hex(x), PORTRAIT_LIGHT))));
-    return v;
-  });
+export interface HudEventos {
+  elegir(id: PjId): void;
+  ojo(): void;
+  pista(): void;
+  menu(): void;
+  seleccionar(item: string | null): void;
+  mirarObjeto(item: string): void;
 }
 
-export interface HudEvents {
-  switchTo(id: CrewId): void;
-  reveal(): void;
-  hint(): void;
-  menu(): void;
-  selectItem(id: ItemId | null): void;
-  lookItem(id: ItemId): void;
+export interface EntradaReparto {
+  id: PjId;
+  aqui: boolean;
+  lugar: string;
 }
 
 export class Hud {
   readonly root: HTMLDivElement;
-  private crewBtns = new Map<CrewId, HTMLButtonElement>();
-  private objectiveEl: HTMLDivElement;
-  private usingEl: HTMLDivElement;
-  private tray: HTMLDivElement;
-  private bagCount: HTMLSpanElement;
-  private bag: HTMLButtonElement;
-  private dialogueEl: HTMLDivElement | null = null;
-  private pressEl: SVGSVGElement;
+  private dock: HTMLDivElement;
+  private objEl: HTMLDivElement;
+  private objTexto: HTMLSpanElement;
+  private reloj: HTMLSpanElement;
+  private usandoEl: HTMLButtonElement;
+  private bandeja: HTMLDivElement;
+  private bolsaBtn: HTMLButtonElement;
+  private cuenta: HTMLSpanElement;
+  private ayudaEl: HTMLDivElement;
+  private ayudaT = 0;
+  private dialogoEl: HTMLDivElement | null = null;
+  private anilloEl: SVGSVGElement;
   private fpsEl: HTMLDivElement;
-  private advance: (() => void) | null = null;
-  private typing: { full: string; shown: number; el: HTMLElement; who: CrewId | null; mood: Mood } | null = null;
-  private portrait: HTMLCanvasElement | null = null;
-  private portraitT = 0;
-  private blinkT = 2;
-  private items: ItemId[] = [];
-  selected: ItemId | null = null;
+  private avance: (() => void) | null = null;
+  private escribiendo: { full: string; shown: number; el: HTMLElement } | null = null;
+  private retratoEl: HTMLDivElement | null = null;
+  private retratoDe: { quien: Exclude<Quien, null>; animo: string } | null = null;
+  private retratoKey = '';
+  private parpadeo = 2;
+  private items: string[] = [];
+  seleccionado: string | null = null;
+  /** Who is speaking right now (for lip sync in the scene). */
+  hablando: Quien = null;
 
-  constructor(parent: HTMLElement, private ev: HudEvents) {
+  constructor(parent: HTMLElement, private ev: HudEventos) {
     this.root = h('div', { class: 'ui' });
     parent.append(this.root);
 
-    const crew = h('div', { class: 'crew', role: 'group', 'aria-label': 'Cambiar de personaje' });
-    for (const id of CREW_ORDER) {
-      const c = h('canvas', { width: '128', height: '128' });
-      paintPortrait(c, id, { mood: CAST[id].mood, blink: 0, viseme: 0, look: 0.3, sway: 0 }, 1.9);
-      const b = h('button', { 'aria-label': `Jugar con ${CAST[id].name}`, 'aria-pressed': 'false', onclick: (e) => (e.stopPropagation(), ev.switchTo(id)) }, c);
-      this.crewBtns.set(id, b);
-      crew.append(b);
-    }
-    this.root.append(crew);
+    this.dock = h('div', { class: 'reparto', role: 'group', 'aria-label': texto('selector.titulo') });
+    this.root.append(this.dock);
 
-    this.root.append(
-      h('div', { class: 'tools' }, iconButton('eye', 'Mostrar zonas interactivas', ev.reveal), iconButton('bulb', 'Pista', ev.hint), iconButton('menu', 'Menú', ev.menu)),
-    );
+    this.root.append(h('div', { class: 'herramientas' }, boton('ojo', texto('boton.ojo'), ev.ojo), boton('pista', texto('boton.pista'), ev.pista), boton('menu', texto('boton.menu'), ev.menu)));
 
-    this.objectiveEl = h('div', { class: 'objective glass', hidden: true });
-    this.root.append(this.objectiveEl);
-    this.usingEl = h('div', { class: 'using glass', hidden: true });
-    this.root.append(this.usingEl);
+    this.reloj = h('span', { class: 'reloj' });
+    this.objTexto = h('span', { class: 'texto' });
+    this.objEl = h('div', { class: 'objetivo vidrio', hidden: true }, this.reloj, this.objTexto);
+    this.root.append(this.objEl);
 
-    this.tray = h('div', { class: 'tray glass', 'data-open': 'false' });
-    this.bagCount = h('span', { class: 'count' }, '0');
-    this.bag = h('button', { class: 'round glass', 'aria-label': 'Inventario', onclick: (e) => (e.stopPropagation(), this.toggleTray()) });
-    this.bag.innerHTML = ICONS.bag;
-    this.bag.append(this.bagCount);
-    this.root.append(this.tray, h('div', { class: 'bag' }, this.bag));
+    this.usandoEl = h('button', { class: 'usando vidrio', hidden: true, onclick: (e) => (e.stopPropagation(), this.seleccionar(null)) });
+    this.root.append(this.usandoEl);
 
-    this.pressEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    this.pressEl.setAttribute('class', 'press');
-    this.pressEl.setAttribute('viewBox', '0 0 64 64');
-    this.pressEl.innerHTML = '<circle cx="32" cy="32" r="26" pathLength="100" stroke-dasharray="0 100"/>';
-    this.pressEl.style.display = 'none';
-    this.root.append(this.pressEl);
+    this.bandeja = h('div', { class: 'bandeja vidrio', 'data-abierta': 'false' });
+    this.cuenta = h('span', { class: 'cuenta' }, '0');
+    this.bolsaBtn = boton('bolsa', texto('boton.bolsa'), () => this.abrirBandeja());
+    this.bolsaBtn.append(this.cuenta);
+    this.root.append(this.bandeja, h('div', { class: 'bolsa' }, this.bolsaBtn));
 
-    this.fpsEl = h('div', { class: 'fps glass', hidden: true });
+    this.ayudaEl = h('div', { class: 'ayuda vidrio', hidden: true });
+    this.root.append(this.ayudaEl);
+
+    this.anilloEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    this.anilloEl.setAttribute('class', 'anillo');
+    this.anilloEl.setAttribute('viewBox', '0 0 64 64');
+    this.anilloEl.innerHTML = '<circle cx="32" cy="32" r="26" pathLength="100" stroke-dasharray="0 100"/>';
+    this.anilloEl.style.display = 'none';
+    this.root.append(this.anilloEl);
+
+    this.fpsEl = h('div', { class: 'fps vidrio', hidden: true });
     this.root.append(this.fpsEl);
   }
 
-  setActive(id: CrewId) {
-    for (const [k, b] of this.crewBtns) b.setAttribute('aria-pressed', String(k === id));
-  }
+  // ------------------------------------------------------------ character dock
 
-  setHudVisible(v: boolean) {
-    for (const el of this.root.querySelectorAll<HTMLElement>('.crew, .tools, .bag, .tray, .objective')) el.style.visibility = v ? '' : 'hidden';
-  }
-
-  objective(text: string | null) {
-    this.objectiveEl.hidden = !text;
-    this.objectiveEl.replaceChildren(h('b', {}, 'OBJETIVO'), h('span', {}, text ?? ''));
-  }
-
-  // ------------------------------------------------ inventory
-
-  setInventory(items: ItemId[]) {
-    this.items = items;
-    this.bagCount.textContent = String(items.length);
-    this.bagCount.hidden = items.length === 0;
-    if (this.selected && !items.includes(this.selected)) this.select(null);
-    this.renderTray();
-  }
-
-  private renderTray() {
-    const kids: HTMLElement[] = this.items.map((id) => {
-      const c = h('canvas', { width: '120', height: '120' });
-      drawItem(c.getContext('2d')!, id, 120);
-      let pressT = 0;
-      const b = h(
-        'button',
-        {
-          'aria-label': ITEMS[id].name,
-          'aria-pressed': String(this.selected === id),
-          onpointerdown: (e) => {
-            e.stopPropagation();
-            pressT = performance.now();
+  setReparto(lista: EntradaReparto[], activo: PjId) {
+    this.dock.replaceChildren(
+      ...lista.map((e) => {
+        const F = REPARTO[e.id];
+        const b = h(
+          'button',
+          {
+            class: 'pj',
+            'aria-pressed': String(e.id === activo),
+            'aria-label': `${F.nombre}${e.aqui ? '' : ` (${e.lugar})`}`,
+            style: `--color:${F.color}`,
+            onclick: (ev) => (ev.stopPropagation(), this.ev.elegir(e.id)),
           },
-          onclick: (e) => {
-            e.stopPropagation();
-            if (performance.now() - pressT > 450) this.ev.lookItem(id);
-            else this.select(this.selected === id ? null : id);
-          },
-          oncontextmenu: (e) => {
-            e.preventDefault();
-            this.ev.lookItem(id);
-          },
-        },
-        c,
-      );
-      return b;
-    });
-    if (!kids.length) kids.push(h('div', { class: 'empty' }, 'Bolsillos vacíos'));
-    this.tray.replaceChildren(...kids);
+          h('span', { class: 'cara' }),
+          h('span', { class: 'nombre' }, F.nombre),
+          e.aqui ? null : h('span', { class: 'lugar' }, e.lugar),
+        );
+        b.querySelector('.cara')!.innerHTML = retrato(e.id, { mood: F.arte.INFO.defaultMood });
+        return b;
+      }),
+    );
   }
 
-  toggleTray(open?: boolean) {
-    const now = this.tray.dataset.open === 'true';
-    const next = open ?? !now;
-    this.tray.dataset.open = String(next);
-    if (!next && this.selected) this.select(null);
+  // ------------------------------------------------------------ objective
+
+  objetivo(t: string | null, hora: string) {
+    this.objEl.hidden = !t;
+    if (t) {
+      this.objTexto.textContent = t;
+      this.reloj.textContent = hora;
+    }
   }
 
-  select(id: ItemId | null) {
-    this.selected = id;
-    this.usingEl.hidden = !id;
-    if (id) this.usingEl.textContent = `Usar ${ITEMS[id].name.toLowerCase()} con…`;
-    this.ev.selectItem(id);
-    for (const b of this.tray.querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.getAttribute('aria-label') === (id ? ITEMS[id].name : '')));
+  // ------------------------------------------------------------ bag
+
+  setBolsa(items: string[]) {
+    const nuevo = items.find((i) => !this.items.includes(i));
+    this.items = [...items];
+    this.cuenta.textContent = String(items.length);
+    this.cuenta.hidden = items.length === 0;
+    if (nuevo) {
+      this.bolsaBtn.classList.remove('salta');
+      void this.bolsaBtn.offsetWidth;
+      this.bolsaBtn.classList.add('salta');
+    }
+    if (this.seleccionado && !items.includes(this.seleccionado)) this.seleccionar(null);
+    this.pintarBandeja();
   }
 
-  // ------------------------------------------------ dialogue
-
-  get inDialogue() {
-    return this.dialogueEl !== null;
-  }
-
-  /** Show one line; resolves when the player taps to continue. */
-  say(who: CrewId | null, text: string, mood?: Mood): Promise<void> {
-    this.closeDialogue();
-    const textEl = h('div', { class: 'text' });
-    const kids: HTMLElement[] = [];
-    if (who) {
-      this.portrait = h('canvas', { width: '260', height: '260' });
-      kids.push(this.portrait);
-    } else this.portrait = null;
-    kids.push(h('div', {}, who ? h('div', { class: 'who' }, CAST[who].name.toUpperCase()) : null, textEl));
-    kids.push(h('i', { class: 'next' }));
-    const el = h('div', { class: `dialogue glass${who ? '' : ' system'}`, role: 'status', 'aria-live': 'polite' }, ...kids);
-    el.addEventListener('pointerdown', (e) => e.stopPropagation());
-    el.addEventListener('click', (e) => (e.stopPropagation(), this.tapDialogue()));
-    this.root.append(el);
-    this.dialogueEl = el;
-    this.typing = { full: text, shown: 0, el: textEl, who, mood: mood ?? (who ? CAST[who].mood : 'neutral') };
-    this.portraitT = 0;
-    return new Promise((res) => {
-      this.advance = res;
-    });
-  }
-
-  /** Taps anywhere on the screen also advance dialogue. */
-  tapDialogue() {
-    if (!this.typing) return;
-    if (this.typing.shown < this.typing.full.length) {
-      this.typing.shown = this.typing.full.length;
-      this.typing.el.textContent = this.typing.full;
+  private pintarBandeja() {
+    if (!this.items.length) {
+      this.bandeja.replaceChildren(h('p', { class: 'vacia' }, texto('bolsa.vacia')));
       return;
     }
-    const a = this.advance;
-    this.closeDialogue();
+    this.bandeja.replaceChildren(
+      ...this.items.map((id) => {
+        const card = h('div', { class: 'objeto' });
+        const usar = h('button', { class: 'usar', 'data-id': id, 'aria-pressed': String(this.seleccionado === id), 'aria-label': texto(`objeto.${id}`), onclick: (e) => (e.stopPropagation(), this.seleccionar(this.seleccionado === id ? null : id)) });
+        usar.innerHTML = icono(id);
+        usar.append(h('span', { class: 'nombre' }, texto(`objeto.${id}`)));
+        const mirar = boton('mirar', texto('boton.mirar'), () => {
+          this.cerrarBandeja();
+          this.ev.mirarObjeto(id);
+        }, 'mirar');
+        card.append(usar, mirar);
+        return card;
+      }),
+    );
+  }
+
+  abrirBandeja(abrir?: boolean) {
+    const open = abrir ?? this.bandeja.dataset.abierta !== 'true';
+    this.bandeja.dataset.abierta = String(open);
+    this.bolsaBtn.setAttribute('aria-expanded', String(open));
+  }
+
+  cerrarBandeja() {
+    this.abrirBandeja(false);
+  }
+
+  seleccionar(id: string | null) {
+    this.seleccionado = id;
+    this.usandoEl.hidden = !id;
+    if (id) {
+      this.usandoEl.replaceChildren(h('span', { class: 'icono' }), h('span', {}, texto('bolsa.usando', { objeto: texto(`objeto.${id}`) })), h('small', {}, texto('bolsa.cancelar')));
+      this.usandoEl.querySelector('.icono')!.innerHTML = icono(id);
+      this.cerrarBandeja();
+    }
+    this.pintarBandeja();
+    this.ev.seleccionar(id);
+  }
+
+  // ------------------------------------------------------------ dialogue
+
+  get enDialogo() {
+    return !!this.avance;
+  }
+
+  /** Show a line; resolves when the player taps past it. */
+  decir(quien: Quien, frase: string, animo = 'neutral', hora?: string): Promise<void> {
+    this.cerrarBandeja();
+    this.ayudaEl.hidden = true;
+    this.ayudaT = 0;
+    if (!this.dialogoEl) {
+      this.dialogoEl = h('div', { class: 'dialogo vidrio', role: 'status', 'aria-live': 'polite' });
+      this.root.append(this.dialogoEl);
+    }
+    const d = this.dialogoEl;
+    const nombre = quien === null ? null : quien === 'aceituna' ? NOMBRE_ACEITUNA : REPARTO[quien].nombre;
+    const color = quien === null ? '' : quien === 'aceituna' ? COLOR_ACEITUNA : REPARTO[quien].color;
+    d.className = `dialogo vidrio${quien === null ? ' narrador' : ''}`;
+    d.style.setProperty('--color', color);
+    const linea = h('p', { class: 'linea' });
+    this.retratoEl = quien === null ? null : h('div', { class: 'retrato' });
+    this.retratoDe = quien === null ? null : { quien, animo };
+    this.retratoKey = '';
+    d.replaceChildren(...[this.retratoEl, h('div', { class: 'cuerpo' }, nombre ? h('div', { class: 'quien' }, nombre, hora ? h('small', {}, ` · ${hora}`) : null) : null, linea), h('span', { class: 'sigue', 'aria-hidden': 'true' }, '▸')].filter(Boolean) as Node[]);
+    this.escribiendo = { full: frase, shown: 0, el: linea };
+    this.hablando = quien;
+    this.pintarRetrato('reposo');
+    return new Promise((resolve) => {
+      this.avance = () => {
+        this.avance = null;
+        this.hablando = null;
+        resolve();
+      };
+    });
+  }
+
+  /** Tap during a dialogue: finish the line, or go to the next one. */
+  tocarDialogo() {
+    if (this.escribiendo && this.escribiendo.shown < this.escribiendo.full.length) {
+      this.escribiendo.shown = this.escribiendo.full.length;
+      this.escribiendo.el.textContent = this.escribiendo.full;
+      return;
+    }
+    this.escribiendo = null;
+    const a = this.avance;
     a?.();
   }
 
-  closeDialogue() {
-    this.dialogueEl?.remove();
-    this.dialogueEl = null;
-    this.typing = null;
-    this.advance = null;
+  cerrarDialogo() {
+    this.dialogoEl?.remove();
+    this.dialogoEl = null;
+    this.retratoEl = null;
   }
 
-  /** Is the line still being typed (for lip sync)? */
-  get speaking(): CrewId | null {
-    return this.typing && this.typing.shown < this.typing.full.length ? this.typing.who : null;
+  private pintarRetrato(boca: string) {
+    if (!this.retratoEl || !this.retratoDe) return;
+    const key = `${this.retratoDe.animo}|${boca}|${this.parpadeo < 0 ? 1 : 0}`;
+    if (key === this.retratoKey) return;
+    this.retratoKey = key;
+    this.retratoEl.innerHTML = retrato(this.retratoDe.quien, { mood: this.retratoDe.animo, mouthKind: boca === 'reposo' ? undefined : boca, blink: this.parpadeo < 0 });
   }
 
-  update(dt: number) {
-    if (this.typing) {
-      const t = this.typing;
-      if (t.shown < t.full.length) {
-        t.shown = Math.min(t.full.length, t.shown + dt * 46);
-        t.el.textContent = t.full.slice(0, Math.floor(t.shown));
-      }
-      if (this.portrait && t.who) {
-        this.portraitT += dt;
-        this.blinkT -= dt;
-        let blink = 0;
-        if (this.blinkT < 0) {
-          blink = 1;
-          if (this.blinkT < -0.12) this.blinkT = 2 + Math.random() * 3;
-        }
-        const talking = t.shown < t.full.length;
-        const ch = t.full.charAt(Math.floor(t.shown)).toLowerCase();
-        const viseme = talking ? ('aá'.includes(ch) ? 1 : 'oóuú'.includes(ch) ? 2 : 'eéií'.includes(ch) ? 3 : ch === ' ' ? 0 : 1) : 0;
-        paintPortrait(this.portrait, t.who, { mood: t.mood, blink, viseme, look: 0.2, sway: Math.sin(this.portraitT * 2) * 0.2 });
-      }
-    }
+  // ------------------------------------------------------------ help, labels, ring
+
+  ayuda(t: string, segundos = 6) {
+    this.ayudaEl.replaceChildren(h('span', { class: 'mano' }), h('span', {}, t));
+    this.ayudaEl.querySelector('.mano')!.innerHTML = ICONOS.mano;
+    this.ayudaEl.hidden = false;
+    this.ayudaT = segundos;
   }
 
-  // ------------------------------------------------ feedback
-
-  toast(text: string, item?: ItemId) {
-    const kids: Array<HTMLElement | string> = [];
-    if (item) {
-      const c = h('canvas', { width: '88', height: '88' });
-      drawItem(c.getContext('2d')!, item, 88);
-      kids.push(c);
-    }
-    kids.push(h('span', {}, text));
-    const el = h('div', { class: 'toast glass' }, ...kids);
+  etiqueta(t: string, x: number, y: number) {
+    const el = h('div', { class: 'etiqueta', style: `left:${x}px;top:${y}px` }, t);
     this.root.append(el);
-    setTimeout(() => el.remove(), 2700);
+    setTimeout(() => el.remove(), 1400);
   }
 
-  label(text: string, x: number, y: number) {
-    const el = h('div', { class: 'label glass' }, text);
-    el.style.left = x + 'px';
-    el.style.top = y + 'px';
+  aviso(t: string, item?: string) {
+    const el = h('div', { class: 'aviso vidrio' }, h('span', { class: 'icono' }), t);
+    if (item) el.querySelector('.icono')!.innerHTML = icono(item);
     this.root.append(el);
-    setTimeout(() => el.remove(), 1500);
+    setTimeout(() => el.remove(), 2600);
   }
 
-  pressRing(x: number | null, y: number, t: number) {
+  anillo(x: number | null, y: number, t: number) {
     if (x === null) {
-      this.pressEl.style.display = 'none';
+      this.anilloEl.style.display = 'none';
       return;
     }
-    this.pressEl.style.display = 'block';
-    this.pressEl.style.left = x + 'px';
-    this.pressEl.style.top = y + 'px';
-    this.pressEl.querySelector('circle')!.setAttribute('stroke-dasharray', `${(t * 100).toFixed(1)} 100`);
+    this.anilloEl.style.display = 'block';
+    this.anilloEl.style.left = `${x}px`;
+    this.anilloEl.style.top = `${y}px`;
+    this.anilloEl.querySelector('circle')!.setAttribute('stroke-dasharray', `${(t * 100).toFixed(1)} 100`);
   }
 
-  fps(text: string | null) {
-    this.fpsEl.hidden = text === null;
-    if (text) this.fpsEl.textContent = text;
+  fps(t: string | null) {
+    this.fpsEl.hidden = !t;
+    if (t) this.fpsEl.textContent = t;
   }
 
-  /** Full-screen card. Returns the element so callers can wire buttons. */
-  cover(className: string, ...kids: Array<Node | string | null>): HTMLDivElement {
-    const el = h('div', { class: `cover ${className}` }, ...kids);
-    el.addEventListener('pointerdown', (e) => e.stopPropagation());
-    this.root.append(el);
+  setVisible(v: boolean) {
+    this.root.dataset.oculto = String(!v);
+  }
+
+  /** Full-screen card (title, pause menu, end of the pilot). */
+  cubrir(clase: string, ...kids: Node[]) {
+    const el = h('div', { class: `cubierta ${clase}` }, ...kids);
+    this.root.parentElement!.append(el);
     return el;
+  }
+
+  // ------------------------------------------------------------ frame
+
+  update(dt: number) {
+    const w = this.escribiendo;
+    let boca = 'reposo';
+    if (w && w.shown < w.full.length) {
+      w.shown = Math.min(w.full.length, w.shown + dt * 42);
+      const n = Math.floor(w.shown);
+      w.el.textContent = w.full.slice(0, n);
+      boca = VISEMA(w.full[n - 1]?.toLowerCase() ?? ' ');
+    } else if (w) {
+      this.hablando = null;
+    }
+    this.parpadeo -= dt;
+    if (this.parpadeo < -0.13) this.parpadeo = 2 + Math.random() * 3;
+    this.pintarRetrato(boca);
+    if (this.ayudaT > 0) {
+      this.ayudaT -= dt;
+      if (this.ayudaT <= 0) this.ayudaEl.hidden = true;
+    }
   }
 }

@@ -62,6 +62,7 @@ Imágenes de referencia del kit, solo como referencia de ambiente: `docs/referen
 - **P4 · Vista de tres cuartos** con los dos ojos visibles, en lugar de perfil puro. Se refleja en espejo para mirar al otro lado.
 - **P5 · Retrato grande en cada diálogo**, con boca sincronizada con el texto, parpadeo y expresión. Es donde de verdad se luce el parecido.
 - **P6 · Física secundaria:** barba, pelo y ropa reaccionan al movimiento.
+- **P6b · Vestuario:** cada personaje puede tener varios conjuntos (`OUTFITS` en su archivo de `src/arte/personajes/`) con las mismas articulaciones, así que todos se animan con el mismo rig. Fran tiene «calle» y «casa» (camiseta vieja con lamparón, calzoncillos de corazones y zapatillas de felpa).
 - **P7 · Rasgos de cada amigo**, exagerados para que se reconozcan:
 
 | Amigo | Rasgos |
