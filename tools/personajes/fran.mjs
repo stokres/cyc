@@ -108,14 +108,20 @@ export function nose() {
 }
 
 /** Eyes: dark ovals with a catchlight, Nora style. Far eye narrower. */
-export function eye(which, look = 0, open = 1, squint = 0) {
+export function eye(which, look = 0, open = 1, squint = 0, angry = false) {
   const [cx, cy, rx0, ry0] = which === 'cerca' ? [13, -2, 4.4, 5.4] : [38, -3, 3.1, 5];
   const rx = rx0 * open;
   const ry = ry0 * open;
   const x = cx + look;
   // A slightly heavy upper lid, like Fran's calm, hooded eyes.
   const top = cy - ry * 0.62;
-  const lid = smooth([[x - rx - 2, cy - ry - 3], [x + rx + 2, cy - ry - 3], [x + rx + 1, top + 0.6], [x, top - 0.6], [x - rx - 1, top + 1.2]]);
+  // Angry: the lid drops towards the nose (inner corner), narrowing the eye.
+  const inner = cy - ry * 0.05;
+  const outer = cy - ry * 0.6;
+  const [lt, rt] = which === 'cerca' ? [outer, inner] : [inner, outer];
+  const lid = angry
+    ? smooth([[x - rx - 2, cy - ry - 3], [x + rx + 2, cy - ry - 3], [x + rx + 1, rt], [x, (lt + rt) / 2 - 0.4], [x - rx - 1, lt]])
+    : smooth([[x - rx - 2, cy - ry - 3], [x + rx + 2, cy - ry - 3], [x + rx + 1, top + 0.6], [x, top - 0.6], [x - rx - 1, top + 1.2]]);
   const parts = [
     path(ellipse(x + rx * 0.3, cy - ry * 0.25, rx * 0.32, rx * 0.32), '#ffffff'),
     path(lid, C.skinShadow),
@@ -178,6 +184,10 @@ export function mouth(kind = 'reposo') {
       return [path(ellipse(38.5, 32, 10, 4.2), C.mouth), path(smooth([[30, 29.5], [47, 29.5], [45, 31.5], [32, 31.5]]), C.teeth)].join('');
     case 'm':
       return path(smooth([[29, 30], [38, 32], [48, 29.5], [44, 33], [38, 34], [32, 33]]), C.lip);
+    case 'triste':
+      return [stroke(smooth([[30, 31.5], [38, 30.2], [47, 31.5]], false), C.mouth, 1.8), path(smooth([[31, 32.5], [38, 34], [46, 32.5], [43, 35.5], [38, 36.2], [33, 35.5]]), C.lip)].join('');
+    case 'enfado':
+      return [stroke(smooth([[29.5, 32.5], [34, 30], [42, 30], [47.5, 32.5]], false), C.mouth, 2.2), path(smooth([[32, 33], [38, 33.8], [45, 33], [42, 35.4], [35, 35.4]]), C.lip)].join('');
     case 'sonrisa':
       return [path(smooth([[27, 28], [38, 31], [50, 27], [46, 35], [38, 38], [31, 35]]), C.mouth), path(smooth([[29, 28.5], [48, 28], [46, 31], [31, 31.2]]), C.teeth)].join('');
     default:
@@ -211,11 +221,13 @@ export function guides() {
 const JAW_DROP = { reposo: 0, m: 0, sonrisa: 1, a: 4.5, o: 3.5, e: 2 };
 
 export function head({ mood = 'neutral', mouthKind, blink = false, look = 0, sway = 0 } = {}) {
-  const lift = mood === 'surprised' ? 5 : mood === 'happy' ? 2 : mood === 'angry' ? -1.5 : 0;
-  const knit = mood === 'angry' ? 3.5 : mood === 'sad' ? -2.5 : 0;
+  // Sad raises the inner ends of the brows; angry pulls them down towards the nose.
+  const lift = mood === 'surprised' ? 5 : mood === 'happy' ? 2 : mood === 'angry' ? -1 : 0;
+  const knit = mood === 'sad' ? 3.5 : mood === 'angry' ? -4.5 : 0;
   const open = mood === 'surprised' ? 1.22 : 1;
   const squint = mood === 'happy' ? 0.55 : 0;
-  const m = mouthKind ?? (mood === 'happy' ? 'sonrisa' : mood === 'surprised' ? 'o' : 'reposo');
+  const angry = mood === 'angry';
+  const m = mouthKind ?? (mood === 'happy' ? 'sonrisa' : mood === 'surprised' ? 'o' : mood === 'sad' ? 'triste' : angry ? 'enfado' : 'reposo');
   // The beard is the jaw: it drops when the mouth opens.
   const jaw = JAW_DROP[m] ?? 0;
   return [
@@ -225,8 +237,8 @@ export function head({ mood = 'neutral', mouthKind, blink = false, look = 0, swa
     g('mandibula', [g('barba', beard(sway)), g('boca', mouth(m))], { transform: `translate(${jaw * 0.25} ${jaw})` }),
     g('bigote', mustache()),
     g('nariz', nose()),
-    g('ojo_cerca', blink ? eyelid('cerca') : squint ? happyEye('cerca') : eye('cerca', look, open)),
-    g('ojo_lejos', blink ? eyelid('lejos') : squint ? happyEye('lejos') : eye('lejos', look, open)),
+    g('ojo_cerca', blink ? eyelid('cerca') : squint ? happyEye('cerca') : eye('cerca', look, open, 0, angry)),
+    g('ojo_lejos', blink ? eyelid('lejos') : squint ? happyEye('lejos') : eye('lejos', look, open, 0, angry)),
     g('cejas', brows(lift, knit)),
     g('pelo', fringe()),
   ].join('');
@@ -265,6 +277,7 @@ export const body = makeBody({
 
 export const INFO = {
   name: 'Fran',
+  defaultMood: 'neutral',
   traits: 'bigote que baja a una perilla larga, cejas gruesas y rectas, canas en las patillas, camiseta verde azulada y complexión ancha.',
 };
 

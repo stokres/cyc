@@ -17,7 +17,7 @@ const sheets = {
     cell('-65 -95 135 165', F.head() + F.guides(), 480, 'Construcción'),
     cell('-65 -95 135 165', F.head(), 480, 'Reposo'),
   ],
-  expresiones: () => ['neutral', 'happy', 'surprised', 'angry'].map((m) => cell('-65 -95 135 175', F.head({ mood: m }), 360, m))
+  expresiones: () => ['neutral', 'happy', 'surprised', 'sad', 'angry'].map((m) => cell('-65 -95 135 175', F.head({ mood: m }), 300, m))
     .concat(['a', 'e', 'o', 'm'].map((k) => cell('-65 -95 135 175', F.head({ mouthKind: k }), 360, k)))
     .concat([cell('-65 -95 135 175', F.head({ blink: true }), 360, 'parpadeo')]),
   cuerpo: () => [

@@ -6,13 +6,38 @@ import { smooth, ellipse, path, stroke, g, shape, pivot } from './svg.mjs';
 /**
  * cfg = {
  *   skin: { skin, skinShadow, skinDeep, skinLine },
- *   top: { style: 'tee' | 'sherpa' | 'sweater', base, shadow, deep, light, line, collar?: {base, shadow, light, line}, inner? },
+ *   top: { style: 'tee' | 'shirt' | 'sherpa' | 'sweater' | 'hoodie', base, shadow, deep, light, line, collar?, inner?, pattern? },
  *   pants: { base, shadow, deep, light, line },
  *   shoes: { style: 'sneaker' | 'boot', base, back, light, line, sole, soleBack },
  *   joints, torso (point list), belly (0..1), limb (arm width), thigh (thigh width),
  *   headAt: { x, y, s }, head(face) -> svg string,
  * }
  */
+/** Muted Hawaiian print: leaves and small flowers scattered over a box. */
+function hawaiian(x0, y0, w, h, P, seed = 3, n = 18) {
+  let st = seed;
+  const r = () => ((st = (st * 16807) % 2147483647) / 2147483647);
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const x = x0 + r() * w;
+    const y = y0 + r() * h;
+    const a = r() * Math.PI;
+    const sz = 5 + r() * 4;
+    if (r() < 0.7) {
+      const pts = [[0, -sz], [sz * 0.42, -sz * 0.2], [sz * 0.3, sz * 0.5], [0, sz], [-sz * 0.3, sz * 0.5], [-sz * 0.42, -sz * 0.2]].map(([px, py]) => [x + px * Math.cos(a) - py * Math.sin(a), y + px * Math.sin(a) + py * Math.cos(a)]);
+      out.push(path(smooth(pts), P.leaf, { opacity: 0.75 }));
+      out.push(stroke(`M${(pts[0][0] + 0).toFixed(1)} ${pts[0][1].toFixed(1)}L${pts[3][0].toFixed(1)} ${pts[3][1].toFixed(1)}`, P.vein, 0.7, { opacity: 0.6 }));
+    } else {
+      for (let k = 0; k < 5; k++) {
+        const b = a + (k / 5) * Math.PI * 2;
+        out.push(path(ellipse(x + Math.cos(b) * 2.4, y + Math.sin(b) * 2.4, 1.8, 1.8), P.flower, { opacity: 0.8 }));
+      }
+      out.push(path(ellipse(x, y, 1.2, 1.2), P.leaf));
+    }
+  }
+  return out;
+}
+
 export function makeBody(cfg) {
   const J = cfg.joints;
   const S = cfg.skin;
@@ -44,6 +69,27 @@ export function makeBody(cfg) {
         stroke(smooth([[-14, top + 1], [-2, top + 5], [12, top + 2]], false), T.shadow, 3),
         stroke(smooth([[26, hipY - 18], [31, hipY - 21], [36, hipY - 17]], false), T.light, 1.4, { opacity: 0.7 }),
       );
+    } else if (T.style === 'shirt') {
+      // Open camp collar showing the neck, a button placket and a muted print.
+      const px = front - 13;
+      shading.push(
+        ...hawaiian(back, top - 6, front - back, hipY - top + 12, T.pattern, 5, 26),
+        path(smooth([[nx - 6, top - 2], [nx + 16, top - 2], [px + 1, top + 24, 'c']]), S.skin),
+        path(smooth([[nx - 6, top - 2], [nx + 4, top - 2], [px - 2, top + 20]]), S.skinShadow, { opacity: 0.6 }),
+        stroke(smooth([[px, top + 22], [px - 1, (top + hipY) / 2], [px + 1, hipY + 6]], false), T.deep, 1.4),
+        ...[0.32, 0.55, 0.78].map((k) => path(ellipse(px + 2.5, top + 22 + (hipY - top - 22) * k, 1.6, 1.6), T.button ?? '#efe6d0')),
+      );
+    } else if (T.style === 'hoodie') {
+      // Kangaroo pocket, ribbed hem, drawstrings.
+      const pk = smooth([[back + 10, hipY - 40], [front - 10, hipY - 42], [front - 4, hipY - 14, 'c'], [back + 8, hipY - 14, 'c']]);
+      shading.push(
+        path(smooth([[back - 4, hipY - 12], [front + 6, hipY - 14], [front + 6, hipY + 8], [back - 4, hipY + 8]]), T.shadow, { opacity: 0.9 }),
+        ...[0.15, 0.3, 0.45, 0.6, 0.75, 0.9].map((k) => stroke(`M${back + (front - back) * k} ${hipY - 11}l0 9`, T.deep, 1.1, { opacity: 0.8 })),
+        path(pk, T.shadow, { opacity: 0.55 }),
+        stroke(pk, T.deep, 1.6),
+        stroke(smooth([[front - 22, top + 6], [front - 23, top + 26], [front - 21, top + 34]], false), T.string, 1.6),
+        stroke(smooth([[front - 14, top + 5], [front - 13, top + 24], [front - 12, top + 31]], false), T.string, 1.6),
+      );
     } else if (T.style === 'sweater') {
       // Crew neck rib and ribbed hem.
       shading.push(
@@ -72,6 +118,18 @@ export function makeBody(cfg) {
     }
     const garment = shape(TORSO, T.base, shading, T.line, 1.6);
     let collar = '';
+    if (T.style === 'shirt') {
+      // Collar flaps lying open on the shoulders.
+      const px = front - 13;
+      const flapF = smooth([[nx + 14, top - 4], [nx + 24, top - 2], [px + 4, top + 16], [px + 1, top + 24, 'c'], [nx + 12, top + 6]]);
+      const flapB = smooth([[nx - 10, top - 4], [nx + 2, top - 6], [nx - 2, top + 8], [nx - 14, top + 10]]);
+      collar = shape(flapB, T.shadow, [], T.line, 1.3) + shape(flapF, T.base, [path(ellipse(nx + 20, top + 4, 4, 7, -0.6), T.light, { opacity: 0.8 })], T.line, 1.4);
+    }
+    if (T.style === 'hoodie') {
+      // The hood rests on the back of the shoulders, behind the head.
+      const hood = smooth([[nx - 30, top + 12], [nx - 30, top - 6], [nx - 20, top - 16], [nx - 4, top - 18], [nx + 8, top - 10], [nx + 10, top + 4], [nx - 6, top + 8]]);
+      collar = shape(hood, T.base, [path(ellipse(nx - 10, top - 4, 9, 9), T.deep), path(ellipse(nx - 24, top + 2, 6, 10), T.shadow)], T.line, 1.5);
+    }
     if (T.style === 'sherpa' && T.collar) {
       const c = T.collar;
       const ring = smooth([[nx - 22, top + 6], [nx - 20, top - 10], [nx - 6, top - 16], [nx + 10, top - 15], [nx + 22, top - 6], [nx + 24, top + 8], [nx + 14, top + 4], [nx, top + 2], [nx - 12, top + 8]]);
@@ -100,7 +158,7 @@ export function makeBody(cfg) {
       shape(thumb, skin, [], S.skinLine, 1.2),
       pivot(`mano_${side}`, wx, wy),
     ]);
-    if (T.style === 'tee') {
+    if (T.style === 'tee' || T.style === 'shirt') {
       const sleeve = smooth([[sx - 13, sy - 4], [sx - 6, sy - 13], [sx + 7, sy - 14], [sx + 15, sy - 5], [sx + 16, sy + 12], [sx + 15, sy + 24, 'c'], [sx - 15, sy + 24, 'c'], [sx - 15, sy + 10]]);
       const skinShade = shadeStrip(isBack ? S.skinDeep : S.skinShadow);
       return g(`brazo_${side}`, [
@@ -111,6 +169,7 @@ export function makeBody(cfg) {
           shape(sleeve, cloth, [
             path(smooth([[sx - 20, sy - 16], [sx - 5, sy - 16], [sx - 6, sy + 30], [sx - 20, sy + 30]]), isBack ? T.deep : T.shadow),
             isBack ? '' : path(ellipse(sx + 7, sy - 4, 5, 9), T.light, { opacity: 0.7 }),
+            ...(T.pattern ? hawaiian(sx - 18, sy - 16, 36, 40, T.pattern, isBack ? 9 : 7, 6) : []),
             stroke(`M${sx - 16} ${sy + 20}L${sx + 16} ${sy + 20}`, isBack ? T.seamBack ?? T.line : T.shadow, 1.6),
           ], T.line, 1.5),
           pivot(`brazo_sup_${side}`, sx, sy),
@@ -126,7 +185,7 @@ export function makeBody(cfg) {
       handPiece,
       g(`antebrazo_${side}`, [
         shape(foreSleeve, cloth, clothShade, T.line, 1.4),
-        shape(cuff, isBack ? T.shadow : T.light, T.style === 'sweater' ? [0.25, 0.5, 0.75].map((k) => stroke(`M${wx - aw + 2 * aw * k} ${wy - 8}l0 6`, T.shadow, 1)) : [], T.line, 1.3),
+        shape(cuff, isBack ? T.shadow : T.style === 'hoodie' ? T.shadow : T.light, T.style === 'sweater' || T.style === 'hoodie' ? [0.25, 0.5, 0.75].map((k) => stroke(`M${wx - aw + 2 * aw * k} ${wy - 8}l0 6`, T.style === 'hoodie' ? T.deep : T.shadow, 1)) : [], T.line, 1.3),
         pivot(`antebrazo_${side}`, ex, ey),
       ]),
       g(`brazo_sup_${side}`, [

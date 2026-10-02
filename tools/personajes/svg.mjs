@@ -68,3 +68,20 @@ export function shape(outline, base, shading = [], line = null, lineWidth = 1.4)
 export function svg(viewBox, body, title = '') {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}">${title ? `<title>${title}</title>` : ''}${body}</svg>\n`;
 }
+
+/**
+ * Angry upper lid for an eye at (x, cy) in three-quarter view: it drops towards
+ * the nose (the inner corner is on the right for the near eye, left for the far one).
+ */
+export function angryLid(which, x, cy, rx, ry) {
+  const inner = cy - ry * 0.05;
+  const outer = cy - ry * 0.6;
+  const [lt, rt] = which === 'cerca' ? [outer, inner] : [inner, outer];
+  return smooth([[x - rx - 2, cy - ry - 3], [x + rx + 2, cy - ry - 3], [x + rx + 1, rt], [x, (lt + rt) / 2 - 0.4], [x - rx - 1, lt]]);
+}
+
+/** Rounded rectangle centred on (cx, cy) as a path: square glasses, pockets, signs. */
+export function rrect(cx, cy, hw, hh, r) {
+  const x0 = cx - hw, x1 = cx + hw, y0 = cy - hh, y1 = cy + hh;
+  return `M${f(x0 + r)} ${f(y0)}H${f(x1 - r)}Q${f(x1)} ${f(y0)} ${f(x1)} ${f(y0 + r)}V${f(y1 - r)}Q${f(x1)} ${f(y1)} ${f(x1 - r)} ${f(y1)}H${f(x0 + r)}Q${f(x0)} ${f(y1)} ${f(x0)} ${f(y1 - r)}V${f(y0 + r)}Q${f(x0)} ${f(y0)} ${f(x0 + r)} ${f(y0)}Z`;
+}

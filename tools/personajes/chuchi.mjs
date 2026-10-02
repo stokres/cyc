@@ -1,9 +1,9 @@
 // Chuchi, three-quarter view facing right. Same head-local construction as Fran:
 //   eye line y=-2 · brow line y=-15 · nose base y=18 · mouth y=30 · face front x≈46.
-// Likeness: shaved egg-shaped head with a shine, round black-framed glasses,
+// Likeness: shaved egg-shaped head with a shine, squarish dark-brown glasses,
 // trimmed ginger beard and mustache, closed half smile, light brows, ears that
 // stand out a little, black crew-neck sweater, slim and the tallest of the three.
-import { smooth, ellipse, path, stroke, g, shape } from './svg.mjs';
+import { smooth, ellipse, path, stroke, g, shape, angryLid, rrect } from './svg.mjs';
 import { makeBody } from './cuerpo.mjs';
 
 export const C = {
@@ -24,8 +24,8 @@ export const C = {
   mouth: '#5e2622',
   teeth: '#f6f2e8',
   tongue: '#c75a52',
-  frame: '#1c1715',
-  frameLight: '#4a3f3a',
+  frame: '#46291a',
+  frameLight: '#7c5239',
 };
 
 function stipple(n, x0, y0, w, h, color, seed = 7) {
@@ -75,7 +75,7 @@ function nose() {
   ], C.skinDeep, 1.2);
 }
 
-function eye(which, look = 0, open = 1) {
+function eye(which, look = 0, open = 1, angry = false) {
   const [cx, cy, rx0, ry0] = which === 'cerca' ? [13, -2, 3.8, 4.6] : [38.5, -3, 2.7, 4.3];
   const rx = rx0 * open;
   const ry = ry0 * open;
@@ -83,7 +83,7 @@ function eye(which, look = 0, open = 1) {
   return shape(ellipse(x, cy, rx, ry), C.eye, [
     path(ellipse(x + rx * 0.3, cy - ry * 0.3, rx * 0.34, rx * 0.34), '#ffffff'),
     // Calm, slightly lowered lids: the knowing look.
-    path(smooth([[x - rx - 2, cy - ry - 3], [x + rx + 2, cy - ry - 3], [x + rx + 1, cy - ry * 0.3], [x, cy - ry * 0.5], [x - rx - 1, cy - ry * 0.25]]), C.skinShadow),
+    path(angry ? angryLid(which, x, cy, rx, ry) : smooth([[x - rx - 2, cy - ry - 3], [x + rx + 2, cy - ry - 3], [x + rx + 1, cy - ry * 0.3], [x, cy - ry * 0.5], [x - rx - 1, cy - ry * 0.25]]), C.skinShadow),
   ]);
 }
 
@@ -97,21 +97,21 @@ function eyelid(which) {
   return stroke(smooth([[cx - rx, cy - 1], [cx, cy + 2.2], [cx + rx, cy - 1]], false), C.skinLine, 1.7);
 }
 
-/** Round glasses with thick black frames, seen in three-quarter view. */
+/** Squarish glasses with thick dark-brown frames, seen in three-quarter view. */
 function glasses() {
-  const near = ellipse(13, -3, 9.6, 9.6);
-  const far = ellipse(38.6, -3.5, 6.2, 9.2);
+  const near = rrect(13, -3, 9.8, 8.6, 3.6);
+  const far = rrect(38.8, -3.5, 6.2, 8.4, 2.8);
   return [
-    stroke(smooth([[3.6, -5], [-2, -6], [-8, -6]], false), C.frame, 2.4),
+    stroke(smooth([[3.2, -6], [-2, -6.5], [-8, -6.5]], false), C.frame, 2.4),
     path(near, '#ffffff', { opacity: 0.1 }),
     path(far, '#ffffff', { opacity: 0.1 }),
     stroke(near, C.frame, 2.8),
     stroke(far, C.frame, 2.6),
-    stroke(smooth([[22.4, -4.5], [27.5, -7], [32.5, -4.8]], false), C.frame, 2.4),
-    // Glare and a lighter edge on the frame.
-    stroke(smooth([[7, -9], [11, -10.5]], false), '#ffffff', 1.4, { opacity: 0.55 }),
-    stroke(smooth([[35.5, -9], [37.5, -10]], false), '#ffffff', 1.2, { opacity: 0.5 }),
-    stroke(smooth([[5, -9], [9, -12], [14, -12.6]], false), C.frameLight, 0.9),
+    stroke(smooth([[22.8, -5.5], [27.7, -7.5], [32.6, -5.5]], false), C.frame, 2.4),
+    // Glare and a lighter edge on the top of the frame.
+    stroke(smooth([[6.5, -8.5], [10.5, -10]], false), '#ffffff', 1.4, { opacity: 0.55 }),
+    stroke(smooth([[35.5, -8.5], [37.5, -9.6]], false), '#ffffff', 1.2, { opacity: 0.5 }),
+    stroke(smooth([[6, -11.6], [20, -11.6]], false), C.frameLight, 0.9),
   ].join('');
 }
 
@@ -145,6 +145,10 @@ function mouth(kind = 'reposo') {
       return [path(ellipse(39, 30.5, 11, 4.6), C.mouth), path(smooth([[30, 27.5], [48, 27.5], [46, 30], [32, 30]]), C.teeth)].join('');
     case 'm':
       return [stroke(smooth([[29, 28.5], [39, 30], [49, 27.5]], false), C.mouth, 2), lowerLip([[32, 31.5], [39, 33.2], [46, 31.5]])].join('');
+    case 'triste':
+      return [stroke(smooth([[29, 31], [38.5, 29.2], [48, 31]], false), C.mouth, 2.1), lowerLip([[32, 33], [38.5, 34.4], [45, 33]])].join('');
+    case 'enfado':
+      return [stroke(smooth([[28.5, 32], [33.5, 29.4], [43.5, 29.4], [48.5, 32]], false), C.mouth, 2.4), lowerLip([[32, 33.2], [38.5, 34], [45, 33.2]])].join('');
     case 'sonrisa':
       return [
         path(smooth([[26, 26], [38, 28.5], [51, 23.5], [48, 31], [39, 34.5], [30, 32]]), C.mouth),
@@ -159,13 +163,14 @@ function mouth(kind = 'reposo') {
 const JAW_DROP = { reposo: 0, m: 0, sonrisa: 1.2, a: 4.5, o: 3.5, e: 2 };
 
 export function head({ mood = 'smug', mouthKind, blink = false, look = 0 } = {}) {
-  const lift = mood === 'surprised' ? 5 : mood === 'happy' ? 1.5 : mood === 'angry' ? -1.5 : 0;
-  const knit = mood === 'angry' ? 3 : 0;
+  // Sad raises the inner ends of the brows; angry pulls them down towards the nose.
+  const lift = mood === 'surprised' ? 5 : mood === 'happy' ? 1.5 : mood === 'angry' ? -1 : 0;
+  const knit = mood === 'sad' ? 3.5 : mood === 'angry' ? -4.5 : 0;
   const cocked = mood === 'smug' || mood === 'neutral' ? 1.6 : 0;
   const open = mood === 'surprised' ? 1.22 : 1;
-  const m = mouthKind ?? (mood === 'happy' ? 'sonrisa' : mood === 'surprised' ? 'o' : mood === 'angry' ? 'm' : 'reposo');
+  const m = mouthKind ?? (mood === 'happy' ? 'sonrisa' : mood === 'surprised' ? 'o' : mood === 'sad' ? 'triste' : mood === 'angry' ? 'enfado' : 'reposo');
   const jaw = JAW_DROP[m] ?? 0;
-  const eyes = (w) => (blink ? eyelid(w) : mood === 'happy' ? happyEye(w) : eye(w, look, open));
+  const eyes = (w) => (blink ? eyelid(w) : mood === 'happy' ? happyEye(w) : eye(w, look, open, mood === 'angry'));
   return [
     g('cara', face()),
     g('oreja', ear()),
@@ -198,7 +203,7 @@ export function headFront({ mood = 'smug' } = {}) {
     path(ellipse(x + 1.2, -3.4, 1.2, 1.2), '#ffffff'),
     path(smooth([[x - 6, -9], [x + 6, -9], [x + 5, -3.6], [x, -4.4], [x - 5, -3.4]]), C.skinShadow),
   ]);
-  const lens = (x) => stroke(ellipse(x, -3, 10, 10), C.frame, 2.8) + path(ellipse(x, -3, 10, 10), '#ffffff', { opacity: 0.1 });
+  const lens = (x) => stroke(rrect(x, -3, 10.2, 9, 3.8), C.frame, 2.8) + path(rrect(x, -3, 10.2, 9, 3.8), '#ffffff', { opacity: 0.1 });
   return [
     shape(skull, C.skin, [
       path(smooth([[-50, -70], [-30, -66], [-36, 0], [-30, 50], [-50, 50]]), C.skinShadow),
@@ -258,7 +263,7 @@ export function headProfile() {
     shape(nose, C.skin, [path(smooth([[37, 15], [42, 19.5], [49, 17], [51, 23], [37, 23]]), C.skinShadow), path(ellipse(42.5, 17.5, 2.8, 1.6), C.skinDeep)], C.skinDeep, 1.2),
     shape(smooth([[30, -6], [32.5, -5.5], [33.5, -2], [32.5, 1.5], [30, 2]]), C.eye, [path(ellipse(32, -3.6, 0.9, 0.9), '#ffffff'), path(smooth([[28, -9], [35, -9], [34.5, -4], [29, -3.8]]), C.skinShadow)]),
     // Lens seen edge-on, temple arm back to the ear.
-    stroke(ellipse(35, -3, 2.6, 9.6), C.frame, 2.6),
+    stroke(rrect(35, -3, 2.4, 8.8, 1.6), C.frame, 2.6),
     stroke(smooth([[33, -6], [14, -7], [-6, -6]], false), C.frame, 2.4),
     path(smooth([[22, -16.5], [29, -20], [37, -19], [38, -16.5], [30, -17.2], [23, -13.5]]), C.brow),
   ].join('');
@@ -266,7 +271,7 @@ export function headProfile() {
 
 // ---------------------------------------------------------------- body
 
-export const HEAD_AT = { x: 10, y: -231, s: 0.82 };
+export const HEAD_AT = { x: 9, y: -228, s: 0.76 };
 
 export const JOINTS = {
   cabeza: [6, -206],
@@ -277,12 +282,12 @@ export const JOINTS = {
   muslo_delante: [12, -114], pierna_delante: [12, -60], pie_delante: [12, -10],
 };
 
-/** Slim and tall: black crew-neck sweater, dark trousers, brown boots. */
+/** Slim and tall: maroon hoodie, black jeans, white trainers. */
 export const body = makeBody({
   skin: C,
-  top: { style: 'sweater', base: '#27282e', shadow: '#191a1e', deep: '#111215', light: '#41434d', line: '#0b0b0d' },
-  pants: { base: '#3a3d46', shadow: '#2b2d34', deep: '#202227', light: '#52555e', line: '#16171b' },
-  shoes: { style: 'boot', base: '#5e3d29', back: '#4a2f1f', light: '#80583d', line: '#2a190f', sole: '#2b2420', soleBack: '#201b18' },
+  top: { style: 'hoodie', base: '#7b2432', shadow: '#5b1824', deep: '#43101a', light: '#9b3646', line: '#2c0a10', string: '#e9e2d6' },
+  pants: { base: '#2b2c32', shadow: '#1f2025', deep: '#16171a', light: '#40434c', line: '#0c0c0e' },
+  shoes: { style: 'sneaker', base: '#ecebe6', back: '#cfccc4', light: '#ffffff', line: '#8a877f', sole: '#dcd7cb', soleBack: '#bdb8ad', lace: '#c4bfb4' },
   joints: JOINTS,
   torso: [
     [-19, -206], [-29, -199], [-32, -182], [-32, -160], [-31, -140], [-30, -126], [-28, -117], [0, -114], [23, -116], [33, -120],
@@ -298,5 +303,5 @@ export const body = makeBody({
 export const INFO = {
   name: 'Chuchi',
   defaultMood: 'smug',
-  traits: 'cabeza afeitada con brillo, gafas redondas de pasta negra, barba pelirroja recortada, media sonrisa con la boca cerrada, jersey negro y el más alto de los tres.',
+  traits: 'cabeza afeitada con brillo, gafas cuadradas de pasta marrón oscuro, barba pelirroja recortada, media sonrisa con la boca cerrada, sudadera granate, vaquero negro y zapatillas blancas.',
 };

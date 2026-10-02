@@ -1,4 +1,4 @@
-// Builds the crew sheet: Fran, Pablo and Chuchi animated together with the
+// Builds the crew sheet: Fran, Pablo, Chuchi and Guille animated together with the
 // shared rig, plus each one's turnaround and expressions. The character code
 // is bundled into the page and draws the SVG in the browser, so the page stays
 // light. Output: artifact/crew-lamina.html. Usage: node tools/personajes/lamina-crew.mjs
@@ -9,8 +9,8 @@ import { svg } from './svg.mjs';
 
 mkdirSync('artifact', { recursive: true });
 mkdirSync('art/personajes', { recursive: true });
-for (const id of ['fran', 'pablo', 'chuchi']) {
-  writeFileSync(`art/personajes/${id}.svg`, svg('-80 -302 160 312', crew[id].body(), `${crew[id].INFO.name} · Camiones y Caravanas`));
+for (const id of ['fran', 'pablo', 'chuchi', 'guille']) {
+  writeFileSync(`art/personajes/${id}.svg`, svg('-80 -310 160 320', crew[id].body(), `${crew[id].INFO.name} · Camiones y Caravanas`));
 }
 
 const bundle = await build({
@@ -63,10 +63,11 @@ p { margin: 0; max-width: 65ch; }
 .who { display: grid; gap: 12px; }
 .who .head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
 .traits { color: var(--muted); font-size: 15px; }
-.rows { display: grid; grid-template-columns: 3fr 4fr; gap: 10px; }
+.rows { display: grid; grid-template-columns: 3fr 5fr; gap: 10px; }
 .grid { display: grid; gap: 10px; }
 .g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.g5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.g5 figcaption { font-size: 12px; }
 figure { margin: 0; background: var(--paper); border-radius: 14px; padding: 8px 8px 6px; display: grid; gap: 4px; }
 figure svg { width: 100%; height: auto; display: block; }
 figcaption { text-align: center; color: #5b5446; font-size: 13px; font-weight: 600; }
@@ -82,12 +83,12 @@ figcaption { text-align: center; color: #5b5446; font-size: 13px; font-weight: 6
   <header>
     <div class="eyebrow">CAMIONES Y CARAVANAS · PERSONAJES</div>
     <h1>La crew</h1>
-    <p class="lead">Fran, Pablo y Chuchi con el mismo método y el mismo rig. Fran ya está aprobado; esta lámina es para revisar a Pablo y a Chuchi a su lado.</p>
+    <p class="lead">Fran, Pablo, Chuchi y Guille, dibujados con el mismo método y animados con el mismo rig.</p>
   </header>
 
   <div class="stage">
     <div class="floor"></div>
-    <svg id="crew" viewBox="-300 -330 600 345" role="img" aria-label="Fran, Pablo y Chuchi animados"></svg>
+    <svg id="crew" viewBox="-345 -335 690 350" role="img" aria-label="Fran, Pablo, Chuchi y Guille animados"></svg>
   </div>
   <div class="controls">
     <div class="group">
@@ -104,7 +105,8 @@ figcaption { text-align: center; color: #5b5446; font-size: 13px; font-weight: 6
         <button aria-pressed="true" data-v="default">La de siempre</button>
         <button aria-pressed="false" data-v="happy">Contentos</button>
         <button aria-pressed="false" data-v="surprised">Sorprendidos</button>
-        <button aria-pressed="false" data-v="angry">Mosqueados</button>
+        <button aria-pressed="false" data-v="sad">Tristes</button>
+        <button aria-pressed="false" data-v="angry">Enfadados</button>
       </div>
     </div>
   </div>
@@ -113,18 +115,18 @@ figcaption { text-align: center; color: #5b5446; font-size: 13px; font-weight: 6
 
   <section class="who">
     <h2>Tamaño real en un móvil</h2>
-    <p class="lead">Los tres a la altura a la que aparecerán en un móvil en horizontal.</p>
+    <p class="lead">Los cuatro a la altura a la que aparecerán en un móvil en horizontal.</p>
     <div class="phone" id="phone"></div>
   </section>
 </div>
 <script>${js}</script>
 <script>
-const IDS = ['fran', 'pablo', 'chuchi'];
+const IDS = ['fran', 'pablo', 'chuchi', 'guille'];
 const VB_HEAD = '-65 -95 135 175';
 const stage = document.getElementById('crew');
-// Fran and Pablo face right, Chuchi faces them: a group chatting in the street.
-const PLACE = { fran: 'translate(-170 0)', pablo: 'translate(-10 0)', chuchi: 'translate(170 0) scale(-1 1)' };
-const WALK = { fran: 'translate(-170 0)', pablo: 'translate(0 0)', chuchi: 'translate(170 0)' };
+// Two facing two: the crew chatting in the street.
+const PLACE = { fran: 'translate(-250 0)', pablo: 'translate(-95 0)', chuchi: 'translate(95 0) scale(-1 1)', guille: 'translate(250 0) scale(-1 1)' };
+const WALK = { fran: 'translate(-255 0)', pablo: 'translate(-85 0)', chuchi: 'translate(85 0)', guille: 'translate(255 0)' };
 const rigs = {};
 const wraps = {};
 for (const [i, id] of IDS.entries()) {
@@ -137,25 +139,25 @@ for (const [i, id] of IDS.entries()) {
   rigs[id] = new CREW.Rig(g.querySelector('#personaje'), m, { seed: i });
 }
 
-// Per-character sections: three views and four expressions.
+// Per-character sections: three views and five expressions.
 const people = document.getElementById('people');
-const NAMES = { neutral: 'Tranquilo', happy: 'Contento', surprised: 'Sorprendido', angry: 'Mosqueado' };
+const NAMES = { neutral: 'De siempre', happy: 'Contento', surprised: 'Sorprendido', sad: 'Triste', angry: 'Enfadado' };
 for (const id of IDS) {
   const m = CREW[id];
   const fig = (body, label, vb = VB_HEAD) => '<figure><svg viewBox="' + vb + '" role="img" aria-label="' + m.INFO.name + ' ' + label.toLowerCase() + '">' + body + '</svg><figcaption>' + label + '</figcaption></figure>';
   const cells = [
     fig(m.headFront(), 'De frente'), fig(m.head(), 'Tres cuartos'), fig(m.headProfile(), 'De perfil'),
-    ...['neutral', 'happy', 'surprised', 'angry'].map((k) => fig(m.head({ mood: k }), NAMES[k])),
+    ...['default', 'happy', 'surprised', 'sad', 'angry'].map((k) => fig(m.head({ mood: k === 'default' ? m.INFO.defaultMood : k }), NAMES[k === 'default' ? 'neutral' : k])),
   ];
   const sec = document.createElement('section');
   sec.className = 'who';
-  sec.innerHTML = '<div class="head"><h2>' + m.INFO.name + '</h2><span class="traits">' + m.INFO.traits + '</span></div><div class="grid">' + cells.join('') + '</div>';
+  sec.innerHTML = '<div class="head"><h2>' + m.INFO.name + '</h2><span class="traits">' + m.INFO.traits + '</span></div><div class="rows"><div class="grid g3">' + cells.slice(0, 3).join('') + '</div><div class="grid g5">' + cells.slice(3).join('') + '</div></div>';
   people.appendChild(sec);
 }
 const phone = document.getElementById('phone');
 for (const h of [150, 120, 95]) {
   const d = document.createElement('div');
-  d.innerHTML = '<svg viewBox="-260 -320 520 330" style="max-height:' + h + 'px" aria-hidden="true">' + IDS.map((id) => '<g transform="' + PLACE[id].replace(/-?\\d+/, (v) => String(Math.round(+v * 0.75))) + '">' + CREW[id].body() + '</g>').join('') + '</svg><span>' + h + ' px</span>';
+  d.innerHTML = '<svg viewBox="-300 -325 600 335" style="max-height:' + h + 'px" aria-hidden="true">' + IDS.map((id) => '<g transform="' + PLACE[id].replace(/-?\\d+/, (v) => String(Math.round(+v * 0.75))) + '">' + CREW[id].body() + '</g>').join('') + '</svg><span>' + h + ' px</span>';
   phone.appendChild(d);
 }
 
@@ -176,7 +178,7 @@ function frame(now) {
   const t = window.__freeze ?? (now - t0) / 1000;
   const dt = Math.min(0.05, Math.max(0, t - last));
   last = t;
-  const speaker = IDS[Math.floor(t / 3.4) % 3];
+  const speaker = IDS[Math.floor(t / 3.4) % IDS.length];
   for (const id of IDS) {
     const r = rigs[id];
     r.mode = mode === 'walk' ? 'walk' : 'idle';

@@ -67,9 +67,11 @@ Imágenes de referencia del kit, solo como referencia de ambiente: `docs/referen
 | Amigo | Rasgos |
 |---|---|
 | Fran | Barba oscura grande y poblada, pelo oscuro con alguna cana, cejas gruesas, camiseta verde azulada, complexión ancha |
-| Pablo | Sonrisa grande con dientes, pelo castaño revuelto hacia arriba, barba corta, pendiente de aro, chaqueta oscura con cuello de borreguillo |
-| Chuchi | Calvo con brillo, gafas redondas de pasta negra, barba pelirroja recortada, jersey negro, media sonrisa irónica, el más alto |
-| Cuarto amigo | Pendiente: faltan sus fotos |
+| Pablo | Pelo castaño revuelto hacia arriba, barba corta, pendiente de aro, chaqueta oscura de borreguillo abierta, vaqueros y zapatillas blancas. Cara de siempre tranquila; al reír, sonrisa con dientes y ojos en ^^ |
+| Chuchi | Calvo con brillo, gafas cuadradas de pasta marrón oscuro, barba pelirroja recortada, media sonrisa, sudadera granate con capucha, vaquero negro y zapatillas blancas; delgado y alto |
+| Guille | El más alto, atlético, pelo oscuro algo largo, cejas gruesas, solo sombra de barba, mandíbula marcada, camisa hawaiana ocre discreta, vaqueros y zapatillas marrones |
+
+**Expresiones de todos:** de siempre, contento, sorprendido, triste (interior de las cejas hacia arriba) y enfadado (interior de las cejas hacia abajo y párpado caído hacia la nariz), más cinco bocas para hablar y parpadeo.
 
 ## 6. Interfaz
 

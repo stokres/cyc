@@ -2,7 +2,7 @@
 //   eye line y=-2 · brow line y=-15 · nose base y=18 · mouth y=30 · face front x≈46.
 // Likeness: big open grin with teeth, smiling eyes, brown hair swept up with a
 // loose strand, short full beard darker than the hair, earring, tanned skin.
-import { smooth, ellipse, path, stroke, g, shape } from './svg.mjs';
+import { smooth, ellipse, path, stroke, g, shape, angryLid } from './svg.mjs';
 import { makeBody } from './cuerpo.mjs';
 
 /** A tapered tuft of hair growing from (x, y) towards (tx, ty). */
@@ -107,13 +107,14 @@ function nose() {
 }
 
 /** Smiling eye: the cheek pushes the lower lid up and leaves a little crease. */
-function eye(which, look = 0, open = 1, smile = 0.3) {
+function eye(which, look = 0, open = 1, smile = 0.3, angry = false) {
   const [cx, cy, rx0, ry0] = which === 'cerca' ? [13, -2, 4.2, 5.2] : [38, -3, 3, 4.8];
   const rx = rx0 * open;
   const ry = ry0 * open;
   const x = cx + look;
   const parts = [path(ellipse(x + rx * 0.3, cy - ry * 0.3, rx * 0.32, rx * 0.32), '#ffffff')];
   if (smile) parts.push(path(ellipse(x, cy + ry * (1.55 - smile), rx * 1.8, ry * 0.9), C.skin));
+  if (angry) parts.push(path(angryLid(which, x, cy, rx, ry), C.skinShadow));
   return [
     shape(ellipse(x, cy, rx, ry), C.eye, parts),
     smile ? stroke(smooth([[x - rx - 1, cy + ry * 0.9], [x, cy + ry * 1.25], [x + rx + 1, cy + ry * 0.8]], false), C.skinShadow, 1.1) : '',
@@ -165,8 +166,12 @@ function mouth(kind = 'sonrisa') {
     case 'm':
       return [stroke(smooth([[27, 28], [39, 30.5], [51, 27]], false), C.mouth, 2), lowerLip([[31, 31.5], [39, 33.5], [47, 31.5]])].join('');
     case 'reposo':
-      // Closed smile.
-      return [stroke(smooth([[26, 26], [38, 30.5], [51, 25.5]], false), C.mouth, 2.2), lowerLip([[31, 31], [39, 33], [46, 31]])].join('');
+      // Relaxed, closed: the hint of a smile only at the far corner.
+      return [stroke(smooth([[28, 28.5], [38, 30], [47, 29], [50.5, 27]], false), C.mouth, 2.1), lowerLip([[31.5, 32], [39, 33.6], [46, 32]])].join('');
+    case 'triste':
+      return [stroke(smooth([[28.5, 31], [38, 29.2], [48.5, 31]], false), C.mouth, 2.1), lowerLip([[32, 33], [39, 34.4], [46, 33]])].join('');
+    case 'enfado':
+      return [stroke(smooth([[28, 32], [33, 29.4], [43, 29.4], [49, 32]], false), C.mouth, 2.4), lowerLip([[32, 33.2], [39, 34], [46, 33.2]])].join('');
     default:
       // Wide smile showing the upper teeth, mouth only slightly open.
       return [
@@ -190,14 +195,15 @@ function fringe() {
 
 const JAW_DROP = { reposo: 0, m: 0, sonrisa: 1.5, a: 4.5, o: 3.5, e: 2 };
 
-export function head({ mood = 'happy', mouthKind, blink = false, look = 0 } = {}) {
-  const lift = mood === 'surprised' ? 5 : mood === 'happy' ? 1 : mood === 'angry' ? -1.5 : 0;
-  const knit = mood === 'angry' ? 3.5 : 0;
+export function head({ mood = 'neutral', mouthKind, blink = false, look = 0 } = {}) {
+  // Sad raises the inner ends of the brows; angry pulls them down towards the nose.
+  const lift = mood === 'surprised' ? 5 : mood === 'happy' ? 1.5 : mood === 'angry' ? -1 : 0;
+  const knit = mood === 'sad' ? 3.5 : mood === 'angry' ? -4.5 : 0;
   const open = mood === 'surprised' ? 1.2 : 1;
-  const smile = mood === 'happy' ? 0.45 : mood === 'neutral' ? 0.2 : 0;
-  const m = mouthKind ?? (mood === 'happy' ? 'sonrisa' : mood === 'surprised' ? 'o' : mood === 'angry' ? 'm' : 'reposo');
+  const smile = mood === 'neutral' ? 0.12 : 0;
+  const m = mouthKind ?? (mood === 'happy' ? 'sonrisa' : mood === 'surprised' ? 'o' : mood === 'sad' ? 'triste' : mood === 'angry' ? 'enfado' : 'reposo');
   const jaw = JAW_DROP[m] ?? 0;
-  const eyes = (w) => (blink ? eyelid(w) : mood === 'laugh' ? happyEye(w) : eye(w, look, open, smile));
+  const eyes = (w) => (blink ? eyelid(w) : mood === 'happy' ? happyEye(w) : eye(w, look, open, smile, mood === 'angry'));
   return [
     g('cara', face()),
     g('pelo_detras', headBack()),
@@ -219,7 +225,7 @@ export function guides() {
 
 // ---------------------------------------------------------------- turnaround (head)
 
-export function headFront({ mood = 'happy' } = {}) {
+export function headFront({ mood = 'neutral' } = {}) {
   const mirror = (pts) => [...pts, ...pts.slice().reverse().map(([x, y, c]) => (c ? [-x, y, c] : [-x, y]))];
   const skull = smooth(mirror([[0, -58], [26, -55], [40, -40], [44, -18], [45, 2], [42, 24], [33, 40], [18, 48]]).slice(0, -1));
   const hair = smooth([
@@ -258,7 +264,7 @@ export function headFront({ mood = 'happy' } = {}) {
     ], C.beardLine, 1.4),
     mood === 'happy'
       ? [path(smooth([[-17, 26], [0, 28.5], [17, 26], [12, 33], [0, 36], [-12, 33]]), C.mouth), path(smooth([[-15.5, 26.5], [0, 29], [15.5, 26.5], [13.5, 30], [0, 32.5], [-13.5, 30]]), C.teeth), stroke(smooth([[-11, 36], [0, 38.5], [11, 36]], false), C.lip, 2.2)].join('')
-      : stroke(smooth([[-12, 28], [0, 31], [12, 28]], false), C.mouth, 2.2),
+      : stroke(smooth([[-11, 29], [0, 30.5], [11, 29]], false), C.mouth, 2.2),
     shape(mustache, C.beard, [], C.beardLine, 1.2),
     path(smooth([[-3, -6], [3, -6], [5, 6], [7.5, 12], [5, 17], [0, 18], [-5, 17], [-7.5, 12], [-5, 6]]), C.skin),
     path(smooth([[-7.5, 12], [-5, 17], [0, 18], [5, 17], [7.5, 12], [6, 19], [0, 21], [-6, 19]]), C.skinShadow),
@@ -266,7 +272,7 @@ export function headFront({ mood = 'happy' } = {}) {
     path(ellipse(-3.5, 16, 1.9, 1.2), C.skinDeep),
     path(ellipse(3.5, 16, 1.9, 1.2), C.skinDeep),
     path(ellipse(2, 7, 2.3, 5), C.skinLight),
-    eyeF(-16) + eyeF(16),
+    mood === 'happy' ? stroke(smooth([[-20, 0], [-16, -4.5], [-12, 0]], false), C.eye, 2.5) + stroke(smooth([[12, 0], [16, -4.5], [20, 0]], false), C.eye, 2.5) : eyeF(-16) + eyeF(16),
     path(smooth([[-27, -15], [-21, -20], [-13, -21.5], [-6, -18.5], [-7, -16.5], [-14, -18.5], [-22, -17], [-26, -13]]), C.brow),
     path(smooth([[27, -15], [21, -20], [13, -21.5], [6, -18.5], [7, -16.5], [14, -18.5], [22, -17], [26, -13]]), C.brow),
   ].join('');
@@ -334,6 +340,6 @@ export const body = makeBody({
 
 export const INFO = {
   name: 'Pablo',
-  defaultMood: 'happy',
-  traits: 'sonrisa grande con dientes y ojos que se achinan al sonreír, pelo castaño revuelto hacia arriba con un mechón suelto, barba corta, pendiente de aro y chaqueta oscura con cuello de borreguillo.',
+  defaultMood: 'neutral',
+  traits: 'cara tranquila que al reír se le llena de dientes y ojos en ^^, pelo castaño revuelto hacia arriba, barba corta, pendiente de aro y chaqueta oscura de borreguillo.',
 };
