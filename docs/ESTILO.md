@@ -87,7 +87,7 @@ Imágenes de referencia del kit, solo como referencia de ambiente: `docs/referen
 - **T1 · Resolución lógica:** 1080 de alto. El ancho depende del móvil, y las escenas se pintan a 2400 de ancho para que los móviles alargados (19,5:9, 20:9) vean más escenario en lugar de bandas negras.
 - **T2 · Rendimiento:** 60 fps en los móviles del grupo en calidad «media»; nunca por debajo de 30 fps en calidad «baja». La calidad automática baja un nivel si el juego no sostiene 40 fps durante 2 segundos. El menú tiene «Ver rendimiento» para medirlo en cada móvil.
 - **T3 · Solo recursos propios** o con licencia clara. Las fotos del grupo son solo referencia: no se publican ni se suben al repositorio.
-- **T4 · WebGL2 con respaldo en Canvas 2D** (decidido el 2 de octubre de 2026): WebGL2 para la luz con relieve y la atmósfera; Canvas 2D para móviles que no lo tengan.
+- **T4 · WebGL2 con respaldo en Canvas 2D** (decidido el 2 de octubre de 2026): WebGL2 para la luz con relieve y la atmósfera; Canvas 2D para móviles que no lo tengan. La luz con relieve ya funciona (`src/motor/gl.ts`), pero está **aplazada**: el juego usa Canvas 2D y el relieve solo se enciende añadiendo `?relieve` a la dirección.
 
 ## 8. Acuarela para los recuerdos (aplazado)
 

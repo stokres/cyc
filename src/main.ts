@@ -69,6 +69,7 @@ async function arrancar() {
   const guardado = cargarEstado();
   const g = new Aventura(root, capitulo1, guardado ?? capitulo1.estadoInicial());
   if (ajustes.calidad !== 'auto') g.motor.setCalidad(ajustes.calidad);
+  if (new URLSearchParams(location.search).has('relieve')) g.motor.setRelieve(true);
   g.mostrarFps = ajustes.fps;
   g.sound.setMuted(ajustes.muted);
   g.hud.setVisible(false);

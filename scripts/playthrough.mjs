@@ -1,13 +1,13 @@
 // Plays the pilot from start to finish on a phone-sized viewport, like a player:
 // wake Fran, solve the flat puzzle, go out and walk to the Bar del Río.
 // Fails on any console error or if a step does not do what it should.
-// Usage: node scripts/playthrough.mjs [url] [outDir]
+// Usage: node scripts/playthrough.mjs [url] [outDir]   (add ?relieve to the url to play it with relief light)
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
 
 const [url = 'http://localhost:5173/', out = 'revisiones/partida'] = process.argv.slice(2);
 mkdirSync(out, { recursive: true });
-// Software WebGL, so the relief renderer runs too (without it the game falls back to Canvas 2D).
+// Software WebGL, so the relief renderer can run too (url ending in ?relieve).
 const browser = await chromium.launch({
   executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
   args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],

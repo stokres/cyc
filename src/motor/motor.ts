@@ -90,8 +90,6 @@ export class Motor {
     this.vbctx = this.vivoB.getContext('2d')!;
     this.vfctx = this.vivoF.getContext('2d')!;
     this.calidad = matchMedia('(pointer: coarse)').matches ? 'media' : 'alta';
-    this.glB = RenderGL.crear(this.backGL, true);
-    this.glF = this.glB ? RenderGL.crear(this.frontGL, false) : null;
     this.elegirModo();
     this.resize();
     new ResizeObserver(() => this.resize()).observe(root);
@@ -107,6 +105,12 @@ export class Motor {
   }
 
   private elegirModo() {
+    // The WebGL contexts are only made when relief is first asked for.
+    if (this.relieve && !this.glProbado) {
+      this.glProbado = true;
+      this.glB = RenderGL.crear(this.backGL, true);
+      this.glF = this.glB ? RenderGL.crear(this.frontGL, false) : null;
+    }
     this.modo = this.glB && this.glF && this.calidad !== 'baja' && this.relieve ? 'gl' : '2d';
     const gl = this.modo === 'gl';
     for (const c of [this.backGL, this.frontGL, this.vivoB, this.vivoF]) c.hidden = !gl;
@@ -150,8 +154,12 @@ export class Motor {
     this.onResize?.();
   }
 
-  /** Relief light on or off (off = the Canvas 2D renderer at the same resolution). */
-  relieve = true;
+  /**
+   * Relief light (WebGL2). Postponed: off by default, `?relieve` in the URL turns
+   * it on to try it. Off = the Canvas 2D renderer at the same resolution.
+   */
+  relieve = false;
+  private glProbado = false;
 
   setRelieve(on: boolean) {
     if (on === this.relieve) return;
