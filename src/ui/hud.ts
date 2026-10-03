@@ -1,7 +1,7 @@
 // DOM overlay over the scene: character dock, tools, objective and clock,
 // bag, dialogue box with an animated portrait, first-time help and labels.
 import { icono } from '../arte/objetos.mjs';
-import { REPARTO, retrato, COLOR_ACEITUNA, NOMBRE_ACEITUNA, type PjId } from '../juego/reparto';
+import { REPARTO, retrato, COLOR_ACEITUNA, COLOR_SOMBRA, NOMBRE_ACEITUNA, type PjId } from '../juego/reparto';
 import { texto, type Quien } from '../juego/textos';
 
 type Attrs = Record<string, string | boolean | ((e: Event) => void)>;
@@ -241,8 +241,8 @@ export class Hud {
       this.root.append(this.dialogoEl);
     }
     const d = this.dialogoEl;
-    const nombre = quien === null ? null : quien === 'aceituna' ? NOMBRE_ACEITUNA : REPARTO[quien].nombre;
-    const color = quien === null ? '' : quien === 'aceituna' ? COLOR_ACEITUNA : REPARTO[quien].color;
+    const nombre = quien === null ? null : quien === 'aceituna' ? NOMBRE_ACEITUNA : quien === 'sombra' ? texto('nombre.sombra') : REPARTO[quien].nombre;
+    const color = quien === null ? '' : quien === 'aceituna' ? COLOR_ACEITUNA : quien === 'sombra' ? COLOR_SOMBRA : REPARTO[quien].color;
     d.className = `dialogo vidrio${quien === null ? ' narrador' : ''}`;
     d.style.setProperty('--color', color);
     const linea = h('p', { class: 'linea' });

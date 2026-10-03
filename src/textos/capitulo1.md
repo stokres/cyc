@@ -19,7 +19,7 @@ Los textos de este capítulo son provisionales: están para probar el puzle.
 // ---------------------------------------------------------------- las cuatro historias
 
 situacion.fran = Se ha quedado dormido en el sofá.
-situacion.pablo = Atrapado en su propia narración.
+situacion.pablo = En el teatro, sin papel y discutiendo con su sombra.
 situacion.chuchi = Con las niñas en casa. Bueno, más o menos.
 situacion.guille = En la granja, con ocho cerdos por pesar.
 
@@ -361,6 +361,7 @@ GUILLE: Eso con eso no hace nada. Bueno, sí: un lío.
 
 ## nocombina.pablo
 PABLO: Esas dos cosas no tienen química. Ni en escena ni fuera.
+> Como Pablo y la puntualidad.
 
 ## nocombina.chuchi
 CHUCHI: Eso no compila.
@@ -667,6 +668,246 @@ cerdos.derrumbe = ¡Se cae la torre! Otra vez
 cerdos.peor = ¡Ahora el peor!
 cerdos.hecho = ¡{kg} kilos de cerdo!
 
+// ---------------------------------------------------------------- Pablo: el backstage del teatro Joso
+
+nombre.sombra = El narrador
+
+zona.puertaArtistas = Puerta de artistas
+zona.cartel = Cartel del Joso
+zona.perchero = Perchero de vestuario
+zona.tijeras = Tijeras
+zona.maniqui = Maniquí
+zona.baul = Baúl de atrezo
+zona.maletas = Maletas
+zona.maquina = Máquina de escribir
+zona.flexo = Flexo
+zona.cuadro = Cuadro de luces
+zona.canon = Cañón de seguimiento
+zona.nubes = Nubes de cojín
+zona.ciclorama = Ciclorama
+
+objetivo.pablo = Consigue papel para la máquina
+objetivo.pablo.escribir = Pon el papel en la máquina
+objetivo.pablo.luz = Más luz: el cuadro de luces
+objetivo.pablo.salir = Sal por la puerta de artistas: al Río
+
+pista.pablo.baul = En el baúl de atrezo hay libretos viejos. Impresos por una sola cara.
+pista.pablo.tijeras = Un libreto encuadernado no entra en la máquina. En la mesita del vestuario hay unas tijeras.
+pista.pablo.combinar = Junta el libreto y las tijeras en la bolsa: elige uno, vuelve a abrirla y toca el otro.
+pista.pablo.maquina = Ya tienes hojas: úsalas en la máquina de escribir.
+pista.pablo.luz = Con el flexo no basta. El cuadro de luces enciende el cañón de seguimiento.
+pista.pablo.batalla = Tu sombra está en el ciclorama. Tócala, o el cuadro de luces, para plantarle cara.
+pista.pablo.salir = La puerta de artistas, bajo el cartel verde de SALIDA.
+
+objeto.libreto = Libreto
+objeto.libreto.texto = «La vida es sueño», versión de 2009. Impreso por una sola cara. Encuadernado a conciencia.
+objeto.tijeras = Tijeras
+objeto.tijeras.texto = Las tijeras de vestuario. Cortan tela, hilo y, si hace falta, egos.
+objeto.hojas = Hojas sueltas
+objeto.hojas.texto = Hojas de «La vida es sueño», en blanco por detrás. Calderón no se va a enterar.
+
+## intro.pablo
+> Teatro Joso, entre bambalinas. Jueves, ocho y media.
+> Pablo teclea su formato nuevo de impro. Tac, tac, tac...
+PABLO (contento): «Y entonces el público grita una palabra, y los actores tienen que...»
+> La hoja se acabó. Y con ella, la idea.
+PABLO (sorprendido): ¿Quién ha dicho eso?
+SOMBRA: Yo. Tu narrador. Aquí, detrás de ti. No, al otro lado. Eso.
+PABLO (nervioso): ¿Mi sombra habla?
+SOMBRA (chulo): Narro. Es como hablar, pero con más estilo. Y te informo: no queda papel en todo el teatro.
+PABLO: Eso ya lo veremos.
+
+## p.maquina.sinpapel
+PABLO: La máquina, sin papel. Y la frase a medias: «los actores tienen que...». ¿Que qué?
+> Pablo miró la máquina. La máquina no le devolvió la mirada.
+
+## p.maquina.libreto
+PABLO: El libreto entero no entra. Está encuadernado como si fuera a escaparse.
+
+## p.maquina.papel
+> Pablo mete una hoja. Se aclara la garganta. Coloca los dedos.
+> Y no escribe nada.
+PABLO (nervioso): Es la luz. Con este flexo no veo ni lo que pienso.
+SOMBRA (chulo): No es la luz, Pablo. Soy yo. Estás bloqueado.
+
+## p.maquina.bloqueo
+PABLO (enfadado): Ni una letra. Necesito más luz. O menos sombra.
+
+## p.maquina.hecho
+PABLO (contento): «Formato: el público grita una palabra y los actores dicen que sí. A todo.» Perfecto.
+
+## mirar.flexo
+PABLO: El flexo. Alumbra lo justo para que se vea que no escribo.
+
+## p.baul
+PABLO: El baúl de atrezo. Calaveras de plástico, un cetro, una corona... ¡Un libreto!
+PABLO (contento): «La vida es sueño». Impreso por una sola cara. Por detrás, todo blanco.
+> Pablo sonrió. El narrador también, pero por otros motivos.
+
+## p.baul.vacio
+PABLO: Ya no hay más libretos. Solo una corona de cartón y una calavera que me mira mal.
+
+## mirar.baul
+PABLO: El baúl de atrezo. Aquí acaba todo lo que no se tira. Como en mi cabeza.
+
+## p.tijeras
+PABLO: Las tijeras de vestuario. Me las llevo. Prometo devolverlas. Bueno, prometo intentarlo.
+
+## mirar.tijeras
+PABLO: Unas tijeras de sastre en la mesita de vestuario.
+
+## p.combinar
+> Pablo corta el lomo del libreto con las tijeras de vestuario.
+PABLO (contento): ¡Hojas sueltas! Calderón por delante, mi formato por detrás.
+SOMBRA: Calderón está revolviéndose en su tumba. Con estilo, eso sí.
+
+## mirar.perchero
+PABLO: El vestuario de la compañía: chaquetas de comandante, gorras de comandante y pañuelos turquesa.
+> Nadie en el teatro sabía por qué había tantos uniformes de piloto. Nadie preguntaba.
+
+## usar.perchero
+PABLO (chulo): Si me pongo la gorra de comandante, ¿me sale el formato? Mejor no. Luego no me la quito.
+
+## mirar.maniqui
+PABLO: El maniquí con uniforme de piloto y pañuelo turquesa. Va más elegante que yo.
+
+## usar.maniqui
+PABLO: Buenas noches, comandante. ¿Alguna idea? ¿No? Ya somos dos.
+
+## mirar.maletas
+PABLO: Tres maletas blancas, de grande a pequeña. Siempre viajan juntas. Como nosotros.
+
+## usar.maletas
+PABLO: Vacías. Las maletas de impro nunca llevan nada dentro. Lo pone el público.
+
+## mirar.nubes
+PABLO (contento): Las tres nubes de cojín. Las más blanditas de todo Madrid.
+
+## usar.nubes
+PABLO: Si me tumbo en las nubes, me duermo. Y si me duermo, gana el narrador.
+
+## mirar.cartel
+PABLO (contento): «Joso, Laboratorio Teatral». Con su elefante. Aquí he estrenado más que en ningún sitio.
+
+## mirar.cuadro
+PABLO: El cuadro de luces. Palancas, fusibles y un letrero amarillo que da miedo.
+
+## p.cuadro.antes
+PABLO: No toco el cuadro si no hace falta. La última vez apagué medio Lavapiés.
+
+## p.cuadro.despues
+PABLO: Mejor no toco más el cuadro. Ya tengo bastante luz. Por dentro, sobre todo.
+
+## mirar.canon
+PABLO: El cañón de seguimiento. Apunta al ciclorama, como si esperara a alguien.
+
+## p.canon.usar
+PABLO: El cañón se enciende desde el cuadro de luces.
+
+## p.canon.encendido
+PABLO: Encendido y apuntando a mi sombra. Bueno, a mi narrador. Bueno, a mí.
+
+## mirar.ciclorama
+PABLO: El ciclorama. Un telón blanco esperando que alguien le proyecte algo.
+
+## usar.ciclorama
+PABLO: Está tan oscuro que en el ciclorama no se ve nada. Ni mi talento.
+
+## p.mirar.ciclorama.sombra
+PABLO (nervioso): Mi sombra, de tres metros. Con los brazos cruzados. Esto no pinta bien.
+
+## p.canon
+> Pablo baja la palanca. El cañón de seguimiento se enciende con un zumbido.
+> La sombra de Pablo salta al ciclorama. Ahora mide tres metros.
+SOMBRA (chulo): ¡Por fin un escenario a mi altura!
+PABLO (sorprendido): ¿Qué haces ahí?
+SOMBRA: Narrar. A lo grande. «No». «Sí, pero». «Ya lo pensarás mañana». ¿Te suena?
+PABLO (enfadado): Me suena a bloqueo. Y del bloqueo se sale diciendo que sí.
+SOMBRA (chulo): A ver si es verdad. Te lanzo palabras. Corta las malas. Si puedes.
+
+## p.batalla.otra
+SOMBRA (chulo): ¿Otra vez tú? Venga. Te lanzo palabras.
+
+## p.batalla.cancelada
+SOMBRA (chulo): Un dramaturgo que abandona a mitad del segundo acto. Qué original.
+
+## p.gana
+> La sombra encoge. Vuelve a su sitio, a los pies de Pablo.
+SOMBRA (contento): Vale. Lo admito. Era un buen formato.
+PABLO (contento): ¿Ves? Sí, y... ahora lo escribo.
+> Y Pablo escribió. Por fin. Hasta el narrador se emocionó un poco.
+SOMBRA: Y ahora, al Río. Que llegas tarde. Eso también lo narro.
+
+## p.gana.saltado
+> El narrador se cansa antes que Pablo. La sombra encoge y vuelve a su sitio.
+SOMBRA: Bueno, bueno. Escribe, anda. Que llegas tarde.
+PABLO (contento): ¡Sí, y...! Ya está. Formato terminado.
+
+## p.puerta.antes
+> Pablo empuja la puerta. La puerta no se abre. Narrativamente, no toca.
+PABLO (enfadado): ¡Eso no se lo cree nadie!
+SOMBRA (chulo): Primero el formato. Luego las cañas. Así funcionan las buenas historias.
+
+## p.salida
+PABLO (contento): ¡Me voy al Río! ¿Vienes?
+SOMBRA: Soy tu sombra, Pablo. Voy a todas partes. Pero no pido.
+> La puerta de artistas se abre. Por fin.
+
+## p.mirar.sombra.papel
+PABLO: Mi sombra. Más alta que yo. Y más borde.
+
+## p.mirar.sombra.bloqueo
+PABLO (nervioso): Mi sombra, con cara de saber algo que yo no sé.
+
+## p.mirar.sombra.amiga
+PABLO (contento): Mi sombra. Ahora parece hasta simpática.
+
+## p.hablar.sombra.papel
+PABLO: ¿No tienes papel?
+SOMBRA: Soy una sombra. No tengo ni bolsillos.
+---
+PABLO: ¿Y si me ayudas, en vez de narrar?
+SOMBRA (chulo): «Pablo pidió ayuda. Nadie respondió». ¿Ves? Narrar es más rápido.
+---
+SOMBRA: Una pista, porque me caes bien: los libretos viejos solo se imprimían por una cara.
+PABLO (sorprendido): ¿Me estás ayudando?
+SOMBRA: Te estoy narrando. Que te ayude es casualidad.
+
+## p.hablar.sombra.bloqueo
+PABLO (enfadado): Déjame escribir.
+SOMBRA (chulo): Yo no te impido nada. Solo describo cómo no escribes.
+---
+PABLO: Necesito más luz.
+SOMBRA: Más luz, más sombra. Tú verás.
+
+## p.hablar.sombra.amiga
+SOMBRA (contento): Buen formato. Lo digo como narrador y como fan.
+---
+SOMBRA: Venga, al Río. Allí también te narro, pero con una caña.
+
+## p.sombra.objeto
+SOMBRA (chulo): ¿Me ofreces eso? Qué detalle. Sigo sin dejarte escribir.
+
+## p.sombra.tijeras
+SOMBRA (sorprendido): ¿Vas a cortarme? Soy una sombra, Pablo. Como mucho, me recortas.
+
+## p.sombra.libreto
+SOMBRA: Calderón. «Toda la vida es sueño». Y la tuya, de momento, bloqueo.
+
+// ---------------------------------------------------------------- minijuego: cortar palabras
+
+palabras.instrucciones = Corta las palabras que bloquean. Deja pasar las que suman.
+palabras.bloqueo = Bloqueo
+palabras.pagina = Página
+palabras.malcorte = ¡Esa sumaba!
+palabras.seescapa = ¡Se te ha colado!
+palabras.pierde = ¡Bloqueado! Otra vez
+palabras.gana = ¡Desbloqueado!
+
+// Las palabras que caen. Sepáralas con barras: «una / otra / otra más».
+palabras.negativas = no / sí, pero / bloquear / negar / dudar / juzgar / controlar / planificar / explicar / corregir / imponer / esperar / ignorar / miedo
+palabras.positivas = sí, y / aceptar / escuchar / adaptar / avanzar / confiar / construir / ofrecer / jugar / arriesgar / compartir / celebrar / fallar
+
 // ---------------------------------------------------------------- final: los cuatro llegan a la vez
 
 ## final.antes
@@ -682,27 +923,16 @@ PABLO (chulo): Hombre, yo lo habría escrito mejor.
 > Y así empezó lo de los jueves. Pero esa es otra historia.
 
 fin.titulo = Fin del piloto
-fin.texto = Los cuatro han llegado al Río. Las historias de Pablo y Chuchi son provisionales: pronto tendrán sus propios puzles.
+fin.texto = Los cuatro han llegado al Río. La historia de Chuchi es provisional: pronto tendrá sus propios puzles.
 
-// ---------------------------------------------------------------- historias provisionales (Pablo y Chuchi)
+// ---------------------------------------------------------------- historia provisional (Chuchi)
 
 zona.salida = Puerta
-zona.cosa.pablo = Escritorio
 zona.cosa.chuchi = Caja de juguetes
 
-objetivo.pablo = Escapa de la narración
 objetivo.chuchi = Sal de casa sin despertar a nadie
-pista.pablo = (Historia provisional) Mira el escritorio y luego sal por la puerta.
-pista.pablo.salir = La puerta de la derecha lleva al Río.
 pista.chuchi = (Historia provisional) Toca la caja de juguetes y luego sal por la puerta.
 pista.chuchi.salir = La puerta de la derecha lleva al Río.
-
-## intro.pablo
-> Casa de Pablo. Jueves, ocho y media.
-PABLO: Un momento. ¿Quién ha dicho eso?
-> El narrador. Siempre ha estado aquí, Pablo.
-PABLO (sorprendido): Pues qué incómodo. ¿Me narras todo? ¿También cuando me miro al espejo?
-> (Historia provisional: pronto Pablo tendrá que escapar de la narración.)
 
 ## intro.chuchi
 > Casa de Chuchi. Jueves, ocho y veinte.
@@ -710,28 +940,6 @@ CHUCHI: Las dos dormidas. Por fin. Ahora, sin hacer ruido, me pongo los zapatos 
 > Algo cruje bajo su pie.
 CHUCHI (enfadado): Un Lego. Siempre hay un Lego.
 > (Historia provisional: pronto vendrán los contratiempos de Chuchi.)
-
-## prov.pablo.ventana
-PABLO: Usera de noche. Si esto fuera una obra, ahora sonaría un cajón flamenco.
-
-## prov.pablo.cosa
-PABLO: Mi escritorio. Mi máquina de escribir y la obra nueva: «El jueves que casi no fue».
-> Qué título tan bueno. Lo podría haber escrito yo.
-
-## prov.pablo.usar
-PABLO (chulo): Si soy el autor, me escribo una salida. «Pablo abrió la puerta y se fue al Río». Ya está.
-> Bueno. Vale. Por esta vez.
-
-## prov.pablo.salida.mirar
-PABLO: La puerta. Hasta ahora el narrador no me ha dejado ni acercarme.
-
-## prov.pablo.salida.antes
-> Pablo intentó abrir la puerta. La puerta no se abrió. Era una puerta muy narrativa.
-PABLO (enfadado): ¡Eso no se lo cree nadie!
-
-## prov.pablo.salida
-> Pablo abrió la puerta y se fue al Río.
-PABLO (contento): ¡Gracias! Hacemos buen equipo, tú y yo.
 
 ## prov.chuchi.ventana
 CHUCHI: Ni un ruido en la calle. Que siga así hasta que salga.
@@ -753,7 +961,8 @@ CHUCHI (nervioso): ¿Y mis llaves? Estaban aquí. Seguro que alguien ha jugado a
 CHUCHI (chulo): Cerrando despacito... Libre. Hoy no existo para nadie.
 
 ## mirar.pablo
-PABLO (chulo): Camisa planchada y sonrisa de estreno. Listo para un público exigente.
+PABLO (chulo): Chaqueta de borreguillo, pendiente y sonrisa de estreno. Listo para un público exigente.
+> Y para un narrador más exigente todavía.
 
 ## mirar.chuchi
 CHUCHI: Gafas, ropa de salir y una pegatina de unicornio en la manga. Bueno, eso último lo quito.

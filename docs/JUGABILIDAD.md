@@ -18,6 +18,7 @@ Decisiones de diseño para que una aventura gráfica con minijuegos funcione en 
 | Usar objetos | La bolsa (abajo a la derecha) se despliega con tarjetas grandes; tocas el objeto y luego el destino. El ojo pequeño de cada tarjeta lo examina. Mientras llevas un objeto, un aviso arriba dice «Usar … en…» y tocarlo lo suelta |
 | Aprender a jugar | La primera vez que hace falta cada gesto aparece una ayuda corta abajo («Mantén el dedo sobre algo para mirarlo») |
 | Elegir con quién empezar | Pantalla con los cuatro de frente, en tarjetas grandes, y una frase con su situación. Sale al empezar y cada vez que alguien termina su historia |
+| Hablar con alguien que no es del grupo | Se le toca, como a un amigo. En la historia de Pablo, su sombra (el narrador) le sigue y contesta según el momento |
 | Varios amigos | Columna de retratos grandes a la izquierda (al menos 52 px, el activo más grande y con su color). Tocar a otro lleva a su historia, donde la dejaste, como en *Day of the Tentacle*. Cada uno tiene su bolsa, su reloj y sus frases (`clave.pablo` en los textos gana a `clave` cuando juegas con Pablo). Quien ya va de camino al Río sale apagado y con una ✓ |
 | Acabar una historia | Fundido a negro antes de llegar al bar y un rótulo («Pablo ya va de camino al Río · Faltan…»). Con los cuatro de camino, escena final: llegan a la vez |
 | Usar algo contigo | Eliges el objeto en la bolsa y tocas a tu propio personaje (vestirse, abrir un tarro, mirar el móvil) |
@@ -40,6 +41,10 @@ Decisiones de diseño para que una aventura gráfica con minijuegos funcione en 
 
 Abrir el tarro de aceitunas girando el dedo alrededor de la tapa. En frío no pasa de un tercio de vuelta y la tapa se resbala; con agua caliente se abre a la vuelta y media. Se puede cerrar con la ✕ y volver a intentarlo cuando se quiera.
 
+### Las palabras (Pablo)
+
+Cortar con el dedo las palabras negativas (en sentido de impro) que lanza el narrador y dejar pasar las positivas. Tres fases: colores honestos, más rápido y colores mezclados. Cortar una positiva o dejar caer una negativa llena la barra de bloqueo; tras dos rondas perdidas aparece «Saltar». Las listas de palabras están en los textos.
+
 ### Los cerdos (Guille)
 
 Apilar los ocho cerdos encima de la báscula, estilo *Tower Bloxx*: un toque suelta el cerdo que se balancea en la polea. Descentrado, la torre se tambalea más; fuera del borde, resbala. Tres resbalones o un derrumbe y se repite; tras dos rondas perdidas aparece «Saltar». El último es el peor de todos. Se ajusta con `node scripts/cerdos-sim.mjs`.
@@ -52,7 +57,6 @@ Llevar cuatro cañas de la barra a la terraza inclinando el móvil o deslizando 
 
 Son ejemplos de controles, para sustituirlos por vuestras anécdotas:
 
-- **Cortar palabras** (Pablo): en `docs/ESCENA-1.md`.
 - **Duelo de pullas** al estilo de los insultos con espada de *Monkey Island*.
 - **Karaoke** de ritmo, tocando a tiempo.
 - **El último metro:** deslizar para esquivar por Usera.
@@ -60,7 +64,7 @@ Son ejemplos de controles, para sustituirlos por vuestras anécdotas:
 
 ## El piloto (capítulo 1)
 
-Se elige con quién empezar y se puede cambiar cuando se quiera (ver `docs/ESCENA-1.md`). Las historias de Fran y Guille están hechas; las de Pablo y Chuchi son provisionales: tocar el objeto de su habitación y salir por la puerta.
+Se elige con quién empezar y se puede cambiar cuando se quiera (ver `docs/ESCENA-1.md`). Las historias de Fran, Pablo y Guille están hechas; la de Chuchi es provisional: tocar el objeto de su habitación y salir por la puerta.
 
 ### La historia de Fran
 

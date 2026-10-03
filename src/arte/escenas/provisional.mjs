@@ -1,5 +1,4 @@
-// Placeholder rooms for the stories that are not written yet (Pablo and
-// Chuchi): back wall, floor, a window, the way out on the right and one object
+// Placeholder room for the story that is not written yet (Chuchi): back wall, floor, a window, the way out on the right and one object
 // that hints at the story. They keep the camera, light and tap model of the
 // real scenes, so each story can be played from start to end while its art is
 // still to come.
@@ -10,7 +9,6 @@ const W = 2400;
 const M = 250;
 
 const WOOD = mat('#b98a5a', '#966a42', '#d4a676', '#5e4129');
-const DARK = mat('#4a4f57', '#353940', '#666c75', '#24272c');
 
 function uRange(k, pad = 60) {
   let lo = Infinity;
@@ -71,16 +69,6 @@ function floor(o) {
 
 // ---------------------------------------------------------------- one object per story
 
-/** Pablo: his writing desk, the typewriter and the pages of the play. */
-function escritorio() {
-  const out = [box(1050, 560, 420, 30, WOOD), box(1070, 590, 26, 182, WOOD), box(1424, 590, 26, 182, WOOD)];
-  out.push(box(1160, 488, 180, 72, DARK, { r: 10 }), rect(1180, 470, 140, 22, '#f4efe4'), rect(1176, 528, 148, 18, '#24272c'));
-  for (let i = 0; i < 8; i++) out.push(rect(1184 + i * 17, 532, 11, 9, '#d8d4cc'));
-  for (let i = 0; i < 4; i++) out.push(rect(1366 + i * 3, 548 - i * 4, 80, 10, i % 2 ? '#f4efe4' : '#e6e0d4'));
-  out.push(framed(1120, 250, 260, 170, rect(1120, 250, 260, 170, '#7a2e34') + rect(1150, 280, 200, 110, '#e2b04a', { opacity: 0.85 })));
-  return out.join('');
-}
-
 /** Chuchi: the toy box and the girls' drawings on the wall. */
 function juguetes() {
   const out = [box(1100, 640, 300, 132, mat('#e07a8a', '#c05a6a', '#f2a0ac', '#7a2a3a'), { r: 10 })];
@@ -94,7 +82,7 @@ function juguetes() {
   return out.join('');
 }
 
-const OBJETO = { escritorio, juguetes };
+const OBJETO = { juguetes };
 
 /**
  * A placeholder room.

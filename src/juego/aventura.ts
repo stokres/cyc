@@ -30,7 +30,9 @@ export interface Capitulo {
   estadoInicial(): Estado;
   zonas(g: Aventura, escena: string): Record<string, ZonaLogica>;
   /** Tap (or long press, `mirar`) on a character or Aceituna, maybe with an item. */
-  personaje(g: Aventura, quien: PjId | 'aceituna', item: string | null, mirar: boolean): Promise<void>;
+  personaje(g: Aventura, quien: PjId | 'aceituna' | 'sombra', item: string | null, mirar: boolean): Promise<void>;
+  /** Pablo's shadow (the narrator in person): in which scene, if any, and whether it shows now. */
+  sombra?(g: Aventura, escena: string): boolean;
   mirarObjeto(g: Aventura, item: string): Promise<void>;
   /** Two items put together in the bag. Return false for «those don't go together». */
   combinar?(g: Aventura, a: string, b: string): Promise<boolean>;
@@ -62,6 +64,8 @@ export class Aventura {
   S!: Escena;
   pjs = new Map<PjId, Personaje>();
   perro: Perrita | null = null;
+  /** Pablo's shadow, following him around the backstage (the narrator in person). */
+  sombra: Personaje | null = null;
   props: Objeto[] = [];
   private zonasLogicas: Record<string, ZonaLogica> = {};
   private ocupado = false;
@@ -228,6 +232,16 @@ export class Aventura {
       this.motor.world.append(p.wrap);
       this.motor.actores.push(p);
     }
+    this.sombra = null;
+    const pablo = this.pjs.get('pablo');
+    if (pablo && this.estado.donde.pablo?.escena === escena && this.cap.sombra?.(this, escena)) {
+      const s = new Personaje(this.motor.world, this.motor.defs, 'sombra', REPARTO.pablo.arte, this.estado.ropa.pablo ?? REPARTO.pablo.ropa, 9);
+      s.tintFijo = [0.09, 0.07, 0.13];
+      s.shadowOn = false;
+      Object.assign(s, { X: pablo.X - 150, y: Math.max(S.walk.y0, pablo.y - 14), face: pablo.face, speed: (S.speed ?? 250) * 1.15 });
+      this.sombra = s;
+      this.motor.actores.push(s);
+    }
     this.perro = null;
     if (escena === 'piso') {
       this.perro = new Perrita(this.motor.world, this.motor.defs);
@@ -361,8 +375,8 @@ export class Aventura {
   }
 
   async decir(quien: Quien, frase: string, animo?: string, hora?: string) {
-    const actor = quien && quien !== 'aceituna' ? this.pjs.get(quien) : null;
-    const base = actor ? REPARTO[quien as PjId].arte.INFO.defaultMood ?? 'neutral' : 'neutral';
+    const actor = quien === 'sombra' ? this.sombra : quien && quien !== 'aceituna' ? this.pjs.get(quien) : null;
+    const base = actor ? REPARTO[quien === 'sombra' ? 'pablo' : (quien as PjId)].arte.INFO.defaultMood ?? 'neutral' : 'neutral';
     if (actor) {
       actor.mood = animo ?? base;
       actor.talking = true;
@@ -464,13 +478,14 @@ export class Aventura {
     return { x: x - (ancho / 2) * s, y: a.y - alto * s, w: ancho * s, h: alto * s };
   }
 
-  private actorEn(x: number, y: number): PjId | 'aceituna' | null {
+  private actorEn(x: number, y: number): PjId | 'aceituna' | 'sombra' | null {
     const dentro = (r: { x: number; y: number; w: number; h: number }) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
     if (this.perro && this.perro.visible && dentro(this.rectActor(this.perro, 140, 100))) return 'aceituna';
     for (const [id, p] of this.pjs) {
       if (!p.visible || this.estado.donde[id]?.escena !== this.escena || p.enCapa) continue;
       if (dentro(this.rectActor(p, 110, 290))) return id;
     }
+    if (this.sombra && this.sombra.visible && dentro(this.rectActor(this.sombra, 110, 290))) return 'sombra';
     return null;
   }
 
@@ -501,11 +516,11 @@ export class Aventura {
       void this.ejecutar(async () => {
         const me = this.activo;
         if (actor !== this.estado.activo) {
-          const otro = actor === 'aceituna' ? this.perro! : this.pjs.get(actor)!;
+          const otro = actor === 'aceituna' ? this.perro! : actor === 'sombra' ? this.sombra! : this.pjs.get(actor)!;
           const lado = me.X < otro.X ? -1 : 1;
           await this.andar(otro.X + lado * 150, otro.y + 6);
           me.lookAt(otro.X);
-          if (actor !== 'aceituna') this.pjs.get(actor)!.lookAt(me.X);
+          if (actor !== 'aceituna') otro.lookAt(me.X);
         }
         await this.cap.personaje(this, actor, item, false);
       });
@@ -576,6 +591,7 @@ export class Aventura {
       if (cx < 0 || cx > this.motor.vw) continue;
       marcas.push([cx, r.y + r.h / 2, this.nombreZona(id)]);
     }
+    if (this.sombra?.visible) marcas.push([this.motor.screenX(this.sombra.X, this.motor.f(this.sombra.y)), this.sombra.y - 200, texto('nombre.sombra')]);
     if (this.perro?.visible) marcas.push([this.motor.screenX(this.perro.X, this.motor.f(this.perro.y)), this.perro.y - 60, texto('zona.aceituna')]);
     for (const [id, p] of this.pjs) {
       if (id === this.estado.activo || !p.visible || this.estado.donde[id]?.escena !== this.escena) continue;
@@ -616,7 +632,7 @@ export class Aventura {
 
   /** Anything moving on screen that deserves 60 fps. */
   private enMovimiento() {
-    if (this.motor.camaraMoviendose || this.perro?.moving) return true;
+    if (this.motor.camaraMoviendose || this.perro?.moving || this.sombra?.moving) return true;
     for (const p of this.pjs.values()) if (p.moving) return true;
     return false;
   }
@@ -632,6 +648,7 @@ export class Aventura {
       p.update(m.t, dt);
     }
     if (this.perro) this.updatePerro(dt);
+    if (this.sombra) this.updateSombra(dt, speaking === 'sombra');
     for (const o of this.props) o.visible = !o.si || this.motor.cond(o.si);
     this.cap.tick?.(this, dt);
     const a = this.pjs.get(this.estado.activo);
@@ -639,6 +656,22 @@ export class Aventura {
     else if (a && this.estado.donde[this.estado.activo]?.escena === this.escena) m.seguir(a.X + a.face * 120);
     m.colocar();
     m.dibujar();
+  }
+
+  /** Pablo's shadow keeps a step behind him, on the side away from where he looks, and mirrors him. */
+  private updateSombra(dt: number, hablando: boolean) {
+    const s = this.sombra!;
+    const P = this.pjs.get('pablo');
+    if (P && s.visible) {
+      const goal = { X: P.X - P.face * 150, y: Math.max(this.S.walk.y0, Math.min(this.S.walk.y1, P.y - 14)) };
+      const lejos = Math.hypot(goal.X - s.X, goal.y - s.y) > (s.moving ? 20 : 70);
+      if (lejos) void s.walkTo(goal.X, goal.y);
+      else if (s.moving) s.stop();
+    }
+    s.step(dt);
+    if (P && !s.moving) s.face = P.face;
+    s.talking = hablando;
+    s.update(this.motor.t, dt);
   }
 
   private updatePerro(dt: number) {

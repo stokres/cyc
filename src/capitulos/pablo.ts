@@ -1,0 +1,227 @@
+// Chapter 1, Pablo's story: backstage at the Joso theatre, 20:30. He is
+// writing a new impro format on an old typewriter when the paper runs out, and
+// with it the idea. His narrator turns up in person: his own shadow, which
+// follows him around, argues with him and contradicts him in the narration.
+//
+//   1. No paper «in the whole theatre», says the narrator.
+//   2. The props trunk has an old script, printed on one side only; the costume
+//      table has scissors. Put together in the bag: loose sheets, blank on the back.
+//   3. Sheets in the typewriter. He writes... nothing: blocked, and the lamp is
+//      not enough. The lighting board turns on the follow spot.
+//   4. His shadow lands on the cyclorama, huge: the battle with the narrator, the
+//      word-cutting minigame (src/ui/palabras.ts).
+//   5. Unblocked: he finishes the format and leaves by the stage door.
+// Anything that can be picked up can be picked up at any time (docs/JUGABILIDAD.md).
+// Every line comes from src/textos/capitulo1.md (keys starting with p.).
+import type { Aventura, ZonaLogica } from '../juego/aventura';
+import { texto } from '../juego/textos';
+import { REPARTO } from '../juego/reparto';
+import { jugarPalabras } from '../ui/palabras';
+import { silueta } from '../motor/sprites';
+
+const f = (g: Aventura, k: string) => g.flag(k);
+
+/** The shadow is on the cyclorama, huge, while the spot is on and the battle is not won. */
+const enElCiclorama = (g: Aventura) => f(g, 'p.canon') && !f(g, 'p.ganado');
+
+async function batalla(g: Aventura) {
+  if (!f(g, 'p.canon')) {
+    g.poner('p.canon');
+    if (g.sombra) g.sombra.visible = false;
+    g.sound.pickup();
+    await g.hablar('p.canon');
+  } else await g.hablar('p.batalla.otra');
+  // The minigame covers the whole screen: the scene underneath stops drawing.
+  g.pausado = true;
+  const cuerpo = REPARTO.pablo.arte.body({}, g.estado.ropa.pablo ?? REPARTO.pablo.ropa);
+  const r = await jugarPalabras(g.root, cuerpo, g.rapido).finally(() => (g.pausado = false));
+  if (r === 'cancelado') return g.hablar('p.batalla.cancelada');
+  g.poner('p.ganado');
+  g.poner('p.canon', false);
+  g.avanzarReloj(15);
+  if (g.sombra) {
+    g.sombra.visible = true;
+    const P = g.pjs.get('pablo');
+    if (P) Object.assign(g.sombra, { X: P.X - P.face * 150, y: P.y - 14 });
+  }
+  await g.hablar(r === 'saltado' ? 'p.gana.saltado' : 'p.gana');
+}
+
+export function zonasBackstage(g: Aventura): Record<string, ZonaLogica> {
+  return {
+    maquina: {
+      async usar() {
+        if (f(g, 'p.ganado')) return g.hablar('p.maquina.hecho');
+        if (!f(g, 'p.papel')) return g.hablar('p.maquina.sinpapel');
+        await g.hablar('p.maquina.bloqueo');
+      },
+      async usarObjeto(item) {
+        if (item === 'libreto') {
+          await g.hablar('p.maquina.libreto');
+          return true;
+        }
+        if (item !== 'hojas') return false;
+        g.quitar('hojas');
+        g.poner('p.papel');
+        g.poner('p.bloqueado');
+        g.avanzarReloj(5);
+        await g.hablar('p.maquina.papel');
+        return true;
+      },
+    },
+    flexo: {},
+    baul: {
+      async usar() {
+        if (f(g, 'p.libreto')) return g.hablar('p.baul.vacio');
+        g.poner('p.libreto');
+        g.avanzarReloj(2);
+        await g.hablar('p.baul');
+        g.dar('libreto');
+        if (g.tiene('tijeras')) g.ayudaUnaVez('combinar');
+      },
+    },
+    tijeras: {
+      activa: () => !f(g, 'p.tijeras'),
+      async usar() {
+        g.poner('p.tijeras');
+        await g.hablar('p.tijeras');
+        g.dar('tijeras');
+        if (g.tiene('libreto')) g.ayudaUnaVez('combinar');
+      },
+    },
+    perchero: {},
+    maniqui: {},
+    maletas: {},
+    nubes: {},
+    cartel: {},
+    canon: {
+      usar: () => g.hablar(enElCiclorama(g) ? 'p.canon.encendido' : 'p.canon.usar'),
+    },
+    cuadro: {
+      async usar() {
+        if (f(g, 'p.ganado')) return g.hablar('p.cuadro.despues');
+        if (!f(g, 'p.bloqueado')) return g.hablar('p.cuadro.antes');
+        await batalla(g);
+      },
+    },
+    ciclorama: {
+      async usar() {
+        if (enElCiclorama(g)) return batalla(g);
+        await g.hablar('usar.ciclorama');
+      },
+      mirar: () => g.hablar(enElCiclorama(g) ? 'p.mirar.ciclorama.sombra' : 'mirar.ciclorama'),
+    },
+    puertaArtistas: {
+      async usar() {
+        if (!f(g, 'p.ganado')) return g.hablar('p.puerta.antes');
+        g.avanzarReloj(3);
+        await g.hablar('p.salida');
+        await g.enCamino('pablo');
+      },
+    },
+  };
+}
+
+export async function combinar(g: Aventura, a: string, b: string) {
+  if ([a, b].sort().join('+') !== 'libreto+tijeras') return false;
+  g.quitar('libreto');
+  g.sound.pickup();
+  await g.hablar('p.combinar');
+  g.dar('hojas');
+  return true;
+}
+
+/** Tapping, looking at or giving something to the shadow. */
+export async function sombra(g: Aventura, item: string | null, mirar: boolean) {
+  const etapa = f(g, 'p.ganado') ? 'amiga' : f(g, 'p.bloqueado') ? 'bloqueo' : 'papel';
+  if (mirar) return g.hablar(`p.mirar.sombra.${etapa}`);
+  if (item) return g.hablar(g.hayDialogo(`p.sombra.${item}`) ? `p.sombra.${item}` : 'p.sombra.objeto');
+  await g.hablar(`p.hablar.sombra.${etapa}`);
+}
+
+export async function aSiMismo(g: Aventura, item: string | null, mirar: boolean) {
+  if (mirar || !item) return g.hablar('mirar.pablo');
+  return g.hablar('nadacontigo');
+}
+
+export function objetivo(g: Aventura) {
+  if (f(g, 'p.ganado')) return texto('objetivo.pablo.salir');
+  if (f(g, 'p.bloqueado')) return texto('objetivo.pablo.luz');
+  if (g.tiene('hojas')) return texto('objetivo.pablo.escribir');
+  return texto('objetivo.pablo');
+}
+
+export function pista(g: Aventura) {
+  if (f(g, 'p.ganado')) return texto('pista.pablo.salir');
+  if (f(g, 'p.bloqueado')) return texto(enElCiclorama(g) ? 'pista.pablo.batalla' : 'pista.pablo.luz');
+  if (g.tiene('hojas')) return texto('pista.pablo.maquina');
+  if (!f(g, 'p.libreto')) return texto('pista.pablo.baul');
+  if (!f(g, 'p.tijeras')) return texto('pista.pablo.tijeras');
+  return texto('pista.pablo.combinar');
+}
+
+// ---------------------------------------------------------------- live drawing
+
+/** Bitmaps for the spot's light and Pablo's huge shadow: made once (docs/ESTILO.md, T5). */
+let luz: HTMLCanvasElement | null = null;
+let sombraGrande: HTMLCanvasElement | null = null;
+let haciendoSilueta = false;
+
+function bitmapLuz(r: number) {
+  const c = document.createElement('canvas');
+  c.width = c.height = Math.ceil(r * 2);
+  const x = c.getContext('2d')!;
+  const gr = x.createRadialGradient(r, r, 0, r, r, r);
+  gr.addColorStop(0, 'rgba(255,240,205,0.85)');
+  gr.addColorStop(0.75, 'rgba(255,228,180,0.6)');
+  gr.addColorStop(0.92, 'rgba(255,220,170,0.25)');
+  gr.addColorStop(1, 'rgba(255,220,170,0)');
+  x.fillStyle = gr;
+  x.fillRect(0, 0, c.width, c.height);
+  return c;
+}
+
+/** The follow spot's beam and disk on the cyclorama, and the narrator in it, huge. */
+export function dibujar(g: Aventura, ctx: CanvasRenderingContext2D, capa: string) {
+  if (capa !== 'fondo' || !enElCiclorama(g)) return;
+  const m = g.motor;
+  const px = m.px;
+  const off = m.off(1);
+  const c = g.S.spots.ciclo;
+  const lente = g.S.spots.canon;
+  const ALTO = 640;
+  if (!luz) luz = bitmapLuz(c.r * px);
+  if (!sombraGrande && !haciendoSilueta) {
+    haciendoSilueta = true;
+    void silueta(REPARTO.pablo.arte.body({}, g.estado.ropa.pablo ?? REPARTO.pablo.ropa), ALTO * px).then((b) => (sombraGrande = b)).finally(() => (haciendoSilueta = false));
+  }
+  ctx.save();
+  ctx.setTransform(px, 0, 0, px, off * px, 0);
+  // The beam: a soft cone from the lens to the disk.
+  ctx.globalCompositeOperation = 'lighter';
+  const haz = ctx.createLinearGradient(lente.x, 0, c.x, 0);
+  haz.addColorStop(0, 'rgba(255,236,200,0.35)');
+  haz.addColorStop(1, 'rgba(255,236,200,0.06)');
+  ctx.fillStyle = haz;
+  ctx.beginPath();
+  ctx.moveTo(lente.x, lente.y - 26);
+  ctx.lineTo(c.x - c.r * 0.2, c.y - c.r * 0.95);
+  ctx.lineTo(c.x - c.r * 0.2, c.y + c.r * 0.95);
+  ctx.lineTo(lente.x, lente.y + 26);
+  ctx.fill();
+  ctx.drawImage(luz, c.x - c.r, c.y - c.r, c.r * 2, c.r * 2);
+  // The shadow, breathing, standing on the floor line of the cyclorama.
+  ctx.globalCompositeOperation = 'source-over';
+  if (sombraGrande) {
+    const k = 1 + 0.012 * Math.sin(m.t * 1.4);
+    const w = (sombraGrande.width / px) * k;
+    const hh = (sombraGrande.height / px) * k;
+    ctx.globalAlpha = 0.9;
+    // Projected on the cloth: the cushion clouds in front hide its feet.
+    ctx.beginPath();
+    ctx.rect(c.x - c.r * 2, 0, c.r * 4, c.suelo - 130);
+    ctx.clip();
+    ctx.drawImage(sombraGrande, c.x - w / 2 + 30, c.suelo - hh + 4, w, hh);
+  }
+  ctx.restore();
+}

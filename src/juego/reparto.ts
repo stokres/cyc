@@ -29,18 +29,23 @@ export const REPARTO: Record<PjId, Ficha> = {
 
 export const NOMBRE_ACEITUNA = 'Aceituna';
 export const COLOR_ACEITUNA = '#c8433a';
+export const COLOR_SOMBRA = '#8a7ab8';
 
 const retratos = new Map<string, string>();
 
 /** Portrait (SVG markup) for the dialogue box and the character dock; each pose is built once. */
-export function retrato(id: PjId | 'aceituna', o: { mood?: string; mouthKind?: string; blink?: boolean } = {}) {
+export function retrato(id: PjId | 'aceituna' | 'sombra', o: { mood?: string; mouthKind?: string; blink?: boolean } = {}) {
   const k = `${id}|${o.mood}|${o.mouthKind}|${o.blink ? 1 : 0}`;
   let v = retratos.get(k);
   if (!v) retratos.set(k, (v = dibujarRetrato(id, o)));
   return v;
 }
 
-function dibujarRetrato(id: PjId | 'aceituna', o: { mood?: string; mouthKind?: string; blink?: boolean }) {
+function dibujarRetrato(id: PjId | 'aceituna' | 'sombra', o: { mood?: string; mouthKind?: string; blink?: boolean }) {
+  // Pablo's shadow: his own face, gone dark (only eyes and a glint left).
+  if (id === 'sombra') {
+    return `<svg viewBox="-62 -82 124 150" aria-hidden="true"><defs><filter id="sombra-retrato"><feColorMatrix type="matrix" values="0.12 0.06 0 0 0.03  0.06 0.1 0.02 0 0.02  0.06 0.04 0.16 0 0.06  0 0 0 1 0"/></filter></defs><g filter="url(#sombra-retrato)">${REPARTO.pablo.arte.headFront({ mood: o.mood, mouthKind: o.mouthKind, blink: o.blink })}</g></svg>`;
+  }
   if (id === 'aceituna') {
     return `<svg viewBox="-52 -74 104 126" aria-hidden="true">${aceituna.headFront({ blink: o.blink, pant: o.mouthKind === 'a' || o.mouthKind === 'o', happy: o.mood === 'happy' })}</svg>`;
   }

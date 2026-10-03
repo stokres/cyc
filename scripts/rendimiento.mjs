@@ -12,7 +12,7 @@
 //   - more than 60 frames a second (120 Hz screens).
 //
 // Usage: node scripts/rendimiento.mjs [escena...]   (against npm run dev on :5173)
-//   escenas: piso, calle, granja, cerdos (all by default)
+//   escenas: piso, calle, granja, cerdos, backstage, palabras (all by default)
 import { chromium } from 'playwright';
 import { readFileSync, readdirSync } from 'node:fs';
 
@@ -65,6 +65,8 @@ if (process.env.FPS_REPOSO) await page.evaluate((v) => (window.__cyc.g.fpsReposo
 
 const filas = [];
 async function medir(nombre, prep, contar = 'escena') {
+  // Close any minigame left open by the previous scenario.
+  await page.evaluate(() => document.querySelectorAll('.cubierta.minijuego .cerrar').forEach((b) => b.click()));
   await page.evaluate(prep);
   await page.waitForTimeout(3000); // camera settled
   // Characters turned into bitmaps (a one-off cost when they first appear).
@@ -83,9 +85,10 @@ async function medir(nombre, prep, contar = 'escena') {
       d();
     };
     const f0 = window.__cerdos?.().fotogramas ?? 0;
+    const p0 = window.__palabras?.().fotogramas ?? 0;
     setTimeout(() => {
       m.dibujar = d;
-      res(contar === 'cerdos' ? ((window.__cerdos?.().fotogramas ?? 0) - f0) / seg : n / seg);
+      res(contar === 'cerdos' ? ((window.__cerdos?.().fotogramas ?? 0) - f0) / seg : contar === 'palabras' ? ((window.__palabras?.().fotogramas ?? 0) - p0) / seg : n / seg);
     }, seg * 1000);
   }), { seg: SEG, contar });
   const cpu = ((cpuChrome() - c0) / SEG) * 100;
@@ -115,6 +118,34 @@ if (toca('calle')) {
 if (toca('granja')) {
   await medir('granja, Guille quieto con moscas', ir('granja', `e.final = false; for (const id of ['fran','pablo','chuchi']) delete e.donde[id]; e.activo = 'guille'; e.donde.guille = { escena: 'granja', X: 1000, y: 890, face: 1 }`, `g.poner('g.olor')`));
   await medir('granja, Guille andando', paseo(400, 3200, 890));
+}
+if (toca('backstage')) {
+  await medir('backstage, Pablo y su sombra', ir('backstage', `e.final = false; for (const id of ['fran','chuchi','guille']) delete e.donde[id]; e.activo = 'pablo'; e.donde.pablo = { escena: 'backstage', X: 2240, y: 880, face: 1 }`));
+  await medir('backstage, andando', paseo(600, 3300, 880));
+  await medir('backstage, sombra en el ciclorama', `(() => { clearInterval(window.__paseo); const g = window.__cyc.g; g.poner('p.bloqueado'); g.poner('p.canon'); if (g.sombra) g.sombra.visible = false; g.activo.X = 3000; g.motor.seguir(3100, true); })()`);
+}
+if (toca('palabras')) {
+  await medir('minijuego de las palabras', `(async () => {
+    clearInterval(window.__paseo);
+    const g = window.__cyc.g;
+    const { jugarPalabras } = await import('/src/ui/palabras.ts');
+    const { REPARTO } = await import('/src/juego/reparto.ts');
+    g.pausado = true;
+    void jugarPalabras(g.root, REPARTO.pablo.arte.body({}));
+    // Plays by itself: swipes across each negative word.
+    const juega = () => {
+      const e = window.__palabras?.();
+      if (!e) return;
+      const p = e.palabras.find((p) => p.negativa && !p.cortada && p.y > 60);
+      if (p) {
+        const c = document.querySelector('.lienzo-palabras');
+        const ev = (t, x) => c.dispatchEvent(new PointerEvent(t, { bubbles: true, clientX: x, clientY: p.y, pointerId: 1 }));
+        ev('pointerdown', p.x - p.w / 2 - 4); ev('pointermove', p.x); ev('pointermove', p.x + p.w / 2 + 4); ev('pointerup', p.x + p.w / 2 + 4);
+      }
+      setTimeout(juega, 120);
+    };
+    setTimeout(juega, 6000);
+  })()`, 'palabras');
 }
 if (toca('cerdos')) {
   await medir('minijuego de los cerdos', `(async () => {

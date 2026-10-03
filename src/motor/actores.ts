@@ -119,7 +119,11 @@ export class Actor {
     return !!this.target;
   }
 
+  /** A fixed tint that ignores the scene light (Pablo's shadow: always near black). */
+  tintFijo: RGB | null = null;
+
   setTint(t: RGB) {
+    if (this.tintFijo) t = this.tintFijo;
     if (Math.abs(t[0] - this.tint[0]) + Math.abs(t[1] - this.tint[1]) + Math.abs(t[2] - this.tint[2]) < 0.01) return;
     this.tint = t;
     const v = `${t[0].toFixed(3)} 0 0 0 0 0 ${t[1].toFixed(3)} 0 0 0 0 0 ${t[2].toFixed(3)} 0 0 0 0 0 1 0`;

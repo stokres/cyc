@@ -2,7 +2,7 @@
 // without touching code. Format (see the head of src/textos/capitulo1.md):
 //
 //   ## clave                      a block of dialogue lines
-//   FRAN: texto                   a line said by Fran
+//   FRAN: texto                   a line said by Fran (also SOMBRA: Pablo's shadow)
 //   FRAN (contento): texto        ...with a mood
 //   PABLO [20:12]: texto          a chat message with its time
 //   > texto                       narrator
@@ -10,7 +10,8 @@
 //   clave = texto                 a single string (names, objectives, hints, menus)
 //   {hora}                        placeholders filled in by the game
 
-export type Quien = 'fran' | 'pablo' | 'chuchi' | 'guille' | 'aceituna' | null;
+/** Who says a line: a protagonist, Aceituna, Pablo's shadow (the narrator in person) or the narrator (null). */
+export type Quien = 'fran' | 'pablo' | 'chuchi' | 'guille' | 'aceituna' | 'sombra' | null;
 
 export interface Linea {
   quien: Quien;
@@ -19,7 +20,7 @@ export interface Linea {
   texto: string;
 }
 
-const QUIEN: Record<string, Quien> = { FRAN: 'fran', PABLO: 'pablo', CHUCHI: 'chuchi', GUILLE: 'guille', ACEITUNA: 'aceituna', NARRADOR: null };
+const QUIEN: Record<string, Quien> = { FRAN: 'fran', PABLO: 'pablo', CHUCHI: 'chuchi', GUILLE: 'guille', ACEITUNA: 'aceituna', SOMBRA: 'sombra', NARRADOR: null };
 const ANIMO: Record<string, string> = {
   normal: 'neutral',
   contento: 'happy',

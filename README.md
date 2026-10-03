@@ -58,11 +58,11 @@ node tools/icono.mjs                                                      # icon
 | `docs/PERSONAJES.md` | Cómo son y cómo hablan los cuatro y Aceituna |
 | `docs/ESCENA-1.md` | Encargo del capítulo 1: piso, calle, cámara y puzle inicial |
 | `src/textos/` | Todos los textos del juego, editables |
-| `src/capitulos/` | Lógica de cada capítulo: zonas, puzles, objetivos y pistas (la historia de Guille, en `guille.ts`) |
+| `src/capitulos/` | Lógica de cada capítulo: zonas, puzles, objetivos y pistas (las historias de Pablo y Guille, en `pablo.ts` y `guille.ts`) |
 | `src/juego/` | Aventura (guion, entrada táctil, cambio de personaje), reparto, textos y partida guardada |
 | `src/motor/` | Escenas en capas con parallax, luz horneada, actores y la luz con relieve en WebGL2 (aplazada) |
 | `src/arte/` | Personajes (con vestuario), escenas y objetos, generados como SVG |
-| `src/ui/` | Interfaz: selector, bolsa, diálogos, móvil y minijuegos (tarro, cerdos) |
+| `src/ui/` | Interfaz: selector, bolsa, diálogos, móvil y minijuegos (tarro, cerdos, palabras) |
 | `src/core/` | Gestos, sonido y utilidades |
 | `tools/` | Láminas de personajes, exportación de capas e iconos |
 | `public/` | Manifiesto e iconos para instalarlo en el móvil |

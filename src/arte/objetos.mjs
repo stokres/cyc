@@ -66,7 +66,31 @@ const colonia = () => [
   stroke('M44 66L56 66', '#3a6a5e', 2),
 ].join('');
 
+const libreto = () => [
+  shape(rrect(50, 52, 30, 38, 3), '#efe6d2', [path(rrect(50, 52, 30, 4, 1), '#dcd2bc')], '#8a7e66', 1.6),
+  path(rrect(22, 52, 5, 38, 2), '#c8433a'),
+  ...[0, 1, 2, 3, 4].map((i) => stroke(`M34 ${36 + i * 8}L${62 - (i % 2) * 8} ${36 + i * 8}`, '#6a6050', 2)),
+  stroke('M34 78L52 78', '#c8433a', 2.4),
+].join('');
+
+const tijeras = () => [
+  stroke('M44 46L76 22M44 34L76 58', '#c9ccd0', 5),
+  stroke('M44 46L76 22M44 34L76 58', '#e8eaec', 2),
+  shape(ellipse(34, 52, 10, 9), 'none', [], '#c8433a', 5),
+  shape(ellipse(34, 28, 10, 9), 'none', [], '#c8433a', 5),
+  path(ellipse(46, 40, 3, 3), '#6a6e74'),
+].join('');
+
+const hojas = () => [
+  shape(rrect(54, 54, 26, 34, 2), '#f6f2ea', [], '#8a7e66', 1.4),
+  shape(rrect(48, 48, 26, 34, 2), '#faf8f2', [], '#8a7e66', 1.4),
+  ...[0, 1, 2, 3].map((i) => stroke(`M30 ${36 + i * 8}L${62 - (i % 2) * 10} ${36 + i * 8}`, '#a8a090', 1.6, { opacity: 0.5 })),
+].join('');
+
 export const OBJETOS = {
+  libreto,
+  tijeras,
+  hojas,
   pilas,
   alcohol,
   romero,

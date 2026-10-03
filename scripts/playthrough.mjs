@@ -1,6 +1,6 @@
 // Plays the pilot from start to finish on a phone-sized viewport, like a player:
-// choose Fran, wake him, switch to Pablo halfway and finish his (placeholder)
-// story, go back to Fran, solve the flat puzzle and walk towards the Bar del Río,
+// choose Fran, wake him, switch to Pablo halfway and finish his story (the
+// script, the scissors, the follow spot and the word battle with his shadow), go back to Fran, solve the flat puzzle and walk towards the Bar del Río,
 // then Chuchi's placeholder and Guille's farm (batteries, rosemary and alcohol
 // picked up early, the pig tower, the homemade cologne), and watch the four
 // arrive together.
@@ -211,6 +211,65 @@ async function usarEn(item, zona) {
   await tocar(p);
 }
 
+/** The word battle: swipe across each negative word as it falls, never the positive ones. */
+async function cortarPalabras() {
+  await page.waitForSelector('.cubierta.palabras');
+  let foto = false;
+  for (let i = 0; i < 2000 && (await page.$('.cubierta.palabras')); i++) {
+    const e = await page.evaluate(() => window.__palabras?.() ?? null);
+    if (!e) break;
+    const blanco = e.palabras.find((p) => p.negativa && !p.cortada && p.y > 70 && p.y < 330);
+    if (blanco) {
+      // A swipe through the word, short enough not to touch the others.
+      const y = blanco.y;
+      const otras = e.palabras.filter((p) => !p.negativa && !p.cortada && Math.abs(p.y - y) < p.h);
+      const x0 = blanco.x - blanco.w / 2 - 6;
+      const x1 = blanco.x + blanco.w / 2 + 6;
+      if (!otras.some((p) => p.x + p.w / 2 > x0 && p.x - p.w / 2 < x1)) {
+        await page.mouse.move(x0, y);
+        await page.mouse.down();
+        await page.mouse.move(x1, y, { steps: 4 });
+        await page.mouse.up();
+      }
+      if (!foto && e.fase === 3) {
+        foto = true;
+        await shot('palabras');
+      }
+    }
+    await wait(60);
+  }
+  await page.waitForSelector('.cubierta.palabras', { state: 'detached', timeout: 30000 });
+  await charla();
+}
+
+async function historiaPablo() {
+  await shot('backstage');
+  await paso('Pablo: hablar con su sombra', async () => {
+    const [x, y] = await page.evaluate(() => {
+      const g = window.__cyc.g;
+      const s = g.sombra;
+      const k = g.motor.f(s.y);
+      return [(g.motor.screenX(s.X, k) / g.motor.vw) * g.motor.cssW, ((s.y - 150 * g.motor.escala(k)) / 1080) * g.motor.cssH];
+    });
+    await tocar([x, y]);
+  });
+  await paso('Pablo: el libreto del baúl', async () => tocar(await verZona('baul')), 'p.libreto');
+  await paso('Pablo: las tijeras de vestuario', async () => tocar(await verZona('tijeras')), 'p.tijeras');
+  await paso('Pablo: cortar el libreto en hojas', async () => {
+    await combinar('libreto', 'tijeras');
+    check(await page.evaluate(() => window.__cyc.g.tiene('hojas')), 'no salen las hojas');
+  });
+  await paso('Pablo: hojas a la máquina', () => usarEn('hojas', 'maquina'), 'p.bloqueado');
+  await paso('Pablo: el cuadro de luces y la batalla con el narrador', async () => {
+    await page.touchscreen.tap(...(await verZona('cuadro')));
+    await charla();
+    await cortarPalabras();
+  }, 'p.ganado');
+  await shot('pablo-gana');
+  await paso('Pablo: por la puerta de artistas', async () => tocar(await verZona('puertaArtistas')));
+  await rotulo('pablo');
+}
+
 async function historiaGuille() {
   await shot('granja');
   await paso('Guille: la báscula no tiene pilas', async () => tocar(await verZona('bascula')), 'g.basculaVista');
@@ -260,10 +319,10 @@ await shot('despierto');
 await paso('Cambiar a Pablo desde el selector', async () => {
   await page.click('.reparto .pj:nth-child(2)');
   await wait(300);
-  await page.waitForFunction(() => window.__cyc.g.escena === 'casaPablo' && !document.querySelector('.velo.on'), null, { timeout: 30000 });
+  await page.waitForFunction(() => window.__cyc.g.escena === 'backstage' && !document.querySelector('.velo.on'), null, { timeout: 30000 });
   await charla();
 }, 'empezado.pablo');
-await provisional('pablo');
+await historiaPablo();
 await paso('Volver con Fran, donde lo dejamos', async () => {
   await escoger('fran');
   const ok = await page.evaluate(() => window.__cyc.g.escena === 'piso' && window.__cyc.g.estado.activo === 'fran');

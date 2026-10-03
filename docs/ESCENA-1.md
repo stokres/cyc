@@ -17,7 +17,7 @@ Decidido el 2 de octubre de 2026:
 | Quién | Dónde empieza | Estado |
 |---|---|---|
 | Fran | Su piso; se ha quedado dormido en el sofá | Hecha (el puzle de abajo); acaba al ver el Río desde el cruce |
-| Pablo | Su piso: atrapado en su propia narración, con bloqueo de escritor | Provisional (diseño abajo) |
+| Pablo | El backstage del teatro Joso: sin papel, bloqueado y discutiendo con su sombra | Hecha |
 | Chuchi | Encerrado en un parque de bolas cuando ya se han ido todos | Provisional (por pensar) |
 | Guille | Una granja a las afueras de Madrid: pesar cerdos y quitarse el olor | Hecha |
 
@@ -93,21 +93,24 @@ Se pueden cambiar por la actual o sumarse:
 
 Cada historia sigue el mismo patrón que la de Fran: **llegar → puzle de objetos → minijuego → salida** hacia el Río. Hablado el 3 de octubre de 2026; nada implementado todavía.
 
-### Pablo · Atrapado en su propia narración
+### Pablo · Atrapado en su propia narración (hecha)
 
-- **Lugar:** su piso (comparte con dos compañeros). Distribución y estilo, pendientes del grupo.
-- **El narrador:** una **sombra con la silueta de Pablo** que le lleva la contraria («Pablo intentó abrir la puerta. La puerta estaba cerrada. Siempre lo estuvo»).
-- **Puzle de objetos:** sencillo, para seguir usando la bolsa: cargar de papel la máquina de escribir. El narrador asegura que no hay papel en toda la casa. Idea sin cerrar: acabar escribiendo en papel higiénico, o quitárselo a un compañero de piso.
-- **La trama:** Pablo está pensando un formato nuevo de impro y tiene bloqueo de escritor. Tras discutir un rato con el narrador, la batalla final decide si se desbloquea.
-- **Minijuego · Cortar palabras** (estilo *Fruit Ninja*):
-  - Caen palabras sobre un fondo onírico, el espacio abstracto donde se construye la narración en la cabeza de Pablo. Las lanza el narrador.
-  - Se deslizan los dedos para **cortar las negativas** («no», «sí, pero», «negar», «bloquear», «dudar»…) y **dejar pasar las positivas** («sí, y», «aceptar», «adaptar», «avanzar»…), en el sentido de la impro.
-  - **Dos categorías y nada más.** «Sí, pero» es negativa.
-  - **Colores:** al principio, negativas en rojos y naranjas, positivas en verdes y azules. Más adelante los colores se mezclan para despistar (una negativa en verde).
-  - **Ritmo:** primero pocas palabras, luego cada vez más. Se lee, no son solo reflejos: palabras grandes y como mucho 3 o 4 en pantalla.
-  - **Fallar:** una barra de bloqueo sube si cortas una positiva o si una negativa llega abajo; si se llena, se repite.
-  - **Duración:** ni muy corto ni muy largo (unos 45–60 s en fases).
-  - **Las listas de palabras se editan en `src/textos/`**, una por categoría.
+- **Lugar:** el backstage del **teatro Joso** (parodia del teatro donde actúa la compañía; en el cartel, «Joso, Laboratorio Teatral» con un elefante en vez del búho), de noche y oscuro (`src/arte/escenas/backstage.mjs`).
+- **De izquierda a derecha:** puerta de artistas bajo el cartel verde de SALIDA (la salida), el cartel del Joso, el perchero de vestuario con la mesita de las tijeras, un maniquí, el baúl de atrezo, tres maletas blancas, la mesa de Pablo con la máquina de escribir, el flexo y su cajón, la escalera, el cuadro de luces, el cañón de seguimiento y el ciclorama, con las tres nubes de cojín delante y decorados viejos apoyados.
+- **Guiños a la compañía de impro, sin nombrarla:** las tres nubes de cojín, las chaquetas y gorras de comandante de avión, los pañuelos turquesa y las maletas blancas.
+- **El narrador es la sombra de Pablo:** Pablo en silueta oscura, siempre un paso detrás de él. Se puede tocar para hablar con ella, y contesta según el momento de la historia. Habla como `SOMBRA:` en los textos, con un retrato de Pablo a oscuras, y también narra con `>` llevándole la contraria.
+- **La historia, paso a paso** (`src/capitulos/pablo.ts`, textos `p.*`):
+  1. Pablo escribe un formato nuevo de impro y la hoja se acaba a mitad de frase. El narrador: «no queda papel en todo el teatro».
+  2. En el baúl hay un libreto de *La vida es sueño* impreso por una cara; en la mesita del vestuario, unas tijeras. **Juntados en la bolsa**: hojas sueltas, en blanco por detrás.
+  3. Hojas en la máquina... y no escribe nada: bloqueado, y con el flexo no ve.
+  4. El cuadro de luces enciende el **cañón de seguimiento**: su sombra salta al ciclorama, gigante, y empieza la batalla.
+  5. Desbloqueado: termina el formato y sale por la puerta de artistas.
+- **Minijuego · Cortar palabras** (`src/ui/palabras.ts`, estilo *Fruit Ninja*):
+  - Caen palabras sobre un fondo onírico, con la sombra gigante de Pablo al fondo, que las lanza.
+  - Se desliza el dedo para **cortar las negativas** y **dejar pasar las positivas**, en el sentido de la impro. Dos categorías y nada más: «sí, pero» es negativa.
+  - **Tres fases** (unos 54 s): pocas palabras con colores honestos (negativas en rojos y naranjas, positivas en verdes y azules); más y más rápidas; y al final los colores se mezclan para despistar.
+  - **Fallar:** cortar una positiva o dejar caer una negativa sube la barra de bloqueo. Con seis fallos se repite; tras dos rondas perdidas se puede saltar.
+  - **Las palabras se editan en `src/textos/capitulo1.md`**: `palabras.negativas` y `palabras.positivas`, separadas por barras.
 
 ### Guille · Pesando cerdos (hecha)
 
