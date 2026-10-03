@@ -22,6 +22,7 @@ Decisiones de diseño para que una aventura gráfica con minijuegos funcione en 
 | Acabar una historia | Fundido a negro antes de llegar al bar y un rótulo («Pablo ya va de camino al Río · Faltan…»). Con los cuatro de camino, escena final: llegan a la vez |
 | Usar algo contigo | Eliges el objeto en la bolsa y tocas a tu propio personaje (vestirse, abrir un tarro, mirar el móvil) |
 | Dar cosas a otro amigo | Tocas el objeto y luego al amigo |
+| Juntar dos objetos | Eliges uno en la bolsa, vuelves a abrirla y tocas el otro (alcohol + romero en la historia de Guille). Si no pegan, el personaje lo dice |
 | Atascarse | La bombilla da una pista según el punto de la historia |
 | Un amigo delante de una puerta | Para hablar con un amigo hay que tocarle la cabeza o los hombros; el resto del cuerpo deja pasar el toque a lo que haya detrás |
 
@@ -38,6 +39,10 @@ Decisiones de diseño para que una aventura gráfica con minijuegos funcione en 
 
 Abrir el tarro de aceitunas girando el dedo alrededor de la tapa. En frío no pasa de un tercio de vuelta y la tapa se resbala; con agua caliente se abre a la vuelta y media. Se puede cerrar con la ✕ y volver a intentarlo cuando se quiera.
 
+### Los cerdos (Guille)
+
+Apilar los ocho cerdos encima de la báscula, estilo *Tower Bloxx*: un toque suelta el cerdo que se balancea en la polea. Descentrado, la torre se tambalea más; fuera del borde, resbala. Tres resbalones o un derrumbe y se repite; tras dos rondas perdidas aparece «Saltar». El último es el peor de todos. Se ajusta con `node scripts/cerdos-sim.mjs`.
+
 ### La ronda (aparcada)
 
 Llevar cuatro cañas de la barra a la terraza inclinando el móvil o deslizando el dedo. Estaba en el mockup; volverá cuando la crew esté en el Río, con el arte nuevo.
@@ -46,7 +51,7 @@ Llevar cuatro cañas de la barra a la terraza inclinando el móvil o deslizando 
 
 Son ejemplos de controles, para sustituirlos por vuestras anécdotas:
 
-- **Cortar palabras** (Pablo) y **apilar cerdos** (Guille): en `docs/ESCENA-1.md`.
+- **Cortar palabras** (Pablo): en `docs/ESCENA-1.md`.
 - **Duelo de pullas** al estilo de los insultos con espada de *Monkey Island*.
 - **Karaoke** de ritmo, tocando a tiempo.
 - **El último metro:** deslizar para esquivar por Usera.
@@ -54,7 +59,7 @@ Son ejemplos de controles, para sustituirlos por vuestras anécdotas:
 
 ## El piloto (capítulo 1)
 
-Se elige con quién empezar y se puede cambiar cuando se quiera (ver `docs/ESCENA-1.md`). Las historias de Pablo, Chuchi y Guille son provisionales: tocar el objeto de su habitación y salir por la puerta.
+Se elige con quién empezar y se puede cambiar cuando se quiera (ver `docs/ESCENA-1.md`). Las historias de Fran y Guille están hechas; las de Pablo y Chuchi son provisionales: tocar el objeto de su habitación y salir por la puerta.
 
 ### La historia de Fran
 

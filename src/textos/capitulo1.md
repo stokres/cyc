@@ -21,7 +21,7 @@ Los textos de este capítulo son provisionales: están para probar el puzle.
 situacion.fran = Se ha quedado dormido en el sofá.
 situacion.pablo = Atrapado en su propia narración.
 situacion.chuchi = Con las niñas en casa. Bueno, más o menos.
-situacion.guille = Todavía en la granja, pesando cerdos.
+situacion.guille = En la granja, con ocho cerdos por pesar.
 
 camino.fran = Fran ya va de camino al Río
 camino.pablo = Pablo ya va de camino al Río
@@ -78,6 +78,7 @@ ayuda.mirar = Mantén el dedo sobre algo para mirarlo.
 ayuda.usar = Toca algo para usarlo o cogerlo.
 ayuda.bolsa = Lo que coges va a la bolsa. Ábrela, elige un objeto y toca dónde usarlo.
 ayuda.tuyo = Para usar un objeto contigo, elige el objeto y toca a Fran.
+ayuda.combinar = Para juntar dos cosas, elige una en la bolsa, vuelve a abrirla y toca la otra.
 ayuda.ojo = Si te atascas, el ojo enseña todo lo que se puede tocar y la bombilla da pistas.
 
 // ---------------------------------------------------------------- el piso: nombres
@@ -352,6 +353,18 @@ FRAN (nervioso): Las {hora}. Guille ya estará por la segunda caña. Y yo aquí,
 
 // ---------------------------------------------------------------- respuestas genéricas
 
+## nocombina
+FRAN: Eso con eso no pega ni con cola.
+
+## nocombina.guille
+GUILLE: Eso con eso no hace nada. Bueno, sí: un lío.
+
+## nocombina.pablo
+PABLO: Esas dos cosas no tienen química. Ni en escena ni fuera.
+
+## nocombina.chuchi
+CHUCHI: Eso no compila.
+
 ## nofunciona
 FRAN: No creo que eso funcione ahí.
 ---
@@ -448,6 +461,215 @@ FRAN (contento): El Bar del Río. Nuestro bar. Las mejores bravas al sur del Man
 FRAN (contento): ¡Ahí está el Río! Con su terraza y sus sillas de plástico.
 FRAN (nervioso): Las {hora}. Estos ya estarán por la segunda caña. Pongo cara de «el tráfico».
 
+// ---------------------------------------------------------------- Guille: la granja
+
+zona.corral = Corral
+zona.bascula = Báscula
+zona.puertaNave = Nave
+zona.radio = Radio
+zona.botiquin = Botiquín
+zona.manguera = Grifo y manguera
+zona.romero = Romero
+zona.coche = Coche de Guille
+zona.madrid = Madrid
+
+objetivo.guille = Pesa los ocho cerdos que quedan
+objetivo.guille.pilas = Busca pilas para la báscula
+objetivo.guille.pesar = Pesa los ocho cerdos de una vez
+objetivo.guille.olor = Quítate el olor a cerdo
+objetivo.guille.salir = Coge el coche y vete al Río
+
+pista.guille.bascula = Lo primero es la báscula. Tócala.
+pista.guille.radio = Algo en la granja funciona con pilas y está sonando ahora mismo.
+pista.guille.pilas = Usa las pilas en la báscula: ábrelas en la bolsa y toca la báscula.
+pista.guille.pesar = Toca la báscula y apila los cerdos. Suéltalos cuando estén encima del de abajo.
+pista.guille.botiquin = El alcohol del botiquín huele a limpio. Más o menos.
+pista.guille.romero = Junto al grifo hay una mata de romero que huele de maravilla.
+pista.guille.combinar = Junta el alcohol y el romero en la bolsa: elige uno, vuelve a abrirla y toca el otro.
+pista.guille.agua = Le falta agua: usa el alcohol de romero en el grifo.
+pista.guille.ponerse = Ya tienes colonia. Elígela en la bolsa y tócate a ti mismo.
+pista.guille.salir = El coche está aparcado a la derecha. Al Río.
+
+objeto.pilas = Pilas
+objeto.pilas.texto = Dos pilas gordas de la radio. Huelen a jota.
+objeto.alcohol = Alcohol
+objeto.alcohol.texto = Alcohol del botiquín. Para heridas, para limpiar y para emergencias de olor.
+objeto.romero = Romero
+objeto.romero.texto = Unas ramicas de romero. Huelen a monte y a abuela.
+objeto.alcoholRomero = Alcohol de romero
+objeto.alcoholRomero.texto = Alcohol con romero. Huele bien, pero pica. Le falta rebajarlo con agua.
+objeto.colonia = Colonia de granja
+objeto.colonia.texto = Colonia casera: alcohol, romero y agua de la manguera. Eau de Guille.
+
+## intro.guille
+> Una granja a las afueras de Madrid. Jueves, ocho y diez.
+GUILLE (contento): ¡Hala! Treinta y dos cerdos pesados. Solo me quedan ocho.
+GUILLE (sorprendido): ¿Las ocho y diez ya? ¡Que a las nueve estoy en el Río con estos!
+GUILLE: Pues nada: los peso todos a la vez y listo. Ocho cerdos encima de la báscula. ¿Qué puede salir mal?
+
+## g.mirar.corral
+GUILLE (contento): Mis cerdicos. Los ocho que me quedan, bailando la jota de la radio.
+---
+GUILLE: El de la esquina es el peor de todos. Ciento cincuenta kilos de mala leche.
+
+## g.mirar.corral.nerviosos
+GUILLE (nervioso): Sin música se me han puesto nerviosos. Les va la jota, qué le vamos a hacer.
+
+## g.mirar.corral.pesados
+GUILLE (contento): Pesados y apuntados. Ya podéis dormir tranquilos, majos.
+
+## g.usar.corral
+GUILLE: Venga, cerdicos, a la báscula. Bueno, en cuanto la báscula quiera.
+
+## g.mirar.bascula
+GUILLE: La báscula del ganado. Con la pantalla apagada, que es como más bonita está.
+
+## g.mirar.bascula.lista
+GUILLE (contento): Encendida y a cero. Que vengan los cerdos.
+
+## g.bascula.apagada
+> Guille aprieta el botón. Nada.
+GUILLE (enfadado): ¡No tiene pilas! ¡Otra vez! ¿Quién se lleva las pilas de una báscula?
+GUILLE: Pues yo, la semana pasada. Para la radio.
+
+## g.bascula.pilas
+> Guille pone las pilas. La pantalla se enciende: 0000.
+GUILLE (contento): ¡Ahí está! Ya puedo pesar.
+
+## g.bascula.antes
+GUILLE: Venga: los ocho a la vez, uno encima de otro. Con cariño, que son delicados.
+GUILLE (nervioso): El peor, el último. Que si va abajo, aplasta a los demás de la pura mala leche.
+
+## g.bascula.hecho
+GUILLE: Ya están pesados. Si los peso otra vez, me dan las doce.
+
+## g.cerdos.cancelado
+GUILLE: Un momento, que respiro. Y ellos también.
+
+## g.cerdos.hecho
+GUILLE (contento): ¡Ocho cerdos de una vez! ¡Récord mundial de Guille!
+GUILLE: Apuntado todo. Y el peor, encima de todos, mirándome por encima del hombro.
+
+## g.cerdos.saltado
+> Guille los acaba pesando uno a uno. Tarda, pero lo hace.
+GUILLE: Bueno. A la antigua. Tampoco me ha ido tan mal.
+
+## g.olor
+GUILLE (sorprendido): Uy. Uy, uy, uy.
+GUILLE (nervioso): Huelo a cerdo. Pero a cerdo de verdad, a cerdo de concurso.
+GUILLE: Así no me dejan entrar ni en el Río, y eso que en el Río entra todo el mundo.
+
+## g.mirar.radio
+GUILLE (contento): La radio de la nave, con su jota. A los cerdos les encanta, y a mí más.
+
+## g.mirar.radio.apagada
+GUILLE: La radio, sin pilas y sin jota. Qué triste está.
+
+## g.radio.pilas
+> Guille abre la tapa de la radio. La jota se corta en lo mejor.
+GUILLE: Perdona, maja. Es por una buena causa.
+
+## g.radio.silencio
+GUILLE (nervioso): Uy, los cerdos se han quedado mirándome. Sin música se ponen nerviosos.
+GUILLE: Tranquilos, que os canto yo luego. «Si vas a Calatayud...»
+
+## g.radio.sinpilas
+GUILLE: Ya no tiene pilas. Ni jota. Ni alegría.
+
+## mirar.puertaNave
+GUILLE: La nave. Paja, sacos de pienso y una lavadora que no funciona desde 2019.
+
+## usar.puertaNave
+GUILLE: Dentro solo hay paja y pienso. Y una ducha que es un cubo con agujeros. Paso.
+
+## mirar.botiquin
+GUILLE: El botiquín. Tiritas, gasas y un bote de alcohol más grande que mi brazo.
+
+## g.botiquin.antes
+GUILLE: Tiritas, gasas y alcohol. No me he hecho nada. De momento.
+
+## g.botiquin
+GUILLE: Alcohol. Huele a hospital, que es mejor que oler a cerdo.
+
+## g.botiquin.vacio
+GUILLE: Ya tengo el alcohol. Lo demás son tiritas de dinosaurios.
+
+## mirar.romero
+GUILLE: Una mata de romero. Huele a monte. Y a guiso de mi abuela.
+
+## g.romero.antes
+GUILLE: Romero. Si tuviera tiempo, hacía unas migas. No tengo tiempo.
+
+## g.romero
+GUILLE (contento): Unas ramicas de romero. Esto huele a gloria.
+
+## g.romero.ya
+GUILLE: Ya tengo romero. Si cojo más, me quedo sin mata.
+
+## mirar.manguera
+GUILLE: El grifo y la manguera. El agua sale helada. Helada de pingüino.
+
+## g.manguera.antes
+GUILLE: Agua para los cerdicos. Ahora no, que están en la jota.
+
+## g.manguera
+GUILLE (nervioso): ¿Ducharme con la manguera? A estas horas y con este fresco, ni loco.
+GUILLE: Necesito algo que huela fuerte. Y bien. Algo con... ¿colonia? No tengo colonia. Me la invento.
+
+## g.manguera.limpio
+GUILLE: Ya huelo a romero. No me mojo más, que encojo.
+
+## g.manguera.falta
+GUILLE: Solo con eso no basta. Primero tengo que mezclar algo con algo.
+
+## g.combinar
+> Guille mete las ramicas de romero en el bote de alcohol y lo agita.
+GUILLE (contento): ¡Alcohol de romero! Ahora le falta agua, que esto así quema.
+
+## g.colonia.hecha
+> Un chorrito de la manguera, otra agitada...
+GUILLE (contento): ¡Colonia de granja! Eau de Guille. La patento mañana.
+
+## g.colonia.falta
+GUILLE: Así, sin rebajar, me deja la piel como un tomate. Le falta agua.
+
+## g.colonia.usar
+> Guille se echa la colonia por todas partes. Por todas.
+GUILLE (contento): ¡Huelo a romero! Un poco a cerdo también, pero a cerdo que ha ido al monte.
+> Las moscas se van, ofendidas.
+
+## g.mirar.guille.olor
+GUILLE (nervioso): Camisa de flores y olor a cerdo. Las moscas me han hecho fan.
+
+## mirar.coche
+GUILLE: Mi coche. Rojo, viejo y con más kilómetros que la Vuelta.
+
+## g.coche.antes
+GUILLE: Antes tengo que pesar los cerdos. Si no, el jefe me pesa a mí.
+
+## g.coche.olor
+GUILLE (nervioso): ¿Así? Si me subo así, el coche huele a cerdo hasta 2040.
+
+## g.salida
+GUILLE (contento): ¡Cerdicos, me voy! Mañana más. Portaos bien, que os veo.
+> El coche arranca a la segunda. Bueno, a la tercera.
+
+## g.mirar.madrid
+GUILLE: Madrid al fondo. Las Cuatro Torres, las KIO, el Pirulí... Desde aquí parece de juguete.
+---
+GUILLE (contento): Y allí abajo, en algún sitio, el Río. Con sus bravas. Esperándome.
+
+// ---------------------------------------------------------------- minijuego: apilar cerdos
+
+cerdos.instrucciones = Toca para soltar el cerdo encima de la torre
+cerdos.cuenta = {n} de {total} · {vidas}
+cerdos.perfecto = ¡Perfecto!
+cerdos.resbala = ¡Se resbala!
+cerdos.sinvidas = ¡Se escapan todos!
+cerdos.derrumbe = ¡Se cae la torre! Otra vez
+cerdos.peor = ¡Ahora el peor!
+cerdos.hecho = ¡{kg} kilos de cerdo!
+
 // ---------------------------------------------------------------- final: los cuatro llegan a la vez
 
 ## final.antes
@@ -463,24 +685,20 @@ PABLO (chulo): Hombre, yo lo habría escrito mejor.
 > Y así empezó lo de los jueves. Pero esa es otra historia.
 
 fin.titulo = Fin del piloto
-fin.texto = Los cuatro han llegado al Río. Las historias de Pablo, Chuchi y Guille son provisionales: pronto tendrán sus propios puzles.
+fin.texto = Los cuatro han llegado al Río. Las historias de Pablo y Chuchi son provisionales: pronto tendrán sus propios puzles.
 
-// ---------------------------------------------------------------- historias provisionales (Pablo, Chuchi y Guille)
+// ---------------------------------------------------------------- historias provisionales (Pablo y Chuchi)
 
 zona.salida = Puerta
 zona.cosa.pablo = Escritorio
 zona.cosa.chuchi = Caja de juguetes
-zona.cosa.guille = Báscula
 
 objetivo.pablo = Escapa de la narración
 objetivo.chuchi = Sal de casa sin despertar a nadie
-objetivo.guille = Termina de pesar y quítate el olor
 pista.pablo = (Historia provisional) Mira el escritorio y luego sal por la puerta.
 pista.pablo.salir = La puerta de la derecha lleva al Río.
 pista.chuchi = (Historia provisional) Toca la caja de juguetes y luego sal por la puerta.
 pista.chuchi.salir = La puerta de la derecha lleva al Río.
-pista.guille = (Historia provisional) Usa la báscula y luego sal por la puerta.
-pista.guille.salir = La puerta de la derecha lleva al Río.
 
 ## intro.pablo
 > Casa de Pablo. Jueves, ocho y media.
@@ -495,12 +713,6 @@ CHUCHI: Las dos dormidas. Por fin. Ahora, sin hacer ruido, me pongo los zapatos 
 > Algo cruje bajo su pie.
 CHUCHI (enfadado): Un Lego. Siempre hay un Lego.
 > (Historia provisional: pronto vendrán los contratiempos de Chuchi.)
-
-## intro.guille
-> Una granja a las afueras. Jueves, ocho y diez.
-GUILLE (contento): ¡Treinta y nueve cerdos pesados! Solo falta uno y me voy al Río.
-GUILLE: El último es el más gordo. Y el más listo. Me está mirando mal.
-> (Historia provisional: pronto Guille tendrá que pesar al cerdo y quitarse el olor.)
 
 ## prov.pablo.ventana
 PABLO: Usera de noche. Si esto fuera una obra, ahora sonaría un cajón flamenco.
@@ -543,26 +755,6 @@ CHUCHI (nervioso): ¿Y mis llaves? Estaban aquí. Seguro que alguien ha jugado a
 ## prov.chuchi.salida
 CHUCHI (chulo): Cerrando despacito... Libre. Hoy no existo para nadie.
 
-## prov.guille.ventana
-GUILLE: Campo, cerdos y un cierzo que no es el de Zaragoza, pero se intenta.
-
-## prov.guille.cosa
-GUILLE: La báscula. Ciento cuarenta kilos marcó el último. Como yo después de unas migas.
-
-## prov.guille.usar
-> Guille convence al último cerdo para subir a la báscula. Le cuesta.
-GUILLE (contento): ¡Ciento cincuenta y dos kilos! Apuntado. Y ahora, a la ducha, que huelo a purín.
-GUILLE: Bueno, la ducha está rota. Me echo colonia. Mucha colonia.
-
-## prov.guille.salida.mirar
-GUILLE: La puerta. Al otro lado, el coche y luego el Río.
-
-## prov.guille.salida.antes
-GUILLE: No puedo irme sin pesar al último. Me miraría mal en sueños.
-
-## prov.guille.salida
-GUILLE (contento): ¡Me voy, cerdicos! Mañana más.
-
 ## mirar.pablo
 PABLO (chulo): Camisa planchada y sonrisa de estreno. Listo para un público exigente.
 
@@ -570,7 +762,10 @@ PABLO (chulo): Camisa planchada y sonrisa de estreno. Listo para un público exi
 CHUCHI: Gafas, ropa de salir y una pegatina de unicornio en la manga. Bueno, eso último lo quito.
 
 ## mirar.guille
-GUILLE: Botas de granja y olor a cerdo. Elegancia rural.
+GUILLE (contento): Camisa de flores, vaqueros y zapatillas. Elegante hasta en la granja.
+
+## g.mirar.guille.limpio
+GUILLE (contento): Camisa de flores y oliendo a romero. Hoy ligo yo, ¿eh? Bueno, ligaría, si no tuviera novia.
 
 ## nofunciona.pablo
 PABLO: Eso no tiene arco dramático.
@@ -588,7 +783,7 @@ PABLO: No sé qué quieres que haga yo con eso.
 CHUCHI: No sé qué quieres que haga yo con eso.
 
 ## nadacontigo.guille
-GUILLE: No sé qué quieres que haga yo con eso.
+GUILLE: ¿Y yo qué hago con eso, maño? ¿Me lo pongo de sombrero?
 
 ## charla.fran
 FRAN (contento): ¡Venga, que esta la pago yo! Bueno, la siguiente. La siguiente seguro.

@@ -41,6 +41,8 @@ export interface HudEventos {
   menu(): void;
   seleccionar(item: string | null): void;
   mirarObjeto(item: string): void;
+  /** With an item chosen, the player tapped another one in the bag. */
+  combinar(a: string, b: string): void;
 }
 
 export interface EntradaReparto {
@@ -173,7 +175,22 @@ export class Hud {
     this.bandeja.replaceChildren(
       ...this.items.map((id) => {
         const card = h('div', { class: 'objeto' });
-        const usar = h('button', { class: 'usar', 'data-id': id, 'aria-pressed': String(this.seleccionado === id), 'aria-label': texto(`objeto.${id}`), onclick: (e) => (e.stopPropagation(), this.seleccionar(this.seleccionado === id ? null : id)) });
+        const usar = h('button', {
+          class: 'usar',
+          'data-id': id,
+          'aria-pressed': String(this.seleccionado === id),
+          'aria-label': texto(`objeto.${id}`),
+          onclick: (e) => {
+            e.stopPropagation();
+            const otro = this.seleccionado;
+            // One item chosen and another tapped: put them together.
+            if (otro && otro !== id) {
+              this.seleccionar(null);
+              this.cerrarBandeja();
+              this.ev.combinar(otro, id);
+            } else this.seleccionar(otro === id ? null : id);
+          },
+        });
         usar.innerHTML = icono(id);
         usar.append(h('span', { class: 'nombre' }, texto(`objeto.${id}`)));
         const mirar = boton('mirar', texto('boton.mirar'), () => {

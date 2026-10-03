@@ -1071,6 +1071,70 @@ button:focus-visible {
   transform: translate(60px, -120px) rotate(200deg);
 }
 
+/* ------------------------------------------------------------ pig stacking minigame */
+
+.minijuego.cerdos {
+  background: #18204a;
+  padding: 0;
+}
+
+.lienzo-cerdos {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.minijuego.cerdos .instrucciones {
+  position: absolute;
+  top: calc(var(--safe-t) + 34px);
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+
+.cuenta-cerdos {
+  position: absolute;
+  left: var(--safe-l);
+  bottom: var(--safe-b);
+  font: 400 clamp(14px, 4vh, 20px) var(--display);
+  color: var(--cream);
+  background: var(--glass);
+  border: 1px solid var(--gold-soft);
+  border-radius: 999px;
+  padding: 6px 14px;
+  pointer-events: none;
+}
+
+.aviso-cerdos {
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font: 400 clamp(20px, 7vh, 36px) var(--display);
+  color: var(--gold);
+  text-align: center;
+  text-shadow: 0 3px 10px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.aviso-cerdos.salta {
+  animation: salta-aviso 0.35s ease-out;
+}
+
+@keyframes salta-aviso {
+  from { transform: translate(-50%, -50%) scale(0.6); opacity: 0; }
+}
+
+.minijuego .saltar {
+  position: absolute;
+  right: var(--safe-r);
+  bottom: var(--safe-b);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

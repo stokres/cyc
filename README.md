@@ -41,6 +41,8 @@ node scripts/shots.mjs http://localhost:5173/ revisiones/captura.png 844x390 3
 node scripts/rendimiento.mjs                                              # CPU y fotogramas en cuatro escenas (ver docs/ESTILO.md, T5)
 node tools/personajes/lamina-crew.mjs                                     # lámina de la crew (artifact/crew-lamina.html)
 node tools/personajes/frentes.mjs                                         # caras de frente de los retratos, por ánimo y boca (revisiones/frentes.png)
+node tools/personajes/cerdos.mjs                                          # los cerdos de Guille (revisiones/cerdos.png)
+node scripts/cerdos-sim.mjs                                               # dificultad del minijuego de los cerdos
 node tools/escenas/exportar.mjs                                           # capas de las escenas en art/escenas/
 node tools/icono.mjs                                                      # iconos de la pantalla de inicio (public/icono-*.png)
 ```
@@ -56,11 +58,11 @@ node tools/icono.mjs                                                      # icon
 | `docs/PERSONAJES.md` | Cómo son y cómo hablan los cuatro y Aceituna |
 | `docs/ESCENA-1.md` | Encargo del capítulo 1: piso, calle, cámara y puzle inicial |
 | `src/textos/` | Todos los textos del juego, editables |
-| `src/capitulos/` | Lógica de cada capítulo: zonas, puzles, objetivos y pistas |
+| `src/capitulos/` | Lógica de cada capítulo: zonas, puzles, objetivos y pistas (la historia de Guille, en `guille.ts`) |
 | `src/juego/` | Aventura (guion, entrada táctil, cambio de personaje), reparto, textos y partida guardada |
 | `src/motor/` | Escenas en capas con parallax, luz horneada, actores y la luz con relieve en WebGL2 (aplazada) |
 | `src/arte/` | Personajes (con vestuario), escenas y objetos, generados como SVG |
-| `src/ui/` | Interfaz: selector, bolsa, diálogos, móvil y minijuego del tarro |
+| `src/ui/` | Interfaz: selector, bolsa, diálogos, móvil y minijuegos (tarro, cerdos) |
 | `src/core/` | Gestos, sonido y utilidades |
 | `tools/` | Láminas de personajes, exportación de capas e iconos |
 | `public/` | Manifiesto e iconos para instalarlo en el móvil |

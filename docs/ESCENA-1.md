@@ -19,7 +19,7 @@ Decidido el 2 de octubre de 2026:
 | Fran | Su piso; se ha quedado dormido en el sofá | Hecha (el puzle de abajo); acaba al ver el Río desde el cruce |
 | Pablo | Su piso: atrapado en su propia narración, con bloqueo de escritor | Provisional (diseño abajo) |
 | Chuchi | Encerrado en un parque de bolas cuando ya se han ido todos | Provisional (por pensar) |
-| Guille | Una granja a las afueras de Madrid: pesar cerdos y quitarse el olor | Provisional (diseño abajo) |
+| Guille | Una granja a las afueras de Madrid: pesar cerdos y quitarse el olor | Hecha |
 
 Las historias provisionales son una habitación genérica (`src/arte/escenas/provisional.mjs`) con un objeto que apunta a la historia y una puerta: tocar el objeto y salir. Están para probar la estructura de principio a fin hasta que el grupo dé el contexto de cada una.
 
@@ -109,15 +109,22 @@ Cada historia sigue el mismo patrón que la de Fran: **llegar → puzle de objet
   - **Duración:** ni muy corto ni muy largo (unos 45–60 s en fases).
   - **Las listas de palabras se editan en `src/textos/`**, una por categoría.
 
-### Guille · Pesando cerdos
+### Guille · Pesando cerdos (hecha)
 
-- **Lugar:** una granja a las afueras de Madrid, con el skyline de Madrid al fondo. No sale nadie más.
-- **Antes del minijuego:** un mini puzle de objetos para poder pesar (idea: la báscula no tiene pilas y las pilas están en la radio de las jotas; sin música, los cerdos se ponen nerviosos).
-- **Minijuego · Apilar cerdos** (estilo *Tower Bloxx*): va tarde, así que los pesa todos a la vez.
-  - Los cerdos, de distintos tamaños, cuelgan balanceándose de una polea y se toca para soltarlos **encima de la báscula**.
-  - Si caen descentrados, la torre se tambalea más; si se pasan del borde, se cae.
-  - Objetivo: unos 10 cerdos. La aguja de la báscula sube con cada uno.
-- **Después, el olor a cerdo:** tiene que ducharse o fabricarse una colonia **combinando dos o tres objetos** en la bolsa (mecánica nueva, por ejemplo alcohol del botiquín + romero + agua de la manguera). Idea: moscas siguiéndole hasta que se quita el olor.
+- **Lugar:** una granja a las afueras de Madrid al atardecer (`src/arte/escenas/granja.mjs`). Detrás de las vallas bajas se ven campos de secano y el skyline de Madrid: Cuatro Torres, KIO, Torre Picasso, el Pirulí, Edificio España y Torre de Madrid, con las balizas rojas parpadeando. No sale nadie más.
+- **De izquierda a derecha:** el corral con los cerdos, la báscula del ganado, la nave (puerta corredera, radio en la ventana y botiquín), el grifo con la manguera, una mata de romero y el coche de Guille, que es la salida.
+- **La historia, paso a paso** (`src/capitulos/guille.ts`, textos `g.*` en `capitulo1.md`):
+  1. La báscula no tiene pilas.
+  2. Las tiene la radio que suena con jotas. Sin música, los cerdos se ponen nerviosos.
+  3. Pilas en la báscula y, al tocarla, el minijuego.
+  4. Huele a cerdo: le siguen las moscas.
+  5. Alcohol del botiquín y romero, **juntados en la bolsa** (mecánica nueva), más agua de la manguera: colonia de granja.
+  6. Se echa la colonia y se va en el coche.
+- **Minijuego · Apilar cerdos** (`src/ui/cerdos.ts`, estilo *Tower Bloxx*): va tarde, así que los pesa los **8** a la vez.
+  - Cada cerdo cuelga balanceándose de una polea y se toca para soltarlo encima de la torre, sobre la báscula, que va sumando los kilos.
+  - Si cae descentrado, la torre se tambalea más; si se sale del borde, resbala. Tres resbalones o un derrumbe y se repite; tras dos rondas perdidas se puede saltar.
+  - **El peor, el último:** más grande, más pesado (152 kg) y no para de revolverse.
+  - Los cerdos están en `src/arte/cerdos.mjs` (lámina: `node tools/personajes/cerdos.mjs`). Para ajustar la dificultad: `node scripts/cerdos-sim.mjs`.
 
 ### Chuchi · Atrapado en un parque de bolas
 

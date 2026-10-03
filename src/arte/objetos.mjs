@@ -32,7 +32,46 @@ const ropa = () => [
   shape(smooth([[46, 50, 'c'], [84, 50, 'c'], [86, 90, 'c'], [70, 90, 'c'], [66, 66], [62, 90, 'c'], [46, 90, 'c']]), '#3e5279', [path(rrect(65, 53, 19, 3, 1), '#566c96'), path(smooth([[72, 52], [84, 52], [86, 90], [76, 90]]), '#2c3b5a')], '#1d2840', 1.6),
 ].join('');
 
+const pilas = () => [0, 1].map((i) => {
+  const x = 38 + i * 26;
+  return [
+    shape(rrect(x, 54, 11, 30, 4), '#2a2a30', [path(rrect(x - 4, 54, 4, 30, 2), '#3c3c46')], '#121216', 1.4),
+    path(rrect(x, 30, 11, 6, 2), '#d8a83a'),
+    path(rrect(x, 26, 4, 3, 1), '#c9ccd0'),
+    path(rrect(x, 58, 9, 8, 1), '#e8c23a', { opacity: 0.9 }),
+  ].join('');
+}).join('');
+
+const alcohol = () => [
+  shape(smooth([[38, 30, 'c'], [62, 30, 'c'], [64, 40], [66, 86, 'c'], [34, 86, 'c'], [36, 40]]), '#e8f2f6', [path(smooth([[54, 34], [64, 40], [66, 86], [58, 86]]), '#c4d4dc')], '#6a7a84', 1.6),
+  shape(rrect(50, 22, 10, 9, 2), '#3a7be0', [], '#1a3a70', 1.2),
+  path(rrect(50, 60, 22, 22, 2), '#ffffff'),
+  path(rrect(50, 60, 4, 14, 1), '#d8323a'),
+  path(rrect(50, 60, 14, 4, 1), '#d8323a'),
+].join('');
+
+const romero = () => [
+  stroke('M50 90L50 30M50 70L36 46M50 60L64 36M50 80L66 60', '#4a6a4a', 3.4),
+  ...[[50, 30], [36, 46], [64, 36], [66, 60], [44, 40], [56, 48], [40, 58], [60, 70], [46, 66], [54, 24]].map(([x, y], i) => path(ellipse(x, y, 2.4, 7, i * 0.6), i % 2 ? '#5a7a56' : '#3e5c40')),
+  ...[[48, 26], [62, 34], [38, 44], [66, 58]].map(([x, y]) => path(ellipse(x, y, 2.4, 2.4), '#9a8ad8')),
+].join('');
+
+const alcoholRomero = () => [alcohol(), stroke('M44 70L44 44M50 76L50 40M56 70L56 46', '#4a6a4a', 2.4, { opacity: 0.9 }), path(ellipse(50, 40, 2, 2), '#9a8ad8')].join('');
+
+const colonia = () => [
+  shape(smooth([[34, 44, 'c'], [66, 44, 'c'], [70, 84, 'c'], [30, 84, 'c']]), '#9ad0c0', [path(smooth([[56, 46], [66, 46], [70, 84], [60, 84]]), '#74b0a0'), path(ellipse(44, 60, 4, 10), '#d8f0e8', { opacity: 0.8 })], '#3a6a5e', 1.6),
+  shape(rrect(50, 36, 12, 8, 2), '#c9a14f', [], '#6a4e1a', 1.2),
+  stroke('M50 28c-6 -6 -2 -12 4 -14M42 24c-4 -4 0 -10 4 -10', '#bfe4ff', 2.2, { opacity: 0.8 }),
+  path(rrect(50, 66, 22, 12, 2), '#f4ead0'),
+  stroke('M44 66L56 66', '#3a6a5e', 2),
+].join('');
+
 export const OBJETOS = {
+  pilas,
+  alcohol,
+  romero,
+  alcoholRomero,
+  colonia,
   movil,
   tarro: () => tarro(false),
   tarroCaliente: () => tarro(true),

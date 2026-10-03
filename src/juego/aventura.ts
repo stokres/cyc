@@ -32,6 +32,8 @@ export interface Capitulo {
   /** Tap (or long press, `mirar`) on a character or Aceituna, maybe with an item. */
   personaje(g: Aventura, quien: PjId | 'aceituna', item: string | null, mirar: boolean): Promise<void>;
   mirarObjeto(g: Aventura, item: string): Promise<void>;
+  /** Two items put together in the bag. Return false for «those don't go together». */
+  combinar?(g: Aventura, a: string, b: string): Promise<boolean>;
   objetivo(g: Aventura): string | null;
   pista(g: Aventura): string;
   /** One line per protagonist for the start screen: where their story begins. */
@@ -88,6 +90,12 @@ export class Aventura {
       menu: () => this.onMenu?.(),
       seleccionar: () => this.sound.tap(),
       mirarObjeto: (id) => void this.ejecutar(() => this.cap.mirarObjeto(this, id)),
+      combinar: (a, b) =>
+        void this.ejecutar(async () => {
+          if (await this.cap.combinar?.(this, a, b)) return;
+          this.sound.nope();
+          await this.hablar('nocombina');
+        }),
     });
     this.velo = h('div', { class: 'velo' }, h('span', {}, texto('cargando')));
     root.append(this.velo);

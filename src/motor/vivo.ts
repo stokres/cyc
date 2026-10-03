@@ -1,6 +1,7 @@
 // Light that changes and cannot be baked, drawn every frame over the layers
 // (rule L4): the fire and the dust in the flat, the pharmacy cross, the bar's
-// telly and the odd car at the end of the side street.
+// telly, the odd car at the end of the side street and the lights on the
+// Madrid towers seen from Guille's farm.
 import { glow, type Escena } from './escena';
 
 export interface Vivo {
@@ -108,4 +109,28 @@ function calle({ ctx, capa, S, px, t, off }: Vivo) {
   }
 }
 
-export const VIVO: Record<string, (v: Vivo) => void> = { piso, calle };
+function granja({ ctx, capa, S, px, t, off }: Vivo) {
+  if (capa !== 'skyline') return;
+  // Aviation lights on the Madrid towers, slowly blinking out of step.
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const nave = S.spots.nave;
+  let i = 0;
+  for (const [id, b] of Object.entries(S.spots)) {
+    if (!id.startsWith('baliza')) continue;
+    const on = Math.sin(t * 2.2 + i++ * 1.7) > 0.2;
+    if (!on) continue;
+    // Behind the barn: not seen (this layer is drawn over every back layer).
+    const sx = b.x + off(b.k);
+    if (sx > nave.x0 + off(1) - 12 && sx < nave.x1 + off(1) + 12) continue;
+    ctx.setTransform(px, 0, 0, px, off(b.k) * px, 0);
+    glow(ctx, b.x, b.y, 10, '#ff4a3a', 0.6);
+    ctx.fillStyle = '#ff6a5a';
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, 1.8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+export const VIVO: Record<string, (v: Vivo) => void> = { piso, calle, granja };

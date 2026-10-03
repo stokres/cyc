@@ -1,5 +1,5 @@
-// Placeholder rooms for the stories that are not written yet (Pablo, Chuchi,
-// Guille): back wall, floor, a window, the way out on the right and one object
+// Placeholder rooms for the stories that are not written yet (Pablo and
+// Chuchi): back wall, floor, a window, the way out on the right and one object
 // that hints at the story. They keep the camera, light and tap model of the
 // real scenes, so each story can be played from start to end while its art is
 // still to come.
@@ -11,7 +11,6 @@ const M = 250;
 
 const WOOD = mat('#b98a5a', '#966a42', '#d4a676', '#5e4129');
 const DARK = mat('#4a4f57', '#353940', '#666c75', '#24272c');
-const STEEL = mat('#c9ced4', '#a3a9b0', '#e6e9ec', '#61676f');
 
 function uRange(k, pad = 60) {
   let lo = Infinity;
@@ -82,21 +81,6 @@ function escritorio() {
   return out.join('');
 }
 
-/** Guille: the livestock scale, with the weight still on the dial, and straw. */
-function bascula() {
-  const out = [box(1000, 712, 480, 60, STEEL, { r: 6 }), rect(1010, 712, 460, 10, '#e6e9ec')];
-  out.push(box(1440, 380, 26, 340, STEEL), circle(1453, 360, 62, '#f4efe4'), circle(1453, 360, 62, 'none', { stroke: '#61676f', 'stroke-width': 8 }));
-  for (let a = 0; a < 12; a++) {
-    const t = (a / 12) * Math.PI * 2;
-    out.push(line(1453 + Math.cos(t) * 46, 360 + Math.sin(t) * 46, 1453 + Math.cos(t) * 54, 360 + Math.sin(t) * 54, '#24272c', 3));
-  }
-  out.push(line(1453, 360, 1490, 330, '#c8433a', 5));
-  const r = rng(9);
-  for (let i = 0; i < 60; i++) out.push(line(1700 + r() * 300, 772 - r() * 30, 1700 + r() * 300, 772 - r() * 60, r() > 0.5 ? '#e0c060' : '#c8a040', 3));
-  out.push(box(1720, 640, 260, 132, mat('#d8b860', '#b89840', '#ecd488', '#7a6020'), { r: 8 }));
-  return out.join('');
-}
-
 /** Chuchi: the toy box and the girls' drawings on the wall. */
 function juguetes() {
   const out = [box(1100, 640, 300, 132, mat('#e07a8a', '#c05a6a', '#f2a0ac', '#7a2a3a'), { r: 10 })];
@@ -110,7 +94,7 @@ function juguetes() {
   return out.join('');
 }
 
-const OBJETO = { escritorio, bascula, juguetes };
+const OBJETO = { escritorio, juguetes };
 
 /**
  * A placeholder room.

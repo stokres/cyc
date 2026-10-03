@@ -6,8 +6,8 @@
 // Fran's story: he wakes up from his nap at 20:35. He was meant to be at the
 // Bar del Río at nine. The couple he shares with have locked the door from
 // outside, Aceituna is lying on his keys, and he is in his boxers.
-// Pablo's, Chuchi's and Guille's are placeholders (a room and a way out) until
-// their stories are written.
+// Guille's story is in ./guille.ts. Pablo's and Chuchi's are placeholders (a
+// room and a way out) until their stories are written.
 //
 // Mechanics, one per step: walk, look (long press), use and pick up, the bag,
 // using an item on something, using it on yourself, and a touch minigame.
@@ -15,6 +15,8 @@
 import { escena as piso } from '../arte/escenas/piso.mjs';
 import { escena as calle } from '../arte/escenas/calle.mjs';
 import { escena as provisional } from '../arte/escenas/provisional.mjs';
+import { escena as granja } from '../arte/escenas/granja.mjs';
+import * as guille from './guille';
 import type { Aventura, Capitulo, ZonaLogica } from '../juego/aventura';
 import type { Estado } from '../juego/estado';
 import type { PjId } from '../juego/reparto';
@@ -31,7 +33,7 @@ const SOFA = { u: 2455, k: 1.42, y: 790 };
 let aceitunas: Array<{ X: number; y: number }> = [];
 
 /** Where each placeholder story happens. */
-const CASA: Record<Exclude<PjId, 'fran'>, string> = { pablo: 'casaPablo', chuchi: 'casaChuchi', guille: 'granja' };
+const CASA: Record<'pablo' | 'chuchi', string> = { pablo: 'casaPablo', chuchi: 'casaChuchi' };
 
 function estadoInicial(): Estado {
   return {
@@ -43,7 +45,7 @@ function estadoInicial(): Estado {
       fran: { escena: 'piso', X: 1830, y: 900, face: 1 },
       pablo: { escena: CASA.pablo, X: 760, y: 890, face: 1 },
       chuchi: { escena: CASA.chuchi, X: 760, y: 890, face: 1 },
-      guille: { escena: CASA.guille, X: 760, y: 890, face: 1 },
+      guille: { escena: 'granja', X: 1000, y: 890, face: 1 },
     },
     ropa: { fran: 'casa' },
     inv: { fran: [], pablo: [], chuchi: [], guille: [] },
@@ -323,7 +325,7 @@ async function llegaFran(g: Aventura) {
 }
 
 /** A placeholder story: a room, one object that hints at the story, and the way out. */
-function zonasProvisional(g: Aventura, quien: Exclude<PjId, 'fran'>): Record<string, ZonaLogica> {
+function zonasProvisional(g: Aventura, quien: 'pablo' | 'chuchi'): Record<string, ZonaLogica> {
   return {
     ventana: {
       mirar: () => g.hablar(`prov.${quien}.ventana`),
@@ -388,7 +390,7 @@ export const capitulo1: Capitulo = {
     // Placeholders until the real stories arrive (src/arte/escenas/provisional.mjs).
     casaPablo: () => provisional({ id: 'casaPablo', name: 'Casa de Pablo', pared: '#d9c3a0', techo: '#c4ae8c', rodapie: '#8a5a3a', suelo: ['#a8744a', '#b07c50', '#9c6c44'], ambient: '#5a5070', objeto: 'escritorio', luz: '#ffcf8a', semilla: 3 }) as unknown as Escena,
     casaChuchi: () => provisional({ id: 'casaChuchi', name: 'Casa de Chuchi', pared: '#cfd8c8', techo: '#b8c2b0', rodapie: '#f0ebe0', suelo: ['#c9a87c', '#d2b286', '#bf9e72'], ambient: '#4e5878', objeto: 'juguetes', luz: '#ffe0b0', semilla: 5 }) as unknown as Escena,
-    granja: () => provisional({ id: 'granja', name: 'La granja', pared: '#9c7450', techo: '#7a5a3c', rodapie: '#5a4028', suelo: ['#8a7a5a', '#94845e', '#7e6e50'], ambient: '#4a4a62', objeto: 'bascula', luz: '#ffd890', semilla: 8 }) as unknown as Escena,
+    granja: () => granja() as unknown as Escena,
   },
 
   estadoInicial,
@@ -396,6 +398,7 @@ export const capitulo1: Capitulo = {
   zonas(g, escena) {
     if (escena === 'piso') return zonasPiso(g);
     if (escena === 'calle') return zonasCalle(g);
+    if (escena === 'granja') return guille.zonasGranja(g);
     const quien = (Object.keys(CASA) as Array<keyof typeof CASA>).find((id) => CASA[id] === escena)!;
     return zonasProvisional(g, quien);
   },
@@ -460,6 +463,7 @@ export const capitulo1: Capitulo = {
       // Test mode: the crew on the terrace, chatting.
       return g.hablar(`charla.${quien}`);
     }
+    if (quien === 'guille') return guille.aSiMismo(g, item, mirar);
     if (quien !== 'fran') return g.hablar(mirar || !item ? `mirar.${quien}` : 'nadacontigo');
     const ropa = g.estado.ropa[quien] ?? 'calle';
     if (mirar || !item) return g.hablar(`mirar.fran.${ropa === 'casa' ? 'casa' : 'calle'}`);
@@ -477,6 +481,7 @@ export const capitulo1: Capitulo = {
   objetivo(g) {
     if (g.estado.final) return texto('objetivo.fin');
     const quien = g.estado.activo;
+    if (quien === 'guille') return guille.objetivo(g);
     if (quien !== 'fran') return texto(g.flag(`cosa.${quien}`) ? 'objetivo.bar' : `objetivo.${quien}`);
     if (g.escena === 'calle') return texto('objetivo.bar');
     if (!g.flag('despierto')) return null;
@@ -490,6 +495,7 @@ export const capitulo1: Capitulo = {
   pista(g) {
     const f = (k: string) => g.flag(k);
     const quien = g.estado.activo;
+    if (quien === 'guille') return guille.pista(g);
     if (quien !== 'fran') return texto(f(`cosa.${quien}`) ? `pista.${quien}.salir` : `pista.${quien}`);
     if (g.escena === 'calle') return texto('pista.bar');
     if (!f('horaVista')) return texto('pista.hora');
@@ -509,7 +515,10 @@ export const capitulo1: Capitulo = {
     return texto('pista.abrirpuerta');
   },
 
+  combinar: (g, a, b) => guille.combinar(g, a, b),
+
   dibujar(g, ctx, capa) {
+    if (g.escena === 'granja') return guille.dibujar(g, ctx, capa);
     const m = g.motor;
     const px = m.px;
     if (capa === 'suelo' && aceitunas.length) {

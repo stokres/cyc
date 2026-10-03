@@ -48,6 +48,7 @@ lugar.granja = la granja
 eleccion.titulo = ¿Con quién empiezas?
 eleccion.siguiente = ¿Con quién sigues?
 rotulo.toca = Toca para seguir
+minijuego.saltar = Saltar
 lista.y = y
 fin.seguir = Seguir paseando
 fin.reiniciar = Empezar de nuevo

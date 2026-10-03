@@ -1,7 +1,8 @@
 // Plays the pilot from start to finish on a phone-sized viewport, like a player:
 // choose Fran, wake him, switch to Pablo halfway and finish his (placeholder)
 // story, go back to Fran, solve the flat puzzle and walk towards the Bar del Río,
-// then finish Chuchi's and Guille's, and watch the four arrive together.
+// then Chuchi's placeholder and Guille's farm (batteries, the pig tower, the
+// homemade cologne), and watch the four arrive together.
 // Fails on any console error or if a step does not do what it should.
 // Usage: node scripts/playthrough.mjs [url] [outDir]   (add ?relieve to the url to play it with relief light)
 import { chromium } from 'playwright';
@@ -160,6 +161,83 @@ async function provisional(id) {
   await rotulo(id);
 }
 
+/** Two items put together: choose one, open the bag again and tap the other. */
+async function combinar(a, b) {
+  await objeto(a);
+  await page.click('.bolsa button');
+  await wait(250);
+  await page.click(`.bandeja .usar[data-id="${b}"]`);
+  await wait(200);
+  await charla();
+}
+
+/** The pig tower: drop each pig when it would land on the centre of the one below. */
+async function apilarCerdos() {
+  await page.waitForSelector('.cubierta.cerdos');
+  await wait(800);
+  let foto = false;
+  for (let i = 0; i < 400 && (await page.$('.cubierta.cerdos')); i++) {
+    const r = await page.evaluate(() => new Promise((res) => {
+      const t0 = performance.now();
+      const mira = () => {
+        const e = window.__cerdos?.();
+        if (!e) return res('fin');
+        if (e.colgando && Math.abs(e.prediccion - e.objetivo) < 5) {
+          document.querySelector('.lienzo-cerdos').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+          return res(e.colocados);
+        }
+        if (performance.now() - t0 > 4000) return res('espera');
+        requestAnimationFrame(mira);
+      };
+      mira();
+    }));
+    if (r === 'fin') break;
+    if (r === 5 && !foto) {
+      foto = true;
+      await wait(500);
+      await shot('cerdos');
+    }
+    await wait(250);
+  }
+  await page.waitForSelector('.cubierta.cerdos', { state: 'detached', timeout: 20000 });
+  await charla();
+}
+
+/** Walk until a zone is in view, then choose an item and use it there. */
+async function usarEn(item, zona) {
+  const p = await verZona(zona);
+  await objeto(item);
+  await tocar(p);
+}
+
+async function historiaGuille() {
+  await shot('granja');
+  await paso('Guille: la báscula no tiene pilas', async () => tocar(await verZona('bascula')), 'g.basculaVista');
+  await paso('Guille: las pilas de la radio', async () => tocar(await verZona('radio')), 'g.pilas');
+  await paso('Guille: pilas en la báscula', () => usarEn('pilas', 'bascula'), 'basculaLista');
+  await paso('Guille: apilar los ocho cerdos', async () => {
+    await page.touchscreen.tap(...(await verZona('bascula')));
+    await charla();
+    await apilarCerdos();
+    const kg = await page.evaluate(() => window.__cyc.g.flag('g.pesados'));
+    check(kg, 'los cerdos no quedan pesados');
+  }, 'g.olor');
+  await shot('moscas');
+  await paso('Guille: alcohol del botiquín', async () => tocar(await verZona('botiquin')), 'g.alcohol');
+  await paso('Guille: romero', async () => tocar(await verZona('romero')), 'g.romero');
+  await paso('Guille: juntar alcohol y romero', async () => {
+    await combinar('alcohol', 'romero');
+    check(await page.evaluate(() => window.__cyc.g.tiene('alcoholRomero')), 'no sale el alcohol de romero');
+  });
+  await paso('Guille: agua de la manguera', () => usarEn('alcoholRomero', 'manguera'), 'g.colonia');
+  await paso('Guille: echarse la colonia', async () => {
+    await objeto('colonia');
+    await tocar(await actorCss('guille'));
+  }, 'g.limpio');
+  await paso('Guille: al coche', async () => tocar(await verZona('coche')));
+  await rotulo('guille');
+}
+
 async function paso(nombre, fn, comprobar) {
   console.log(`· ${nombre}`);
   await fn();
@@ -255,7 +333,7 @@ await rotulo('fran');
 await escoger('chuchi');
 await provisional('chuchi');
 await escoger('guille');
-await provisional('guille');
+await historiaGuille();
 await paso('Los cuatro llegan a la vez', async () => {
   await page.waitForFunction(() => window.__cyc.g.escena === 'calle' && !document.querySelector('.velo.on'), null, { timeout: 30000 });
   // The narrator, then the four walk in together and Fran speaks first.
