@@ -415,6 +415,7 @@ export const capitulo1: Capitulo = {
       return;
     }
     await g.hablar(`intro.${quien}`);
+    if (quien === 'pablo') await pablo.aparece(g);
     g.ayudaUnaVez('cambiar');
   },
 
@@ -528,7 +529,7 @@ export const capitulo1: Capitulo = {
   },
 
   // Pablo's shadow walks with him backstage (until the chapter's final).
-  sombra: (g, escena) => escena === 'backstage' && !g.estado.final,
+  sombra: (g, escena) => escena === 'backstage' && !g.estado.final && pablo.sombraEnEscena(g),
 
   dibujar(g, ctx, capa) {
     if (g.escena === 'granja') return guille.dibujar(g, ctx, capa);

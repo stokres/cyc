@@ -143,11 +143,11 @@ export async function sinHueco(img: Element, luego: () => void) {
 
 /**
  * A character's whole body as a flat dark silhouette, as a bitmap `alto` pixels
- * tall (Pablo's shadow on the projection screen and in his minigame).
+ * tall (Pablo's shadow on the projection screen and in his minigame). `vb`: the
+ * part of the body's space it covers (wider for poses with the arms flung out).
  */
-export async function silueta(cuerpo: string, alto: number, color = '#0c0814'): Promise<HTMLCanvasElement> {
+export async function silueta(cuerpo: string, alto: number, color = '#0c0814', vb = { x: -110, y: -300, w: 220, h: 310 }): Promise<HTMLCanvasElement> {
   const limpio = cuerpo.replace(/<circle[^>]*class="pivot"[^>]*\/>/g, '');
-  const vb = { x: -110, y: -300, w: 220, h: 310 };
   const k = alto / vb.h;
   const img = new Image();
   img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`<svg xmlns="${NS}" viewBox="${vb.x} ${vb.y} ${vb.w} ${vb.h}" width="${Math.ceil(vb.w * k)}" height="${Math.ceil(alto)}">${limpio}</svg>`)}`;

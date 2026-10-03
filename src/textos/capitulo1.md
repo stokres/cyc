@@ -709,10 +709,21 @@ objeto.hojas.texto = Hojas de «La vida es sueño», en blanco por detrás. Cald
 ## intro.pablo
 > Teatro Joso, entre bambalinas. Jueves, ocho y media.
 > Pablo teclea su formato nuevo de impro. Tac, tac, tac...
-PABLO (contento): «Y entonces el público grita una palabra, y los actores tienen que...»
-> La hoja se acabó. Y con ella, la idea.
-PABLO (sorprendido): ¿Quién ha dicho eso?
-SOMBRA: Yo. Tu narrador. Aquí, detrás de ti. No, al otro lado. Eso.
+PABLO (contento): «Formato número catorce. Título provisional: "Palabra"».
+> Era un título excelente.
+PABLO (contento): Gracias.
+> Pablo siguió escribiendo, inspirado como nunca. Tac, tac, tac, tac.
+PABLO (contento): «El público grita una palabra, y los actores...»
+> ...y los actores la olvidan a los diez segundos. Como siempre.
+PABLO (sorprendido): No. Los actores la usan. Con mucho cuidado.
+> Pablo escribió «con mucho cuidado». Luego lo tachó. Luego lo volvió a escribir.
+PABLO (enfadado): ¡Eso no ha pasado!
+> Pasó. Y entonces se acabó la hoja. Y con ella, la idea.
+PABLO (nervioso): Vale. ¿Quién está narrando esto?
+
+## intro.pablo.sombra
+> La sombra de Pablo se despega de sus pies, se sacude el polvo y da un paso atrás.
+SOMBRA (chulo): Yo. Tu narrador. Aquí, detrás de ti. No, al otro lado. Eso.
 PABLO (nervioso): ¿Mi sombra habla?
 SOMBRA (chulo): Narro. Es como hablar, pero con más estilo. Y te informo: no queda papel en todo el teatro.
 PABLO: Eso ya lo veremos.
@@ -735,6 +746,7 @@ PABLO (enfadado): Ni una letra. Necesito más luz. O menos sombra.
 
 ## p.maquina.hecho
 PABLO (contento): «Formato: el público grita una palabra y los actores dicen que sí. A todo.» Perfecto.
+SOMBRA (contento): Lo firmo. Y yo no regalo nada. Ahora, la puerta de artistas: está a la izquierda, bajo el cartel verde.
 
 ## mirar.flexo
 PABLO: El flexo. Alumbra lo justo para que se vea que no escribo.
@@ -797,6 +809,17 @@ PABLO: No toco el cuadro si no hace falta. La última vez apagué medio Lavapié
 
 ## p.cuadro.despues
 PABLO: Mejor no toco más el cuadro. Ya tengo bastante luz. Por dentro, sobre todo.
+SOMBRA: Haces bien. Que el último que tocó ese cuadro apagó medio Lavapiés. Y era tú.
+
+## p.canon.despues
+SOMBRA: Déjalo apagado. Ya no necesito tres metros: me quedo a tus pies, que se narra mejor.
+
+## p.pantalla.despues
+SOMBRA (contento): Ahí arriba estaba enorme, ¿eh? Pero se está mejor aquí abajo, de tu parte.
+
+## p.mirar.pablo.despues
+PABLO (contento): Formato terminado, y ni rastro de la sombra.
+SOMBRA: Abajo, Pablo. Mira abajo. Sigo aquí. Pero ya juego en tu equipo.
 
 ## mirar.canon
 PABLO: El cañón de seguimiento. Apunta a la pantalla de proyección, como si esperara a alguien.
@@ -832,15 +855,17 @@ SOMBRA (chulo): ¿Otra vez tú? Venga. Te lanzo palabras.
 SOMBRA (chulo): Un dramaturgo que abandona a mitad del segundo acto. Qué original.
 
 ## p.gana
-> La sombra encoge. Vuelve a su sitio, a los pies de Pablo.
+> La sombra encoge, y encoge, y se mete otra vez bajo los pies de Pablo, como si nunca hubiera salido.
 SOMBRA (contento): Vale. Lo admito. Era un buen formato.
+PABLO (sorprendido): ¿Sigues ahí?
+SOMBRA: Siempre. Pero ahora narro a tu favor. Escribe.
 PABLO (contento): ¿Ves? Sí, y... ahora lo escribo.
 > Y Pablo escribió. Por fin. Hasta el narrador se emocionó un poco.
-SOMBRA: Y ahora, al Río. Que llegas tarde. Eso también lo narro.
+SOMBRA: Y ahora, al Río. Por la puerta de artistas, que llegas tarde. Eso también lo narro.
 
 ## p.gana.saltado
-> El narrador se cansa antes que Pablo. La sombra encoge y vuelve a su sitio.
-SOMBRA: Bueno, bueno. Escribe, anda. Que llegas tarde.
+> El narrador se cansa antes que Pablo. La sombra encoge y se mete otra vez bajo sus pies.
+SOMBRA: Bueno, bueno. Escribe, anda. Que llegas tarde. Desde aquí abajo te echo una mano.
 PABLO (contento): ¡Sí, y...! Ya está. Formato terminado.
 
 ## p.puerta.antes
@@ -859,9 +884,6 @@ PABLO: Mi sombra. Más alta que yo. Y más borde.
 ## p.mirar.sombra.bloqueo
 PABLO (nervioso): Mi sombra, con cara de saber algo que yo no sé.
 
-## p.mirar.sombra.amiga
-PABLO (contento): Mi sombra. Ahora parece hasta simpática.
-
 ## p.hablar.sombra.papel
 PABLO: ¿No tienes papel?
 SOMBRA: Soy una sombra. No tengo ni bolsillos.
@@ -879,11 +901,6 @@ SOMBRA (chulo): Yo no te impido nada. Solo describo cómo no escribes.
 ---
 PABLO: Necesito más luz.
 SOMBRA: Más luz, más sombra. Tú verás.
-
-## p.hablar.sombra.amiga
-SOMBRA (contento): Buen formato. Lo digo como narrador y como fan.
----
-SOMBRA: Venga, al Río. Allí también te narro, pero con una caña.
 
 ## p.sombra.objeto
 SOMBRA (chulo): ¿Me ofreces eso? Qué detalle. Sigo sin dejarte escribir.

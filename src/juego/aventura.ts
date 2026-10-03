@@ -233,15 +233,7 @@ export class Aventura {
       this.motor.actores.push(p);
     }
     this.sombra = null;
-    const pablo = this.pjs.get('pablo');
-    if (pablo && this.estado.donde.pablo?.escena === escena && this.cap.sombra?.(this, escena)) {
-      const s = new Personaje(this.motor.world, this.motor.defs, 'sombra', REPARTO.pablo.arte, this.estado.ropa.pablo ?? REPARTO.pablo.ropa, 9);
-      s.tintFijo = [0.09, 0.07, 0.13];
-      s.shadowOn = false;
-      Object.assign(s, { X: pablo.X - 150, y: Math.max(S.walk.y0, pablo.y - 14), face: pablo.face, speed: (S.speed ?? 250) * 0.85 });
-      this.sombra = s;
-      this.motor.actores.push(s);
-    }
+    if (this.estado.donde.pablo?.escena === escena && this.cap.sombra?.(this, escena)) this.sacarSombra();
     this.perro = null;
     if (escena === 'piso') {
       this.perro = new Perrita(this.motor.world, this.motor.defs);
@@ -656,6 +648,33 @@ export class Aventura {
     else if (a && this.estado.donde[this.estado.activo]?.escena === this.escena) m.seguir(a.X + a.face * 120);
     m.colocar();
     m.dibujar();
+  }
+
+  /**
+   * Pablo's shadow as a character of its own. `despegar`: it peels off his feet
+   * and steps back to its place, instead of already being there.
+   */
+  sacarSombra(despegar = false) {
+    const pablo = this.pjs.get('pablo');
+    if (!pablo || this.sombra) return;
+    const S = this.S;
+    const s = new Personaje(this.motor.world, this.motor.defs, 'sombra', REPARTO.pablo.arte, this.estado.ropa.pablo ?? REPARTO.pablo.ropa, 9);
+    s.tintFijo = [0.09, 0.07, 0.13];
+    s.shadowOn = false;
+    const y = Math.max(S.walk.y0, pablo.y - 14);
+    Object.assign(s, { X: despegar ? pablo.X - pablo.face * 20 : pablo.X - pablo.face * 150, y, face: pablo.face, speed: (S.speed ?? 250) * 0.85 });
+    this.sombra = s;
+    this.motor.actores.push(s);
+    if (despegar) void s.walkTo(pablo.X - pablo.face * 150, y).then(() => (s.face = pablo.face));
+  }
+
+  /** The shadow leaves the scene for good: from now on it is only a voice in the dialogues. */
+  quitarSombra() {
+    const s = this.sombra;
+    if (!s) return;
+    s.wrap.remove();
+    this.motor.actores = this.motor.actores.filter((a) => a !== s);
+    this.sombra = null;
   }
 
   /**

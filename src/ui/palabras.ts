@@ -1,6 +1,6 @@
 // Minigame: Pablo against his narrator. Words fall through the dreamlike space
-// where Pablo builds his stories, thrown by his own shadow, huge on the
-// projection screen. Swipe to cut the negative ones (impro sense: «no», «sí, pero»,
+// where Pablo builds his stories, thrown by his own shadow, huge and hamming it
+// up (src/ui/sombra-histrionica.ts). Swipe to cut the negative ones (impro sense: «no», «sí, pero»,
 // «bloquear»...) and let the positive ones through («sí, y», «aceptar»...).
 //
 // Three phases: a few words with honest colours (negative ones red and orange,
@@ -18,7 +18,8 @@
 import { h } from './hud';
 import { texto } from '../juego/textos';
 import { FONTS } from '../motor/escena';
-import { silueta } from '../motor/sprites';
+import { SombraHistrionica } from './sombra-histrionica';
+import { JOINTS, HEAD_AT } from '../arte/personajes/pablo.mjs';
 
 export type Resultado = 'hecho' | 'saltado' | 'cancelado';
 
@@ -64,6 +65,8 @@ export interface EstadoPalabras {
   bloqueo: number;
   rondasPerdidas: number;
   fotogramas: number;
+  /** What the shadow is doing: an act (paseo, gigante...) or a reaction (risa, rabieta). */
+  sombra: string;
 }
 
 const lista = (clave: string) =>
@@ -109,7 +112,7 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
   let vw = 1920;
   let escala = 1;
   let fondo: HTMLCanvasElement | null = null;
-  let sombra: HTMLCanvasElement | null = null;
+  const sombra = new SombraHistrionica(cuerpoPablo, JOINTS, HEAD_AT);
   let glifos: HTMLCanvasElement[] = [];
   const medir = () => {
     const r = capa.getBoundingClientRect();
@@ -120,7 +123,7 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
     vw = lienzo.width / escala;
     fondo = null;
     glifos = [];
-    void silueta(cuerpoPablo, 820 * escala).then((c) => (sombra = c)).catch(() => {});
+    void sombra.preparar(escala);
   };
   medir();
   const ro = new ResizeObserver(medir);
@@ -183,8 +186,6 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
   let pausa = 0;
   let terminado: Resultado | null = null;
   let fotogramas = 0;
-  /** The shadow laughs (a few quick hops) each time Pablo gets it wrong. */
-  let risa = 0;
   let traza: Array<{ x: number; y: number; t: number }> = [];
 
   const fase = () => (t < 14 ? 1 : t < 32 ? 2 : 3);
@@ -225,6 +226,7 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
       cortada: null,
       fuera: false,
     });
+    sombra.lanza();
   };
 
   const perderRonda = () => {
@@ -239,7 +241,7 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
 
   const fallo = (clave: string) => {
     bloqueo++;
-    risa = 1;
+    sombra.rie();
     capa.classList.remove('golpe');
     void capa.offsetWidth;
     capa.classList.add('golpe');
@@ -269,6 +271,7 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
       if (p.cortada || p.fuera || !cruza(p, a, b)) continue;
       p.cortada = { t: 0, dx: Math.sign(b.x - a.x || 1) };
       if (!p.negativa) fallo('palabras.malcorte');
+      else sombra.rabia();
     }
   };
 
@@ -304,6 +307,7 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
       bloqueo,
       rondasPerdidas,
       fotogramas,
+      sombra: sombra.estado,
     };
   };
 
@@ -327,22 +331,8 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
       ctx.drawImage(glifos[l.img], -lado / 2, -lado / 2, lado, lado);
     }
     ctx.globalAlpha = 1;
-    // The narrator, huge, swaying from side to side as if showing off, leaning
-    // over the page; it grows as the round goes on and hops with laughter at
-    // every mistake.
-    if (sombra) {
-      const k = 1 + 0.015 * Math.sin(reloj * 1.3) + 0.04 * (fase() - 1);
-      const w = (sombra.width / escala) * k;
-      const hh = (sombra.height / escala) * k;
-      const paseo = Math.sin(reloj * 0.45) * vw * 0.16 + Math.sin(reloj * 1.1) * 30;
-      const inclina = Math.sin(reloj * 0.9 + 0.6) * 0.06 + Math.sin(reloj * 0.45) * 0.04;
-      const salto = risa > 0 ? Math.abs(Math.sin(risa * 14)) * 34 * risa : 0;
-      const pie = { x: vw / 2 + paseo, y: H + 40 - salto };
-      const cos = Math.cos(inclina) * escala;
-      const sin = Math.sin(inclina) * escala;
-      ctx.setTransform(cos, sin, -sin, cos, pie.x * escala, pie.y * escala);
-      ctx.drawImage(sombra, -w / 2, -hh, w, hh);
-    }
+    // The narrator, huge, hamming it up; a little bigger as the round goes on.
+    sombra.pintar(ctx, escala, vw, H, reloj, 0.04 * (fase() - 1));
     ctx.setTransform(escala, 0, 0, escala, 0, 0);
     for (const p of palabras) {
       if (p.fuera) continue;
@@ -399,7 +389,7 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
       const dt = Math.min(0.05, (ahora - ultimo) / 1000);
       ultimo = ahora;
       reloj += dt;
-      risa = Math.max(0, risa - dt * 1.4);
+      sombra.avanzar(dt);
       for (const l of letras) {
         l.y -= l.vy * dt;
         if (l.y < -60) Object.assign(l, letra());

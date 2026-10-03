@@ -3,6 +3,8 @@
 // with it the idea. His narrator turns up in person: his own shadow, which
 // follows him around, argues with him and contradicts him in the narration.
 //
+//   0. He types away for a while, narrated as usual, until the narrator starts
+//      contradicting him; then it peels off his feet: his shadow.
 //   1. No paper «in the whole theatre», says the narrator.
 //   2. The props trunk has an old script, printed on one side only; the costume
 //      table has scissors. Put together in the bag: loose sheets, blank on the back.
@@ -10,7 +12,9 @@
 //      not enough. The lighting board turns on the follow spot.
 //   4. His shadow lands on the projection screen, huge: the battle with the narrator, the
 //      word-cutting minigame (src/ui/palabras.ts).
-//   5. Unblocked: he finishes the format and leaves by the stage door.
+//   5. Unblocked: he finishes the format and leaves by the stage door. The
+//      shadow is gone from the scene: the narrator is only a voice again, now
+//      on Pablo's side.
 // Anything that can be picked up can be picked up at any time (docs/JUGABILIDAD.md).
 // Every line comes from src/textos/capitulo1.md (keys starting with p.).
 import type { Aventura, ZonaLogica } from '../juego/aventura';
@@ -20,6 +24,18 @@ import { jugarPalabras } from '../ui/palabras';
 import { silueta } from '../motor/sprites';
 
 const f = (g: Aventura, k: string) => g.flag(k);
+
+/** The shadow walks about as a character from the moment it peels off until the battle is won. */
+// (A story begun before this existed has no p.sombra: once begun, it counts as out.)
+export const sombraEnEscena = (g: Aventura) => (f(g, 'p.sombra') || f(g, 'empezado.pablo')) && !f(g, 'p.ganado');
+
+/** End of the intro: the narrator, fed up, peels off Pablo's feet. */
+export async function aparece(g: Aventura) {
+  g.poner('p.sombra');
+  g.sacarSombra(true);
+  g.sound.pickup();
+  await g.hablar('intro.pablo.sombra');
+}
 
 /** The shadow is on the projection screen, huge, while the spot is on and the battle is not won. */
 const enLaPantalla = (g: Aventura) => f(g, 'p.canon') && !f(g, 'p.ganado');
@@ -39,11 +55,8 @@ async function batalla(g: Aventura) {
   g.poner('p.ganado');
   g.poner('p.canon', false);
   g.avanzarReloj(15);
-  if (g.sombra) {
-    g.sombra.visible = true;
-    const P = g.pjs.get('pablo');
-    if (P) Object.assign(g.sombra, { X: P.X - P.face * 150, y: P.y - 14 });
-  }
+  // The shadow does not come back: from now on the narrator is only its voice.
+  g.quitarSombra();
   await g.hablar(r === 'saltado' ? 'p.gana.saltado' : 'p.gana');
 }
 
@@ -95,7 +108,7 @@ export function zonasBackstage(g: Aventura): Record<string, ZonaLogica> {
     nubes: {},
     cartel: {},
     canon: {
-      usar: () => g.hablar(enLaPantalla(g) ? 'p.canon.encendido' : 'p.canon.usar'),
+      usar: () => g.hablar(f(g, 'p.ganado') ? 'p.canon.despues' : enLaPantalla(g) ? 'p.canon.encendido' : 'p.canon.usar'),
     },
     cuadro: {
       async usar() {
@@ -107,9 +120,9 @@ export function zonasBackstage(g: Aventura): Record<string, ZonaLogica> {
     pantalla: {
       async usar() {
         if (enLaPantalla(g)) return batalla(g);
-        await g.hablar('usar.pantalla');
+        await g.hablar(f(g, 'p.ganado') ? 'p.pantalla.despues' : 'usar.pantalla');
       },
-      mirar: () => g.hablar(enLaPantalla(g) ? 'p.mirar.pantalla.sombra' : 'mirar.pantalla'),
+      mirar: () => g.hablar(f(g, 'p.ganado') ? 'p.pantalla.despues' : enLaPantalla(g) ? 'p.mirar.pantalla.sombra' : 'mirar.pantalla'),
     },
     puertaArtistas: {
       async usar() {
@@ -133,14 +146,15 @@ export async function combinar(g: Aventura, a: string, b: string) {
 
 /** Tapping, looking at or giving something to the shadow. */
 export async function sombra(g: Aventura, item: string | null, mirar: boolean) {
-  const etapa = f(g, 'p.ganado') ? 'amiga' : f(g, 'p.bloqueado') ? 'bloqueo' : 'papel';
+  // After the battle the shadow is no longer on the scene: there is nobody to tap.
+  const etapa = f(g, 'p.bloqueado') ? 'bloqueo' : 'papel';
   if (mirar) return g.hablar(`p.mirar.sombra.${etapa}`);
   if (item) return g.hablar(g.hayDialogo(`p.sombra.${item}`) ? `p.sombra.${item}` : 'p.sombra.objeto');
   await g.hablar(`p.hablar.sombra.${etapa}`);
 }
 
 export async function aSiMismo(g: Aventura, item: string | null, mirar: boolean) {
-  if (mirar || !item) return g.hablar('mirar.pablo');
+  if (mirar || !item) return g.hablar(f(g, 'p.ganado') ? 'p.mirar.pablo.despues' : 'mirar.pablo');
   return g.hablar('nadacontigo');
 }
 

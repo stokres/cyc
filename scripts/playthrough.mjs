@@ -268,6 +268,9 @@ async function historiaPablo() {
     await cortarPalabras();
   }, 'p.ganado');
   await shot('pablo-gana');
+  // After the battle the shadow leaves the scene: only its voice stays, in the dialogues.
+  check(await page.evaluate(() => window.__cyc.g.sombra === null), 'la sombra sigue en escena tras la batalla');
+  await paso('Pablo: la máquina, ya con el narrador a favor', async () => tocar(await verZona('maquina')));
   await paso('Pablo: por la puerta de artistas', async () => tocar(await verZona('puertaArtistas')));
   await rotulo('pablo');
 }

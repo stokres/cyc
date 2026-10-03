@@ -374,10 +374,14 @@ export class Motor {
     const S = this.S;
     const B = this.baked;
     if (this.modo === 'gl') return this.dibujarGL();
-    // Live light (fire, signs, the odd car...) every frame, on the overlays.
+    // Live light (fire, signs, the odd car...) every frame, on the overlays,
+    // from a clean state: a clip or a save left over by a frame must not stick.
     for (const c of [this.vbctx, this.vfctx]) {
-      c.setTransform(1, 0, 0, 1, 0, 0);
-      c.clearRect(0, 0, this.vivoB.width, this.vivoB.height);
+      if (c.reset) c.reset();
+      else {
+        c.setTransform(1, 0, 0, 1, 0, 0);
+        c.clearRect(0, 0, this.vivoB.width, this.vivoB.height);
+      }
     }
     if (S && B && B.modo === '2d') for (const L of B.capas) if (!this.ocultas.has(L.id)) this.vivo(L.z === 'front' ? this.vfctx : this.vbctx, L.id);
     // The baked layers only when something they depend on has changed.
