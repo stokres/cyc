@@ -55,7 +55,9 @@ async function batalla(g: Aventura) {
   g.poner('p.ganado');
   g.poner('p.canon', false);
   g.avanzarReloj(15);
-  // The shadow does not come back: from now on the narrator is only its voice.
+  // The shadow does not come back: the huge one shrinks away (see dibujar) and
+  // from now on the narrator is only its voice.
+  encogeDesde = g.motor.t;
   g.quitarSombra();
   await g.hablar(r === 'saltado' ? 'p.gana.saltado' : 'p.gana');
 }
@@ -180,6 +182,9 @@ export function pista(g: Aventura) {
 let luz: HTMLCanvasElement | null = null;
 let sombraGrande: HTMLCanvasElement | null = null;
 let haciendoSilueta = false;
+/** When the battle was won: the huge shadow and the spot fade out from then on. */
+let encogeDesde = -Infinity;
+const ENCOGE = 2.2;
 
 function bitmapLuz(r: number) {
   const c = document.createElement('canvas');
@@ -197,8 +202,11 @@ function bitmapLuz(r: number) {
 
 /** The follow spot's beam and disk on the projection screen, and the narrator in it, huge. */
 export function dibujar(g: Aventura, ctx: CanvasRenderingContext2D, capa: string) {
-  if (capa !== 'fondo' || !enLaPantalla(g)) return;
   const m = g.motor;
+  // 0 while the battle is on, up to 1 as the shadow shrinks away after the win.
+  const fuera = enLaPantalla(g) ? 0 : (m.t - encogeDesde) / ENCOGE;
+  if (capa !== 'fondo' || fuera >= 1 || fuera < 0) return;
+  const queda = 1 - fuera * fuera;
   const px = m.px;
   const off = m.off(1);
   const c = g.S.spots.ciclo;
@@ -213,6 +221,7 @@ export function dibujar(g: Aventura, ctx: CanvasRenderingContext2D, capa: string
   ctx.setTransform(px, 0, 0, px, off * px, 0);
   // The beam: a soft cone from the lens to the disk.
   ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = queda;
   const haz = ctx.createLinearGradient(lente.x, 0, c.x, 0);
   haz.addColorStop(0, 'rgba(255,236,200,0.35)');
   haz.addColorStop(1, 'rgba(255,236,200,0.06)');
@@ -227,10 +236,11 @@ export function dibujar(g: Aventura, ctx: CanvasRenderingContext2D, capa: string
   // The shadow, breathing, standing on the floor line of the projection screen.
   ctx.globalCompositeOperation = 'source-over';
   if (sombraGrande) {
-    const k = 1 + 0.012 * Math.sin(m.t * 1.4);
+    // Shrinking down into its feet once beaten.
+    const k = (1 + 0.012 * Math.sin(m.t * 1.4)) * (1 - 0.85 * fuera);
     const w = (sombraGrande.width / px) * k;
     const hh = (sombraGrande.height / px) * k;
-    ctx.globalAlpha = 0.9;
+    ctx.globalAlpha = 0.9 * queda;
     // Projected on the cloth: the cushion clouds in front hide its feet.
     ctx.beginPath();
     ctx.rect(c.x - c.r * 2, 0, c.r * 4, c.suelo - 130);
