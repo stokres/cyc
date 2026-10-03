@@ -96,20 +96,20 @@ Cada historia sigue el mismo patrón que la de Fran: **llegar → puzle de objet
 ### Pablo · Atrapado en su propia narración (hecha)
 
 - **Lugar:** el backstage del **teatro Joso** (parodia del teatro donde actúa la compañía; en el cartel, «Joso, Laboratorio Teatral» con un elefante en vez del búho), de noche y oscuro (`src/arte/escenas/backstage.mjs`).
-- **De izquierda a derecha:** puerta de artistas bajo el cartel verde de SALIDA (la salida), el cartel del Joso, el perchero de vestuario con la mesita de las tijeras, un maniquí, el baúl de atrezo, tres maletas blancas, la mesa de Pablo con la máquina de escribir, el flexo y su cajón, la escalera, el cuadro de luces, el cañón de seguimiento y el ciclorama, con las tres nubes de cojín delante y decorados viejos apoyados.
+- **De izquierda a derecha:** puerta de artistas bajo el cartel verde de SALIDA (la salida), el cartel del Joso, el perchero de vestuario con la mesita de las tijeras, un maniquí, el baúl de atrezo, tres maletas blancas, la mesa de Pablo con la máquina de escribir, el flexo y su cajón, la escalera, el cuadro de luces, el cañón de seguimiento y la pantalla de proyección, con las tres nubes de cojín delante y decorados viejos apoyados.
 - **Guiños a la compañía de impro, sin nombrarla:** las tres nubes de cojín, las chaquetas y gorras de comandante de avión, los pañuelos turquesa y las maletas blancas.
 - **El narrador es la sombra de Pablo:** Pablo en silueta oscura, siempre un paso detrás de él. Se puede tocar para hablar con ella, y contesta según el momento de la historia. Habla como `SOMBRA:` en los textos, con un retrato de Pablo a oscuras, y también narra con `>` llevándole la contraria.
 - **La historia, paso a paso** (`src/capitulos/pablo.ts`, textos `p.*`):
   1. Pablo escribe un formato nuevo de impro y la hoja se acaba a mitad de frase. El narrador: «no queda papel en todo el teatro».
   2. En el baúl hay un libreto de *La vida es sueño* impreso por una cara; en la mesita del vestuario, unas tijeras. **Juntados en la bolsa**: hojas sueltas, en blanco por detrás.
   3. Hojas en la máquina... y no escribe nada: bloqueado, y con el flexo no ve.
-  4. El cuadro de luces enciende el **cañón de seguimiento**: su sombra salta al ciclorama, gigante, y empieza la batalla.
+  4. El cuadro de luces enciende el **cañón de seguimiento**: su sombra salta a la pantalla de proyección, gigante, y empieza la batalla.
   5. Desbloqueado: termina el formato y sale por la puerta de artistas.
 - **Minijuego · Cortar palabras** (`src/ui/palabras.ts`, estilo *Fruit Ninja*):
-  - Caen palabras sobre un fondo onírico, con la sombra gigante de Pablo al fondo, que las lanza.
+  - Caen palabras, inclinadas y girando, sobre un fondo onírico con letras que suben flotando. La sombra gigante de Pablo, al fondo, las lanza y se pasea chulesca de lado a lado; se ríe dando saltitos cada vez que Pablo falla.
   - Se desliza el dedo para **cortar las negativas** y **dejar pasar las positivas**, en el sentido de la impro. Dos categorías y nada más: «sí, pero» es negativa.
-  - **Tres fases** (unos 54 s): pocas palabras con colores honestos (negativas en rojos y naranjas, positivas en verdes y azules); más y más rápidas; y al final los colores se mezclan para despistar.
-  - **Fallar:** cortar una positiva o dejar caer una negativa sube la barra de bloqueo. Con seis fallos se repite; tras dos rondas perdidas se puede saltar.
+  - **Tres fases** (unos 54 s): pocas palabras con colores honestos (negativas en rojos y naranjas, positivas en verdes y azules); más y más rápidas; y al final los colores se mezclan para despistar y las últimas caen todavía más deprisa.
+  - **Fallar:** cortar una positiva o dejar caer una negativa sube la barra de bloqueo. Solo esa barra hace perder: con cinco fallos se repite. Cuando se llena la página se gana, aunque quede alguna palabra en el aire. Tras dos rondas perdidas se puede saltar.
   - **Las palabras se editan en `src/textos/capitulo1.md`**: `palabras.negativas` y `palabras.positivas`, separadas por barras.
 
 ### Guille · Pesando cerdos (hecha)

@@ -222,7 +222,9 @@ async function cortarPalabras() {
     if (blanco) {
       // A swipe through the word, short enough not to touch the others.
       const y = blanco.y;
-      const otras = e.palabras.filter((p) => !p.negativa && !p.cortada && Math.abs(p.y - y) < p.h);
+      // Words fall tilted: compare their tilted boxes' real height.
+      const alto = (p) => Math.abs((p.w / 2) * Math.sin(p.rot)) + Math.abs((p.h / 2) * Math.cos(p.rot));
+      const otras = e.palabras.filter((p) => !p.negativa && !p.cortada && Math.abs(p.y - y) < alto(p) + 8);
       const x0 = blanco.x - blanco.w / 2 - 6;
       const x1 = blanco.x + blanco.w / 2 + 6;
       if (!otras.some((p) => p.x + p.w / 2 > x0 && p.x - p.w / 2 < x1)) {

@@ -1,18 +1,20 @@
 // Minigame: Pablo against his narrator. Words fall through the dreamlike space
 // where Pablo builds his stories, thrown by his own shadow, huge on the
-// cyclorama. Swipe to cut the negative ones (impro sense: «no», «sí, pero»,
+// projection screen. Swipe to cut the negative ones (impro sense: «no», «sí, pero»,
 // «bloquear»...) and let the positive ones through («sí, y», «aceptar»...).
 //
 // Three phases: a few words with honest colours (negative ones red and orange,
 // positive ones green and blue); more and faster; then the colours mix, to
-// trick you. Cutting a positive word or letting a negative one reach the bottom
-// fills the block meter; full, the round starts again. After two lost rounds it
-// can be skipped (docs/JUGABILIDAD.md). The word lists are in
+// trick you; towards the end they fall faster. Cutting a positive word or letting
+// a negative one reach the bottom fills the block meter: the meter is the only
+// way to lose. Full, the round starts again; when the page fills, the round is
+// won, whatever is still in the air. After two lost rounds it can be skipped
+// (docs/JUGABILIDAD.md). The word lists are in
 // src/textos/capitulo1.md (palabras.negativas, palabras.positivas).
 //
-// Performance (docs/ESTILO.md, T5): the backdrop and the shadow are bitmaps made
-// once per screen size, each word is a bitmap made when it appears, and the
-// loop never runs faster than 60 fps.
+// Performance (docs/ESTILO.md, T5): the backdrop, the shadow and the drifting
+// letters are bitmaps made once per screen size, each word is a bitmap made when
+// it appears, and the loop never runs faster than 60 fps.
 import { h } from './hud';
 import { texto } from '../juego/textos';
 import { FONTS } from '../motor/escena';
@@ -22,9 +24,21 @@ export type Resultado = 'hecho' | 'saltado' | 'cancelado';
 
 const H = 1080;
 const DURACION = 54; // seconds of falling words in a round
-const BLOQUEO = 6; // mistakes that fill the meter
+const BLOQUEO = 5; // mistakes that fill the meter
 const ROJOS = ['#ff5a4a', '#ff7a3a', '#f0452e', '#ffa040'];
 const VERDES = ['#5ad08a', '#3fc0b8', '#5aa8ff', '#86e070'];
+
+/** A faint letter drifting up through the spot, swaying and turning. */
+interface Letra {
+  img: number;
+  x: number;
+  y: number;
+  vy: number;
+  tam: number;
+  alfa: number;
+  fase: number;
+  giro: number;
+}
 
 interface Palabra {
   texto: string;
@@ -45,7 +59,7 @@ interface Palabra {
 
 /** State the automatic playthrough reads (scripts/playthrough.mjs), positions in CSS pixels. */
 export interface EstadoPalabras {
-  palabras: Array<{ x: number; y: number; w: number; h: number; negativa: boolean; cortada: boolean }>;
+  palabras: Array<{ x: number; y: number; w: number; h: number; rot: number; negativa: boolean; cortada: boolean }>;
   fase: number;
   bloqueo: number;
   rondasPerdidas: number;
@@ -96,6 +110,7 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
   let escala = 1;
   let fondo: HTMLCanvasElement | null = null;
   let sombra: HTMLCanvasElement | null = null;
+  let glifos: HTMLCanvasElement[] = [];
   const medir = () => {
     const r = capa.getBoundingClientRect();
     const dpr = Math.min(window.devicePixelRatio || 1, 2) * 0.8;
@@ -104,13 +119,14 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
     escala = lienzo.height / H;
     vw = lienzo.width / escala;
     fondo = null;
+    glifos = [];
     void silueta(cuerpoPablo, 820 * escala).then((c) => (sombra = c)).catch(() => {});
   };
   medir();
   const ro = new ResizeObserver(medir);
   ro.observe(capa);
 
-  /** The dreamlike space: deep indigo, a spot on the cyclorama, faint letters drifting. Drawn once. */
+  /** The dreamlike space: deep indigo and a spot on the projection screen. Drawn once. */
   const pintarFondo = () => {
     const c = document.createElement('canvas');
     c.width = lienzo.width;
@@ -128,17 +144,35 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
     spot.addColorStop(1, 'rgba(255,220,170,0)');
     x.fillStyle = spot;
     x.fillRect(0, 0, vw, H);
-    x.font = `400 40px ${FONTS.serif}`;
-    x.textAlign = 'center';
-    let st = 7;
-    const r = () => ((st = (st * 16807) % 2147483647) / 2147483647);
-    for (let i = 0; i < 90; i++) {
-      x.globalAlpha = 0.05 + r() * 0.1;
-      x.fillStyle = '#cfc4ff';
-      x.fillText(String.fromCharCode(65 + Math.floor(r() * 26)), r() * vw, r() * H);
-    }
     return c;
   };
+
+  /** The letters of the alphabet as small bitmaps, for the ones drifting in the background. */
+  const GLIFO = 48;
+  const pintarGlifos = () =>
+    Array.from({ length: 26 }, (_, i) => {
+      const c = document.createElement('canvas');
+      c.width = c.height = Math.ceil(GLIFO * 1.3 * escala);
+      const x = c.getContext('2d')!;
+      x.font = `400 ${GLIFO * escala}px ${FONTS.serif}`;
+      x.textAlign = 'center';
+      x.textBaseline = 'middle';
+      x.fillStyle = '#cfc4ff';
+      x.fillText(String.fromCharCode(65 + i), c.width / 2, c.height / 2);
+      return c;
+    });
+
+  const letra = (y = H + 40): Letra => ({
+    img: Math.floor(Math.random() * 26),
+    x: Math.random() * vw,
+    y,
+    vy: 14 + Math.random() * 22,
+    tam: 0.6 + Math.random() * 0.9,
+    alfa: 0.06 + Math.random() * 0.14,
+    fase: Math.random() * 6.3,
+    giro: (Math.random() - 0.5) * 0.8,
+  });
+  const letras = Array.from({ length: 46 }, () => letra(Math.random() * H));
 
   // ---------------------------------------------------------------- state
   let t = 0;
@@ -149,9 +183,13 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
   let pausa = 0;
   let terminado: Resultado | null = null;
   let fotogramas = 0;
+  /** The shadow laughs (a few quick hops) each time Pablo gets it wrong. */
+  let risa = 0;
   let traza: Array<{ x: number; y: number; t: number }> = [];
 
   const fase = () => (t < 14 ? 1 : t < 32 ? 2 : 3);
+  /** 0 to 1 through the third phase: the last words fall faster and closer together. */
+  const final = () => Math.max(0, Math.min(1, (t - 32) / (DURACION - 32)));
   const mostrar = (clave: string, s = 1) => {
     aviso.textContent = texto(clave);
     aviso.hidden = false;
@@ -179,10 +217,11 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
       h: hh,
       x: 120 + w / 2 + Math.random() * Math.max(10, vw - 240 - w),
       y: -hh,
-      vy: (f === 1 ? 140 : f === 2 ? 185 : 205) * (0.9 + Math.random() * 0.2),
-      vx: (Math.random() - 0.5) * 30,
-      rot: (Math.random() - 0.5) * 0.2,
-      vr: (Math.random() - 0.5) * 0.12,
+      vy: (f === 1 ? 145 : f === 2 ? 190 : 215 + 75 * final()) * (0.9 + Math.random() * 0.2),
+      vx: (Math.random() - 0.5) * 40,
+      // Tilted as they fall, more and more: they are thrown, not dropped.
+      rot: (Math.random() - 0.5) * (f === 1 ? 0.5 : 0.9),
+      vr: (Math.random() - 0.5) * (f === 1 ? 0.3 : f === 2 ? 0.45 : 0.6),
       cortada: null,
       fuera: false,
     });
@@ -200,6 +239,7 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
 
   const fallo = (clave: string) => {
     bloqueo++;
+    risa = 1;
     capa.classList.remove('golpe');
     void capa.offsetWidth;
     capa.classList.add('golpe');
@@ -207,17 +247,18 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
     else mostrar(clave, 0.6);
   };
 
-  /** Does the segment a–b cross the word's box? */
+  /** Does the segment a–b cross the word's box, tilted as the word is? */
   const cruza = (p: Palabra, a: { x: number; y: number }, b: { x: number; y: number }) => {
-    const x0 = p.x - p.w / 2;
-    const x1 = p.x + p.w / 2;
-    const y0 = p.y - p.h * 0.35;
-    const y1 = p.y + p.h * 0.35;
+    const cos = Math.cos(p.rot);
+    const sin = Math.sin(p.rot);
     for (let i = 0; i <= 8; i++) {
       const u = i / 8;
-      const x = a.x + (b.x - a.x) * u;
-      const y = a.y + (b.y - a.y) * u;
-      if (x >= x0 && x <= x1 && y >= y0 && y <= y1) return true;
+      const dx = a.x + (b.x - a.x) * u - p.x;
+      const dy = a.y + (b.y - a.y) * u - p.y;
+      // In the word's own frame.
+      const lx = dx * cos + dy * sin;
+      const ly = -dx * sin + dy * cos;
+      if (Math.abs(lx) <= p.w / 2 && Math.abs(ly) <= p.h * 0.35) return true;
     }
     return false;
   };
@@ -258,7 +299,7 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
     const r = lienzo.getBoundingClientRect();
     const k = r.height / H;
     return {
-      palabras: palabras.filter((p) => !p.fuera).map((p) => ({ x: r.left + p.x * k, y: r.top + p.y * k, w: p.w * k, h: p.h * k, negativa: p.negativa, cortada: !!p.cortada })),
+      palabras: palabras.filter((p) => !p.fuera).map((p) => ({ x: r.left + p.x * k, y: r.top + p.y * k, w: p.w * k, h: p.h * k, rot: p.rot, negativa: p.negativa, cortada: !!p.cortada })),
       fase: fase(),
       bloqueo,
       rondasPerdidas,
@@ -267,18 +308,42 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
   };
 
   // ---------------------------------------------------------------- drawing
+  /** Animation time: keeps running through the pauses, so the backdrop never freezes. */
+  let reloj = 0;
   const pintar = () => {
     if (!fondo) fondo = pintarFondo();
+    if (!glifos.length) glifos = pintarGlifos();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.drawImage(fondo, 0, 0);
-    ctx.setTransform(escala, 0, 0, escala, 0, 0);
-    // The narrator, huge, breathing: a little bigger as the round goes on.
+    // Letters drifting up through the light, swaying and turning slowly.
+    const lado = GLIFO * 1.3;
+    for (const l of letras) {
+      const k = escala * l.tam;
+      const giro = l.giro * reloj + 0.3 * Math.sin(reloj * 0.9 + l.fase);
+      const cos = Math.cos(giro) * k;
+      const sin = Math.sin(giro) * k;
+      ctx.setTransform(cos, sin, -sin, cos, (l.x + 26 * Math.sin(reloj * 0.6 + l.fase)) * escala, l.y * escala);
+      ctx.globalAlpha = l.alfa * (0.6 + 0.4 * Math.sin(reloj * 1.7 + l.fase * 2));
+      ctx.drawImage(glifos[l.img], -lado / 2, -lado / 2, lado, lado);
+    }
+    ctx.globalAlpha = 1;
+    // The narrator, huge, swaying from side to side as if showing off, leaning
+    // over the page; it grows as the round goes on and hops with laughter at
+    // every mistake.
     if (sombra) {
-      const k = 1 + 0.015 * Math.sin(t * 1.3) + 0.04 * (fase() - 1);
+      const k = 1 + 0.015 * Math.sin(reloj * 1.3) + 0.04 * (fase() - 1);
       const w = (sombra.width / escala) * k;
       const hh = (sombra.height / escala) * k;
-      ctx.drawImage(sombra, vw / 2 - w / 2, H - hh + 40, w, hh);
+      const paseo = Math.sin(reloj * 0.45) * vw * 0.16 + Math.sin(reloj * 1.1) * 30;
+      const inclina = Math.sin(reloj * 0.9 + 0.6) * 0.06 + Math.sin(reloj * 0.45) * 0.04;
+      const salto = risa > 0 ? Math.abs(Math.sin(risa * 14)) * 34 * risa : 0;
+      const pie = { x: vw / 2 + paseo, y: H + 40 - salto };
+      const cos = Math.cos(inclina) * escala;
+      const sin = Math.sin(inclina) * escala;
+      ctx.setTransform(cos, sin, -sin, cos, pie.x * escala, pie.y * escala);
+      ctx.drawImage(sombra, -w / 2, -hh, w, hh);
     }
+    ctx.setTransform(escala, 0, 0, escala, 0, 0);
     for (const p of palabras) {
       if (p.fuera) continue;
       const iw = p.img.width;
@@ -333,6 +398,12 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
       }
       const dt = Math.min(0.05, (ahora - ultimo) / 1000);
       ultimo = ahora;
+      reloj += dt;
+      risa = Math.max(0, risa - dt * 1.4);
+      for (const l of letras) {
+        l.y -= l.vy * dt;
+        if (l.y < -60) Object.assign(l, letra());
+      }
       if (pausa > 0) {
         pausa -= dt;
         if (pausa <= 0) {
@@ -345,9 +416,11 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
         if (t < DURACION && siguiente <= 0) {
           nueva();
           const f = fase();
-          siguiente = (f === 1 ? 1.5 : f === 2 ? 1.0 : 0.85) * (0.8 + Math.random() * 0.4);
+          siguiente = (f === 1 ? 1.4 : f === 2 ? 0.95 : 0.8 - 0.2 * final()) * (0.8 + Math.random() * 0.4);
         }
-        if (t >= DURACION && palabras.every((p) => p.fuera || p.cortada)) {
+        // The page is full: won. Only the block meter can lose the round, so
+        // whatever is still falling no longer counts.
+        if (t >= DURACION) {
           terminado = 'hecho';
           mostrar('palabras.gana', 2);
         }

@@ -122,7 +122,7 @@ if (toca('granja')) {
 if (toca('backstage')) {
   await medir('backstage, Pablo y su sombra', ir('backstage', `e.final = false; for (const id of ['fran','chuchi','guille']) delete e.donde[id]; e.activo = 'pablo'; e.donde.pablo = { escena: 'backstage', X: 2240, y: 880, face: 1 }`));
   await medir('backstage, andando', paseo(600, 3300, 880));
-  await medir('backstage, sombra en el ciclorama', `(() => { clearInterval(window.__paseo); const g = window.__cyc.g; g.poner('p.bloqueado'); g.poner('p.canon'); if (g.sombra) g.sombra.visible = false; g.activo.X = 3000; g.motor.seguir(3100, true); })()`);
+  await medir('backstage, sombra en la pantalla', `(() => { clearInterval(window.__paseo); const g = window.__cyc.g; g.poner('p.bloqueado'); g.poner('p.canon'); if (g.sombra) g.sombra.visible = false; g.activo.X = 3000; g.motor.seguir(3100, true); })()`);
 }
 if (toca('palabras')) {
   await medir('minijuego de las palabras', `(async () => {

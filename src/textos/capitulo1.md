@@ -684,7 +684,7 @@ zona.flexo = Flexo
 zona.cuadro = Cuadro de luces
 zona.canon = Cañón de seguimiento
 zona.nubes = Nubes de cojín
-zona.ciclorama = Ciclorama
+zona.pantalla = Pantalla de proyección
 
 objetivo.pablo = Consigue papel para la máquina
 objetivo.pablo.escribir = Pon el papel en la máquina
@@ -696,7 +696,7 @@ pista.pablo.tijeras = Un libreto encuadernado no entra en la máquina. En la mes
 pista.pablo.combinar = Junta el libreto y las tijeras en la bolsa: elige uno, vuelve a abrirla y toca el otro.
 pista.pablo.maquina = Ya tienes hojas: úsalas en la máquina de escribir.
 pista.pablo.luz = Con el flexo no basta. El cuadro de luces enciende el cañón de seguimiento.
-pista.pablo.batalla = Tu sombra está en el ciclorama. Tócala, o el cuadro de luces, para plantarle cara.
+pista.pablo.batalla = Tu sombra está en la pantalla de proyección. Tócala, o el cuadro de luces, para plantarle cara.
 pista.pablo.salir = La puerta de artistas, bajo el cartel verde de SALIDA.
 
 objeto.libreto = Libreto
@@ -799,7 +799,7 @@ PABLO: No toco el cuadro si no hace falta. La última vez apagué medio Lavapié
 PABLO: Mejor no toco más el cuadro. Ya tengo bastante luz. Por dentro, sobre todo.
 
 ## mirar.canon
-PABLO: El cañón de seguimiento. Apunta al ciclorama, como si esperara a alguien.
+PABLO: El cañón de seguimiento. Apunta a la pantalla de proyección, como si esperara a alguien.
 
 ## p.canon.usar
 PABLO: El cañón se enciende desde el cuadro de luces.
@@ -807,18 +807,18 @@ PABLO: El cañón se enciende desde el cuadro de luces.
 ## p.canon.encendido
 PABLO: Encendido y apuntando a mi sombra. Bueno, a mi narrador. Bueno, a mí.
 
-## mirar.ciclorama
-PABLO: El ciclorama. Un telón blanco esperando que alguien le proyecte algo.
+## mirar.pantalla
+PABLO: La pantalla de proyección. Un telón blanco esperando que alguien le proyecte algo.
 
-## usar.ciclorama
-PABLO: Está tan oscuro que en el ciclorama no se ve nada. Ni mi talento.
+## usar.pantalla
+PABLO: Está tan oscuro que en la pantalla no se ve nada. Ni mi talento.
 
-## p.mirar.ciclorama.sombra
+## p.mirar.pantalla.sombra
 PABLO (nervioso): Mi sombra, de tres metros. Con los brazos cruzados. Esto no pinta bien.
 
 ## p.canon
 > Pablo baja la palanca. El cañón de seguimiento se enciende con un zumbido.
-> La sombra de Pablo salta al ciclorama. Ahora mide tres metros.
+> La sombra de Pablo salta a la pantalla de proyección. Ahora mide tres metros.
 SOMBRA (chulo): ¡Por fin un escenario a mi altura!
 PABLO (sorprendido): ¿Qué haces ahí?
 SOMBRA: Narrar. A lo grande. «No». «Sí, pero». «Ya lo pensarás mañana». ¿Te suena?

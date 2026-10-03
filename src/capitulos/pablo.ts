@@ -8,7 +8,7 @@
 //      table has scissors. Put together in the bag: loose sheets, blank on the back.
 //   3. Sheets in the typewriter. He writes... nothing: blocked, and the lamp is
 //      not enough. The lighting board turns on the follow spot.
-//   4. His shadow lands on the cyclorama, huge: the battle with the narrator, the
+//   4. His shadow lands on the projection screen, huge: the battle with the narrator, the
 //      word-cutting minigame (src/ui/palabras.ts).
 //   5. Unblocked: he finishes the format and leaves by the stage door.
 // Anything that can be picked up can be picked up at any time (docs/JUGABILIDAD.md).
@@ -21,8 +21,8 @@ import { silueta } from '../motor/sprites';
 
 const f = (g: Aventura, k: string) => g.flag(k);
 
-/** The shadow is on the cyclorama, huge, while the spot is on and the battle is not won. */
-const enElCiclorama = (g: Aventura) => f(g, 'p.canon') && !f(g, 'p.ganado');
+/** The shadow is on the projection screen, huge, while the spot is on and the battle is not won. */
+const enLaPantalla = (g: Aventura) => f(g, 'p.canon') && !f(g, 'p.ganado');
 
 async function batalla(g: Aventura) {
   if (!f(g, 'p.canon')) {
@@ -95,7 +95,7 @@ export function zonasBackstage(g: Aventura): Record<string, ZonaLogica> {
     nubes: {},
     cartel: {},
     canon: {
-      usar: () => g.hablar(enElCiclorama(g) ? 'p.canon.encendido' : 'p.canon.usar'),
+      usar: () => g.hablar(enLaPantalla(g) ? 'p.canon.encendido' : 'p.canon.usar'),
     },
     cuadro: {
       async usar() {
@@ -104,12 +104,12 @@ export function zonasBackstage(g: Aventura): Record<string, ZonaLogica> {
         await batalla(g);
       },
     },
-    ciclorama: {
+    pantalla: {
       async usar() {
-        if (enElCiclorama(g)) return batalla(g);
-        await g.hablar('usar.ciclorama');
+        if (enLaPantalla(g)) return batalla(g);
+        await g.hablar('usar.pantalla');
       },
-      mirar: () => g.hablar(enElCiclorama(g) ? 'p.mirar.ciclorama.sombra' : 'mirar.ciclorama'),
+      mirar: () => g.hablar(enLaPantalla(g) ? 'p.mirar.pantalla.sombra' : 'mirar.pantalla'),
     },
     puertaArtistas: {
       async usar() {
@@ -153,7 +153,7 @@ export function objetivo(g: Aventura) {
 
 export function pista(g: Aventura) {
   if (f(g, 'p.ganado')) return texto('pista.pablo.salir');
-  if (f(g, 'p.bloqueado')) return texto(enElCiclorama(g) ? 'pista.pablo.batalla' : 'pista.pablo.luz');
+  if (f(g, 'p.bloqueado')) return texto(enLaPantalla(g) ? 'pista.pablo.batalla' : 'pista.pablo.luz');
   if (g.tiene('hojas')) return texto('pista.pablo.maquina');
   if (!f(g, 'p.libreto')) return texto('pista.pablo.baul');
   if (!f(g, 'p.tijeras')) return texto('pista.pablo.tijeras');
@@ -181,9 +181,9 @@ function bitmapLuz(r: number) {
   return c;
 }
 
-/** The follow spot's beam and disk on the cyclorama, and the narrator in it, huge. */
+/** The follow spot's beam and disk on the projection screen, and the narrator in it, huge. */
 export function dibujar(g: Aventura, ctx: CanvasRenderingContext2D, capa: string) {
-  if (capa !== 'fondo' || !enElCiclorama(g)) return;
+  if (capa !== 'fondo' || !enLaPantalla(g)) return;
   const m = g.motor;
   const px = m.px;
   const off = m.off(1);
@@ -210,7 +210,7 @@ export function dibujar(g: Aventura, ctx: CanvasRenderingContext2D, capa: string
   ctx.lineTo(lente.x, lente.y + 26);
   ctx.fill();
   ctx.drawImage(luz, c.x - c.r, c.y - c.r, c.r * 2, c.r * 2);
-  // The shadow, breathing, standing on the floor line of the cyclorama.
+  // The shadow, breathing, standing on the floor line of the projection screen.
   ctx.globalCompositeOperation = 'source-over';
   if (sombraGrande) {
     const k = 1 + 0.012 * Math.sin(m.t * 1.4);

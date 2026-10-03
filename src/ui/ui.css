@@ -1195,6 +1195,7 @@ button:focus-visible {
 
 .barra.bloqueo .lleno {
   background: linear-gradient(90deg, #a8302a, #e8452e);
+  transition: width 0.25s ease-out;
 }
 
 .barra.pagina {

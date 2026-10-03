@@ -7,10 +7,10 @@
 // Left to right: the stage door (the way out, under the green SALIDA sign) and
 // the Joso poster with its elephant; the costume rack; a mannequin in uniform;
 // the props trunk and the suitcases; Pablo's desk with the typewriter and the
-// lamp; the lighting board and a ladder; the follow spot; the pale cyclorama
+// lamp; the lighting board and a ladder; the follow spot; the pale projection screen
 // with the cushion clouds in front of it and old flats leaning on the wall.
 // When the follow spot is on, its light and Pablo's shadow, huge, land on the
-// cyclorama: that is drawn live (src/capitulos/pablo.ts).
+// projection screen: that is drawn live (src/capitulos/pablo.ts).
 //
 // Layers, back to front:
 //   fondo   (1)     the back wall and everything against it
@@ -71,7 +71,7 @@ function wall() {
   out.push(rect(-200, 60, W + 400, 14, '#4a4852'), rect(-200, 60, W + 400, 3, '#6a6872'));
   for (const x of [520, 1720, 2620, 3380]) out.push(rect(x, 74, 10, G - 74, '#3c3a44'));
   out.push(stroke(`M-200 110Q600 140 1400 112T3800 120`, '#141218', 5), stroke(`M-200 128Q900 160 2000 126T3800 140`, '#1a1820', 4));
-  // A black velvet drape hanging on the left of the cyclorama.
+  // A black velvet drape hanging on the left of the projection screen.
   const d0 = CICLO[0] - 150;
   out.push(path(smooth([[d0, 40], [d0 + 150, 40], [d0 + 160, G, 'c'], [d0 - 10, G, 'c']]), '#141018'));
   for (let x = d0 + 14; x < d0 + 150; x += 26) out.push(stroke(`M${x} 46Q${x + 6} ${G / 2} ${x + 2} ${G - 4}`, '#221a26', 6));
@@ -251,13 +251,13 @@ function lightingBoard() {
 function followSpot() {
   const x = CANON;
   const out = [];
-  // A follow spot on its tripod, aimed at the cyclorama.
+  // A follow spot on its tripod, aimed at the projection screen.
   out.push(stroke(`M${x} 520L${x - 60} ${G}M${x} 520L${x + 60} ${G}M${x} 520L${x} ${G}`, '#2a2830', 7));
   out.push(g(null, [box(x - 80, 440, 180, 72, DARK, { r: 30 }), path(ellipse(x + 104, 476, 14, 38), '#4a4852'), rect(x - 40, 430, 40, 14, '#2a2830')], { transform: `rotate(-6 ${x} 476)` }));
   return out.join('');
 }
 
-function cyclorama() {
+function pantalla() {
   const [x0, x1] = CICLO;
   const out = [];
   // Pale cloth on a pipe, gently gathered; dark at the edges.
@@ -273,7 +273,7 @@ function cyclorama() {
   return out.join('');
 }
 
-/** Three cushion clouds, the group's own, piled in front of the cyclorama. */
+/** Three cushion clouds, the group's own, piled in front of the projection screen. */
 function nubes() {
   const out = [];
   const nube = (x, y, s) => g(null, [
@@ -290,7 +290,7 @@ function backWall() {
   const k = desk();
   const c = lightingBoard();
   return {
-    body: [wall(), d.body, p.body, rack(), maniqui(), trunk(), suitcases(), k.body, c.body, followSpot(), cyclorama(), nubes()].join(''),
+    body: [wall(), d.body, p.body, rack(), maniqui(), trunk(), suitcases(), k.body, c.body, followSpot(), pantalla(), nubes()].join(''),
     emissive: [d.emissive, k.emissive, c.emissive].join(''),
     texts: [...d.texts, ...p.texts],
   };
@@ -379,7 +379,7 @@ export function escena() {
       { X: CUADRO[0] + 90, y: 470, r: 360, color: '#ff6a4a', power: 0.25 },
     ],
     spots: {
-      // The follow spot's lens and where it lands on the cyclorama, for the giant
+      // The follow spot's lens and where it lands on the projection screen, for the giant
       // shadow drawn live when it is on (src/capitulos/pablo.ts).
       canon: { x: CANON + 104, y: 466 },
       ciclo: { x: (CICLO[0] + CICLO[1]) / 2 + 20, y: 430, r: 300, suelo: G },
@@ -397,7 +397,7 @@ export function escena() {
       cuadro: { u: (CUADRO[0] + CUADRO[1]) / 2, k: 1, w: CUADRO[1] - CUADRO[0], top: 290, bottom: 590, X: (CUADRO[0] + CUADRO[1]) / 2, y: 870 },
       canon: { u: CANON + 10, k: 1, w: 220, top: 420, bottom: G, X: CANON - 120, y: 880 },
       nubes: { u: CICLO[0] + 400, k: 1, w: 320, top: G - 160, bottom: G, X: CICLO[0] + 400, y: 880 },
-      ciclorama: { u: (CICLO[0] + CICLO[1]) / 2, k: 1, w: 500, top: 90, bottom: G - 170, X: (CICLO[0] + CICLO[1]) / 2, y: 870 },
+      pantalla: { u: (CICLO[0] + CICLO[1]) / 2, k: 1, w: 500, top: 90, bottom: G - 170, X: (CICLO[0] + CICLO[1]) / 2, y: 870 },
     },
   };
 }

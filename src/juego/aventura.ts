@@ -238,7 +238,7 @@ export class Aventura {
       const s = new Personaje(this.motor.world, this.motor.defs, 'sombra', REPARTO.pablo.arte, this.estado.ropa.pablo ?? REPARTO.pablo.ropa, 9);
       s.tintFijo = [0.09, 0.07, 0.13];
       s.shadowOn = false;
-      Object.assign(s, { X: pablo.X - 150, y: Math.max(S.walk.y0, pablo.y - 14), face: pablo.face, speed: (S.speed ?? 250) * 1.15 });
+      Object.assign(s, { X: pablo.X - 150, y: Math.max(S.walk.y0, pablo.y - 14), face: pablo.face, speed: (S.speed ?? 250) * 0.85 });
       this.sombra = s;
       this.motor.actores.push(s);
     }
@@ -658,15 +658,20 @@ export class Aventura {
     m.dibujar();
   }
 
-  /** Pablo's shadow keeps a step behind him, on the side away from where he looks, and mirrors him. */
+  /**
+   * Pablo's shadow keeps a step behind him and mirrors him. It walks a little
+   * slower than he does, so it never has to brake: it falls back while he walks
+   * and catches up once he stops, on whichever side of him it already is.
+   */
   private updateSombra(dt: number, hablando: boolean) {
     const s = this.sombra!;
     const P = this.pjs.get('pablo');
     if (P && s.visible) {
-      const goal = { X: P.X - P.face * 150, y: Math.max(this.S.walk.y0, Math.min(this.S.walk.y1, P.y - 14)) };
-      const lejos = Math.hypot(goal.X - s.X, goal.y - s.y) > (s.moving ? 20 : 70);
-      if (lejos) void s.walkTo(goal.X, goal.y);
-      else if (s.moving) s.stop();
+      const lado = P.moving ? -P.face : Math.sign(s.X - P.X) || -P.face;
+      const goal = { X: P.X + lado * 150, y: Math.max(this.S.walk.y0, Math.min(this.S.walk.y1, P.y - 14)) };
+      // Once walking it keeps chasing the moving goal until it gets there. While
+      // Pablo walks it never stops; when he is still, it lets him shift about.
+      if (s.moving || Math.hypot(goal.X - s.X, goal.y - s.y) > (P.moving ? 30 : 110)) void s.walkTo(goal.X, goal.y);
     }
     s.step(dt);
     if (P && !s.moving) s.face = P.face;

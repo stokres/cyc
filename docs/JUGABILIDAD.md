@@ -43,7 +43,7 @@ Abrir el tarro de aceitunas girando el dedo alrededor de la tapa. En frío no pa
 
 ### Las palabras (Pablo)
 
-Cortar con el dedo las palabras negativas (en sentido de impro) que lanza el narrador y dejar pasar las positivas. Tres fases: colores honestos, más rápido y colores mezclados. Cortar una positiva o dejar caer una negativa llena la barra de bloqueo; tras dos rondas perdidas aparece «Saltar». Las listas de palabras están en los textos.
+Cortar con el dedo las palabras negativas (en sentido de impro) que lanza el narrador y dejar pasar las positivas. Tres fases: colores honestos, más rápido y colores mezclados (y al final, aún más rápido). Cortar una positiva o dejar caer una negativa llena la barra de bloqueo, y solo esa barra hace perder: si se llena la página antes, se gana, aunque se escape la última. Tras dos rondas perdidas aparece «Saltar». Las listas de palabras están en los textos.
 
 ### Los cerdos (Guille)
 
