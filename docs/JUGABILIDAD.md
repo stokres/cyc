@@ -28,7 +28,7 @@ Decisiones de diseño para que una aventura gráfica con minijuegos funcione en 
 ## Reglas de los minijuegos
 
 1. **Un solo gesto:** tocar a tiempo, deslizar, arrastrar, mantener o inclinar.
-2. **Entre 15 y 30 segundos** y reintento inmediato.
+2. **Duración según el minijuego** (decidido el 3 de octubre de 2026: no hay un límite fijo) y reintento inmediato.
 3. **Se puede saltar** tras dos fallos, para que nadie se quede sin ver la historia.
 4. **El giroscopio siempre tiene alternativa táctil.** iPhone pide permiso con un toque, y algunos navegadores o marcos lo bloquean.
 5. **Nunca se pide inclinar el móvil mientras hay texto que leer.**
@@ -46,6 +46,7 @@ Llevar cuatro cañas de la barra a la terraza inclinando el móvil o deslizando 
 
 Son ejemplos de controles, para sustituirlos por vuestras anécdotas:
 
+- **Cortar palabras** (Pablo) y **apilar cerdos** (Guille): en `docs/ESCENA-1.md`.
 - **Duelo de pullas** al estilo de los insultos con espada de *Monkey Island*.
 - **Karaoke** de ritmo, tocando a tiempo.
 - **El último metro:** deslizar para esquivar por Usera.

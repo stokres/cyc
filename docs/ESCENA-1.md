@@ -9,15 +9,15 @@ Decidido el 2 de octubre de 2026:
 - **Al empezar se elige con quién:** Fran, Pablo, Chuchi o Guille. Cada uno tiene su propia historia, en su sitio, con sus puzles y su reloj.
 - **Se puede cambiar de personaje en cualquier momento** desde la columna de la izquierda; cada uno sigue donde lo dejaste. Si te atascas con uno, sigues con otro. Ningún puzle depende de que otro personaje haga algo antes.
 - **Al terminar su historia, cada uno se funde a negro antes de llegar al bar,** con un rótulo («Fran ya va de camino al Río») y una marca ✓ en el selector. Ya no se puede jugar con él.
-- **Cuando van los cuatro,** escena final en la terraza del Río: llegan a la vez desde sitios distintos, cada uno convencido de que era el último.
+- **Cuando van los cuatro,** escena final en la terraza del Río: llegan a la vez desde sitios distintos, cada uno convencido de que era el último, y entran en el bar. Ahí acaba el capítulo 1.
 - El grupo de WhatsApp puede servir de hilo común y de pista suave entre historias (pendiente).
 
 | Quién | Dónde empieza | Estado |
 |---|---|---|
 | Fran | Su piso; se ha quedado dormido en el sofá | Hecha (el puzle de abajo); acaba al ver el Río desde el cruce |
-| Pablo | Atrapado en su propia narración: el narrador le lleva la contraria y tiene que escapar de ella (muy meta) | Provisional |
-| Chuchi | Contratiempos con las hijas, sin que salgan ellas | Provisional |
-| Guille | Pesando cerdos; tiene que terminar y quitarse el olor a cerdo | Provisional |
+| Pablo | Su piso: atrapado en su propia narración, con bloqueo de escritor | Provisional (diseño abajo) |
+| Chuchi | Encerrado en un parque de bolas cuando ya se han ido todos | Provisional (por pensar) |
+| Guille | Una granja a las afueras de Madrid: pesar cerdos y quitarse el olor | Provisional (diseño abajo) |
 
 Las historias provisionales son una habitación genérica (`src/arte/escenas/provisional.mjs`) con un objeto que apunta a la historia y una puerta: tocar el objeto y salir. Están para probar la estructura de principio a fin hasta que el grupo dé el contexto de cada una.
 
@@ -87,13 +87,44 @@ Se pueden cambiar por la actual o sumarse:
 - **Aceituna no le deja irse.** Se planta en la puerta con ojos tristes. Fran tiene que montarle su propio plan de jueves: la tele con «Saber y ganar», un calcetín suyo que huela a él y su pelota escondida en el sofá.
 - **El móvil sin batería.** El cargador lo ha mordisqueado Aceituna y sin móvil no puede avisar de que llega tarde. Fran tiene que sacar batería de donde sea: el tocadiscos, la lámpara de arco, el telefonillo.
 
-## Ideas para las otras tres historias
+## Las otras tres historias (en diseño)
 
-Primeras ideas, para corregir con el contexto del grupo:
+Cada historia sigue el mismo patrón que la de Fran: **llegar → puzle de objetos → minijuego → salida** hacia el Río. Hablado el 3 de octubre de 2026; nada implementado todavía.
 
-- **Pablo:** el narrador (las cajas de texto sin retrato) le lleva la contraria: «Pablo intentó abrir la puerta. La puerta estaba cerrada. Siempre lo estuvo». Para escapar tiene que discutirle, reescribir las acotaciones con un boli o colarle un giro de guion. Se puede jugar con la propia interfaz (la bolsa, la bombilla, el reloj).
-- **Guille:** el último cerdo no quiere subirse a la báscula (minijuego). Luego el olor: la ducha no va, se acaba el jabón… Mientras huela a purín la gente se aparta y los perros le siguen, y eso puede ser parte del puzle.
-- **Chuchi:** la casa sembrada de juguetes (pisar un Lego), las llaves en la cocinita de juguete, una pegatina de unicornio en la espalda que no ve, la canción infantil metida en la cabeza, el vigilabebés que pita justo al salir. Y quizá «un último bug» del trabajo.
+### Pablo · Atrapado en su propia narración
+
+- **Lugar:** su piso (comparte con dos compañeros). Distribución y estilo, pendientes del grupo.
+- **El narrador:** una **sombra con la silueta de Pablo** que le lleva la contraria («Pablo intentó abrir la puerta. La puerta estaba cerrada. Siempre lo estuvo»).
+- **Puzle de objetos:** sencillo, para seguir usando la bolsa: cargar de papel la máquina de escribir. El narrador asegura que no hay papel en toda la casa. Idea sin cerrar: acabar escribiendo en papel higiénico, o quitárselo a un compañero de piso.
+- **La trama:** Pablo está pensando un formato nuevo de impro y tiene bloqueo de escritor. Tras discutir un rato con el narrador, la batalla final decide si se desbloquea.
+- **Minijuego · Cortar palabras** (estilo *Fruit Ninja*):
+  - Caen palabras sobre un fondo onírico, el espacio abstracto donde se construye la narración en la cabeza de Pablo. Las lanza el narrador.
+  - Se deslizan los dedos para **cortar las negativas** («no», «sí, pero», «negar», «bloquear», «dudar»…) y **dejar pasar las positivas** («sí, y», «aceptar», «adaptar», «avanzar»…), en el sentido de la impro.
+  - **Dos categorías y nada más.** «Sí, pero» es negativa.
+  - **Colores:** al principio, negativas en rojos y naranjas, positivas en verdes y azules. Más adelante los colores se mezclan para despistar (una negativa en verde).
+  - **Ritmo:** primero pocas palabras, luego cada vez más. Se lee, no son solo reflejos: palabras grandes y como mucho 3 o 4 en pantalla.
+  - **Fallar:** una barra de bloqueo sube si cortas una positiva o si una negativa llega abajo; si se llena, se repite.
+  - **Duración:** ni muy corto ni muy largo (unos 45–60 s en fases).
+  - **Las listas de palabras se editan en `src/textos/`**, una por categoría.
+
+### Guille · Pesando cerdos
+
+- **Lugar:** una granja a las afueras de Madrid, con el skyline de Madrid al fondo. No sale nadie más.
+- **Antes del minijuego:** un mini puzle de objetos para poder pesar (idea: la báscula no tiene pilas y las pilas están en la radio de las jotas; sin música, los cerdos se ponen nerviosos).
+- **Minijuego · Apilar cerdos** (estilo *Tower Bloxx*): va tarde, así que los pesa todos a la vez.
+  - Los cerdos, de distintos tamaños, cuelgan balanceándose de una polea y se toca para soltarlos **encima de la báscula**.
+  - Si caen descentrados, la torre se tambalea más; si se pasan del borde, se cae.
+  - Objetivo: unos 10 cerdos. La aguja de la báscula sube con cada uno.
+- **Después, el olor a cerdo:** tiene que ducharse o fabricarse una colonia **combinando dos o tres objetos** en la bolsa (mecánica nueva, por ejemplo alcohol del botiquín + romero + agua de la manguera). Idea: moscas siguiéndole hasta que se quita el olor.
+
+### Chuchi · Atrapado en un parque de bolas
+
+- Se ha despistado y se ha quedado encerrado en un parque de bolas tope guay, con muchos elementos: se han ido todos y solo queda él. Las niñas no salen.
+- Por pensar (el grupo): por qué se queda dentro, el puzle de objetos y el minijuego. Ideas sobre la mesa: buscar en la piscina de bolas apartándolas con el dedo, la máquina de gancho de la entrada y bajar el tobogán gigante. El parque es vertical (redes, tubos, toboganes): dos alturas o dos escenas.
+
+### Final del capítulo 1
+
+Los cuatro llegan a la vez a la terraza y **entran en el bar del Río**. Ahí acaba el capítulo 1; el capítulo 2 empieza dentro del bar.
 
 ## Pendiente
 
