@@ -2,6 +2,8 @@
 
 Encargo del 2 de octubre de 2026, con las referencias del grupo (plano del piso, foto del Bar del Río y foto del dragón de Usera). Las fotos son solo referencia y no están en el repositorio.
 
+El bar se llama **Bar del Río**. En los rótulos pone «BAR DEL RIO», en mayúsculas y sin tilde, como en el toldo.
+
 ## Estructura del capítulo 1: cuatro historias que acaban en el Río
 
 Decidido el 2 de octubre de 2026:
@@ -124,11 +126,10 @@ Cada historia sigue el mismo patrón que la de Fran: **llegar → puzle de objet
 
 ### Final del capítulo 1
 
-Los cuatro llegan a la vez a la terraza y **entran en el bar del Río**. Ahí acaba el capítulo 1; el capítulo 2 empieza dentro del bar.
+Los cuatro llegan a la vez a la terraza y **entran en el Bar del Río**. Ahí acaba el capítulo 1; el capítulo 2 empieza dentro del bar.
 
 ## Pendiente
 
-- Confirmar el nombre: «Bar del Río» (el del toldo) o «Bar El Río».
 - Foto de Aceituna para ajustar su aspecto.
 - Hora del despertar. Se ha supuesto que anochece (sobre las 20:35, el reloj de la cocina) y que la calle ya es de noche.
 - Nombres reales de las calles, si se quieren en las placas. Ahora solo pone «USERA».
