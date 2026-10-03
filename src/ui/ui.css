@@ -3,7 +3,7 @@
    smoked glass with a gold fillet (style rule I1); touch targets >= 44 px (I4). */
 :root {
   --ink: #0b1124;
-  --glass: rgba(15, 21, 40, 0.8);
+  --glass: rgba(15, 21, 40, 0.86);
   --glass-strong: rgba(11, 15, 30, 0.94);
   --gold: #dbb46c;
   --gold-soft: rgba(219, 180, 108, 0.5);
@@ -74,11 +74,11 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
+/* No backdrop blur: over a scene that changes every frame it has to be redone
+   every frame, and on phones that costs more than it shows. */
 .vidrio {
   background: var(--glass);
   border: 1px solid var(--gold-soft);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
 }
 
 /* ------------------------------------------------------------ HUD frame */

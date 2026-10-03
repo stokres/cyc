@@ -1,6 +1,7 @@
 // The point-and-click layer: scenes and who is in them, touch input, the
 // scripting API chapters use, the character dock and saving.
 import { Motor, H } from '../motor/motor';
+import { setEscalaSprites } from '../motor/sprites';
 import { Actor, Objeto, Perrita, Personaje } from '../motor/actores';
 import type { Escena, Zona } from '../motor/escena';
 import { Hud, h } from '../ui/hud';
@@ -77,6 +78,8 @@ export class Aventura {
 
   constructor(readonly root: HTMLElement, readonly cap: Capitulo, public estado: Estado) {
     this.motor = new Motor(root);
+    // Characters become bitmaps at the size they are drawn on this screen (the nearest one, ~k 1.3).
+    setEscalaSprites((Math.min(window.devicePixelRatio || 1, 3) * this.motor.cssH * this.motor.escala(1.3)) / H);
     restaurarUsos(estado.usos);
     this.hud = new Hud(root, {
       elegir: (id) => void this.elegir(id),
@@ -580,16 +583,31 @@ export class Aventura {
 
   // ------------------------------------------------------------ frame
 
+  /**
+   * The frame loop, capped: 60 fps while something moves (the camera, someone
+   * walking), 30 fps otherwise. Phones with 120 Hz screens would otherwise draw
+   * everything twice as often for nothing, and heat up.
+   */
   start() {
     let last = performance.now();
     const frame = (now: number) => {
+      requestAnimationFrame(frame);
+      const intervalo = 1000 / (this.enMovimiento() ? 60 : 30);
+      // A little slack, so 60 fps on a 120 Hz screen is every other refresh, not every third.
+      if (now - last < intervalo - 4) return;
       const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
       last = now;
       if (!this.pausado) this.update(dt);
       this.medir(dt);
-      requestAnimationFrame(frame);
     };
     requestAnimationFrame(frame);
+  }
+
+  /** Anything moving on screen that deserves 60 fps. */
+  private enMovimiento() {
+    if (this.motor.camaraMoviendose || this.perro?.moving) return true;
+    for (const p of this.pjs.values()) if (p.moving) return true;
+    return false;
   }
 
   private update(dt: number) {

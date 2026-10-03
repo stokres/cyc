@@ -127,7 +127,12 @@ export class Rig {
       if (this.visT > 0.085) { this.visT = 0; this.talkI = (this.talkI + 1) % this.text.length; this.viseme = MOUTH(this.text[this.talkI]); }
     } else this.viseme = 'auto';
     const key = this.mood + '|' + this.viseme + '|' + (this.blink || this.eyesClosed ? 1 : 0);
-    if (key !== this.lastKey) { this.headArt.innerHTML = this.headSvg(key); this.lastKey = key; }
+    if (key !== this.lastKey) {
+      this.lastKey = key;
+      // The game may draw the head from bitmaps instead (src/motor/sprites.ts).
+      if (this.onHead) this.onHead(key);
+      else this.headArt.innerHTML = this.headSvg(key);
+    }
     // Beard and hair lag behind the bob of the body.
     const vy = clampV((P.root[1] - this.lastRootY) / Math.max(dt, 1 / 30), 40);
     this.lastRootY = P.root[1];

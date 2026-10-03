@@ -30,8 +30,17 @@ export const REPARTO: Record<PjId, Ficha> = {
 export const NOMBRE_ACEITUNA = 'Aceituna';
 export const COLOR_ACEITUNA = '#c8433a';
 
-/** Portrait (SVG markup) for the dialogue box and the character dock. */
+const retratos = new Map<string, string>();
+
+/** Portrait (SVG markup) for the dialogue box and the character dock; each pose is built once. */
 export function retrato(id: PjId | 'aceituna', o: { mood?: string; mouthKind?: string; blink?: boolean } = {}) {
+  const k = `${id}|${o.mood}|${o.mouthKind}|${o.blink ? 1 : 0}`;
+  let v = retratos.get(k);
+  if (!v) retratos.set(k, (v = dibujarRetrato(id, o)));
+  return v;
+}
+
+function dibujarRetrato(id: PjId | 'aceituna', o: { mood?: string; mouthKind?: string; blink?: boolean }) {
   if (id === 'aceituna') {
     return `<svg viewBox="-52 -74 104 126" aria-hidden="true">${aceituna.headFront({ blink: o.blink, pant: o.mouthKind === 'a' || o.mouthKind === 'o', happy: o.mood === 'happy' })}</svg>`;
   }

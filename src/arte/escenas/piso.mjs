@@ -480,9 +480,11 @@ function floor() {
     }
   }
   out.push(path(quad(KX0 - 400, KX0, 1, kMax), '#a57a50'));
-  // Oak parquet everywhere else: boards running away from the camera.
+  // Oak parquet everywhere else: boards running away from the camera, over a
+  // base so the staggered first row never leaves a gap against the wall.
   const r = rng(41);
   const tones = ['#b78c5e', '#a87e52', '#c49a69', '#ad8456', '#bd9262'];
+  out.push(path(quad(KX1, 3560, 1, kMax + 0.3), '#ad8456'));
   for (let X = KX1; X < 3560; X += 34) {
     let z = 1 - r() * 0.15;
     while (z > 1 / kMax - 0.2) {

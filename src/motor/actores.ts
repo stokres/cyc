@@ -5,6 +5,7 @@
 import { Rig } from '../arte/personajes/rig-runtime.mjs';
 import { Perro, body as perroBody } from '../arte/personajes/aceituna.mjs';
 import type { RGB } from './escena';
+import { imagen, rasterizar, rasterizarUnaVez, soltar, type Sprite } from './sprites';
 
 const NS = 'http://www.w3.org/2000/svg';
 
@@ -160,26 +161,91 @@ export class Actor {
     return true;
   }
 
+  /** Last values written to the DOM: writing the same ones again still costs a repaint check. */
+  private escrito = { vis: '', wrap: '', flip: '', sombra: '' };
+
   place(sx: number, y: number, s: number) {
-    this.wrap.style.display = this.visible ? '' : 'none';
+    const W = this.escrito;
+    const vis = this.visible ? '' : 'none';
+    if (vis !== W.vis) this.wrap.style.display = W.vis = vis;
     if (!this.visible) return;
-    this.wrap.setAttribute('transform', `translate(${sx.toFixed(1)} ${(y - this.lift * s).toFixed(1)}) scale(${s.toFixed(3)})`);
-    this.flip.setAttribute('transform', `scale(${this.face} 1)${this.rot ? ` rotate(${this.rot})` : ''}`);
-    this.shadowEl.style.display = this.shadowOn && !this.rot ? '' : 'none';
+    const wrap = `translate(${sx.toFixed(1)} ${(y - this.lift * s).toFixed(1)}) scale(${s.toFixed(3)})`;
+    if (wrap !== W.wrap) this.wrap.setAttribute('transform', (W.wrap = wrap));
+    const flip = `scale(${this.face} 1)${this.rot ? ` rotate(${this.rot})` : ''}`;
+    if (flip !== W.flip) this.flip.setAttribute('transform', (W.flip = flip));
+    const sombra = this.shadowOn && !this.rot ? '' : 'none';
+    if (sombra !== W.sombra) this.shadowEl.style.display = W.sombra = sombra;
   }
 
   update(_t: number, _dt: number) {}
 }
 
+type RigRT = InstanceType<typeof Rig> & {
+  els: Record<string, Element | null>;
+  headArt: Element;
+  lastKey: string;
+  onHead: ((key: string) => void) | null;
+  headSvg(key: string): string;
+};
+
 /** A protagonist: rigged body, outfit, moods and lip sync. */
 export class Personaje extends Actor {
-  private rig: InstanceType<typeof Rig>;
+  private rig: RigRT;
   private outfit: string | undefined;
+  /** Bitmap heads by expression (mood|mouth|blink); 'pend' while being made. */
+  private cabezas = new Map<string, Sprite | 'pend'>();
+  private piezas: Sprite[] = [];
+  private version = 0;
 
   constructor(world: SVGGElement, defs: SVGDefsElement, id: string, readonly arte: ArteDePersonaje, outfit?: string, seed = 0) {
     super(world, defs, id, arte.body({}, outfit), [44, 9]);
     this.outfit = outfit;
-    this.rig = new Rig(this.inner.querySelector('#personaje'), arte, { seed });
+    this.rig = new Rig(this.inner.querySelector('#personaje'), arte, { seed }) as RigRT;
+    void this.aImagenes();
+  }
+
+  /**
+   * Swap every bone's vector art for a bitmap of it (see sprites.ts), and draw
+   * the head from bitmaps per expression. Until they are ready, the vectors show.
+   */
+  private async aImagenes() {
+    const v = ++this.version;
+    const rig = this.rig;
+    const hechas: Array<[Element, Sprite]> = [];
+    for (const [id, el] of Object.entries(rig.els)) {
+      if (!el || id === 'cabeza') continue;
+      const sp = await rasterizar(el.innerHTML);
+      if (v !== this.version) return soltar(sp);
+      if (sp) hechas.push([el, sp]);
+    }
+    for (const sp of this.piezas) soltar(sp);
+    this.piezas = hechas.map(([, sp]) => sp);
+    for (const [el, sp] of hechas) el.innerHTML = imagen(sp);
+    rig.onHead = (key) => this.cabeza(key);
+    this.cabeza(rig.lastKey);
+    // The usual expressions ahead of time, so blinking and talking never wait.
+    const mood = rig.mood ?? 'neutral';
+    for (const boca of ['auto', 'a', 'e', 'o', 'm', 'reposo']) for (const ojo of ['0', '1']) await this.hacerCabeza(`${mood}|${boca}|${ojo}`);
+  }
+
+  private async hacerCabeza(key: string) {
+    if (this.cabezas.has(key)) return;
+    this.cabezas.set(key, 'pend');
+    const sp = await rasterizar(this.rig.headSvg(key));
+    if (sp) this.cabezas.set(key, sp);
+    else this.cabezas.delete(key);
+    if (sp && this.rig.lastKey === key) this.rig.headArt.innerHTML = imagen(sp);
+  }
+
+  private cabeza(key: string) {
+    if (!key) return;
+    const c = this.cabezas.get(key);
+    if (c && c !== 'pend') {
+      this.rig.headArt.innerHTML = imagen(c);
+      return;
+    }
+    this.rig.headArt.innerHTML = this.rig.headSvg(key);
+    void this.hacerCabeza(key);
   }
 
   get name() {
@@ -196,8 +262,9 @@ export class Personaje extends Actor {
     const { mood, talking } = this.rig;
     this.outfit = outfit;
     this.inner.innerHTML = this.arte.body({}, outfit);
-    this.rig = new Rig(this.inner.querySelector('#personaje'), this.arte, { seed: this.rig.seed });
+    this.rig = new Rig(this.inner.querySelector('#personaje'), this.arte, { seed: this.rig.seed }) as RigRT;
     Object.assign(this.rig, { mood, talking });
+    void this.aImagenes();
   }
 
   set mood(m: string) {
@@ -213,9 +280,16 @@ export class Personaje extends Actor {
     (this.rig as unknown as { eyesClosed: boolean }).eyesClosed = v;
   }
 
+  private acumulado = 0;
+
   update(t: number, dt: number) {
     this.rig.mode = this.moving ? 'walk' : 'idle';
-    this.rig.update(t, dt);
+    // Standing still (breathing, swaying) animates on twos, like cut-out cartoons:
+    // 15 poses a second look the same and cost half. Walking and talking stay smooth.
+    this.acumulado += dt;
+    if (!this.moving && !(this.rig as unknown as { talking: boolean }).talking && this.acumulado < 1 / 15) return;
+    this.rig.update(t, this.acumulado);
+    this.acumulado = 0;
   }
 }
 
@@ -229,9 +303,14 @@ export class Perrita extends Actor {
     this.speed = 300;
   }
 
+  private acumulado = 0;
+
   update(t: number, dt: number) {
     if (this.rig.mode !== 'lie') this.rig.mode = this.moving ? 'walk' : 'idle';
-    this.rig.update(t, dt);
+    this.acumulado += dt;
+    if (!this.moving && this.acumulado < 1 / 15) return;
+    this.rig.update(t, this.acumulado);
+    this.acumulado = 0;
   }
 }
 
@@ -239,5 +318,9 @@ export class Perrita extends Actor {
 export class Objeto extends Actor {
   constructor(world: SVGGElement, defs: SVGDefsElement, id: string, svg: string, readonly si?: string, shadow?: [number, number]) {
     super(world, defs, id, svg, shadow ?? [0, 0]);
+    // Props never change: one bitmap each.
+    void rasterizarUnaVez(svg).then((sp) => {
+      if (sp) this.inner.innerHTML = imagen(sp);
+    });
   }
 }

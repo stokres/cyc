@@ -85,7 +85,14 @@ Imágenes de referencia del kit, solo como referencia de ambiente: `docs/referen
 ## 7. Requisitos técnicos
 
 - **T1 · Resolución lógica:** 1080 de alto. El ancho depende del móvil, y las escenas se pintan a 2400 de ancho para que los móviles alargados (19,5:9, 20:9) vean más escenario en lugar de bandas negras.
-- **T2 · Rendimiento:** 60 fps en los móviles del grupo en calidad «media»; nunca por debajo de 30 fps en calidad «baja». La calidad automática baja un nivel si el juego no sostiene 40 fps durante 2 segundos. El menú tiene «Ver rendimiento» para medirlo en cada móvil.
+- **T2 · Rendimiento:** 60 fps en los móviles del grupo mientras algo se mueve y 30 fps en reposo, sin que el móvil se caliente. El menú tiene «Ver rendimiento» para medirlo en cada móvil, y `node scripts/rendimiento.mjs` lo mide en el ordenador. Pendiente: que la calidad baje sola si un móvil no llega.
+- **T5 · Qué hace pesado un juego así** (medido el 3 de octubre de 2026, tras ver que un Pixel 9 Pro se calentaba). Casi todo el coste es de la GPU, no de JavaScript, y estas reglas lo mantienen a raya:
+  1. **Los personajes llegan a la pantalla como imágenes.** Se dibujan en SVG, pero cada pieza del esqueleto (brazo, muslo, cabeza por expresión) se convierte en imagen al cargar (`src/motor/sprites.ts`). Como vectores, cada pieza llevaba recortes y sombreados translúcidos que la GPU repetía en cada fotograma. Era lo que más pesaba, y con los cuatro en la terraza el juego bajaba a pocos fotogramas por segundo.
+  2. **En reposo, los personajes se animan a 15 poses por segundo** («a doses», como los dibujos animados). Al andar o hablar van a 60.
+  3. **El decorado solo se repinta si se mueve la cámara.** La luz viva (fuego, carteles, el coche) va en su propia capa encima.
+  4. **El bucle no pasa de 60 fps** aunque la pantalla sea de 120 Hz, y baja a 30 en reposo.
+  5. **Sin desenfoque de fondo (`backdrop-filter`) en los paneles:** sobre una escena que cambia, se recalcula en cada fotograma.
+  6. Para arte nuevo de personajes, mejor pocas capas translúcidas y pocos recortes por pieza; para escenas, piezas opacas grandes antes que muchas capas a pantalla completa.
 - **T3 · Solo recursos propios** o con licencia clara. Las fotos del grupo son solo referencia: no se publican ni se suben al repositorio.
 - **T4 · WebGL2 con respaldo en Canvas 2D** (decidido el 2 de octubre de 2026): WebGL2 para la luz con relieve y la atmósfera; Canvas 2D para móviles que no lo tengan. La luz con relieve ya funciona (`src/motor/gl.ts`), pero está **aplazada**: el juego usa Canvas 2D y el relieve solo se enciende añadiendo `?relieve` a la dirección.
 

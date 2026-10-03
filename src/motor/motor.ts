@@ -54,6 +54,12 @@ export class Motor {
   px = 1;
   calidad: Calidad;
   modo: Modo = '2d';
+  /**
+   * What the static layers were last drawn with (Canvas 2D). While the camera
+   * stands still they are not drawn again: only the live light is, on its own
+   * overlay. A point-and-click spends most of its time standing still.
+   */
+  private pintado = { cam: NaN, vw: 0, px: 0, baked: null as Horneado | null, cond: '' };
   /** Camera centre on the back plane. */
   cam = 0;
   camGoal = 0;
@@ -104,6 +110,16 @@ export class Motor {
     return this.modo === 'gl';
   }
 
+  /** Draw the static layers again on the next frame. */
+  invalidar() {
+    this.pintado.cam = NaN;
+  }
+
+  /** True while the camera is still travelling towards its goal. */
+  get camaraMoviendose() {
+    return this.cam !== this.camGoal;
+  }
+
   private elegirModo() {
     // The WebGL contexts are only made when relief is first asked for.
     if (this.relieve && !this.glProbado) {
@@ -113,11 +129,11 @@ export class Motor {
     }
     this.modo = this.glB && this.glF && this.calidad !== 'baja' && this.relieve ? 'gl' : '2d';
     const gl = this.modo === 'gl';
-    for (const c of [this.backGL, this.frontGL, this.vivoB, this.vivoF]) c.hidden = !gl;
+    for (const c of [this.backGL, this.frontGL]) c.hidden = !gl;
     for (const c of [this.back2d, this.front2d]) c.hidden = gl;
-    // Taps land on the top-most visible canvas (see core/input.ts).
-    for (const c of [this.front2d, this.vivoF]) c.id = '';
-    (gl ? this.vivoF : this.front2d).id = 'scene';
+    // The live light has its own overlays in both renderers; taps land on the top one (see core/input.ts).
+    this.vivoF.id = 'scene';
+    this.invalidar();
   }
 
   // ------------------------------------------------------------ size and quality
@@ -136,7 +152,7 @@ export class Motor {
     const px = this.pxFor();
     const W = Math.round(this.vw * px);
     const Hp = Math.round(H * px);
-    const visibles = this.modo === 'gl' ? [this.backGL, this.frontGL, this.vivoB, this.vivoF] : [this.back2d, this.front2d];
+    const visibles = this.modo === 'gl' ? [this.backGL, this.frontGL, this.vivoB, this.vivoF] : [this.back2d, this.front2d, this.vivoB, this.vivoF];
     for (const c of [this.back2d, this.front2d, this.backGL, this.frontGL, this.vivoB, this.vivoF]) {
       const on = visibles.includes(c);
       c.width = on ? W : 1;
@@ -151,6 +167,7 @@ export class Motor {
       void this.cargar(this.S);
     }
     this.clampCam(true);
+    this.invalidar();
     this.onResize?.();
   }
 
@@ -316,6 +333,8 @@ export class Motor {
     this.t += dt;
     this.clampCam();
     this.cam += (this.camGoal - this.cam) * (1 - Math.exp(-dt * 3));
+    // Settle instead of creeping by fractions of a pixel forever (that would redraw every frame).
+    if (Math.abs(this.camGoal - this.cam) * this.px < 0.25) this.cam = this.camGoal;
   }
 
   /** Characters' scale: character units (Fran ~270) to scene units at depth k. */
@@ -351,6 +370,17 @@ export class Motor {
     const S = this.S;
     const B = this.baked;
     if (this.modo === 'gl') return this.dibujarGL();
+    // Live light (fire, signs, the odd car...) every frame, on the overlays.
+    for (const c of [this.vbctx, this.vfctx]) {
+      c.setTransform(1, 0, 0, 1, 0, 0);
+      c.clearRect(0, 0, this.vivoB.width, this.vivoB.height);
+    }
+    if (S && B && B.modo === '2d') for (const L of B.capas) if (!this.ocultas.has(L.id)) this.vivo(L.z === 'front' ? this.vfctx : this.vbctx, L.id);
+    // The baked layers only when something they depend on has changed.
+    const cond = B ? this.condiciones(B) : '';
+    const P = this.pintado;
+    if (B && B === P.baked && P.vw === this.vw && P.px === B.px && P.cond === cond && Math.abs(this.cam - P.cam) * B.px < 0.15) return;
+    Object.assign(P, { cam: this.cam, vw: this.vw, px: B?.px ?? 0, baked: B, cond });
     const b = this.bctx;
     const f = this.fctx;
     b.setTransform(1, 0, 0, 1, 0, 0);
@@ -382,8 +412,14 @@ export class Motor {
         }
       }
       for (const Lw of B.laterales) if (Lw.after === L.id) drawLateral(ctx, S, Lw, this.vw, this.cam, px);
-      this.vivo(ctx, L.id);
     }
+  }
+
+  /** Which pieces with a flag condition are showing (a change means redrawing). */
+  private condiciones(B: Horneado) {
+    let k = '';
+    for (const L of B.capas) for (const p of L.piezas) if (p.si) k += this.cond(p.si) ? '1' : '0';
+    return k;
   }
 
   private cizalla(): [number, number] {
