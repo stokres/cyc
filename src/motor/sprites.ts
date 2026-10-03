@@ -56,20 +56,19 @@ export async function rasterizar(contenido: string, pad = 5): Promise<Sprite | n
   const H = Math.ceil(h * escala);
   // The rig's pivot markers are hidden by the page's CSS, which does not reach an image.
   const svg = `<svg xmlns="${NS}" viewBox="${x} ${y} ${w} ${h}" width="${W}" height="${H}"><style>.pivot{display:none}</style>${contenido}</svg>`;
-  const src = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+  // data: URLs rather than blob: ones, which some hosts' security policies block.
   try {
     const img = new Image();
-    img.src = src;
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
     await img.decode();
     const c = document.createElement('canvas');
     c.width = W;
     c.height = H;
     c.getContext('2d')!.drawImage(img, 0, 0, W, H);
-    const png = await new Promise<Blob | null>((r) => c.toBlob(r));
-    if (!png) return null;
-    return { href: URL.createObjectURL(png), x, y, w, h };
-  } finally {
-    URL.revokeObjectURL(src);
+    return { href: c.toDataURL('image/png'), x, y, w, h };
+  } catch {
+    // Whatever goes wrong, the vector art simply stays.
+    return null;
   }
 }
 
@@ -86,6 +85,3 @@ export function imagen(s: Sprite) {
   return `<image href="${s.href}" x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}" preserveAspectRatio="none"/>`;
 }
 
-export function soltar(s: Sprite | null | undefined) {
-  if (s) URL.revokeObjectURL(s.href);
-}

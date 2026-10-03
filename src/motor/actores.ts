@@ -5,7 +5,7 @@
 import { Rig } from '../arte/personajes/rig-runtime.mjs';
 import { Perro, body as perroBody } from '../arte/personajes/aceituna.mjs';
 import type { RGB } from './escena';
-import { imagen, rasterizar, rasterizarUnaVez, soltar, type Sprite } from './sprites';
+import { imagen, rasterizar, rasterizarUnaVez, type Sprite } from './sprites';
 
 const NS = 'http://www.w3.org/2000/svg';
 
@@ -194,7 +194,6 @@ export class Personaje extends Actor {
   private outfit: string | undefined;
   /** Bitmap heads by expression (mood|mouth|blink); 'pend' while being made. */
   private cabezas = new Map<string, Sprite | 'pend'>();
-  private piezas: Sprite[] = [];
   private version = 0;
 
   constructor(world: SVGGElement, defs: SVGDefsElement, id: string, readonly arte: ArteDePersonaje, outfit?: string, seed = 0) {
@@ -215,11 +214,9 @@ export class Personaje extends Actor {
     for (const [id, el] of Object.entries(rig.els)) {
       if (!el || id === 'cabeza') continue;
       const sp = await rasterizar(el.innerHTML);
-      if (v !== this.version) return soltar(sp);
+      if (v !== this.version) return;
       if (sp) hechas.push([el, sp]);
     }
-    for (const sp of this.piezas) soltar(sp);
-    this.piezas = hechas.map(([, sp]) => sp);
     for (const [el, sp] of hechas) el.innerHTML = imagen(sp);
     rig.onHead = (key) => this.cabeza(key);
     this.cabeza(rig.lastKey);
