@@ -211,8 +211,12 @@ export class Motor {
     return `${S.id}@${this.px.toFixed(3)}@${this.modo}`;
   }
 
+  /** Scenes being baked right now (scripts/rendimiento.mjs waits for none before measuring). */
+  horneando = 0;
+
   private async hornearYSubir(S: Escena, onProgress?: (p: number) => void) {
-    const b = await hornear(S, this.px, onProgress, this.modo);
+    this.horneando++;
+    const b = await hornear(S, this.px, onProgress, this.modo).finally(() => this.horneando--);
     if (b.modo === 'gl') {
       for (const L of b.capas) for (const p of L.piezas) (L.z === 'front' ? this.glF : this.glB)!.subir(p);
       for (const Lw of b.laterales) this.glB!.subir(Lw);

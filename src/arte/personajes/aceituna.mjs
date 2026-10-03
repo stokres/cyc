@@ -214,6 +214,7 @@ export class Perro {
     this.ear = 0;
     this.look = 0;
     this.key = '';
+    this.onHead = null;
     this.cache = new Map();
   }
 
@@ -266,10 +267,14 @@ export class Perro {
     this.earF?.setAttribute('transform', `rotate(${(-14 - 10 * this.ear).toFixed(1)} 38 -79)`);
     const key = `${this.blink ? 1 : 0}|${ex > 0.5 || walk ? 1 : 0}|${ex > 0.5 ? 1 : 0}`;
     if (key !== this.key) {
-      this.headArt.innerHTML = this.headSvg(key);
       this.key = key;
-      this.earN = this.headArt.querySelector('#oreja_cerca');
-      this.earF = this.headArt.querySelector('#oreja_lejos');
+      // The game may draw the head from bitmaps instead (src/motor/actores.ts).
+      if (this.onHead) this.onHead(key);
+      else {
+        this.headArt.innerHTML = this.headSvg(key);
+        this.earN = this.headArt.querySelector('#oreja_cerca');
+        this.earF = this.headArt.querySelector('#oreja_lejos');
+      }
     }
   }
 }

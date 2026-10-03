@@ -44,8 +44,31 @@ function medir(contenido: string) {
   return b;
 }
 
+/** Conversions still running (scripts/rendimiento.mjs waits for none before measuring). */
+let enCurso = 0;
+(window as unknown as { __sprites?: () => number }).__sprites = () => enCurso;
+
+/** Count a whole job (a character's pieces and heads) as one conversion in progress. */
+export async function enMarcha<T>(trabajo: () => Promise<T>): Promise<T> {
+  enCurso++;
+  try {
+    return await trabajo();
+  } finally {
+    enCurso--;
+  }
+}
+
 /** Rasterise markup (in its own coordinates) to a bitmap placed at the same spot. */
 export async function rasterizar(contenido: string, pad = 5): Promise<Sprite | null> {
+  enCurso++;
+  try {
+    return await rasterizarYa(contenido, pad);
+  } finally {
+    enCurso--;
+  }
+}
+
+async function rasterizarYa(contenido: string, pad: number): Promise<Sprite | null> {
   const b = medir(contenido);
   if (!b.width || !b.height) return null;
   const x = Math.floor(b.x - pad);
@@ -65,8 +88,18 @@ export async function rasterizar(contenido: string, pad = 5): Promise<Sprite | n
     c.width = W;
     c.height = H;
     c.getContext('2d')!.drawImage(img, 0, 0, W, H);
-    return { href: c.toDataURL('image/png'), x, y, w, h };
-  } catch {
+    // PNG encoding off the main thread (toBlob), then a data: URL.
+    const png = await new Promise<Blob | null>((r) => c.toBlob(r));
+    if (!png) return null;
+    const href = await new Promise<string>((ok, mal) => {
+      const fr = new FileReader();
+      fr.onload = () => ok(fr.result as string);
+      fr.onerror = mal;
+      fr.readAsDataURL(png);
+    });
+    return { href, x, y, w, h };
+  } catch (e) {
+    console.warn('[sprites]', e);
     // Whatever goes wrong, the vector art simply stays.
     return null;
   }
@@ -81,7 +114,29 @@ export function rasterizarUnaVez(contenido: string) {
   return p;
 }
 
-export function imagen(s: Sprite) {
-  return `<image href="${s.href}" x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}" preserveAspectRatio="none"/>`;
+/** An <image> element for a sprite. */
+export function nuevaImagen(s: Sprite) {
+  const img = document.createElementNS(NS, 'image');
+  for (const [k, v] of Object.entries({ href: s.href, x: s.x, y: s.y, width: s.w, height: s.h, preserveAspectRatio: 'none' })) img.setAttribute(k, String(v));
+  return img;
 }
+
+/**
+ * Run `luego` once a just-shown image has certainly painted: loaded, decoded
+ * and two frames on screen. Until then whatever was under it stays, so swapping
+ * art never leaves an empty frame (the flicker Guille's head had).
+ */
+export async function sinHueco(img: Element, luego: () => void) {
+  const im = img as SVGImageElement & { decode?: () => Promise<void> };
+  try {
+    if (im.decode) await im.decode();
+    else await new Promise((r) => img.addEventListener('load', r, { once: true }));
+  } catch {
+    // Not decodable: keep what was there.
+    return;
+  }
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  luego();
+}
+
 

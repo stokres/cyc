@@ -93,6 +93,11 @@ Imágenes de referencia del kit, solo como referencia de ambiente: `docs/referen
   4. **El bucle no pasa de 60 fps** aunque la pantalla sea de 120 Hz, y baja a 30 en reposo.
   5. **Sin desenfoque de fondo (`backdrop-filter`) en los paneles:** sobre una escena que cambia, se recalcula en cada fotograma.
   6. Para arte nuevo de personajes, mejor pocas capas translúcidas y pocos recortes por pieza; para escenas, piezas opacas grandes antes que muchas capas a pantalla completa.
+  7. **Nunca se dibuja una imagen SVG en un canvas en cada fotograma:** el navegador vuelve a rasterizar el vector cada vez, y peor si gira. Se pasa a mapa de bits una vez (un canvas) y se dibuja ese. Era lo que hundía el minijuego de los cerdos.
+  8. **Un minijuego a pantalla completa pausa la escena de debajo** (`g.pausado`), y su bucle tampoco pasa de 60 fps.
+  9. **Cambiar una imagen nunca deja un fotograma vacío:** en Android, Chrome pinta una imagen recién puesta en blanco hasta que la decodifica. La nueva va encima de la anterior y la anterior se quita cuando la nueva ya se ha pintado (`sinHueco`, en `src/motor/sprites.ts`). Era el parpadeo de la cabeza de Guille.
+  10. **Todos los personajes pasan a imagen,** Aceituna incluida (sus orejas, aparte, para que se muevan).
+- **T6 · Rendimiento desde la implementación,** no como arreglo posterior (decidido el 3 de octubre de 2026). Cada cambio que toque el dibujo se mide con `node scripts/rendimiento.mjs` antes del commit, y cada escena o minijuego nuevo se añade a ese script. El script falla si detecta los errores de la regla T5 (SVG dibujado en canvas cada fotograma, personajes aún en vector, más de 60 fps).
 - **T3 · Solo recursos propios** o con licencia clara. Las fotos del grupo son solo referencia: no se publican ni se suben al repositorio.
 - **T4 · WebGL2 con respaldo en Canvas 2D** (decidido el 2 de octubre de 2026): WebGL2 para la luz con relieve y la atmósfera; Canvas 2D para móviles que no lo tengan. La luz con relieve ya funciona (`src/motor/gl.ts`), pero está **aplazada**: el juego usa Canvas 2D y el relieve solo se enciende añadiendo `?relieve` a la dirección.
 

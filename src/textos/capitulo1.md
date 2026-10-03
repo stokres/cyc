@@ -585,20 +585,14 @@ GUILLE: Dentro solo hay paja y pienso. Y una ducha que es un cubo con agujeros. 
 ## mirar.botiquin
 GUILLE: El botiquín. Tiritas, gasas y un bote de alcohol más grande que mi brazo.
 
-## g.botiquin.antes
-GUILLE: Tiritas, gasas y alcohol. No me he hecho nada. De momento.
-
 ## g.botiquin
-GUILLE: Alcohol. Huele a hospital, que es mejor que oler a cerdo.
+GUILLE: El bote de alcohol. Nunca se sabe. Con cuarenta cerdos, menos todavía.
 
 ## g.botiquin.vacio
 GUILLE: Ya tengo el alcohol. Lo demás son tiritas de dinosaurios.
 
 ## mirar.romero
 GUILLE: Una mata de romero. Huele a monte. Y a guiso de mi abuela.
-
-## g.romero.antes
-GUILLE: Romero. Si tuviera tiempo, hacía unas migas. No tengo tiempo.
 
 ## g.romero
 GUILLE (contento): Unas ramicas de romero. Esto huele a gloria.
@@ -629,6 +623,9 @@ GUILLE (contento): ¡Alcohol de romero! Ahora le falta agua, que esto así quema
 ## g.colonia.hecha
 > Un chorrito de la manguera, otra agitada...
 GUILLE (contento): ¡Colonia de granja! Eau de Guille. La patento mañana.
+
+## g.colonia.antes
+GUILLE: ¿Colonia ahora? Si todavía no he tocado un cerdo. Me la guardo, que luego la voy a necesitar.
 
 ## g.colonia.falta
 GUILLE: Así, sin rebajar, me deja la piel como un tomate. Le falta agua.

@@ -600,7 +600,7 @@ export class Aventura {
     let last = performance.now();
     const frame = (now: number) => {
       requestAnimationFrame(frame);
-      const intervalo = 1000 / (this.enMovimiento() ? 60 : 30);
+      const intervalo = 1000 / (this.enMovimiento() ? 60 : this.fpsReposo);
       // A little slack, so 60 fps on a 120 Hz screen is every other refresh, not every third.
       if (now - last < intervalo - 4) return;
       const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
@@ -610,6 +610,9 @@ export class Aventura {
     };
     requestAnimationFrame(frame);
   }
+
+  /** Frame rate while nothing walks and the camera is still. */
+  fpsReposo = 30;
 
   /** Anything moving on screen that deserves 60 fps. */
   private enMovimiento() {
@@ -668,7 +671,7 @@ export class Aventura {
     if (this.frames.length > 60) this.frames.shift();
     if (this.mostrarFps) {
       const avg = this.frames.reduce((s, v) => s + v, 0) / this.frames.length;
-      this.hud.fps(`${Math.round(1 / avg)} fps · ${this.motor.calidad} · ${this.motor.back.width}×${this.motor.back.height}`);
+      this.hud.fps(`${Math.round(1 / avg)} fps · ${texto(this.enMovimiento() ? 'rendimiento.movimiento' : 'rendimiento.reposo')} · ${this.motor.calidad} · ${this.motor.back.width}×${this.motor.back.height}`);
     }
   }
 }

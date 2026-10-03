@@ -22,6 +22,7 @@ Decisiones de diseño para que una aventura gráfica con minijuegos funcione en 
 | Acabar una historia | Fundido a negro antes de llegar al bar y un rótulo («Pablo ya va de camino al Río · Faltan…»). Con los cuatro de camino, escena final: llegan a la vez |
 | Usar algo contigo | Eliges el objeto en la bolsa y tocas a tu propio personaje (vestirse, abrir un tarro, mirar el móvil) |
 | Dar cosas a otro amigo | Tocas el objeto y luego al amigo |
+| Coger objetos | **Lo que se puede coger se puede coger siempre** (decidido el 3 de octubre de 2026), aunque todavía no se sepa para qué sirve; y también se puede juntar con otros. Nada se bloquea hasta «su momento» de la historia |
 | Juntar dos objetos | Eliges uno en la bolsa, vuelves a abrirla y tocas el otro (alcohol + romero en la historia de Guille). Si no pegan, el personaje lo dice |
 | Atascarse | La bombilla da una pista según el punto de la historia |
 | Un amigo delante de una puerta | Para hablar con un amigo hay que tocarle la cabeza o los hombros; el resto del cuerpo deja pasar el toque a lo que haya detrás |

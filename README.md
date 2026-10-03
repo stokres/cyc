@@ -38,7 +38,7 @@ El formato se explica al principio de `capitulo1.md`. Basta con editar el texto 
 npm run typecheck
 node scripts/playthrough.mjs http://localhost:5173/ revisiones/partida   # partida completa del piloto en viewport de móvil
 node scripts/shots.mjs http://localhost:5173/ revisiones/captura.png 844x390 3
-node scripts/rendimiento.mjs                                              # CPU y fotogramas en cuatro escenas (ver docs/ESTILO.md, T5)
+node scripts/rendimiento.mjs [escena...]                                  # CPU y fotogramas por escena y minijuego; falla con los errores de la regla T5 (docs/ESTILO.md)
 node tools/personajes/lamina-crew.mjs                                     # lámina de la crew (artifact/crew-lamina.html)
 node tools/personajes/frentes.mjs                                         # caras de frente de los retratos, por ánimo y boca (revisiones/frentes.png)
 node tools/personajes/cerdos.mjs                                          # los cerdos de Guille (revisiones/cerdos.png)

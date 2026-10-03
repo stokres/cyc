@@ -44,25 +44,41 @@ export interface EstadoCerdos {
   vidas: number;
   resbalones: number;
   derrumbes: number;
+  /** Frames drawn so far (scripts/rendimiento.mjs). */
+  fotogramas: number;
 }
 
-function imagenCerdo(i: number): Promise<HTMLImageElement> {
-  const p = PIARA[i];
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-80 -100 180 110" width="${Math.round(180 * U * p.s * 1.5)}" height="${Math.round(110 * U * p.s * 1.5)}">${cerdo({ ...p, s: 1 })}</svg>`;
+/**
+ * SVG to a bitmap, once. Drawing an SVG <img> into a canvas makes the browser
+ * rasterise the vectors again on every frame (worse when rotated): always draw
+ * from a canvas instead (docs/ESTILO.md, T5).
+ */
+async function aBitmap(svg: string, w: number, h: number): Promise<HTMLCanvasElement> {
   const img = new Image();
   img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-  return img.decode().then(() => img);
+  await img.decode();
+  const c = document.createElement('canvas');
+  c.width = Math.ceil(w);
+  c.height = Math.ceil(h);
+  c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height);
+  return c;
 }
 
-/** The same Madrid skyline as the farm scene, as one picture. */
-function imagenMadrid(): Promise<HTMLImageElement> {
+/** A pig at the size it is drawn on this screen (px per world unit). */
+function imagenCerdo(i: number, pxPorUnidad: number) {
+  const p = PIARA[i];
+  const w = 180 * U * p.s * pxPorUnidad;
+  const h = 110 * U * p.s * pxPorUnidad;
+  return aBitmap(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="-80 -100 180 110" width="${Math.ceil(w)}" height="${Math.ceil(h)}">${cerdo({ ...p, s: 1 })}</svg>`, w, h);
+}
+
+/** The same Madrid skyline as the farm scene, as one bitmap. */
+function imagenMadrid(ancho: number) {
   const m = madrid();
   const w = m.x1 - m.x0;
   const hh = m.y1 - m.y0;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${m.x0} ${m.y0} ${w} ${hh}" width="${w * 2}" height="${hh * 2}">${m.body}</svg>`;
-  const img = new Image();
-  img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-  return img.decode().then(() => img);
+  const k = ancho / w;
+  return aBitmap(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${m.x0} ${m.y0} ${w} ${hh}" width="${Math.ceil(w * k)}" height="${Math.ceil(hh * k)}">${m.body}</svg>`, w * k, hh * k);
 }
 
 export function jugarCerdos(parent: HTMLElement, rapido = false): Promise<Resultado> {
@@ -74,10 +90,10 @@ export function jugarCerdos(parent: HTMLElement, rapido = false): Promise<Result
   const capa = h('div', { class: 'cubierta minijuego cerdos' }, lienzo, h('p', { class: 'instrucciones' }, texto('cerdos.instrucciones')), cuenta, aviso, saltar, cerrar);
   parent.append(capa);
   const ctx = lienzo.getContext('2d')!;
-  const imgs: Array<HTMLImageElement | null> = PIARA.map(() => null);
-  PIARA.forEach((_, i) => void imagenCerdo(i).then((im) => (imgs[i] = im)).catch(() => {}));
-  let ciudad: HTMLImageElement | null = null;
-  void imagenMadrid().then((im) => (ciudad = im)).catch(() => {});
+  const imgs: Array<HTMLCanvasElement | null> = PIARA.map(() => null);
+  let ciudad: HTMLCanvasElement | null = null;
+  /** The sky, Madrid and the fields: drawn once per screen size, then one drawImage a frame. */
+  let fondoListo: HTMLCanvasElement | null = null;
 
   let vw = 1920;
   let escala = 1;
@@ -88,6 +104,13 @@ export function jugarCerdos(parent: HTMLElement, rapido = false): Promise<Result
     lienzo.height = Math.round(r.height * dpr);
     escala = lienzo.height / H;
     vw = lienzo.width / escala;
+    // Bitmaps at the size they will be drawn.
+    fondoListo = null;
+    PIARA.forEach((_, i) => void imagenCerdo(i, escala).then((im) => (imgs[i] = im)).catch(() => {}));
+    void imagenMadrid(vw * 1.05 * escala).then((im) => {
+      ciudad = im;
+      fondoListo = null;
+    }).catch(() => {});
   };
   medir();
   const ro = new ResizeObserver(medir);
@@ -106,6 +129,7 @@ export function jugarCerdos(parent: HTMLElement, rapido = false): Promise<Result
   let camara = 0; // how far the view has risen
   let pausa = 0; // seconds of message before going on
   let terminado: Resultado | null = null;
+  let fotogramas = 0;
   const m = (i: number) => {
     const d = medidas(PIARA[i].s);
     return { w: d.w * U, h: d.h * U };
@@ -151,7 +175,7 @@ export function jugarCerdos(parent: HTMLElement, rapido = false): Promise<Result
     // Fall time from the hanging height to the top of the tower (screen units).
     const caida = Math.max(0, sueloPantalla() + top.y - c.yPant);
     const tc = Math.sqrt((2 * caida) / G);
-    return { colgando: !cayendo && entrada >= 1 && pausa <= 0 && !terminado, x: c.x, prediccion: c.x + c.vx * ARRASTRE * tc, objetivo: top.x, colocados: pila.length, rondasPerdidas, vidas, ...cuentas };
+    return { colgando: !cayendo && entrada >= 1 && pausa <= 0 && !terminado, x: c.x, prediccion: c.x + c.vx * ARRASTRE * tc, objetivo: top.x, colocados: pila.length, rondasPerdidas, vidas, ...cuentas, fotogramas };
   };
   (window as unknown as { __cerdos?: () => EstadoCerdos }).__cerdos = estado;
 
@@ -217,39 +241,59 @@ export function jugarCerdos(parent: HTMLElement, rapido = false): Promise<Result
   };
 
   // ---------------------------------------------------------------- drawing
-  const fondo = () => {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
+  const pintarFondo = (c: CanvasRenderingContext2D) => {
+    const g = c.createLinearGradient(0, 0, 0, H);
     g.addColorStop(0, '#18204a');
     g.addColorStop(0.55, '#5a3c6a');
     g.addColorStop(0.8, '#d8775a');
     g.addColorStop(1, '#f2a65e');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, vw, H);
-    // Madrid far away (it barely moves as the view rises), then the fields.
-    const base = 930 + camara * 0.12;
+    c.fillStyle = g;
+    c.fillRect(0, -200, vw, H + 200);
+    // Madrid far away, then the fields (the sky goes 200 units higher, for the view rising).
+    const base = 930;
     if (ciudad) {
       const w = vw * 1.05;
       const hh = (w * ciudad.height) / ciudad.width;
-      ctx.drawImage(ciudad, (vw - w) / 2, base - hh, w, hh);
+      c.drawImage(ciudad, (vw - w) / 2, base - hh, w, hh);
     }
-    const campo = ctx.createLinearGradient(0, base - 6, 0, base + 200);
+    const campo = c.createLinearGradient(0, base - 6, 0, base + 200);
     campo.addColorStop(0, '#8a6c50');
     campo.addColorStop(1, '#6a5440');
-    ctx.fillStyle = campo;
-    ctx.fillRect(0, base - 6, vw, H);
+    c.fillStyle = campo;
+    c.fillRect(0, base - 6, vw, H);
+  };
+  const fondo = () => {
+    if (!fondoListo) {
+      fondoListo = document.createElement('canvas');
+      fondoListo.width = lienzo.width;
+      fondoListo.height = Math.ceil((H + 200) * escala);
+      const c = fondoListo.getContext('2d')!;
+      c.setTransform(escala, 0, 0, escala, 0, 200 * escala);
+      pintarFondo(c);
+    }
+    // The backdrop barely moves as the view rises: far away.
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(fondoListo, 0, Math.round((Math.min(200, camara * 0.12) - 200) * escala));
+    ctx.setTransform(escala, 0, 0, escala, 0, 0);
   };
 
   const pintarCerdo = (i: number, x: number, yPant: number, rot = 0) => {
     const im = imgs[i];
     const s = PIARA[i].s * U;
+    if (!im) {
+      ctx.fillStyle = '#f2a7aa';
+      ctx.fillRect(x - 56 * s, yPant - 72 * s, 112 * s, 54 * s);
+      return;
+    }
+    // Upright pigs without save/restore; rotation only for the swinging and falling ones.
+    if (Math.abs(rot) < 0.002) {
+      ctx.drawImage(im, x - 80 * s, yPant - 100 * s, 180 * s, 110 * s);
+      return;
+    }
     ctx.save();
     ctx.translate(x, yPant);
     ctx.rotate(rot);
-    if (im) ctx.drawImage(im, -80 * s, -100 * s, 180 * s, 110 * s);
-    else {
-      ctx.fillStyle = '#f2a7aa';
-      ctx.fillRect(-56 * s, -72 * s, 112 * s, 54 * s);
-    }
+    ctx.drawImage(im, -80 * s, -100 * s, 180 * s, 110 * s);
     ctx.restore();
   };
 
@@ -325,6 +369,11 @@ export function jugarCerdos(parent: HTMLElement, rapido = false): Promise<Result
     };
     const paso = (ahora: number) => {
       if (!vivo) return;
+      // 60 fps at most, also on 120 Hz screens.
+      if (ahora - ultimo < 1000 / 60 - 4) {
+        requestAnimationFrame(paso);
+        return;
+      }
       const dt = Math.min(0.05, (ahora - ultimo) / 1000);
       ultimo = ahora;
       t += dt;
@@ -360,6 +409,7 @@ export function jugarCerdos(parent: HTMLElement, rapido = false): Promise<Result
       const quiere = Math.max(0, alto - 420);
       camara += (quiere - camara) * Math.min(1, dt * 3);
       pintar();
+      fotogramas++;
       requestAnimationFrame(paso);
     };
     requestAnimationFrame(paso);

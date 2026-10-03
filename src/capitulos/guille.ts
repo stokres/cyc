@@ -8,6 +8,8 @@
 //   4. He stinks of pig: flies follow him. The shower? There is no shower.
 //   5. Alcohol from the first-aid kit + rosemary from the bush, put together in
 //      the bag (combining items), and water from the hose: farm cologne.
+//      Anything that can be picked up can be picked up (and combined) at any
+//      time, before knowing what it is for (docs/JUGABILIDAD.md).
 //   6. Cologne on himself, and off in the car to the Río.
 // Every line comes from src/textos/capitulo1.md (keys starting with g.).
 import type { Aventura, ZonaLogica } from '../juego/aventura';
@@ -19,7 +21,9 @@ const f = (g: Aventura, k: string) => g.flag(k);
 
 async function pesar(g: Aventura) {
   await g.hablar('g.bascula.antes');
-  const r = await jugarCerdos(g.root, g.rapido);
+  // The minigame covers the whole screen: the scene underneath stops drawing.
+  g.pausado = true;
+  const r = await jugarCerdos(g.root, g.rapido).finally(() => (g.pausado = false));
   if (r === 'cancelado') return g.hablar('g.cerdos.cancelado');
   g.poner('g.pesados');
   g.avanzarReloj(12);
@@ -74,7 +78,6 @@ export function zonasGranja(g: Aventura): Record<string, ZonaLogica> {
     botiquin: {
       async usar() {
         if (f(g, 'g.alcohol')) return g.hablar('g.botiquin.vacio');
-        if (!f(g, 'g.olor')) return g.hablar('g.botiquin.antes');
         g.poner('g.alcohol');
         await g.hablar('g.botiquin');
         g.dar('alcohol');
@@ -84,7 +87,6 @@ export function zonasGranja(g: Aventura): Record<string, ZonaLogica> {
     romero: {
       async usar() {
         if (f(g, 'g.romero')) return g.hablar('g.romero.ya');
-        if (!f(g, 'g.olor')) return g.hablar('g.romero.antes');
         g.poner('g.romero');
         await g.hablar('g.romero');
         g.dar('romero');
@@ -139,6 +141,8 @@ export async function combinar(g: Aventura, a: string, b: string) {
 export async function aSiMismo(g: Aventura, item: string | null, mirar: boolean) {
   if (mirar || !item) return g.hablar(f(g, 'g.limpio') ? 'g.mirar.guille.limpio' : f(g, 'g.olor') ? 'g.mirar.guille.olor' : 'mirar.guille');
   if (item === 'colonia') {
+    // Made before he needs it: he keeps it for later.
+    if (!f(g, 'g.olor')) return g.hablar('g.colonia.antes');
     g.quitar('colonia');
     g.poner('g.limpio');
     g.avanzarReloj(1);

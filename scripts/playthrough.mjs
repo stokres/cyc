@@ -1,8 +1,9 @@
 // Plays the pilot from start to finish on a phone-sized viewport, like a player:
 // choose Fran, wake him, switch to Pablo halfway and finish his (placeholder)
 // story, go back to Fran, solve the flat puzzle and walk towards the Bar del Río,
-// then Chuchi's placeholder and Guille's farm (batteries, the pig tower, the
-// homemade cologne), and watch the four arrive together.
+// then Chuchi's placeholder and Guille's farm (batteries, rosemary and alcohol
+// picked up early, the pig tower, the homemade cologne), and watch the four
+// arrive together.
 // Fails on any console error or if a step does not do what it should.
 // Usage: node scripts/playthrough.mjs [url] [outDir]   (add ?relieve to the url to play it with relief light)
 import { chromium } from 'playwright';
@@ -214,6 +215,14 @@ async function historiaGuille() {
   await shot('granja');
   await paso('Guille: la báscula no tiene pilas', async () => tocar(await verZona('bascula')), 'g.basculaVista');
   await paso('Guille: las pilas de la radio', async () => tocar(await verZona('radio')), 'g.pilas');
+  // Anything that can be picked up can be picked up any time (docs/JUGABILIDAD.md):
+  // the rosemary and the alcohol, and put together, before he even smells.
+  await paso('Guille: romero, antes de saber para qué', async () => tocar(await verZona('romero')), 'g.romero');
+  await paso('Guille: alcohol del botiquín', async () => tocar(await verZona('botiquin')), 'g.alcohol');
+  await paso('Guille: juntar alcohol y romero', async () => {
+    await combinar('alcohol', 'romero');
+    check(await page.evaluate(() => window.__cyc.g.tiene('alcoholRomero')), 'no sale el alcohol de romero');
+  });
   await paso('Guille: pilas en la báscula', () => usarEn('pilas', 'bascula'), 'basculaLista');
   await paso('Guille: apilar los ocho cerdos', async () => {
     await page.touchscreen.tap(...(await verZona('bascula')));
@@ -223,12 +232,6 @@ async function historiaGuille() {
     check(kg, 'los cerdos no quedan pesados');
   }, 'g.olor');
   await shot('moscas');
-  await paso('Guille: alcohol del botiquín', async () => tocar(await verZona('botiquin')), 'g.alcohol');
-  await paso('Guille: romero', async () => tocar(await verZona('romero')), 'g.romero');
-  await paso('Guille: juntar alcohol y romero', async () => {
-    await combinar('alcohol', 'romero');
-    check(await page.evaluate(() => window.__cyc.g.tiene('alcoholRomero')), 'no sale el alcohol de romero');
-  });
   await paso('Guille: agua de la manguera', () => usarEn('alcoholRomero', 'manguera'), 'g.colonia');
   await paso('Guille: echarse la colonia', async () => {
     await objeto('colonia');

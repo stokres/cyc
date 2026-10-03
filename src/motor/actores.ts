@@ -5,7 +5,9 @@
 import { Rig } from '../arte/personajes/rig-runtime.mjs';
 import { Perro, body as perroBody } from '../arte/personajes/aceituna.mjs';
 import type { RGB } from './escena';
-import { imagen, rasterizar, rasterizarUnaVez, type Sprite } from './sprites';
+import { enMarcha, nuevaImagen, rasterizar, rasterizarUnaVez, sinHueco } from './sprites';
+
+const NS_SVG = 'http://www.w3.org/2000/svg';
 
 const NS = 'http://www.w3.org/2000/svg';
 
@@ -180,6 +182,19 @@ export class Actor {
   update(_t: number, _dt: number) {}
 }
 
+type PerroRT = {
+  stand: Element;
+  lie: Element;
+  headArt: Element;
+  tailEl: Element;
+  legs: Record<string, Element>;
+  earN: Element | null;
+  earF: Element | null;
+  key: string;
+  onHead: ((key: string) => void) | null;
+  headSvg(key: string): string;
+};
+
 type RigRT = InstanceType<typeof Rig> & {
   els: Record<string, Element | null>;
   headArt: Element;
@@ -188,19 +203,95 @@ type RigRT = InstanceType<typeof Rig> & {
   headSvg(key: string): string;
 };
 
+/**
+ * Replace a piece's vector art with a bitmap of it, without an empty frame: the
+ * image goes on top and the vectors leave once it has painted (sinHueco).
+ * `hijos` picks which children make the piece (all of them by default).
+ */
+async function piezaAImagen(el: Element, hijos: ChildNode[] = [...el.childNodes]) {
+  if (!hijos.length) return;
+  const sp = await rasterizar(hijos.map((n) => (n as Element).outerHTML ?? n.textContent ?? '').join(''));
+  if (!sp) return;
+  const img = nuevaImagen(sp);
+  el.insertBefore(img, hijos[0]);
+  await sinHueco(img, () => hijos.forEach((n) => n.remove()));
+}
+
+/**
+ * A head drawn from bitmaps, one per expression key, swapped without flicker:
+ * each expression's <image> is made once and kept; the one showing changes by
+ * display, and the previous one stays underneath until the new one has painted
+ * (on Android, Chrome paints a fresh image empty until it is decoded). An
+ * expression not ready yet keeps the current bitmap a few frames rather than
+ * flipping between vector and bitmap art.
+ */
+export class CabezasEnImagen {
+  private vector: SVGGElement;
+  private imgs = new Map<string, SVGImageElement>();
+  private pendientes = new Set<string>();
+  private visible: Element;
+  private actual: string;
+
+  constructor(private readonly caja: Element, private readonly dibujar: (key: string) => string, inicial: string) {
+    this.vector = document.createElementNS(NS_SVG, 'g');
+    this.vector.innerHTML = caja.innerHTML;
+    caja.replaceChildren(this.vector);
+    this.visible = this.vector;
+    this.actual = inicial;
+    if (inicial) void this.hacer(inicial);
+  }
+
+  mostrar(key: string) {
+    if (!key) return;
+    this.actual = key;
+    const img = this.imgs.get(key);
+    if (img) return this.ver(img);
+    void this.hacer(key);
+    if (this.visible === this.vector) this.vector.innerHTML = this.dibujar(key);
+  }
+
+  async preparar(keys: string[]) {
+    for (const k of keys) await this.hacer(k);
+  }
+
+  private async hacer(key: string) {
+    if (this.imgs.has(key) || this.pendientes.has(key)) return;
+    this.pendientes.add(key);
+    const sp = await rasterizar(this.dibujar(key));
+    this.pendientes.delete(key);
+    if (!sp) return;
+    const img = nuevaImagen(sp);
+    img.style.display = 'none';
+    this.caja.append(img);
+    this.imgs.set(key, img);
+    if (this.actual === key) this.ver(img);
+  }
+
+  private ver(el: Element) {
+    const antes = this.visible;
+    if (antes === el) return;
+    this.visible = el;
+    (el as SVGElement).style.display = '';
+    void sinHueco(el, () => {
+      if (this.visible === antes) return;
+      (antes as SVGElement).style.display = 'none';
+      // Vector art no longer needed: out of the DOM (its clip paths cost even hidden).
+      if (antes === this.vector) this.vector.replaceChildren();
+    });
+  }
+}
+
 /** A protagonist: rigged body, outfit, moods and lip sync. */
 export class Personaje extends Actor {
   private rig: RigRT;
   private outfit: string | undefined;
-  /** Bitmap heads by expression (mood|mouth|blink); 'pend' while being made. */
-  private cabezas = new Map<string, Sprite | 'pend'>();
   private version = 0;
 
   constructor(world: SVGGElement, defs: SVGDefsElement, id: string, readonly arte: ArteDePersonaje, outfit?: string, seed = 0) {
     super(world, defs, id, arte.body({}, outfit), [44, 9]);
     this.outfit = outfit;
     this.rig = new Rig(this.inner.querySelector('#personaje'), arte, { seed }) as RigRT;
-    void this.aImagenes();
+    void enMarcha(() => this.aImagenes());
   }
 
   /**
@@ -210,40 +301,21 @@ export class Personaje extends Actor {
   private async aImagenes() {
     const v = ++this.version;
     const rig = this.rig;
-    const hechas: Array<[Element, Sprite]> = [];
     for (const [id, el] of Object.entries(rig.els)) {
       if (!el || id === 'cabeza') continue;
-      const sp = await rasterizar(el.innerHTML);
+      await piezaAImagen(el);
       if (v !== this.version) return;
-      if (sp) hechas.push([el, sp]);
     }
-    for (const [el, sp] of hechas) el.innerHTML = imagen(sp);
-    rig.onHead = (key) => this.cabeza(key);
-    this.cabeza(rig.lastKey);
-    // The usual expressions ahead of time, so blinking and talking never wait.
+    this.cabezas = new CabezasEnImagen(rig.headArt, (key) => rig.headSvg(key), rig.lastKey);
+    rig.onHead = (key) => this.cabezas?.mostrar(key);
+    // The usual mood first, then happy (the most common one in dialogue).
     const mood = rig.mood ?? 'neutral';
-    for (const boca of ['auto', 'a', 'e', 'o', 'm', 'reposo']) for (const ojo of ['0', '1']) await this.hacerCabeza(`${mood}|${boca}|${ojo}`);
+    const claves: string[] = [];
+    for (const m of [mood, 'happy']) for (const boca of ['auto', 'a', 'e', 'o', 'm', 'reposo']) for (const ojo of ['0', '1']) claves.push(`${m}|${boca}|${ojo}`);
+    await this.cabezas.preparar(claves);
   }
 
-  private async hacerCabeza(key: string) {
-    if (this.cabezas.has(key)) return;
-    this.cabezas.set(key, 'pend');
-    const sp = await rasterizar(this.rig.headSvg(key));
-    if (sp) this.cabezas.set(key, sp);
-    else this.cabezas.delete(key);
-    if (sp && this.rig.lastKey === key) this.rig.headArt.innerHTML = imagen(sp);
-  }
-
-  private cabeza(key: string) {
-    if (!key) return;
-    const c = this.cabezas.get(key);
-    if (c && c !== 'pend') {
-      this.rig.headArt.innerHTML = imagen(c);
-      return;
-    }
-    this.rig.headArt.innerHTML = this.rig.headSvg(key);
-    void this.hacerCabeza(key);
-  }
+  private cabezas: CabezasEnImagen | null = null;
 
   get name() {
     return this.arte.INFO.name;
@@ -261,7 +333,7 @@ export class Personaje extends Actor {
     this.inner.innerHTML = this.arte.body({}, outfit);
     this.rig = new Rig(this.inner.querySelector('#personaje'), this.arte, { seed: this.rig.seed }) as RigRT;
     Object.assign(this.rig, { mood, talking });
-    void this.aImagenes();
+    void enMarcha(() => this.aImagenes());
   }
 
   set mood(m: string) {
@@ -298,6 +370,46 @@ export class Perrita extends Actor {
     super(world, defs, 'aceituna', perroBody(), [44, 7]);
     this.rig = new Perro(this.inner.querySelector('#perro'));
     this.speed = 300;
+    void enMarcha(() => this.aImagenes());
+  }
+
+  /** Same as the protagonists: legs, tail, body and the curled-up pose as bitmaps; the head per expression. */
+  private async aImagenes() {
+    const R = this.rig as unknown as PerroRT;
+    for (const el of [R.tailEl, ...Object.values(R.legs)]) if (el) await piezaAImagen(el);
+    // The body: the standing pose's own art, between the legs (not the moving parts).
+    const mueve = new Set([R.tailEl, R.headArt.parentElement, ...Object.values(R.legs)]);
+    await piezaAImagen(R.stand, [...R.stand.childNodes].filter((n) => !mueve.has(n as Element)));
+    await piezaAImagen(R.lie);
+    // Head: the two ears stay separate pieces (they twitch); the rest, one bitmap per expression.
+    const sinOrejas = (key: string) => {
+      const t = document.createElementNS(NS_SVG, 'g');
+      t.innerHTML = R.headSvg(key);
+      t.querySelectorAll('#oreja_lejos, #oreja_cerca').forEach((e) => e.remove());
+      return t.innerHTML;
+    };
+    const ref = document.createElementNS(NS_SVG, 'g');
+    ref.innerHTML = R.headSvg(R.key || '0|0|0');
+    const oreja = async (id: string) => {
+      const o = ref.querySelector('#' + id)!;
+      const g = document.createElementNS(NS_SVG, 'g');
+      g.id = id;
+      g.innerHTML = o.innerHTML;
+      await piezaAImagen(g);
+      return g;
+    };
+    const lejos = await oreja('oreja_lejos');
+    const cerca = await oreja('oreja_cerca');
+    const cara = document.createElementNS(NS_SVG, 'g');
+    cara.innerHTML = sinOrejas(R.key || '0|0|0');
+    R.headArt.replaceChildren(lejos, cara, cerca);
+    R.earF = lejos;
+    R.earN = cerca;
+    const cabezas = new CabezasEnImagen(cara, sinOrejas, R.key || '0|0|0');
+    R.onHead = (key) => cabezas.mostrar(key);
+    const claves: string[] = [];
+    for (const b of ['0', '1']) for (const p of ['0', '1']) for (const h of ['0', '1']) claves.push(`${b}|${p}|${h}`);
+    await cabezas.preparar(claves);
   }
 
   private acumulado = 0;
@@ -317,7 +429,11 @@ export class Objeto extends Actor {
     super(world, defs, id, svg, shadow ?? [0, 0]);
     // Props never change: one bitmap each.
     void rasterizarUnaVez(svg).then((sp) => {
-      if (sp) this.inner.innerHTML = imagen(sp);
+      if (!sp) return;
+      const viejos = [...this.inner.childNodes];
+      const img = nuevaImagen(sp);
+      this.inner.append(img);
+      void sinHueco(img, () => viejos.forEach((n) => n.remove()));
     });
   }
 }
