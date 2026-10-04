@@ -141,6 +141,9 @@ async function objeto(id) {
  */
 async function lanzarJamon() {
   await page.waitForSelector('.cubierta.rana');
+  // The galop plays in a loop while the minigame lasts (src/core/audio.ts).
+  await page.waitForFunction(() => window.__cyc.g.sound.musicaActual === 'galop', null, { timeout: 15000 }).catch(() => {});
+  check((await page.evaluate(() => window.__cyc.g.sound.musicaActual)) === 'galop', 'no suena el galop en el minijuego de la rana');
   let tiros = 0;
   let foto = false;
   for (let i = 0; i < 3000 && (await page.$('.cubierta.rana')); i++) {
@@ -184,6 +187,7 @@ async function lanzarJamon() {
     await page.waitForFunction(() => !window.__rana?.()?.vuela, null, { timeout: 8000 }).catch(() => {});
   }
   await page.waitForSelector('.cubierta.rana', { state: 'detached', timeout: 30000 });
+  check((await page.evaluate(() => window.__cyc.g.sound.musicaActual)) === null, 'el galop sigue sonando al acabar la rana');
   return tiros;
 }
 

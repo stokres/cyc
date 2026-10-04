@@ -113,6 +113,8 @@ export interface OpcionesRana {
   rapido?: boolean;
   /** The endless version, from the minigames menu. */
   infinito?: Infinito;
+  /** For the music (the galop, in a loop while it lasts). */
+  sonido?: { musica(id: 'galop'): void; pararMusica(fundido?: number): void };
 }
 
 /** A warm glow, for the lamp: made once. */
@@ -166,6 +168,7 @@ export function jugarRana(parent: HTMLElement, op: OpcionesRana): Promise<Result
   const capa = h('div', { class: 'cubierta minijuego rana' }, lienzo, h('p', { class: 'instrucciones' }, texto('rana.instrucciones')), ganasEl, municion, ...(puntos ? [puntos.el] : []), aviso, saltar, cerrar);
   parent.append(capa);
   const ctx = lienzo.getContext('2d')!;
+  op.sonido?.musica('galop');
 
   // ---------------------------------------------------------------- screen and bitmaps
   let vw = 1920;
@@ -594,6 +597,7 @@ export function jugarRana(parent: HTMLElement, op: OpcionesRana): Promise<Result
       if (!vivo) return;
       vivo = false;
       ro.disconnect();
+      op.sonido?.pararMusica();
       delete (window as unknown as { __rana?: unknown }).__rana;
       capa.remove();
       resolve(r);

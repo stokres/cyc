@@ -114,6 +114,7 @@ async function tirarJamon(g: Aventura) {
     cuerpoFran: (animo) => F.arte.body({ mood: animo }, g.estado.ropa.fran ?? F.ropa),
     joints: (F.arte as unknown as { JOINTS: Record<string, number[]> }).JOINTS,
     rapido: g.rapido,
+    sonido: g.sound,
   }).finally(() => (g.pausado = false));
   if (r === 'cancelado') return g.hablar('rana.cancelada');
   if (r === 'hecho') g.minijuegoSuperado('rana');

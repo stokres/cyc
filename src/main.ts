@@ -307,6 +307,7 @@ async function arrancar() {
         joints: (F.arte as unknown as { JOINTS: Record<string, number[]> }).JOINTS,
         rapido: g.rapido,
         infinito: inf,
+        sonido: g.sound,
       });
     } else if (id === 'palabras') r = await jugarPalabras(g.root, REPARTO.pablo.arte.body({}, g.estado.ropa.pablo ?? REPARTO.pablo.ropa), g.rapido, inf);
     else if (id === 'robot') r = await jugarRobot(g.root, g.rapido, inf);

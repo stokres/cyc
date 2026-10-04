@@ -1,6 +1,12 @@
 # «Galop del lío»: for the minigames. A circus/cartoon chase galop: xylophone racing along,
 # strings and tuba going «um-pa», brass stabs, snare in eighths, a slide whistle that goes up
 # and comes down, and a «ta-dá!». C major (the middle part in A minor), 152 bpm, 2/4.
+#
+#   python3 galop.py          the piece, with its fanfare and «ta-dá!»   -> galop-del-lio.mid
+#   python3 galop.py bucle    the body three times, identical, for a seamless loop (bucle.py)
+#                             -> galop-bucle.mid, and the loop's length in seconds on stdout
+import random
+import sys
 from partitura import Pieza, n
 from comun import pcs, tocar, cercana
 
@@ -76,6 +82,55 @@ def silbato(beat, sube=True):
     else:
         P.glis(SILB, beat, 1.1, 'C6', 'C5', 92, curva=1.4)
 
+BUCLE = len(sys.argv) > 1 and sys.argv[1] == 'bucle'
+
+def cuerpo(t, fin_al_principio=False):
+    """A, A with counter-line, B twice, A with everything. Returns where it ends."""
+    # A: the xylophone.
+    um_pa(t, ACORDES_A)
+    caja(t, 16)
+    tocar(P, XILO, t, TEMA_A, L, 112, acento=10, legato=0.7)
+    P.acorde(METAL, t + 7 * L + 0.5, .25, ['E4', 'G4', 'C5'], 92, rasgueo=0, legato=0.5)   # the stabs in bar 8's gaps
+    P.acorde(METAL, t + 7 * L + 1.5, .25, ['E4', 'G4', 'C5'], 96, rasgueo=0, legato=0.5)
+    silbato(t + 15 * L + 1)
+    t += 16 * L
+    # A again: the brass sing a counter-line under it, the piccolo doubles the tune.
+    um_pa(t, ACORDES_A)
+    caja(t, 16)
+    tocar(P, XILO, t, TEMA_A, L, 116, acento=10, legato=0.7)
+    tocar(P, PICC, t, TEMA_A, L, 62, legato=0.6)
+    contracanto(t, ACORDES_A)
+    P.acorde(METAL, t + 15 * L + 1, .5, ['B3', 'D4', 'F4', 'G4'], 100, rasgueo=0, legato=0.5)
+    t += 16 * L
+    # B: A minor, the chase; second time the strings take the tune an octave down.
+    for vuelta in range(2):
+        um_pa(t, ACORDES_B, vel=80)
+        caja(t, 8, crash=vuelta == 0)
+        tocar(P, XILO, t, TEMA_B, L, 110, acento=10, legato=0.7)
+        if vuelta:
+            tocar(P, CUER, t, TEMA_B, L, 74, oct=-1, legato=0.8)
+        t += 8 * L
+    silbato(t - L + 0.5, sube=False)  # and down it comes
+    # A with everything.
+    um_pa(t, ACORDES_A, vel=92)
+    caja(t, 16)
+    tocar(P, XILO, t, TEMA_A, L, 118, acento=10, legato=0.7)
+    tocar(P, PICC, t, TEMA_A, L, 70, legato=0.6)
+    contracanto(t, ACORDES_A, vel=78)
+    if fin_al_principio:
+        silbato(t + 15 * L + 1)  # up again, and round to the start
+    return t + 16 * L
+
+if BUCLE:
+    # Three identical rounds (same humanising each time): bucle.py keeps the middle one.
+    t = 0.0
+    for _ in range(3):
+        random.seed(47)
+        t = cuerpo(t, fin_al_principio=True)
+    P.guardar('galop-bucle.mid')
+    print(round(t / 3 * 60 / 152, 6))
+    sys.exit()
+
 t = 0.0
 # Intro: a snare roll, a brass hit, the whistle goes up.
 for k in range(16):
@@ -85,38 +140,7 @@ P.nota(TUBA, t + 2, .5, 'C2', 100, legato=0.5)
 P.nota(BAT, t + 2, 1, 49, 100)
 silbato(t + 2.5)
 t += 2 * L
-# A: the xylophone.
-um_pa(t, ACORDES_A)
-caja(t, 16)
-tocar(P, XILO, t, TEMA_A, L, 112, acento=10, legato=0.7)
-P.acorde(METAL, t + 7 * L + 0.5, .25, ['E4', 'G4', 'C5'], 92, rasgueo=0, legato=0.5)   # the stabs in bar 8's gaps
-P.acorde(METAL, t + 7 * L + 1.5, .25, ['E4', 'G4', 'C5'], 96, rasgueo=0, legato=0.5)
-silbato(t + 15 * L + 1)
-t += 16 * L
-# A again: the brass sing a counter-line under it, the piccolo doubles the tune.
-um_pa(t, ACORDES_A)
-caja(t, 16)
-tocar(P, XILO, t, TEMA_A, L, 116, acento=10, legato=0.7)
-tocar(P, PICC, t, TEMA_A, L, 62, legato=0.6)
-contracanto(t, ACORDES_A)
-P.acorde(METAL, t + 15 * L + 1, .5, ['B3', 'D4', 'F4', 'G4'], 100, rasgueo=0, legato=0.5)
-t += 16 * L
-# B: A minor, the chase; second time the strings take the tune an octave down.
-for vuelta in range(2):
-    um_pa(t, ACORDES_B, vel=80)
-    caja(t, 8, crash=vuelta == 0)
-    tocar(P, XILO, t, TEMA_B, L, 110, acento=10, legato=0.7)
-    if vuelta:
-        tocar(P, CUER, t, TEMA_B, L, 74, oct=-1, legato=0.8)
-    t += 8 * L
-silbato(t - L + 0.5, sube=False)  # and down it comes
-# A with everything.
-um_pa(t, ACORDES_A, vel=92)
-caja(t, 16)
-tocar(P, XILO, t, TEMA_A, L, 118, acento=10, legato=0.7)
-tocar(P, PICC, t, TEMA_A, L, 70, legato=0.6)
-contracanto(t, ACORDES_A, vel=78)
-t += 16 * L
+t = cuerpo(t)
 # «¡Ta-dá!»: C, G7, C with a crash.
 for b, notas, v in [(0, ['E4', 'G4', 'C5'], 100), (0.5, ['D4', 'F4', 'B4'], 96), (1, ['E4', 'G4', 'C5', 'E5'], 118)]:
     P.acorde(METAL, t + b, .4 if b < 1 else 1.5, notas, v, rasgueo=0, legato=0.8)

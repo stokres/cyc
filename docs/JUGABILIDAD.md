@@ -42,6 +42,13 @@ En el menú, **Capítulos** enseña cada capítulo (superado, en curso o todaví
 | Atascarse | La bombilla da una pista según el punto de la historia |
 | Un amigo delante de una puerta | Para hablar con un amigo hay que tocarle la cabeza o los hombros; el resto del cuerpo deja pasar el toque a lo que haya detrás |
 
+## Sonido y música
+
+- El sonido arranca con el primer toque (los móviles no dejan antes) y se apaga entero con «Sonido» en el menú. Con la app en segundo plano o el móvil bloqueado, se suspende.
+- Ya no hay ruido de fondo constante (decidido el 4 de octubre de 2026): era un siseo molesto.
+- **Música en bucle sin cortes** (`src/core/audio.ts`, pistas en `src/sonido/musica.ts`): se genera con `tools/musica` (por ejemplo, `python3 galop.py bucle` y `python3 bucle.py`). Cada archivo lleva medio segundo de margen a cada lado del bucle con lo que va justo antes y después, y el final del bucle se funde con lo que precede a su inicio, así que la junta no da chasquido en ningún móvil. Entra y sale con un fundido.
+- Por ahora suena el **«Galop del lío»** en el minijuego de la rana de Aceituna, en la historia y sin fin. El resto de la música y los efectos, por decidir.
+
 ## Reglas de los minijuegos
 
 1. **Un solo gesto:** tocar a tiempo, deslizar, arrastrar, mantener o inclinar.
