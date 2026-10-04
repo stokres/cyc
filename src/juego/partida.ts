@@ -69,6 +69,12 @@ export function cargarPartida(): Partida {
   return p;
 }
 
+/** Everything saved goes (the settings stay): the way out of a broken save, with ?nueva in the address. */
+export function borrarPartida() {
+  storageSet(KEY, null);
+  storageSet(KEY_V3, null);
+}
+
 export function guardarPartida(p: Partida) {
   storageSet(KEY, JSON.stringify(p));
 }

@@ -4,7 +4,7 @@ import textosCapitulo from './textos/capitulo1.md?raw';
 import textosInterfaz from './textos/interfaz.md?raw';
 import { cargarTextos, texto } from './juego/textos';
 import { Aventura } from './juego/aventura';
-import { cargarPartida, enJuego, guardarPartida, rejugar, volverAPrincipal, type Partida } from './juego/partida';
+import { borrarPartida, cargarPartida, enJuego, guardarPartida, rejugar, volverAPrincipal, type Partida } from './juego/partida';
 import { capitulo1 } from './capitulos/capitulo1';
 import { h } from './ui/hud';
 import type { Calidad } from './motor/motor';
@@ -55,6 +55,13 @@ async function arrancar() {
   // ---------------------------------------------------------- the saved game
   // Two games (see src/juego/partida.ts): the main one and, if any, a chapter
   // being replayed. Switching between them saves and reloads the page.
+  // The emergency exit (docs/JUGABILIDAD.md): the address ending in ?nueva starts from nothing.
+  const params = new URLSearchParams(location.search);
+  if (params.has('nueva')) {
+    borrarPartida();
+    params.delete('nueva');
+    history.replaceState(null, '', location.pathname + (params.size ? `?${params}` : '') + location.hash);
+  }
   const partida = cargarPartida();
   const enCurso = enJuego(partida);
   const g = new Aventura(root, capitulo1, enCurso?.estado ?? capitulo1.estadoInicial());
@@ -286,6 +293,8 @@ async function arrancar() {
     if (nueva) await g.ejecutar(() => g.empezarPartida());
     // Saved between two stories: choose who goes next.
     else if (g.llegado(g.estado.activo) && !g.estado.final) await g.ejecutar(async () => g.cambiarA(await g.escogerQuien(texto('eleccion.siguiente'))));
+    // A story started again by the repair of an old save (aventura.ts, reparar): its opening.
+    else if (!g.flag(`empezado.${g.estado.activo}`)) await g.ejecutar(() => g.cambiarA(g.estado.activo));
   });
 
   // Test hook for scripts/playthrough.mjs.

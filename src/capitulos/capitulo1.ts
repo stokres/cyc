@@ -376,6 +376,10 @@ export const capitulo1: Capitulo = {
 
   estadoInicial,
 
+  // Chuchi's real story (Bolilandia) came after his placeholder: an old save where
+  // he already got to the bar without it plays it now (unless the chapter is over).
+  caducados: (e) => (!e.final && e.llegados.includes('chuchi') && !e.flags['c.vencido'] ? ['chuchi'] : []),
+
   zonas(g, escena) {
     if (escena === 'piso') return zonasPiso(g);
     if (escena === 'calle') return zonasCalle(g);

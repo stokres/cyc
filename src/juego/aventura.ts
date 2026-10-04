@@ -10,6 +10,7 @@ import { Sound } from '../core/audio';
 import { dialogo, hayDialogo, restaurarUsos, texto, usos, type Linea, type Quien } from './textos';
 import { PROTAS, REPARTO, type PjId } from './reparto';
 import type { Estado } from './estado';
+import { OBJETOS } from '../arte/objetos.mjs';
 
 export interface ZonaLogica {
   /** Shown on labels; defaults to `zona.<id>` in the texts. */
@@ -28,6 +29,8 @@ export interface ZonaLogica {
 export interface Capitulo {
   escenas: Record<string, () => Escena>;
   estadoInicial(): Estado;
+  /** A save from an older version: whose story changed so much it has to start again (see reparar). */
+  caducados?(e: Estado): PjId[];
   zonas(g: Aventura, escena: string): Record<string, ZonaLogica>;
   /** Tap (or long press, `mirar`) on a character or Aceituna, maybe with an item. */
   personaje(g: Aventura, quien: PjId | 'aceituna' | 'sombra', item: string | null, mirar: boolean): Promise<void>;
@@ -85,6 +88,7 @@ export class Aventura {
   private frames: number[] = [];
 
   constructor(readonly root: HTMLElement, readonly cap: Capitulo, public estado: Estado) {
+    reparar(cap, estado);
     this.motor = new Motor(root);
     // Characters become bitmaps at the size they are drawn on this screen (the nearest one, ~k 1.3).
     setEscalaSprites((Math.min(window.devicePixelRatio || 1, 3) * this.motor.cssH * this.motor.escala(1.3)) / H);
@@ -371,6 +375,8 @@ export class Aventura {
       await fn();
     } catch (e) {
       console.error(e);
+      // Never leave the player behind the loading curtain: back to the scene there was.
+      if (this.S && this.velo.classList.contains('on')) void this.velar(false);
     } finally {
       this.ocupado = false;
       this.hud.cerrarDialogo();
@@ -749,4 +755,29 @@ export class Aventura {
       this.hud.fps(`${Math.round(1 / avg)} fps · ${texto(this.enMovimiento() ? 'rendimiento.movimiento' : 'rendimiento.reposo')} · ${this.motor.calidad} · ${this.motor.back.width}×${this.motor.back.height}`);
     }
   }
+}
+
+/**
+ * Saves from older versions, made playable: a protagonist in a scene that no
+ * longer exists (Chuchi's placeholder before Bolilandia), or whose story the
+ * chapter says has changed under them, starts their story again; items that no
+ * longer exist leave the bag. Everyone else keeps their progress.
+ */
+export function reparar(cap: Capitulo, e: Estado) {
+  const inicial = cap.estadoInicial();
+  const caducados = new Set(cap.caducados?.(e) ?? []);
+  for (const id of PROTAS) {
+    const d = e.donde[id];
+    if (d && !cap.escenas[d.escena]) caducados.add(id);
+  }
+  for (const id of caducados) {
+    e.donde[id] = inicial.donde[id];
+    e.inv[id] = [...(inicial.inv[id] ?? [])];
+    e.minutos[id] = inicial.minutos[id];
+    e.llegados = e.llegados.filter((x) => x !== id);
+    delete e.flags[`empezado.${id}`];
+    console.warn(`Partida antigua: la historia de ${id} empieza otra vez`);
+  }
+  for (const id of PROTAS) if (e.inv[id]) e.inv[id] = e.inv[id].filter((i) => i in OBJETOS);
+  if (!e.donde[e.activo] || !cap.escenas[e.donde[e.activo]!.escena]) e.activo = e.jugables[0];
 }

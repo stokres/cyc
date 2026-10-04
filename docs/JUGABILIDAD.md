@@ -18,6 +18,10 @@ Lo guarda `src/juego/partida.ts`, en una sola entrada del navegador (`cyc.partid
 
 En el menú, **Capítulos** enseña cada capítulo (superado, en curso o todavía no) y deja rejugar los superados. Mientras rejuegas, el título y el menú lo avisan, y desde Capítulos (o desde la tarjeta del final) vuelves a tu partida. **Empezar de nuevo** solo reinicia la partida que estás jugando: lo conseguido no se borra nunca. Al terminar un capítulo, la tarjeta final ofrece rejugarlo. Las partidas guardadas con la versión anterior pasan a ser tu partida, y si habían llegado al final, el capítulo 1 y sus minijuegos cuentan como superados.
 
+**Partidas de versiones antiguas.** Al cargar, `reparar` (`src/juego/aventura.ts`) arregla lo que una versión nueva haya dejado atrás: quien esté en una escena que ya no existe (Chuchi en su escena provisional, antes de Bolilandia), o cuya historia el capítulo diga que ha cambiado (`caducados`), empieza su historia otra vez; los demás conservan su avance, y los objetos que ya no existen salen de la bolsa. Si una escena falla al cargar, el velo se levanta y sigues en la escena de antes en vez de quedarte en «Preparando la escena…».
+
+**Salida de emergencia.** Abrir el juego con `?nueva` al final de la dirección (por ejemplo `https://stokres.github.io/cyc/?nueva`) borra la partida guardada (no los ajustes) y empieza desde cero.
+
 ## Point and click en pantalla táctil
 
 | Problema | Solución |
