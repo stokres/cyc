@@ -1,10 +1,10 @@
-// Tiny synthesized sound: street ambience and UI cues. No audio files to load.
+// Tiny synthesized sound: UI cues. No audio files to load. (The constant
+// ambience of filtered noise is gone: it was a hiss. Music and effects are next.)
 // Phones only allow sound after a tap, so start() is called from the title screen.
 
 export class Sound {
   private ac: AudioContext | null = null;
   private master: GainNode | null = null;
-  private amb: GainNode | null = null;
   muted = false;
 
   start() {
@@ -19,29 +19,6 @@ export class Sound {
     this.master = ac.createGain();
     this.master.gain.value = this.muted ? 0 : 0.8;
     this.master.connect(ac.destination);
-    // Ambience: soft drizzle (filtered noise) + low city hum.
-    const len = ac.sampleRate * 3;
-    const buf = ac.createBuffer(1, len, ac.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
-    const noise = ac.createBufferSource();
-    noise.buffer = buf;
-    noise.loop = true;
-    const hp = ac.createBiquadFilter();
-    hp.type = 'bandpass';
-    hp.frequency.value = 2400;
-    hp.Q.value = 0.6;
-    const lp = ac.createBiquadFilter();
-    lp.type = 'lowpass';
-    lp.frequency.value = 220;
-    this.amb = ac.createGain();
-    this.amb.gain.value = 0.05;
-    const hum = ac.createGain();
-    hum.gain.value = 0.5;
-    noise.connect(hp).connect(this.amb);
-    noise.connect(lp).connect(hum).connect(this.amb);
-    this.amb.connect(this.master);
-    noise.start();
   }
 
   setMuted(m: boolean) {
