@@ -72,7 +72,13 @@ function imagenMadrid(ancho: number) {
   return svgABitmap(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${m.x0} ${m.y0} ${w} ${hh}" width="${Math.ceil(w * k)}" height="${Math.ceil(hh * k)}">${m.body}</svg>`, w * k, hh * k);
 }
 
-export function jugarCerdos(parent: HTMLElement, rapido = false, infinito?: Infinito): Promise<Resultado> {
+/** For the music: the fast banjo polka, in a loop while the minigame lasts. */
+export interface SonidoMinijuego {
+  musica(id: 'granjaCerdos'): void;
+  pararMusica(fundido?: number): void;
+}
+
+export function jugarCerdos(parent: HTMLElement, rapido = false, infinito?: Infinito, sonido?: SonidoMinijuego): Promise<Resultado> {
   const lienzo = h('canvas', { class: 'lienzo-cerdos' });
   const cuenta = h('span', { class: 'cuenta-cerdos' });
   const aviso = h('div', { class: 'aviso-cerdos', hidden: true });
@@ -81,6 +87,7 @@ export function jugarCerdos(parent: HTMLElement, rapido = false, infinito?: Infi
   const puntos = infinito ? marcador(infinito) : null;
   const capa = h('div', { class: 'cubierta minijuego cerdos' }, lienzo, h('p', { class: 'instrucciones' }, texto('cerdos.instrucciones')), cuenta, ...(puntos ? [puntos.el] : []), aviso, saltar, cerrar);
   parent.append(capa);
+  sonido?.musica('granjaCerdos');
   const ctx = lienzo.getContext('2d')!;
   const imgs: Array<HTMLCanvasElement | null> = PIARA.map(() => null);
   let ciudad: HTMLCanvasElement | null = null;
@@ -376,6 +383,7 @@ export function jugarCerdos(parent: HTMLElement, rapido = false, infinito?: Infi
       if (!vivo) return;
       vivo = false;
       ro.disconnect();
+      sonido?.pararMusica();
       delete (window as unknown as { __cerdos?: unknown }).__cerdos;
       capa.remove();
       resolve(r);

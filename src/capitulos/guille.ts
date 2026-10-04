@@ -2,7 +2,8 @@
 // Eight pigs still to weigh and he is late, so he will weigh them all at once.
 //
 //   1. The scale is dead: no batteries.
-//   2. The radio playing jotas has two. Without music the pigs get nervous.
+//   2. The radio has two (it plays the banjo polka, louder the closer Guille is:
+//      musica() below). Without music the pigs get nervous.
 //   3. Batteries in the scale, then the minigame: stack the eight pigs on it,
 //      the worst one last (src/ui/cerdos.ts).
 //   4. He stinks of pig: flies follow him. The shower? There is no shower.
@@ -13,6 +14,7 @@
 //   6. Cologne on himself, and off in the car to the Río.
 // Every line comes from src/textos/capitulo1.md (keys starting with g.).
 import type { Aventura, ZonaLogica } from '../juego/aventura';
+import type { Ambiente } from '../core/audio';
 import { texto } from '../juego/textos';
 import { jugarCerdos } from '../ui/cerdos';
 import { FONTS } from '../motor/escena';
@@ -23,7 +25,7 @@ async function pesar(g: Aventura) {
   await g.hablar('g.bascula.antes');
   // The minigame covers the whole screen: the scene underneath stops drawing.
   g.pausado = true;
-  const r = await jugarCerdos(g.root, g.rapido).finally(() => (g.pausado = false));
+  const r = await jugarCerdos(g.root, g.rapido, undefined, g.sound).finally(() => (g.pausado = false));
   if (r === 'cancelado') return g.hablar('g.cerdos.cancelado');
   if (r === 'hecho') g.minijuegoSuperado('cerdos');
   g.poner('g.pesados');
@@ -236,4 +238,23 @@ export function dibujar(g: Aventura, ctx: CanvasRenderingContext2D, capa: string
     }
     ctx.restore();
   }
+}
+
+/** Volume of the radio far away (it never goes quiet altogether), and how far «far» is. */
+const RADIO_MIN = 0.22;
+const RADIO_LEJOS = 2200;
+
+/**
+ * The farm's music is the radio's: the banjo polka, from the start of the scene until
+ * Guille takes its batteries. The closer he is, the louder (never silent), and a little
+ * to the side where the radio is.
+ */
+export function musica(g: Aventura): Ambiente | null {
+  if (f(g, 'g.pilas')) return null;
+  const radio = g.S.spots.radio;
+  const G = g.pjs.get('guille');
+  const x = G && g.estado.donde.guille?.escena === g.escena ? G.X : g.motor.cam;
+  const d = radio.x - x;
+  const cerca = Math.max(0, 1 - Math.abs(d) / RADIO_LEJOS);
+  return { pista: 'granjaRadio', volumen: RADIO_MIN + (1 - RADIO_MIN) * cerca ** 1.2, pan: Math.max(-0.5, Math.min(0.5, d / 1800)) };
 }

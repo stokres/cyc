@@ -2,11 +2,12 @@
 # keeps the middle round plus MARGEN seconds of the rounds either side, so the game can loop
 # between MARGEN and MARGEN + length whatever silence a phone's decoder adds at the start.
 # A fixed gain (not a moving normaliser, which would break the join), MP3 (every browser decodes it).
-#   python3 bucle.py galop-bucle 50.526316 ../../src/sonido/galop.mp3
+#   python3 bucle.py galop-bucle 50.526316 ../../src/sonido/galop.mp3 [kbps]
 import subprocess, sys, numpy as np
 from scipy.io import wavfile
 
 nombre, largo, salida = sys.argv[1], float(sys.argv[2]), sys.argv[3]
+kbps = sys.argv[4] if len(sys.argv) > 4 else '128'  # under 1 MB, so the build can inline it
 MARGEN = 0.5
 SR = 44100
 subprocess.run(['fluidsynth', '-ni', '-q', '-g', '0.5', '-r', str(SR), '-R', '1', '-C', '1', '-F', f'{nombre}.wav',
@@ -45,5 +46,5 @@ for d in (0, 1024, 2112):
     print(f'  junta con {d:4} muestras de desfase: salto {salto:.4f} (paso normal {paso:.4f})')
 print(f'ganancia {20 * np.log10(g):+.1f} dB, pico {np.max(np.abs(trozo)):.2f}')
 wavfile.write(f'{nombre}-corte.wav', SR, (trozo * 32767).astype(np.int16))
-subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', f'{nombre}-corte.wav', '-c:a', 'libmp3lame', '-b:a', '128k', salida], check=True)
+subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', f'{nombre}-corte.wav', '-c:a', 'libmp3lame', '-b:a', f'{kbps}k', salida], check=True)
 print(f'{salida}: {len(trozo) / SR:.2f} s, bucle de {MARGEN} a {MARGEN + largo:.6f} s')

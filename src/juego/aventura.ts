@@ -11,6 +11,7 @@ import { dialogo, hayDialogo, restaurarUsos, texto, usos, type Linea, type Quien
 import { PROTAS, REPARTO, type PjId } from './reparto';
 import type { Estado } from './estado';
 import { OBJETOS } from '../arte/objetos.mjs';
+import type { Ambiente } from '../core/audio';
 
 export interface ZonaLogica {
   /** Shown on labels; defaults to `zona.<id>` in the texts. */
@@ -54,6 +55,8 @@ export interface Capitulo {
   /** Over the front static layer, repainted only with it (Motor.extraFijo). */
   dibujarFijo?(g: Aventura, ctx: CanvasRenderingContext2D): void;
   tick?(g: Aventura, dt: number): void;
+  /** The scene's music right now (asked every frame): a track, its volume and pan, or none. */
+  musica?(g: Aventura): Ambiente | null;
 }
 
 const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -667,6 +670,7 @@ export class Aventura {
     if (this.sombra) this.updateSombra(dt, speaking === 'sombra');
     for (const o of this.props) o.visible = !o.si || this.motor.cond(o.si);
     this.cap.tick?.(this, dt);
+    this.sound.ambiente(this.S ? this.cap.musica?.(this) ?? null : null);
     const a = this.pjs.get(this.estado.activo);
     if (this.foco !== null) m.seguir(this.foco);
     else if (a && this.estado.donde[this.estado.activo]?.escena === this.escena) m.seguir(a.X + a.face * 120);

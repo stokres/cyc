@@ -4,7 +4,7 @@ import sys, subprocess, os, tempfile, numpy as np, mido
 
 SF = os.environ.get('SF', '/usr/share/sounds/sf2/MuseScore_General_Full.sf2')
 NOMBRES_GM = {56: 'trompeta', 57: 'trombón', 58: 'tuba', 61: 'metales', 71: 'clarinete', 72: 'flautín', 65: 'saxo alto', 40: 'violín', 3: 'piano honky-tonk', 47: 'timbales', 44: 'cuerdas trémolo', 10: 'caja de música', 8: 'celesta', 80: 'onda cuadrada', 21: 'acordeón', 9: 'glockenspiel',
-              13: 'xilófono', 48: 'cuerdas', 45: 'pizzicato', 70: 'fagot', 73: 'flauta', 78: 'silbato', 60: 'trompa', 0: 'piano', 32: 'contrabajo', 33: 'bajo', 24: 'guitarra', 105: 'banjo'}
+              13: 'xilófono', 48: 'cuerdas', 45: 'pizzicato', 70: 'fagot', 73: 'flauta', 78: 'silbato', 60: 'trompa', 0: 'piano', 32: 'contrabajo', 33: 'bajo', 24: 'guitarra', 105: 'banjo', 25: 'guitarra acústica'}
 
 def rms_db(wav):
     raw = subprocess.run(['ffmpeg', '-v', 'error', '-i', wav, '-f', 'f32le', '-ac', '1', '-ar', '22050', '-'], capture_output=True).stdout

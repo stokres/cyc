@@ -423,6 +423,8 @@ export const capitulo1: Capitulo = {
 
   },
 
+  musica: (g) => (g.escena === 'granja' ? guille.musica(g) : null),
+
   tick(g) {
     // Fran walking past the crossing sees the Río: his story ends there.
     const F = g.pjs.get('fran');

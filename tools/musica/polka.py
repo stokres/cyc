@@ -78,48 +78,52 @@ def gruñido(beat, nota='D3'):
     P.glis(TBN, beat, 0.22, n(nota) - 2, n(nota) + 3, 82, curva=0.6)
     P.glis(TBN, beat + 0.3, 0.3, n(nota) + 1, n(nota) - 5, 74, curva=1.5)
 
-t = 0.0
-# Intro: the banjo and tuba alone for two bars, a cowbell count.
-um_pa(t, [['D'], ['A7']], cencerro=True)
-t += 2 * L
-for vuelta in range(2):
-    um_pa(t, ACORDES_A, cencerro=vuelta == 1)
-    tocar(P, VIOLIN, t, TEMA_A, L, 96 + vuelta * 6, acento=10, legato=0.85)
-    gruñido(t + 7 * L + 1)
-    gruñido(t + 15 * L + 1, 'A2')
-    if vuelta:
-        tocar(P, ACORD, t, TEMA_A, L, 66, oct=-1, legato=0.8)
+def hacer():
+    """The polka itself (with intro and ending), written to polka-de-la-granja.mid."""
+    t = 0.0
+    # Intro: the banjo and tuba alone for two bars, a cowbell count.
+    um_pa(t, [['D'], ['A7']], cencerro=True)
+    t += 2 * L
+    for vuelta in range(2):
+        um_pa(t, ACORDES_A, cencerro=vuelta == 1)
+        tocar(P, VIOLIN, t, TEMA_A, L, 96 + vuelta * 6, acento=10, legato=0.85)
+        gruñido(t + 7 * L + 1)
+        gruñido(t + 15 * L + 1, 'A2')
+        if vuelta:
+            tocar(P, ACORD, t, TEMA_A, L, 66, oct=-1, legato=0.8)
+        t += 16 * L
+    # Trio in G: the trombone sings it (with a slide in), the fiddle answers with a counter-line.
+    P.control(TBN, t - 0.1, 7, 96)
+    um_pa(t, ACORDES_T, vel=82)
+    tocar(P, TBN, t, [[(b, d, n(x) - 12) for (b, d, x) in c] for c in TEMA_T], L, 92, legato=0.95)
+    prev = n('D5')
+    for i, cs in enumerate(ACORDES_T):
+        prev = cercana(prev, A[cs[0]], 'B4', 'B5')
+        P.nota(VIOLIN, t + i * L, 2, prev, 70, legato=0.95)
+    P.control(TBN, t + 16 * L - 0.2, 7, 72)
     t += 16 * L
-# Trio in G: the trombone sings it (with a slide in), the fiddle answers with a counter-line.
-P.control(TBN, t - 0.1, 7, 96)
-um_pa(t, ACORDES_T, vel=82)
-tocar(P, TBN, t, [[(b, d, n(x) - 12) for (b, d, x) in c] for c in TEMA_T], L, 92, legato=0.95)
-prev = n('D5')
-for i, cs in enumerate(ACORDES_T):
-    prev = cercana(prev, A[cs[0]], 'B4', 'B5')
-    P.nota(VIOLIN, t + i * L, 2, prev, 70, legato=0.95)
-P.control(TBN, t + 16 * L - 0.2, 7, 72)
-t += 16 * L
-# A to finish, with everyone and the cowbell.
-um_pa(t, ACORDES_A, vel=92, cencerro=True)
-tocar(P, VIOLIN, t, TEMA_A, L, 104, acento=10, legato=0.85)
-tocar(P, ACORD, t, TEMA_A, L, 70, oct=-1, legato=0.8)
-gruñido(t + 7 * L + 1)
-t += 16 * L
-# Ending: «shave and a haircut... two bits» — the old comic tag, then a last oink.
-for b, x, v in [(0, 'D5', 96), (0.75, 'A4', 80), (1, 'A4', 84), (1.5, 'B4', 90), (2, 'A4', 96)]:
-    P.nota(VIOLIN, t + b, .4, x, v, legato=0.7)
-    P.nota(ACORD, t + b, .4, n(x) - 12, v - 20, legato=0.7)
-for b, x in [(3, 'C#5'), (3.5, 'D5')]:
-    for c in (VIOLIN, ACORD):
-        P.nota(c, t + b, .45, x if c == VIOLIN else n(x) - 12, 108, legato=0.7)
-    P.nota(TUBA, t + b, .45, 'A1' if b == 3 else 'D2', 100, legato=0.7)
-    P.nota(BAT, t + b, .25, 38, 100)
-P.nota(BAT, t + 3.5, 1, 49, 90)
-gruñido(t + 4.4, 'A2')
-P.guardar('polka-de-la-granja.mid')
+    # A to finish, with everyone and the cowbell.
+    um_pa(t, ACORDES_A, vel=92, cencerro=True)
+    tocar(P, VIOLIN, t, TEMA_A, L, 104, acento=10, legato=0.85)
+    tocar(P, ACORD, t, TEMA_A, L, 70, oct=-1, legato=0.8)
+    gruñido(t + 7 * L + 1)
+    t += 16 * L
+    # Ending: «shave and a haircut... two bits» — the old comic tag, then a last oink.
+    for b, x, v in [(0, 'D5', 96), (0.75, 'A4', 80), (1, 'A4', 84), (1.5, 'B4', 90), (2, 'A4', 96)]:
+        P.nota(VIOLIN, t + b, .4, x, v, legato=0.7)
+        P.nota(ACORD, t + b, .4, n(x) - 12, v - 20, legato=0.7)
+    for b, x in [(3, 'C#5'), (3.5, 'D5')]:
+        for c in (VIOLIN, ACORD):
+            P.nota(c, t + b, .45, x if c == VIOLIN else n(x) - 12, 108, legato=0.7)
+        P.nota(TUBA, t + b, .45, 'A1' if b == 3 else 'D2', 100, legato=0.7)
+        P.nota(BAT, t + b, .25, 38, 100)
+    P.nota(BAT, t + 3.5, 1, 49, 90)
+    gruñido(t + 4.4, 'A2')
+    P.guardar('polka-de-la-granja.mid')
+    return t
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+    t = hacer()
     revisa('A', TEMA_A, ACORDES_A)
     revisa('trío', TEMA_T, ACORDES_T)
     print('duración', round((t + 6) * 60 / 132, 1), 's')

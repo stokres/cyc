@@ -311,7 +311,7 @@ async function arrancar() {
       });
     } else if (id === 'palabras') r = await jugarPalabras(g.root, REPARTO.pablo.arte.body({}, g.estado.ropa.pablo ?? REPARTO.pablo.ropa), g.rapido, inf);
     else if (id === 'robot') r = await jugarRobot(g.root, g.rapido, inf);
-    else r = await jugarCerdos(g.root, g.rapido, inf);
+    else r = await jugarCerdos(g.root, g.rapido, inf, g.sound);
     // Closed halfway: no score, back to the list.
     if (r !== 'hecho') return menuMinijuegos();
     const puntos = inf.puntos ?? 0;

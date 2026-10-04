@@ -284,6 +284,9 @@ async function combinar(a, b) {
 
 /** The pig tower: drop each pig when it would land on the centre of the one below. */
 async function apilarCerdos() {
+  // The fast polka during the pig tower.
+  await page.waitForFunction(() => window.__cyc.g.sound.musicaActual === 'granjaCerdos', null, { timeout: 15000 }).catch(() => {});
+  check((await page.evaluate(() => window.__cyc.g.sound.musicaActual)) === 'granjaCerdos', 'no suena la polca rápida en la torre de cerdos');
   await page.waitForSelector('.cubierta.cerdos');
   await wait(800);
   let foto = false;
@@ -387,8 +390,17 @@ async function historiaPablo() {
 
 async function historiaGuille() {
   await shot('granja');
+  // The radio plays the banjo polka from the start, louder the closer Guille is to it.
+  const musica = () => page.evaluate(() => ({ pista: window.__cyc.g.sound.musicaActual, volumen: window.__cyc.g.sound.volumenMusica }));
+  await page.waitForFunction(() => window.__cyc.g.sound.musicaActual === 'granjaRadio', null, { timeout: 15000 }).catch(() => {});
+  const lejos = await musica();
+  check(lejos.pista === 'granjaRadio', `en la granja no suena la radio (${lejos.pista})`);
   await paso('Guille: la báscula no tiene pilas', async () => tocar(await verZona('bascula')), 'g.basculaVista');
-  await paso('Guille: las pilas de la radio', async () => tocar(await verZona('radio')), 'g.pilas');
+  await paso('Guille: las pilas de la radio', async () => {
+    await tocar(await verZona('radio'));
+  }, 'g.pilas');
+  await wait(600);
+  check((await musica()).pista === null, 'la radio sigue sonando sin pilas');
   // Anything that can be picked up can be picked up any time (docs/JUGABILIDAD.md):
   // the rosemary and the alcohol, and put together, before he even smells.
   await paso('Guille: romero, antes de saber para qué', async () => tocar(await verZona('romero')), 'g.romero');

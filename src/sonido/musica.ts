@@ -2,10 +2,16 @@
 // tools/musica (galop.py bucle, then bucle.py): the loop sits between half-second margins
 // that hold what comes just before and after it, so it joins without a click on any phone.
 import galop from './galop.mp3?url';
+import granjaRadio from './granja-radio.mp3?url';
+import granjaCerdos from './granja-cerdos.mp3?url';
 
 export const MUSICA = {
   /** «Galop del lío», for the minigames (first in Fran's, the frog). */
   galop: { url: galop, inicio: 0.5, fin: 51.026316 },
+  /** The farm polka on banjo, from Guille's radio (banjo.py radio). */
+  granjaRadio: { url: granjaRadio, inicio: 0.5, fin: 58.681818 },
+  /** The same polka, faster, for the pig tower (banjo.py cerdos). */
+  granjaCerdos: { url: granjaCerdos, inicio: 0.5, fin: 46.214286 },
 } as const;
 
 export type Pista = keyof typeof MUSICA;

@@ -3,20 +3,43 @@
 // called from the title screen. Everything goes through one master gain (the
 // menu's sound switch); the music has its own, a little lower. With the page
 // hidden (another app, the phone locked) the whole thing is suspended.
+//
+// Two kinds of music: the scene's (ambiente), asked for every frame with its
+// volume and pan — Guille's radio, louder the closer he is — and a minigame's
+// (musica), which plays over it while it lasts and then gives way to it again.
 import { MUSICA, type Pista } from '../sonido/musica';
 
 /** Music level under the master (the cues are short and quiet). */
 const NIVEL_MUSICA = 0.55;
 
+/** What a scene wants playing: a track, how loud (0–1) and where (-1 left, 1 right). */
+export interface Ambiente {
+  pista: Pista;
+  volumen: number;
+  pan?: number;
+}
+
+interface Sonando {
+  id: Pista;
+  src: AudioBufferSourceNode;
+  g: GainNode;
+  pan: StereoPannerNode | null;
+  volumen: number;
+  panActual: number;
+}
+
 export class Sound {
   private ac: AudioContext | null = null;
   private master: GainNode | null = null;
   private bus: GainNode | null = null;
-  private sonando: { id: Pista; src: AudioBufferSourceNode; g: GainNode } | null = null;
+  private sonando: Sonando | null = null;
   private cargas = new Map<Pista, Promise<AudioBuffer | null>>();
-  /** Bumped by every request, so a track that finishes loading late does not start over another. */
+  /** Bumped by every change, so a track that finishes loading late does not start over another. */
   private turno = 0;
-  private pendiente: Pista | null = null;
+  private primerPlano: Pista | null = null;
+  private deseado: Ambiente | null = null;
+  /** A track on its way (loading): asking for it again must not restart the load. */
+  private pidiendo: Pista | null = null;
   muted = false;
 
   start() {
@@ -36,19 +59,74 @@ export class Sound {
     this.bus.connect(this.master);
     document.addEventListener('visibilitychange', () => void (document.visibilityState === 'hidden' ? ac.suspend() : ac.resume()));
     // Music asked for before the first tap starts now.
-    if (this.pendiente) this.musica(this.pendiente);
+    if (this.primerPlano) this.reproducir(this.primerPlano, 1, 0);
+    else if (this.deseado) this.reproducir(this.deseado.pista, this.deseado.volumen, this.deseado.pan ?? 0);
   }
 
-  /** Plays a track in a loop, fading in (and out whatever was playing). Same track: nothing. */
+  /** A minigame's music: plays in a loop over the scene's until pararMusica(). */
   musica(id: Pista) {
-    const ac = this.ac;
-    if (!ac || !this.bus) {
-      this.pendiente = id;
+    this.primerPlano = id;
+    if ((this.sonando?.id ?? this.pidiendo) === id) return;
+    this.reproducir(id, 1, 0);
+  }
+
+  /** The minigame's music fades out, and the scene's (if any) comes back. */
+  pararMusica(fundido = 0.8) {
+    this.primerPlano = null;
+    const d = this.deseado;
+    if (d) this.reproducir(d.pista, d.volumen, d.pan ?? 0, fundido);
+    else this.callar(fundido);
+  }
+
+  /**
+   * The scene's music, every frame: the same track only changes its volume and pan
+   * (smoothly); another track crossfades; null stops it — quickly, like a radio switched off.
+   */
+  ambiente(m: Ambiente | null) {
+    this.deseado = m;
+    if (this.primerPlano || !this.ac) return;
+    const s = this.sonando;
+    if (!m) {
+      if (s || this.pidiendo) this.callar(0.2);
       return;
     }
-    if (this.sonando?.id === id) return;
-    this.pararMusica(0.4);
-    const turno = ++this.turno;
+    if ((s?.id ?? this.pidiendo) !== m.pista) {
+      this.reproducir(m.pista, m.volumen, m.pan ?? 0);
+      return;
+    }
+    if (!s) return; // still loading: it starts at the latest volume
+    const t = this.ac.currentTime;
+    if (Math.abs(m.volumen - s.volumen) > 0.01) {
+      s.volumen = m.volumen;
+      s.g.gain.setTargetAtTime(Math.max(0.0001, m.volumen), t, 0.15);
+    }
+    const p = m.pan ?? 0;
+    if (s.pan && Math.abs(p - s.panActual) > 0.02) {
+      s.panActual = p;
+      s.pan.pan.setTargetAtTime(p, t, 0.15);
+    }
+  }
+
+  private callar(fundido: number) {
+    this.turno++;
+    this.pidiendo = null;
+    const s = this.sonando;
+    if (!s || !this.ac) return;
+    this.sonando = null;
+    const t = this.ac.currentTime;
+    s.g.gain.cancelScheduledValues(t);
+    s.g.gain.setValueAtTime(Math.max(0.0001, s.g.gain.value), t);
+    s.g.gain.exponentialRampToValueAtTime(0.0001, t + fundido);
+    s.src.stop(t + fundido + 0.05);
+  }
+
+  /** Fades out whatever plays and fades this track in, in a loop, once it has loaded. */
+  private reproducir(id: Pista, volumen: number, pan: number, fundido = 0.4) {
+    const ac = this.ac;
+    if (!ac || !this.bus) return;
+    this.callar(fundido);
+    const turno = this.turno;
+    this.pidiendo = id;
     const pista = MUSICA[id];
     let carga = this.cargas.get(id);
     if (!carga) {
@@ -60,6 +138,12 @@ export class Sound {
     }
     void carga.then((buf) => {
       if (!buf || turno !== this.turno || !this.bus) return;
+      this.pidiendo = null;
+      // The scene may have moved on while it loaded: its latest volume and pan.
+      if (this.primerPlano !== id && this.deseado?.pista === id) {
+        volumen = this.deseado.volumen;
+        pan = this.deseado.pan ?? 0;
+      }
       const src = ac.createBufferSource();
       src.buffer = buf;
       src.loop = true;
@@ -68,30 +152,23 @@ export class Sound {
       const g = ac.createGain();
       const t = ac.currentTime;
       g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(1, t + 0.5);
-      src.connect(g).connect(this.bus);
+      g.gain.exponentialRampToValueAtTime(Math.max(0.0001, volumen), t + 0.5);
+      const p = typeof ac.createStereoPanner === 'function' ? ac.createStereoPanner() : null;
+      if (p) {
+        p.pan.value = pan;
+        src.connect(g).connect(p).connect(this.bus);
+      } else src.connect(g).connect(this.bus);
       src.start(t, pista.inicio);
-      this.sonando = { id, src, g };
+      this.sonando = { id, src, g, pan: p, volumen, panActual: pan };
     });
   }
 
-  /** Fades the music out. */
-  pararMusica(fundido = 0.8) {
-    this.turno++;
-    this.pendiente = null;
-    const s = this.sonando;
-    if (!s || !this.ac) return;
-    this.sonando = null;
-    const t = this.ac.currentTime;
-    s.g.gain.cancelScheduledValues(t);
-    s.g.gain.setValueAtTime(Math.max(0.0001, s.g.gain.value), t);
-    s.g.gain.exponentialRampToValueAtTime(0.0001, t + fundido);
-    s.src.stop(t + fundido + 0.05);
-  }
-
-  /** What is playing (scripts/playthrough.mjs). */
+  /** What is playing (scripts/playthrough.mjs), and how loud. */
   get musicaActual() {
     return this.sonando?.id ?? null;
+  }
+  get volumenMusica() {
+    return this.sonando?.volumen ?? 0;
   }
 
   setMuted(m: boolean) {

@@ -47,7 +47,10 @@ En el menú, **Capítulos** enseña cada capítulo (superado, en curso o todaví
 - El sonido arranca con el primer toque (los móviles no dejan antes) y se apaga entero con «Sonido» en el menú. Con la app en segundo plano o el móvil bloqueado, se suspende.
 - Ya no hay ruido de fondo constante (decidido el 4 de octubre de 2026): era un siseo molesto.
 - **Música en bucle sin cortes** (`src/core/audio.ts`, pistas en `src/sonido/musica.ts`): se genera con `tools/musica` (por ejemplo, `python3 galop.py bucle` y `python3 bucle.py`). Cada archivo lleva medio segundo de margen a cada lado del bucle con lo que va justo antes y después, y el final del bucle se funde con lo que precede a su inicio, así que la junta no da chasquido en ningún móvil. Entra y sale con un fundido.
-- Por ahora suena el **«Galop del lío»** en el minijuego de la rana de Aceituna, en la historia y sin fin. El resto de la música y los efectos, por decidir.
+- **Dos clases de música:** la de la escena, que la escena pide en cada fotograma con su volumen y su posición (`musica` en el capítulo), y la de un minijuego, que suena por encima mientras dura y después devuelve la de la escena.
+- **La radio de la granja** (Guille) suena desde el principio de la escena con la polca de banjo (`tools/musica/banjo.py radio`): más fuerte cuanto más cerca está Guille (nunca baja del 22 %) y un poco hacia el lado de la radio. Al quitarle las pilas se corta. Se ajusta en `src/capitulos/guille.ts` (`RADIO_MIN`, `RADIO_LEJOS`).
+- **Minijuegos:** el «Galop del lío» en la rana de Aceituna, y la misma polca, más rápida y con escobillas, cencerro y gruñidos (`banjo.py cerdos`), en la torre de cerdos. En la historia y sin fin.
+- El resto de la música y los efectos, por decidir.
 
 ## Reglas de los minijuegos
 
