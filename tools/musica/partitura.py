@@ -18,7 +18,12 @@ class Pieza:
         self.bpm, self.swing, self.ppq = bpm, swing, ppq
         self.eventos = {}  # canal -> list of (tick, msg)
         self.programas = {}
+        self.tempos = []  # (beat, bpm) changes after the start
         random.seed(semilla)
+
+    def tempo(self, beat, bpm):
+        """A tempo change from this beat on (a ritardando is several of these)."""
+        self.tempos.append((beat, bpm))
 
     def programa(self, canal, prog):
         self.programas[canal] = prog
@@ -45,6 +50,40 @@ class Pieza:
         for i, t in enumerate(tonos):
             self.nota(canal, beat + i * rasgueo, dur, t, vel - i * 2, **kw)
 
+    def mezcla(self, canal, vol=100, pan=64, reverb=40, coro=0):
+        """Channel level, stereo position (0 left, 64 centre, 127 right) and reverb/chorus sends."""
+        for cc, v in ((7, vol), (10, pan), (91, reverb), (93, coro)):
+            self.eventos.setdefault(canal, []).append((0, mido.Message('control_change', channel=canal, control=cc, value=v)))
+
+    def rango_bend(self, canal, semitonos=12):
+        """Pitch-bend range (RPN 0), so glissandos can cover an octave."""
+        for cc, v in ((101, 0), (100, 0), (6, semitonos), (38, 0), (101, 127), (100, 127)):
+            self.eventos.setdefault(canal, []).append((0, mido.Message('control_change', channel=canal, control=cc, value=v)))
+        self.bend = semitonos
+
+    def glis(self, canal, beat, dur, desde, hasta, vel, curva=1.0, pasos=40, cola=0.0):
+        """A slide from one note to another (trombone, slide whistle): one note, bent."""
+        d, h = (n(desde) if isinstance(desde, str) else desde), (n(hasta) if isinstance(hasta, str) else hasta)
+        rango = getattr(self, 'bend', 2)
+        base = d
+        ev = self.eventos.setdefault(canal, [])
+        t0 = self.tick(beat)
+        t1 = self.tick(beat + dur)
+        ev.append((t0, mido.Message('pitchwheel', channel=canal, pitch=0)))
+        ev.append((t0, mido.Message('note_on', channel=canal, note=base, velocity=vel)))
+        for k in range(1, pasos + 1):
+            u = (k / pasos) ** curva
+            semis = (h - d) * u
+            ev.append((t0 + int((t1 - t0) * k / pasos), mido.Message('pitchwheel', channel=canal, pitch=max(-8192, min(8191, int(semis / rango * 8191))))))
+        fin = t1 + int(cola * self.ppq)
+        ev.append((fin, mido.Message('note_off', channel=canal, note=base, velocity=0)))
+        ev.append((fin + 1, mido.Message('pitchwheel', channel=canal, pitch=0)))
+
+    def expresion(self, canal, beat, dur, desde, hasta, pasos=16):
+        """Crescendo or diminuendo (CC 11) over `dur` beats."""
+        for k in range(pasos + 1):
+            self.control(canal, beat + dur * k / pasos, 11, int(desde + (hasta - desde) * k / pasos))
+
     def control(self, canal, beat, cc, valor):
         self.eventos.setdefault(canal, []).append((self.tick(beat), mido.Message('control_change', channel=canal, control=cc, value=valor)))
 
@@ -52,13 +91,19 @@ class Pieza:
         mid = mido.MidiFile(ticks_per_beat=self.ppq)
         meta = mido.MidiTrack()
         meta.append(mido.MetaMessage('set_tempo', tempo=mido.bpm2tempo(self.bpm), time=0))
+        ultimo = 0
+        for beat, bpm in sorted(self.tempos):
+            t = self.tick(beat)
+            meta.append(mido.MetaMessage('set_tempo', tempo=mido.bpm2tempo(bpm), time=t - ultimo))
+            ultimo = t
         mid.tracks.append(meta)
         for canal, ev in sorted(self.eventos.items()):
             pista = mido.MidiTrack()
             if canal in self.programas:
                 pista.append(mido.Message('program_change', channel=canal, program=self.programas[canal], time=0))
             # note_off before note_on at the same tick
-            ev.sort(key=lambda e: (e[0], 0 if e[1].type == 'note_off' else 1))
+            orden = {'note_off': 0, 'control_change': 1, 'pitchwheel': 1, 'note_on': 2}
+            ev.sort(key=lambda e: (e[0], orden.get(e[1].type, 1)))
             ultimo = 0
             for t, m in ev:
                 pista.append(m.copy(time=t - ultimo))

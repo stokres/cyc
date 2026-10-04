@@ -1,0 +1,5 @@
+# Renders: made by the scripts here, not kept in the repository.
+*.mid
+*.wav
+*.mp3
+__pycache__/

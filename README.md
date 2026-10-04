@@ -47,8 +47,9 @@ node scripts/robot-sim.mjs                                                # difi
 node scripts/rana-sim.mjs                                                 # dificultad de la rana de Aceituna
 node tools/escenas/exportar.mjs                                           # capas de las escenas en art/escenas/
 node tools/icono.mjs                                                      # iconos de la pantalla de inicio (public/icono-*.png)
-# Música de prueba (necesita: apt install fluidsynth fluid-soundfont-gm; pip install numpy scipy mido).
-# Desde tools/musica: python3 jazz.py && ./render.sh jueves-en-usera 0.45   (también chip.py y puntillas.py)
+# Música de prueba (necesita: apt install fluidsynth musescore-general-soundfont-lossless; pip install numpy scipy mido).
+# Desde tools/musica: python3 charanga.py && ./render.sh charanga-del-jueves   (también chotis.py y galop.py)
+# python3 pistas.py charanga-del-jueves.mid   # volumen de cada instrumento por separado, para la mezcla
 ```
 
 `revisiones/` no se sube al repositorio.
