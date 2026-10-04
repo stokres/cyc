@@ -12,7 +12,7 @@
 //   - more than 60 frames a second (120 Hz screens).
 //
 // Usage: node scripts/rendimiento.mjs [escena...]   (against npm run dev on :5173)
-//   escenas: piso, calle, granja, cerdos, backstage, palabras, rana (all by default)
+//   escenas: piso, calle, granja, cerdos, backstage, palabras, rana, parque, robot (all by default)
 import { chromium } from 'playwright';
 import { readFileSync, readdirSync } from 'node:fs';
 
@@ -66,7 +66,11 @@ if (process.env.FPS_REPOSO) await page.evaluate((v) => (window.__cyc.g.fpsReposo
 const filas = [];
 async function medir(nombre, prep, contar = 'escena') {
   // Close any minigame left open by the previous scenario.
-  await page.evaluate(() => document.querySelectorAll('.cubierta.minijuego .cerrar').forEach((b) => b.click()));
+  await page.evaluate(() => {
+    document.querySelectorAll('.cubierta.minijuego .cerrar').forEach((b) => b.click());
+    // The minigames started here do not unpause the scene themselves.
+    window.__cyc.g.pausado = false;
+  });
   await page.evaluate(prep);
   await page.waitForTimeout(3000); // camera settled
   // Characters turned into bitmaps (a one-off cost when they first appear).
@@ -87,9 +91,10 @@ async function medir(nombre, prep, contar = 'escena') {
     const f0 = window.__cerdos?.().fotogramas ?? 0;
     const p0 = window.__palabras?.().fotogramas ?? 0;
     const r0 = window.__rana?.().fotogramas ?? 0;
+    const b0 = window.__robot?.().fotogramas ?? 0;
     setTimeout(() => {
       m.dibujar = d;
-      res(contar === 'cerdos' ? ((window.__cerdos?.().fotogramas ?? 0) - f0) / seg : contar === 'palabras' ? ((window.__palabras?.().fotogramas ?? 0) - p0) / seg : contar === 'rana' ? ((window.__rana?.().fotogramas ?? 0) - r0) / seg : n / seg);
+      res(contar === 'cerdos' ? ((window.__cerdos?.().fotogramas ?? 0) - f0) / seg : contar === 'palabras' ? ((window.__palabras?.().fotogramas ?? 0) - p0) / seg : contar === 'rana' ? ((window.__rana?.().fotogramas ?? 0) - r0) / seg : contar === 'robot' ? ((window.__robot?.().fotogramas ?? 0) - b0) / seg : n / seg);
     }, seg * 1000);
   }), { seg: SEG, contar });
   const cpu = ((cpuChrome() - c0) / SEG) * 100;
@@ -147,6 +152,32 @@ if (toca('palabras')) {
     };
     setTimeout(juega, 6000);
   })()`, 'palabras');
+}
+if (toca('parque')) {
+  // Chuchi in the play park: in the dark without his glasses (the live overlay), walking, and with the lights on and Robi awake.
+  await medir('parque, a oscuras y sin gafas', ir('parque', `e.final = false; for (const id of ['fran','pablo','guille']) delete e.donde[id]; e.activo = 'chuchi'; e.donde.chuchi = { escena: 'parque', X: 2380, y: 880, face: 1 }`));
+  await medir('parque, andando a oscuras', paseo(900, 3300, 880));
+  await medir('parque, con luz y Robi', `(() => { clearInterval(window.__paseo); const g = window.__cyc.g; for (const k of ['c.gafas', 'c.cuarto', 'c.luz', 'c.robot']) g.poner(k); g.activo.X = 1200; g.motor.seguir(900, true); })()`);
+}
+if (toca('robot')) {
+  await medir('minijuego del robot', `(async () => {
+    clearInterval(window.__paseo);
+    const g = window.__cyc.g;
+    const { jugarRobot } = await import('/src/ui/robot.ts');
+    g.pausado = true;
+    void jugarRobot(g.root);
+    // Plays by itself: shoots where the button will be.
+    const juega = () => {
+      const e = window.__robot?.();
+      if (!e) return;
+      if (e.listo) {
+        const B = e.boton(e.vuelo);
+        document.querySelector('.lienzo-robot')?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: B.x, clientY: B.y, pointerId: 1 }));
+      }
+      setTimeout(juega, 700);
+    };
+    setTimeout(juega, 6000);
+  })()`, 'robot');
 }
 if (toca('rana')) {
   await medir('minijuego de la rana', `(async () => {

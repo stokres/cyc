@@ -7,19 +7,19 @@
 // Bar del Río at nine. The couple he shares with have locked the door from
 // outside, Aceituna is lying on his keys, and he is in his boxers. She only gets
 // up for ham thrown into her mouth: «la rana de Aceituna» (src/ui/rana.ts).
-// Guille's story is in ./guille.ts and Pablo's in ./pablo.ts. Chuchi's is a
-// placeholder (a room and a way out) until it is written.
+// Guille's story is in ./guille.ts, Pablo's in ./pablo.ts and Chuchi's in ./chuchi.ts.
 //
 // Mechanics, one per step: walk, look (long press), use and pick up, the bag,
 // using an item on something, using it on yourself, and a touch minigame.
 // Every line comes from src/textos/capitulo1.md.
 import { escena as piso } from '../arte/escenas/piso.mjs';
 import { escena as calle } from '../arte/escenas/calle.mjs';
-import { escena as provisional } from '../arte/escenas/provisional.mjs';
+import { escena as parque } from '../arte/escenas/parque.mjs';
 import { escena as granja } from '../arte/escenas/granja.mjs';
 import { escena as backstage } from '../arte/escenas/backstage.mjs';
 import * as guille from './guille';
 import * as pablo from './pablo';
+import * as chuchi from './chuchi';
 import type { Aventura, Capitulo, ZonaLogica } from '../juego/aventura';
 import type { Estado } from '../juego/estado';
 import type { PjId } from '../juego/reparto';
@@ -33,9 +33,6 @@ import { FONTS } from '../motor/escena';
 const HORA = (h: number, m: number) => h * 60 + m;
 const SOFA = { u: 2455, k: 1.42, y: 790 };
 
-/** Where each placeholder story happens. */
-const CASA: Record<'chuchi', string> = { chuchi: 'casaChuchi' };
-
 function estadoInicial(): Estado {
   return {
     v: 3,
@@ -45,7 +42,7 @@ function estadoInicial(): Estado {
     donde: {
       fran: { escena: 'piso', X: 1830, y: 900, face: 1 },
       pablo: { escena: 'backstage', X: 2240, y: 880, face: 1 },
-      chuchi: { escena: CASA.chuchi, X: 760, y: 890, face: 1 },
+      chuchi: { escena: 'parque', X: 2380, y: 880, face: 1 },
       guille: { escena: 'granja', X: 1000, y: 890, face: 1 },
     },
     ropa: { fran: 'casa' },
@@ -305,35 +302,6 @@ async function llegaFran(g: Aventura) {
   await g.enCamino('fran');
 }
 
-/** A placeholder story: a room, one object that hints at the story, and the way out. */
-function zonasProvisional(g: Aventura, quien: 'chuchi'): Record<string, ZonaLogica> {
-  return {
-    ventana: {
-      mirar: () => g.hablar(`prov.${quien}.ventana`),
-      usar: () => g.hablar(`prov.${quien}.ventana`),
-    },
-    cosa: {
-      nombre: () => texto(`zona.cosa.${quien}`),
-      mirar: () => g.hablar(`prov.${quien}.cosa`),
-      async usar() {
-        g.poner(`cosa.${quien}`);
-        g.avanzarReloj(5);
-        await g.hablar(`prov.${quien}.usar`);
-      },
-    },
-    salida: {
-      nombre: () => texto('zona.salida'),
-      mirar: () => g.hablar(`prov.${quien}.salida.mirar`),
-      async usar() {
-        if (!g.flag(`cosa.${quien}`)) return g.hablar(`prov.${quien}.salida.antes`);
-        g.avanzarReloj(4);
-        await g.hablar(`prov.${quien}.salida`);
-        await g.enCamino(quien);
-      },
-    },
-  };
-}
-
 /** The four of them reach the terrace of the Río at the same time. */
 async function final(g: Aventura) {
   const e = g.estado;
@@ -368,8 +336,7 @@ export const capitulo1: Capitulo = {
   escenas: {
     piso: () => piso() as unknown as Escena,
     calle: () => calle() as unknown as Escena,
-    // Placeholders until the real stories arrive (src/arte/escenas/provisional.mjs).
-    casaChuchi: () => provisional({ id: 'casaChuchi', name: 'Casa de Chuchi', pared: '#cfd8c8', techo: '#b8c2b0', rodapie: '#f0ebe0', suelo: ['#c9a87c', '#d2b286', '#bf9e72'], ambient: '#4e5878', objeto: 'juguetes', luz: '#ffe0b0', semilla: 5 }) as unknown as Escena,
+    parque: () => parque() as unknown as Escena,
     granja: () => granja() as unknown as Escena,
     backstage: () => backstage() as unknown as Escena,
   },
@@ -381,8 +348,8 @@ export const capitulo1: Capitulo = {
     if (escena === 'calle') return zonasCalle(g);
     if (escena === 'granja') return guille.zonasGranja(g);
     if (escena === 'backstage') return pablo.zonasBackstage(g);
-    const quien = (Object.keys(CASA) as Array<keyof typeof CASA>).find((id) => CASA[id] === escena)!;
-    return zonasProvisional(g, quien);
+    if (escena === 'parque') return chuchi.zonasParque(g);
+    return {};
   },
 
   situacion: (quien) => texto(`situacion.${quien}`),
@@ -450,6 +417,7 @@ export const capitulo1: Capitulo = {
     }
     if (quien === 'guille') return guille.aSiMismo(g, item, mirar);
     if (quien === 'pablo') return pablo.aSiMismo(g, item, mirar);
+    if (quien === 'chuchi') return chuchi.aSiMismo(g, item, mirar);
     if (quien !== 'fran') return g.hablar(mirar || !item ? `mirar.${quien}` : 'nadacontigo');
     const ropa = g.estado.ropa[quien] ?? 'calle';
     if (mirar || !item) return g.hablar(`mirar.fran.${ropa === 'casa' ? 'casa' : 'calle'}`);
@@ -468,7 +436,7 @@ export const capitulo1: Capitulo = {
     const quien = g.estado.activo;
     if (quien === 'guille') return guille.objetivo(g);
     if (quien === 'pablo') return pablo.objetivo(g);
-    if (quien !== 'fran') return texto(g.flag(`cosa.${quien}`) ? 'objetivo.bar' : `objetivo.${quien}`);
+    if (quien === 'chuchi') return chuchi.objetivo(g);
     if (g.escena === 'calle') return texto('objetivo.bar');
     if (!g.flag('despierto')) return null;
     if (!g.flag('horaVista')) return texto('objetivo.hora');
@@ -483,7 +451,7 @@ export const capitulo1: Capitulo = {
     const quien = g.estado.activo;
     if (quien === 'guille') return guille.pista(g);
     if (quien === 'pablo') return pablo.pista(g);
-    if (quien !== 'fran') return texto(f(`cosa.${quien}`) ? `pista.${quien}.salir` : `pista.${quien}`);
+    if (quien === 'chuchi') return chuchi.pista(g);
     if (g.escena === 'calle') return texto('pista.bar');
     if (!f('horaVista')) return texto('pista.hora');
     if (!f('movil')) return texto('pista.movil');
@@ -502,15 +470,20 @@ export const capitulo1: Capitulo = {
   },
 
   async combinar(g, a, b) {
-    return (await guille.combinar(g, a, b)) || pablo.combinar(g, a, b);
+    return (await guille.combinar(g, a, b)) || (await pablo.combinar(g, a, b)) || chuchi.combinar(g, a, b);
   },
 
   // Pablo's shadow walks with him backstage (until the chapter's final).
   sombra: (g, escena) => escena === 'backstage' && !g.estado.final && pablo.sombraEnEscena(g),
 
+  dibujarFijo(g, ctx) {
+    if (g.escena === 'parque') chuchi.dibujarFijo(g, ctx);
+  },
+
   dibujar(g, ctx, capa) {
     if (g.escena === 'granja') return guille.dibujar(g, ctx, capa);
     if (g.escena === 'backstage') return pablo.dibujar(g, ctx, capa);
+    if (g.escena === 'parque') return chuchi.dibujar(g, ctx, capa);
     const m = g.motor;
     const px = m.px;
     if (capa === 'muebles' && g.escena === 'piso' && !g.flag('despierto')) {

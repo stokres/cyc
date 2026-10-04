@@ -56,6 +56,10 @@ Cortar con el dedo las palabras negativas (en sentido de impro) que lanza el nar
 
 Apilar los ocho cerdos encima de la báscula, estilo *Tower Bloxx*: un toque suelta el cerdo que se balancea en la polea. Descentrado, la torre se tambalea más; fuera del borde, resbala. Tres resbalones o un derrumbe y se repite; tras dos rondas perdidas aparece «Saltar». El último es el peor de todos. Se ajusta con `node scripts/cerdos-sim.mjs`.
 
+### El cañón contra Robi (Chuchi)
+
+Homenaje al microjuego de *WarioWare* de disparar plátanos a una nariz gigante: desde detrás del cañón de bolas del parque, **se toca donde disparar** y la bola tarda medio segundo en llegar, así que al botón luminoso de la cabeza de Robi hay que apuntarle por delante. Seis aciertos lo apagan. Si la bola da en la cabeza, en el cuerpo o en el gorrito de fiesta que se pone sobre el botón, rebota. Robi se va acercando para dar un abrazo de cumpleaños; los fallos le acercan, los aciertos le echan atrás, y si llega se repite (tras dos rondas perdidas aparece «Saltar»). Tres tramos por aciertos: balanceo; más rápido, botando y con el gorrito; y a saltos. Se ajusta con `node scripts/robot-sim.mjs`: quien apunta por delante gana, quien dispara sin parar a donde está el botón pierde.
+
 ### La ronda (aparcada)
 
 Llevar cuatro cañas de la barra a la terraza inclinando el móvil o deslizando el dedo. Estaba en el mockup; volverá cuando la crew esté en el Río, con el arte nuevo.
@@ -71,7 +75,7 @@ Son ejemplos de controles, para sustituirlos por vuestras anécdotas:
 
 ## El piloto (capítulo 1)
 
-Se elige con quién empezar y se puede cambiar cuando se quiera (ver `docs/ESCENA-1.md`). Las historias de Fran, Pablo y Guille están hechas; la de Chuchi es provisional: tocar el objeto de su habitación y salir por la puerta.
+Se elige con quién empezar y se puede cambiar cuando se quiera (ver `docs/ESCENA-1.md`). Las cuatro historias están hechas.
 
 ### La historia de Fran
 
@@ -94,6 +98,5 @@ El reloj de Fran avanza con cada paso y se va poniendo nervioso. Cuando los cuat
 
 ## Siguientes pasos
 
-- Escribir las historias de Pablo, Chuchi y Guille cuando llegue el contexto del grupo (ideas en `docs/ESCENA-1.md`).
 - Probar el piloto en los móviles de los cuatro con «Ver rendimiento» activado.
 - Publicarlo en un sitio estable (Netlify, Cloudflare Pages o GitHub Pages) para el giroscopio.

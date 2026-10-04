@@ -204,11 +204,63 @@ async function rotulo(id) {
 }
 
 /** A placeholder story: the object, then the way out. */
-async function provisional(id) {
-  await shot(id);
-  await paso(`${id}: la cosa de su historia`, async () => tocar(await verZona('cosa')), `cosa.${id}`);
-  await paso(`${id}: salir hacia el Río`, async () => tocar(await verZona('salida')));
-  await rotulo(id);
+/** Chuchi's ball cannon: lead the button by the flight time, and wait for the party hat to go up. */
+async function dispararRobot() {
+  await page.waitForSelector('.cubierta.robot');
+  let tiros = 0;
+  let foto = false;
+  for (let i = 0; i < 2000 && (await page.$('.cubierta.robot')); i++) {
+    const p = await page.evaluate(() => {
+      const e = window.__robot?.();
+      if (!e || !e.listo) return null;
+      const B = e.boton(e.vuelo + 0.06);
+      return B.cubierto ? null : B;
+    });
+    if (!p) {
+      await wait(50);
+      continue;
+    }
+    await page.mouse.click(p.x, p.y);
+    tiros++;
+    if (!foto && tiros === 3) {
+      foto = true;
+      await wait(250);
+      await shot('robot');
+    }
+    await wait(320);
+  }
+  await page.waitForSelector('.cubierta.robot', { state: 'detached', timeout: 30000 });
+  return tiros;
+}
+
+async function historiaChuchi() {
+  await shot('parque');
+  for (let i = 1; i <= 3; i++) await paso(`Chuchi: rebuscar en la piscina de bolas (${i})`, async () => tocar(await verZona('piscina')));
+  check(await flag('c.gafas'), 'Chuchi no encuentra las gafas');
+  await shot('parque-gafas');
+  await paso('Chuchi: la puerta del personal, cerrada', async () => tocar(await verZona('puertaPersonal')), 'c.puertaProbada');
+  await paso('Chuchi: la llave, en un gancho muy alto', async () => tocar(await verZona('gancho')), 'c.ganchoVisto');
+  await paso('Chuchi: la red de las bolas', async () => tocar(await verZona('red')), 'c.red');
+  await paso('Chuchi: el palo de la piñata', async () => tocar(await verZona('palo')), 'c.palo');
+  await paso('Chuchi: empalmar la red y el palo', async () => {
+    await combinar('red', 'palo');
+    check(await page.evaluate(() => window.__cyc.g.tiene('redLarga')), 'no sale la red larguísima');
+  });
+  await paso('Chuchi: pescar la llave', () => usarEn('redLarga', 'gancho'), 'c.llave');
+  await paso('Chuchi: abrir el cuarto del personal', () => usarEn('llave', 'puertaPersonal'), 'c.cuarto');
+  await paso('Chuchi: dar la luz (y despertar a Robi)', async () => tocar(await verZona('puertaPersonal')), 'c.robot');
+  await shot('parque-luz');
+  await paso('Chuchi: el cañón de bolas contra Robi', async () => {
+    await tocar(await verZona('canon'));
+    await charla();
+    const tiros = await dispararRobot();
+    console.log(`   » Robi apagado en ${tiros} tiros`);
+    await charla();
+  }, 'c.vencido');
+  await paso('Chuchi: el zapato de brilli-brilli', async () => tocar(await verZona('zapato')), 'c.zapato');
+  await shot('parque-zapato');
+  await paso('Chuchi: por la salida, al Río', async () => tocar(await verZona('persiana')));
+  await rotulo('chuchi');
 }
 
 /** Two items put together: choose one, open the bag again and tap the other. */
@@ -443,7 +495,7 @@ const fran = await page.evaluate(() => ({ hora: window.__cyc.g.hora, inv: window
 console.log(`  Fran ve el Río a las ${fran.hora}. Bolsa: ${fran.inv.join(', ')}`);
 await rotulo('fran');
 await escoger('chuchi');
-await provisional('chuchi');
+await historiaChuchi();
 await escoger('guille');
 await historiaGuille();
 await paso('Los cuatro llegan a la vez', async () => {

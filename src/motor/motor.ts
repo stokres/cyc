@@ -70,6 +70,12 @@ export class Motor {
   cond: (expr: string) => boolean = () => true;
   /** Extra drawing after a layer (scripts: olives on the floor, Zzz...). */
   extra: ((ctx: CanvasRenderingContext2D, capa: string) => void) | null = null;
+  /**
+   * Drawn over the front static layer, so only when the static layers are
+   * repainted (the camera moves, a flag changes, or invalidar()): for what covers
+   * the whole scene but does not move, like the lights out in Chuchi's park.
+   */
+  extraFijo: ((ctx: CanvasRenderingContext2D) => void) | null = null;
   onResize: (() => void) | null = null;
 
   constructor(readonly root: HTMLElement) {
@@ -420,6 +426,11 @@ export class Motor {
         }
       }
       for (const Lw of B.laterales) if (Lw.after === L.id) drawLateral(ctx, S, Lw, this.vw, this.cam, px);
+    }
+    if (this.extraFijo) {
+      f.save();
+      this.extraFijo(f);
+      f.restore();
     }
   }
 

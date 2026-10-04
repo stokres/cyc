@@ -1135,6 +1135,48 @@ button:focus-visible {
   bottom: var(--safe-b);
 }
 
+/* ------------------------------------------------------------ ball cannon minigame (Chuchi) */
+
+.minijuego.robot {
+  background: #4a8ad0;
+  padding: 0;
+}
+
+.lienzo-robot {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.minijuego.robot .instrucciones {
+  position: absolute;
+  top: calc(var(--safe-t) + 4px);
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+}
+
+.barra.cerca {
+  left: var(--safe-l);
+}
+
+.barra.cerca .lleno {
+  background: linear-gradient(90deg, #a8302a, #e8452e);
+  transition: width 0.25s ease-out;
+}
+
+.barra.bateria {
+  right: calc(var(--safe-r) + 60px);
+}
+
+.barra.bateria .lleno {
+  background: linear-gradient(90deg, #2a8a6a, #5ad08a);
+  transition: width 0.3s ease-out;
+}
+
 /* ------------------------------------------------------------ ham toss minigame (Fran) */
 
 .minijuego.rana {

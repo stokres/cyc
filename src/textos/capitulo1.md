@@ -20,7 +20,7 @@ Los textos de este capítulo son provisionales: están para probar el puzle.
 
 situacion.fran = Se ha quedado dormido en el sofá.
 situacion.pablo = En el teatro, sin papel y discutiendo con su sombra.
-situacion.chuchi = Con las niñas en casa. Bueno, más o menos.
+situacion.chuchi = Encerrado en un parque de bolas, a oscuras.
 situacion.guille = En la granja, con ocho cerdos por pesar.
 
 camino.fran = Fran ya va de camino al Río
@@ -946,42 +946,284 @@ PABLO (chulo): Hombre, yo lo habría escrito mejor.
 > Y así empezó lo de los jueves. Pero esa es otra historia.
 
 fin.titulo = Fin del piloto
-fin.texto = Los cuatro han llegado al Río. La historia de Chuchi es provisional: pronto tendrá sus propios puzles.
+fin.texto = Los cuatro han llegado al Río.
 
-// ---------------------------------------------------------------- historia provisional (Chuchi)
+// ---------------------------------------------------------------- historia de Chuchi: Bolilandia
 
-zona.salida = Puerta
-zona.cosa.chuchi = Caja de juguetes
+zona.persiana = Salida
+zona.robot = Robi
+zona.zapato = Zapato
+zona.zapatero = Zapatero
+zona.recepcion = Recepción
+zona.gancho = Gancho alto
+zona.puertaPersonal = Solo personal
+zona.cuadroLuz = Cuadro eléctrico
+zona.fiesta = Mesa de la fiesta
+zona.pinata = Piñata
+zona.palo = Palo de la piñata
+zona.red = Red de las bolas
+zona.piscina = Piscina de bolas
+zona.tobogan = Tobogán
+zona.canon = Cañón de bolas
 
-objetivo.chuchi = Sal de casa sin despertar a nadie
-pista.chuchi = (Historia provisional) Toca la caja de juguetes y luego sal por la puerta.
-pista.chuchi.salir = La puerta de la derecha lleva al Río.
+objetivo.chuchi.gafas = Encuentra tus gafas
+objetivo.chuchi.luz = Sal de Bolilandia: la persiana necesita luz
+objetivo.chuchi.robot = Apaga a Robi: no te deja salir
+objetivo.chuchi.zapato = Recoge el zapato de la pequeña
+objetivo.chuchi.salir = Al Río, por la salida
+
+pista.chuchi.gafas = Se te han caído en la piscina de bolas. Tócala para rebuscar, y no te rindas a la primera.
+pista.chuchi.persiana = La persiana de la salida es eléctrica. ¿Y la puerta de SOLO PERSONAL?
+pista.chuchi.llave = La llave del cuarto del personal cuelga de un gancho, muy arriba, junto a la puerta.
+pista.chuchi.alargar = No llegas al gancho. Busca algo largo: la red de las bolas y el palo de la piñata.
+pista.chuchi.combinar = Junta la red y el palo en la bolsa: elige uno, vuelve a abrirla y toca el otro.
+pista.chuchi.gancho = Usa la red larguísima en el gancho de la llave.
+pista.chuchi.puerta = Usa la llave en la puerta de SOLO PERSONAL.
+pista.chuchi.cuadro = El cuadro eléctrico está en el cuarto del personal: dale a la palanca.
+pista.chuchi.canon = El cañón de bolas, en la estructura junto a la piscina, ya tiene aire. Apunta al botón de la cabeza de Robi.
+pista.chuchi.zapato = El zapato está en el suelo, junto a la peana de Robi.
+pista.chuchi.salir = La salida ya está libre: por la persiana, al Río.
+
+objeto.red = Red de las bolas
+objeto.red.texto = La red de sacar bolas de la piscina. Larga, pero nunca lo bastante.
+objeto.palo = Palo de la piñata
+objeto.palo.texto = El palo de la piñata, con cinta americana en el mango, como manda la tradición.
+objeto.redLarga = Red larguísima
+objeto.redLarga.texto = La red y el palo, empalmados con cinta americana. Ingeniería de cumpleaños.
+objeto.llave = Llave del cuarto
+objeto.llave.texto = Una llave con una etiqueta roja: «CUARTO».
+objeto.zapato = Zapato con brilli-brilli
+objeto.zapato.texto = El zapato de fiesta de la pequeña: rosa, con purpurina y luces en la suela. Talla 26.
 
 ## intro.chuchi
-> Casa de Chuchi. Jueves, ocho y veinte.
-CHUCHI: Las dos dormidas. Por fin. Ahora, sin hacer ruido, me pongo los zapatos y...
-> Algo cruje bajo su pie.
-CHUCHI (enfadado): Un Lego. Siempre hay un Lego.
-> (Historia provisional: pronto vendrán los contratiempos de Chuchi.)
+> Bolilandia, parque de bolas de Usera. Jueves, ocho y veinte.
+> El cumpleaños de una compañera de clase de la mayor ha terminado hace un rato. Las niñas ya van para casa. La pequeña, con un solo zapato.
+> El otro, el de brilli-brilli, «se lo ha dejado en el castillo». El castillo son tres plantas de red y espuma.
+> Chuchi ha entrado a buscarlo. Por el tubo. Como un adulto responsable.
+> ¡FLOP!
+CHUCHI (sorprendido): ¿Por qué está todo oscuro? ¿Y por qué lo veo todo como un vídeo de 2005?
+CHUCHI (nervioso): Mis gafas. Se me han caído en el tobogán. O en la piscina de bolas. O en otra dimensión.
+> Alguien ha cerrado Bolilandia. Con Chuchi dentro.
 
-## prov.chuchi.ventana
-CHUCHI: Ni un ruido en la calle. Que siga así hasta que salga.
+## c.rebusca.1
+> Chuchi mete los brazos en la piscina de bolas hasta los hombros.
+CHUCHI: Algo... ¡Un chupete! No es mío. Creo.
 
-## prov.chuchi.cosa
-CHUCHI: La caja de juguetes. Ahí dentro hay más tecnología que en mi oficina.
+## c.rebusca.2
+> Chuchi rebusca un poco más allá.
+CHUCHI: Un calcetín con estrellitas. Esto es un yacimiento arqueológico.
 
-## prov.chuchi.usar
-> Chuchi recoge los juguetes del suelo, uno a uno, en silencio.
-CHUCHI (sorprendido): ¡Mis llaves! En la cocinita de juguete. Junto a una tortilla de fieltro.
+## c.gafas
+CHUCHI (contento): ¡Mis gafas! Con una pegatina de unicornio en un cristal, pero mis gafas.
+> Y de pronto el mundo vuelve a tener bordes.
 
-## prov.chuchi.salida.mirar
-CHUCHI: La puerta. Sin llaves es decoración.
+## c.rebusca.despues
+CHUCHI: Una pinza del pelo, un dinosaurio y media galleta. Mejor no sigo.
+---
+CHUCHI (contento): Dos euros. Esto paga la primera caña.
+---
+CHUCHI: Bolas. Muchas bolas. Es lo que tiene.
 
-## prov.chuchi.salida.antes
-CHUCHI (nervioso): ¿Y mis llaves? Estaban aquí. Seguro que alguien ha jugado a las casitas con ellas.
+## c.mirar.piscina
+CHUCHI: La piscina de bolas. Un mar de plástico de colores. Ahí dentro cabe de todo.
 
-## prov.chuchi.salida
-CHUCHI (chulo): Cerrando despacito... Libre. Hoy no existo para nadie.
+## c.mirar.tobogan
+CHUCHI: El tobogán de tubo. Por ahí he bajado. «Bajado» es generoso.
+
+## c.mirar.tobogan.borroso
+CHUCHI: Una serpiente verde gigante. O el tobogán. Apuesto por el tobogán.
+
+## c.usar.tobogan
+CHUCHI: ¿Subir otra vez? Ni hablar. Ese tubo me ha visto llorar.
+
+## c.mirar.persiana
+CHUCHI: La salida, con la persiana bajada. Eléctrica. Sin luz es una pared con ambiciones.
+
+## c.mirar.persiana.borroso
+CHUCHI: Algo gris y a rayas. Una persiana o una cebra muy triste.
+
+## c.mirar.persiana.abierta
+CHUCHI: La persiana subida. Al otro lado, la calle. Y el Río, a dos manzanas.
+
+## c.persiana.bajada
+CHUCHI (enfadado): No sube. Sin luz no hay nada que hacer. ¿Dónde estará el cuadro eléctrico?
+
+## c.persiana.sinzapato
+CHUCHI (nervioso): No puedo volver sin el zapato. La pequeña lo sabe. Y su madre, más.
+
+## c.salida
+CHUCHI (contento): Libre. Con el zapato, con las gafas y con la dignidad... bueno, con el zapato y las gafas.
+> Chuchi sale de Bolilandia. El zapato le va haciendo luces en el bolsillo durante dos manzanas.
+
+## c.mirar.robot
+CHUCHI: Robi, la mascota de Bolilandia, apagado en su peana. Saluda a los niños, canta el cumpleaños feliz y no deja que nadie se vaya triste.
+
+## c.mirar.robot.borroso
+CHUCHI: Un señor naranja muy quieto. ¿Hola? ¿Trabaja usted aquí?
+
+## c.usar.robot
+CHUCHI: Está apagado. Mejor. A estas horas no estoy para canciones.
+
+## c.mirar.robot.encendido
+CHUCHI (nervioso): Robi, encendido y plantado delante de la salida. Con el zapato de brilli-brilli en la pinza, como un trofeo.
+
+## c.usar.robot.encendido
+> «¡HOLA, AMIGUITO! ¿UN ABRAZO DE CUMPLEAÑOS?», dice Robi, con los brazos abiertos.
+CHUCHI (nervioso): No, gracias. Soy más de dar la mano. A distancia.
+
+## c.robot.objeto
+> «¡GRACIAS, AMIGUITO! ¡PERO NADIE SALE HASTA QUE TERMINE LA FIESTA!»
+CHUCHI: No acepta sobornos. Es más íntegro que mi jefe.
+
+## c.mirar.robot.vencido
+CHUCHI: Robi, apagado otra vez, despatarrado en su peana. Descansa en paz. Hasta el próximo cumpleaños.
+
+## c.usar.robot.vencido
+CHUCHI: No lo toco, no vaya a ser que se reinicie.
+
+## c.mirar.zapatero
+CHUCHI: El zapatero: «Deja aquí tus zapatos». Hay cuarenta pares. Ninguno con brilli-brilli.
+
+## c.mirar.zapatero.borroso
+CHUCHI: Una estantería llena de... ¿ratones? Ah, no. Zapatos.
+
+## c.mirar.recepcion
+CHUCHI: La recepción, con su caja registradora, sus globos y un cartel: «Prohibida la entrada a mayores de doce años».
+CHUCHI: Técnicamente, aquí hay un infiltrado.
+
+## c.mirar.recepcion.borroso
+CHUCHI: Un mostrador. O un barco. Con globos. Es un mostrador.
+
+## c.usar.recepcion
+CHUCHI: El teléfono no da línea. Sin luz, nada. Esto parece una serie de miedo para niños.
+
+## c.usar.recepcion.luz
+CHUCHI: Ahora suena el hilo musical. El cumpleaños feliz, versión xilófono. En bucle.
+
+## c.mirar.gancho
+CHUCHI: Una llave con una etiqueta roja: «CUARTO». Colgada a tres metros. Fuera del alcance de los niños. Y del mío.
+
+## c.gancho.nollego
+CHUCHI: Ni de puntillas. Y eso que soy alto. Esto lo ha colgado un jugador de baloncesto.
+
+## c.gancho.red
+CHUCHI: Casi... Me falta medio metro. Siempre falta medio metro.
+
+## c.gancho.palo
+CHUCHI: Con el palo le doy, pero no la cojo. Y si la tiro, se cae a la piscina de bolas. Ya sé lo que es buscar ahí.
+
+## c.gancho.llave
+> Chuchi engancha la llave con la red larguísima.
+CHUCHI (contento): ¡Pesca milagrosa! La llave del cuarto.
+
+## c.mirar.puertaPersonal
+CHUCHI: «SOLO PERSONAL». Yo soy personal. Personalmente, quiero irme.
+
+## c.mirar.puertaPersonal.borroso
+CHUCHI: Una puerta blanca con un cartel rojo que no leo. Seguramente pone «SALIDA». Seguramente no.
+
+## c.puerta.cerrada
+CHUCHI: Cerrada con llave. ¿Y la llave? Seguro que la han dejado a mano...
+
+## c.puerta.abre
+> Clac. El cuarto del personal: fregonas, globos sin inflar y el cuadro eléctrico.
+CHUCHI (contento): El cuadro. He reiniciado routers más difíciles que tú.
+
+## c.mirar.cuadro
+CHUCHI: El cuadro eléctrico, con la palanca general abajo. Como mi ánimo.
+
+## c.mirar.cuadro.luz
+CHUCHI: La palanca, arriba. La luz, encendida. Mi ánimo, regular.
+
+## c.cuadro.hecho
+CHUCHI: Ya hay luz. No toco más, no vaya a ser que apague Usera entera.
+
+## c.luz
+> Chuchi sube la palanca. Los fluorescentes parpadean y se encienden uno a uno.
+> La persiana de la salida empieza a subir...
+CHUCHI (contento): ¡Arriba! ¡Compilado a la primera!
+> ...y en la peana, algo hace «bip».
+> «¡HOLA, AMIGUITOS! ¡SOY ROBI!»
+> Robi rueda hasta la salida y se planta delante, con los brazos abiertos. En una pinza lleva un zapato rosa que hace luces.
+CHUCHI (sorprendido): ¡El zapato! ¡Lo tenía Robi!
+> «¡NADIE SALE HASTA QUE TERMINE LA FIESTA!»
+CHUCHI (nervioso): La fiesta terminó hace una hora, Robi.
+> «¡NADIE SALE HASTA QUE TERMINE LA FIESTA!»
+CHUCHI: Bucle infinito. Lo sabía.
+
+## c.mirar.fiesta
+CHUCHI: La mesa del cumpleaños: media tarta de chocolate, vasos de colores y gorritos de fiesta.
+
+## c.mirar.fiesta.borroso
+CHUCHI: Una mesa con un... ¿volcán? Ah, la tarta.
+
+## c.usar.fiesta
+CHUCHI: Un trozo de tarta, para el camino. Es cena. Técnicamente.
+
+## c.mirar.pinata
+CHUCHI: La piñata, una llama, destripada. Los niños de hoy no tienen piedad.
+
+## c.usar.pinata
+CHUCHI: Ya no queda nada dentro. Solo un caramelo de anís. Nadie quiere el caramelo de anís.
+
+## c.palo
+CHUCHI: El palo de la piñata, con cinta americana en el mango. Me lo llevo.
+
+## c.red
+CHUCHI: La red de sacar bolas de la piscina. Larga, pero no lo bastante. Nunca lo es.
+
+## c.combinar
+> Chuchi empalma la red y el palo con la cinta americana del mango.
+CHUCHI (contento): Ingeniería de cumpleaños. Una red larguísima.
+
+## c.mirar.canon
+CHUCHI: Un cañón de bolas, de los de aire. Los niños se disparan unos a otros. Aquí lo llaman «actividad».
+
+## c.canon.sinluz
+CHUCHI: Sin luz no tiene aire. Yo tampoco, en esta oscuridad.
+
+## c.canon.coger
+> Chuchi coge el cañón de bolas y apunta a la cabeza de Robi.
+CHUCHI (chulo): Robi, te voy a hacer un apagado forzoso.
+
+## c.canon.despues
+CHUCHI: El cañón ya ha hecho su trabajo. Lo dejo, que me vengo arriba.
+
+## c.robot.vencido
+> El botón se apaga. Robi hace «biiiiiip», rueda hasta su peana y se queda despatarrado.
+> El zapato rosa cae al suelo, haciendo luces.
+CHUCHI (contento): Apagado forzoso. Como en el trabajo, pero con bolas.
+
+## c.robot.saltado
+> Robi se queda sin batería de tanto cantar. Rueda hasta su peana y se apaga, despatarrado.
+> El zapato rosa cae al suelo, haciendo luces.
+CHUCHI: Batería agotada. Al final siempre gana la batería.
+
+## c.robot.cancelado
+CHUCHI (nervioso): Necesito un momento. Ese robot me mira con demasiado cariño.
+
+## c.zapato
+CHUCHI (contento): ¡El zapato de brilli-brilli! Luces, purpurina y talla 26. Misión cumplida.
+
+## c.zapato.probar
+CHUCHI: No me cabe. Ni un dedo. Ni la uña del dedo.
+
+## c.mirar.chuchi.borroso
+CHUCHI: No me veo ni a mí mismo. Supongo que sigo siendo calvo.
+
+// ---------------------------------------------------------------- minijuego: el cañón contra Robi (Chuchi)
+
+robot.instrucciones = Toca para disparar al botón de Robi. La bola tarda en llegar: apunta por delante
+robot.cerca = Robi se acerca
+robot.bateria = Batería de Robi
+robot.salida = SALIDA
+robot.inicio = «¡NADIE SALE HASTA QUE TERMINE LA FIESTA!»
+robot.tramo2 = ¡Se pone el gorrito!
+robot.tramo3 = ¡Modo fiesta total!
+// Lo que suelta Robi cuando le das en el botón. Sepáralo con barras.
+robot.au = ¡BIP! / ¡AU! / ¡ERROR! / ¡BZZT! / ¡REINICIANDO!
+robot.abrazo = ¡ABRAZO DE CUMPLEAÑOS! Otra vez
+robot.gana = Robi se apaga
 
 ## mirar.pablo
 PABLO (chulo): Chaqueta de borreguillo, pendiente y sonrisa de estreno. Listo para un público exigente.

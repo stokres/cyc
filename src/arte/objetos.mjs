@@ -1,6 +1,7 @@
 // Inventory items, drawn like everything else: rounded shapes, 2–3 tones and a
 // line in a darker tone of the material. Each returns SVG for a 100x100 box.
 import { smooth, ellipse, path, stroke, shape, rrect } from './personajes/svg.mjs';
+import { zapatoBrilli } from './robot.mjs';
 
 const movil = () => [
   shape(rrect(50, 50, 22, 40, 7), '#23252c', [path(rrect(44, 50, 16, 40, 6), '#33363f')], '#0e0f13', 2),
@@ -19,6 +20,34 @@ const jamon = () => [
   shape(rrect(50, 32, 22, 10, 3), '#c8433a', [path(rrect(50, 30, 22, 4, 2), '#e06a5c')], '#6e1c17', 1.4),
   path(rrect(50, 33, 12, 2.5, 1), '#f4e2b0'),
 ].join('');
+
+/** The long net for fishing balls out of the pit. */
+const red = () => [
+  stroke('M22 88L58 36', '#5a6070', 6),
+  shape(ellipse(68, 26, 18, 16, 0.5), 'none', [], '#5a6070', 5),
+  stroke('M58 16L74 40M66 12L80 34M54 26L70 44', '#c8ccd4', 1.6),
+].join('');
+
+/** The piñata stick, with its grip of duct tape. */
+const palo = () => [stroke('M16 82L84 18', '#c49a6a', 9), stroke('M16 82L32 67', '#9aa0a8', 11), stroke('M16 82L32 67', '#c8ccd4', 3, { opacity: 0.6 })].join('');
+
+/** The net and the stick, taped together: very long. */
+const redLarga = () => [
+  stroke('M8 94L40 62', '#c49a6a', 8),
+  stroke('M36 66L44 58', '#9aa0a8', 12),
+  stroke('M42 60L74 24', '#5a6070', 6),
+  shape(ellipse(82, 16, 14, 12, 0.6), 'none', [], '#5a6070', 4),
+].join('');
+
+/** The key to the staff room, with a red plastic tag. */
+const llave = () => [
+  stroke('M34 34a14 14 0 1 0 0.2 0', '#c9a14f', 6),
+  stroke('M44 44L80 80M70 70l-8 8M78 78l-8 8', '#d9dcd8', 7),
+  shape(rrect(24, 22, 14, 8, 4), '#e8452e', [], '#6a1a10', 1.4),
+].join('');
+
+/** The little one's party shoe, pink, with glitter and a light in the sole. */
+const zapato = () => `<g transform="translate(50 54) scale(1.15)">${zapatoBrilli()}</g>`;
 
 const llaves = () => [
   stroke('M34 30a12 12 0 1 0 0.2 0', '#c9a14f', 5),
@@ -98,6 +127,11 @@ export const OBJETOS = {
   colonia,
   movil,
   jamon,
+  red,
+  palo,
+  redLarga,
+  llave,
+  zapato,
   llaves,
   ropa,
 };

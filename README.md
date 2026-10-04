@@ -62,7 +62,7 @@ node tools/icono.mjs                                                      # icon
 | `src/juego/` | Aventura (guion, entrada táctil, cambio de personaje), reparto, textos y partida guardada |
 | `src/motor/` | Escenas en capas con parallax, luz horneada, actores y la luz con relieve en WebGL2 (aplazada) |
 | `src/arte/` | Personajes (con vestuario), escenas y objetos, generados como SVG |
-| `src/ui/` | Interfaz: selector, bolsa, diálogos, móvil y minijuegos (la rana, cerdos, palabras) |
+| `src/ui/` | Interfaz: selector, bolsa, diálogos, móvil y minijuegos (la rana, palabras, el robot y los cerdos) |
 | `src/core/` | Gestos, sonido y utilidades |
 | `tools/` | Láminas de personajes, exportación de capas e iconos |
 | `public/` | Manifiesto e iconos para instalarlo en el móvil |

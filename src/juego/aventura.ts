@@ -48,6 +48,8 @@ export interface Capitulo {
   /** First look at every tap; return true to swallow it (e.g. waking Fran up). */
   tocar?(g: Aventura): boolean;
   dibujar?(g: Aventura, ctx: CanvasRenderingContext2D, capa: string): void;
+  /** Over the front static layer, repainted only with it (Motor.extraFijo). */
+  dibujarFijo?(g: Aventura, ctx: CanvasRenderingContext2D): void;
   tick?(g: Aventura, dt: number): void;
 }
 
@@ -111,6 +113,7 @@ export class Aventura {
     };
     this.motor.cond = (expr) => (expr.startsWith('!') ? !this.flag(expr.slice(1)) : this.flag(expr));
     this.motor.extra = (ctx, capa) => this.cap.dibujar?.(this, ctx, capa);
+    this.motor.extraFijo = (ctx) => this.cap.dibujarFijo?.(this, ctx);
   }
 
   // ------------------------------------------------------------ state helpers

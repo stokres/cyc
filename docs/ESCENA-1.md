@@ -18,10 +18,8 @@ Decidido el 2 de octubre de 2026:
 |---|---|---|
 | Fran | Su piso; se ha quedado dormido en el sofá | Hecha (el puzle de abajo); acaba al ver el Río desde el cruce |
 | Pablo | El backstage del teatro Joso: sin papel, bloqueado y discutiendo con su sombra | Hecha |
-| Chuchi | Encerrado en un parque de bolas cuando ya se han ido todos | Provisional (por pensar) |
+| Chuchi | Bolilandia, un parque de bolas: encerrado a oscuras, sin gafas, buscando el zapato de la pequeña | Hecha |
 | Guille | Una granja a las afueras de Madrid: pesar cerdos y quitarse el olor | Hecha |
-
-Las historias provisionales son una habitación genérica (`src/arte/escenas/provisional.mjs`) con un objeto que apunta a la historia y una puerta: tocar el objeto y salir. Están para probar la estructura de principio a fin hasta que el grupo dé el contexto de cada una.
 
 **Pendiente del grupo** para escribirlas: dónde empieza cada uno, quién más puede salir (novias, compañeros de piso, la pareja de Chuchi; si las niñas se oyen fuera de plano), anécdotas o frases reales, duración de cada historia, si cada uno trae algo que importe en el bar, y si el narrador de Pablo es un personaje con voz propia.
 
@@ -131,8 +129,22 @@ Cada historia sigue el mismo patrón que la de Fran: **llegar → puzle de objet
 
 ### Chuchi · Atrapado en un parque de bolas
 
-- Se ha despistado y se ha quedado encerrado en un parque de bolas tope guay, con muchos elementos: se han ido todos y solo queda él. Las niñas no salen.
-- Por pensar (el grupo): por qué se queda dentro, el puzle de objetos y el minijuego. Ideas sobre la mesa: buscar en la piscina de bolas apartándolas con el dedo, la máquina de gancho de la entrada y bajar el tobogán gigante. El parque es vertical (redes, tubos, toboganes): dos alturas o dos escenas.
+Decidido el 4 de octubre de 2026 (`src/capitulos/chuchi.ts`, escena `src/arte/escenas/parque.mjs`):
+
+- **Bolilandia**, un parque de bolas de Usera, después del cumpleaños de una compañera de clase de la mayor. Su pareja se ha llevado a las niñas; la pequeña se ha ido con un solo zapato, **el de brilli-brilli**. Chuchi entra a buscarlo por el tubo del castillo y, cuando sale por el tobogán, han cerrado y han apagado las luces. Las niñas no salen: solo se notan sus trastadas.
+- **De izquierda a derecha:** la salida con su persiana eléctrica y el cartel de SALIDA; **Robi**, el robot mascota, dormido en su peana; el zapatero; la recepción con el cartel de BOLILANDIA; la puerta de SOLO PERSONAL con la llave colgada muy alta; la mesa de la fiesta y la piñata; la red de las bolas; la estructura de redes con el tobogán de tubo, el cañón de bolas y la piscina de bolas. En la pared, un cielo pintado con arcoíris; en el suelo, colchonetas de colores.
+- **El puzle:**
+  1. **Sin gafas no ve nada:** la escena está lechosa y las cosas pequeñas no se pueden tocar. Las gafas están en la piscina de bolas: hay que rebuscar (sale antes un chupete y un calcetín).
+  2. La **persiana** es eléctrica y está a oscuras. El cuadro eléctrico está en el cuarto del personal, cerrado; la **llave cuelga de un gancho muy alto**, fuera del alcance de los niños (y de Chuchi).
+  3. **La red de las bolas + el palo de la piñata**, empalmados con la cinta americana del mango, dan una red larguísima con la que pesca la llave.
+  4. Llave → cuarto → palanca del cuadro: se encienden las luces, sube la persiana... y **Robi se despierta**, se planta delante de la salida con el zapato en la pinza y no deja salir a nadie «hasta que termine la fiesta».
+  5. El **cañón de bolas** (minijuego) apaga a Robi, que vuelve a su peana y deja caer el zapato. Se recoge (hace luces) y se sale.
+- **A oscuras:** un velo oscuro sobre toda la escena, menos donde llegan las luces de emergencia; sin gafas, además, los bordes lechosos. Va pintado con la capa fija de delante (solo se repinta si se mueve la cámara o cambia algo), no en cada fotograma.
+- **Minijuego · El cañón contra Robi** (`src/ui/robot.ts`, homenaje al de *WarioWare* de disparar plátanos a una nariz gigante): desde detrás del cañón, se toca donde disparar. La bola tarda medio segundo en llegar, así que al botón luminoso de la cabeza de Robi hay que **apuntarle por delante**.
+  - Seis aciertos y se apaga. En la cabeza o el cuerpo, la bola rebota; con el **gorrito de fiesta** bajado sobre el botón, también.
+  - Robi se acerca poco a poco para darte un **abrazo de cumpleaños**: los fallos le acercan y los aciertos le echan atrás. Si llega, se repite; tras dos rondas perdidas se puede saltar.
+  - Tres tramos según los aciertos: se balancea; más rápido, botando y con el gorrito; y en «modo fiesta total», a saltos y con el gorrito más a menudo.
+  - Robi está en `src/arte/robot.mjs` (por piezas, para moverlas). Para ajustar la dificultad: `node scripts/robot-sim.mjs`.
 
 ### Final del capítulo 1
 
