@@ -26,7 +26,7 @@ def tocar(P, canal, c0, compases, largo, vel, oct=0, acento=8, legato=0.85, armo
         for (b, d, t) in compas:
             if t is None:
                 continue
-            m = n(t) + 12 * oct
+            m = (n(t) if isinstance(t, str) else t) + 12 * oct
             fuerte = (b % 1) == 0
             P.nota(canal, c0 + i * largo + b, d, m, vel + (acento if fuerte else 0), legato=legato)
             if armonia and acordes:
