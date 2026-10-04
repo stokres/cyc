@@ -994,7 +994,7 @@ pista.chuchi.combinar = Junta la red y el palo en la bolsa: elige uno, vuelve a 
 pista.chuchi.gancho = Usa la red larguísima en el gancho de la llave.
 pista.chuchi.puerta = Usa la llave en la puerta de SOLO PERSONAL.
 pista.chuchi.cuadro = El cuadro eléctrico está en el cuarto del personal: dale a la palanca.
-pista.chuchi.canon = El cañón de bolas, en la estructura junto a la piscina, ya tiene aire. Apunta al botón de la cabeza de Robi.
+pista.chuchi.canon = El cañón de bolas, el de ruedas delante de la piscina, ya tiene aire. Apunta al botón de la cabeza de Robi.
 pista.chuchi.zapato = El zapato está en el suelo, junto a la peana de Robi.
 pista.chuchi.salir = La salida ya está libre: por la persiana, al Río.
 

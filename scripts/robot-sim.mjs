@@ -26,7 +26,7 @@ function ronda(vw, j) {
         if (r === 'boton') {
           golpes++;
           cerca = Math.max(0, cerca + ACIERTO);
-        } else cerca += FALLO;
+        } else cerca += FALLO[tramo(golpes)];
       }
     }
     if (golpes >= META) return { gana: true, t };
@@ -49,6 +49,7 @@ function ronda(vw, j) {
 const JUGADORES = {
   'hábil (apunta por delante, paciente)': { lead: 1, dudaLead: 0.15, punteria: 14, retraso: 0.18, ritmo: 0.5, paciente: true },
   'normal (adelanta algo, dispara a ratos)': { lead: 0.8, dudaLead: 0.3, punteria: 22, retraso: 0.25, ritmo: 0.6, paciente: true },
+  'del montón (adelanta poco, dispara aunque esté el gorro)': { lead: 0.6, dudaLead: 0.4, punteria: 30, retraso: 0.3, ritmo: 0.45, paciente: false },
   'a lo loco (no adelanta, dispara sin parar)': { lead: 0, dudaLead: 0.2, punteria: 30, retraso: 0.25, ritmo: 0.3, paciente: false },
 };
 
@@ -64,6 +65,6 @@ for (const vw of [1920, 2340]) {
         tiempo += r.t;
       }
     }
-    console.log(`  ${nombre.padEnd(44)} gana ${String(ganadas).padStart(2)}/40${ganadas ? ` en ${(tiempo / ganadas).toFixed(0)} s` : ''}`);
+    console.log(`  ${nombre.padEnd(58)} gana ${String(ganadas).padStart(2)}/40${ganadas ? ` en ${(tiempo / ganadas).toFixed(0)} s` : ''}`);
   }
 }

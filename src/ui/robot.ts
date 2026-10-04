@@ -241,7 +241,7 @@ export function jugarRobot(parent: HTMLElement, rapido = false): Promise<Resulta
       } else if (golpes === 2 || golpes === 4) {
         mostrar(`robot.tramo${R.tramo(golpes)}`, 1.1);
       }
-    } else cerca += R.FALLO;
+    } else cerca += R.FALLO[R.tramo(golpes)];
   };
 
   // ---------------------------------------------------------------- input

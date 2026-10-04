@@ -10,8 +10,8 @@
 //   button has to be led.
 // - Six hits on the button and he switches off. Hitting his head or body only
 //   bounces off; while his party hat is down over the button, so does that.
-// - He keeps coming closer (for a hug); misses bring him closer, hits push him
-//   back. If he gets to Chuchi, the round is lost.
+// - He keeps coming closer (for a hug); misses bring him a little closer (less
+//   in the later stretches), hits push him back. If he gets to Chuchi, the round is lost.
 // - Three stretches, by hits: swaying; faster, bobbing, and the party hat;
 //   wild, hopping, and the hat more often.
 
@@ -94,5 +94,9 @@ export function resultado(vw, golpes, t, cerca, x, y) {
 
 /** How fast he comes closer (share of the way per second), per stretch, and per miss or hit. */
 export const ACERCA = [0, 0.026, 0.034, 0.042];
-export const FALLO = 0.06;
+/**
+ * A miss, per stretch: it still costs (shooting non-stop loses), but less as he
+ * gets wilder, so the last stretch leaves room for more tries.
+ */
+export const FALLO = [0, 0.03, 0.025, 0.02];
 export const ACIERTO = -0.2;

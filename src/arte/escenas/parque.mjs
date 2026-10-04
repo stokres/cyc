@@ -40,7 +40,8 @@ const FIESTA = [1830, 2330];
 const RED = 2400;
 const PISCINA = [2480, 3420];
 const ESTRUCTURA = [2440, 3640];
-const CANON = { x: 3300, y: 452 };
+// The ball cannon, on the floor in front of the near end of the pit (a prop, so it stands out).
+const CANON = { X: 3000, y: 980 };
 
 const BOLAS = ['#e8452e', '#f5c95f', '#5ad08a', '#5aa8ff', '#f27aa8', '#ff9a3a'];
 const AZUL = mat('#3a7ad8', '#2a5aa8', '#6a9ae8', '#163a70');
@@ -267,18 +268,76 @@ function estructura() {
   return out.join('');
 }
 
-/** The ball cannon on the lower platform (it blows balls with air when there is power). */
-function canon() {
-  const { x, y } = CANON;
-  return [
-    box(x - 50, y + 14, 100, 30, mat('#5a6070', '#40444f', '#7a8090', '#1e2028'), { r: 8 }),
-    g(null, [
-      shape(rr(-90, -30, 150, 60, 28), AMARILLO.base, [rect(-90, 10, 150, 20, AMARILLO.shadow)], AMARILLO.line, 3),
-      shape(ellipse(-92, 0, 18, 34), '#2a2e38', [], '#141618', 2),
-      shape(smooth([[20, -30], [40, -90], [90, -96], [70, -30]]), '#5aa8ff', [], '#163a70', 2.4),
-      ...BOLAS.slice(0, 4).map((c, i) => circle(48 + i * 9, -74 - (i % 2) * 8, 9, c)),
-    ], { transform: `translate(${x} ${y}) rotate(-12)` }),
-  ].join('');
+/**
+ * The ball cannon (it blows balls with air when there is power), on the floor
+ * in front of the pit, on its own so it never reads as part of the slide.
+ * Character units (Chuchi is 270 tall = 1.75 m), standing on (0, 0): a cartoon
+ * cannon in play-park plastic, a fat yellow barrel on a red carriage with two
+ * big blue wheels, aimed up and to the left at the room; a clear hopper full of
+ * balls, two grips and a big red button at the back, and the air hose.
+ */
+function canonBolas() {
+  const m = 154;
+  const RUEDA = mat('#3a7ad8', '#2a5aa8', '#6a9ae8', '#163a70');
+  const out = [path(ellipse(-0.05 * m, 4, 0.85 * m, 0.1 * m), '#000000', { opacity: 0.3 })];
+  const rueda = (cx, cy, R, lejos) => {
+    const k = lejos ? 0.75 : 1;
+    const c = (hex) => (lejos ? '#1e3e78' : hex);
+    return [
+      shape(ellipse(cx, cy, R, R), c(RUEDA.base), [path(ellipse(cx + R * 0.15, cy + R * 0.15, R * 0.85, R * 0.85), c(RUEDA.shadow), { opacity: 0.8 * k })], RUEDA.line, 2.6),
+      shape(ellipse(cx, cy, R * 0.62, R * 0.62), lejos ? '#2a4a88' : '#5a9ae8', [], RUEDA.line, 2),
+      ...[0, 1, 2, 3, 4, 5].map((i) => stroke(`M${cx} ${cy}L${cx + Math.cos((i * Math.PI) / 3) * R * 0.6} ${cy + Math.sin((i * Math.PI) / 3) * R * 0.6}`, RUEDA.line, 0.035 * m)),
+      shape(ellipse(cx, cy, R * 0.24, R * 0.24), lejos ? '#9a7a20' : '#f5c33a', [], '#7a5a08', 2),
+    ].join('');
+  };
+  // The air hose, from the back of the carriage across the mats.
+  out.push(stroke(`M${0.62 * m} ${-0.16 * m}C${0.9 * m} ${-0.02 * m} ${1.1 * m} ${0.04 * m} ${0.85 * m} ${0.05 * m}C${0.6 * m} ${0.06 * m} ${0.75 * m} ${-0.06 * m} ${1.3 * m} ${-0.03 * m}`, '#1c1e24', 0.055 * m));
+  // The far wheel, then the carriage: a red trail resting on the floor at the back.
+  const R = 0.3 * m;
+  out.push(rueda(0.1 * m, -R - 0.02 * m, R, true));
+  out.push(shape(smooth([[-0.22 * m, -0.5 * m, 'c'], [0.16 * m, -0.66 * m, 'c'], [0.78 * m, -0.06 * m, 'c'], [0.74 * m, 0, 'c'], [0.5 * m, 0, 'c'], [-0.2 * m, -0.3 * m, 'c']]), ROJO.base, [
+    path(smooth([[0.1 * m, -0.4 * m], [0.78 * m, -0.06 * m], [0.74 * m, 0], [0.5 * m, 0], [0.05 * m, -0.24 * m]]), ROJO.shadow),
+    path(smooth([[-0.16 * m, -0.48 * m], [0.14 * m, -0.6 * m], [0.2 * m, -0.56 * m], [-0.12 * m, -0.43 * m]]), ROJO.light, { opacity: 0.8 }),
+  ], ROJO.line, 2.6));
+  // Barrel, hopper and grips, turned to aim up at the room (the muzzle at -x).
+  const L = 0.78 * m;
+  const B = 0.42 * m;
+  const r0 = 0.2 * m;
+  const r1 = 0.15 * m;
+  const canon = [];
+  // The hopper on top, towards the back: a clear funnel full of balls.
+  const hx = 0.12 * m;
+  const tolva = smooth([[hx - 0.09 * m, -r0 + 4, 'c'], [hx - 0.2 * m, -0.6 * m, 'c'], [hx + 0.26 * m, -0.6 * m, 'c'], [hx + 0.15 * m, -r0 + 4, 'c']]);
+  canon.push(path(tolva, '#bfe4ff', { opacity: 0.35 }));
+  const r = rng(9);
+  for (let i = 0; i < 13; i++) {
+    const y = -r0 - 0.05 * m - r() * 0.34 * m;
+    const ancho = 0.1 * m + ((-y - r0) / (0.4 * m)) * 0.12 * m;
+    const x = hx + 0.03 * m + (r() - 0.5) * 2 * ancho;
+    canon.push(circle(x, y, 0.05 * m, BOLAS[i % 6]), circle(x - 0.016 * m, y - 0.018 * m, 0.015 * m, '#ffffff', { opacity: 0.6 }));
+  }
+  canon.push(shape(tolva, 'none', [], '#5a8ab0', 2.2), shape(ellipse(hx + 0.03 * m, -0.6 * m, 0.23 * m, 0.045 * m), '#e8f6ff', [], '#5a8ab0', 2.2, { opacity: 0.8 }));
+  // The barrel: fat at the back, narrower at the muzzle, with red bands.
+  canon.push(shape(smooth([[B, -r0, 'c'], [-L, -r1, 'c'], [-L, r1, 'c'], [B, r0, 'c']]), AMARILLO.base, [
+    path(smooth([[B, r0 * 0.25], [-L, r1 * 0.25], [-L, r1], [B, r0]]), AMARILLO.shadow),
+    path(smooth([[B - 10, -r0 * 0.75], [-L + 10, -r1 * 0.75], [-L + 10, -r1 * 0.45], [B - 10, -r0 * 0.45]]), AMARILLO.light, { opacity: 0.85 }),
+    ...[-0.5, 0.26].map((t) => rect(t * m, -r0 - 2, 0.09 * m, 2 * r0 + 4, '#e0503a')),
+  ], AMARILLO.line, 3));
+  // Back cap with the two grips and the big red button.
+  canon.push(shape(ellipse(B, 0, 0.06 * m, r0), AMARILLO.shadow, [], AMARILLO.line, 2.4));
+  for (const s of [-1, 1]) canon.push(stroke(`M${B + 0.03 * m} ${s * 0.1 * m}L${B + 0.2 * m} ${s * 0.13 * m}`, '#2a2d35', 0.06 * m), path(rr(B + 0.17 * m, s * 0.13 * m - 0.045 * m, 0.1 * m, 0.09 * m, 0.035 * m), '#2a2d35'));
+  canon.push(shape(ellipse(B + 0.02 * m, -r0 - 0.03 * m, 0.07 * m, 0.04 * m), '#e8452e', [path(ellipse(B, -r0 - 0.045 * m, 0.03 * m, 0.014 * m), '#ffb0a0', { opacity: 0.8 })], '#6a1a10', 2));
+  // The muzzle: a blue flared ring, the dark bore and a ball peeping out.
+  canon.push(shape(ellipse(-L, 0, 0.08 * m, r1 + 0.06 * m), '#3a7ad8', [path(ellipse(-L - 0.02 * m, 0, 0.055 * m, r1 + 0.025 * m), '#163a70')], '#163a70', 2.4));
+  canon.push(path(ellipse(-L - 0.03 * m, 0, 0.04 * m, r1 - 0.01 * m), '#0e1016'));
+  canon.push(circle(-L - 0.02 * m, -0.02 * m, 0.09 * m, '#e8452e'), circle(-L - 0.045 * m, -0.055 * m, 0.027 * m, '#ffffff', { opacity: 0.7 }));
+  out.push(g(null, canon, { transform: `translate(${0.02 * m} ${-0.6 * m}) rotate(20)` }));
+  // The trunnion it swivels on, and the near wheel in front of it all.
+  out.push(shape(ellipse(0.02 * m, -0.6 * m, 0.06 * m, 0.06 * m), '#3a3e48', [], '#14161a', 2));
+  out.push(rueda(0, -R, R, false));
+  // A few balls that fell out, on the mats in front of the muzzle.
+  for (const [x, c] of [[-0.62, 3], [-0.46, 1], [-0.8, 4]]) out.push(circle(x * m, -0.05 * m, 0.05 * m, BOLAS[c]), circle(x * m - 3, -0.07 * m, 2.4, '#ffffff', { opacity: 0.6 }));
+  return out.join('');
 }
 
 function piscina() {
@@ -302,7 +361,7 @@ function backWall() {
   const rc = recepcion();
   const pe = personal();
   return {
-    body: [mural(), s.body, zapatero(), rc.body, pe.body, fiesta(), estructura(), canon(), piscina()].join(''),
+    body: [mural(), s.body, zapatero(), rc.body, pe.body, fiesta(), estructura(), piscina()].join(''),
     emissive: [s.emissive, rc.emissive].join(''),
     texts: [...s.texts, ...rc.texts, ...pe.texts],
   };
@@ -396,7 +455,10 @@ export function escena() {
       { id: 'suelo', floor: true, x0: fl[0], x1: fl[1], y0: 800, y1: 1080, body: floor(), lit: true },
       { id: 'frente', k: KF, z: 'front', lit: true, pieces: foreground() },
     ],
-    props: [{ id: 'zapato', X: ROBOT_PEANA + 160, y: 900, svg: zapatoSuelo(), z: -10, si: 'c.zapatoSuelo' }],
+    props: [
+      { id: 'zapato', X: ROBOT_PEANA + 160, y: 900, svg: zapatoSuelo(), z: -10, si: 'c.zapatoSuelo' },
+      { id: 'canon', X: CANON.X, y: CANON.y, svg: canonBolas() },
+    ],
     lights: [
       { X: 380, y: 60, r: 1100, color: '#f4f6ff', power: 0.6, fy: 880 },
       { X: 1180, y: 60, r: 1100, color: '#f4f6ff', power: 0.6, fy: 880 },
@@ -431,7 +493,12 @@ export function escena() {
       // He rummages from the near end, so he never stands in front of what you tap.
       piscina: { u: (PISCINA[0] + PISCINA[1]) / 2, k: 1, w: PISCINA[1] - PISCINA[0], top: G - 240, bottom: G, X: PISCINA[0] - 50, y: 880 },
       tobogan: { u: ESTRUCTURA[1] - 300, k: 1, w: 400, top: 290, bottom: 640, X: ESTRUCTURA[1] - 380, y: 880 },
-      canon: { u: CANON.x - 10, k: 1, w: 200, top: CANON.y - 100, bottom: CANON.y + 50, X: CANON.x + 190, y: 885 },
+      // The cannon stands in front of the walk band: he takes it from behind, at the grips.
+      canon: (() => {
+        const k = P.f(CANON.y);
+        const s = (M * 1.75 * k) / 270;
+        return { u: P.CX + k * (CANON.X - P.CX) - 0.1 * 154 * s, k, w: 1.9 * 154 * s, top: CANON.y - 1.2 * 154 * s, bottom: CANON.y + 10, X: CANON.X + 330, y: 900 };
+      })(),
     },
   };
 }
