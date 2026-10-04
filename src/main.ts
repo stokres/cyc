@@ -4,7 +4,13 @@ import textosCapitulo from './textos/capitulo1.md?raw';
 import textosInterfaz from './textos/interfaz.md?raw';
 import { cargarTextos, texto } from './juego/textos';
 import { Aventura } from './juego/aventura';
-import { borrarPartida, cargarPartida, enJuego, guardarPartida, rejugar, volverAPrincipal, type Partida } from './juego/partida';
+import { apuntarPuntos, borrarPartida, cargarPartida, enJuego, guardarPartida, rejugar, volverAPrincipal, type Partida } from './juego/partida';
+import { REPARTO, type PjId } from './juego/reparto';
+import type { Infinito } from './ui/infinito';
+import { jugarRana } from './ui/rana';
+import { jugarPalabras } from './ui/palabras';
+import { jugarRobot } from './ui/robot';
+import { jugarCerdos } from './ui/cerdos';
 import { capitulo1 } from './capitulos/capitulo1';
 import { h } from './ui/hud';
 import type { Calidad } from './motor/motor';
@@ -134,6 +140,12 @@ async function arrancar() {
       el.remove();
       menuCapitulos();
     });
+    const minijuegos = h('button', { class: 'btn', id: 'm-minijuegos' }, texto('menu.minijuegos'));
+    minijuegos.addEventListener('click', (e) => {
+      e.stopPropagation();
+      el.remove();
+      menuMinijuegos();
+    });
     const el = g.hud.cubrir(
       '',
       h(
@@ -167,6 +179,7 @@ async function arrancar() {
           { class: 'fila' },
           h('button', { class: 'btn primario', onclick: (e) => (e.stopPropagation(), cerrar()) }, texto('menu.continuar')),
           capitulos,
+          minijuegos,
           reiniciar,
         ),
       ),
@@ -228,6 +241,116 @@ async function arrancar() {
       el.remove();
       g.pausado = false;
     });
+  };
+
+  // ---------------------------------------------------------- minigames
+  // The minigames won in the story, endless (src/ui/infinito.ts), with a local
+  // ranking per minigame (src/juego/partida.ts). The game stays paused meanwhile.
+  const MINIJUEGOS: Array<{ id: string; quien: PjId }> = [
+    { id: 'rana', quien: 'fran' },
+    { id: 'palabras', quien: 'pablo' },
+    { id: 'robot', quien: 'chuchi' },
+    { id: 'cerdos', quien: 'guille' },
+  ];
+  const tarjeta = (...kids: Node[]) => g.hud.cubrir('', h('div', { class: 'tarjeta vidrio' }, ...kids));
+  const boton = (etiqueta: string, clase: string, alTocar: () => void, id?: string) => {
+    const b = h('button', { class: `btn ${clase}`, ...(id ? { id } : {}) }, etiqueta);
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      alTocar();
+    });
+    return b;
+  };
+  const volverAlJuego = (el: HTMLElement) => {
+    el.remove();
+    g.pausado = false;
+  };
+
+  const menuMinijuegos = () => {
+    g.pausado = true;
+    const fila = ({ id, quien }: (typeof MINIJUEGOS)[number]) => {
+      const mj = partida.progreso.minijuegos[id];
+      const abierto = !!mj?.superado;
+      const estado = !abierto ? texto('minijuegos.bloqueado', { quien: REPARTO[quien].nombre }) : mj.record ? texto('minijuegos.record', { n: mj.record }) : texto('minijuegos.sinrecord');
+      return h(
+        'div',
+        { class: `capitulo-fila minijuego-fila${abierto ? ' superado' : ' bloqueado'}` },
+        h('div', {}, h('div', { class: 'cap-num' }, REPARTO[quien].nombre), h('div', { class: 'cap-nombre' }, texto(`minijuego.${id}`)), h('div', { class: 'cap-estado' }, estado)),
+        ...(abierto
+          ? [
+              boton(texto('minijuegos.jugar'), 'primario', () => {
+                el.remove();
+                void jugarInfinito(id);
+              }, `mj-${id}`),
+            ]
+          : []),
+      );
+    };
+    const el = tarjeta(
+      h('h2', {}, texto('minijuegos.titulo')),
+      h('div', { class: 'lista-capitulos' }, ...MINIJUEGOS.map(fila)),
+      h('p', { class: 'pequeno' }, texto('minijuegos.nota')),
+      h('div', { class: 'fila' }, boton(texto('menu.continuar'), 'fantasma', () => volverAlJuego(el))),
+    );
+  };
+
+  const jugarInfinito = async (id: string) => {
+    g.pausado = true;
+    const antes = partida.progreso.minijuegos[id]?.record ?? 0;
+    const inf: Infinito = { record: antes };
+    let r: string;
+    if (id === 'rana') {
+      const F = REPARTO.fran;
+      r = await jugarRana(g.root, {
+        cuerpoFran: (animo) => F.arte.body({ mood: animo }, g.estado.ropa.fran ?? F.ropa),
+        joints: (F.arte as unknown as { JOINTS: Record<string, number[]> }).JOINTS,
+        rapido: g.rapido,
+        infinito: inf,
+      });
+    } else if (id === 'palabras') r = await jugarPalabras(g.root, REPARTO.pablo.arte.body({}, g.estado.ropa.pablo ?? REPARTO.pablo.ropa), g.rapido, inf);
+    else if (id === 'robot') r = await jugarRobot(g.root, g.rapido, inf);
+    else r = await jugarCerdos(g.root, g.rapido, inf);
+    // Closed halfway: no score, back to the list.
+    if (r !== 'hecho') return menuMinijuegos();
+    const puntos = inf.puntos ?? 0;
+    const puesto = apuntarPuntos(partida, id, puntos);
+    guardar();
+    resultado(id, puntos, puesto, puntos > antes && antes > 0);
+  };
+
+  const resultado = (id: string, puntos: number, puesto: number, recordNuevo: boolean) => {
+    const ranking = partida.progreso.minijuegos[id]?.ranking ?? [];
+    const fecha = (iso: string) => new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+    const el = tarjeta(
+      h('h2', {}, texto(`minijuego.${id}`)),
+      h('p', { class: 'puntos-grandes' }, puntos === 1 ? texto('resultado.punto') : texto('resultado.puntos', { n: puntos })),
+      ...(recordNuevo ? [h('p', { class: 'record-nuevo' }, texto('resultado.record'))] : []),
+      ...(ranking.length
+        ? [
+            h('p', { class: 'pequeno' }, texto('resultado.ranking')),
+            h(
+              'ol',
+              { class: 'ranking' },
+              ...ranking.map((p, i) => h('li', { class: i === puesto ? 'esta' : '' }, h('span', {}, `${i + 1}. ${p.puntos}`), h('span', { class: 'fecha' }, fecha(p.fecha)))),
+            ),
+          ]
+        : []),
+      h('p', { class: 'pequeno' }, texto(`minijuego.${id}.puntos`)),
+      h(
+        'div',
+        { class: 'fila' },
+        boton(texto('resultado.otra'), 'primario', () => {
+          el.remove();
+          void jugarInfinito(id);
+        }, 'res-otra'),
+        boton(texto('resultado.volver'), '', () => {
+          el.remove();
+          menuMinijuegos();
+        }, 'res-volver'),
+        boton(texto('menu.continuar'), 'fantasma', () => volverAlJuego(el)),
+      ),
+    );
+    el.querySelector('.tarjeta')?.classList.add('resultado');
   };
 
   // ---------------------------------------------------------- end of the pilot

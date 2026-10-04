@@ -2,35 +2,38 @@
 // src/ui/robot-reglas.mjs). Simulated players tap where they think the button
 // will be when the ball gets there: they react late, misjudge the lead and the
 // aim, and (the careful ones) wait for the party hat to go up.
-// Prints, per kind of player, rounds won out of 40 and how long they took.
+// Prints, per kind of player, rounds won out of 40 and how long they took; and
+// for the endless version (minigames menu), the average score and the best.
 // Runs in Node, no browser: node scripts/robot-sim.mjs
-import { VUELO, META, RECARGA, ACERCA, FALLO, ACIERTO, tramo, botonEn, resultado, gorro } from '../src/ui/robot-reglas.mjs';
+import { VUELO, META, RECARGA, ACERCA, FALLO, tramo, botonEn, resultado, gorro, ritmo, empuje } from '../src/ui/robot-reglas.mjs';
 
 const gauss = () => Math.sqrt(-2 * Math.log(Math.random() + 1e-9)) * Math.cos(2 * Math.PI * Math.random());
 
-function ronda(vw, j) {
+function ronda(vw, j, infinito = false) {
   let t = 0;
   let golpes = 0;
   let cerca = 0;
   let espera = 0;
   const vuelan = [];
   const dt = 1 / 60;
-  while (t < 240) {
-    t += dt;
-    espera -= dt;
-    cerca += dt * ACERCA[tramo(golpes)];
+  while (t < 600) {
+    // Robi's routine clock runs faster past six hits (endless only); the player's does not.
+    const r = ritmo(golpes);
+    t += dt * r;
+    espera -= dt * r;
+    cerca += dt * ACERCA[tramo(golpes)] * r;
     for (const b of vuelan) {
       if (b.llega <= t && !b.hecho) {
         b.hecho = true;
         const r = resultado(vw, golpes, t, cerca, b.x, b.y);
         if (r === 'boton') {
+          cerca = Math.max(0, cerca + empuje(golpes));
           golpes++;
-          cerca = Math.max(0, cerca + ACIERTO);
         } else cerca += FALLO[tramo(golpes)];
       }
     }
-    if (golpes >= META) return { gana: true, t };
-    if (cerca >= 1) return { gana: false, t };
+    if (golpes >= META && !infinito) return { gana: true, t };
+    if (cerca >= 1) return { gana: false, t, golpes };
     if (espera > 0) continue;
     // The player looks, decides and taps: late, and leading by a guess.
     const ve = t;
@@ -43,7 +46,7 @@ function ronda(vw, j) {
     vuelan.push({ x: B.x + gauss() * j.punteria, y: B.y + gauss() * j.punteria, llega: ve + j.retraso + VUELO });
     espera = Math.max(RECARGA, j.ritmo + Math.random() * j.ritmo);
   }
-  return { gana: false, t };
+  return { gana: false, t, golpes };
 }
 
 const JUGADORES = {
@@ -67,4 +70,10 @@ for (const vw of [1920, 2340]) {
     }
     console.log(`  ${nombre.padEnd(58)} gana ${String(ganadas).padStart(2)}/40${ganadas ? ` en ${(tiempo / ganadas).toFixed(0)} s` : ''}`);
   }
+}
+
+console.log('\nVersión sin fin (puntos = aciertos), pantalla 2340');
+for (const [nombre, j] of Object.entries(JUGADORES)) {
+  const puntos = Array.from({ length: 40 }, () => ronda(2340, j, true).golpes ?? 0);
+  console.log(`  ${nombre.padEnd(58)} media ${String(Math.round(puntos.reduce((a, b) => a + b, 0) / puntos.length)).padStart(3)} · mejor ${Math.max(...puntos)}`);
 }

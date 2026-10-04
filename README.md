@@ -43,6 +43,8 @@ node tools/personajes/lamina-crew.mjs                                     # lám
 node tools/personajes/frentes.mjs                                         # caras de frente de los retratos, por ánimo y boca (revisiones/frentes.png)
 node tools/personajes/cerdos.mjs                                          # los cerdos de Guille (revisiones/cerdos.png)
 node scripts/cerdos-sim.mjs                                               # dificultad del minijuego de los cerdos
+node scripts/robot-sim.mjs                                                # dificultad del cañón contra Robi, en la historia y sin fin
+node scripts/rana-sim.mjs                                                 # dificultad de la rana de Aceituna
 node tools/escenas/exportar.mjs                                           # capas de las escenas en art/escenas/
 node tools/icono.mjs                                                      # iconos de la pantalla de inicio (public/icono-*.png)
 ```
@@ -62,7 +64,7 @@ node tools/icono.mjs                                                      # icon
 | `src/juego/` | Aventura (guion, entrada táctil, cambio de personaje), reparto, textos y partida guardada |
 | `src/motor/` | Escenas en capas con parallax, luz horneada, actores y la luz con relieve en WebGL2 (aplazada) |
 | `src/arte/` | Personajes (con vestuario), escenas y objetos, generados como SVG |
-| `src/ui/` | Interfaz: selector, bolsa, diálogos, móvil y minijuegos (la rana, palabras, el robot y los cerdos) |
+| `src/ui/` | Interfaz: selector, bolsa, diálogos, móvil y minijuegos (la rana, palabras, el robot y los cerdos), con su versión sin fin para el menú de minijuegos |
 | `src/core/` | Gestos, sonido y utilidades |
 | `tools/` | Láminas de personajes, exportación de capas e iconos |
 | `public/` | Manifiesto e iconos para instalarlo en el móvil |

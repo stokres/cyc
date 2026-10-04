@@ -11,6 +11,12 @@
 // another pack and it starts again; after two lost rounds it can be skipped
 // (docs/JUGABILIDAD.md). Balance: node scripts/rana-sim.mjs.
 //
+// Endless version (minigames menu, ./infinito.ts): ham without end and no Fran
+// helping himself; after the four stretches her routine and the draught keep
+// getting quicker and stronger. Three cubes that she does not catch end the game
+// (a hit rate of about one in two at the start would make one too few). A point
+// per catch.
+//
 // Performance (docs/ESTILO.md, T5): the room, Fran's poses, Aceituna's faces,
 // her tail, the shade, the curtains and the ham are bitmaps made once per screen
 // size; each frame only moves them. The loop never runs faster than 60 fps.
@@ -24,6 +30,7 @@ import { sentada, colaSentada } from '../arte/personajes/aceituna.mjs';
 import { fondo, pantalla, cortina, taquito, puertaTerraza, cartel } from '../arte/escenas/salon-rana.mjs';
 import { POSTER_TEXTS } from '../arte/escenas/piso.mjs';
 import * as F from './rana-fisica.mjs';
+import { marcador, type Infinito } from './infinito';
 
 export type Resultado = 'hecho' | 'saltado' | 'cancelado';
 
@@ -34,6 +41,9 @@ const META = TRAMOS * POR_TRAMO;
 const PAQUETE = 24;
 /** Seconds without throwing before Fran eats one himself. */
 const GULA = 8;
+/** Endless: cubes she may not catch before the game is over, and catches per «level». */
+const VIDAS = 3;
+const NIVEL_CADA = 4;
 /** Seconds of flight the dotted aim line shows, per stretch. */
 const VISTA = [0, 1.1, 0.55, 0.28, 0.12];
 /** Aceituna's art units to logical px (her catch area in rana-fisica.mjs matches it). */
@@ -74,7 +84,7 @@ interface Miga {
   c: string;
 }
 
-type Taco = ReturnType<typeof F.nuevoTaco> & { fuera: number; tocoSuelo: boolean };
+type Taco = ReturnType<typeof F.nuevoTaco> & { fuera: number; tocoSuelo: boolean; perdido?: boolean };
 
 /** State the automatic playthrough reads (scripts/playthrough.mjs), positions in CSS px. */
 export interface EstadoRana {
@@ -101,6 +111,8 @@ export interface OpcionesRana {
   cuerpoFran: (animo: string) => string;
   joints: Record<string, number[]>;
   rapido?: boolean;
+  /** The endless version, from the minigames menu. */
+  infinito?: Infinito;
 }
 
 /** A warm glow, for the lamp: made once. */
@@ -148,7 +160,10 @@ export function jugarRana(parent: HTMLElement, op: OpcionesRana): Promise<Result
   const aviso = h('div', { class: 'aviso-cerdos', hidden: true });
   const saltar = h('button', { class: 'btn fantasma saltar', hidden: true }, texto('minijuego.saltar'));
   const cerrar = h('button', { class: 'cerrar', 'aria-label': texto('boton.cerrar') }, '×');
-  const capa = h('div', { class: 'cubierta minijuego rana' }, lienzo, h('p', { class: 'instrucciones' }, texto('rana.instrucciones')), ganasEl, municion, aviso, saltar, cerrar);
+  const inf = op.infinito;
+  const puntos = inf ? marcador(inf) : null;
+  ganasEl.hidden = !!inf;
+  const capa = h('div', { class: 'cubierta minijuego rana' }, lienzo, h('p', { class: 'instrucciones' }, texto('rana.instrucciones')), ganasEl, municion, ...(puntos ? [puntos.el] : []), aviso, saltar, cerrar);
   parent.append(capa);
   const ctx = lienzo.getContext('2d')!;
 
@@ -260,9 +275,18 @@ export function jugarRana(parent: HTMLElement, op: OpcionesRana): Promise<Result
   let avisoSuelo = false;
   let apunta: null | { x0: number; y0: number; x: number; y: number } = null;
   let hojas: Array<{ x: number; y: number; vy: number; f: number }> = [];
+  let vidas = VIDAS;
+  /**
+   * Endless: catches past the story's eight make her routine quicker (her clock
+   * runs faster) and the draught stronger, up to a point. Always 1 in the story.
+   */
+  const extra = () => (inf ? Math.max(0, comidos - META) : 0);
+  const ritmo = () => 1 + Math.min(1, 0.06 * extra());
+  const fuerza = () => 1 + Math.min(0.8, 0.05 * extra());
+  const vientoAhora = () => F.vientoEn(tramo, t) * fuerza();
 
-  const mostrar = (clave: string, s = 1.2, luego?: () => void) => {
-    const variantes = texto(clave).split(' / ');
+  const mostrar = (clave: string, s = 1.2, luego?: () => void, vars: Record<string, string | number> = {}) => {
+    const variantes = texto(clave, vars).split(' / ');
     aviso.textContent = variantes[Math.floor(Math.random() * variantes.length)];
     aviso.hidden = false;
     aviso.classList.remove('salta');
@@ -281,8 +305,8 @@ export function jugarRana(parent: HTMLElement, op: OpcionesRana): Promise<Result
   };
   const vuela = () => tacos.some((x) => x.estado === 'vuela');
   const masca = () => cara === 'masca' && reloj < caraHasta;
-  const bocaAbierta = (dt = 0) => !masca() && F.bocaAbierta(tramo, t + dt);
-  const perro = (dt = 0) => F.perroEn(m, tramo, t + dt);
+  const bocaAbierta = (dt = 0) => !masca() && F.bocaAbierta(tramo, t + dt * ritmo());
+  const perro = (dt = 0) => F.perroEn(m, tramo, t + dt * ritmo());
 
   const empezarRonda = () => {
     tramo = 1;
@@ -306,13 +330,14 @@ export function jugarRana(parent: HTMLElement, op: OpcionesRana): Promise<Result
       return;
     }
     tacos.push({ ...F.nuevoTaco(m, px, py), fuera: 0, tocoSuelo: false });
-    quedan--;
+    if (!inf) quedan--;
     ocioso = 0;
     ponerPose('lanza', 0.35);
   };
 
   const comido = (x: number, y: number) => {
     comidos++;
+    puntos?.sumar(1);
     alegria = 1.6;
     trago = 1;
     ponerCara('masca', 0.75);
@@ -323,7 +348,13 @@ export function jugarRana(parent: HTMLElement, op: OpcionesRana): Promise<Result
       const v = 160 + Math.random() * 240;
       migas.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, c: i % 3 ? '#c8505a' : '#f6e6d6' });
     }
-    if (comidos >= META) {
+    if (inf) {
+      if (comidos < META && comidos % POR_TRAMO === 0) {
+        tramo = comidos / POR_TRAMO + 1;
+        t = 0;
+        mostrar(`rana.tramo${tramo}`, 1.6);
+      } else if (comidos >= META && (comidos - META) % NIVEL_CADA === 0) mostrar('infinito.nivel', 1.2, undefined, { n: 2 + (comidos - META) / NIVEL_CADA });
+    } else if (comidos >= META) {
       terminado = 'hecho';
       mostrar('rana.gana', 2.4);
     } else if (comidos % POR_TRAMO === 0) {
@@ -379,7 +410,7 @@ export function jugarRana(parent: HTMLElement, op: OpcionesRana): Promise<Result
       fotogramas,
       escala: k,
       prever: (px, py) => {
-        const tr = F.trayectoria(m, px / k, py / k, { perro: { x: -1e6, y: -1e6 }, viento: F.vientoEn(tramo, t), boca: true }, 3, 1 / 60);
+        const tr = F.trayectoria(m, px / k, py / k, { perro: { x: -1e6, y: -1e6 }, viento: vientoAhora(), boca: true }, 3, 1 / 60);
         return { puntos: tr.puntos.map((p) => ({ x: r.left + p.x * k, y: r.top + p.y * k, t: p.t })), ev: tr.ev };
       },
       bocaEn: (dt) => {
@@ -419,7 +450,7 @@ export function jugarRana(parent: HTMLElement, op: OpcionesRana): Promise<Result
     ctx.globalCompositeOperation = 'source-over';
     // The curtains: still, or blown by the draught.
     const T = puertaTerraza(vw);
-    const viento = F.vientoEn(tramo, t);
+    const viento = vientoAhora();
     for (const [x, fase] of [[T.x0 - 30, 0], [T.x1 + 30, 1.7]] as const) {
       const sopla = (viento / 600) * 0.45 + Math.sin(reloj * (tramo === 4 ? 3.1 : 0.8) + fase) * (tramo === 4 ? 0.05 : 0.012);
       ctx.setTransform(escala, 0, 0, escala, 0, 0);
@@ -552,7 +583,7 @@ export function jugarRana(parent: HTMLElement, op: OpcionesRana): Promise<Result
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     // HUD.
     (ganasEl.lastChild as HTMLElement).style.width = `${(comidos / META) * 100}%`;
-    cuentaEl.textContent = `× ${quedan}`;
+    cuentaEl.textContent = inf ? '♥'.repeat(Math.max(0, vidas)) : `× ${quedan}`;
   };
 
   // ---------------------------------------------------------------- loop
@@ -590,10 +621,10 @@ export function jugarRana(parent: HTMLElement, op: OpcionesRana): Promise<Result
           luego?.();
         }
       } else if (!terminado) {
-        t += dt;
+        t += dt * ritmo();
         if (!apunta && !vuela()) ocioso += dt;
-        // Dithering: Fran helps himself.
-        if (ocioso > GULA && quedan > 0) {
+        // Dithering: Fran helps himself (not in the endless version: no pack to run out of).
+        if (ocioso > GULA && quedan > 0 && !inf) {
           ocioso = 0;
           quedan--;
           ponerPose('come', 1.3);
@@ -608,10 +639,11 @@ export function jugarRana(parent: HTMLElement, op: OpcionesRana): Promise<Result
       }
       // The room's physics runs all the time (the shade keeps swinging).
       const t0 = t;
+      const r0 = ritmo();
       const eventos = F.paso(m, tacos, dt, {
-        perroEn: (hh: number) => F.perroEn(m, tramo, t0 + (pausa > 0 ? 0 : hh)),
-        bocaEn: (hh: number) => !masca() && F.bocaAbierta(tramo, t0 + hh),
-        viento: F.vientoEn(tramo, t0),
+        perroEn: (hh: number) => F.perroEn(m, tramo, t0 + (pausa > 0 ? 0 : hh * r0)),
+        bocaEn: (hh: number) => !masca() && F.bocaAbierta(tramo, t0 + hh * r0),
+        viento: vientoAhora(),
       });
       for (const { taco, ev } of eventos as Array<{ taco: Taco; ev: string }>) {
         if (ev === 'boca') {
@@ -623,7 +655,16 @@ export function jugarRana(parent: HTMLElement, op: OpcionesRana): Promise<Result
       for (const tc of tacos) {
         if (tc.estado === 'comido') tc.fuera = 1;
         else if (tc.estado === 'quieto') {
-          if (tc.fuera === 0 && tc.tocoSuelo && !masca()) {
+          if (inf && !tc.perdido && !terminado) {
+            // Endless: one she did not catch.
+            tc.perdido = true;
+            vidas--;
+            ponerCara('digna', 1.1);
+            if (vidas <= 0) {
+              terminado = 'hecho';
+              mostrar('rana.infinito.fin', 2.2);
+            } else mostrar('rana.infinito.fallo', 0.8);
+          } else if (!inf && tc.fuera === 0 && tc.tocoSuelo && !masca()) {
             // On the floor? She will not stoop to that.
             ponerCara('digna', 1.1);
             if (!avisoSuelo && !terminado) {
@@ -646,7 +687,7 @@ export function jugarRana(parent: HTMLElement, op: OpcionesRana): Promise<Result
       pops = pops.filter((p) => p.t < 1);
       if (tramo === 4) {
         const T = puertaTerraza(vw);
-        const v = F.vientoEn(tramo, t);
+        const v = vientoAhora();
         if (hojas.length < 14 && Math.random() < dt * 6) hojas.push({ x: v > 0 ? T.x0 + 40 : T.x1 - 40, y: 260 + Math.random() * 560, vy: 20 + Math.random() * 50, f: Math.random() * 6 });
         for (const hj of hojas) {
           hj.x += v * 1.5 * dt;

@@ -1,9 +1,10 @@
 // Plays the pilot from start to finish on a phone-sized viewport, like a player:
 // choose Fran, wake him, switch to Pablo halfway and finish his story (the
 // script, the scissors, the follow spot and the word battle with his shadow), go back to Fran, solve the flat puzzle and walk towards the Bar del Río,
-// then Chuchi's placeholder and Guille's farm (batteries, rosemary and alcohol
+// then Chuchi in the ball park (glasses, the key, the lights and Robi) and Guille's farm (batteries, rosemary and alcohol
 // picked up early, the pig tower, the homemade cologne), and watch the four
-// arrive together.
+// arrive together. Then the chapter replay, and the minigames menu: the pigs,
+// endless, until the game is over and the score goes into the ranking.
 // Fails on any console error or if a step does not do what it should.
 // Usage: node scripts/playthrough.mjs [url] [outDir]   (add ?relieve to the url to play it with relief light)
 import { chromium } from 'playwright';
@@ -573,6 +574,44 @@ await paso('Rejugar el capítulo sin perder la partida', async () => {
   await abrirCapitulos();
   await shot('capitulos');
   check(!!(await page.$('.capitulo-fila.superado [data-capitulo="1"]')), 'el capítulo 1 no se puede rejugar desde el menú');
+});
+
+await paso('Minijuegos sin fin con ranking', async () => {
+  await page.click('.capitulos .btn.fantasma');
+  await page.click('.herramientas button:last-child');
+  await page.click('#m-minijuegos');
+  await page.waitForSelector('#mj-cerdos');
+  const abiertos = await page.$$eval('.minijuego-fila.superado', (f) => f.length);
+  check(abiertos === 4, `minijuegos abiertos tras el capítulo: ${abiertos}`);
+  await shot('minijuegos');
+  // The pigs, endless: three good drops, then off the edge until the game is over.
+  await page.click('#mj-cerdos');
+  let buenos = 0;
+  for (let i = 0; i < 2000 && !(await page.$('.resultado')); i++) {
+    const e = await page.evaluate(() => window.__cerdos?.());
+    if (e?.colgando) {
+      const d = Math.abs(e.prediccion - e.objetivo);
+      if (buenos < 3 ? d < 12 : d > 110) {
+        await page.mouse.click(420, 200);
+        if (buenos < 3) {
+          buenos++;
+          await wait(1500);
+        }
+      }
+    }
+    await wait(30);
+  }
+  await page.waitForSelector('.resultado', { timeout: 30000 });
+  await wait(400);
+  await shot('minijuego-resultado');
+  const p = await guardada();
+  const r = p.progreso.minijuegos.cerdos;
+  check(r.ranking?.length === 1 && r.ranking[0].puntos >= 3 && r.record === r.ranking[0].puntos, `ranking de los cerdos: ${JSON.stringify(r)}`);
+  console.log(`  Torre de cerdos sin fin: ${r.record} puntos`);
+  // Back to the list, and the record is there.
+  await page.click('#res-volver');
+  await page.waitForSelector('#mj-cerdos');
+  check((await page.$eval('.minijuego-fila:last-child .cap-estado', (e) => e.textContent)).includes(String(r.record)), 'el récord no sale en la lista');
 });
 
 await browser.close();

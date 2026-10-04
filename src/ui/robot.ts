@@ -10,6 +10,10 @@
 // skipped (docs/JUGABILIDAD.md). Rules in ./robot-reglas.mjs, balance with
 // node scripts/robot-sim.mjs.
 //
+// Endless version (minigames menu, ./infinito.ts): no six-hit win; past six he
+// keeps speeding up (robot-reglas.mjs, ritmo) and one birthday hug ends the game.
+// A point per hit on the button.
+//
 // Performance (docs/ESTILO.md, T5): the room, Robi's body, head (one bitmap per
 // face), arms and hat, the cannon and the balls are bitmaps made once per screen
 // size; each frame only moves them. The loop never runs faster than 60 fps.
@@ -20,6 +24,7 @@ import { svgABitmap } from '../motor/sprites';
 import { cuerpo, cabeza, brazo, HOMBROS, CUELLO, BOTON as BOTON_CABEZA } from '../arte/robot.mjs';
 import { fondoRobot, canonRobot, bola, gorroFiesta, BOLAS } from '../arte/escenas/parque-robot.mjs';
 import * as R from './robot-reglas.mjs';
+import { marcador, type Infinito } from './infinito';
 
 export type Resultado = 'hecho' | 'saltado' | 'cancelado';
 
@@ -88,14 +93,16 @@ function bitmapTexto(t: string, tam: number, color: string) {
   return c;
 }
 
-export function jugarRobot(parent: HTMLElement, rapido = false): Promise<Resultado> {
+export function jugarRobot(parent: HTMLElement, rapido = false, infinito?: Infinito): Promise<Resultado> {
   const lienzo = h('canvas', { class: 'lienzo-robot' });
   const cercaEl = h('div', { class: 'barra cerca' }, h('span', { class: 'etq' }, texto('robot.cerca')), h('span', { class: 'lleno' }));
   const bateriaEl = h('div', { class: 'barra bateria' }, h('span', { class: 'etq' }, texto('robot.bateria')), h('span', { class: 'lleno' }));
   const aviso = h('div', { class: 'aviso-cerdos', hidden: true });
   const saltar = h('button', { class: 'btn fantasma saltar', hidden: true }, texto('minijuego.saltar'));
   const cerrar = h('button', { class: 'cerrar', 'aria-label': texto('boton.cerrar') }, '×');
-  const capa = h('div', { class: 'cubierta minijuego robot' }, lienzo, h('p', { class: 'instrucciones' }, texto('robot.instrucciones')), cercaEl, bateriaEl, aviso, saltar, cerrar);
+  const puntos = infinito ? marcador(infinito) : null;
+  bateriaEl.hidden = !!infinito;
+  const capa = h('div', { class: 'cubierta minijuego robot' }, lienzo, h('p', { class: 'instrucciones' }, texto('robot.instrucciones')), cercaEl, bateriaEl, ...(puntos ? [puntos.el] : []), aviso, saltar, cerrar);
   parent.append(capa);
   const ctx = lienzo.getContext('2d')!;
 
@@ -177,13 +184,14 @@ export function jugarRobot(parent: HTMLElement, rapido = false): Promise<Resulta
   let retroceso = 0;
   let sacudida = 0;
   let caida = 0; // Robi slumping when switched off
+  let apagado = false; // switched off: the story's win
   let pausa = 0;
   let terminado: Resultado | null = null;
   let tras: null | (() => void) = null;
   let fotogramas = 0;
 
-  const mostrar = (clave: string, s = 1.4, luego?: () => void) => {
-    aviso.textContent = texto(clave);
+  const mostrar = (clave: string, s = 1.4, luego?: () => void, vars: Record<string, string | number> = {}) => {
+    aviso.textContent = texto(clave, vars);
     aviso.hidden = false;
     aviso.classList.remove('salta');
     void aviso.offsetWidth;
@@ -223,7 +231,8 @@ export function jugarRobot(parent: HTMLElement, rapido = false): Promise<Resulta
     b.fin = { r, x: b.x1, y: b.y1, s: 0.32, t: 0, vx: sale * (120 + Math.random() * 160), vy: r === 'fuera' ? -60 : -260 };
     if (r === 'boton') {
       golpes++;
-      cerca = Math.max(0, cerca + R.ACIERTO);
+      puntos?.sumar(1);
+      cerca = Math.max(0, cerca + R.empuje(golpes - 1));
       sacudida = 1;
       cara = 'golpe';
       caraHasta = reloj + 0.25;
@@ -233,8 +242,12 @@ export function jugarRobot(parent: HTMLElement, rapido = false): Promise<Resulta
         const v = 200 + Math.random() * 380;
         chispas.push({ x: b.x1, y: b.y1, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 120, t: 0, c: i % 2 ? '#fff4a0' : '#ff7a5a' });
       }
-      if (golpes >= R.META) {
+      if (infinito) {
+        if (golpes === 2 || golpes === 4) mostrar(`robot.tramo${R.tramo(golpes)}`, 1.1);
+        else if (golpes >= R.META && (golpes - R.META) % R.NIVEL_CADA === 0) mostrar('infinito.nivel', 1.1, undefined, { n: 2 + (golpes - R.META) / R.NIVEL_CADA });
+      } else if (golpes >= R.META) {
         terminado = 'hecho';
+        apagado = true;
         cara = 'fin';
         caraHasta = Infinity;
         mostrar('robot.gana', 2.6);
@@ -305,7 +318,7 @@ export function jugarRobot(parent: HTMLElement, rapido = false): Promise<Resulta
       ctx.translate(sx, sy);
       if (rot) ctx.rotate(rot);
     };
-    const enfadado = terminado === 'hecho';
+    const enfadado = apagado;
     // Arm with the shoe, waving it (behind the body), the body, the other arm.
     base(HOMBROS[0].x, HOMBROS[0].y, enfadado ? 0.3 : (150 + 18 * Math.sin(reloj * 3.2)) * (Math.PI / 180));
     pieza(bmp.brazoZapato, VB_BRAZO);
@@ -315,7 +328,7 @@ export function jugarRobot(parent: HTMLElement, rapido = false): Promise<Resulta
     pieza(bmp.brazo, VB_BRAZO);
     // Head on the neck, tilting; the party hat rising out of it over the button.
     base(CUELLO.x, CUELLO.y, P.inclina + 0.35 * caida);
-    const cr = reloj < caraHasta ? cara : terminado === 'hecho' ? 'fin' : sacudida > 0.2 ? 'mareo' : 'on';
+    const cr = reloj < caraHasta ? cara : apagado ? 'fin' : sacudida > 0.2 ? 'mareo' : 'on';
     pieza(bmp.caras[cr], VB_CABEZA);
     const gz = terminado ? 0 : R.gorro(golpes, t);
     if (gz > 0.02 && bmp.gorro) {
@@ -400,7 +413,7 @@ export function jugarRobot(parent: HTMLElement, rapido = false): Promise<Resulta
       recarga = Math.max(0, recarga - dt);
       retroceso = Math.max(0, retroceso - dt * 6);
       sacudida = Math.max(0, sacudida - dt * 1.6);
-      if (terminado === 'hecho') caida = Math.min(1, caida + dt * 1.2);
+      if (apagado) caida = Math.min(1, caida + dt * 1.2);
       if (pausa > 0) {
         pausa -= dt;
         if (pausa <= 0) {
@@ -411,9 +424,16 @@ export function jugarRobot(parent: HTMLElement, rapido = false): Promise<Resulta
           luego?.();
         }
       } else if (!terminado) {
-        t += dt;
-        cerca += dt * R.ACERCA[R.tramo(golpes)];
-        if (cerca >= 1) {
+        // Endless: past six hits his routine and his walk speed up (always 1 in the story).
+        const ritmo = R.ritmo(golpes);
+        t += dt * ritmo;
+        cerca += dt * R.ACERCA[R.tramo(golpes)] * ritmo;
+        if (cerca >= 1 && infinito) {
+          // Endless: the hug ends the game.
+          cerca = 1;
+          terminado = 'hecho';
+          mostrar('robot.infinito.fin', 2.2);
+        } else if (cerca >= 1) {
           // The birthday hug: round lost.
           rondasPerdidas++;
           if (rondasPerdidas >= 2) saltar.hidden = false;

@@ -658,6 +658,8 @@ cerdos.sinvidas = ¡Se escapan todos!
 cerdos.derrumbe = ¡Se cae la torre! Otra vez
 cerdos.peor = ¡Ahora el peor!
 cerdos.hecho = ¡{kg} kilos de cerdo!
+cerdos.cuentaInfinito = {n} cerdos · {vidas}
+cerdos.infinito.fin = ¡Se acabó la torre!
 
 // ---------------------------------------------------------------- Pablo: el backstage del teatro Joso
 
@@ -916,6 +918,8 @@ rana.suelo = Del suelo no come. Es una señora.
 rana.gula = Uno para mí... / Para probar que está bueno / Este tenía mala pinta / Control de calidad
 rana.pierde = ¡Se acabó el paquete! Otro, y desde el principio
 rana.gana = ¡Se levanta!
+rana.infinito.fallo = ¡Fallo! / ¡Ni lo ha mirado! / Ese no
+rana.infinito.fin = Aceituna se cansa. Se acabó
 
 // ---------------------------------------------------------------- minijuego: cortar palabras
 
@@ -926,6 +930,7 @@ palabras.malcorte = ¡Esa sumaba!
 palabras.seescapa = ¡Se te ha colado!
 palabras.pierde = ¡Bloqueado! Otra vez
 palabras.gana = ¡Desbloqueado!
+palabras.infinito.fin = ¡Bloqueado! Se acabó
 
 // Las palabras que caen. Sepáralas con barras: «una / otra / otra más».
 palabras.negativas = no / sí, pero / bloquear / negar / dudar / juzgar / controlar / planificar / explicar / corregir / imponer / esperar / ignorar / miedo
@@ -1238,6 +1243,7 @@ robot.tramo3 = ¡Modo fiesta total!
 robot.au = ¡BIP! / ¡AU! / ¡ERROR! / ¡BZZT! / ¡REINICIANDO!
 robot.abrazo = ¡ABRAZO DE CUMPLEAÑOS! Otra vez
 robot.gana = Robi se apaga
+robot.infinito.fin = ¡ABRAZO DE CUMPLEAÑOS! Se acabó
 
 ## mirar.pablo
 PABLO (chulo): Chaqueta de borreguillo, pendiente y sonrisa de estreno. Listo para un público exigente.

@@ -100,3 +100,16 @@ export const ACERCA = [0, 0.026, 0.034, 0.042];
  */
 export const FALLO = [0, 0.03, 0.025, 0.02];
 export const ACIERTO = -0.2;
+
+/**
+ * The endless version (minigames menu): past the story's six hits he keeps
+ * speeding up, his routine and his walk alike, up to a little over twice as fast.
+ * In the story the hits never go past six, so this is always 1 there.
+ */
+export const ritmo = (golpes) => 1 + Math.min(1.2, 0.07 * Math.max(0, golpes - META));
+/** Endless: how far a hit pushes him back, less and less past six (ACIERTO in the story). */
+export const empuje = (golpes) => ACIERTO * Math.max(EMPUJE_MIN, 1 - EMPUJE_BAJA * Math.max(0, golpes - META));
+export const EMPUJE_MIN = 0.3;
+export const EMPUJE_BAJA = 0.025;
+/** Endless: every so many hits past the story's six, a «level up» notice. */
+export const NIVEL_CADA = 4;

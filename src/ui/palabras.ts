@@ -12,6 +12,10 @@
 // (docs/JUGABILIDAD.md). The word lists are in
 // src/textos/capitulo1.md (palabras.negativas, palabras.positivas).
 //
+// Endless version (minigames menu, ./infinito.ts): no page to fill; past the
+// story's 54 seconds the words keep falling faster and closer together, and a
+// full block meter ends the game. A point per negative word cut.
+//
 // Performance (docs/ESTILO.md, T5): the backdrop, the shadow and the drifting
 // letters are bitmaps made once per screen size, each word is a bitmap made when
 // it appears, and the loop never runs faster than 60 fps.
@@ -20,6 +24,7 @@ import { texto } from '../juego/textos';
 import { FONTS } from '../motor/escena';
 import { SombraHistrionica } from './sombra-histrionica';
 import { JOINTS, HEAD_AT } from '../arte/personajes/pablo.mjs';
+import { marcador, type Infinito } from './infinito';
 
 export type Resultado = 'hecho' | 'saltado' | 'cancelado';
 
@@ -96,14 +101,16 @@ function pintarPalabra(t: string, color: string, escala: number) {
   return c;
 }
 
-export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido = false): Promise<Resultado> {
+export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido = false, infinito?: Infinito): Promise<Resultado> {
   const lienzo = h('canvas', { class: 'lienzo-palabras' });
   const bloqueoEl = h('div', { class: 'barra bloqueo' }, h('span', { class: 'etq' }, texto('palabras.bloqueo')), h('span', { class: 'lleno' }));
   const paginaEl = h('div', { class: 'barra pagina' }, h('span', { class: 'etq' }, texto('palabras.pagina')), h('span', { class: 'lleno' }));
   const aviso = h('div', { class: 'aviso-cerdos', hidden: true });
   const saltar = h('button', { class: 'btn fantasma saltar', hidden: true }, texto('minijuego.saltar'));
   const cerrar = h('button', { class: 'cerrar', 'aria-label': texto('boton.cerrar') }, '×');
-  const capa = h('div', { class: 'cubierta minijuego palabras' }, lienzo, h('p', { class: 'instrucciones' }, texto('palabras.instrucciones')), bloqueoEl, paginaEl, aviso, saltar, cerrar);
+  const puntos = infinito ? marcador(infinito) : null;
+  paginaEl.hidden = !!infinito;
+  const capa = h('div', { class: 'cubierta minijuego palabras' }, lienzo, h('p', { class: 'instrucciones' }, texto('palabras.instrucciones')), bloqueoEl, paginaEl, ...(puntos ? [puntos.el] : []), aviso, saltar, cerrar);
   parent.append(capa);
   const ctx = lienzo.getContext('2d')!;
   const negativas = lista('palabras.negativas');
@@ -187,12 +194,16 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
   let terminado: Resultado | null = null;
   let fotogramas = 0;
   let traza: Array<{ x: number; y: number; t: number }> = [];
+  /** Endless: the level announced last (one more every 15 seconds past the page). */
+  let nivel = 1;
 
   const fase = () => (t < 14 ? 1 : t < 32 ? 2 : 3);
   /** 0 to 1 through the third phase: the last words fall faster and closer together. */
   const final = () => Math.max(0, Math.min(1, (t - 32) / (DURACION - 32)));
-  const mostrar = (clave: string, s = 1) => {
-    aviso.textContent = texto(clave);
+  /** Endless: seconds past the story's page, for words faster and closer together still. */
+  const mas = () => (infinito ? Math.max(0, t - DURACION) : 0);
+  const mostrar = (clave: string, s = 1, vars: Record<string, string | number> = {}) => {
+    aviso.textContent = texto(clave, vars);
     aviso.hidden = false;
     aviso.classList.remove('salta');
     void aviso.offsetWidth;
@@ -218,7 +229,7 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
       h: hh,
       x: 120 + w / 2 + Math.random() * Math.max(10, vw - 240 - w),
       y: -hh,
-      vy: (f === 1 ? 145 : f === 2 ? 190 : 215 + 75 * final()) * (0.9 + Math.random() * 0.2),
+      vy: (f === 1 ? 145 : f === 2 ? 190 : 215 + 75 * final() + Math.min(260, 2.6 * mas())) * (0.9 + Math.random() * 0.2),
       vx: (Math.random() - 0.5) * 40,
       // Tilted as they fall, more and more: they are thrown, not dropped.
       rot: (Math.random() - 0.5) * (f === 1 ? 0.5 : 0.9),
@@ -230,6 +241,12 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
   };
 
   const perderRonda = () => {
+    if (infinito) {
+      // Endless: that was the game.
+      terminado = 'hecho';
+      mostrar('palabras.infinito.fin', 2.2);
+      return;
+    }
     rondasPerdidas++;
     mostrar('palabras.pierde', 1.8);
     palabras = [];
@@ -271,7 +288,10 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
       if (p.cortada || p.fuera || !cruza(p, a, b)) continue;
       p.cortada = { t: 0, dx: Math.sign(b.x - a.x || 1) };
       if (!p.negativa) fallo('palabras.malcorte');
-      else sombra.rabia();
+      else {
+        sombra.rabia();
+        puntos?.sumar(1);
+      }
     }
   };
 
@@ -403,14 +423,18 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
       } else if (!terminado) {
         t += dt;
         siguiente -= dt;
-        if (t < DURACION && siguiente <= 0) {
+        if (infinito && t >= DURACION && 2 + Math.floor(mas() / 15) > nivel) {
+          nivel = 2 + Math.floor(mas() / 15);
+          mostrar('infinito.nivel', 1, { n: nivel });
+        }
+        if ((infinito || t < DURACION) && siguiente <= 0) {
           nueva();
           const f = fase();
-          siguiente = (f === 1 ? 1.4 : f === 2 ? 0.95 : 0.8 - 0.2 * final()) * (0.8 + Math.random() * 0.4);
+          siguiente = Math.max(0.3, (f === 1 ? 1.4 : f === 2 ? 0.95 : 0.8 - 0.2 * final()) - 0.004 * mas()) * (0.8 + Math.random() * 0.4);
         }
         // The page is full: won. Only the block meter can lose the round, so
         // whatever is still falling no longer counts.
-        if (t >= DURACION) {
+        if (t >= DURACION && !infinito) {
           terminado = 'hecho';
           mostrar('palabras.gana', 2);
         }

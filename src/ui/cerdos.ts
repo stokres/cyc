@@ -4,7 +4,13 @@
 // is harder); past the edge, the pig slides off. Three slips and the round
 // starts again; after two lost rounds it can be skipped (docs/JUGABILIDAD.md).
 // The last pig is the worst one: bigger, heavier, and it will not keep still.
+//
+// Endless version (minigames menu, ./infinito.ts): the pigs keep coming round
+// (the worst one every eighth), the pulley keeps swinging wider and faster, and
+// three slips or a collapse end the game. A point per pig, two if it lands dead
+// centre.
 import { h } from './hud';
+import { marcador, type Infinito } from './infinito';
 import { svgABitmap } from '../motor/sprites';
 import { texto } from '../juego/textos';
 import { cerdo, medidas, PIARA } from '../arte/cerdos.mjs';
@@ -66,13 +72,14 @@ function imagenMadrid(ancho: number) {
   return svgABitmap(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${m.x0} ${m.y0} ${w} ${hh}" width="${Math.ceil(w * k)}" height="${Math.ceil(hh * k)}">${m.body}</svg>`, w * k, hh * k);
 }
 
-export function jugarCerdos(parent: HTMLElement, rapido = false): Promise<Resultado> {
+export function jugarCerdos(parent: HTMLElement, rapido = false, infinito?: Infinito): Promise<Resultado> {
   const lienzo = h('canvas', { class: 'lienzo-cerdos' });
   const cuenta = h('span', { class: 'cuenta-cerdos' });
   const aviso = h('div', { class: 'aviso-cerdos', hidden: true });
   const saltar = h('button', { class: 'btn fantasma saltar', hidden: true }, texto('minijuego.saltar'));
   const cerrar = h('button', { class: 'cerrar', 'aria-label': texto('boton.cerrar') }, '×');
-  const capa = h('div', { class: 'cubierta minijuego cerdos' }, lienzo, h('p', { class: 'instrucciones' }, texto('cerdos.instrucciones')), cuenta, aviso, saltar, cerrar);
+  const puntos = infinito ? marcador(infinito) : null;
+  const capa = h('div', { class: 'cubierta minijuego cerdos' }, lienzo, h('p', { class: 'instrucciones' }, texto('cerdos.instrucciones')), cuenta, ...(puntos ? [puntos.el] : []), aviso, saltar, cerrar);
   parent.append(capa);
   const ctx = lienzo.getContext('2d')!;
   const imgs: Array<HTMLCanvasElement | null> = PIARA.map(() => null);
@@ -107,7 +114,9 @@ export function jugarCerdos(parent: HTMLElement, rapido = false): Promise<Result
   let rondasPerdidas = 0;
   const cuentas = { resbalones: 0, derrumbes: 0 };
   let t = 0;
-  let siguiente = 0; // index of the pig on the rope
+  let siguiente = 0; // how many pigs have been on the rope (endless: they come round again)
+  /** Which pig of the herd the n-th one is (in the story, n itself). */
+  const cual = (n: number) => n % PIARA.length;
   let entrada = 1; // 0..1 while a new pig slides in on the trolley
   let cayendo: { i: number; x: number; y: number; vx: number; vy: number; rot: number; vr: number; fuera: boolean } | null = null;
   let vaivenTorre = 0; // sway amplitude of the tower
@@ -134,9 +143,11 @@ export function jugarCerdos(parent: HTMLElement, rapido = false): Promise<Result
   /** Angle of the rope: wider and faster as the tower grows; the worst pig fidgets. */
   const angulo = (tt: number) => {
     const n = pila.length;
-    const A = 0.3 + 0.025 * n;
-    const w = 1.7 + 0.12 * n;
-    const peor = PIARA[siguiente]?.peor;
+    // Past the story's eight (endless), it keeps growing, more slowly and up to a point.
+    const mas = Math.max(0, n - PIARA.length);
+    const A = Math.min(0.8, 0.3 + 0.025 * Math.min(n, PIARA.length) + 0.01 * mas);
+    const w = Math.min(3.8, 1.7 + 0.12 * Math.min(n, PIARA.length) + 0.05 * mas);
+    const peor = PIARA[cual(siguiente)]?.peor;
     return A * Math.sin(w * tt) + (peor ? 0.1 * Math.sin(3.3 * tt + 1) : 0);
   };
   /** Sway offset of the tower at a given height fraction. */
@@ -167,10 +178,17 @@ export function jugarCerdos(parent: HTMLElement, rapido = false): Promise<Result
   const soltar = () => {
     if (cayendo || entrada < 1 || pausa > 0 || terminado) return;
     const c = colgado();
-    cayendo = { i: siguiente, x: c.x, y: c.yPant - sueloPantalla(), vx: c.vx * ARRASTRE, vy: 0, rot: c.a * 0.4, vr: 0, fuera: false };
+    cayendo = { i: cual(siguiente), x: c.x, y: c.yPant - sueloPantalla(), vx: c.vx * ARRASTRE, vy: 0, rot: c.a * 0.4, vr: 0, fuera: false };
   };
 
   const perderRonda = () => {
+    if (infinito) {
+      // Endless: that was the game.
+      cayendo = null;
+      terminado = 'hecho';
+      mostrar('cerdos.infinito.fin', 2.2);
+      return;
+    }
     rondasPerdidas++;
     cayendo = null;
     mostrar('cerdos.derrumbe', 1.6);
@@ -204,6 +222,7 @@ export function jugarCerdos(parent: HTMLElement, rapido = false): Promise<Result
       vaivenTorre = Math.max(0, vaivenTorre * 0.6);
       mostrar('cerdos.perfecto', 0.6);
     } else vaivenTorre += desvio * 30;
+    const perfecto = desvio < 0.06;
     // The weight leaning off the base, plus the sway: past the edge, the tower comes down.
     let com = 0;
     let masa = 0;
@@ -216,9 +235,12 @@ export function jugarCerdos(parent: HTMLElement, rapido = false): Promise<Result
       perderRonda();
       return false;
     }
+    puntos?.sumar(perfecto ? 2 : 1);
     siguiente++;
     entrada = 0;
-    if (siguiente >= PIARA.length) {
+    if (infinito) {
+      if (PIARA[cual(siguiente)].peor) mostrar('cerdos.peor', 1.4);
+    } else if (siguiente >= PIARA.length) {
       terminado = 'hecho';
       mostrar('cerdos.hecho', 2.2, { kg: kg() });
     } else if (PIARA[siguiente].peor) mostrar('cerdos.peor', 1.4);
@@ -307,11 +329,16 @@ export function jugarCerdos(parent: HTMLElement, rapido = false): Promise<Result
     ctx.textAlign = 'center';
     ctx.fillText(String(kg()).padStart(4, '0'), dx, sp - 197);
     // The tower.
-    pila.forEach((p, k) => pintarCerdo(p.i, p.x + vaiven((k + 1) / pila.length), sp + p.y, vaiven((k + 1) / pila.length) * 0.002));
+    pila.forEach((p, k) => {
+      // A tall tower (endless): the pigs far below the screen are not drawn.
+      if (sp + p.y - p.h > H + 40) return;
+      pintarCerdo(p.i, p.x + vaiven((k + 1) / pila.length), sp + p.y, vaiven((k + 1) / pila.length) * 0.002);
+    });
     // Pulley beam, trolley and rope.
     ctx.fillStyle = '#4a4f57';
     ctx.fillRect(0, 0, vw, 26);
-    if (!terminado && siguiente < PIARA.length) {
+    if (!terminado && (infinito || siguiente < PIARA.length)) {
+      const sig = cual(siguiente);
       const c = colgado();
       const px = c.x - CUERDA * Math.sin(c.a);
       ctx.fillStyle = '#2e3238';
@@ -321,23 +348,24 @@ export function jugarCerdos(parent: HTMLElement, rapido = false): Promise<Result
         ctx.lineWidth = 5;
         ctx.beginPath();
         ctx.moveTo(px, 44);
-        ctx.lineTo(c.x, c.yPant - m(siguiente).h - 20);
+        ctx.lineTo(c.x, c.yPant - m(sig).h - 20);
         ctx.stroke();
         // The sling round its middle.
         ctx.strokeStyle = '#8a6a3a';
         ctx.lineWidth = 8;
         ctx.beginPath();
-        ctx.moveTo(c.x - 30, c.yPant - m(siguiente).h + 10);
-        ctx.lineTo(c.x, c.yPant - m(siguiente).h - 20);
-        ctx.lineTo(c.x + 30, c.yPant - m(siguiente).h + 10);
+        ctx.moveTo(c.x - 30, c.yPant - m(sig).h + 10);
+        ctx.lineTo(c.x, c.yPant - m(sig).h - 20);
+        ctx.lineTo(c.x + 30, c.yPant - m(sig).h + 10);
         ctx.stroke();
-        const wiggle = PIARA[siguiente].peor ? 0.08 * Math.sin(t * 9) : 0.03 * Math.sin(t * 5);
-        pintarCerdo(siguiente, c.x, c.yPant, c.a * 0.4 + wiggle);
+        const wiggle = PIARA[sig].peor ? 0.08 * Math.sin(t * 9) : 0.03 * Math.sin(t * 5);
+        pintarCerdo(sig, c.x, c.yPant, c.a * 0.4 + wiggle);
       }
     }
     if (cayendo) pintarCerdo(cayendo.i, cayendo.x, sp + cayendo.y, cayendo.rot);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    cuenta.textContent = texto('cerdos.cuenta', { n: pila.length, total: PIARA.length, vidas: '♥'.repeat(Math.max(0, vidas)) });
+    const corazones = '♥'.repeat(Math.max(0, vidas));
+    cuenta.textContent = infinito ? texto('cerdos.cuentaInfinito', { n: pila.length, vidas: corazones }) : texto('cerdos.cuenta', { n: pila.length, total: PIARA.length, vidas: corazones });
   };
 
   // ---------------------------------------------------------------- loop

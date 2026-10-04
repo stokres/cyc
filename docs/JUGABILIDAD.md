@@ -74,6 +74,21 @@ Apilar los ocho cerdos encima de la báscula, estilo *Tower Bloxx*: un toque sue
 
 Homenaje al microjuego de *WarioWare* de disparar plátanos a una nariz gigante: desde detrás del cañón de bolas del parque, **se toca donde disparar** y la bola tarda medio segundo en llegar, así que al botón luminoso de la cabeza de Robi hay que apuntarle por delante. Seis aciertos lo apagan. Si la bola da en la cabeza, en el cuerpo o en el gorrito de fiesta que se pone sobre el botón, rebota. Robi se va acercando para dar un abrazo de cumpleaños; los fallos le acercan un poco (un 3 % del camino en el primer tramo, un 2,5 % en el segundo y un 2 % en el último, para que al final haya más intentos), los aciertos le echan atrás, y si llega se repite (tras dos rondas perdidas aparece «Saltar»). Tres tramos por aciertos: balanceo; más rápido, botando y con el gorrito; y a saltos. Se ajusta con `node scripts/robot-sim.mjs`: quien apunta por delante gana, el jugador del montón gana unas tres de cada cuatro rondas y quien dispara sin parar a donde está el botón pierde casi siempre.
 
+### Minijuegos sin fin (menú de minijuegos)
+
+En el menú, **Minijuegos** abre los minijuegos que hayas superado en la historia (en tu partida o en un rejuego), en una versión sin fin: la misma mecánica, pero la dificultad sigue subiendo hasta que pierdes, y hay puntos (decidido el 4 de octubre de 2026). Los que aún no has superado salen bloqueados, con quién los tiene en su historia. El código está en cada minijuego, con la opción `infinito` (`src/ui/infinito.ts` pone el marcador).
+
+| Minijuego | Puntos | Cómo sube la dificultad | Se acaba |
+|---|---|---|---|
+| La rana de Aceituna | 1 por taquito a la boca | Los cuatro tramos de la historia y, después, su meneo, su boca y la corriente cada vez más rápidos y fuertes | A los tres fallos (con un acierto de una de cada dos al principio, uno solo duraría dos tiros) |
+| Las palabras de Pablo | 1 por palabra que bloquea cortada | Pasada la página de la historia, caen cada vez más rápido y más seguidas | Cuando se llena el bloqueo |
+| El cañón contra Robi | 1 por bola en el botón | Pasados los seis aciertos, Robi se mueve y avanza cada vez más rápido, y cada acierto le echa menos atrás | Cuando llega a abrazarte |
+| La torre de cerdos | 1 por cerdo, 2 si cae en el centro | La piara vuelve a empezar (el peor, cada ocho) y la polea se balancea cada vez más ancha y rápida | Tres resbalones o un derrumbe |
+
+Cada pocos aciertos sale «¡Nivel N!». Al acabar, una tarjeta enseña los puntos, si es récord y **tus cinco mejores partidas** de ese minijuego, con la fecha. El ranking es de cada móvil: se guarda con la partida (`src/juego/partida.ts`, `apuntarPuntos`) y no se borra al empezar de nuevo. Un ranking compartido entre los cuatro necesitaría un servidor (GitHub Pages solo sirve archivos), así que queda como mejora futura.
+
+Equilibrio: `node scripts/robot-sim.mjs` también simula la versión sin fin (un jugador hábil hace unos 70 aciertos de media, uno normal unos 23 y quien dispara sin parar unos 3).
+
 ### La ronda (aparcada)
 
 Llevar cuatro cañas de la barra a la terraza inclinando el móvil o deslizando el dedo. Estaba en el mockup; volverá cuando la crew esté en el Río, con el arte nuevo.

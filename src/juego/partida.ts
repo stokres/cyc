@@ -6,7 +6,8 @@
 //     start. It is a separate game: it never touches the main one, so replaying
 //     never loses your progress. When you leave it, you are back where you were.
 //   - progreso: chapters and minigames finished (in either game), for the
-//     chapter list and the minigames menu.
+//     chapter list and the minigames menu, and each endless minigame's local
+//     ranking (best five games on this phone).
 //
 // Saved after every action and when the page is hidden. Version 4; a version 3
 // save (one game, no progress) becomes the main game.
@@ -15,8 +16,17 @@ import type { Estado } from './estado';
 
 export interface Progreso {
   capitulos: Record<string, { superado: boolean; fecha?: string }>;
-  minijuegos: Record<string, { superado: boolean; record?: number }>;
+  minijuegos: Record<string, { superado: boolean; record?: number; ranking?: Puntuacion[] }>;
 }
+
+/** One game of an endless minigame (minigames menu), for the ranking. */
+export interface Puntuacion {
+  puntos: number;
+  fecha: string;
+}
+
+/** How many games each minigame's ranking keeps. */
+export const PUESTOS = 5;
 
 export type Hueco = 'principal' | 'rejuego';
 
@@ -94,4 +104,21 @@ export function volverAPrincipal(p: Partida) {
 export function rejugar(p: Partida, capitulo: number, estado: Estado) {
   p.rejuego = { capitulo, estado };
   p.jugando = 'rejuego';
+}
+
+/**
+ * A finished game of an endless minigame: into its ranking (the best PUESTOS,
+ * highest first; a tie goes after the older one) and its record. Returns the
+ * place it took (0 is the top), or -1 if it did not make it.
+ */
+export function apuntarPuntos(p: Partida, id: string, puntos: number, fecha = new Date().toISOString()) {
+  const mj = (p.progreso.minijuegos[id] ??= { superado: true });
+  const ranking = mj.ranking ?? [];
+  let puesto = ranking.findIndex((r) => puntos > r.puntos);
+  if (puesto < 0) puesto = ranking.length;
+  if (puesto >= PUESTOS || puntos <= 0) return -1;
+  ranking.splice(puesto, 0, { puntos, fecha });
+  mj.ranking = ranking.slice(0, PUESTOS);
+  mj.record = Math.max(mj.record ?? 0, puntos);
+  return puesto;
 }

@@ -12,7 +12,7 @@
 //   - more than 60 frames a second (120 Hz screens).
 //
 // Usage: node scripts/rendimiento.mjs [escena...]   (against npm run dev on :5173)
-//   escenas: piso, calle, granja, cerdos, backstage, palabras, rana, parque, robot (all by default)
+//   escenas: piso, calle, granja, cerdos, backstage, palabras, rana, parque, robot, sinfin (all by default)
 import { chromium } from 'playwright';
 import { readFileSync, readdirSync } from 'node:fs';
 
@@ -220,6 +220,25 @@ if (toca('cerdos')) {
       requestAnimationFrame(juega);
     };
     setTimeout(juega, 7000);
+  })()`, 'cerdos');
+}
+
+if (toca('sinfin')) {
+  // The endless versions (minigames menu) draw what the story does, plus a taller
+  // and taller tower of pigs: the heaviest of them, measured as it grows.
+  await medir('cerdos sin fin, torre creciendo', `(async () => {
+    clearInterval(window.__paseo);
+    const g = window.__cyc.g;
+    const { jugarCerdos } = await import('/src/ui/cerdos.ts');
+    g.pausado = true;
+    void jugarCerdos(g.root, true, { record: 0 });
+    const juega = () => {
+      const e = window.__cerdos?.();
+      if (!e) return;
+      if (e.colgando && Math.abs(e.prediccion - e.objetivo) < 5) document.querySelector('.lienzo-cerdos').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+      requestAnimationFrame(juega);
+    };
+    setTimeout(juega, 1500);
   })()`, 'cerdos');
 }
 
