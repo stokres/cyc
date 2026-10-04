@@ -148,7 +148,7 @@ Decidido el 4 de octubre de 2026 (`src/capitulos/chuchi.ts`, escena `src/arte/es
 
 ### Final del capítulo 1
 
-Los cuatro llegan a la vez a la terraza y **entran en el Bar del Río**. Ahí acaba el capítulo 1; el capítulo 2 empieza dentro del bar.
+Los cuatro llegan a la vez a la terraza (cada uno con algo de su historia: Chuchi con el zapato de purpurina, Guille oliendo a romero) y, camino de la puerta, hablan de **Vero**, la camarera del cutis perfecto. **Entran en el Bar del Río** uno a uno, fundido a negro, el narrador («Lo que pasó dentro... es otra historia») y **«Continuará…»**. Después, la tarjeta de fin del capítulo 1. Ahí acaba el capítulo 1; el capítulo 2 empieza dentro del bar.
 
 ## Pendiente
 

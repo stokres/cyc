@@ -302,7 +302,14 @@ async function llegaFran(g: Aventura) {
   await g.enCamino('fran');
 }
 
-/** The four of them reach the terrace of the Río at the same time. */
+/** The Bar del Río's door, on the street (calle.mjs), where they go in. */
+const PUERTA_BAR = { X: 6712, y: 838 };
+
+/**
+ * The end of the chapter: the four of them reach the terrace of the Río at the
+ * same time, talk about Vero on the way to the door and go in, one by one. Fade
+ * to black, the narrator, «Continuará…», and the end card.
+ */
 async function final(g: Aventura) {
   const e = g.estado;
   const hora = Math.max(...Object.values(e.minutos));
@@ -328,7 +335,31 @@ async function final(g: Aventura) {
   for (const id of e.jugables) g.pjs.get(id)?.lookAt(6820);
   await g.esperar(300);
   await g.hablar('final');
+  await g.hablar('final.entrar');
+  g.hud.cerrarDialogo();
+  // In through the door, one after another: Guille first, Fran holding the door.
+  const orden: PjId[] = ['guille', 'chuchi', 'pablo', 'fran'];
+  await Promise.all(
+    orden.map(async (id, i) => {
+      await g.esperar(i * 450);
+      await g.andar(PUERTA_BAR.X + (i - 1.5) * 10, PUERTA_BAR.y, id);
+      const p = g.pjs.get(id);
+      if (p) p.visible = false;
+    }),
+  );
+  await g.esperar(400);
+  await g.velar(true);
+  await g.hablar('final.dentro');
+  g.hud.cerrarDialogo();
+  await g.hud.rotulo(texto('fin.continuara'), texto('fin.capitulo'), undefined, 'continuara');
+  // Back on the terrace, for whoever wants to stay a while after the end card.
+  for (const id of e.jugables) {
+    const p = g.pjs.get(id);
+    if (p) Object.assign(p, { X: desde[id][2], y: desde[id][3], visible: true });
+    p?.lookAt(6820);
+  }
   g.foco = null;
+  await g.velar(false);
   g.onFin?.();
 }
 

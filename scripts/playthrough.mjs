@@ -509,7 +509,16 @@ await paso('Los cuatro llegan a la vez', async () => {
   await page.waitForSelector('.dialogo:not(.narrador)', { timeout: 30000 });
   await wait(600);
   await shot('llegan');
-  await charla();
+  // Talking about Vero, in through the door, fade to black and the narrator.
+  for (let i = 0; i < 40 && !(await page.$('.cubierta.rotulo.continuara')); i++) {
+    await charla();
+    if (i === 3) await shot('entran');
+    await wait(400);
+  }
+  await page.waitForSelector('.cubierta.rotulo.continuara', { timeout: 30000 });
+  await wait(2800);
+  await shot('continuara');
+  await page.click('.cubierta.rotulo.continuara');
   await page.waitForSelector('.cubierta.titulo', { timeout: 30000 });
   const e = await page.evaluate(() => ({ final: window.__cyc.g.estado.final, aqui: Object.values(window.__cyc.g.estado.donde).filter((d) => d.escena === 'calle').length, hora: window.__cyc.g.hora }));
   check(e.final && e.aqui === 4, 'la escena final no tiene a los cuatro');

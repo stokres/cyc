@@ -359,12 +359,12 @@ export class Hud {
     });
   }
 
-  /** A title card over the faded scene (a story ends); resolves on tap. */
-  rotulo(titulo: string, sub: string, quien?: PjId): Promise<void> {
+  /** A title card over the faded scene (a story ends, or the chapter: `clase` 'continuara'); resolves on tap. */
+  rotulo(titulo: string, sub: string, quien?: PjId, clase = ''): Promise<void> {
     return new Promise((resolve) => {
       const cara = quien ? h('div', { class: 'cara', style: `--color:${REPARTO[quien].color}` }) : null;
       if (cara && quien) cara.innerHTML = retrato(quien, { mood: 'happy' });
-      const el = this.cubrir('rotulo', h('div', { class: 'pila' }, cara, h('h2', {}, titulo), h('p', {}, sub), h('div', { class: 'toca' }, texto('rotulo.toca'))));
+      const el = this.cubrir(`rotulo ${clase}`.trim(), h('div', { class: 'pila' }, cara, h('h2', {}, titulo), h('p', {}, sub), h('div', { class: 'toca' }, texto('rotulo.toca'))));
       // A tap meant for the last line of dialogue must not skip the card.
       const desde = performance.now();
       el.addEventListener('click', (e) => {

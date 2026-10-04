@@ -939,14 +939,28 @@ palabras.positivas = sí, y / aceptar / escuchar / adaptar / avanzar / confiar /
 ## final
 FRAN (sorprendido): ¿Pero qué...? ¿Llegáis ahora?
 PABLO (contento): Llego tarde con estilo. Es una entrada en escena.
-CHUCHI: Yo llego tarde porque tengo dos hijas. Tengo bula.
+CHUCHI: Yo llego tarde porque tengo dos hijas. Tengo bula. Y un zapato de purpurina en el bolsillo. No preguntéis.
 GUILLE (contento): ¡Maño! ¡Pues ya estamos todos! Y nadie ha pedido, ¿no?
+GUILLE: ¿A qué huele? ¿A romero? Soy yo. De nada.
 FRAN: Los cuatro a las {hora}, a la vez. Esto no lo escribe ni Pablo.
 PABLO (chulo): Hombre, yo lo habría escrito mejor.
-> Y así empezó lo de los jueves. Pero esa es otra historia.
 
-fin.titulo = Fin del piloto
-fin.texto = Los cuatro han llegado al Río.
+## final.entrar
+FRAN (contento): ¡Venga, para dentro! A ver si está Vero.
+PABLO (chulo): Vero. La del cutis perfecto.
+CHUCHI: Ese cutis no es de este mundo. Lo he mirado con las gafas puestas y no tiene ni un píxel fuera de sitio.
+GUILLE (contento): ¡Maño, que es la cerveza! La tira tan bien que rejuvenece a la clientela.
+FRAN: Silencio, que nos oye. Y de cutis delante de ella, ni una palabra, que nos echa.
+PABLO (contento): Escena uno. Interior, noche. Entran cuatro amigos en un bar...
+
+## final.dentro
+> Y así, a las {hora} de un jueves cualquiera, los cuatro entraron en el Bar del Río.
+> Lo que pasó dentro... es otra historia.
+
+fin.continuara = Continuará…
+fin.capitulo = Fin del capítulo 1
+fin.titulo = Fin del capítulo 1
+fin.texto = Los cuatro ya están en el Río. Lo que pasó dentro, en el capítulo 2.
 
 // ---------------------------------------------------------------- historia de Chuchi: Bolilandia
 

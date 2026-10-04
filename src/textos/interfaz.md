@@ -52,6 +52,6 @@ eleccion.siguiente = ¿Con quién sigues?
 rotulo.toca = Toca para seguir
 minijuego.saltar = Saltar
 lista.y = y
-fin.seguir = Seguir paseando
+fin.seguir = Quedarse en la terraza
 fin.reiniciar = Empezar de nuevo
 girar = Gira el móvil para jugar

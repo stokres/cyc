@@ -92,7 +92,7 @@ Fran se despierta de la siesta a las 20:35 y había quedado a las 21:00 en el Ba
 9. Para salir falta vestirse: la **ropa** está tendida en la terraza. **Usarla contigo** cambia el vestuario de Fran.
 10. Sale a la calle y **anda** hacia el Río. Al pasar el cruce lo ve y se funde a negro: ya va de camino.
 
-El reloj de Fran avanza con cada paso y se va poniendo nervioso. Cuando los cuatro van de camino, llegan a la vez a la terraza del Río y termina el piloto.
+El reloj de Fran avanza con cada paso y se va poniendo nervioso. Cuando los cuatro van de camino, llegan a la vez a la terraza del Río, entran en el bar hablando de Vero y, tras un fundido a negro, «Continuará…»: fin del capítulo 1.
 
 **Todos los textos son provisionales** y se cambian en `src/textos/capitulo1.md`.
 
