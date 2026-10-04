@@ -16,6 +16,24 @@ Todo lo que se dice en el juego está aquí. Cámbialo a tu gusto y recarga.
 Los textos de este capítulo son provisionales: están para probar el puzle.
 -->
 
+// ---------------------------------------------------------------- prólogo
+// Sale tras la pantalla de título al empezar una partida nueva, antes de elegir
+// con quién empiezas. Cada línea es una pantalla: «>» es solo texto, y una línea
+// de un personaje («FRAN (contento): ...») enseña su retrato con esa cara y su
+// nombre encima. Añade, quita o cambia líneas a tu gusto.
+
+## prologo
+> Usera, Madrid. Un jueves cualquiera.
+> Desde hace años, cuatro amigos cumplen una ley sagrada: los jueves, a las nueve, en el Bar del Río.
+> Ni bodas, ni bautizos, ni comuniones. Lo del trabajo se negocia.
+FRAN (contento): Humorista, vasco nacido en Ávila y fundador de la quedada. Si te vas antes de la tercera caña, te lo recuerda en Navidad.
+PABLO (chulo): Dramaturgo, galán oficial y del pueblo del turrón blando. Escribe obras de teatro. Alguna, incluso, la termina.
+CHUCHI: Informático y padre de dos niñas. Llega tarde siempre, pero con mucho estilo.
+GUILLE (contento): Mañico, doctor en cerdos y el más cariñoso de los cuatro. Se le ve poco y se le echa mucho de menos. Esta noche, por fin, viene.
+> Pero el jueves tiene otros planes.
+> Una siesta traicionera. Una sombra con opiniones. Un parque de bolas cerrado a cal y canto. Ocho cerdos sin pesar.
+> Hay que llegar al Río. Como sea.
+
 // ---------------------------------------------------------------- las cuatro historias
 
 situacion.fran = Se ha quedado dormido en el sofá.

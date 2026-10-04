@@ -104,7 +104,9 @@ Son ejemplos de controles, para sustituirlos por vuestras anécdotas:
 
 ## El piloto (capítulo 1)
 
-Se elige con quién empezar y se puede cambiar cuando se quiera (ver `docs/ESCENA-1.md`). Las cuatro historias están hechas.
+**Prólogo** (decidido el 4 de octubre de 2026): tras la pantalla de título, al empezar una partida nueva (la primera, tras «Empezar de nuevo» y al rejugar un capítulo), unas frases sobre Usera de noche presentan a los cuatro y el lío del jueves. Cada frase pasa sola cuando da tiempo a leerla, un toque la adelanta y «Saltar intro» se las salta todas. Las frases están en `src/textos/capitulo1.md` (`## prologo`): cada línea es una pantalla, y las de un personaje enseñan su retrato y su nombre. El código está en `src/ui/prologo.ts`: la noche se pinta una vez y solo se apagan y encienden unas pocas ventanas y estrellas, sin repintar nada más.
+
+Después se elige con quién empezar y se puede cambiar cuando se quiera (ver `docs/ESCENA-1.md`). Las cuatro historias están hechas.
 
 ### La historia de Fran
 

@@ -1,5 +1,5 @@
 // Plays the pilot from start to finish on a phone-sized viewport, like a player:
-// choose Fran, wake him, switch to Pablo halfway and finish his story (the
+// a few screens of the prologue, then skip it; choose Fran, wake him, switch to Pablo halfway and finish his story (the
 // script, the scissors, the follow spot and the word battle with his shadow), go back to Fran, solve the flat puzzle and walk towards the Bar del Río,
 // then Chuchi in the ball park (glasses, the key, the lights and Robi) and Guille's farm (batteries, rosemary and alcohol
 // picked up early, the pig tower, the homemade cologne), and watch the four
@@ -420,6 +420,20 @@ async function paso(nombre, fn, comprobar) {
 // ---------------------------------------------------------------- the pilot
 await shot('titulo');
 await page.touchscreen.tap(420, 200);
+await paso('Prólogo: tocar para pasar y saltar', async () => {
+  await page.waitForSelector('.cubierta.prologo');
+  const frases = [];
+  for (let i = 0; i < 3; i++) {
+    await wait(700);
+    frases.push(await page.$eval('.prologo .frase', (e) => e.textContent));
+    if (i === 2) await shot('prologo');
+    await page.touchscreen.tap(420, 200);
+  }
+  console.log('   »', frases.join(' · '));
+  check(new Set(frases).size === 3 && frases.every(Boolean), 'tocar no pasa las frases del prólogo');
+  await page.click('.prologo .saltar');
+  await page.waitForSelector('.cubierta.prologo', { state: 'detached', timeout: 5000 });
+});
 await page.waitForSelector('.cubierta.eleccion');
 await wait(400);
 await shot('eleccion');
@@ -555,6 +569,8 @@ await paso('Rejugar el capítulo sin perder la partida', async () => {
   const r = await page.evaluate(() => ({ rejugando: window.__cyc.g.rejugando, final: !!window.__cyc.g.estado.final, aviso: !!document.querySelector('.titulo .aviso-rejuego') }));
   check(r.rejugando && !r.final && r.aviso, 'rejugar no empieza una partida aparte');
   await page.touchscreen.tap(420, 200);
+  // A new game of the chapter: the prologue again (skipped).
+  await page.click('.prologo .saltar');
   await page.waitForSelector('.cubierta.eleccion');
   await escoger('pablo');
   await charla();

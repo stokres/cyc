@@ -12,7 +12,7 @@
 //   - more than 60 frames a second (120 Hz screens).
 //
 // Usage: node scripts/rendimiento.mjs [escena...]   (against npm run dev on :5173)
-//   escenas: piso, calle, granja, cerdos, backstage, palabras, rana, parque, robot, sinfin (all by default)
+//   escenas: prologo, piso, calle, granja, cerdos, backstage, palabras, rana, parque, robot, sinfin (all by default)
 import { chromium } from 'playwright';
 import { readFileSync, readdirSync } from 'node:fs';
 
@@ -67,7 +67,7 @@ const filas = [];
 async function medir(nombre, prep, contar = 'escena') {
   // Close any minigame left open by the previous scenario.
   await page.evaluate(() => {
-    document.querySelectorAll('.cubierta.minijuego .cerrar').forEach((b) => b.click());
+    document.querySelectorAll('.cubierta.minijuego .cerrar, .cubierta.prologo .saltar').forEach((b) => b.click());
     // The minigames started here do not unpause the scene themselves.
     window.__cyc.g.pausado = false;
   });
@@ -102,7 +102,7 @@ async function medir(nombre, prep, contar = 'escena') {
   const vector = await page.evaluate(() => document.querySelectorAll('svg.actores clipPath').length);
   const fallos = [];
   // One-off conversions (baking a scene, a new expression) are fine; every frame is not.
-  if (svg / SEG >= fps * 0.5) fallos.push(`${Math.round(svg / SEG)} imágenes SVG dibujadas en canvas por segundo (la última: ${await page.evaluate(() => window.__svgUltimo)})`);
+  if (svg > 0 && svg / SEG >= fps * 0.5) fallos.push(`${Math.round(svg / SEG)} imágenes SVG dibujadas en canvas por segundo (la última: ${await page.evaluate(() => window.__svgUltimo)})`);
   if (vector > 0) fallos.push(`${vector} recortes vectoriales en los personajes (no se han pasado a imagen)`);
   if (fps > 62) fallos.push(`${fps.toFixed(0)} fps, por encima del tope de 60`);
   filas.push(fallos);
@@ -113,6 +113,16 @@ const paseo = (a, b2, y) => `(() => { const f = window.__cyc.g.activo; let d = 1
 const quieto = `clearInterval(window.__paseo)`;
 const ir = (escena, donde, extra = '') => `(async () => { clearInterval(window.__paseo); const g = window.__cyc.g; const e = g.estado; ${donde}; ${extra}; await g.irA('${escena}'); })()`;
 
+if (toca('prologo')) {
+  // The prologue: DOM and CSS over the paused scene (windows and stars switching
+  // now and then, the lines coming in). The scene draws nothing: frames are ~0.
+  await medir('prólogo', `(async () => {
+    const g = window.__cyc.g;
+    const { mostrarPrologo } = await import('/src/ui/prologo.ts');
+    g.pausado = true;
+    void mostrarPrologo(g.root.parentElement).then(() => (g.pausado = false));
+  })()`);
+}
 if (toca('piso')) {
   await medir('piso, Fran quieto', ir('piso', `e.activo = 'fran'; e.donde.fran = { escena: 'piso', X: 1700, y: 890, face: 1 }`, `const F = g.pjs.get('fran'); if (F) { F.enCapa = null; F.rot = 0; F.eyesClosed = false; }`));
   await medir('piso, Fran andando', paseo(600, 2900, 890));

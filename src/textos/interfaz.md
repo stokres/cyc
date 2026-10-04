@@ -7,6 +7,7 @@ titulo.empezar = Toca para empezar
 titulo.seguir = Toca para continuar
 titulo.rejugando = Rejugando el capítulo · tu partida sigue guardada
 cargando = Preparando la escena…
+prologo.saltar = Saltar intro
 
 menu.titulo = Pausa
 menu.sonido = Sonido

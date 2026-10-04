@@ -11,6 +11,7 @@ import { jugarRana } from './ui/rana';
 import { jugarPalabras } from './ui/palabras';
 import { jugarRobot } from './ui/robot';
 import { jugarCerdos } from './ui/cerdos';
+import { mostrarPrologo } from './ui/prologo';
 import { capitulo1 } from './capitulos/capitulo1';
 import { h } from './ui/hud';
 import type { Calidad } from './motor/motor';
@@ -411,6 +412,12 @@ async function arrancar() {
     titulo.remove();
     g.sound.start();
     if (matchMedia('(pointer: coarse)').matches) document.documentElement.requestFullscreen?.().catch(() => {});
+    // A new game: the prologue first (src/ui/prologo.ts), while the scene finishes loading behind it.
+    if (nueva) {
+      g.pausado = true;
+      await mostrarPrologo(root.parentElement!, g.rapido);
+      g.pausado = false;
+    }
     await cargada;
     g.hud.setVisible(true);
     if (nueva) await g.ejecutar(() => g.empezarPartida());
