@@ -1,7 +1,7 @@
 // Aceituna: the couple's small black dog, whom Fran looks after more than anyone.
 // Same units as the crew (Fran is ~270 tall), three-quarter view facing right.
 // Black fur reads through a bluish base, a lighter top light and a red collar.
-import { smooth, ellipse, path, stroke, g, shape } from './svg.mjs';
+import { smooth, ellipse, path, stroke, g, shape, rrect } from './svg.mjs';
 
 const C = {
   fur: '#2c2b35',
@@ -186,6 +186,90 @@ export function bowls() {
     path(ellipse(x, -9, 15, 3), fill),
   ].join('');
   return g('cuencos', [bowl(-24, '#9cc8e0'), bowl(24, '#8a5a34')]);
+}
+
+/**
+ * Sitting up on her bed, begging, for the ham toss (src/ui/rana.ts). Faces
+ * right; the game mirrors her. Origin between her front paws on the cushion,
+ * about 210 units tall. The open mouth is centred on (43, -134), radius ~25: the
+ * catch area in src/ui/rana-fisica.mjs matches it (at twice the size).
+ *   boca: 'abierta' (waiting), 'cerrada' (snapped shut), 'masca' (chewing)
+ *   ojos: 'ilusion' (eager), 'feliz' (^^), 'digna' (closed, nose up), 'golpe' (> <)
+ * The tail is apart (colaSentada) so it can wag.
+ */
+export function sentada({ boca = 'abierta', ojos = 'ilusion' } = {}) {
+  const pata = (pts, near) => shape(smooth(pts), near ? C.fur : C.furShadow, [path(smooth(pts.map(([x, y, c]) => [x + 5, y, c])), near ? C.furShadow : C.furDeep, { opacity: 0.7 })], C.line, 1.2);
+  const cuerpo = [
+    // Haunch and back paw.
+    shape(smooth([[-52, -6], [-58, -32], [-46, -58], [-22, -66], [-4, -52], [2, -26], [-6, -4]]), C.fur, [
+      path(smooth([[-58, -20], [-30, -10], [0, -16], [2, 4], [-60, 4]]), C.furShadow),
+      path(smooth([[-46, -54], [-24, -62], [-10, -56], [-26, -52]]), C.furLight, { opacity: 0.8 }),
+    ], C.line, 1.3),
+    shape(ellipse(-14, -4, 19, 6.5), C.fur, [path(ellipse(-12, -1, 17, 3), C.furShadow)], C.line, 1.1),
+    pata([[-2, -62], [10, -62], [11, -10], [14, -4], [14, 0, 'c'], [0, 0, 'c'], [0, -8], [-1, -30]], false),
+    // Chest and back, the chest catching the light.
+    shape(smooth([[-42, -50], [-32, -86], [-14, -112], [8, -124], [24, -118], [31, -96], [29, -66], [23, -40], [14, -18], [-10, -22], [-32, -30]]), C.fur, [
+      path(smooth([[-42, -50], [-32, -86], [-20, -100], [-24, -70], [-30, -36]]), C.furShadow),
+      path(smooth([[14, -114], [26, -110], [30, -86], [26, -60], [18, -70], [16, -96]]), C.furLight, { opacity: 0.8 }),
+      path(smooth([[20, -104], [27, -98], [28, -84], [22, -86]]), C.furSheen, { opacity: 0.5 }),
+    ], C.line, 1.4),
+    pata([[13, -66], [27, -62], [26, -12], [31, -5], [31, 1, 'c'], [14, 1, 'c'], [14, -10], [13, -38]], true),
+    // Red collar and its brass tag.
+    shape(smooth([[-8, -126], [10, -121], [27, -117], [28, -108], [10, -112], [-8, -117]]), C.collar, [path(smooth([[-8, -120], [28, -112], [28, -108], [-8, -117]]), C.collarDark)], '#5e1612', 1),
+    shape(ellipse(19, -101, 3.6, 4.2), C.tag, [path(ellipse(18, -102, 1.2, 1.4), '#fff2b0')], '#7a5714', 0.8),
+  ];
+  const ojo = (x, y, rx, ry, near) => {
+    if (ojos === 'feliz') return stroke(`M${x - rx - 1} ${y + 1.5}Q${x} ${y - ry - 1} ${x + rx + 1} ${y + 1.5}`, C.eye, near ? 2.4 : 1.8);
+    if (ojos === 'digna') return stroke(`M${x - rx} ${y}Q${x} ${y + ry * 0.7} ${x + rx} ${y}`, C.furSheen, near ? 2 : 1.6);
+    if (ojos === 'golpe') return stroke(`M${x - rx} ${y - ry * 0.7}L${x + rx * 0.6} ${y}L${x - rx} ${y + ry * 0.7}`, C.eye, near ? 2.2 : 1.7);
+    return [path(ellipse(x, y, rx, ry), C.eye), path(ellipse(x + rx * 0.35, y - ry * 0.4, rx * 0.4, rx * 0.4), '#ffffff'), path(ellipse(x - rx * 0.35, y + ry * 0.35, rx * 0.18, rx * 0.18), '#ffffff', { opacity: 0.75 })].join('');
+  };
+  const hocico =
+    boca === 'abierta'
+      ? [
+          // Lower jaw dropped, upper jaw up: a mouth ready to catch.
+          shape(smooth([[20, -126], [34, -122], [52, -116], [57, -111], [46, -108], [28, -112], [18, -118]]), C.muzzle, [path(smooth([[20, -116], [46, -108], [57, -111], [56, -106], [20, -106]]), C.furShadow)], C.line, 1.1),
+          shape(smooth([[26, -148], [46, -149], [59, -149], [57, -136], [54, -120], [40, -122], [24, -130]]), '#5a1a24', [
+            path(smooth([[28, -128], [44, -124], [55, -120], [50, -114], [34, -116]]), C.tongue),
+            path(smooth([[38, -122], [46, -121], [44, -118]]), '#f2a0a6', { opacity: 0.7 }),
+          ], '#2a0a10', 1),
+          path(smooth([[49, -148], [53, -148], [51, -143]]), '#f4efe6'),
+          path(smooth([[55, -149], [58.5, -149], [57, -144]]), '#f4efe6'),
+          path(smooth([[48, -117], [52, -118], [50, -122]]), '#f4efe6'),
+          shape(smooth([[24, -168], [40, -167], [56, -161], [63, -154], [60, -148], [46, -147], [28, -147]]), C.muzzle, [path(smooth([[30, -166], [46, -165], [56, -160], [44, -159]]), C.furLight, { opacity: 0.7 })], C.line, 1.2),
+          shape(ellipse(61.5, -157, 4.6, 3.6, -0.3), C.nose, [path(ellipse(60.5, -158.5, 1.7, 1), '#8a8898')], C.line, 0.8),
+        ].join('')
+      : [
+          shape(smooth([[24, -166], [42, -163], [57, -155], [63, -147], [58, -138], [42, -133], [26, -134]]), C.muzzle, [
+            path(smooth([[30, -164], [46, -162], [56, -156], [44, -156]]), C.furLight, { opacity: 0.7 }),
+            path(smooth([[26, -138], [42, -136], [58, -139], [56, -132], [26, -130]]), C.furShadow),
+          ], C.line, 1.2),
+          shape(ellipse(61.5, -152, 4.6, 3.6, -0.2), C.nose, [path(ellipse(60.5, -153.5, 1.7, 1), '#8a8898')], C.line, 0.8),
+          stroke(boca === 'masca' ? 'M58 -142Q50 -137 42 -140Q37 -142 34 -139' : 'M59 -142Q50 -139 40 -140', C.line, 1.4),
+          // Chewing: puffed cheek and a crumb of ham.
+          boca === 'masca' ? path(ellipse(36, -142, 9, 6), C.muzzle, { opacity: 0.9 }) + path(rrect(48, -133, 3, 2.4, 0.8), '#c85a5a') : '',
+        ].join('');
+  const cabeza = g('cabeza_sentada', [
+    // Far ear, skull, muzzle, eyes, near ear.
+    shape(smooth([[-10, -168], [-18, -194], [-10, -206], [2, -186]]), C.furShadow, [path(smooth([[-10, -176], [-13, -194], [-8, -198], [-3, -184]]), C.furDeep)], C.line, 1.1),
+    shape(smooth([[-22, -152], [-18, -173], [-2, -185], [16, -183], [30, -173], [36, -158], [30, -140], [14, -128], [-6, -128], [-18, -136]]), C.fur, [
+      path(smooth([[-22, -150], [-18, -136], [-6, -128], [14, -128], [0, -134], [-14, -144]]), C.furShadow),
+      path(smooth([[-14, -172], [-2, -182], [14, -181], [4, -176], [-8, -168]]), C.furLight, { opacity: 0.85 }),
+    ], C.line, 1.3),
+    hocico,
+    ojo(11, -164, 3.4, 4.6, false),
+    ojo(27, -163, 4.8, 6, true),
+    // Eyebrow tufts: up when eager, flat when dignified.
+    stroke(ojos === 'digna' ? 'M20 -172Q27 -173 33 -171' : 'M20 -174Q27 -178 33 -173', C.furSheen, 1.6, { opacity: 0.85 }),
+    stroke(ojos === 'digna' ? 'M6 -172Q11 -173 15 -172' : 'M6 -173Q11 -176 15 -173', C.furSheen, 1.3, { opacity: 0.7 }),
+    shape(smooth([[12, -178], [16, -202], [26, -212], [33, -199], [30, -180]]), C.fur, [path(smooth([[17, -184], [20, -200], [26, -205], [28, -186]]), C.furDeep, { opacity: 0.85 })], C.line, 1.2),
+  ], ojos === 'digna' ? { transform: 'rotate(-16 8 -122)' } : {});
+  return g('aceituna_sentada', [...cuerpo, cabeza]);
+}
+
+/** Her tail while sitting: pivot at (-44, -14). */
+export function colaSentada() {
+  return shape(smooth([[-40, -10], [-56, -20], [-66, -42], [-63, -62], [-55, -60], [-57, -42], [-48, -26], [-36, -18]]), C.fur, [path(smooth([[-58, -36], [-62, -56], [-58, -58], [-55, -42]]), C.furLight, { opacity: 0.7 })], C.line, 1.2);
 }
 
 export const INFO = { name: 'Aceituna', traits: 'perrita negra y pequeña, collar rojo con chapa, de la pareja pero la cuida Fran' };

@@ -5,7 +5,8 @@
 //
 // Fran's story: he wakes up from his nap at 20:35. He was meant to be at the
 // Bar del Río at nine. The couple he shares with have locked the door from
-// outside, Aceituna is lying on his keys, and he is in his boxers.
+// outside, Aceituna is lying on his keys, and he is in his boxers. She only gets
+// up for ham thrown into her mouth: «la rana de Aceituna» (src/ui/rana.ts).
 // Guille's story is in ./guille.ts and Pablo's in ./pablo.ts. Chuchi's is a
 // placeholder (a room and a way out) until it is written.
 //
@@ -25,14 +26,12 @@ import type { PjId } from '../juego/reparto';
 import type { Escena } from '../motor/escena';
 import { dialogo, texto } from '../juego/textos';
 import { abrirMovil } from '../ui/movil';
-import { jugarTarro } from '../ui/tarro';
+import { jugarRana } from '../ui/rana';
+import { REPARTO } from '../juego/reparto';
 import { FONTS } from '../motor/escena';
 
 const HORA = (h: number, m: number) => h * 60 + m;
 const SOFA = { u: 2455, k: 1.42, y: 790 };
-
-/** Olives rolling on the kitchen floor after the jar pops. */
-let aceitunas: Array<{ X: number; y: number }> = [];
 
 /** Where each placeholder story happens. */
 const CASA: Record<'chuchi', string> = { chuchi: 'casaChuchi' };
@@ -102,41 +101,37 @@ async function verMovil(g: Aventura) {
   } else await g.hablar('movil.otravez');
 }
 
-async function abrirTarro(g: Aventura, caliente: boolean) {
-  const r = await jugarTarro(g.root, caliente);
-  if (r === 'cancelado') return;
-  if (r === 'duro') {
-    g.sound.nope();
-    g.poner('tarroIntentado');
-    g.avanzarReloj(3);
-    await g.hablar('tarro.duro');
-    await nervios(g);
-    return;
+/** Aceituna is up (and off the keys). Older saves still say it with olives. */
+const levantada = (g: Aventura) => g.flag('jamonComido') || g.flag('aceitunasComidas');
+
+/** Ham for Aceituna: handed over, she sulks; tossed into her mouth, she cannot resist. */
+async function tirarJamon(g: Aventura) {
+  if (!g.flag('jamonOfrecido')) {
+    g.poner('jamonOfrecido');
+    await g.hablar('jamon.aceituna');
   }
-  // ¡PLOC! Olives everywhere; Aceituna cannot resist.
-  g.sound.splash();
-  g.quitar('tarroCaliente');
-  g.poner('tarroAbierto');
-  const F = g.activo;
-  aceitunas = Array.from({ length: 14 }, (_, i) => ({ X: F.X - 260 + ((i * 97) % 520) + Math.sin(i) * 30, y: Math.min(g.S.walk.y1, Math.max(g.S.walk.y0, F.y - 30 + ((i * 41) % 80))) }));
-  await g.hablar('tarro.abierto');
-  g.perroModo = 'quieta';
-  const D = g.perro!;
-  await g.esperar(300);
-  while (aceitunas.length) {
-    // Nearest olive first.
-    aceitunas.sort((a, b) => Math.hypot(a.X - D.X, a.y - D.y) - Math.hypot(b.X - D.X, b.y - D.y));
-    const o = aceitunas[0];
-    await g.perroIr(o.X + 20 * Math.sign(D.X - o.X || 1), o.y);
-    aceitunas = aceitunas.filter((a) => Math.hypot(a.X - o.X, a.y - o.y) > 90);
-    await g.esperar(220);
-  }
-  g.perroDestino = null;
-  g.poner('aceitunasComidas');
+  // The minigame covers the whole screen: the scene underneath stops drawing.
+  g.pausado = true;
+  const F = REPARTO.fran;
+  const r = await jugarRana(g.root, {
+    cuerpoFran: (animo) => F.arte.body({ mood: animo }, g.estado.ropa.fran ?? F.ropa),
+    joints: (F.arte as unknown as { JOINTS: Record<string, number[]> }).JOINTS,
+    rapido: g.rapido,
+  }).finally(() => (g.pausado = false));
+  if (r === 'cancelado') return g.hablar('rana.cancelada');
+  g.quitar('jamon');
+  g.poner('jamonComido');
   g.poner('llavesALaVista');
-  g.avanzarReloj(4);
-  await g.hablar('aceituna.come');
+  g.avanzarReloj(5);
+  // Off the bed and over to Fran, wagging.
+  g.perroModo = 'quieta';
+  const D = g.perro;
+  const Fr = g.activo;
+  if (D) await g.perroIr(Fr.X + 110 * (Fr.face || 1), Fr.y + 6);
+  g.perroDestino = null;
+  await g.hablar(r === 'saltado' ? 'rana.saltado' : 'rana.despues');
   g.perroModo = 'sigue';
+  await nervios(g);
 }
 
 async function vestirse(g: Aventura) {
@@ -188,29 +183,13 @@ function zonasPiso(g: Aventura): Record<string, ZonaLogica> {
       },
     },
     ventana: {},
-    grifo: {
-      async usarObjeto(item) {
-        if (item === 'tarro') {
-          g.cambiarObjeto('tarro', 'tarroCaliente');
-          g.poner('tarroCaliente');
-          g.avanzarReloj(3);
-          await g.hablar('tarro.calentar');
-          await nervios(g);
-          return true;
-        }
-        if (item === 'tarroCaliente') {
-          await g.hablar('grifo.calentado');
-          return true;
-        }
-        return false;
-      },
-    },
+    grifo: {},
     nevera: {
       async usar() {
-        if (g.flag('tarro')) return g.hablar('usar.nevera.vacia');
-        g.poner('tarro');
+        if (g.flag('jamon')) return g.hablar('usar.nevera.vacia');
+        g.poner('jamon');
         await g.hablar('usar.nevera');
-        g.dar('tarro');
+        g.dar('jamon');
         g.avanzarReloj(2);
       },
     },
@@ -432,9 +411,9 @@ export const capitulo1: Capitulo = {
         F.eyesClosed = true;
         g.foco = 1880;
       }
-      // Aceituna plays dead on the keys until the olives fly.
-      g.perroModo = g.flag('aceitunasComidas') ? 'sigue' : 'tumbada';
-      if (!g.flag('aceitunasComidas') && g.perro) Object.assign(g.perro, { X: g.S.spots.cama.X + 4, y: g.S.spots.cama.y + 2, face: -1 });
+      // Aceituna plays dead on the keys until the ham flies.
+      g.perroModo = levantada(g) ? 'sigue' : 'tumbada';
+      if (!levantada(g) && g.perro) Object.assign(g.perro, { X: g.S.spots.cama.X + 4, y: g.S.spots.cama.y + 2, face: -1 });
     }
 
   },
@@ -457,8 +436,8 @@ export const capitulo1: Capitulo = {
 
   async personaje(g, quien, item, mirar) {
     if (quien === 'aceituna') {
-      const libre = g.flag('aceitunasComidas');
-      if (item === 'tarro' || item === 'tarroCaliente') return g.hablar('tarro.aceituna');
+      const libre = levantada(g);
+      if (item === 'jamon' && !libre) return tirarJamon(g);
       if (item) return g.hablar('nofunciona');
       g.poner('aceitunaVista');
       if (mirar) return g.hablar(libre ? 'mirar.aceituna.despierta' : g.flag('aceitunaMirada') ? 'mirar.aceituna.otravez' : (g.poner('aceitunaMirada'), 'mirar.aceituna'));
@@ -475,8 +454,7 @@ export const capitulo1: Capitulo = {
     const ropa = g.estado.ropa[quien] ?? 'calle';
     if (mirar || !item) return g.hablar(`mirar.fran.${ropa === 'casa' ? 'casa' : 'calle'}`);
     if (item === 'ropa') return vestirse(g);
-    if (item === 'tarro') return abrirTarro(g, false);
-    if (item === 'tarroCaliente') return abrirTarro(g, true);
+    if (item === 'jamon') return g.hablar('jamon.fran');
     if (item === 'movil') return verMovil(g);
     return g.hablar('nadacontigo');
   },
@@ -514,10 +492,9 @@ export const capitulo1: Capitulo = {
       if (!f('llaveroVisto') && !f('aceitunaVista')) return texto('pista.llavero');
       if (!f('aceitunaVista')) return texto('pista.aceituna');
       if (f('llavesALaVista')) return texto('pista.cogerllaves');
-      if (!f('tarro')) return texto(f('huesosVistos') ? 'pista.huesos' : 'pista.soborno');
-      if (!f('tarroIntentado') && !f('tarroCaliente')) return texto('pista.tarro');
-      if (!f('tarroCaliente')) return texto('pista.caliente');
-      return texto('pista.abrir');
+      if (!f('jamon')) return texto(f('huesosVistos') ? 'pista.huesos' : 'pista.soborno');
+      if (!f('jamonOfrecido')) return texto('pista.jamon');
+      return texto('pista.rana');
     }
     if (!f('ropaCogida')) return texto('pista.ropa');
     if (!f('vestido')) return texto('pista.vestir');
@@ -536,27 +513,6 @@ export const capitulo1: Capitulo = {
     if (g.escena === 'backstage') return pablo.dibujar(g, ctx, capa);
     const m = g.motor;
     const px = m.px;
-    if (capa === 'suelo' && aceitunas.length) {
-      ctx.save();
-      ctx.setTransform(px, 0, 0, px, 0, 0);
-      for (const o of aceitunas) {
-        const k = m.f(o.y);
-        const x = m.screenX(o.X, k);
-        ctx.fillStyle = '#3a4410';
-        ctx.beginPath();
-        ctx.ellipse(x, o.y, 11 * k, 8 * k, 0.3, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#6b7a2e';
-        ctx.beginPath();
-        ctx.ellipse(x - 1, o.y - 1, 9 * k, 6.5 * k, 0.3, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = 'rgba(220,235,160,0.7)';
-        ctx.beginPath();
-        ctx.ellipse(x - 4 * k, o.y - 3 * k, 3 * k, 2 * k, 0.3, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.restore();
-    }
     if (capa === 'muebles' && g.escena === 'piso' && !g.flag('despierto')) {
       // Zzz rising from behind the sofa.
       const sp = g.S.spots.sofa;

@@ -12,7 +12,7 @@
 //   - more than 60 frames a second (120 Hz screens).
 //
 // Usage: node scripts/rendimiento.mjs [escena...]   (against npm run dev on :5173)
-//   escenas: piso, calle, granja, cerdos, backstage, palabras (all by default)
+//   escenas: piso, calle, granja, cerdos, backstage, palabras, rana (all by default)
 import { chromium } from 'playwright';
 import { readFileSync, readdirSync } from 'node:fs';
 
@@ -86,9 +86,10 @@ async function medir(nombre, prep, contar = 'escena') {
     };
     const f0 = window.__cerdos?.().fotogramas ?? 0;
     const p0 = window.__palabras?.().fotogramas ?? 0;
+    const r0 = window.__rana?.().fotogramas ?? 0;
     setTimeout(() => {
       m.dibujar = d;
-      res(contar === 'cerdos' ? ((window.__cerdos?.().fotogramas ?? 0) - f0) / seg : contar === 'palabras' ? ((window.__palabras?.().fotogramas ?? 0) - p0) / seg : n / seg);
+      res(contar === 'cerdos' ? ((window.__cerdos?.().fotogramas ?? 0) - f0) / seg : contar === 'palabras' ? ((window.__palabras?.().fotogramas ?? 0) - p0) / seg : contar === 'rana' ? ((window.__rana?.().fotogramas ?? 0) - r0) / seg : n / seg);
     }, seg * 1000);
   }), { seg: SEG, contar });
   const cpu = ((cpuChrome() - c0) / SEG) * 100;
@@ -146,6 +147,32 @@ if (toca('palabras')) {
     };
     setTimeout(juega, 6000);
   })()`, 'palabras');
+}
+if (toca('rana')) {
+  await medir('minijuego de la rana', `(async () => {
+    clearInterval(window.__paseo);
+    const g = window.__cyc.g;
+    const { jugarRana } = await import('/src/ui/rana.ts');
+    const { REPARTO } = await import('/src/juego/reparto.ts');
+    const F = REPARTO.fran;
+    g.pausado = true;
+    void jugarRana(g.root, { cuerpoFran: (a) => F.arte.body({ mood: a }, 'casa'), joints: F.arte.JOINTS });
+    // Plays by itself: aims for half a second (with the dotted line) and throws.
+    const c = () => document.querySelector('.lienzo-rana');
+    const ev = (t, x, y) => c()?.dispatchEvent(new PointerEvent(t, { bubbles: true, clientX: x, clientY: y, pointerId: 1 }));
+    const juega = () => {
+      const e = window.__rana?.();
+      if (!e) return;
+      if (e.listo && !e.vuela) {
+        const x = 500, y = 150;
+        ev('pointerdown', x, y);
+        ev('pointermove', x - 60, y + 30);
+        setTimeout(() => ev('pointerup', x - 60, y + 30), 500);
+      }
+      setTimeout(juega, 900);
+    };
+    setTimeout(juega, 6000);
+  })()`, 'rana');
 }
 if (toca('cerdos')) {
   await medir('minijuego de los cerdos', `(async () => {

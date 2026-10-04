@@ -5,6 +5,7 @@
 // starts again; after two lost rounds it can be skipped (docs/JUGABILIDAD.md).
 // The last pig is the worst one: bigger, heavier, and it will not keep still.
 import { h } from './hud';
+import { svgABitmap } from '../motor/sprites';
 import { texto } from '../juego/textos';
 import { cerdo, medidas, PIARA } from '../arte/cerdos.mjs';
 import { madrid } from '../arte/escenas/granja.mjs';
@@ -48,28 +49,12 @@ export interface EstadoCerdos {
   fotogramas: number;
 }
 
-/**
- * SVG to a bitmap, once. Drawing an SVG <img> into a canvas makes the browser
- * rasterise the vectors again on every frame (worse when rotated): always draw
- * from a canvas instead (docs/ESTILO.md, T5).
- */
-async function aBitmap(svg: string, w: number, h: number): Promise<HTMLCanvasElement> {
-  const img = new Image();
-  img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-  await img.decode();
-  const c = document.createElement('canvas');
-  c.width = Math.ceil(w);
-  c.height = Math.ceil(h);
-  c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height);
-  return c;
-}
-
 /** A pig at the size it is drawn on this screen (px per world unit). */
 function imagenCerdo(i: number, pxPorUnidad: number) {
   const p = PIARA[i];
   const w = 180 * U * p.s * pxPorUnidad;
   const h = 110 * U * p.s * pxPorUnidad;
-  return aBitmap(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="-80 -100 180 110" width="${Math.ceil(w)}" height="${Math.ceil(h)}">${cerdo({ ...p, s: 1 })}</svg>`, w, h);
+  return svgABitmap(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="-80 -100 180 110" width="${Math.ceil(w)}" height="${Math.ceil(h)}">${cerdo({ ...p, s: 1 })}</svg>`, w, h);
 }
 
 /** The same Madrid skyline as the farm scene, as one bitmap. */
@@ -78,7 +63,7 @@ function imagenMadrid(ancho: number) {
   const w = m.x1 - m.x0;
   const hh = m.y1 - m.y0;
   const k = ancho / w;
-  return aBitmap(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${m.x0} ${m.y0} ${w} ${hh}" width="${Math.ceil(w * k)}" height="${Math.ceil(hh * k)}">${m.body}</svg>`, w * k, hh * k);
+  return svgABitmap(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${m.x0} ${m.y0} ${w} ${hh}" width="${Math.ceil(w * k)}" height="${Math.ceil(hh * k)}">${m.body}</svg>`, w * k, hh * k);
 }
 
 export function jugarCerdos(parent: HTMLElement, rapido = false): Promise<Resultado> {

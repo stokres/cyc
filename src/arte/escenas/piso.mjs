@@ -230,12 +230,7 @@ function living() {
   // Prints above the fireplace (abstract, as in the plan).
   out.push(framed(1612, 250, 168, 196, [rect(1640, 282, 112, 132, '#9fb79a'), rect(1652, 296, 72, 104, '#7f9f80'), circle(1730, 300, 16, '#d9844f')].join('')));
   // Poster of Fran's own stand-up show (lettering is drawn with the game fonts, see POSTER_TEXTS).
-  out.push(framed(1852, 250, 168, 196, [
-    rect(1860, 258, 152, 180, '#e8742e'),
-    path(smooth([[1880, 438], [1884, 380], [1904, 352], [1936, 344], [1968, 352], [1988, 380], [1992, 438]]), '#2e3a5a'),
-    path(ellipse(1936, 352, 24, 28), '#e8b296'), path(smooth([[1914, 352], [1916, 372], [1936, 392], [1956, 372], [1958, 352], [1946, 366], [1926, 366]]), '#2a201c'),
-    path(smooth([[1908, 346], [1910, 322], [1924, 312], [1936, 316], [1950, 310], [1964, 324], [1964, 346], [1954, 332], [1920, 332]]), '#2b221e'),
-  ].join(''), { mount: '#e8742e' }));
+  out.push(posterFran());
   // Tall plant in a basket between the fireplace and the terrace.
   out.push(basketPlant(2170, 772, 1.05, 31));
   return out.join('');
@@ -339,6 +334,16 @@ function hall() {
   out.push(box(3336, 590, 30, 40, WHITE, { r: 3 }), rect(3346, 600, 10, 18, '#d6d0c6', { rx: 2 }));
   out.push(gpath(rectD(3370, 62, 30, 740), lin(3370, 0, 3400, 0, [[0, '#2e2620', 0], [1, '#2e2620', 0.3]])));
   return out.join('');
+}
+
+/** The poster of Fran's show, at (1852, 250); also hung in his ham toss (salon-rana.mjs). */
+export function posterFran() {
+  return framed(1852, 250, 168, 196, [
+    rect(1860, 258, 152, 180, '#e8742e'),
+    path(smooth([[1880, 438], [1884, 380], [1904, 352], [1936, 344], [1968, 352], [1988, 380], [1992, 438]]), '#2e3a5a'),
+    path(ellipse(1936, 352, 24, 28), '#e8b296'), path(smooth([[1914, 352], [1916, 372], [1936, 392], [1956, 372], [1958, 352], [1946, 366], [1926, 366]]), '#2a201c'),
+    path(smooth([[1908, 346], [1910, 322], [1924, 312], [1936, 316], [1950, 310], [1964, 324], [1964, 346], [1954, 332], [1920, 332]]), '#2b221e'),
+  ].join(''), { mount: '#e8742e' });
 }
 
 export const POSTER_TEXTS = [

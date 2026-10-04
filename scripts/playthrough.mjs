@@ -93,6 +93,20 @@ async function verZona(id) {
   return zonaCss(id);
 }
 
+/** Walk until a character is on screen, then return where to touch them. */
+async function verActor(id) {
+  for (let i = 0; i < 30; i++) {
+    const [x, y] = await actorCss(id);
+    if (x > 60 && x < 800) return [x, y];
+    await page.touchscreen.tap(x < 90 ? 110 : 690, 355);
+    await wait(300);
+    await charla();
+    await page.waitForFunction(() => !window.__cyc.g.activo.moving, null, { timeout: 20000 });
+  }
+  errors.push(`no llego a ver a ${id}`);
+  return actorCss(id);
+}
+
 async function tocar([x, y]) {
   await page.touchscreen.tap(x, y);
   await wait(150);
@@ -115,22 +129,57 @@ async function objeto(id) {
   await wait(200);
 }
 
-/** Circle a finger around the jar lid. */
-async function girar(vueltas) {
-  await page.waitForSelector('.zona-giro');
-  const b = await (await page.$('.zona-giro')).boundingBox();
-  const cx = b.x + b.width / 2;
-  const cy = b.y + b.height * 0.46;
-  const r = b.width * 0.3;
-  await page.mouse.move(cx + r, cy);
-  await page.mouse.down();
-  for (let a = 0; a <= vueltas * 360; a += 12) {
-    if (!(await page.$('.zona-giro'))) break;
-    await page.mouse.move(cx + Math.cos((a * Math.PI) / 180) * r, cy + Math.sin((a * Math.PI) / 180) * r);
+/**
+ * Fran's ham toss: wait for a calm moment, find a pull whose path meets the
+ * mouth where it will be (and open) when the ham gets there, and drag it.
+ * Returns how many throws it took.
+ */
+async function lanzarJamon() {
+  await page.waitForSelector('.cubierta.rana');
+  let tiros = 0;
+  let foto = false;
+  for (let i = 0; i < 3000 && (await page.$('.cubierta.rana')); i++) {
+    const listo = await page.evaluate(() => { const e = window.__rana?.(); return !!e && e.listo && !e.vuela; });
+    if (!listo) {
+      await wait(80);
+      continue;
+    }
+    const tiro = await page.evaluate(() => {
+      const e = window.__rana();
+      const RETRASO = 0.09; // from here to letting go
+      const Lmax = 300 * e.escala;
+      let mejor = null;
+      for (let L = Lmax * 0.3; L <= Lmax; L += Lmax / 120) {
+        for (let a = 0; a <= 80; a += 1) {
+          const r = (a * Math.PI) / 180;
+          const px = -L * Math.cos(r);
+          const py = L * Math.sin(r);
+          for (const p of e.prever(px, py).puntos) {
+            const B = e.bocaEn(p.t + RETRASO);
+            const d = Math.hypot(p.x - B.x, p.y - B.y);
+            if (B.abierta && d < e.boca.r * 0.5 && (!mejor || d < mejor.d)) mejor = { d, px, py };
+          }
+        }
+      }
+      return mejor;
+    });
+    if (!tiro) {
+      await wait(80);
+      continue;
+    }
+    await page.mouse.move(500, 150);
+    await page.mouse.down();
+    await page.mouse.move(500 + tiro.px, 150 + tiro.py, { steps: 2 });
+    if (!foto) {
+      foto = true;
+      await shot('rana');
+    }
+    await page.mouse.up();
+    tiros++;
+    await page.waitForFunction(() => !window.__rana?.()?.vuela, null, { timeout: 8000 }).catch(() => {});
   }
-  await page.mouse.up();
-  await wait(700);
-  await charla();
+  await page.waitForSelector('.cubierta.rana', { state: 'detached', timeout: 30000 });
+  return tiros;
 }
 
 /** Pick a protagonist on the start screen (or the one between stories). */
@@ -348,26 +397,22 @@ await shot('puerta');
 await paso('Mirar el cuenco de las llaves', async () => tocar(await verZona('llavero')), 'llaveroVisto');
 await paso('Mirar a Aceituna', async () => mantener(await actorCss('aceituna')), 'aceitunaVista');
 await paso('Pedirle las llaves', async () => tocar(await actorCss('aceituna')));
-await paso('Sacar el tarro de la nevera', async () => tocar(await verZona('nevera')), 'tarro');
-await paso('Intentar abrirlo en frío', async () => {
-  await objeto('tarro');
-  await page.touchscreen.tap(...(await actorCss('fran')));
-  await wait(400);
-  await shot('tarro');
-  await girar(1);
-}, 'tarroIntentado');
-await paso('Calentarlo en el grifo', async () => {
-  await objeto('tarro');
-  await tocar(await verZona('grifo'));
-}, 'tarroCaliente');
-await paso('Abrirlo caliente', async () => {
-  await objeto('tarroCaliente');
-  await page.touchscreen.tap(...(await actorCss('fran')));
-  await wait(400);
-  await girar(2);
-  await shot('aceitunas');
+await paso('Sacar el jamón de la nevera', async () => tocar(await verZona('nevera')), 'jamon');
+await paso('Probar un taquito (usarlo con Fran)', async () => {
+  await objeto('jamon');
+  await tocar(await actorCss('fran'));
+});
+await paso('Lanzarle el jamón a Aceituna: la rana', async () => {
+  const perra = await verActor('aceituna');
+  await objeto('jamon');
+  await page.touchscreen.tap(...perra);
   await charla();
-}, 'aceitunasComidas');
+  const tiros = await lanzarJamon();
+  console.log(`   » ocho a la boca en ${tiros} tiros`);
+  check(tiros > 0 && tiros <= 24, `la rana no se gana con tiros buenos (${tiros})`);
+  await charla();
+  await shot('aceituna-levantada');
+}, 'jamonComido');
 await paso('Coger las llaves de la cama', async () => tocar(await verZona('llaves')), 'llaves');
 await paso('Intentar salir en calzoncillos', async () => tocar(await verZona('puerta')));
 await paso('Coger la ropa de la terraza', async () => tocar(await verZona('terraza')), 'ropaCogida');

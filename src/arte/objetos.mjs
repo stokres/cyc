@@ -11,13 +11,13 @@ const movil = () => [
   path(ellipse(50, 85, 3, 3), '#4a4e58'),
 ].join('');
 
-const tarro = (caliente = false) => [
-  caliente ? stroke('M38 22q-6 -8 0 -14M50 20q-6 -8 0 -14M62 22q-6 -8 0 -14', '#ffffff', 2.4, { opacity: 0.8 }) : '',
-  shape(rrect(50, 32, 22, 7, 3), '#c8433a', [path(rrect(50, 30, 22, 3, 2), '#e06a5c')], '#6e1c17', 1.6),
-  shape(smooth([[30, 40], [70, 40], [74, 52], [74, 82], [68, 90, 'c'], [32, 90, 'c'], [26, 82], [26, 52]]), '#cfe6d8', [path(smooth([[60, 42], [72, 52], [72, 84], [64, 88]]), '#a8c8b8')], '#5a7a6a', 1.8),
-  ...[[38, 56], [50, 54], [62, 57], [44, 66], [56, 67], [38, 77], [50, 78], [62, 76]].map(([x, y]) => shape(ellipse(x, y, 6.5, 5), '#6b7a2e', [path(ellipse(x - 2, y - 1.5, 2.2, 1.4), '#a6b65a')], '#3a4410', 1)),
-  path(rrect(50, 64, 16, 8, 2), '#f2ead8', { opacity: 0.9 }),
-  caliente ? path(rrect(50, 64, 24, 30, 6), '#ffb070', { opacity: 0.18 }) : '',
+/** A pack of serrano ham cubes: a plastic tray with a label. */
+const jamon = () => [
+  shape(smooth([[18, 44, 'c'], [82, 44, 'c'], [76, 78, 'c'], [24, 78, 'c']]), '#e8e4dc', [path(smooth([[60, 44], [82, 44], [76, 78], [62, 78]]), '#cfc9be')], '#7a746a', 1.6),
+  ...[[32, 54], [46, 50], [60, 54], [38, 64], [54, 64], [68, 62]].map(([x, y]) => shape(rrect(x, y, 6.5, 6, 1.6), '#b8424a', [path(rrect(x - 2, y - 2, 3.5, 2.5, 1), '#e07a80'), path(rrect(x + 1, y + 1.4, 5, 1, 0.5), '#f6e6d6')], '#5a1820', 1)),
+  path(smooth([[16, 42, 'c'], [84, 42, 'c'], [80, 50], [20, 50]]), '#ffffff', { opacity: 0.35 }),
+  shape(rrect(50, 32, 22, 10, 3), '#c8433a', [path(rrect(50, 30, 22, 4, 2), '#e06a5c')], '#6e1c17', 1.4),
+  path(rrect(50, 33, 12, 2.5, 1), '#f4e2b0'),
 ].join('');
 
 const llaves = () => [
@@ -97,8 +97,7 @@ export const OBJETOS = {
   alcoholRomero,
   colonia,
   movil,
-  tarro: () => tarro(false),
-  tarroCaliente: () => tarro(true),
+  jamon,
   llaves,
   ropa,
 };

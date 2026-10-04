@@ -10,17 +10,10 @@
 // a grin painted on. All of them are bitmaps made once per screen size; each
 // frame only moves and deforms them (docs/ESTILO.md, T5).
 import { silueta } from '../motor/sprites';
+import { enPose, type Huesos } from '../motor/poses';
 
-type Huesos = Record<string, number>;
 type Gesto = 'malicia' | 'risa' | 'rabia';
 
-const HUESOS: Array<[string, string]> = [
-  ['torso', 'root'], ['cabeza', 'torso'],
-  ['brazo_sup_detras', 'torso'], ['antebrazo_detras', 'brazo_sup_detras'], ['mano_detras', 'antebrazo_detras'],
-  ['brazo_sup_delante', 'torso'], ['antebrazo_delante', 'brazo_sup_delante'], ['mano_delante', 'antebrazo_delante'],
-  ['muslo_detras', 'root'], ['pierna_detras', 'muslo_detras'], ['pie_detras', 'pierna_detras'],
-  ['muslo_delante', 'root'], ['pierna_delante', 'muslo_delante'], ['pie_delante', 'pierna_delante'],
-];
 
 /** Angles in degrees, positive = forward (he faces right), as in the rig. */
 const POSES: Record<string, { h: Huesos; gesto: Gesto }> = {
@@ -49,26 +42,6 @@ const ACTOS: Acto[] = ['paseo', 'gigante', 'derrite', 'peonza', 'coro', 'colgado
 
 /** A shadow's limbs: long and spidery (and the arms clear that big head when raised). */
 const LARGO: Record<string, number> = { brazo_sup_detras: 1.7, antebrazo_detras: 1.7, brazo_sup_delante: 1.7, antebrazo_delante: 1.7, mano_detras: 1.3, mano_delante: 1.3, muslo_detras: 1.12, pierna_detras: 1.12, muslo_delante: 1.12, pierna_delante: 1.12 };
-
-/**
- * The skeleton bent into a pose: the body's SVG with every bone moved, and the
- * head's matrix. Each bone hangs from where its parent's stretched end lands,
- * turned by the sum of the angles above it and stretched along its length only
- * (so a long upper arm does not skew the forearm).
- */
-function enPose(cuerpo: string, J: Record<string, number[]>, P: Huesos) {
-  const doc = new DOMParser().parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${cuerpo}</svg>`, 'image/svg+xml');
-  const M: Record<string, DOMMatrix> = { root: new DOMMatrix() };
-  const A: Record<string, number> = { root: 0 };
-  for (const [b, padre] of HUESOS) {
-    const [px, py] = J[b];
-    const w = M[padre].transformPoint(new DOMPoint(px, py));
-    A[b] = A[padre] + (P[b] ?? 0);
-    M[b] = new DOMMatrix().translate(w.x, w.y).rotate(-A[b]).scale(1, LARGO[b] ?? 1).translate(-px, -py);
-    doc.querySelector(`[id="${b}"]`)?.setAttribute('transform', M[b].toString());
-  }
-  return { svg: doc.documentElement.innerHTML, cabeza: M.cabeza };
-}
 
 /** Eyes and mouth painted on the silhouette's face, in the head's own coordinates (it faces right). */
 function pintarGesto(x: CanvasRenderingContext2D, gesto: Gesto) {
@@ -151,13 +124,13 @@ export class SombraHistrionica {
     const k = U * escala * RESOLUCION;
     for (const nombre of Object.keys(POSES) as NombrePose[]) {
       const { h, gesto } = POSES[nombre];
-      const p = enPose(this.cuerpo, this.joints, h);
+      const p = enPose(this.cuerpo, this.joints, h, LARGO);
       const c = await silueta(p.svg, VB.h * k, '#0c0814', VB).catch(() => null);
       if (!c || gen !== this.generacion) return;
       const x = c.getContext('2d')!;
       // Painted on the silhouette only (silueta() leaves 'source-in' set, which would wipe it).
       x.globalCompositeOperation = 'source-atop';
-      const m = p.cabeza;
+      const m = p.M.cabeza;
       x.setTransform(k, 0, 0, k, -VB.x * k, -VB.y * k);
       x.transform(m.a, m.b, m.c, m.d, m.e, m.f);
       x.translate(this.headAt.x, this.headAt.y);

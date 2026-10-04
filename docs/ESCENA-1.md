@@ -76,7 +76,7 @@ Fran se ha quedado dormido y había quedado a las 21:00 en el Río. Lo que le im
 
 1. **La puerta** está cerrada con llave por fuera: la pareja se ha ido de finde sin saber que él estaba en casa.
 2. **Las llaves** no están en el cuenco: Aceituna está tumbada encima y no se mueve.
-3. **El soborno:** Aceituna solo se mueve por aceitunas. En la mesa solo quedan huesos; en la nevera hay un tarro que no hay quien abra. Con agua caliente se abre de golpe y las aceitunas salen volando.
+3. **El soborno:** Aceituna solo se mueve por comida, y no se rebaja a cogerla de la mano. En la nevera hay taquitos de jamón: Fran se los lanza a la boca desde el otro lado del salón (minijuego de la rana, `src/ui/rana.ts`, con su propio salón de lado en `src/arte/escenas/salon-rana.mjs`: el sofá, la lámpara de arco, la puerta de la terraza y la cama de Aceituna junto a la puerta). Con ocho dentro, se levanta.
 4. **Va en calzoncillos de corazones:** su pantaloneta está tendida en la terraza.
 
 El paso a paso y las mecánicas que enseña están en `docs/JUGABILIDAD.md`.

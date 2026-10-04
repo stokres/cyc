@@ -145,8 +145,10 @@ export async function sinHueco(img: Element, luego: () => void) {
  * A character's whole body as a flat dark silhouette, as a bitmap `alto` pixels
  * tall (Pablo's shadow on the projection screen and in his minigame). `vb`: the
  * part of the body's space it covers (wider for poses with the arms flung out).
+ * With `color` null it keeps its colours: a posed body as a bitmap (Fran in his
+ * ham toss).
  */
-export async function silueta(cuerpo: string, alto: number, color = '#0c0814', vb = { x: -110, y: -300, w: 220, h: 310 }): Promise<HTMLCanvasElement> {
+export async function silueta(cuerpo: string, alto: number, color: string | null = '#0c0814', vb = { x: -110, y: -300, w: 220, h: 310 }): Promise<HTMLCanvasElement> {
   const limpio = cuerpo.replace(/<circle[^>]*class="pivot"[^>]*\/>/g, '');
   const k = alto / vb.h;
   const img = new Image();
@@ -157,8 +159,25 @@ export async function silueta(cuerpo: string, alto: number, color = '#0c0814', v
   c.height = Math.ceil(alto);
   const x = c.getContext('2d')!;
   x.drawImage(img, 0, 0, c.width, c.height);
+  if (!color) return c;
   x.globalCompositeOperation = 'source-in';
   x.fillStyle = color;
   x.fillRect(0, 0, c.width, c.height);
+  return c;
+}
+
+/**
+ * SVG to a bitmap, once. Drawing an SVG <img> into a canvas makes the browser
+ * rasterise the vectors again on every frame (worse when rotated): always draw
+ * from a canvas instead (docs/ESTILO.md, T5).
+ */
+export async function svgABitmap(svg: string, w: number, h: number): Promise<HTMLCanvasElement> {
+  const img = new Image();
+  img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  await img.decode();
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.ceil(w));
+  c.height = Math.max(1, Math.ceil(h));
+  c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height);
   return c;
 }

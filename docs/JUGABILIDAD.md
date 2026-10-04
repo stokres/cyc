@@ -21,7 +21,7 @@ Decisiones de diseño para que una aventura gráfica con minijuegos funcione en 
 | Hablar con alguien que no es del grupo | Se le toca, como a un amigo. En la historia de Pablo, su sombra (el narrador) le sigue y contesta según el momento |
 | Varios amigos | Columna de retratos grandes a la izquierda (al menos 52 px, el activo más grande y con su color). Tocar a otro lleva a su historia, donde la dejaste, como en *Day of the Tentacle*. Cada uno tiene su bolsa, su reloj y sus frases (`clave.pablo` en los textos gana a `clave` cuando juegas con Pablo). Quien ya va de camino al Río sale apagado y con una ✓ |
 | Acabar una historia | Fundido a negro antes de llegar al bar y un rótulo («Pablo ya va de camino al Río · Faltan…»). Con los cuatro de camino, escena final: llegan a la vez |
-| Usar algo contigo | Eliges el objeto en la bolsa y tocas a tu propio personaje (vestirse, abrir un tarro, mirar el móvil) |
+| Usar algo contigo | Eliges el objeto en la bolsa y tocas a tu propio personaje (vestirse, probar el jamón, mirar el móvil) |
 | Dar cosas a otro amigo | Tocas el objeto y luego al amigo |
 | Coger objetos | **Lo que se puede coger se puede coger siempre** (decidido el 3 de octubre de 2026), aunque todavía no se sepa para qué sirve; y también se puede juntar con otros. Nada se bloquea hasta «su momento» de la historia |
 | Juntar dos objetos | Eliges uno en la bolsa, vuelves a abrirla y tocas el otro (alcohol + romero en la historia de Guille). Si no pegan, el personaje lo dice |
@@ -37,9 +37,16 @@ Decisiones de diseño para que una aventura gráfica con minijuegos funcione en 
 5. **Nunca se pide inclinar el móvil mientras hay texto que leer.**
 6. **Se ajustan con un simulador** antes de probarlos (`node scripts/ronda-sim.mjs`). El listón: sin tocar nada se pierde, con reflejos normales (0,2–0,3 s) se gana y con reflejos lentos (0,4 s) se queda al límite.
 
-### El tarro (piloto)
+### La rana de Aceituna (Fran)
 
-Abrir el tarro de aceitunas girando el dedo alrededor de la tapa. En frío no pasa de un tercio de vuelta y la tapa se resbala; con agua caliente se abre a la vuelta y media. Se puede cerrar con la ✕ y volver a intentarlo cuando se quiera.
+Lanzar taquitos de jamón a la boca de Aceituna de un extremo a otro del salón, como el juego de la rana de los bares (decidido el 4 de octubre de 2026). Control de **tirachinas**: se arrastra hacia atrás y se suelta; cuanto más largo el tirón, más fuerte el lanzamiento.
+
+- **Física** (`src/ui/rana-fisica.mjs`): gravedad, rozamiento del aire y rebotes en el suelo, las paredes, el techo, el respaldo del sofá, el poste y el brazo de la lámpara de arco, y la pantalla de la lámpara, que cuelga del cable y se balancea como un péndulo si le das. En la cabeza o el hocico de Aceituna, rebota; en la boca abierta, se lo come.
+- Hay dos caminos: un arco bajo, por debajo de la lámpara y por encima del sofá, y una bomba por encima de la pantalla.
+- **Cuatro tramos, dos taquitos cada uno:** quieta; se menea de lado a lado; abre y cierra la boca; y entra corriente por la terraza, que empuja el jamón de lado (las cortinas, las hojas y una flecha lo enseñan). La línea de puntos que enseña la trayectoria se acorta en cada tramo.
+- **Un paquete trae 24 taquitos.** Si tardas en tirar, Fran se come uno. Si se acaba el paquete antes de los ocho, se empieza otra vez con otro; tras dos rondas perdidas aparece «Saltar».
+- Lo que cae al suelo, Aceituna no se lo come: es una señora.
+- Se ajusta con `node scripts/rana-sim.mjs`, que mide para cada tramo cuánto espacio de tiro acierta y cuántas veces acierta una mano humana (±5 % de fuerza, ±2,5° y momento aleatorio).
 
 ### Las palabras (Pablo)
 
@@ -75,9 +82,9 @@ Fran se despierta de la siesta a las 20:35 y había quedado a las 21:00 en el Ba
 3. **Coger** el móvil: el grupo de WhatsApp presenta a los demás.
 4. **La puerta** está cerrada con llave: la pareja se ha ido de finde y la ha echado por fuera.
 5. Las llaves no están en el cuenco: **Aceituna** está tumbada encima y no se mueve.
-6. En la mesa solo quedan huesos; en la nevera hay un **tarro de aceitunas**.
-7. **Usar el tarro contigo** abre el minijuego, pero en frío no se abre. **Usar el tarro en el grifo** lo calienta.
-8. Con el tarro caliente se abre: las aceitunas salen volando, Aceituna va a por ellas y deja las llaves a la vista.
+6. En el cuenco solo quedan huesos de aceituna; en la nevera hay un paquete de **taquitos de jamón**.
+7. **Usar el jamón en Aceituna:** si se lo das, se hace la digna; si se lo tiras a la boca, eso ya es cazar. Abre el minijuego de **la rana de Aceituna**.
+8. Con ocho a la boca, se levanta de la cama, va a por Fran meneando el rabo y deja las llaves a la vista.
 9. Para salir falta vestirse: la **ropa** está tendida en la terraza. **Usarla contigo** cambia el vestuario de Fran.
 10. Sale a la calle y **anda** hacia el Río. Al pasar el cruce lo ve y se funde a negro: ya va de camino.
 

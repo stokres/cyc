@@ -60,11 +60,10 @@ pista.movil = Tu móvil no para de vibrar encima de la mesa.
 pista.puerta = Prueba a salir por la puerta del recibidor.
 pista.llavero = Las llaves siempre van en el cuenco del recibidor. Siempre.
 pista.aceituna = Aceituna está muy cómoda en su cama. Demasiado cómoda. Mírala bien.
-pista.soborno = Aceituna no se mueve por nada... salvo por lo que le da nombre.
-pista.huesos = En la mesa solo quedan huesos. Igual en la nevera hay más.
-pista.tarro = Saca el tarro de la bolsa y tócate a ti mismo para intentar abrirlo.
-pista.caliente = Los tarros que no abren se ablandan con agua caliente. Lo dice tu abuela.
-pista.abrir = Ahora sí: intenta abrir el tarro otra vez.
+pista.soborno = Aceituna no se mueve por nada... salvo por comida. Y no por cualquier comida.
+pista.huesos = En el cuenco solo quedan huesos. Igual en la nevera hay algo mejor.
+pista.jamon = Abre la bolsa, elige el jamón y toca a Aceituna: si se lo tiras a la boca, igual se levanta.
+pista.rana = Lánzale los taquitos a la boca: arrastra hacia atrás y suelta. Cuanto más tiras, más lejos va.
 pista.cogerllaves = Aceituna se ha levantado de su cama. ¿Qué había debajo?
 pista.ropa = Tu ropa buena está tendida en la terraza.
 pista.vestir = Abre la bolsa, elige la ropa y tócate a ti mismo para ponértela.
@@ -129,8 +128,8 @@ FRAN: Un traguito de agua... No. Que luego no me cabe la caña.
 FRAN: Mi nevera. Con imanes de Aceituna, de Madrid y la lista de la compra de hace un mes.
 
 ## usar.nevera
-FRAN: A ver qué hay... ¡Un tarro de aceitunas! Las de mi abuela de Tolosa.
-FRAN (contento): Esto, para el Río, que siempre racanean con el aperitivo.
+FRAN: A ver qué hay... ¡Taquitos de jamón! Del bueno, del de las ocasiones especiales.
+FRAN (contento): Y esto es una ocasión especial: es jueves.
 
 ## usar.nevera.vacia
 FRAN: Un yogur caducado y media cebolla. La nevera de un artista.
@@ -286,48 +285,40 @@ FRAN (contento): Mírala qué contenta. Se llama Aceituna por algo.
 FRAN (contento): ¿Quién es la perrita más guapa de Usera? ¡Tú!
 ACEITUNA: ¡Guau!
 
-## tarro.aceituna
-FRAN: No, cariño, el tarro entero no. Que tú tampoco sabes abrirlo.
+## jamon.aceituna
+FRAN: Toma, cariño, un taquito... ¿Nada?
+> Aceituna gira la cabeza hacia la pared, muy digna.
+FRAN: Si se lo acerco, se hace la digna. Pero si se lo tiro... Eso ya es cazar. Y cazar no es rebajarse.
 
-// ---------------------------------------------------------------- el tarro
+## jamon.fran
+FRAN (contento): Uno para mí. Para probar que está bueno, que hay que ser responsable.
+---
+FRAN: No, Fran. Que es para Aceituna. Bueno, uno más.
+---
+FRAN (nervioso): Para, Fran. Que no llegas al Río y además sin jamón.
+
+## rana.despues
+> Aceituna se relame, se estira y salta de la cama como si nada.
+ACEITUNA: ¡Guau!
+FRAN (contento): ¡La cama libre! ¡Mis llaves! Si es que en el fondo eres facilísima de comprar.
+
+## rana.saltado
+> Aceituna se cansa de esperar a que Fran tenga puntería. Baja de la cama y le roba el paquete entero.
+FRAN (sorprendido): ¡Oye! Bueno... ¡La cama libre! ¡Mis llaves!
+
+## rana.cancelada
+FRAN: Luego sigo, que me tiembla el pulso. Es el hambre.
+
+// ---------------------------------------------------------------- objetos de Fran
 
 objeto.movil = Móvil
 objeto.movil.texto = Mi móvil. Tengo el grupo echando humo.
-objeto.tarro = Tarro de aceitunas
-objeto.tarro.texto = Aceitunas de la abuela. El tarro lo cerró ella, que tiene manos de remontista.
-objeto.tarroCaliente = Tarro calentito
-objeto.tarroCaliente.texto = Tarro de aceitunas, recién pasado por agua caliente.
+objeto.jamon = Taquitos de jamón
+objeto.jamon.texto = Un paquete de taquitos de jamón serrano. Veinticuatro. Bueno, ahora veintitrés.
 objeto.llaves = Llaves
 objeto.llaves.texto = Mis llaves. Con el llavero del Athletic que me regaló mi tío.
 objeto.ropa = Ropa buena
 objeto.ropa.texto = Mi camiseta y mi pantaloneta. La de los jueves.
-
-tarro.instrucciones = Gira el dedo alrededor de la tapa para abrir el tarro
-
-## tarro.duro
-FRAN (enfadado): ¡Ene! ¡Que no se abre! Esto lo ha cerrado mi abuela con una llave inglesa.
----
-FRAN (enfadado): Nada. Ni con la fuerza navarra de mi familia.
----
-FRAN (nervioso): Este tarro me odia. Necesita ablandarse. Como yo los lunes.
-
-## tarro.calentar
-> Fran pone el tarro bajo el grifo de agua caliente.
-FRAN: Como dice mi abuela: tarro que no abre, agua caliente y paciencia.
-FRAN: Bueno, ella dice «paciencia». Yo digo «caña».
-
-## grifo.calentado
-FRAN: Ya está calentito. Más caliente y hago aceitunas al vapor.
-
-## tarro.abierto
-> ¡PLOC!
-FRAN (sorprendido): ¡Arrea!
-> Las aceitunas salen volando por toda la cocina.
-
-## aceituna.come
-ACEITUNA: ¡Guau!
-FRAN: ¡Eso, Aceituna, a por ellas! Ya sabía yo que eras fácil de comprar.
-FRAN (contento): ¡Y la cama libre! ¡Mis llaves!
 
 ## coger.llaves
 FRAN (contento): ¡Mis llaves! Con sus babas y todo. Gracias, cariño.
@@ -910,6 +901,21 @@ SOMBRA (sorprendido): ¿Vas a cortarme? Soy una sombra, Pablo. Como mucho, me re
 
 ## p.sombra.libreto
 SOMBRA: Calderón. «Toda la vida es sueño». Y la tuya, de momento, bloqueo.
+
+// ---------------------------------------------------------------- minijuego: la rana de Aceituna (Fran)
+
+rana.instrucciones = Arrastra hacia atrás y suelta para lanzarle el jamón a la boca
+rana.ganas = Ganas de levantarse
+rana.nam = ¡Ñam!
+rana.tramo1 = ¡A la boca!
+rana.tramo2 = ¡Ahora se menea!
+rana.tramo3 = ¡Ahora abre y cierra!
+rana.tramo4 = ¡Corriente de la terraza!
+rana.suelo = Del suelo no come. Es una señora.
+// Lo que dice Fran cuando tarda en tirar y se come uno. Sepáralos con barras.
+rana.gula = Uno para mí... / Para probar que está bueno / Este tenía mala pinta / Control de calidad
+rana.pierde = ¡Se acabó el paquete! Otro, y desde el principio
+rana.gana = ¡Se levanta!
 
 // ---------------------------------------------------------------- minijuego: cortar palabras
 
