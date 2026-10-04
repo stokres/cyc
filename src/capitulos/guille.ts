@@ -25,6 +25,7 @@ async function pesar(g: Aventura) {
   g.pausado = true;
   const r = await jugarCerdos(g.root, g.rapido).finally(() => (g.pausado = false));
   if (r === 'cancelado') return g.hablar('g.cerdos.cancelado');
+  if (r === 'hecho') g.minijuegoSuperado('cerdos');
   g.poner('g.pesados');
   g.avanzarReloj(12);
   await g.hablar(r === 'saltado' ? 'g.cerdos.saltado' : 'g.cerdos.hecho');

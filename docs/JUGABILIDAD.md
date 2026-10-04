@@ -6,7 +6,17 @@ Decisiones de diseño para que una aventura gráfica con minijuegos funcione en 
 
 - **Juego web** que se abre con un enlace y se puede añadir a la pantalla de inicio. No pasa por tiendas de apps y funciona en iPhone y Android.
 - **Solo en horizontal.** En vertical aparece un aviso para girar el móvil, porque iPhone no deja bloquear la orientación.
-- **Autoguardado** en el propio navegador tras cada acción.
+- **Autoguardado** en el propio navegador (cada jugador en su móvil) tras cada acción y al salir de la página, para seguir otro día donde lo dejaste.
+
+## Partida guardada y capítulos
+
+Lo guarda `src/juego/partida.ts`, en una sola entrada del navegador (`cyc.partida.v4`) con tres cosas:
+
+- **Tu partida**: la historia tal y como vas, capítulo tras capítulo.
+- **Un rejuego**: un capítulo ya superado, jugado otra vez desde el principio. Es una partida aparte que nunca toca la tuya; al volver a tu partida sigues exactamente donde estabas, aunque hayas superado dos capítulos y estés rejugando el primero.
+- **Lo conseguido**: capítulos y minijuegos superados, en cualquiera de las dos partidas. Sirve para la lista de capítulos y para el menú de minijuegos.
+
+En el menú, **Capítulos** enseña cada capítulo (superado, en curso o todavía no) y deja rejugar los superados. Mientras rejuegas, el título y el menú lo avisan, y desde Capítulos (o desde la tarjeta del final) vuelves a tu partida. **Empezar de nuevo** solo reinicia la partida que estás jugando: lo conseguido no se borra nunca. Al terminar un capítulo, la tarjeta final ofrece rejugarlo. Las partidas guardadas con la versión anterior pasan a ser tu partida, y si habían llegado al final, el capítulo 1 y sus minijuegos cuentan como superados.
 
 ## Point and click en pantalla táctil
 

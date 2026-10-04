@@ -9,7 +9,7 @@ import { Gestures, type PointerInfo } from '../core/input';
 import { Sound } from '../core/audio';
 import { dialogo, hayDialogo, restaurarUsos, texto, usos, type Linea, type Quien } from './textos';
 import { PROTAS, REPARTO, type PjId } from './reparto';
-import { guardarEstado, type Estado } from './estado';
+import type { Estado } from './estado';
 
 export interface ZonaLogica {
   /** Shown on labels; defaults to `zona.<id>` in the texts. */
@@ -204,7 +204,22 @@ export class Aventura {
     }
     if (this.perro && this.escena === 'piso') this.estado.perro = { X: Math.round(this.perro.X), y: Math.round(this.perro.y) };
     this.estado.usos = usos();
-    guardarEstado(this.estado);
+    this.alGuardar?.(this.estado);
+  }
+
+  /** Where the game is saved (main.ts: the Partida, src/juego/partida.ts). */
+  alGuardar: ((e: Estado) => void) | null = null;
+  /** Something finished for good: a chapter, or a minigame won (for the menus). */
+  onProgreso: ((p: { capitulo?: number; minijuego?: string }) => void) | null = null;
+  /** Replaying a chapter already finished (a separate game from the main one). */
+  rejugando = false;
+
+  minijuegoSuperado(id: string) {
+    this.onProgreso?.({ minijuego: id });
+  }
+
+  capituloSuperado(n: number) {
+    this.onProgreso?.({ capitulo: n });
   }
 
   // ------------------------------------------------------------ scenes

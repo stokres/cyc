@@ -20,7 +20,11 @@ const page = await browser.newPage({ viewport: { width: 844, height: 390 }, devi
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.stack || String(e)));
 page.on('console', (m) => m.type() === 'error' && !m.text().includes('Failed to load resource') && errors.push(m.text()));
-await page.addInitScript(() => localStorage.clear());
+// A clean save on the first load only: the replay check below reloads the page and needs it.
+await page.addInitScript(() => {
+  if (!sessionStorage.getItem('cyc.prueba')) localStorage.clear();
+  sessionStorage.setItem('cyc.prueba', '1');
+});
 await page.goto(url);
 await page.waitForFunction(() => window.__cyc, null, { timeout: 30000 });
 await page.evaluate(() => window.__cyc.listo());
@@ -524,6 +528,51 @@ await paso('Los cuatro llegan a la vez', async () => {
   check(e.final && e.aqui === 4, 'la escena final no tiene a los cuatro');
   console.log(`  Llegan los cuatro a las ${e.hora}`);
   await shot('fin');
+});
+
+/** The saved game as it is in the browser (src/juego/partida.ts). */
+const guardada = () => page.evaluate(() => JSON.parse(localStorage.getItem('cyc.partida.v4')));
+/** Taps something that reloads the page, and waits for the game to be ready again. */
+async function recargada(selector) {
+  await Promise.all([page.waitForEvent('load'), page.click(selector)]);
+  await page.waitForFunction(() => window.__cyc, null, { timeout: 30000 });
+  await page.evaluate(() => window.__cyc.listo());
+}
+async function abrirCapitulos() {
+  await page.click('.herramientas button:last-child');
+  await page.click('#m-capitulos');
+  await page.waitForSelector('.capitulos');
+}
+await paso('Rejugar el capítulo sin perder la partida', async () => {
+  let p = await guardada();
+  check(p.progreso.capitulos['1']?.superado, 'el capítulo 1 no queda superado');
+  const ganados = ['rana', 'cerdos', 'palabras', 'robot'].filter((id) => p.progreso.minijuegos[id]?.superado);
+  check(ganados.length === 4, `minijuegos superados: ${ganados.join(', ')}`);
+  check(p.principal?.estado.final, 'la partida principal no guarda el final');
+  // From the end card: a new game of chapter 1, apart from the main one.
+  await recargada('#fin-rejugar');
+  const r = await page.evaluate(() => ({ rejugando: window.__cyc.g.rejugando, final: !!window.__cyc.g.estado.final, aviso: !!document.querySelector('.titulo .aviso-rejuego') }));
+  check(r.rejugando && !r.final && r.aviso, 'rejugar no empieza una partida aparte');
+  await page.touchscreen.tap(420, 200);
+  await page.waitForSelector('.cubierta.eleccion');
+  await escoger('pablo');
+  await charla();
+  await wait(600);
+  p = await guardada();
+  check(p.jugando === 'rejuego' && p.rejuego?.estado.flags['empezado.pablo'] && p.principal?.estado.final, 'el rejuego pisa la partida principal');
+  await abrirCapitulos();
+  await shot('capitulos-rejugando');
+  // Back to the main game: the end of the chapter, as it was.
+  await recargada('#m-volver');
+  const v = await page.evaluate(() => ({ rejugando: window.__cyc.g.rejugando, final: !!window.__cyc.g.estado.final, toca: document.querySelector('.titulo .toca')?.textContent }));
+  check(!v.rejugando && v.final, 'volver no recupera la partida principal');
+  p = await guardada();
+  check(p.jugando === 'principal' && !p.rejuego && p.progreso.capitulos['1']?.superado, 'volver no deja la partida como estaba');
+  await page.touchscreen.tap(420, 200);
+  await wait(800);
+  await abrirCapitulos();
+  await shot('capitulos');
+  check(!!(await page.$('.capitulo-fila.superado [data-capitulo="1"]')), 'el capítulo 1 no se puede rejugar desde el menú');
 });
 
 await browser.close();

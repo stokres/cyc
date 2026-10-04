@@ -116,6 +116,7 @@ async function tirarJamon(g: Aventura) {
     rapido: g.rapido,
   }).finally(() => (g.pausado = false));
   if (r === 'cancelado') return g.hablar('rana.cancelada');
+  if (r === 'hecho') g.minijuegoSuperado('rana');
   g.quitar('jamon');
   g.poner('jamonComido');
   g.poner('llavesALaVista');
@@ -359,6 +360,7 @@ async function final(g: Aventura) {
     p?.lookAt(6820);
   }
   g.foco = null;
+  g.capituloSuperado(1);
   await g.velar(false);
   g.onFin?.();
 }

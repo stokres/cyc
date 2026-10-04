@@ -4,7 +4,7 @@ import textosCapitulo from './textos/capitulo1.md?raw';
 import textosInterfaz from './textos/interfaz.md?raw';
 import { cargarTextos, texto } from './juego/textos';
 import { Aventura } from './juego/aventura';
-import { borrarEstado, cargarEstado } from './juego/estado';
+import { cargarPartida, enJuego, guardarPartida, rejugar, volverAPrincipal, type Partida } from './juego/partida';
 import { capitulo1 } from './capitulos/capitulo1';
 import { h } from './ui/hud';
 import type { Calidad } from './motor/motor';
@@ -52,8 +52,38 @@ async function arrancar() {
   const root = document.getElementById('game')!;
   const ajustes = cargarAjustes();
   const guardarAjustes = () => storageSet('cyc.ajustes', JSON.stringify(ajustes));
-  const guardado = cargarEstado();
-  const g = new Aventura(root, capitulo1, guardado ?? capitulo1.estadoInicial());
+  // ---------------------------------------------------------- the saved game
+  // Two games (see src/juego/partida.ts): the main one and, if any, a chapter
+  // being replayed. Switching between them saves and reloads the page.
+  const partida = cargarPartida();
+  const enCurso = enJuego(partida);
+  const g = new Aventura(root, capitulo1, enCurso?.estado ?? capitulo1.estadoInicial());
+  g.rejugando = partida.jugando === 'rejuego';
+  let saliendo = false;
+  const guardar = () => !saliendo && guardarPartida(partida);
+  g.alGuardar = (estado) => {
+    partida[partida.jugando] = { capitulo: 1, estado };
+    guardar();
+  };
+  g.onProgreso = ({ capitulo, minijuego }) => {
+    const { capitulos, minijuegos } = partida.progreso;
+    if (capitulo) capitulos[capitulo] = { ...capitulos[capitulo], superado: true, fecha: capitulos[capitulo]?.fecha ?? new Date().toISOString() };
+    if (minijuego) minijuegos[minijuego] = { ...minijuegos[minijuego], superado: true };
+    guardar();
+  };
+  /** Save the game as it is now (if nothing is half done) and reload into `cambio`. */
+  const cambiarPartida = (cambio: (p: Partida) => void) => {
+    if (!g.ocupadoAhora) g.guardar();
+    cambio(partida);
+    guardarPartida(partida);
+    saliendo = true;
+    location.reload();
+  };
+  // Closing the tab or switching apps mid-walk: keep the last position too.
+  const alSalir = () => !g.ocupadoAhora && g.guardar();
+  addEventListener('pagehide', alSalir);
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && alSalir());
+
   if (ajustes.calidad !== 'auto') g.motor.setCalidad(ajustes.calidad);
   if (new URLSearchParams(location.search).has('relieve')) g.motor.setRelieve(true);
   g.mostrarFps = ajustes.fps;
@@ -86,11 +116,17 @@ async function arrancar() {
       return wrap;
     };
     let seguro = false;
-    const reiniciar = h('button', { class: 'btn fantasma' }, texto('menu.reiniciar'));
+    const reiniciar = h('button', { class: 'btn fantasma', id: 'm-reiniciar' }, texto(g.rejugando ? 'menu.reiniciarRejuego' : 'menu.reiniciar'));
     const cerrar = () => {
       el.remove();
       g.pausado = false;
     };
+    const capitulos = h('button', { class: 'btn', id: 'm-capitulos' }, texto('menu.capitulos'));
+    capitulos.addEventListener('click', (e) => {
+      e.stopPropagation();
+      el.remove();
+      menuCapitulos();
+    });
     const el = g.hud.cubrir(
       '',
       h(
@@ -118,10 +154,12 @@ async function arrancar() {
           })),
         ),
         h('p', { class: 'pequeno' }, texto('menu.ayuda')),
+        ...(g.rejugando ? [h('p', { class: 'aviso-rejuego' }, texto('capitulos.rejugandoAviso', { n: partida.rejuego!.capitulo }))] : []),
         h(
           'div',
           { class: 'fila' },
           h('button', { class: 'btn primario', onclick: (e) => (e.stopPropagation(), cerrar()) }, texto('menu.continuar')),
+          capitulos,
           reiniciar,
         ),
       ),
@@ -133,8 +171,55 @@ async function arrancar() {
         reiniciar.textContent = texto('menu.seguro');
         return;
       }
-      borrarEstado();
-      location.reload();
+      // Only the game being played starts again: chapters and minigames finished stay finished.
+      cambiarPartida((p) => (p[p.jugando] = null));
+    });
+  };
+
+  // ---------------------------------------------------------- chapters
+  // Every chapter finished can be replayed from the start, as a separate game.
+  const CAPITULOS = [1];
+  const menuCapitulos = () => {
+    const fila = (n: number) => {
+      const superado = !!partida.progreso.capitulos[n]?.superado;
+      const aqui = partida.jugando === 'rejuego' && partida.rejuego?.capitulo === n;
+      const principal = (partida.principal?.capitulo ?? 1) === n;
+      const estado = aqui ? 'capitulos.rejugando' : superado ? 'capitulos.superado' : principal ? 'capitulos.encurso' : 'capitulos.bloqueado';
+      const boton = superado
+        ? h('button', { class: aqui ? 'btn' : 'btn primario', 'data-capitulo': String(n) }, texto(aqui ? 'capitulos.otraVez' : 'capitulos.rejugar'))
+        : null;
+      boton?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        cambiarPartida((p) => rejugar(p, n, capitulo1.estadoInicial()));
+      });
+      return h(
+        'div',
+        { class: `capitulo-fila${superado ? ' superado' : ''}` },
+        h('div', {}, h('div', { class: 'cap-num' }, texto('capitulos.numero', { n })), h('div', { class: 'cap-nombre' }, texto(`capitulo.${n}`)), h('div', { class: 'cap-estado' }, texto(estado))),
+        ...(boton ? [boton] : []),
+      );
+    };
+    const volver = h('button', { class: 'btn primario', id: 'm-volver' }, texto('capitulos.volver'));
+    volver.addEventListener('click', (e) => {
+      e.stopPropagation();
+      cambiarPartida(volverAPrincipal);
+    });
+    const cerrar = h('button', { class: 'btn fantasma' }, texto('menu.continuar'));
+    const el = g.hud.cubrir(
+      '',
+      h(
+        'div',
+        { class: 'tarjeta vidrio capitulos' },
+        h('h2', {}, texto('capitulos.titulo')),
+        h('div', { class: 'lista-capitulos' }, ...CAPITULOS.map(fila)),
+        h('p', { class: 'pequeno' }, texto('capitulos.nota')),
+        h('div', { class: 'fila' }, ...(g.rejugando ? [volver] : []), cerrar),
+      ),
+    );
+    cerrar.addEventListener('click', (e) => {
+      e.stopPropagation();
+      el.remove();
+      g.pausado = false;
     });
   };
 
@@ -148,11 +233,14 @@ async function arrancar() {
         h('img', { src: logo, alt: 'Camiones y Caravanas', class: 'logo-fin' }),
         h('h2', {}, texto('fin.titulo')),
         h('p', {}, texto('fin.texto')),
+        h('p', { class: 'pequeno' }, texto(g.rejugando ? 'fin.notaRejuego' : 'fin.nota')),
         h(
           'div',
           { class: 'fila' },
-          h('button', { class: 'btn primario', onclick: (e) => (e.stopPropagation(), el.remove()) }, texto('fin.seguir')),
-          h('button', { class: 'btn fantasma', onclick: (e) => (e.stopPropagation(), borrarEstado(), location.reload()) }, texto('fin.reiniciar')),
+          g.rejugando
+            ? h('button', { class: 'btn primario', id: 'fin-volver', onclick: (e) => (e.stopPropagation(), cambiarPartida(volverAPrincipal)) }, texto('capitulos.volver'))
+            : h('button', { class: 'btn primario', id: 'fin-seguir', onclick: (e) => (e.stopPropagation(), el.remove()) }, texto('fin.seguir')),
+          h('button', { class: 'btn fantasma', id: 'fin-rejugar', onclick: (e) => (e.stopPropagation(), cambiarPartida((p) => rejugar(p, 1, capitulo1.estadoInicial()))) }, texto(g.rejugando ? 'capitulos.otraVez' : 'fin.rejugar')),
         ),
       ),
     );
@@ -184,6 +272,7 @@ async function arrancar() {
       { class: 'pila' },
       h('img', { src: logo, alt: 'Camiones y Caravanas, crew est. 2020' }),
       h('div', { class: 'capitulo' }, texto('titulo.capitulo')),
+      ...(g.rejugando ? [h('div', { class: 'aviso-rejuego' }, texto('titulo.rejugando'))] : []),
       h('div', { class: 'toca' }, texto(nueva ? 'titulo.empezar' : 'titulo.seguir')),
     ),
   );
@@ -200,7 +289,7 @@ async function arrancar() {
   });
 
   // Test hook for scripts/playthrough.mjs.
-  (window as unknown as { __cyc: unknown }).__cyc = { g, titulo, listo: () => cargada };
+  (window as unknown as { __cyc: unknown }).__cyc = { g, titulo, listo: () => cargada, partida };
 }
 
 void arrancar();

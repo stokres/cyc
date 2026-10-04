@@ -733,6 +733,49 @@ button:focus-visible {
   animation: late 1.6s infinite;
 }
 
+/* Replaying a finished chapter: a separate game (src/juego/partida.ts). */
+.aviso-rejuego {
+  color: var(--gold);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.lista-capitulos {
+  display: grid;
+  gap: 8px;
+}
+
+.capitulo-fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(243, 234, 214, 0.14);
+  background: rgba(243, 234, 214, 0.04);
+}
+
+.capitulo-fila.superado {
+  border-color: var(--gold-soft);
+}
+
+.capitulo-fila .cap-num {
+  font: 400 12px var(--display);
+  letter-spacing: 0.12em;
+  color: var(--gold);
+}
+
+.capitulo-fila .cap-nombre {
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.capitulo-fila .cap-estado {
+  color: var(--muted);
+  font-size: 14px;
+}
+
 /* Who to play: start screen and between stories. */
 .eleccion {
   background: radial-gradient(ellipse at 50% 40%, rgba(27, 35, 66, 0.94), rgba(5, 7, 15, 0.98));

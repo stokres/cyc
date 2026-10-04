@@ -1,5 +1,5 @@
-// Saved game. Small and serialisable so it survives reloads.
-import { storageGet, storageSet } from '../core/util';
+// One game's state (a protagonist's place, bag, flags...). Small and serialisable:
+// it is saved inside the Partida (src/juego/partida.ts).
 import type { PjId } from './reparto';
 
 export interface Lugar {
@@ -31,25 +31,4 @@ export interface Estado {
   usos: Record<string, number>;
   /** Aceituna's spot in the flat. */
   perro?: { X: number; y: number };
-}
-
-const KEY = 'cyc.save.v3';
-
-export function cargarEstado(): Estado | null {
-  const raw = storageGet(KEY);
-  if (!raw) return null;
-  try {
-    const s = JSON.parse(raw) as Estado;
-    return s.v === 3 ? s : null;
-  } catch {
-    return null;
-  }
-}
-
-export function guardarEstado(s: Estado) {
-  storageSet(KEY, JSON.stringify(s));
-}
-
-export function borrarEstado() {
-  storageSet(KEY, null);
 }

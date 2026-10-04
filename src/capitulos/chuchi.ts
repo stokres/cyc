@@ -60,6 +60,7 @@ async function batalla(g: Aventura) {
   g.pausado = true;
   const r = await jugarRobot(g.root, g.rapido).finally(() => (g.pausado = false));
   if (r === 'cancelado') return g.hablar('c.robot.cancelado');
+  if (r === 'hecho') g.minijuegoSuperado('robot');
   g.poner('c.robot', false);
   g.poner('c.vencido');
   g.poner('c.zapatoSuelo');
