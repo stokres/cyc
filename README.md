@@ -50,6 +50,10 @@ node tools/icono.mjs                                                      # icon
 # Música de prueba (necesita: apt install fluidsynth musescore-general-soundfont-lossless; pip install numpy scipy mido).
 # Desde tools/musica: python3 charanga.py && ./render.sh charanga-del-jueves   (también chotis.py y galop.py)
 # python3 pistas.py charanga-del-jueves.mid   # volumen de cada instrumento por separado, para la mezcla
+# Chiptune estilo VVVVVV con un sintetizador propio (sinte.py: sin MIDI ni banco de sonidos). Desde tools/musica:
+# python3 todo_gas.py        # también caravana.py y paseo.py; con «bucle», la versión en bucle sin junta para el juego
+# python3 paseo.py acustica  # la misma partitura con instrumentos del banco de sonidos, para comparar
+# python3 mira.py todo-gas.mp3 0 40   # espectrograma y volumen en el tiempo (todo-gas.png), para revisar sin oírla; necesita matplotlib
 ```
 
 `revisiones/` no se sube al repositorio.
