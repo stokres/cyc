@@ -578,10 +578,12 @@ await paso('Los cuatro llegan a la vez', async () => {
     await wait(400);
   }
   await page.waitForSelector('.cubierta.rotulo.continuara', { timeout: 30000 });
+  await sonando('pasodoble', 'en el «Continuará…»');
   await wait(2800);
   await shot('continuara');
   await page.click('.cubierta.rotulo.continuara');
   await page.waitForSelector('.cubierta.titulo', { timeout: 30000 });
+  check(!('pasodoble' in (await musicas())), 'el pasodoble sigue sonando después del «Continuará…»');
   const e = await page.evaluate(() => ({ final: window.__cyc.g.estado.final, aqui: Object.values(window.__cyc.g.estado.donde).filter((d) => d.escena === 'calle').length, hora: window.__cyc.g.hora }));
   check(e.final && e.aqui === 4, 'la escena final no tiene a los cuatro');
   console.log(`  Llegan los cuatro a las ${e.hora}`);

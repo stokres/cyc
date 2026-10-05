@@ -1,7 +1,8 @@
 // The music: each track and where its loop starts and ends (seconds). The files are made by
 // tools/musica (each piece's «bucle»; the farm's, banjo.py then bucle.py): the loop sits between
 // half-second margins that hold what comes just before and after it, so it joins without a
-// click on any phone. Each is fetched the first time it plays.
+// click on any phone. Each is fetched the first time it plays. A track with `entrada` starts
+// there (an intro heard once) and then loops between inicio and fin.
 import granjaRadio from './granja-radio.mp3?url';
 import granjaCerdos from './granja-cerdos.mp3?url';
 import barrio from './barrio.mp3?url';
@@ -9,6 +10,7 @@ import vueltas from './vueltas.mp3?url';
 import contraRobi from './contra-robi.mp3?url';
 import jaleo from './jaleo.mp3?url';
 import barPuerta from './bar-puerta.mp3?url';
+import pasodoble from './pasodoble.mp3?url';
 
 export const MUSICA = {
   /** The farm polka on banjo, from Guille's radio (banjo.py radio). */
@@ -25,6 +27,8 @@ export const MUSICA = {
   jaleo: { url: jaleo, inicio: 0.5, fin: 41.3 },
   /** The Bar del Río's rock as heard from the street, through the door (bar_rockero.py puerta). */
   barPuerta: { url: barPuerta, inicio: 0.5, fin: 69.071429 },
+  /** «Pasodoble del camionero», the end card: the lorry and the fanfare once, then the pasodoble (pasodoble.py). */
+  pasodoble: { url: pasodoble, entrada: 0, inicio: 78.62068, fin: 144.827596 },
 } as const;
 
 export type Pista = keyof typeof MUSICA;

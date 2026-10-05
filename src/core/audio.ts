@@ -132,6 +132,23 @@ export class Sound {
     c.src.stop(t + fundido + 0.05);
   }
 
+  /** Fetches and decodes a track ahead of time, so it starts at once when asked for. */
+  precargar(id: Pista) {
+    if (this.ac) this.cargar(id, this.ac);
+  }
+
+  private cargar(id: Pista, ac: AudioContext) {
+    let carga = this.cargas.get(id);
+    if (!carga) {
+      carga = fetch(MUSICA[id].url)
+        .then((r) => r.arrayBuffer())
+        .then((b) => ac.decodeAudioData(b))
+        .catch(() => null);
+      this.cargas.set(id, carga);
+    }
+    return carga;
+  }
+
   /** Fades this track in, in a loop, once it has loaded — unless it was dropped meanwhile. */
   private reproducir(id: Pista, volumen: number, pan: number) {
     const ac = this.ac;
@@ -139,15 +156,7 @@ export class Sound {
     const capa: Capa = { id, src: null, g: null, pan: null, volumen, panActual: pan };
     this.capas.set(id, capa);
     const pista = MUSICA[id];
-    let carga = this.cargas.get(id);
-    if (!carga) {
-      carga = fetch(pista.url)
-        .then((r) => r.arrayBuffer())
-        .then((b) => ac.decodeAudioData(b))
-        .catch(() => null);
-      this.cargas.set(id, carga);
-    }
-    void carga.then((buf) => {
+    void this.cargar(id, ac).then((buf) => {
       if (!buf || this.capas.get(id) !== capa || !this.bus) return;
       const src = ac.createBufferSource();
       src.buffer = buf;
@@ -163,7 +172,7 @@ export class Sound {
         p.pan.value = capa.panActual;
         src.connect(g).connect(p).connect(this.bus);
       } else src.connect(g).connect(this.bus);
-      src.start(t, pista.inicio);
+      src.start(t, 'entrada' in pista ? pista.entrada : pista.inicio);
       Object.assign(capa, { src, g, pan: p });
     });
   }

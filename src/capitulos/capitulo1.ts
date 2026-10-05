@@ -337,6 +337,7 @@ function musicaCalle(g: Aventura): Ambiente[] {
  */
 async function final(g: Aventura) {
   const e = g.estado;
+  g.sound.precargar('pasodoble');
   const hora = Math.max(...Object.values(e.minutos));
   for (const id of e.jugables) e.minutos[id] = hora;
   // Each one comes from a different side; they walk in together.
@@ -376,7 +377,10 @@ async function final(g: Aventura) {
   await g.velar(true);
   await g.hablar('final.dentro');
   g.hud.cerrarDialogo();
+  // The end card gets its pasodoble, the lorry honking in it; the bar comes back after.
+  g.sound.musica('pasodoble');
   await g.hud.rotulo(texto('fin.continuara'), texto('fin.capitulo'), undefined, 'continuara');
+  g.sound.pararMusica();
   // Back on the terrace, for whoever wants to stay a while after the end card.
   for (const id of e.jugables) {
     const p = g.pjs.get(id);

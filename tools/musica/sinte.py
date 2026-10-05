@@ -177,6 +177,8 @@ def sonar(inst, dur, m, vel, desde=None, deslizar=None, arp=None):
             w = seno(f)
         elif inst.forma == 'campana':
             w = campana(f, *inst.fm)
+        elif inst.forma == 'bocina':  # a truck's air horn: a buzzing reed blown hard through a bell
+            w = 0.5 * np.tanh(3.0 * (pulso(f, 0.3) + 0.5 * pulso(f * 2, 0.35) + 0.25 * pulso(f * 3, 0.4)))
         else:
             raise ValueError(inst.forma)
         if inst.sub:
@@ -226,6 +228,29 @@ def golpe(tipo, vel, semilla=0):
         t = np.arange(nm) / SR
         r = _filtro(_filtro(ruido(nm, semilla=semilla), 'highpass', 5000, 2), 'lowpass', 11000)
         w = r * 1.4 * np.minimum(1, t / 0.012) * np.exp(-t / 0.03)
+    elif tipo == 'freno':  # a truck's air brake: «pssssht»
+        nm = int(1.0 * SR)
+        t = np.arange(nm) / SR
+        r = _filtro(_filtro(ruido(nm, semilla=semilla), 'highpass', 1800, 2), 'lowpass', 9000)
+        w = r * 1.6 * np.minimum(1, t / 0.015) * np.exp(-t / 0.32)
+        w[:int(0.012 * SR)] += _filtro(ruido(int(0.012 * SR), semilla=semilla + 1), 'highpass', 3000) * 0.8
+    elif tipo == 'pitido':  # a truck reversing: «pi»
+        nm = int(0.34 * SR)
+        t = np.arange(nm) / SR
+        w = pulso(np.full(nm, 1180.0), 0.5) * 0.9 * np.minimum(1, t / 0.004) * np.minimum(1, (0.34 - t) / 0.01)
+    elif tipo == 'motor':  # a diesel starting: the starter cranks, it catches, revs and settles to idle
+        nm = int(3.6 * SR)
+        t = np.arange(nm) / SR
+        ritmo = np.where(t < 0.9, 7.0, 26 + 30 * np.exp(-(t - 0.9) / 0.35) * np.minimum(1, (t - 0.9) / 0.12))
+        fase = np.cumsum(ritmo) / SR
+        golpes_ = np.zeros(nm)
+        golpes_[np.nonzero(np.diff(np.floor(fase)) > 0)[0]] = 1.0
+        k = np.arange(int(0.06 * SR)) / SR
+        nucleo = np.sin(2 * np.pi * 62 * k) * np.exp(-k / 0.02) + 0.6 * _filtro(ruido(len(k), semilla=semilla), 'lowpass', 900) * np.exp(-k / 0.012)
+        w = oaconvolve(golpes_, nucleo)[:nm]
+        arranque = (t < 0.9) * 0.35 * np.sin(2 * np.pi * 180 * t) * (0.6 + 0.4 * np.sin(2 * np.pi * 7 * t))  # the starter's whine
+        traqueteo = _filtro(ruido(nm, semilla=semilla + 2), 'highpass', 1200) * 0.12 * oaconvolve(golpes_, np.exp(-k / 0.008))[:nm]
+        w = _filtro(w + arranque + traqueteo, 'lowpass', 2500) * np.minimum(1, (3.6 - t) / 0.5)
     elif tipo == 'clic':  # a rimshot-ish tick
         nm = int(0.06 * SR)
         t = np.arange(nm) / SR
@@ -582,6 +607,9 @@ def ganancia_para(x, rms_db=-17.0):
 def exportar(nombre, x, rms_db=-17.0, fundido=None, kbps=192):
     """The listening version: loudness to `rms_db`, an optional fade over the last seconds, MP3."""
     y = _master(x, ganancia_para(x, rms_db))
+    sonido = np.nonzero(np.max(np.abs(y), axis=0) > 0.001)[0]
+    if len(sonido):  # no long silence after the last note
+        y = y[:, :min(y.shape[1], sonido[-1] + int(0.3 * SR))]
     if fundido:
         k = int(fundido * SR)
         y[:, -k:] *= np.linspace(1, 0, k) ** 2
@@ -590,29 +618,31 @@ def exportar(nombre, x, rms_db=-17.0, fundido=None, kbps=192):
     print(f'{nombre}.mp3: {y.shape[1] / SR:.1f} s, pico {np.max(np.abs(y)):.2f}')
 
 
-def exportar_bucle(nombre, x, largo_s, rms_db=-17.0, margen=0.5, kbps=192, fundir=False, salida=None, mono=False):
+def exportar_bucle(nombre, x, largo_s, rms_db=-17.0, margen=0.5, kbps=192, fundir=False, salida=None, mono=False, entrada=None):
     """x holds three identical rounds of `largo_s` seconds: keeps the middle one with `margen`
     seconds either side. The synth's rounds are sample-identical (tails included), so playing from
     margen to margen + largo_s in a loop joins with no fade, whatever silence a decoder adds.
     A SoundFont's rounds are only nearly so: with `fundir`, the end of the loop fades into what
     really comes before its start (as bucle.py does), so the jump back is between neighbours.
+    With `entrada` (seconds of intro before the three rounds) the file starts at the very
+    beginning: intro and first round play once, then the second round loops.
     `salida`: where the MP3 goes (the game's src/sonido), at `kbps`, in mono if `mono`."""
-    i0 = int(round((largo_s - margen) * SR))
-    i1 = int(round((2 * largo_s + margen) * SR))
-    trozo = x[:, i0:i1].copy()
+    a = (entrada or 0) + largo_s  # where the loop starts in x: the second round
+    c0 = 0 if entrada is not None else int(round((a - margen) * SR))
+    c1 = int(round((a + largo_s + margen) * SR))
+    trozo = x[:, c0:c1].copy()
+    ini = int(round(a * SR)) - c0
+    fin = int(round((a + largo_s) * SR)) - c0
     if fundir:
-        fin = int(round((margen + largo_s) * SR))
-        desplaza = fin - int(round(margen * SR))
+        desplaza = fin - ini
         f0, f1 = fin - int(0.2 * SR), fin - int(0.06 * SR)
         w = np.clip((np.arange(f0, trozo.shape[1]) - f0) / (f1 - f0), 0, 1)
         w = 0.5 - 0.5 * np.cos(np.pi * w)
-        trozo[:, f0:] = (1 - w) * trozo[:, f0:] + w * x[:, i0 + f0 - desplaza:i0 + trozo.shape[1] - desplaza]
-    medio = x[:, int(round(largo_s * SR)):int(round(2 * largo_s * SR))]
+        trozo[:, f0:] = (1 - w) * trozo[:, f0:] + w * x[:, c0 + f0 - desplaza:c0 + trozo.shape[1] - desplaza]
+    medio = x[:, int(round(a * SR)):int(round((a + largo_s) * SR))]
     y = _master(trozo, ganancia_para(medio, rms_db))
-    a = y[:, int(round(margen * SR)):int(round(margen * SR)) + 4410]
-    b = y[:, int(round((margen + largo_s) * SR)):int(round((margen + largo_s) * SR)) + 4410]
-    print(f'  junta: diferencia máxima entre vueltas {np.max(np.abs(a - b)):.5f}')
+    print(f'  junta: diferencia máxima entre vueltas {np.max(np.abs(y[:, ini:ini + 4410] - y[:, fin:fin + 4410])):.5f}')
     _wav(f'{nombre}.wav', y)
     salida = salida or f'{nombre}.mp3'
     subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', f'{nombre}.wav', *(['-ac', '1'] if mono else []), '-c:a', 'libmp3lame', '-b:a', f'{kbps}k', salida], check=True)
-    print(f'{salida}: {y.shape[1] / SR:.2f} s, bucle de {margen} a {margen + largo_s:.6f} s')
+    print(f'{salida}: {y.shape[1] / SR:.2f} s, bucle de {ini / SR:.6f} a {fin / SR:.6f} s')
