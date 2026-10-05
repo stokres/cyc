@@ -25,17 +25,41 @@ class Orquesta(Pieza):
         self.sonidos = {}
         self.rt = sala
 
-    def instrumento(self, canal, nombre, programa, vol=0.0, pan=0.0, reverb=0.2, hp=None, lp=None):
+    def instrumento(self, canal, nombre, programa, vol=0.0, pan=0.0, reverb=0.2, hp=None, lp=None, drive=None, comp=None):
+        """drive: dB pushed into a soft clipper (an amp's grit; lp after it is the cabinet).
+        comp = (threshold dB, ratio): a compressor on this channel."""
         self.programa(canal, programa)
         self.mezcla(canal, 100, 64, 0, 0)
-        self.sonidos[canal] = (nombre, vol, pan, reverb, hp, lp)
+        self.sonidos[canal] = (nombre, vol, pan, reverb, hp, lp, drive, comp)
         return canal
+
+    def cuerda(self, canal, beat, dur, nota, vel, sube=0.0, cuando=0.25, vib=0.0, vib_hz=5.5, legato=0.95):
+        """A guitar note with a bend: it starts `sube` semitones below and bends up to the note
+        over the first `cuando` of it, then (vib cents) a finger vibrato. Needs rango_bend."""
+        rango = getattr(self, 'bend', 2)
+        m = midi(nota)
+        base = m - sube
+        ev = self.eventos.setdefault(canal, [])
+        t0, t1 = self.tick(beat), self.tick(beat + dur * legato)
+        ev.append((t0, mido.Message('pitchwheel', channel=canal, pitch=0)))
+        ev.append((t0, mido.Message('note_on', channel=canal, note=int(base), velocity=int(vel))))
+        pasos = 48
+        for k in range(1, pasos + 1):
+            u = k / pasos
+            t = t0 + int((t1 - t0) * u)
+            subida = sube * min(1.0, u / cuando) ** 0.7 if sube else 0.0
+            vibrato = vib / 100 * np.sin(2 * np.pi * vib_hz * (u * dur * 60 / self.bpm)) * min(1.0, max(0.0, (u - cuando) / 0.2)) if vib else 0.0
+            ev.append((t, mido.Message('pitchwheel', channel=canal, pitch=max(-8192, min(8191, int((subida + vibrato) / rango * 8191))))))
+        ev.append((t1, mido.Message('note_off', channel=canal, note=int(base), velocity=0)))
+        ev.append((t1 + 1, mido.Message('pitchwheel', channel=canal, pitch=0)))
 
     def segundos(self, beat):
         return self.tick(beat) / self.ppq * 60.0 / self.bpm
 
-    def render(self, hasta=None, informe=True, cola=4.0):
-        """The mix as a (2, n) array. `hasta` (beats) cuts it there, for the loops."""
+    def render(self, hasta=None, informe=True, cola=4.0, chip=None, pegamento=None):
+        """The mix as a (2, n) array. `hasta` (beats) cuts it there, for the loops. `chip` is a
+        sinte.Cancion at the same tempo mixed in (its own effects and room). `pegamento` =
+        (threshold dB, ratio) glues the whole mix with a gentle bus compressor."""
         stems = {}
         with tempfile.TemporaryDirectory() as d:
             self.guardar(f'{d}/todo.mid')
@@ -61,12 +85,18 @@ class Orquesta(Pieza):
         envio = np.zeros((2, total))
         filas = []
         for canal, x in stems.items():
-            nombre, vol, pan, rev, hp, lp = self.sonidos.get(canal, (f'canal {canal}', 0, 0, 0.2, None, None))
+            nombre, vol, pan, rev, hp, lp, drive, comp = self.sonidos.get(canal, (f'canal {canal}', 0, 0, 0.2, None, None, None, None))
             buf = np.zeros((2, total))
             m = min(total, x.shape[1])
             buf[:, :m] = x[:, :m]
             if hp:
                 buf = _filtro(buf, 'highpass', hp)
+            if drive:
+                g = db(drive)
+                pico = np.max(np.abs(buf)) + 1e-9
+                buf = np.tanh(buf / pico * g) / np.tanh(g) * pico
+            if comp:
+                buf = compresor(buf, *comp)
             if lp:
                 buf = _filtro(buf, 'lowpass', lp)
             ang = (pan + 1) * np.pi / 4
@@ -77,11 +107,32 @@ class Orquesta(Pieza):
             envio += buf * rev
             filas.append((_rms_db(buf), nombre))
         maestro += _sala(envio, self.rt)
+        if chip is not None:
+            c = chip.render(hasta=hasta, informe=informe)
+            m = min(total, c.shape[1])
+            maestro[:, :m] += c[:, :m]
         maestro = _filtro(maestro, 'highpass', 30)
+        if pegamento:
+            maestro = compresor(maestro, *pegamento, ataque=0.01, suelta=0.15)
         if informe:
             for v, nombre in sorted(filas, reverse=True):
                 print(f'  {v:6.1f} dB  {nombre}')
         return maestro
+
+
+def compresor(x, umbral_db, ratio, ataque=0.003, suelta=0.08):
+    """A feed-forward compressor, linked across the two sides: an RMS level (10 ms), a gain that
+    pulls whatever passes the threshold down by `ratio`, smoothed with attack and release."""
+    from scipy.signal import lfilter
+    a = 1 - np.exp(-1 / (0.01 * SR))
+    nivel = np.sqrt(lfilter([a], [1, a - 1], np.mean(x ** 2, axis=0)) + 1e-12)
+    sobre = np.maximum(0, 20 * np.log10(nivel) - umbral_db)
+    reduce = sobre * (1 - 1 / ratio)
+    # attack then release, as two one-pole smoothings of the reduction (dB)
+    for tau in (ataque, suelta):
+        b = 1 - np.exp(-1 / (tau * SR))
+        reduce = np.maximum(reduce, lfilter([b], [1, b - 1], reduce)) if tau == suelta else lfilter([b], [1, b - 1], reduce)
+    return x * db(-reduce)
 
 
 # --- Playing ----------------------------------------------------------------------------------

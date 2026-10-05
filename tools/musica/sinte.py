@@ -608,8 +608,8 @@ def exportar_bucle(nombre, x, largo_s, rms_db=-17.0, margen=0.5, kbps=128, fundi
         trozo[:, f0:] = (1 - w) * trozo[:, f0:] + w * x[:, i0 + f0 - desplaza:i0 + trozo.shape[1] - desplaza]
     medio = x[:, int(round(largo_s * SR)):int(round(2 * largo_s * SR))]
     y = _master(trozo, ganancia_para(medio, rms_db))
-    a = y[:, int(margen * SR):int(margen * SR) + 4410]
-    b = y[:, int((margen + largo_s) * SR):int((margen + largo_s) * SR) + 4410]
+    a = y[:, int(round(margen * SR)):int(round(margen * SR)) + 4410]
+    b = y[:, int(round((margen + largo_s) * SR)):int(round((margen + largo_s) * SR)) + 4410]
     print(f'  junta: diferencia máxima entre vueltas {np.max(np.abs(a - b)):.5f}')
     _wav(f'{nombre}.wav', y)
     subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', f'{nombre}.wav', '-c:a', 'libmp3lame', '-b:a', f'{kbps}k', f'{nombre}.mp3'], check=True)
