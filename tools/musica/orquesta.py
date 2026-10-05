@@ -11,7 +11,7 @@ import numpy as np
 import mido
 from scipy.io import wavfile
 from partitura import Pieza
-from sinte import SR, _sala, _filtro, _rms_db, db, acorde, acorde_en, midi
+from sinte import SR, _sala, _filtro, _eco, _rms_db, db, acorde, acorde_en, midi
 
 SF = os.environ.get('SF', '/usr/share/sounds/sf2/MuseScore_General_Full.sf2')
 
@@ -25,12 +25,13 @@ class Orquesta(Pieza):
         self.sonidos = {}
         self.rt = sala
 
-    def instrumento(self, canal, nombre, programa, vol=0.0, pan=0.0, reverb=0.2, hp=None, lp=None, drive=None, comp=None):
+    def instrumento(self, canal, nombre, programa, vol=0.0, pan=0.0, reverb=0.2, hp=None, lp=None, drive=None, comp=None, eco=None):
         """drive: dB pushed into a soft clipper (an amp's grit; lp after it is the cabinet).
-        comp = (threshold dB, ratio): a compressor on this channel."""
+        comp = (threshold dB, ratio): a compressor on this channel. eco = (beats, feedback, mix,
+        lowpass Hz): a ping-pong delay, as in sinte."""
         self.programa(canal, programa)
         self.mezcla(canal, 100, 64, 0, 0)
-        self.sonidos[canal] = (nombre, vol, pan, reverb, hp, lp, drive, comp)
+        self.sonidos[canal] = (nombre, vol, pan, reverb, hp, lp, drive, comp, eco)
         return canal
 
     def cuerda(self, canal, beat, dur, nota, vel, sube=0.0, cuando=0.25, vib=0.0, vib_hz=5.5, legato=0.95):
@@ -85,7 +86,7 @@ class Orquesta(Pieza):
         envio = np.zeros((2, total))
         filas = []
         for canal, x in stems.items():
-            nombre, vol, pan, rev, hp, lp, drive, comp = self.sonidos.get(canal, (f'canal {canal}', 0, 0, 0.2, None, None, None, None))
+            nombre, vol, pan, rev, hp, lp, drive, comp, eco = self.sonidos.get(canal, (f'canal {canal}', 0, 0, 0.2, None, None, None, None, None))
             buf = np.zeros((2, total))
             m = min(total, x.shape[1])
             buf[:, :m] = x[:, :m]
@@ -102,6 +103,8 @@ class Orquesta(Pieza):
             ang = (pan + 1) * np.pi / 4
             buf[0] *= np.cos(ang) * np.sqrt(2)
             buf[1] *= np.sin(ang) * np.sqrt(2)
+            if eco:
+                buf = _eco(buf, eco, 60.0 / self.bpm)
             buf *= db(vol)
             maestro += buf
             envio += buf * rev

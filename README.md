@@ -51,7 +51,7 @@ node tools/icono.mjs                                                      # icon
 # Desde tools/musica: python3 charanga.py && ./render.sh charanga-del-jueves   (también chotis.py y galop.py)
 # python3 pistas.py charanga-del-jueves.mid   # volumen de cada instrumento por separado, para la mezcla
 # Estilo aventura de LucasArts (orquesta.py: cada instrumento del banco de sonidos por separado, mezclado con reverb y panorama):
-# python3 tema_principal.py  # también barrio.py y vueltas.py; con «bucle», la versión en bucle para el juego
+# python3 tema_principal.py  # también tema_pop.py (el mismo tema en pop-rock), barrio.py y vueltas.py; con «bucle», la versión en bucle para el juego
 # python3 contra_robi.py     # minijuegos: también jaleo.py. El bar: bar_rockero.py (y su versión oída desde la puerta)
 # Chiptune estilo VVVVVV con un sintetizador propio (sinte.py: sin MIDI ni banco de sonidos). Desde tools/musica:
 # python3 todo_gas.py        # también caravana.py y paseo.py; con «bucle», la versión en bucle sin junta para el juego
