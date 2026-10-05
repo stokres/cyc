@@ -81,8 +81,9 @@ export function perroEn(m, tramo, t) {
     y -= Math.abs(Math.sin(t * Math.PI / CICLO_BOCA)) * 30;
   }
   if (tramo === 4) {
-    x += Math.sin(t * 1.5) * 70;
-    y -= Math.abs(Math.sin(t * 2.1)) * 30;
+    // Slower than she used to (5 October 2026): with the draught on top it was too hard.
+    x += Math.sin(t * 0.8) * 45;
+    y -= Math.abs(Math.sin(t * 1.2)) * 18;
   }
   return { x, y };
 }
@@ -93,13 +94,14 @@ export const CICLO_BOCA = 1.5;
 /** Is her mouth open? Always in the first two stretches; then most of the time. */
 export function bocaAbierta(tramo, t) {
   if (tramo < 3) return true;
-  return ((t % CICLO_BOCA) + CICLO_BOCA) % CICLO_BOCA < CICLO_BOCA * (tramo === 3 ? 0.6 : 0.65);
+  return ((t % CICLO_BOCA) + CICLO_BOCA) % CICLO_BOCA < CICLO_BOCA * (tramo === 3 ? 0.6 : 0.72);
 }
 
 /** The draught from the terrace in the last stretch: sideways acceleration. */
 export function vientoEn(tramo, t) {
   if (tramo < 4) return 0;
-  return 440 * Math.sin(t * 0.7) + 140 * Math.sin(t * 1.9 + 1);
+  // Gentler and slower than it was (5 October 2026), so it can be aimed for.
+  return 360 * Math.sin(t * 0.55) + 100 * Math.sin(t * 1.5 + 1);
 }
 
 /** A slingshot pull (finger minus where it went down) gives the launch velocity: the opposite way. */

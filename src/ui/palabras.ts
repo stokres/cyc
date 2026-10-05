@@ -4,8 +4,9 @@
 // «bloquear»...) and let the positive ones through («sí, y», «aceptar»...).
 //
 // Three phases: a few words with honest colours (negative ones red and orange,
-// positive ones green and blue); more and faster; then the colours mix, to
-// trick you; towards the end they fall faster. Cutting a positive word or letting
+// positive ones green and blue); more and faster, swinging and spinning; then the
+// colours mix, to trick you; towards the end they fall faster. They are thrown, not
+// dropped: sideways, bouncing off the sides. Cutting a positive word or letting
 // a negative one reach the bottom fills the block meter: the meter is the only
 // way to lose. Full, the round starts again; when the page fills, the round is
 // won, whatever is still in the air. After two lost rounds it can be skipped
@@ -57,6 +58,9 @@ interface Palabra {
   vx: number;
   rot: number;
   vr: number;
+  /** Swinging from side to side as it falls, like a leaf (px), and where in the swing it starts. */
+  vaiven: number;
+  fase0: number;
   w: number;
   h: number;
   /** Once cut: the two halves fly apart. */
@@ -232,11 +236,14 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
       h: hh,
       x: 120 + w / 2 + Math.random() * Math.max(10, vw - 240 - w),
       y: -hh,
-      vy: (f === 1 ? 145 : f === 2 ? 190 : 215 + 75 * final() + Math.min(260, 2.6 * mas())) * (0.9 + Math.random() * 0.2),
-      vx: (Math.random() - 0.5) * 40,
-      // Tilted as they fall, more and more: they are thrown, not dropped.
-      rot: (Math.random() - 0.5) * (f === 1 ? 0.5 : 0.9),
-      vr: (Math.random() - 0.5) * (f === 1 ? 0.3 : f === 2 ? 0.45 : 0.6),
+      // Faster than they used to fall, and livelier (5 October 2026: slow and straight was dull).
+      vy: (f === 1 ? 230 : f === 2 ? 290 : 330 + 110 * final() + Math.min(260, 2.6 * mas())) * (0.85 + Math.random() * 0.3),
+      // Thrown, not dropped: sideways, swinging like a leaf, spinning, more in each phase.
+      vx: (Math.random() - 0.5) * (f === 1 ? 120 : 220),
+      rot: (Math.random() - 0.5) * (f === 1 ? 0.8 : 1.4),
+      vr: (Math.random() - 0.5) * (f === 1 ? 0.8 : f === 2 ? 1.4 : 2),
+      vaiven: f === 1 ? 0 : 25 + Math.random() * 35,
+      fase0: Math.random() * 6.3,
       cortada: null,
       fuera: false,
     });
@@ -434,7 +441,7 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
         if ((infinito || t < DURACION) && siguiente <= 0) {
           nueva();
           const f = fase();
-          siguiente = Math.max(0.3, (f === 1 ? 1.4 : f === 2 ? 0.95 : 0.8 - 0.2 * final()) - 0.004 * mas()) * (0.8 + Math.random() * 0.4);
+          siguiente = Math.max(0.3, (f === 1 ? 1.15 : f === 2 ? 0.8 : 0.65 - 0.15 * final()) - 0.004 * mas()) * (0.8 + Math.random() * 0.4);
         }
         // The page is full: won. Only the block meter can lose the round, so
         // whatever is still falling no longer counts.
@@ -451,8 +458,11 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
         }
         if (pausa > 0 && !terminado) continue;
         p.y += p.vy * dt;
-        p.x += p.vx * dt;
+        p.x += (p.vx + p.vaiven * 2.2 * Math.cos(t * 2.2 + p.fase0)) * dt;
         p.rot += p.vr * dt;
+        // Off the sides they bounce back in.
+        if (p.x < p.w / 2 + 20) p.vx = Math.abs(p.vx);
+        else if (p.x > vw - p.w / 2 - 20) p.vx = -Math.abs(p.vx);
         if (p.y - p.h / 2 > H) {
           p.fuera = true;
           if (p.negativa && !terminado) fallo('palabras.seescapa');

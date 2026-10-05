@@ -123,6 +123,7 @@ export function jugarCerdos(parent: HTMLElement, rapido = false, infinito?: Infi
   let entrada = 1; // 0..1 while a new pig slides in on the trolley
   let cayendo: { i: number; x: number; y: number; vx: number; vy: number; rot: number; vr: number; fuera: boolean } | null = null;
   let vaivenTorre = 0; // sway amplitude of the tower
+  let golpe = 0; // the wobble a landing pig gives the tower, dying away
   let camara = 0; // how far the view has risen
   let pausa = 0; // seconds of message before going on
   let terminado: Resultado | null = null;
@@ -147,14 +148,15 @@ export function jugarCerdos(parent: HTMLElement, rapido = false, infinito?: Infi
   const angulo = (tt: number) => {
     const n = pila.length;
     // Past the story's eight (endless), it keeps growing, more slowly and up to a point.
+    // Brisk from the first pig and quicker with each one (5 October 2026: it used to start slow).
     const mas = Math.max(0, n - PIARA.length);
-    const A = Math.min(0.8, 0.3 + 0.025 * Math.min(n, PIARA.length) + 0.01 * mas);
-    const w = Math.min(3.8, 1.7 + 0.12 * Math.min(n, PIARA.length) + 0.05 * mas);
+    const A = Math.min(0.85, 0.34 + 0.03 * Math.min(n, PIARA.length) + 0.01 * mas);
+    const w = Math.min(4.6, 2.3 + 0.16 * Math.min(n, PIARA.length) + 0.05 * mas);
     const peor = PIARA[cual(siguiente)]?.peor;
     return A * Math.sin(w * tt) + (peor ? 0.1 * Math.sin(3.3 * tt + 1) : 0);
   };
-  /** Sway offset of the tower at a given height fraction. */
-  const vaiven = (f: number) => (vaivenTorre + pila.length * 2) * Math.sin(t * 2.1) * Math.pow(f, 1.4);
+  /** Sway offset of the tower at a given height fraction: its slow sway, taller is wobblier, and the last landing's wobble. */
+  const vaiven = (f: number) => (vaivenTorre + pila.length * 3) * Math.sin(t * 2.1) * Math.pow(f, 1.4) + golpe * Math.sin(t * 3.4) * Math.pow(f, 1.2);
   const cima = () => {
     const top = pila[pila.length - 1];
     if (!top) return { x: cx(), y: 0, w: PLATAFORMA * 2 };
@@ -200,6 +202,7 @@ export function jugarCerdos(parent: HTMLElement, rapido = false, infinito?: Infi
     siguiente = 0;
     entrada = 0;
     vaivenTorre = 0;
+    golpe = 0;
     if (rondasPerdidas >= 2) saltar.hidden = false;
   };
 
@@ -222,21 +225,27 @@ export function jugarCerdos(parent: HTMLElement, rapido = false, infinito?: Infi
     pila.push({ i: c.i, x: c.x - vaiven(1), y, w, h: m(c.i).h });
     const desvio = Math.abs(d) / apoyo;
     if (desvio < 0.06) {
-      vaivenTorre = Math.max(0, vaivenTorre * 0.6);
+      vaivenTorre = Math.max(0, vaivenTorre * 0.7);
       mostrar('cerdos.perfecto', 0.6);
-    } else vaivenTorre += desvio * 30;
+    } else vaivenTorre += desvio * 32;
+    // Every landing shakes the tower, more off centre and more with a heavy pig.
+    golpe += 4 + desvio * 25 + PIARA[c.i].kg / 60;
     const perfecto = desvio < 0.06;
-    // The weight leaning off the base, plus the sway: past the edge, the tower comes down.
-    let com = 0;
-    let masa = 0;
-    for (const p of pila) {
-      com += (p.x - pila[0].x) * PIARA[p.i].kg;
-      masa += PIARA[p.i].kg;
-    }
-    if (pila.length > 1 && Math.abs(com / masa) + vaivenTorre * 0.4 > pila[0].w * 0.5) {
-      cuentas.derrumbes++;
-      perderRonda();
-      return false;
+    // Each pig has to carry everything above it: if the weight of the pigs above leans past
+    // its back (plus the sway), the tower comes down there, however straight it is below.
+    for (let k = pila.length - 1; k >= 1; k--) {
+      let com = 0;
+      let masa = 0;
+      for (let j = k; j < pila.length; j++) {
+        com += pila[j].x * PIARA[pila[j].i].kg;
+        masa += PIARA[pila[j].i].kg;
+      }
+      const debajo = pila[k - 1];
+      if (Math.abs(com / masa - debajo.x) + vaivenTorre * 0.25 > debajo.w * 0.5) {
+        cuentas.derrumbes++;
+        perderRonda();
+        return false;
+      }
     }
     puntos?.sumar(perfecto ? 2 : 1);
     siguiente++;
@@ -396,6 +405,7 @@ export function jugarCerdos(parent: HTMLElement, rapido = false, infinito?: Infi
       t += dt;
       if (entrada < 1) entrada = Math.min(1, entrada + dt * (rapido ? 6 : 1.8));
       vaivenTorre *= Math.exp(-dt * 0.05);
+      golpe *= Math.exp(-dt * 1.3);
       if (pausa > 0) {
         pausa -= dt;
         if (pausa <= 0) {

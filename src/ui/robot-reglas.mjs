@@ -13,7 +13,8 @@
 // - He keeps coming closer (for a hug); misses bring him a little closer (less
 //   in the later stretches), hits push him back. If he gets to Chuchi, the round is lost.
 // - Three stretches, by hits: swaying; faster, bobbing, and the party hat;
-//   wild, hopping, and the hat more often.
+//   hopping, and the hat more often. The button counts generously (HOLGURA) and the hat
+//   only covers it when it is all the way down (TAPA).
 
 export const H = 1080;
 export const VUELO = 0.5;
@@ -27,7 +28,10 @@ export const CABEZA = { x: 0, y: -440, r: 135 };
 export const CUERPO = { x: 0, y: -210, r: 140 };
 /** Seconds between shots, and how close counts as on the button (× its radius). */
 export const RECARGA = 0.28;
-export const HOLGURA = 1.2;
+/** Generous on purpose (5 October 2026): a ball that looks on the button counts. */
+export const HOLGURA = 1.45;
+/** How far down the hat has to be to cover the button: all the way, so a button you can see is a button you can hit. */
+export const TAPA = 0.85;
 
 export const tramo = (golpes) => (golpes < 2 ? 1 : golpes < 4 ? 2 : 3);
 
@@ -37,13 +41,15 @@ export function robotEn(vw, golpes, t, cerca) {
   let x = vw / 2;
   let y = 0;
   if (T === 1) x += vw * 0.17 * Math.sin(t * 0.9);
+  // The second and third stretches move less than they used to (5 October 2026): with the
+  // hat on top they were close to impossible.
   if (T === 2) {
-    x += vw * 0.22 * Math.sin(t * 1.35);
-    y -= 22 * Math.sin(t * 2.7);
+    x += vw * 0.15 * Math.sin(t * 1.1);
+    y -= 14 * Math.sin(t * 2.2);
   }
   if (T === 3) {
-    x += vw * 0.2 * Math.sin(t * 1.8) + vw * 0.07 * Math.sin(t * 4.1 + 1);
-    y -= 46 * Math.abs(Math.sin(t * 3.1));
+    x += vw * 0.15 * Math.sin(t * 1.35) + vw * 0.04 * Math.sin(t * 3 + 1);
+    y -= 28 * Math.abs(Math.sin(t * 2.4));
   }
   const s = ESCALA * (0.92 + 0.45 * cerca);
   return { x, y: 770 + 170 * cerca + y, s, inclina: 0.1 * Math.sin(t * 2.1) };
@@ -54,7 +60,7 @@ export function gorro(golpes, t) {
   const T = tramo(golpes);
   if (T === 1) return 0;
   const v = T === 2 ? Math.sin(t * 0.95) : Math.sin(t * 1.45 + 0.6);
-  const umbral = T === 2 ? 0.5 : 0.3;
+  const umbral = T === 2 ? 0.5 : 0.45;
   return Math.max(0, Math.min(1, (v - umbral) * 6));
 }
 
@@ -73,7 +79,7 @@ export function aPantalla(R, px, py) {
 export function botonEn(vw, golpes, t, cerca) {
   const R = robotEn(vw, golpes, t, cerca);
   const p = aPantalla(R, BOTON.x, BOTON.y);
-  return { x: p.x, y: p.y, r: BOTON.r * R.s, cubierto: gorro(golpes, t) > 0.5 };
+  return { x: p.x, y: p.y, r: BOTON.r * R.s, cubierto: gorro(golpes, t) > TAPA };
 }
 
 /**
@@ -84,7 +90,7 @@ export function resultado(vw, golpes, t, cerca, x, y) {
   const R = robotEn(vw, golpes, t, cerca);
   const b = aPantalla(R, BOTON.x, BOTON.y);
   const d = Math.hypot(x - b.x, y - b.y);
-  if (d < BOTON.r * R.s * HOLGURA) return gorro(golpes, t) > 0.5 ? 'gorro' : 'boton';
+  if (d < BOTON.r * R.s * HOLGURA) return gorro(golpes, t) > TAPA ? 'gorro' : 'boton';
   for (const c of [CABEZA, CUERPO]) {
     const p = aPantalla(R, c.x, c.y);
     if (Math.hypot(x - p.x, y - p.y) < c.r * R.s) return 'robot';
