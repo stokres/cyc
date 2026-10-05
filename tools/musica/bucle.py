@@ -7,7 +7,7 @@ import subprocess, sys, numpy as np
 from scipy.io import wavfile
 
 nombre, largo, salida = sys.argv[1], float(sys.argv[2]), sys.argv[3]
-kbps = sys.argv[4] if len(sys.argv) > 4 else '128'  # under 1 MB, so the build can inline it
+kbps = sys.argv[4] if len(sys.argv) > 4 else '192'
 MARGEN = 0.5
 SR = 44100
 subprocess.run(['fluidsynth', '-ni', '-q', '-g', '0.5', '-r', str(SR), '-R', '1', '-C', '1', '-F', f'{nombre}.wav',

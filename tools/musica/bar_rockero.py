@@ -205,8 +205,8 @@ if MODO in ('bucle', 'puerta'):
     salida = sys.argv[2] if len(sys.argv) > 2 else None
     if MODO == 'bucle':
         exportar_bucle('bar-rockero-bucle', x, RONDA * 60 / BPM, rms_db=-17, fundir=True, salida=salida)
-    else:  # from the door: mostly lows, so mono at 64 kbps loses nothing
-        exportar_bucle('bar-rockero-puerta-bucle', tras_la_puerta(x), RONDA * 60 / BPM, rms_db=-20, fundir=True, kbps=64, mono=True, salida=salida)
+    else:
+        exportar_bucle('bar-rockero-puerta-bucle', tras_la_puerta(x), RONDA * 60 / BPM, rms_db=-20, fundir=True, salida=salida)
     sys.exit()
 
 if __name__ == '__main__':

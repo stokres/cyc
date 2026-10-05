@@ -6,7 +6,7 @@
 #
 #   python3 jaleo.py          listening version: intro, twice round, ending  -> jaleo.mp3
 #   python3 jaleo.py bucle [salida]   the round three times, cut for a seamless loop -> jaleo-bucle.mp3
-#                                (or `salida`, e.g. the game's copy in src/sonido), 128 kbps to stay under 1 MB
+#                                (or `salida`: the game's copy, in src/sonido)
 import random
 import sys
 from orquesta import Orquesta, tocar, walking, comping
@@ -146,7 +146,7 @@ if BUCLE:
     t = 0
     for _ in range(3):
         t = ronda(t)
-    exportar_bucle('jaleo-bucle', O.render(hasta=t, pegamento=(-16, 2)), RONDA * 60 / BPM, rms_db=-17, fundir=True, kbps=128, salida=sys.argv[2] if len(sys.argv) > 2 else None)
+    exportar_bucle('jaleo-bucle', O.render(hasta=t, pegamento=(-16, 2)), RONDA * 60 / BPM, rms_db=-17, fundir=True, salida=sys.argv[2] if len(sys.argv) > 2 else None)
     sys.exit()
 
 if __name__ == '__main__':

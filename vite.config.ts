@@ -1,12 +1,9 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  // Relative paths: GitHub Pages serves the game from /<repositorio>/.
   base: './',
   build: {
     target: 'es2020',
-    // Inline every asset so the build can also ship as a single HTML file.
-    assetsInlineLimit: 1024 * 1024,
-    cssCodeSplit: false,
-    modulePreload: false,
   },
 });

@@ -590,7 +590,7 @@ def exportar(nombre, x, rms_db=-17.0, fundido=None, kbps=192):
     print(f'{nombre}.mp3: {y.shape[1] / SR:.1f} s, pico {np.max(np.abs(y)):.2f}')
 
 
-def exportar_bucle(nombre, x, largo_s, rms_db=-17.0, margen=0.5, kbps=128, fundir=False, salida=None, mono=False):
+def exportar_bucle(nombre, x, largo_s, rms_db=-17.0, margen=0.5, kbps=192, fundir=False, salida=None, mono=False):
     """x holds three identical rounds of `largo_s` seconds: keeps the middle one with `margen`
     seconds either side. The synth's rounds are sample-identical (tails included), so playing from
     margen to margen + largo_s in a loop joins with no fade, whatever silence a decoder adds.

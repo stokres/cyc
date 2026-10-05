@@ -7,7 +7,6 @@
     "dev": "vite --host",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
-    "artifact": "npm run build && node scripts/artifact.mjs",
     "shots": "node scripts/shots.mjs"
   },
   "devDependencies": {

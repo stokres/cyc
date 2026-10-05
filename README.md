@@ -8,7 +8,6 @@ Aventura gráfica con minijuegos sobre las quedadas de los jueves en Usera. Pens
 npm install
 npm run dev        # abre la URL que muestra (también desde el móvil en la misma wifi)
 npm run build      # typecheck + build en dist/
-npm run artifact   # build en un solo HTML: artifact/camiones-y-caravanas.html
 ```
 
 La luz con relieve (WebGL2) está aplazada: para verla, añade `?relieve` a la dirección.

@@ -1,7 +1,7 @@
 // The music: each track and where its loop starts and ends (seconds). The files are made by
 // tools/musica (each piece's «bucle»; the farm's, banjo.py then bucle.py): the loop sits between
 // half-second margins that hold what comes just before and after it, so it joins without a
-// click on any phone. Under 1 MB each, so the build can inline them.
+// click on any phone. Each is fetched the first time it plays.
 import granjaRadio from './granja-radio.mp3?url';
 import granjaCerdos from './granja-cerdos.mp3?url';
 import barrio from './barrio.mp3?url';
