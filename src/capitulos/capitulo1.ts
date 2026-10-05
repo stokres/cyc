@@ -24,6 +24,7 @@ import type { Aventura, Capitulo, ZonaLogica } from '../juego/aventura';
 import type { Estado } from '../juego/estado';
 import type { PjId } from '../juego/reparto';
 import type { Escena } from '../motor/escena';
+import type { Ambiente } from '../core/audio';
 import { dialogo, texto } from '../juego/textos';
 import { abrirMovil } from '../ui/movil';
 import { jugarRana } from '../ui/rana';
@@ -307,6 +308,28 @@ async function llegaFran(g: Aventura) {
 /** The Bar del Río's door, on the street (calle.mjs), where they go in. */
 const PUERTA_BAR = { X: 6712, y: 838 };
 
+/** «Por el barrio», the stroll: Fran's flat and street, Pablo's backstage. */
+const BARRIO = 0.9;
+/** The Río's rock through its door: faint from the far end of the street, full at the door. */
+const BAR_MIN = 0.05;
+const BAR_LEJOS = 6300;
+
+/**
+ * Fran's street: the bar's rock comes through the door, faint at first and louder the
+ * nearer he gets (a little to its side), while «Por el barrio» gives way to it. At the end
+ * of the chapter, the four at the door, only the bar.
+ */
+function musicaCalle(g: Aventura): Ambiente[] {
+  const F = g.pjs.get('fran');
+  const x = F && !g.estado.final && g.estado.donde.fran?.escena === g.escena ? F.X : g.motor.cam;
+  const d = PUERTA_BAR.X - x;
+  const cerca = Math.max(0, 1 - Math.abs(d) / BAR_LEJOS);
+  const bar: Ambiente = { pista: 'barPuerta', volumen: BAR_MIN + (1 - BAR_MIN) * cerca ** 2.5, pan: Math.max(-0.6, Math.min(0.6, d / 2500)) };
+  if (g.estado.final) return [bar];
+  // The stroll stays on while it fades out, so walking back picks it up where it was.
+  return [bar, { pista: 'barrio', volumen: BARRIO * Math.min(1, Math.max(0, (0.8 - cerca) / 0.3)) }];
+}
+
 /**
  * The end of the chapter: the four of them reach the terrace of the Río at the
  * same time, talk about Vero on the way to the door and go in, one by one. Fade
@@ -423,7 +446,12 @@ export const capitulo1: Capitulo = {
 
   },
 
-  musica: (g) => (g.escena === 'granja' ? guille.musica(g) : null),
+  musica: (g) => {
+    if (g.escena === 'granja') return guille.musica(g);
+    if (g.escena === 'calle') return musicaCalle(g);
+    if (g.escena === 'piso' || g.escena === 'backstage') return { pista: 'barrio', volumen: BARRIO };
+    return null;
+  },
 
   tick(g) {
     // Fran walking past the crossing sees the Río: his story ends there.

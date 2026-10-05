@@ -590,12 +590,13 @@ def exportar(nombre, x, rms_db=-17.0, fundido=None, kbps=192):
     print(f'{nombre}.mp3: {y.shape[1] / SR:.1f} s, pico {np.max(np.abs(y)):.2f}')
 
 
-def exportar_bucle(nombre, x, largo_s, rms_db=-17.0, margen=0.5, kbps=128, fundir=False):
+def exportar_bucle(nombre, x, largo_s, rms_db=-17.0, margen=0.5, kbps=128, fundir=False, salida=None, mono=False):
     """x holds three identical rounds of `largo_s` seconds: keeps the middle one with `margen`
     seconds either side. The synth's rounds are sample-identical (tails included), so playing from
     margen to margen + largo_s in a loop joins with no fade, whatever silence a decoder adds.
     A SoundFont's rounds are only nearly so: with `fundir`, the end of the loop fades into what
-    really comes before its start (as bucle.py does), so the jump back is between neighbours."""
+    really comes before its start (as bucle.py does), so the jump back is between neighbours.
+    `salida`: where the MP3 goes (the game's src/sonido), at `kbps`, in mono if `mono`."""
     i0 = int(round((largo_s - margen) * SR))
     i1 = int(round((2 * largo_s + margen) * SR))
     trozo = x[:, i0:i1].copy()
@@ -612,5 +613,6 @@ def exportar_bucle(nombre, x, largo_s, rms_db=-17.0, margen=0.5, kbps=128, fundi
     b = y[:, int(round((margen + largo_s) * SR)):int(round((margen + largo_s) * SR)) + 4410]
     print(f'  junta: diferencia máxima entre vueltas {np.max(np.abs(a - b)):.5f}')
     _wav(f'{nombre}.wav', y)
-    subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', f'{nombre}.wav', '-c:a', 'libmp3lame', '-b:a', f'{kbps}k', f'{nombre}.mp3'], check=True)
-    print(f'{nombre}.mp3: {y.shape[1] / SR:.2f} s, bucle de {margen} a {margen + largo_s:.6f} s')
+    salida = salida or f'{nombre}.mp3'
+    subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', f'{nombre}.wav', *(['-ac', '1'] if mono else []), '-c:a', 'libmp3lame', '-b:a', f'{kbps}k', salida], check=True)
+    print(f'{salida}: {y.shape[1] / SR:.2f} s, bucle de {margen} a {margen + largo_s:.6f} s')

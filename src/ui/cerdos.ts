@@ -11,6 +11,7 @@
 // centre.
 import { h } from './hud';
 import { marcador, type Infinito } from './infinito';
+import type { SonidoMinijuego } from '../core/audio';
 import { svgABitmap } from '../motor/sprites';
 import { texto } from '../juego/textos';
 import { cerdo, medidas, PIARA } from '../arte/cerdos.mjs';
@@ -72,12 +73,7 @@ function imagenMadrid(ancho: number) {
   return svgABitmap(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${m.x0} ${m.y0} ${w} ${hh}" width="${Math.ceil(w * k)}" height="${Math.ceil(hh * k)}">${m.body}</svg>`, w * k, hh * k);
 }
 
-/** For the music: the fast banjo polka, in a loop while the minigame lasts. */
-export interface SonidoMinijuego {
-  musica(id: 'granjaCerdos'): void;
-  pararMusica(fundido?: number): void;
-}
-
+/** `sonido`: for the fast banjo polka, in a loop while the tower lasts. */
 export function jugarCerdos(parent: HTMLElement, rapido = false, infinito?: Infinito, sonido?: SonidoMinijuego): Promise<Resultado> {
   const lienzo = h('canvas', { class: 'lienzo-cerdos' });
   const cuenta = h('span', { class: 'cuenta-cerdos' });

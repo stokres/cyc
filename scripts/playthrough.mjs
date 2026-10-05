@@ -39,6 +39,16 @@ function check(ok, msg) {
   if (!ok) errors.push('PASO FALLIDO: ' + msg);
 }
 
+/** Every track playing and its volume (src/core/audio.ts). */
+const musicas = () => page.evaluate(() => window.__cyc.g.sound.musicas);
+
+/** Waits for a track to be the one heard (the loudest), and fails if it never is. */
+async function sonando(pista, donde) {
+  await page.waitForFunction((p) => window.__cyc.g.sound.musicaActual === p, pista, { timeout: 15000 }).catch(() => {});
+  const ahora = await page.evaluate(() => window.__cyc.g.sound.musicaActual);
+  check(ahora === pista, `${donde} no suena ${pista} (${ahora})`);
+}
+
 /** Tap through dialogue until the running script ends. */
 async function charla() {
   let last = '';
@@ -141,9 +151,8 @@ async function objeto(id) {
  */
 async function lanzarJamon() {
   await page.waitForSelector('.cubierta.rana');
-  // The galop plays in a loop while the minigame lasts (src/core/audio.ts).
-  await page.waitForFunction(() => window.__cyc.g.sound.musicaActual === 'galop', null, { timeout: 15000 }).catch(() => {});
-  check((await page.evaluate(() => window.__cyc.g.sound.musicaActual)) === 'galop', 'no suena el galop en el minijuego de la rana');
+  // «Dándole vueltas» plays in a loop while the minigame lasts (src/core/audio.ts).
+  await sonando('vueltas', 'en el minijuego de la rana');
   let tiros = 0;
   let foto = false;
   for (let i = 0; i < 3000 && (await page.$('.cubierta.rana')); i++) {
@@ -187,7 +196,9 @@ async function lanzarJamon() {
     await page.waitForFunction(() => !window.__rana?.()?.vuela, null, { timeout: 8000 }).catch(() => {});
   }
   await page.waitForSelector('.cubierta.rana', { state: 'detached', timeout: 30000 });
-  check((await page.evaluate(() => window.__cyc.g.sound.musicaActual)) === null, 'el galop sigue sonando al acabar la rana');
+  // And the flat's stroll comes back.
+  await sonando('barrio', 'al acabar la rana');
+  check(!('vueltas' in (await musicas())), 'la música de la rana sigue sonando al acabar');
   return tiros;
 }
 
@@ -216,6 +227,7 @@ async function rotulo(id) {
 /** Chuchi's ball cannon: lead the button by the flight time, and wait for the party hat to go up. */
 async function dispararRobot() {
   await page.waitForSelector('.cubierta.robot');
+  await sonando('contraRobi', 'en la pelea con Robi');
   let tiros = 0;
   let foto = false;
   for (let i = 0; i < 2000 && (await page.$('.cubierta.robot')); i++) {
@@ -239,6 +251,8 @@ async function dispararRobot() {
     await wait(320);
   }
   await page.waitForSelector('.cubierta.robot', { state: 'detached', timeout: 30000 });
+  await wait(1000);
+  check(Object.keys(await musicas()).length === 0, 'la música de Robi sigue sonando al acabar');
   return tiros;
 }
 
@@ -327,6 +341,7 @@ async function usarEn(item, zona) {
 /** The word battle: swipe across each negative word as it falls, never the positive ones. */
 async function cortarPalabras() {
   await page.waitForSelector('.cubierta.palabras');
+  await sonando('jaleo', 'en la batalla de palabras');
   let foto = false;
   for (let i = 0; i < 2000 && (await page.$('.cubierta.palabras')); i++) {
     const e = await page.evaluate(() => window.__palabras?.() ?? null);
@@ -354,11 +369,13 @@ async function cortarPalabras() {
     await wait(60);
   }
   await page.waitForSelector('.cubierta.palabras', { state: 'detached', timeout: 30000 });
+  await sonando('barrio', 'al acabar la batalla de palabras');
   await charla();
 }
 
 async function historiaPablo() {
   await shot('backstage');
+  await sonando('barrio', 'en el backstage de Pablo');
   await paso('Pablo: hablar con su sombra', async () => {
     const [x, y] = await page.evaluate(() => {
       const g = window.__cyc.g;
@@ -456,6 +473,7 @@ await shot('eleccion');
 await escoger('fran');
 await shot('dormido');
 await paso('Despertar a Fran', () => tocar([420, 200]), 'despierto');
+await sonando('barrio', 'en el piso de Fran');
 await shot('despierto');
 await paso('Cambiar a Pablo desde el selector', async () => {
   await page.click('.reparto .pj:nth-child(2)');
@@ -516,6 +534,10 @@ await paso('Salir a la calle', async () => {
   await charla();
 }, 'enCalle');
 await shot('calle');
+// The bar's rock, faint at the far end of the street; the stroll still on top.
+await page.waitForFunction(() => 'barPuerta' in window.__cyc.g.sound.musicas, null, { timeout: 15000 }).catch(() => {});
+const lejosBar = await musicas();
+check((lejosBar.barPuerta ?? 0) > 0 && lejosBar.barPuerta < 0.2 && (lejosBar.barrio ?? 0) > 0.8, `en la calle no suena el barrio con el bar muy bajito (${JSON.stringify(lejosBar)})`);
 await paso('Andar hacia el Bar del Río', async () => {
   for (let i = 0; i < 60; i++) {
     if (await page.$('.cubierta.rotulo')) break;
@@ -526,6 +548,9 @@ await paso('Andar hacia el Bar del Río', async () => {
     if (i === 20) await shot('cruce');
   }
 }, 'bar');
+// By the bar the rock has taken over.
+const cercaBar = await musicas();
+check((cercaBar.barPuerta ?? 0) > 0.6 && (cercaBar.barrio ?? 0) < 0.2, `junto al bar no se impone el rock (${JSON.stringify(cercaBar)})`);
 const fran = await page.evaluate(() => ({ hora: window.__cyc.g.hora, inv: window.__cyc.g.estado.inv.fran }));
 console.log(`  Fran ve el Río a las ${fran.hora}. Bolsa: ${fran.inv.join(', ')}`);
 await rotulo('fran');
@@ -544,6 +569,8 @@ await paso('Los cuatro llegan a la vez', async () => {
   await page.waitForSelector('.dialogo:not(.narrador)', { timeout: 30000 });
   await wait(600);
   await shot('llegan');
+  const alFinal = await musicas();
+  check(Object.keys(alFinal).join() === 'barPuerta' && alFinal.barPuerta > 0.8, `en el final no suena solo el bar desde la puerta (${JSON.stringify(alFinal)})`);
   // Talking about Vero, in through the door, fade to black and the narrator.
   for (let i = 0; i < 40 && !(await page.$('.cubierta.rotulo.continuara')); i++) {
     await charla();

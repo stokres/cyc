@@ -31,6 +31,7 @@ import { fondo, pantalla, cortina, taquito, puertaTerraza, cartel } from '../art
 import { POSTER_TEXTS } from '../arte/escenas/piso.mjs';
 import * as F from './rana-fisica.mjs';
 import { marcador, type Infinito } from './infinito';
+import type { SonidoMinijuego } from '../core/audio';
 
 export type Resultado = 'hecho' | 'saltado' | 'cancelado';
 
@@ -113,8 +114,8 @@ export interface OpcionesRana {
   rapido?: boolean;
   /** The endless version, from the minigames menu. */
   infinito?: Infinito;
-  /** For the music (the galop, in a loop while it lasts). */
-  sonido?: { musica(id: 'galop'): void; pararMusica(fundido?: number): void };
+  /** For the music («Dándole vueltas», in a loop while it lasts). */
+  sonido?: SonidoMinijuego;
 }
 
 /** A warm glow, for the lamp: made once. */
@@ -168,7 +169,7 @@ export function jugarRana(parent: HTMLElement, op: OpcionesRana): Promise<Result
   const capa = h('div', { class: 'cubierta minijuego rana' }, lienzo, h('p', { class: 'instrucciones' }, texto('rana.instrucciones')), ganasEl, municion, ...(puntos ? [puntos.el] : []), aviso, saltar, cerrar);
   parent.append(capa);
   const ctx = lienzo.getContext('2d')!;
-  op.sonido?.musica('galop');
+  op.sonido?.musica('vueltas');
 
   // ---------------------------------------------------------------- screen and bitmaps
   let vw = 1920;

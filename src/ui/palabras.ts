@@ -25,6 +25,7 @@ import { FONTS } from '../motor/escena';
 import { SombraHistrionica } from './sombra-histrionica';
 import { JOINTS, HEAD_AT } from '../arte/personajes/pablo.mjs';
 import { marcador, type Infinito } from './infinito';
+import type { SonidoMinijuego } from '../core/audio';
 
 export type Resultado = 'hecho' | 'saltado' | 'cancelado';
 
@@ -101,7 +102,8 @@ function pintarPalabra(t: string, color: string, escala: number) {
   return c;
 }
 
-export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido = false, infinito?: Infinito): Promise<Resultado> {
+/** `sonido`: for «Jaleo», in a loop while the battle lasts. */
+export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido = false, infinito?: Infinito, sonido?: SonidoMinijuego): Promise<Resultado> {
   const lienzo = h('canvas', { class: 'lienzo-palabras' });
   const bloqueoEl = h('div', { class: 'barra bloqueo' }, h('span', { class: 'etq' }, texto('palabras.bloqueo')), h('span', { class: 'lleno' }));
   const paginaEl = h('div', { class: 'barra pagina' }, h('span', { class: 'etq' }, texto('palabras.pagina')), h('span', { class: 'lleno' }));
@@ -112,6 +114,7 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
   paginaEl.hidden = !!infinito;
   const capa = h('div', { class: 'cubierta minijuego palabras' }, lienzo, h('p', { class: 'instrucciones' }, texto('palabras.instrucciones')), bloqueoEl, paginaEl, ...(puntos ? [puntos.el] : []), aviso, saltar, cerrar);
   parent.append(capa);
+  sonido?.musica('jaleo');
   const ctx = lienzo.getContext('2d')!;
   const negativas = lista('palabras.negativas');
   const positivas = lista('palabras.positivas');
@@ -395,6 +398,7 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
       if (!vivo) return;
       vivo = false;
       ro.disconnect();
+      sonido?.pararMusica();
       delete (window as unknown as { __palabras?: unknown }).__palabras;
       capa.remove();
       resolve(r);

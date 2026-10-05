@@ -55,8 +55,8 @@ export interface Capitulo {
   /** Over the front static layer, repainted only with it (Motor.extraFijo). */
   dibujarFijo?(g: Aventura, ctx: CanvasRenderingContext2D): void;
   tick?(g: Aventura, dt: number): void;
-  /** The scene's music right now (asked every frame): a track, its volume and pan, or none. */
-  musica?(g: Aventura): Ambiente | null;
+  /** The scene's music right now (asked every frame): one or more tracks, each with its volume and pan, or none. */
+  musica?(g: Aventura): Ambiente | Ambiente[] | null;
 }
 
 const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));

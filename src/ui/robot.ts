@@ -18,6 +18,7 @@
 // face), arms and hat, the cannon and the balls are bitmaps made once per screen
 // size; each frame only moves them. The loop never runs faster than 60 fps.
 import { h } from './hud';
+import type { SonidoMinijuego } from '../core/audio';
 import { texto } from '../juego/textos';
 import { FONTS } from '../motor/escena';
 import { svgABitmap } from '../motor/sprites';
@@ -93,7 +94,8 @@ function bitmapTexto(t: string, tam: number, color: string) {
   return c;
 }
 
-export function jugarRobot(parent: HTMLElement, rapido = false, infinito?: Infinito): Promise<Resultado> {
+/** `sonido`: for «Contra Robi», in a loop while the fight lasts. */
+export function jugarRobot(parent: HTMLElement, rapido = false, infinito?: Infinito, sonido?: SonidoMinijuego): Promise<Resultado> {
   const lienzo = h('canvas', { class: 'lienzo-robot' });
   const cercaEl = h('div', { class: 'barra cerca' }, h('span', { class: 'etq' }, texto('robot.cerca')), h('span', { class: 'lleno' }));
   const bateriaEl = h('div', { class: 'barra bateria' }, h('span', { class: 'etq' }, texto('robot.bateria')), h('span', { class: 'lleno' }));
@@ -104,6 +106,7 @@ export function jugarRobot(parent: HTMLElement, rapido = false, infinito?: Infin
   bateriaEl.hidden = !!infinito;
   const capa = h('div', { class: 'cubierta minijuego robot' }, lienzo, h('p', { class: 'instrucciones' }, texto('robot.instrucciones')), cercaEl, bateriaEl, ...(puntos ? [puntos.el] : []), aviso, saltar, cerrar);
   parent.append(capa);
+  sonido?.musica('contraRobi');
   const ctx = lienzo.getContext('2d')!;
 
   // ---------------------------------------------------------------- screen and bitmaps
@@ -396,6 +399,7 @@ export function jugarRobot(parent: HTMLElement, rapido = false, infinito?: Infin
       if (!vivo) return;
       vivo = false;
       ro.disconnect();
+      sonido?.pararMusica();
       delete (window as unknown as { __robot?: unknown }).__robot;
       capa.remove();
       resolve(r);

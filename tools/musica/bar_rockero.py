@@ -7,7 +7,8 @@
 #
 #   python3 bar_rockero.py          listening version, and the same heard from outside the door
 #                                   -> bar-rockero.mp3, bar-rockero-puerta.mp3
-#   python3 bar_rockero.py bucle    the round three times, cut for a seamless loop -> bar-rockero-bucle.mp3
+#   python3 bar_rockero.py bucle [salida]    the round three times, cut for a seamless loop -> bar-rockero-bucle.mp3
+#   python3 bar_rockero.py puerta [salida]   the same loop heard from the street (the game's src/sonido/bar-puerta.mp3)
 import random
 import re
 import sys
@@ -194,13 +195,18 @@ def tras_la_puerta(x):
 
 
 RONDA = 40 * L
-BUCLE = len(sys.argv) > 1 and sys.argv[1] == 'bucle'
+MODO = sys.argv[1] if len(sys.argv) > 1 else ''
 
-if BUCLE:
+if MODO in ('bucle', 'puerta'):
     t = 0
     for _ in range(3):
         t = ronda(t)
-    exportar_bucle('bar-rockero-bucle', O.render(hasta=t, pegamento=(-16, 2.5)), RONDA * 60 / BPM, rms_db=-17, fundir=True)
+    x = O.render(hasta=t, pegamento=(-16, 2.5))
+    salida = sys.argv[2] if len(sys.argv) > 2 else None
+    if MODO == 'bucle':
+        exportar_bucle('bar-rockero-bucle', x, RONDA * 60 / BPM, rms_db=-17, fundir=True, salida=salida)
+    else:  # from the door: mostly lows, so mono at 64 kbps loses nothing
+        exportar_bucle('bar-rockero-puerta-bucle', tras_la_puerta(x), RONDA * 60 / BPM, rms_db=-20, fundir=True, kbps=64, mono=True, salida=salida)
     sys.exit()
 
 if __name__ == '__main__':

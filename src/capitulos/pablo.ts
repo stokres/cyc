@@ -50,7 +50,7 @@ async function batalla(g: Aventura) {
   // The minigame covers the whole screen: the scene underneath stops drawing.
   g.pausado = true;
   const cuerpo = REPARTO.pablo.arte.body({}, g.estado.ropa.pablo ?? REPARTO.pablo.ropa);
-  const r = await jugarPalabras(g.root, cuerpo, g.rapido).finally(() => (g.pausado = false));
+  const r = await jugarPalabras(g.root, cuerpo, g.rapido, undefined, g.sound).finally(() => (g.pausado = false));
   if (r === 'cancelado') return g.hablar('p.batalla.cancelada');
   if (r === 'hecho') g.minijuegoSuperado('palabras');
   g.poner('p.ganado');

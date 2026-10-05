@@ -58,7 +58,7 @@ async function batalla(g: Aventura) {
   await g.hablar('c.canon.coger');
   // The minigame covers the whole screen: the scene underneath stops drawing.
   g.pausado = true;
-  const r = await jugarRobot(g.root, g.rapido).finally(() => (g.pausado = false));
+  const r = await jugarRobot(g.root, g.rapido, undefined, g.sound).finally(() => (g.pausado = false));
   if (r === 'cancelado') return g.hablar('c.robot.cancelado');
   if (r === 'hecho') g.minijuegoSuperado('robot');
   g.poner('c.robot', false);

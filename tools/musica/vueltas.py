@@ -6,7 +6,8 @@
 # Light and cheeky rather than spooky. 112 bpm.
 #
 #   python3 vueltas.py          listening version: intro, twice round, ending  -> vueltas.mp3
-#   python3 vueltas.py bucle    the round three times, cut for a seamless loop -> vueltas-bucle.mp3
+#   python3 vueltas.py bucle [salida]   the round three times, cut for a seamless loop -> vueltas-bucle.mp3
+#                                (or `salida`, e.g. the game's copy in src/sonido), 112 kbps to stay under 1 MB
 import random
 import sys
 from orquesta import Orquesta, tocar, raiz_en
@@ -108,7 +109,7 @@ if BUCLE:
     t = 0
     for _ in range(3):
         t = ronda(t)
-    exportar_bucle('vueltas-bucle', O.render(hasta=t), RONDA * 60 / BPM, rms_db=-19, fundir=True)
+    exportar_bucle('vueltas-bucle', O.render(hasta=t), RONDA * 60 / BPM, rms_db=-19, fundir=True, kbps=112, salida=sys.argv[2] if len(sys.argv) > 2 else None)
     sys.exit()
 
 if __name__ == '__main__':
