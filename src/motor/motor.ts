@@ -16,6 +16,12 @@ const FONDO: [number, number, number, number] = [11 / 255, 15 / 255, 30 / 255, 1
 
 export type Calidad = 'alta' | 'media' | 'baja';
 const ESCALA: Record<Calidad, number> = { alta: 1, media: 0.75, baja: 0.55 };
+/**
+ * Scenes kept baked at once: the one on screen and the last one (docs/ESTILO.md, T5.11).
+ * The street alone is some 64 MB of canvases; keeping every scene baked ran a phone out of
+ * GPU memory, and Chrome then re-uploaded the scenery on every frame the camera moved.
+ */
+const MAX_HORNEADAS = 2;
 
 /** Where the strongest light near a point comes from (for relief on the actors). */
 export interface LuzPrincipal {
@@ -43,6 +49,9 @@ export class Motor {
   readonly defs: SVGDefsElement;
   readonly world: SVGGElement;
   private cache = new Map<string, Horneado>();
+  /** When each baked scene was last used (the least recent goes first). */
+  private usos = new Map<string, number>();
+  private reloj = 0;
   S: Escena | null = null;
   private baked: Horneado | null = null;
   private lights: Array<{ X: number; y: number; r: number; power: number; c: RGB }> = [];
@@ -202,13 +211,53 @@ export class Motor {
     this.resize();
   }
 
-  /** Drop every baked scene (and its GPU textures). */
+  /**
+   * Drop every baked scene (and its GPU textures). The one on screen stays drawable until
+   * its replacement is baked (a quality change re-bakes it), and is freed then.
+   */
   private vaciar() {
-    for (const b of this.cache.values()) {
-      for (const L of b.capas) for (const p of L.piezas) if (p.tex) (L.z === 'front' ? this.glF : this.glB)?.liberar(p.tex);
-      for (const Lw of b.laterales) if (Lw.tex) this.glB?.liberar(Lw.tex);
-    }
+    for (const b of this.cache.values()) if (b !== this.baked) this.soltar(b);
     this.cache.clear();
+    this.usos.clear();
+    if (this.baked) this.huerfano = this.baked;
+  }
+  /** The scene still on screen after vaciar(): freed when the new bake takes its place. */
+  private huerfano: Horneado | null = null;
+
+  /** Frees a baked scene's canvases and textures now, rather than whenever the GC gets to them. */
+  private soltar(b: Horneado) {
+    for (const L of b.capas) {
+      for (const p of L.piezas) {
+        if (p.tex) (L.z === 'front' ? this.glF : this.glB)?.liberar(p.tex);
+        p.c.width = p.c.height = 0;
+      }
+    }
+    for (const Lw of b.laterales) {
+      if (Lw.tex) this.glB?.liberar(Lw.tex);
+      if (Lw.c) Lw.c.width = Lw.c.height = 0;
+    }
+  }
+
+  /** Keeps at most MAX_HORNEADAS baked: the least recently used goes, never the one on screen. */
+  private recortar() {
+    while (this.cache.size > MAX_HORNEADAS) {
+      let viejo: string | null = null;
+      for (const [k, b] of this.cache) if (b !== this.baked && (viejo === null || (this.usos.get(k) ?? 0) < (this.usos.get(viejo) ?? 0))) viejo = k;
+      if (viejo === null) return;
+      this.soltar(this.cache.get(viejo)!);
+      this.cache.delete(viejo);
+      this.usos.delete(viejo);
+    }
+  }
+
+  /** Baked scenes and how many megabytes of canvas they take (scripts/rendimiento.mjs). */
+  get memoriaDecorado() {
+    let px = 0;
+    for (const b of this.cache.values()) {
+      for (const L of b.capas) for (const p of L.piezas) px += p.c.width * p.c.height;
+      for (const Lw of b.laterales) if (Lw.c) px += Lw.c.width * Lw.c.height;
+    }
+    return { escenas: this.cache.size, mb: Math.round((px * 4) / 1e6) };
   }
 
   // ------------------------------------------------------------ scenes
@@ -237,8 +286,14 @@ export class Motor {
       b = await this.hornearYSubir(S, onProgress);
       this.cache.set(key, b);
     }
+    this.usos.set(key, ++this.reloj);
     this.S = S;
     this.baked = b;
+    if (this.huerfano && this.huerfano !== b) {
+      this.soltar(this.huerfano);
+      this.huerfano = null;
+    }
+    this.recortar();
     this.lights = S.lights.map((l) => ({ X: l.X, y: l.y, r: l.r, power: l.power, c: hexRGB(l.color) }));
     this.amb = hexRGB(S.ambient);
     if (this.glB) {
@@ -248,10 +303,15 @@ export class Motor {
     }
   }
 
-  /** Bake a scene ahead of time so the door to it opens instantly. */
+  /** Bake a scene ahead of time so the door to it opens instantly (within MAX_HORNEADAS). */
   async precargar(S: Escena) {
     const key = this.clave(S);
-    if (!this.cache.has(key)) this.cache.set(key, await this.hornearYSubir(S));
+    if (this.cache.has(key)) return;
+    const b = await this.hornearYSubir(S);
+    if (this.cache.has(key) || this.clave(S) !== key) return this.soltar(b);
+    this.cache.set(key, b);
+    this.usos.set(key, ++this.reloj);
+    this.recortar();
   }
 
   f(y: number) {
@@ -380,14 +440,14 @@ export class Motor {
     const S = this.S;
     const B = this.baked;
     if (this.modo === 'gl') return this.dibujarGL();
-    // Live light (fire, signs, the odd car...) every frame, on the overlays,
-    // from a clean state: a clip or a save left over by a frame must not stick.
+    // Live light (fire, signs, the odd car...) every frame, on the overlays. Cleared, not
+    // reset(): on some Chromes reset() throws the canvas's buffer away and makes a new one
+    // every frame. vivo() draws between save() and restore(), so nothing a frame sets sticks.
     for (const c of [this.vbctx, this.vfctx]) {
-      if (c.reset) c.reset();
-      else {
-        c.setTransform(1, 0, 0, 1, 0, 0);
-        c.clearRect(0, 0, this.vivoB.width, this.vivoB.height);
-      }
+      c.setTransform(1, 0, 0, 1, 0, 0);
+      c.globalAlpha = 1;
+      c.globalCompositeOperation = 'source-over';
+      c.clearRect(0, 0, this.vivoB.width, this.vivoB.height);
     }
     if (S && B && B.modo === '2d') for (const L of B.capas) if (!this.ocultas.has(L.id)) this.vivo(L.z === 'front' ? this.vfctx : this.vbctx, L.id);
     // The baked layers only when something they depend on has changed.
@@ -412,20 +472,20 @@ export class Motor {
         const [sh, a] = this.cizalla();
         ctx.setTransform(px, 0, px * sh, px, px * a, 0);
         for (const p of L.piezas) {
-          if (!this.pisoVisible(p, sh, a)) continue;
+          if (!p.c.width || !this.pisoVisible(p, sh, a)) continue;
           ctx.drawImage(p.c, p.x0, p.y0, p.w, p.h);
         }
         ctx.setTransform(1, 0, 0, 1, 0, 0);
       } else {
         const off = this.off(L.k ?? 1);
         for (const p of L.piezas) {
-          if (p.si && !this.cond(p.si)) continue;
+          if (!p.c.width || (p.si && !this.cond(p.si))) continue;
           const x = p.x0 + off;
           if (x > this.vw || x + p.w < 0) continue;
           ctx.drawImage(p.c, Math.round(x * px), Math.round(p.y0 * px));
         }
       }
-      for (const Lw of B.laterales) if (Lw.after === L.id) drawLateral(ctx, S, Lw, this.vw, this.cam, px);
+      for (const Lw of B.laterales) if (Lw.after === L.id && Lw.c.width) drawLateral(ctx, S, Lw, this.vw, this.cam, px);
     }
     if (this.extraFijo) {
       f.save();
@@ -455,8 +515,13 @@ export class Motor {
 
   private vivo(ctx: CanvasRenderingContext2D, capa: string) {
     const S = this.S!;
-    VIVO[S.id]?.({ ctx, capa, S, px: this.px, t: this.t, off: (k) => this.off(k) });
-    this.extra?.(ctx, capa);
+    ctx.save();
+    try {
+      VIVO[S.id]?.({ ctx, capa, S, px: this.px, t: this.t, off: (k) => this.off(k) });
+      this.extra?.(ctx, capa);
+    } finally {
+      ctx.restore();
+    }
   }
 
   private dibujarGL() {

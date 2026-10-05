@@ -618,16 +618,17 @@ def exportar(nombre, x, rms_db=-17.0, fundido=None, kbps=192):
     print(f'{nombre}.mp3: {y.shape[1] / SR:.1f} s, pico {np.max(np.abs(y)):.2f}')
 
 
-def exportar_bucle(nombre, x, largo_s, rms_db=-17.0, margen=0.5, kbps=192, fundir=False, salida=None, mono=False, entrada=None):
+def exportar_bucle(nombre, x, largo_s, rms_db=-17.0, margen=0.5, kbps=192, fundir=False, salida=None, mono=False, entrada=None, vuelta=2):
     """x holds three identical rounds of `largo_s` seconds: keeps the middle one with `margen`
     seconds either side. The synth's rounds are sample-identical (tails included), so playing from
     margen to margen + largo_s in a loop joins with no fade, whatever silence a decoder adds.
     A SoundFont's rounds are only nearly so: with `fundir`, the end of the loop fades into what
     really comes before its start (as bucle.py does), so the jump back is between neighbours.
-    With `entrada` (seconds of intro before the three rounds) the file starts at the very
-    beginning: intro and first round play once, then the second round loops.
+    With `entrada` (seconds of intro before the rounds) the file starts at the very beginning:
+    the intro plays once, then round `vuelta` loops (the first will do if the intro ends just as
+    a round does, so that what comes before both is the same).
     `salida`: where the MP3 goes (the game's src/sonido), at `kbps`, in mono if `mono`."""
-    a = (entrada or 0) + largo_s  # where the loop starts in x: the second round
+    a = (entrada or 0) + (vuelta - 1) * largo_s  # where the loop starts in x
     c0 = 0 if entrada is not None else int(round((a - margen) * SR))
     c1 = int(round((a + largo_s + margen) * SR))
     trozo = x[:, c0:c1].copy()

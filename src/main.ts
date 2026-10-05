@@ -23,6 +23,9 @@ interface Ajustes {
   fps: boolean;
 }
 
+/** Quality to start from on «auto»: medium on phones, high with a mouse. */
+const calidadInicial = (): Calidad => (matchMedia('(pointer: coarse)').matches ? 'media' : 'alta');
+
 function cargarAjustes(): Ajustes {
   try {
     return { muted: false, calidad: 'auto', fps: false, ...JSON.parse(storageGet('cyc.ajustes') ?? '{}') };
@@ -98,7 +101,11 @@ async function arrancar() {
   addEventListener('pagehide', alSalir);
   document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && alSalir());
 
+  // «Auto» starts where this phone was left last time (it only ever steps down), else medium on phones.
   if (ajustes.calidad !== 'auto') g.motor.setCalidad(ajustes.calidad);
+  else g.motor.setCalidad((storageGet('cyc.calidad.auto') as Calidad | null) ?? calidadInicial());
+  g.calidadAuto = ajustes.calidad === 'auto';
+  g.onCalidadAuto = (q) => storageSet('cyc.calidad.auto', q);
   if (new URLSearchParams(location.search).has('relieve')) g.motor.setRelieve(true);
   g.mostrarFps = ajustes.fps;
   g.sound.setMuted(ajustes.muted);
@@ -163,7 +170,10 @@ async function arrancar() {
           })),
           h('div', { class: 'opcion' }, h('span', {}, texto('menu.calidad')), seg('m-calidad', [['auto', texto('auto')], ['alta', texto('alta')], ['media', texto('media')], ['baja', texto('baja')]], ajustes.calidad, (v) => {
             ajustes.calidad = v;
-            g.motor.setCalidad(v === 'auto' ? (matchMedia('(pointer: coarse)').matches ? 'media' : 'alta') : v);
+            // Choosing «auto» again starts it over: it will step down again only if it has to.
+            if (v === 'auto') storageSet('cyc.calidad.auto', calidadInicial());
+            g.calidadAuto = v === 'auto';
+            g.motor.setCalidad(v === 'auto' ? calidadInicial() : v);
             guardarAjustes();
           })),
           h('div', { class: 'opcion' }, h('span', {}, texto('menu.rendimiento')), seg('m-fps', [['on', texto('si')], ['off', texto('no')]], ajustes.fps ? 'on' : 'off', (v) => {

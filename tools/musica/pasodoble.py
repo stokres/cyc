@@ -8,6 +8,7 @@
 #
 #   python3 pasodoble.py                  listening version: lorry, fanfare, once round, ending -> pasodoble.mp3
 #   python3 pasodoble.py bucle [salida]   intro once, then the round in a loop (the end card's music)
+#   Every round ends with the fanfare's last bar, so the loop starts right after the fanfare.
 import random
 import sys
 from orquesta import Orquesta, tocar, raiz_en
@@ -102,9 +103,10 @@ def entrada(t):
     bocina(t + 6.25, 1.1, 'F')
     CAMION.golpe(t + 7.5, 'freno', 100)
     t += 8
-    tocar(O, TPTA, t, FANFARRIA, 108, legato=0.85)
-    tocar(O, CLAR, t, FANFARRIA, 96, legato=0.85)
-    for i, (ch, *_) in enumerate(ACORDES_F):
+    siete = [n for n in FANFARRIA if n[0] < 7 * L]
+    tocar(O, TPTA, t, siete, 108, legato=0.85)
+    tocar(O, CLAR, t, siete, 96, legato=0.85)
+    for i, (ch, *_) in enumerate(ACORDES_F[:7]):
         v = voz_cerrada(ch, 'A3', 3)
         O.acorde(TBN, t + i * L, L, v, 92, rasgueo=0, legato=0.9, humano=0.004)
         O.acorde(TROMPA, t + i * L, L, [m + 12 for m in v], 80, rasgueo=0, legato=0.9, humano=0.004)
@@ -113,8 +115,21 @@ def entrada(t):
     O.nota(9, t, 2, 57, 110)
     bocina(t + 3 * L + 1, 0.3, 'F')   # «tu-tu» in the fanfare's rest
     bocina(t + 3 * L + 1.5, 0.4, 'F')
-    redoble(t + 7 * L, 2)
+    enlace(t + 7 * L)
     return t + 8 * L
+
+
+def enlace(t):
+    """The fanfare's last bar, which also closes every round: C seventh, «ta-ta-ta» and a roll into
+    the first strain. Being the same bar, the loop can start right after the fanfare."""
+    tocar(O, TPTA, t, frase('C5:2 C5:2 C5:2 -:2', largo=8), 108, legato=0.85)
+    tocar(O, CLAR, t, frase('C5:2 C5:2 C5:2 -:2', largo=8), 96, legato=0.85)
+    v = voz_cerrada('C7', 'A3', 3)
+    O.acorde(TBN, t, L, v, 92, rasgueo=0, legato=0.9, humano=0.004)
+    O.acorde(TROMPA, t, L, [m + 12 for m in v], 80, rasgueo=0, legato=0.9, humano=0.004)
+    O.nota(TUBA, t, 1, raiz_en('C7', 'F1', 'E2'), 100, legato=0.8)
+    O.nota(9, t, 0.5, 36, 96)
+    redoble(t, 2)
 
 
 def ronda(t):
@@ -165,19 +180,23 @@ def ronda(t):
     bateria(t, 16, vel=94)
     bocina(t + 15 * L + 1, 0.3, 'Bb')
     bocina(t + 15 * L + 1.5, 0.45, 'Bb')
-    return t + 16 * L
+    t += 16 * L
+    # And back to the start through the fanfare's last bar.
+    enlace(t)
+    return t + L
 
 
 ENTRADA = 8 + 8 * L   # beats: the lorry, then the fanfare
-RONDA = 64 * L
+RONDA = 65 * L
 MODO = sys.argv[1] if len(sys.argv) > 1 else ''
 
 if MODO == 'bucle':
     t = entrada(0)
-    for _ in range(3):
+    for _ in range(2):
         t = ronda(t)
+    # The first round loops: what comes before it (the fanfare's last bar) is how every round ends.
     exportar_bucle('pasodoble-bucle', O.render(hasta=t, chip=C, pegamento=(-16, 2)), RONDA * 60 / BPM, rms_db=-17, fundir=True,
-                   entrada=ENTRADA * 60 / BPM, salida=sys.argv[2] if len(sys.argv) > 2 else None)
+                   entrada=ENTRADA * 60 / BPM, vuelta=1, salida=sys.argv[2] if len(sys.argv) > 2 else None)
     sys.exit()
 
 if __name__ == '__main__':

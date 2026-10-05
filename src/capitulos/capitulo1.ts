@@ -450,6 +450,10 @@ export const capitulo1: Capitulo = {
 
   },
 
+  // Fran's flat opens onto the street; the other scenes are reached with the selector or the
+  // end of a story, behind a fade that covers the baking.
+  vecinas: (escena) => (escena === 'piso' ? ['calle'] : []),
+
   musica: (g) => {
     if (g.escena === 'granja') return guille.musica(g);
     if (g.escena === 'calle') return musicaCalle(g);

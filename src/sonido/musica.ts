@@ -28,7 +28,7 @@ export const MUSICA = {
   /** The Bar del Río's rock as heard from the street, through the door (bar_rockero.py puerta). */
   barPuerta: { url: barPuerta, inicio: 0.5, fin: 69.071429 },
   /** «Pasodoble del camionero», the end card: the lorry and the fanfare once, then the pasodoble (pasodoble.py). */
-  pasodoble: { url: pasodoble, entrada: 0, inicio: 78.62068, fin: 144.827596 },
+  pasodoble: { url: pasodoble, entrada: 0, inicio: 12.413787, fin: 79.65517 },
 } as const;
 
 export type Pista = keyof typeof MUSICA;

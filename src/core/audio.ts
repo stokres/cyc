@@ -12,6 +12,11 @@ import { MUSICA, type Pista } from '../sonido/musica';
 
 /** Music level under the master (the cues are short and quiet). */
 const NIVEL_MUSICA = 0.55;
+/**
+ * Tracks kept decoded at once (docs/ESTILO.md, T5.11): a minute of music is some 25 MB once
+ * decoded, and keeping every track that had played added up to 200 MB on a phone.
+ */
+const MAX_DECODIFICADAS = 3;
 
 /** What a scene wants playing: a track, how loud (0–1) and where (-1 left, 1 right). */
 export interface Ambiente {
@@ -34,6 +39,8 @@ interface Capa {
   pan: StereoPannerNode | null;
   volumen: number;
   panActual: number;
+  /** When its volume or pan last changed (ms): each change is an automation event. */
+  cambio: number;
 }
 
 export class Sound {
@@ -43,6 +50,9 @@ export class Sound {
   /** Every track playing or on its way: the scene's layers, or the minigame's. */
   private capas = new Map<Pista, Capa>();
   private cargas = new Map<Pista, Promise<AudioBuffer | null>>();
+  private usos = new Map<Pista, number>();
+  private reloj = 0;
+  private bytes = new Map<Pista, number>();
   private primerPlano: Pista | null = null;
   private deseado: Ambiente[] = [];
   muted = false;
@@ -73,7 +83,7 @@ export class Sound {
     this.primerPlano = id;
     for (const c of [...this.capas.values()]) if (c.id !== id) this.callar(c.id, 0.4);
     const c = this.capas.get(id);
-    if (c) this.ajustar(c, 1, 0);
+    if (c) this.ajustar(c, 1, 0, true);
     else this.reproducir(id, 1, 0);
   }
 
@@ -102,14 +112,18 @@ export class Sound {
     }
   }
 
-  private ajustar(c: Capa, volumen: number, pan: number) {
+  private ajustar(c: Capa, volumen: number, pan: number, ya = false) {
     if (!c.g || !this.ac) {
       // still loading: it starts at the latest volume and pan
       c.volumen = volumen;
       c.panActual = pan;
       return;
     }
+    // At most ten changes a second (the scene asks every frame); they glide anyway.
+    const ahora = performance.now();
+    if (!ya && ahora - c.cambio < 100) return;
     const t = this.ac.currentTime;
+    if (Math.abs(volumen - c.volumen) > 0.01 || Math.abs(pan - c.panActual) > 0.02) c.cambio = ahora;
     if (Math.abs(volumen - c.volumen) > 0.01) {
       c.volumen = volumen;
       c.g.gain.setTargetAtTime(Math.max(0.0001, volumen), t, 0.15);
@@ -143,17 +157,39 @@ export class Sound {
       carga = fetch(MUSICA[id].url)
         .then((r) => r.arrayBuffer())
         .then((b) => ac.decodeAudioData(b))
+        .then((buf) => (this.bytes.set(id, buf.length * buf.numberOfChannels * 4), buf))
         .catch(() => null);
       this.cargas.set(id, carga);
     }
+    this.usos.set(id, ++this.reloj);
+    this.recortar();
     return carga;
+  }
+
+  /** Forgets the least recently used decoded tracks that are not playing, past MAX_DECODIFICADAS. */
+  private recortar() {
+    while (this.cargas.size > MAX_DECODIFICADAS) {
+      let viejo: Pista | null = null;
+      for (const id of this.cargas.keys()) if (!this.capas.has(id) && (viejo === null || (this.usos.get(id) ?? 0) < (this.usos.get(viejo) ?? 0))) viejo = id;
+      if (viejo === null) return;
+      this.cargas.delete(viejo);
+      this.usos.delete(viejo);
+      this.bytes.delete(viejo);
+    }
+  }
+
+  /** Decoded music kept, in megabytes (scripts/rendimiento.mjs). */
+  get memoriaMusica() {
+    let b = 0;
+    for (const v of this.bytes.values()) b += v;
+    return Math.round(b / 1e6);
   }
 
   /** Fades this track in, in a loop, once it has loaded — unless it was dropped meanwhile. */
   private reproducir(id: Pista, volumen: number, pan: number) {
     const ac = this.ac;
     if (!ac || !this.bus) return;
-    const capa: Capa = { id, src: null, g: null, pan: null, volumen, panActual: pan };
+    const capa: Capa = { id, src: null, g: null, pan: null, volumen, panActual: pan, cambio: 0 };
     this.capas.set(id, capa);
     const pista = MUSICA[id];
     void this.cargar(id, ac).then((buf) => {

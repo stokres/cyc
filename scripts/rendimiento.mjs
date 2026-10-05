@@ -11,6 +11,9 @@
 //   - characters still drawn as vector SVG after loading (clip paths in the actors),
 //   - more than 60 frames a second (120 Hz screens).
 //
+// The sound is on, as in the game (the music plays in most scenes); SIN_MUSICA=1 measures
+// without it, to compare.
+//
 // Usage: node scripts/rendimiento.mjs [escena...]   (against npm run dev on :5173)
 //   escenas: prologo, piso, calle, granja, cerdos, backstage, palabras, rana, parque, robot, sinfin (all by default)
 import { chromium } from 'playwright';
@@ -33,7 +36,7 @@ function cpuChrome() {
   return t;
 }
 
-const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-gpu-rasterization'] });
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-gpu-rasterization', '--autoplay-policy=no-user-gesture-required'] });
 const ctx = await b.newContext({ viewport: { width: 915, height: 412 }, deviceScaleFactor: 2.625, hasTouch: true, isMobile: true });
 const page = await ctx.newPage();
 const errores = [];
@@ -60,7 +63,12 @@ await page.evaluate(() => {
   c.g.hud.setVisible(true);
   for (const id of ['fran', 'pablo', 'chuchi', 'guille']) c.g.poner(`empezado.${id}`);
   c.g.poner('despierto');
+  // Measured always at the same quality, so runs compare: «auto» would step down here.
+  c.g.calidadAuto = false;
+  c.g.motor.setCalidad('media');
 });
+// The title screen's tap is what starts the sound in the game.
+if (!process.env.SIN_MUSICA) await page.evaluate(() => window.__cyc.g.sound.start());
 if (process.env.FPS_REPOSO) await page.evaluate((v) => (window.__cyc.g.fpsReposo = v), Number(process.env.FPS_REPOSO));
 
 const filas = [];
@@ -106,7 +114,8 @@ async function medir(nombre, prep, contar = 'escena') {
   if (vector > 0) fallos.push(`${vector} recortes vectoriales en los personajes (no se han pasado a imagen)`);
   if (fps > 62) fallos.push(`${fps.toFixed(0)} fps, por encima del tope de 60`);
   filas.push(fallos);
-  console.log(`${nombre.padEnd(32)} CPU ${cpu.toFixed(0).padStart(4)} %   ${fps.toFixed(0).padStart(3)} fotogramas/s${fallos.length ? '   ✗ ' + fallos.join('; ') : ''}`);
+  const musica = await page.evaluate(() => Object.keys(window.__cyc.g.sound.musicas).join('+'));
+  console.log(`${nombre.padEnd(32)} CPU ${cpu.toFixed(0).padStart(4)} %   ${fps.toFixed(0).padStart(3)} fotogramas/s${musica ? '   ♪ ' + musica : ''}${fallos.length ? '   ✗ ' + fallos.join('; ') : ''}`);
 }
 
 const paseo = (a, b2, y) => `(() => { const f = window.__cyc.g.activo; let d = 1; clearInterval(window.__paseo); window.__paseo = setInterval(() => { d = -d; f.walkTo(d > 0 ? ${b2} : ${a}, ${y}); }, 3500); f.walkTo(${b2}, ${y}); })()`;
@@ -147,7 +156,7 @@ if (toca('palabras')) {
     const { jugarPalabras } = await import('/src/ui/palabras.ts');
     const { REPARTO } = await import('/src/juego/reparto.ts');
     g.pausado = true;
-    void jugarPalabras(g.root, REPARTO.pablo.arte.body({}));
+    void jugarPalabras(g.root, REPARTO.pablo.arte.body({}), false, undefined, g.sound);
     // Plays by itself: swipes across each negative word.
     const juega = () => {
       const e = window.__palabras?.();
@@ -175,7 +184,7 @@ if (toca('robot')) {
     const g = window.__cyc.g;
     const { jugarRobot } = await import('/src/ui/robot.ts');
     g.pausado = true;
-    void jugarRobot(g.root);
+    void jugarRobot(g.root, false, undefined, g.sound);
     // Plays by itself: shoots where the button will be.
     const juega = () => {
       const e = window.__robot?.();
@@ -197,7 +206,7 @@ if (toca('rana')) {
     const { REPARTO } = await import('/src/juego/reparto.ts');
     const F = REPARTO.fran;
     g.pausado = true;
-    void jugarRana(g.root, { cuerpoFran: (a) => F.arte.body({ mood: a }, 'casa'), joints: F.arte.JOINTS });
+    void jugarRana(g.root, { cuerpoFran: (a) => F.arte.body({ mood: a }, 'casa'), joints: F.arte.JOINTS, sonido: g.sound });
     // Plays by itself: aims for half a second (with the dotted line) and throws.
     const c = () => document.querySelector('.lienzo-rana');
     const ev = (t, x, y) => c()?.dispatchEvent(new PointerEvent(t, { bubbles: true, clientX: x, clientY: y, pointerId: 1 }));
@@ -221,7 +230,7 @@ if (toca('cerdos')) {
     const g = window.__cyc.g;
     const { jugarCerdos } = await import('/src/ui/cerdos.ts');
     g.pausado = true;
-    void jugarCerdos(g.root);
+    void jugarCerdos(g.root, false, undefined, g.sound);
     // Plays by itself: drops each pig when it would land on the one below.
     const juega = () => {
       const e = window.__cerdos?.();
@@ -241,7 +250,7 @@ if (toca('sinfin')) {
     const g = window.__cyc.g;
     const { jugarCerdos } = await import('/src/ui/cerdos.ts');
     g.pausado = true;
-    void jugarCerdos(g.root, true, { record: 0 });
+    void jugarCerdos(g.root, true, { record: 0 }, g.sound);
     const juega = () => {
       const e = window.__cerdos?.();
       if (!e) return;
@@ -252,6 +261,14 @@ if (toca('sinfin')) {
   })()`, 'cerdos');
 }
 
+// Memory after the whole tour (docs/ESTILO.md, T5.11): baked scenery and decoded music are
+// capped; past these budgets a phone runs short of GPU memory and the frame rate falls apart.
+const mem = await page.evaluate(() => ({ decorado: window.__cyc.g.motor.memoriaDecorado, musica: window.__cyc.g.sound.memoriaMusica }));
+const fallosMem = [];
+if (mem.decorado.mb > 100) fallosMem.push(`decorados: ${mem.decorado.mb} MB (máximo 100)`);
+if (mem.musica > 90) fallosMem.push(`música descomprimida: ${mem.musica} MB (máximo 90)`);
+filas.push(fallosMem);
+console.log(`memoria al final: decorados ${mem.decorado.mb} MB en ${mem.decorado.escenas} escenas, música ${mem.musica} MB${fallosMem.length ? '   ✗ ' + fallosMem.join('; ') : ''}`);
 await b.close();
 if (errores.length) console.log('ERRORES:\n' + errores.join('\n'));
 if (errores.length || filas.some((f) => f.length)) process.exit(1);

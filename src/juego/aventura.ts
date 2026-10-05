@@ -1,6 +1,6 @@
 // The point-and-click layer: scenes and who is in them, touch input, the
 // scripting API chapters use, the character dock and saving.
-import { Motor, H } from '../motor/motor';
+import { Motor, H, type Calidad } from '../motor/motor';
 import { setEscalaSprites } from '../motor/sprites';
 import { Actor, Objeto, Perrita, Personaje } from '../motor/actores';
 import type { Escena, Zona } from '../motor/escena';
@@ -55,6 +55,8 @@ export interface Capitulo {
   /** Over the front static layer, repainted only with it (Motor.extraFijo). */
   dibujarFijo?(g: Aventura, ctx: CanvasRenderingContext2D): void;
   tick?(g: Aventura, dt: number): void;
+  /** Scenes with a door from this one: baked ahead, so going through is instant. */
+  vecinas?(escena: string): string[];
   /** The scene's music right now (asked every frame): one or more tracks, each with its volume and pan, or none. */
   musica?(g: Aventura): Ambiente | Ambiente[] | null;
 }
@@ -280,8 +282,9 @@ export class Aventura {
     if (conVelo) await this.velar(false);
     await entrar;
     this.refrescar();
-    // Bake the other scenes in the background, so doors open instantly.
-    for (const id of Object.keys(this.cap.escenas)) if (id !== escena) setTimeout(() => void this.motor.precargar(this.cap.escenas[id]()), 600);
+    // Bake the scenes this one has a door to, in the background, so they open instantly. Only
+    // those: every scene baked at once ran phones out of GPU memory (docs/ESTILO.md, T5.11).
+    for (const id of this.cap.vecinas?.(escena) ?? []) setTimeout(() => void this.motor.precargar(this.cap.escenas[id]()), 600);
   }
 
   async velar(on: boolean) {
@@ -638,6 +641,7 @@ export class Aventura {
       const intervalo = 1000 / (this.enMovimiento() ? 60 : this.fpsReposo);
       // A little slack, so 60 fps on a 120 Hz screen is every other refresh, not every third.
       if (now - last < intervalo - 4) return;
+      this.vigilar(now - last);
       const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
       last = now;
       if (!this.pausado) this.update(dt);
@@ -648,6 +652,29 @@ export class Aventura {
 
   /** Frame rate while nothing walks and the camera is still. */
   fpsReposo = 30;
+
+  /**
+   * The menu's «auto» quality: when the game cannot keep up while things move (under 48 fps
+   * over four seconds of movement), the scenery is drawn a step smaller, and that is
+   * remembered for next time (docs/ESTILO.md, T2). A phone that cannot cope fixes itself.
+   */
+  calidadAuto = false;
+  onCalidadAuto?: (q: Calidad) => void;
+  private lento = { ms: 0, n: 0 };
+
+  private vigilar(intervalo: number) {
+    // Only steady movement counts: not a scene baking, a minigame on top or a hitch.
+    if (!this.calidadAuto || this.pausado || this.motor.horneando || intervalo > 250 || !this.enMovimiento()) return;
+    this.lento.ms += intervalo;
+    this.lento.n++;
+    if (this.lento.ms < 4000) return;
+    const fps = (1000 * this.lento.n) / this.lento.ms;
+    this.lento = { ms: 0, n: 0 };
+    const menos = ({ alta: 'media', media: 'baja', baja: null } as const)[this.motor.calidad];
+    if (fps >= 48 || !menos) return;
+    this.motor.setCalidad(menos);
+    this.onCalidadAuto?.(menos);
+  }
 
   /** Anything moving on screen that deserves 60 fps. */
   private enMovimiento() {
@@ -756,7 +783,7 @@ export class Aventura {
     if (this.frames.length > 60) this.frames.shift();
     if (this.mostrarFps) {
       const avg = this.frames.reduce((s, v) => s + v, 0) / this.frames.length;
-      this.hud.fps(`${Math.round(1 / avg)} fps · ${texto(this.enMovimiento() ? 'rendimiento.movimiento' : 'rendimiento.reposo')} · ${this.motor.calidad} · ${this.motor.back.width}×${this.motor.back.height}`);
+      this.hud.fps(`${Math.round(1 / avg)} fps · ${texto(this.enMovimiento() ? 'rendimiento.movimiento' : 'rendimiento.reposo')} · ${this.motor.calidad}${this.calidadAuto ? ' (auto)' : ''} · ${this.motor.back.width}×${this.motor.back.height}`);
     }
   }
 }
