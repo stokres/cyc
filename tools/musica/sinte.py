@@ -618,7 +618,7 @@ def exportar(nombre, x, rms_db=-17.0, fundido=None, kbps=192):
     print(f'{nombre}.mp3: {y.shape[1] / SR:.1f} s, pico {np.max(np.abs(y)):.2f}')
 
 
-def exportar_bucle(nombre, x, largo_s, rms_db=-17.0, margen=0.5, kbps=192, fundir=False, salida=None, mono=False, entrada=None, vuelta=2):
+def exportar_bucle(nombre, x, largo_s, rms_db=-17.0, margen=0.5, kbps=96, fundir=False, salida=None, mono=False, entrada=None, vuelta=2, ar=24000):
     """x holds three identical rounds of `largo_s` seconds: keeps the middle one with `margen`
     seconds either side. The synth's rounds are sample-identical (tails included), so playing from
     margen to margen + largo_s in a loop joins with no fade, whatever silence a decoder adds.
@@ -627,7 +627,8 @@ def exportar_bucle(nombre, x, largo_s, rms_db=-17.0, margen=0.5, kbps=192, fundi
     With `entrada` (seconds of intro before the rounds) the file starts at the very beginning:
     the intro plays once, then round `vuelta` loops (the first will do if the intro ends just as
     a round does, so that what comes before both is the same).
-    `salida`: where the MP3 goes (the game's src/sonido), at `kbps`, in mono if `mono`."""
+    `salida`: where the MP3 goes (the game's src/sonido), at `kbps` and `ar` samples a second (the
+    game decodes music at 24 kHz: docs/ESTILO.md, T5.11), in mono if `mono`."""
     a = (entrada or 0) + (vuelta - 1) * largo_s  # where the loop starts in x
     c0 = 0 if entrada is not None else int(round((a - margen) * SR))
     c1 = int(round((a + largo_s + margen) * SR))
@@ -645,5 +646,5 @@ def exportar_bucle(nombre, x, largo_s, rms_db=-17.0, margen=0.5, kbps=192, fundi
     print(f'  junta: diferencia máxima entre vueltas {np.max(np.abs(y[:, ini:ini + 4410] - y[:, fin:fin + 4410])):.5f}')
     _wav(f'{nombre}.wav', y)
     salida = salida or f'{nombre}.mp3'
-    subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', f'{nombre}.wav', *(['-ac', '1'] if mono else []), '-c:a', 'libmp3lame', '-b:a', f'{kbps}k', salida], check=True)
+    subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', f'{nombre}.wav', *(['-ac', '1'] if mono else []), '-ar', str(ar), '-c:a', 'libmp3lame', '-b:a', f'{kbps}k', salida], check=True)
     print(f'{salida}: {y.shape[1] / SR:.2f} s, bucle de {ini / SR:.6f} a {fin / SR:.6f} s')

@@ -266,7 +266,7 @@ if (toca('sinfin')) {
 const mem = await page.evaluate(() => ({ decorado: window.__cyc.g.motor.memoriaDecorado, musica: window.__cyc.g.sound.memoriaMusica }));
 const fallosMem = [];
 if (mem.decorado.mb > 100) fallosMem.push(`decorados: ${mem.decorado.mb} MB (máximo 100)`);
-if (mem.musica > 90) fallosMem.push(`música descomprimida: ${mem.musica} MB (máximo 90)`);
+if (mem.musica > 50) fallosMem.push(`música descomprimida: ${mem.musica} MB (máximo 50)`);
 filas.push(fallosMem);
 console.log(`memoria al final: decorados ${mem.decorado.mb} MB en ${mem.decorado.escenas} escenas, música ${mem.musica} MB${fallosMem.length ? '   ✗ ' + fallosMem.join('; ') : ''}`);
 await b.close();

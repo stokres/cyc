@@ -13,10 +13,17 @@ import { MUSICA, type Pista } from '../sonido/musica';
 /** Music level under the master (the cues are short and quiet). */
 const NIVEL_MUSICA = 0.55;
 /**
- * Tracks kept decoded at once (docs/ESTILO.md, T5.11): a minute of music is some 25 MB once
- * decoded, and keeping every track that had played added up to 200 MB on a phone.
+ * Tracks kept decoded at once (docs/ESTILO.md, T5.11): keeping every track that had played
+ * added up to 200 MB on a phone.
  */
 const MAX_DECODIFICADAS = 3;
+/**
+ * Samples a second the sound runs at (and the music is decoded to). Web Audio holds a track
+ * decoded, as 32-bit samples: at a phone's native 48 kHz in stereo that is 23 MB a minute,
+ * whatever the MP3 weighed. At 24 kHz it is half, and on a phone nobody hears the difference
+ * (everything up to 12 kHz is kept). The MP3s are made at 24 kHz too (tools/musica).
+ */
+const MUESTREO = 24000;
 
 /** What a scene wants playing: a track, how loud (0–1) and where (-1 left, 1 right). */
 export interface Ambiente {
@@ -64,7 +71,12 @@ export class Sound {
     }
     const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!AC) return;
-    const ac = new AC();
+    let ac: AudioContext;
+    try {
+      ac = new AC({ sampleRate: MUESTREO });
+    } catch {
+      ac = new AC(); // a browser that will not run at another rate: its own
+    }
     this.ac = ac;
     this.master = ac.createGain();
     this.master.gain.value = this.muted ? 0 : 0.8;
