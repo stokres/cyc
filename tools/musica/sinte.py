@@ -398,15 +398,15 @@ def _eco(buf, eco, beat_s):
     return out
 
 
-_IR = None
+_IR = {}
 
 
-def _sala(envio):
-    """A small, bright hall: decaying noise, the highs dying first, a little pre-delay."""
-    global _IR
-    if _IR is None:
+def _sala(envio, rt=1.9):
+    """A hall: decaying noise, the highs dying first, a little pre-delay. rt: seconds to fall 60 dB
+    in the lows (the mids last 0.8 of that, the highs 0.37)."""
+    if rt not in _IR:
         rng = np.random.default_rng(7)
-        nm = int(2.4 * SR)
+        nm = int(1.3 * rt * SR)
         t = np.arange(nm) / SR
         ir = np.zeros((2, nm))
         for c in range(2):
@@ -414,14 +414,15 @@ def _sala(envio):
             bajo = _filtro(ruido_, 'lowpass', 700)
             medio = _filtro(_filtro(ruido_, 'highpass', 700), 'lowpass', 4000)
             alto = _filtro(ruido_, 'highpass', 4000)
-            ir[c] = bajo * np.exp(-6.9 * t / 1.9) + medio * np.exp(-6.9 * t / 1.5) + alto * 0.7 * np.exp(-6.9 * t / 0.7)
+            ir[c] = (bajo * np.exp(-6.9 * t / rt) + medio * np.exp(-6.9 * t / (0.8 * rt))
+                     + alto * 0.7 * np.exp(-6.9 * t / (0.37 * rt)))
             ir[c] *= np.minimum(1, t / 0.02)
         pre = int(0.018 * SR)
         ir = np.concatenate([np.zeros((2, pre)), ir], axis=1)
-        _IR = ir / np.sqrt(np.sum(ir ** 2) / 2) * 0.5
+        _IR[rt] = ir / np.sqrt(np.sum(ir ** 2) / 2) * 0.5
     out = np.zeros_like(envio)
     for c in range(2):
-        out[c] = oaconvolve(envio[c], _IR[c])[:envio.shape[1]]
+        out[c] = oaconvolve(envio[c], _IR[rt][c])[:envio.shape[1]]
     return out
 
 
@@ -453,7 +454,8 @@ def frase(texto, oct=0, largo=16):
 
 INTERVALOS = {'': (0, 4, 7), 'm': (0, 3, 7), '7': (0, 4, 7, 10), 'maj7': (0, 4, 7, 11), 'm7': (0, 3, 7, 10),
               'sus4': (0, 5, 7), '7sus4': (0, 5, 7, 10), 'sus2': (0, 2, 7), 'add9': (0, 4, 7, 14), 'm9': (0, 3, 7, 10, 14),
-              'dim': (0, 3, 6), '6': (0, 4, 7, 9), 'm6': (0, 3, 7, 9), 'maj9': (0, 4, 7, 11, 14), '9': (0, 4, 7, 10, 14)}
+              'dim': (0, 3, 6), '6': (0, 4, 7, 9), 'm6': (0, 3, 7, 9), 'maj9': (0, 4, 7, 11, 14), '9': (0, 4, 7, 10, 14),
+              'm7b5': (0, 3, 6, 10), '7b9': (0, 4, 7, 10, 13), 'dim7': (0, 3, 6, 9), '69': (0, 4, 7, 9, 14), 'mmaj7': (0, 3, 7, 11)}
 
 
 def acorde(nombre):
@@ -588,14 +590,24 @@ def exportar(nombre, x, rms_db=-17.0, fundido=None, kbps=192):
     print(f'{nombre}.mp3: {y.shape[1] / SR:.1f} s, pico {np.max(np.abs(y)):.2f}')
 
 
-def exportar_bucle(nombre, x, largo_s, rms_db=-17.0, margen=0.5, kbps=128):
+def exportar_bucle(nombre, x, largo_s, rms_db=-17.0, margen=0.5, kbps=128, fundir=False):
     """x holds three identical rounds of `largo_s` seconds: keeps the middle one with `margen`
-    seconds either side. The rounds are sample-identical (tails included), so playing from
-    margen to margen + largo_s in a loop joins with no fade, whatever silence a decoder adds."""
+    seconds either side. The synth's rounds are sample-identical (tails included), so playing from
+    margen to margen + largo_s in a loop joins with no fade, whatever silence a decoder adds.
+    A SoundFont's rounds are only nearly so: with `fundir`, the end of the loop fades into what
+    really comes before its start (as bucle.py does), so the jump back is between neighbours."""
     i0 = int(round((largo_s - margen) * SR))
     i1 = int(round((2 * largo_s + margen) * SR))
+    trozo = x[:, i0:i1].copy()
+    if fundir:
+        fin = int(round((margen + largo_s) * SR))
+        desplaza = fin - int(round(margen * SR))
+        f0, f1 = fin - int(0.2 * SR), fin - int(0.06 * SR)
+        w = np.clip((np.arange(f0, trozo.shape[1]) - f0) / (f1 - f0), 0, 1)
+        w = 0.5 - 0.5 * np.cos(np.pi * w)
+        trozo[:, f0:] = (1 - w) * trozo[:, f0:] + w * x[:, i0 + f0 - desplaza:i0 + trozo.shape[1] - desplaza]
     medio = x[:, int(round(largo_s * SR)):int(round(2 * largo_s * SR))]
-    y = _master(x[:, i0:i1], ganancia_para(medio, rms_db))
+    y = _master(trozo, ganancia_para(medio, rms_db))
     a = y[:, int(margen * SR):int(margen * SR) + 4410]
     b = y[:, int((margen + largo_s) * SR):int((margen + largo_s) * SR) + 4410]
     print(f'  junta: diferencia máxima entre vueltas {np.max(np.abs(a - b)):.5f}')
