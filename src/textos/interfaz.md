@@ -9,8 +9,22 @@ titulo.rejugando = Rejugando el capítulo · tu partida sigue guardada
 cargando = Preparando la escena…
 prologo.saltar = Saltar intro
 
+tutorial.titulo = Cómo se juega
+tutorial.tocar = Un toque:
+tutorial.tocar.que = andar, usar, coger y hablar.
+tutorial.mantener = Mantener el dedo:
+tutorial.mantener.que = mirar algo de cerca.
+tutorial.prueba1 = Pruébalo: toca la pantalla.
+tutorial.prueba2 = Ahora mantén el dedo hasta que se llene el círculo.
+tutorial.corto = Un poco más: hasta que se llene el círculo.
+tutorial.largo = Eso era mantener. Primero, un toque rápido.
+tutorial.bien = ¡Eso es! Si te atascas, el ojo enseña lo que se puede tocar y la bombilla da pistas.
+tutorial.saltar = Saltar
+
 menu.titulo = Pausa
-menu.sonido = Sonido
+menu.musica = Música
+menu.efectos = Efectos
+menu.pantallaCompleta = Pantalla completa
 menu.calidad = Calidad
 menu.rendimiento = Ver rendimiento
 rendimiento.reposo = en reposo (tope 30)

@@ -54,6 +54,7 @@ node tools/icono.mjs                                                      # icon
 # python3 tema_principal.py  # también tema_pop.py (el mismo tema en pop-rock), barrio.py y vueltas.py; con «bucle», la versión en bucle para el juego
 # python3 contra_robi.py     # minijuegos: también jaleo.py. El bar: bar_rockero.py (y su versión oída desde la puerta)
 # python3 pasodoble.py       # el pasodoble del camionero del «Continuará…» (bocina, motor y frenos de camión con sinte)
+# python3 bolilandia_noche.py [luz]   # el vals de caja de música de Bolilandia, a oscuras (y con la luz dada)
 # Chiptune estilo VVVVVV con un sintetizador propio (sinte.py: sin MIDI ni banco de sonidos). Desde tools/musica:
 # python3 todo_gas.py        # también caravana.py y paseo.py; con «bucle», la versión en bucle sin junta para el juego
 # python3 paseo.py acustica  # la misma partitura con instrumentos del banco de sonidos, para comparar

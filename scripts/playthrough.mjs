@@ -49,6 +49,28 @@ async function sonando(pista, donde) {
   check(ahora === pista, `${donde} no suena ${pista} (${ahora})`);
 }
 
+/**
+ * How to play (src/ui/tutorial.ts), the first time a story starts in a game: a tap, then
+ * a short tap that is not enough, then holding the finger until the ring fills.
+ */
+let tutoriales = 0;
+async function tutorial() {
+  await wait(500);
+  await page.touchscreen.tap(300, 250);
+  await wait(300);
+  check(await page.$('.tutorial .paso.tocar.ok'), 'el tutorial no da por bueno el toque');
+  await page.touchscreen.tap(300, 250);
+  await wait(300);
+  check(!(await page.$('.tutorial .paso.mantener.ok')), 'el tutorial da por bueno un toque como mantener');
+  await page.mouse.move(600, 250);
+  await page.mouse.down();
+  await wait(700);
+  await page.mouse.up();
+  check(await page.$('.tutorial .paso.mantener.ok'), 'el tutorial no da por bueno mantener el dedo');
+  await page.waitForSelector('.cubierta.tutorial', { state: 'detached', timeout: 8000 });
+  tutoriales++;
+}
+
 /** Tap through dialogue until the running script ends. */
 async function charla() {
   let last = '';
@@ -59,8 +81,12 @@ async function charla() {
       return;
     }
     await wait(120);
-    const s = await page.evaluate(() => ({ busy: window.__cyc.g.ocupadoAhora, d: document.querySelector('.dialogo')?.innerText ?? null, over: !!document.querySelector('.cubierta.movil, .cubierta.minijuego, .cubierta.rotulo, .cubierta.eleccion, .cubierta.titulo') }));
+    const s = await page.evaluate(() => ({ busy: window.__cyc.g.ocupadoAhora, d: document.querySelector('.dialogo')?.innerText ?? null, tuto: !!document.querySelector('.cubierta.tutorial'), over: !!document.querySelector('.cubierta.movil, .cubierta.minijuego, .cubierta.rotulo, .cubierta.eleccion, .cubierta.titulo') }));
     if (s.over) return;
+    if (s.tuto) {
+      await tutorial();
+      continue;
+    }
     if (s.d !== null) {
       const t = s.d.replace(/\s*▸\s*$/, '').replace(/\n/g, ' · ');
       if (t !== last) console.log('   »', t);
@@ -251,15 +277,20 @@ async function dispararRobot() {
     await wait(320);
   }
   await page.waitForSelector('.cubierta.robot', { state: 'detached', timeout: 30000 });
-  await wait(1000);
-  check(Object.keys(await musicas()).length === 0, 'la música de Robi sigue sonando al acabar');
+  // The park's music comes back, the lit version.
+  await sonando('bolilandiaLuz', 'al acabar la pelea con Robi');
+  check(!('contraRobi' in (await musicas())), 'la música de Robi sigue sonando al acabar');
   return tiros;
 }
 
 async function historiaChuchi() {
   await shot('parque');
+  // He lost his glasses in the tube slide: he starts without them.
+  check((await page.evaluate(() => window.__cyc.g.estado.ropa.chuchi)) === 'singafas', 'Chuchi empieza con las gafas puestas');
+  await sonando('bolilandia', 'en Bolilandia a oscuras');
   for (let i = 1; i <= 3; i++) await paso(`Chuchi: rebuscar en la piscina de bolas (${i})`, async () => tocar(await verZona('piscina')));
   check(await flag('c.gafas'), 'Chuchi no encuentra las gafas');
+  check((await page.evaluate(() => window.__cyc.g.estado.ropa.chuchi)) === 'calle', 'Chuchi no se pone las gafas al encontrarlas');
   await shot('parque-gafas');
   await paso('Chuchi: la puerta del personal, cerrada', async () => tocar(await verZona('puertaPersonal')), 'c.puertaProbada');
   await paso('Chuchi: la llave, en un gancho muy alto', async () => tocar(await verZona('gancho')), 'c.ganchoVisto');
@@ -272,6 +303,9 @@ async function historiaChuchi() {
   await paso('Chuchi: pescar la llave', () => usarEn('redLarga', 'gancho'), 'c.llave');
   await paso('Chuchi: abrir el cuarto del personal', () => usarEn('llave', 'puertaPersonal'), 'c.cuarto');
   await paso('Chuchi: dar la luz (y despertar a Robi)', async () => tocar(await verZona('puertaPersonal')), 'c.robot');
+  // With the lights on, the park's waltz wakes up too.
+  await sonando('bolilandiaLuz', 'en Bolilandia con luz');
+  check(!('bolilandia' in (await musicas())), 'la versión a oscuras sigue sonando con luz');
   await shot('parque-luz');
   await paso('Chuchi: el cañón de bolas contra Robi', async () => {
     await tocar(await verZona('canon'));
@@ -383,7 +417,19 @@ async function historiaPablo() {
       const k = g.motor.f(s.y);
       return [(g.motor.screenX(s.X, k) / g.motor.vw) * g.motor.cssW, ((s.y - 150 * g.motor.escala(k)) / 1080) * g.motor.cssH];
     });
-    await tocar([x, y]);
+    await page.touchscreen.tap(x, y);
+    // While they talk, Pablo and his shadow look at each other (not the same way).
+    await page.waitForSelector('.dialogo', { timeout: 10000 });
+    await wait(400);
+    const caras = await page.evaluate(() => {
+      const g = window.__cyc.g;
+      const p = g.pjs.get('pablo');
+      const s = g.sombra;
+      return { p: p.face, s: s.face, lado: Math.sign(s.X - p.X) };
+    });
+    check(caras.p === caras.lado && caras.s === -caras.lado, `Pablo y su sombra no se miran al hablar (${JSON.stringify(caras)})`);
+    await shot('pablo-sombra');
+    await charla();
   });
   await paso('Pablo: el libreto del baúl', async () => tocar(await verZona('baul')), 'p.libreto');
   await paso('Pablo: las tijeras de vestuario', async () => tocar(await verZona('tijeras')), 'p.tijeras');
@@ -472,6 +518,7 @@ await wait(400);
 await shot('eleccion');
 await escoger('fran');
 await shot('dormido');
+check(tutoriales === 1, `el tutorial sale ${tutoriales} veces al empezar la primera historia`);
 await paso('Despertar a Fran', () => tocar([420, 200]), 'despierto');
 await sonando('barrio', 'en el piso de Fran');
 await shot('despierto');
@@ -496,6 +543,9 @@ await paso('Coger el móvil y leer el grupo', async () => {
   await page.click('.telefono .cerrar');
   await wait(200);
   await charla();
+  // Into the bag, and off the table.
+  check(!(await page.evaluate(() => window.__cyc.g.motor.cond('!movil'))), 'el móvil sigue en la mesa');
+  await shot('mesa-sin-movil');
 }, 'chatLeido');
 await paso('Probar la puerta', async () => tocar(await verZona('puerta')), 'puertaProbada');
 await shot('puerta');
@@ -534,10 +584,10 @@ await paso('Salir a la calle', async () => {
   await charla();
 }, 'enCalle');
 await shot('calle');
-// The bar's rock, faint at the far end of the street; the stroll still on top.
+// The bar's rock, soft at the far end of the street; the stroll still on top.
 await page.waitForFunction(() => 'barPuerta' in window.__cyc.g.sound.musicas, null, { timeout: 15000 }).catch(() => {});
 const lejosBar = await musicas();
-check((lejosBar.barPuerta ?? 0) > 0 && lejosBar.barPuerta < 0.2 && (lejosBar.barrio ?? 0) > 0.8, `en la calle no suena el barrio con el bar muy bajito (${JSON.stringify(lejosBar)})`);
+check((lejosBar.barPuerta ?? 0) >= 0.15 && lejosBar.barPuerta < 0.3 && (lejosBar.barrio ?? 0) > 0.8, `en la calle no suena el barrio con el bar bajito (${JSON.stringify(lejosBar)})`);
 await paso('Andar hacia el Bar del Río', async () => {
   for (let i = 0; i < 60; i++) {
     if (await page.$('.cubierta.rotulo')) break;
@@ -603,6 +653,8 @@ async function abrirCapitulos() {
   await page.click('#m-capitulos');
   await page.waitForSelector('.capitulos');
 }
+// How to play only came up once in the whole game, with the first story.
+check(tutoriales === 1, `el tutorial ha salido ${tutoriales} veces en la partida`);
 await paso('Rejugar el capítulo sin perder la partida', async () => {
   let p = await guardada();
   check(p.progreso.capitulos['1']?.superado, 'el capítulo 1 no queda superado');

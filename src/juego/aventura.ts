@@ -11,6 +11,7 @@ import { dialogo, hayDialogo, restaurarUsos, texto, usos, type Linea, type Quien
 import { PROTAS, REPARTO, type PjId } from './reparto';
 import type { Estado } from './estado';
 import { OBJETOS } from '../arte/objetos.mjs';
+import { mostrarTutorial } from '../ui/tutorial';
 import type { Ambiente } from '../core/audio';
 
 export interface ZonaLogica {
@@ -63,7 +64,7 @@ export interface Capitulo {
 
 const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export const horaDe = (m: number) => `${Math.floor(m / 60) % 24}:${String(m % 60).padStart(2, '0')}`;
-const MARGEN = 26; // extra tap margin around every zone (rule I4)
+const MARGEN = 26; // extra tap margin around every zone (rule I4), never into the floor
 
 export class Aventura {
   readonly motor: Motor;
@@ -76,6 +77,8 @@ export class Aventura {
   perro: Perrita | null = null;
   /** Pablo's shadow, following him around the backstage (the narrator in person). */
   sombra: Personaje | null = null;
+  /** The shadow faces Pablo (they have been talking) instead of mirroring him, until he walks. */
+  private sombraMira = false;
   props: Objeto[] = [];
   private zonasLogicas: Record<string, ZonaLogica> = {};
   private ocupado = false;
@@ -112,6 +115,7 @@ export class Aventura {
           await this.hablar('nocombina');
         }),
     });
+    this.hud.ropas = estado.ropa;
     this.velo = h('div', { class: 'velo' }, h('span', {}, texto('cargando')));
     root.append(this.velo);
     const gest = new Gestures(root);
@@ -183,6 +187,7 @@ export class Aventura {
   vestir(quien: PjId, ropa: string) {
     this.estado.ropa[quien] = ropa;
     this.pjs.get(quien)?.vestir(ropa);
+    this.refrescar();
   }
 
   ayudaUnaVez(clave: string) {
@@ -194,6 +199,7 @@ export class Aventura {
 
   refrescar() {
     const e = this.estado;
+    this.hud.ropas = e.ropa;
     this.hud.objetivo(this.cap.objetivo(this), this.hora);
     this.hud.setBolsa(e.inv[e.activo]);
     const nombreLugar = (id: string) => texto('selector.fuera', { lugar: texto(`lugar.${id}`) });
@@ -233,12 +239,22 @@ export class Aventura {
 
   // ------------------------------------------------------------ scenes
 
-  /** Load a scene and put in it whoever is there. */
-  async irA(escena: string, conVelo = true) {
-    if (conVelo) await this.velar(true);
-    const S = this.cap.escenas[escena]();
+  /**
+   * Load a scene and put in it whoever is there. `levantar` false keeps the black
+   * curtain down afterwards (the game's first scene, behind the title and the prologue).
+   */
+  async irA(escena: string, conVelo = true, levantar = true) {
     const span = this.velo.querySelector('span')!;
+    if (conVelo) {
+      // The dialogue box shows over the curtain: the last line said before a door goes with it.
+      this.hud.cerrarDialogo();
+      span.textContent = texto('cargando');
+      await this.velar(true);
+    }
+    const S = this.cap.escenas[escena]();
     await this.motor.cargar(S, (p) => (span.textContent = `${texto('cargando')} ${Math.round(p * 100)} %`));
+    // Loaded: the curtain is only black from here on (the end of a story or the chapter fade on it).
+    span.textContent = '';
     this.escena = escena;
     this.S = S;
     // Actors in this scene.
@@ -279,7 +295,7 @@ export class Aventura {
     this.motor.seguir(this.foco ?? (aqui ? a.X : S.start.X), true);
     this.refrescar();
     this.guardar();
-    if (conVelo) await this.velar(false);
+    if (conVelo && levantar) await this.velar(false);
     await entrar;
     this.refrescar();
     // Bake the scenes this one has a door to, in the background, so they open instantly. Only
@@ -338,6 +354,14 @@ export class Aventura {
     );
     this.sound.tap();
     return id;
+  }
+
+  /** How to play (src/ui/tutorial.ts): once a game, when its first story starts. */
+  async tutorial() {
+    if (this.flag('tutorial')) return;
+    this.poner('tutorial');
+    this.hud.cerrarDialogo();
+    await mostrarTutorial(this.root);
   }
 
   /** A new game: choose who starts. */
@@ -403,6 +427,14 @@ export class Aventura {
       actor.mood = animo ?? base;
       actor.talking = true;
       for (const o of this.pjs.values()) if (o !== actor && o.visible) o.lookAt(actor.X);
+      // Pablo and his shadow look at each other while either of them speaks.
+      const s = this.sombra;
+      const pablo = this.pjs.get('pablo');
+      if (s?.visible && pablo && (actor === s || actor === pablo)) {
+        s.lookAt(pablo.X);
+        if (actor === s) pablo.lookAt(s.X);
+        this.sombraMira = true;
+      }
     }
     if (quien === 'aceituna' && this.perro) this.perro.rig.excited = 1;
     const p = this.hud.decir(quien, frase, animo ?? base, hora);
@@ -485,7 +517,11 @@ export class Aventura {
       const L = this.zonasLogicas[id];
       if (!L || (L.activa && !L.activa())) continue;
       const r = this.motor.zonaRect(z);
-      if (x >= r.x - MARGEN && x <= r.x + r.w + MARGEN && y >= r.y - MARGEN && y <= r.y + r.h + MARGEN && r.w * r.h < area) {
+      // A tap on the floor is a step: the margin stops at the floor line, and a zone already
+      // down on the floor (the sofa, the cannon) has none below (8 October 2026: walking
+      // often set things off).
+      const abajo = Math.max(r.y + r.h, Math.min(r.y + r.h + MARGEN, this.S.BASE));
+      if (x >= r.x - MARGEN && x <= r.x + r.w + MARGEN && y >= r.y - MARGEN && y <= abajo && r.w * r.h < area) {
         mejor = id;
         area = r.w * r.h;
       }
@@ -530,7 +566,10 @@ export class Aventura {
     this.hud.cerrarBandeja();
     const { x, y } = this.logico(p);
     const item = this.hud.seleccionado;
-    const actor = this.actorEn(x, y);
+    // Tapping your own character with nothing in hand is a step, not a look (that is the long
+    // press): taps meant to walk a little kept landing on them.
+    const quien = this.actorEn(x, y);
+    const actor = quien === this.estado.activo && !item ? null : quien;
     const zona = actor ? null : this.zonaEn(x, y);
     this.sound.tap();
     if (actor) {
@@ -543,6 +582,7 @@ export class Aventura {
           await this.andar(otro.X + lado * 150, otro.y + 6);
           me.lookAt(otro.X);
           if (actor !== 'aceituna') otro.lookAt(me.X);
+          if (actor === 'sombra') this.sombraMira = true;
         }
         await this.cap.personaje(this, actor, item, false);
       });
@@ -719,6 +759,7 @@ export class Aventura {
     const y = Math.max(S.walk.y0, pablo.y - 14);
     Object.assign(s, { X: despegar ? pablo.X - pablo.face * 20 : pablo.X - pablo.face * 150, y, face: pablo.face, speed: (S.speed ?? 250) * 0.85 });
     this.sombra = s;
+    this.sombraMira = false;
     this.motor.actores.push(s);
     if (despegar) void s.walkTo(pablo.X - pablo.face * 150, y).then(() => (s.face = pablo.face));
   }
@@ -748,7 +789,11 @@ export class Aventura {
       if (s.moving || Math.hypot(goal.X - s.X, goal.y - s.y) > (P.moving ? 30 : 110)) void s.walkTo(goal.X, goal.y);
     }
     s.step(dt);
-    if (P && !s.moving) s.face = P.face;
+    if (P?.moving) this.sombraMira = false;
+    if (P && !s.moving) {
+      if (this.sombraMira) s.lookAt(P.X);
+      else s.face = P.face;
+    }
     s.talking = hablando;
     s.update(this.motor.t, dt);
   }

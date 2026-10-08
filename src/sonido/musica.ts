@@ -11,6 +11,8 @@ import contraRobi from './contra-robi.mp3?url';
 import jaleo from './jaleo.mp3?url';
 import barPuerta from './bar-puerta.mp3?url';
 import pasodoble from './pasodoble.mp3?url';
+import bolilandia from './bolilandia.mp3?url';
+import bolilandiaLuz from './bolilandia-luz.mp3?url';
 
 export const MUSICA = {
   /** The farm polka on banjo, from Guille's radio (banjo.py radio). */
@@ -27,6 +29,10 @@ export const MUSICA = {
   jaleo: { url: jaleo, inicio: 0.5, fin: 41.3 },
   /** The Bar del Río's rock as heard from the street, through the door (bar_rockero.py puerta). */
   barPuerta: { url: barPuerta, inicio: 0.5, fin: 69.071429 },
+  /** «Bolilandia, cerrado»: the play park's music-box waltz at night, lights out, Chuchi's (bolilandia_noche.py). */
+  bolilandia: { url: bolilandia, inicio: 0.5, fin: 63.108707 },
+  /** The same waltz with the lights on and the park awake: glockenspiel, calliope, tuba (bolilandia_noche.py luz). */
+  bolilandiaLuz: { url: bolilandiaLuz, inicio: 0.5, fin: 63.108707 },
   /** «Pasodoble del camionero», the end card: the lorry and the fanfare once, then the pasodoble (pasodoble.py). */
   pasodoble: { url: pasodoble, entrada: 0, inicio: 12.413787, fin: 79.65517 },
 } as const;

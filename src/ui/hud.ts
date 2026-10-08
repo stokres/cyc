@@ -26,6 +26,9 @@ const ICONOS = {
   mano: '<svg viewBox="0 0 24 24"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12m0-1.5v-2a1.5 1.5 0 0 1 3 0V12m0-1a1.5 1.5 0 0 1 3 0v1.5m0 0a1.5 1.5 0 0 1 3 0V16a6 6 0 0 1-6 6h-1.6a6 6 0 0 1-4.6-2.2L4.3 16a1.6 1.6 0 0 1 2.4-2l1.3 1.4"/></svg>',
 };
 
+/** The hand of the first-time help, for the how-to-play card (src/ui/tutorial.ts). */
+export const ICONO_MANO = ICONOS.mano;
+
 function boton(nombre: keyof typeof ICONOS, label: string, onclick: () => void, clase = 'redondo vidrio') {
   const b = h('button', { class: clase, 'aria-label': label, title: label, onclick: (e) => (e.stopPropagation(), onclick()) });
   b.innerHTML = ICONOS[nombre];
@@ -78,6 +81,8 @@ export class Hud {
   seleccionado: string | null = null;
   /** Who is speaking right now (for lip sync in the scene). */
   hablando: Quien = null;
+  /** What each protagonist wears now: the dock and the dialogue portraits show it (Chuchi's glasses). */
+  ropas: Partial<Record<PjId, string>> = {};
 
   constructor(parent: HTMLElement, private ev: HudEventos) {
     this.root = h('div', { class: 'ui' });
@@ -108,7 +113,7 @@ export class Hud {
     this.anilloEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     this.anilloEl.setAttribute('class', 'anillo');
     this.anilloEl.setAttribute('viewBox', '0 0 64 64');
-    this.anilloEl.innerHTML = '<circle cx="32" cy="32" r="26" pathLength="100" stroke-dasharray="0 100"/>';
+    this.anilloEl.innerHTML = '<circle class="pista" cx="32" cy="32" r="26"/><circle class="lleno" cx="32" cy="32" r="26" pathLength="100" stroke-dasharray="0 100"/>';
     this.anilloEl.style.display = 'none';
     this.root.append(this.anilloEl);
 
@@ -135,7 +140,7 @@ export class Hud {
           h('span', { class: 'nombre' }, F.nombre),
           e.camino ? h('span', { class: 'hecho', 'aria-hidden': 'true' }, '✓') : null,
         );
-        b.querySelector('.cara')!.innerHTML = retrato(e.id, { mood: F.arte.INFO.defaultMood });
+        b.querySelector('.cara')!.innerHTML = retrato(e.id, { mood: F.arte.INFO.defaultMood, ropa: this.ropas[e.id] });
         return b;
       }),
     );
@@ -285,7 +290,9 @@ export class Hud {
     const key = `${this.retratoDe.animo}|${boca}|${this.parpadeo < 0 ? 1 : 0}`;
     if (key === this.retratoKey) return;
     this.retratoKey = key;
-    this.retratoEl.innerHTML = retrato(this.retratoDe.quien, { mood: this.retratoDe.animo, mouthKind: boca === 'reposo' ? undefined : boca, blink: this.parpadeo < 0 });
+    const q = this.retratoDe.quien;
+    const ropa = q === 'aceituna' || q === 'sombra' ? undefined : this.ropas[q];
+    this.retratoEl.innerHTML = retrato(q, { mood: this.retratoDe.animo, mouthKind: boca === 'reposo' ? undefined : boca, blink: this.parpadeo < 0, ropa });
   }
 
   // ------------------------------------------------------------ help, labels, ring
@@ -318,7 +325,7 @@ export class Hud {
     this.anilloEl.style.display = 'block';
     this.anilloEl.style.left = `${x}px`;
     this.anilloEl.style.top = `${y}px`;
-    this.anilloEl.querySelector('circle')!.setAttribute('stroke-dasharray', `${(t * 100).toFixed(1)} 100`);
+    this.anilloEl.querySelector('.lleno')!.setAttribute('stroke-dasharray', `${(t * 100).toFixed(1)} 100`);
   }
 
   fps(t: string | null) {

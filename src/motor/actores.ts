@@ -26,6 +26,14 @@ export interface ArteDePersonaje {
   headFront(o?: { mood?: string; mouthKind?: string; blink?: boolean }): string;
   JOINTS: Record<string, [number, number]>;
   INFO: { name: string; defaultMood?: string; traits?: string };
+  /** Outfits; one may draw the head its own way (Chuchi without his glasses). */
+  OUTFITS?: Record<string, { head?: ArteDePersonaje['head']; headFront?: ArteDePersonaje['headFront'] }>;
+}
+
+/** The character's art as the rig sees it in an outfit: the outfit's own head, if it has one. */
+function conRopa(arte: ArteDePersonaje, outfit?: string): ArteDePersonaje {
+  const head = outfit ? arte.OUTFITS?.[outfit]?.head : undefined;
+  return head ? { ...arte, head } : arte;
 }
 
 let uid = 0;
@@ -294,7 +302,7 @@ export class Personaje extends Actor {
   constructor(world: SVGGElement, defs: SVGDefsElement, id: string, readonly arte: ArteDePersonaje, outfit?: string, seed = 0) {
     super(world, defs, id, arte.body({}, outfit), [44, 9]);
     this.outfit = outfit;
-    this.rig = new Rig(this.inner.querySelector('#personaje'), arte, { seed }) as RigRT;
+    this.rig = new Rig(this.inner.querySelector('#personaje'), conRopa(arte, outfit), { seed }) as RigRT;
     void enMarcha(() => this.aImagenes());
   }
 
@@ -335,7 +343,7 @@ export class Personaje extends Actor {
     const { mood, talking } = this.rig;
     this.outfit = outfit;
     this.inner.innerHTML = this.arte.body({}, outfit);
-    this.rig = new Rig(this.inner.querySelector('#personaje'), this.arte, { seed: this.rig.seed }) as RigRT;
+    this.rig = new Rig(this.inner.querySelector('#personaje'), conRopa(this.arte, outfit), { seed: this.rig.seed }) as RigRT;
     Object.assign(this.rig, { mood, talking });
     void enMarcha(() => this.aImagenes());
   }

@@ -526,12 +526,13 @@ function floor() {
 
 const KF = 1.42; // depth factor of the foreground furniture
 const yF = P.yOf(KF); // their floor line, ~1052
+const MESA = yF - 0.76 * M * KF; // top of the dining table
 
 function table() {
   const out = [];
   const u0 = 270;
   const u1 = 800;
-  const top = yF - 0.76 * M * KF;
+  const top = MESA;
   const T = mat('#9a6a44', '#7a5034', '#b8845a', '#4a2e1c');
   // Chairs at both ends (bistro chairs, seen side on).
   const chair = (x, dir) => {
@@ -551,8 +552,8 @@ function table() {
   out.push(box(u0 - 16, top + 2, u1 - u0 + 32, 26, T, { r: 3, sh: 0.3, li: 0.15 }));
   for (const x of [u0 + 4, u1 - 34]) out.push(box(x, top + 26, 30, yF - top - 26, T, { r: 3, sh: 0.05, li: 0 }));
   out.push(box(u0 + 34, top + 26, u1 - u0 - 68, 16, T, { r: 2, sh: 0.4, li: 0 }));
-  // On the table: Fran's phone, a bowl of olive stones (a nod to the dog) and an empty can.
-  out.push(shape(polyD([[u0 + 120, top - 12], [u0 + 186, top - 12], [u0 + 192, top - 2], [u0 + 116, top - 2]]), '#1d1f26', [rect(u0 + 120, top - 11, 66, 3, '#3a3e48')], '#0e0f13', 1));
+  // On the table: a bowl of olive stones (a nod to the dog) and an empty can. Fran's phone is
+  // a piece of its own (phone()), gone once he picks it up.
   out.push(shape(smooth([[u0 + 300, top - 10], [u0 + 380, top - 10], [u0 + 370, top + 4], [u0 + 340, top + 8], [u0 + 310, top + 4]]), '#f0e8d8', [rect(u0 + 300, top, 80, 8, '#d0c6b2')], '#8a8070', 1.3));
   // Only the stones are left: Fran ate every olive before his nap.
   for (const [dx, dy] of [[318, -12], [336, -15], [354, -12], [345, -8], [328, -7]]) out.push(shape(ellipse(u0 + dx, top + dy, 6, 4, 0.4), '#d8c49a', [path(ellipse(u0 + dx - 2, top + dy - 1, 2, 1.2), '#f2e6c8')], '#8a6a3a', 0.8));
@@ -565,6 +566,16 @@ function table() {
   ], '#7a6440', 1.6));
   return out.join('');
 }
+
+/** Fran's phone face down on the table: its own piece, so it leaves the table when he takes it. */
+function phone() {
+  const u0 = 270;
+  const top = MESA;
+  return shape(polyD([[u0 + 120, top - 12], [u0 + 186, top - 12], [u0 + 192, top - 2], [u0 + 116, top - 2]]), '#1d1f26', [rect(u0 + 120, top - 11, 66, 3, '#3a3e48')], '#0e0f13', 1);
+}
+
+/** ...except for the notification light blinking on its edge. */
+const phoneLight = () => circle(456, MESA - 7, 2.2, '#7fe0a0');
 
 function sofa() {
   // Back to the camera, facing the fireplace. Rust fabric, a knitted throw and a cushion.
@@ -618,8 +629,6 @@ function frontEmissive() {
   return [
     // Arc lamp: warm inside of the shade.
     gpath(ellipse(LAMP.sx, LAMP.sy, 54, 9), lin(0, LAMP.sy - 9, 0, LAMP.sy + 9, [[0, '#ffe7b0'], [1, '#ffc066']])),
-    // Phone face down... except for the notification light blinking on its edge.
-    circle(456, yF - 0.76 * M * KF - 7, 2.2, '#7fe0a0'),
   ].join('');
 }
 
@@ -691,6 +700,7 @@ export function escena() {
         pieces: [
           { x0: -260, x1: 330, y0: 400, y1: 1080, body: bigPlant() },
           { x0: 140, x1: 930, y0: -10, y1: 1080, body: table() },
+          { x0: 370, x1: 480, y0: Math.floor(MESA - 30), y1: Math.ceil(MESA + 6), body: phone(), emissive: phoneLight(), si: '!movil' },
           { x0: 1500, x1: 2560, y0: 140, y1: 1080, body: floorLamp() + sofa() },
         ],
         emissive: frontEmissive(),
@@ -732,7 +742,8 @@ export function escena() {
       chimenea: { u: 1816, k: 1, w: 300, top: 600, bottom: 790, X: 1816, y: 866 },
       cuadro: { u: 1696, k: 1, w: 170, top: 250, bottom: 446, X: 1700, y: 866 },
       cartel: { u: 1936, k: 1, w: 170, top: 250, bottom: 446, X: 1936, y: 866 },
-      sofa: { u: 2086, k: KF, w: 720, top: 740, bottom: 850, X: 1960, y: 880 },
+      // Only the top of the backrest: below it, behind the sofa, is floor to walk on.
+      sofa: { u: 2086, k: KF, w: 720, top: 736, bottom: 800, X: 1960, y: 880 },
       terraza: { u: 2460, k: 1, w: 300, top: 260, bottom: 748, X: 2420, y: 860 },
       bano: { u: 2790, k: 1, w: 180, top: 262, bottom: 772, X: 2790, y: 860 },
       perchero: { u: 2990, k: 1, w: 150, top: 296, bottom: 570, X: 2990, y: 860 },

@@ -394,6 +394,8 @@ button:focus-visible {
   border-color: var(--color, var(--gold-soft));
   background: var(--glass-strong);
   pointer-events: none !important;
+  /* Over the black curtain too: the narrator speaks on it at the end of the chapter. */
+  z-index: 6;
 }
 
 .dialogo .retrato {
@@ -568,18 +570,29 @@ button:focus-visible {
   display: block;
 }
 
+/* Holding the finger down: a ring that fills round it. Big enough to show around the
+   fingertip (a 64 px one was hidden under the finger), over a dark track. */
 .anillo {
   position: absolute;
-  width: 64px;
-  height: 64px;
+  width: clamp(104px, 32vh, 136px);
+  height: clamp(104px, 32vh, 136px);
   transform: translate(-50%, -50%);
   pointer-events: none !important;
+  overflow: visible;
 }
 
 .anillo circle {
   fill: none;
-  stroke: var(--gold);
   stroke-width: 5;
+}
+
+.anillo .pista {
+  stroke: rgba(11, 17, 36, 0.5);
+  stroke-width: 7;
+}
+
+.anillo .lleno {
+  stroke: var(--gold);
   stroke-linecap: round;
   transform: rotate(-90deg);
   transform-origin: 50% 50%;
@@ -676,6 +689,49 @@ button:focus-visible {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+}
+
+/* The pause menu: its options in two columns, so it fits a phone's height. */
+.tarjeta.menu {
+  width: min(90vw, 800px);
+}
+
+.menu .opciones {
+  grid-template-columns: 1fr 1fr;
+  column-gap: 28px;
+  row-gap: 6px;
+}
+
+@media (max-width: 640px) {
+  .menu .opciones {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Music and effects volume: a gold slider with its percentage. */
+.volumen {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.volumen input[type='range'] {
+  flex: 1;
+  min-width: 90px;
+  max-width: 260px;
+  height: 44px;
+  margin: 0;
+  accent-color: var(--gold);
+  touch-action: none;
+}
+
+.volumen .valor {
+  min-width: 3.4em;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .seg button,
@@ -1491,6 +1547,157 @@ button:focus-visible {
   color: var(--muted);
   font-size: 14px;
   font-weight: 400;
+}
+
+/* ------------------------------------------------------------ how to play (src/ui/tutorial.ts) */
+
+.tutorial {
+  background: rgba(5, 7, 15, 0.72);
+  cursor: pointer;
+  touch-action: none;
+  transition: opacity 0.35s;
+}
+
+.tutorial.sale {
+  opacity: 0;
+}
+
+/* Taps anywhere, the card included, are the practice: only «Saltar» is a button. */
+.tutorial .tarjeta {
+  width: min(86vw, 520px);
+  pointer-events: none;
+  animation: sube 0.35s;
+}
+
+.tutorial .paso {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px 6px 6px;
+  border-radius: 14px;
+  background: rgba(243, 234, 214, 0.05);
+  border: 1px solid rgba(243, 234, 214, 0.12);
+  transition: background 0.3s, border-color 0.3s;
+}
+
+.tutorial .paso.ok {
+  background: rgba(219, 180, 108, 0.16);
+  border-color: var(--gold-soft);
+}
+
+.tutorial .que {
+  font-size: clamp(15px, 4.4vh, 19px);
+  line-height: 1.25;
+}
+
+.tutorial .que b {
+  color: var(--gold);
+}
+
+.tutorial .hecho {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  background: var(--gold);
+  color: var(--ink);
+  opacity: 0;
+  transform: scale(0.4);
+  transition: opacity 0.25s, transform 0.25s;
+}
+
+.tutorial .paso.ok .hecho {
+  opacity: 1;
+  transform: none;
+}
+
+.tutorial .icono {
+  position: relative;
+  width: clamp(40px, 12vh, 52px);
+  height: clamp(40px, 12vh, 52px);
+}
+
+.tutorial .icono svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: var(--cream);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tutorial .tocar svg {
+  animation: toque 1.4s infinite;
+}
+
+@keyframes toque {
+  0%, 55%, 100% { transform: none; }
+  25% { transform: translateY(3px) scale(0.92); }
+}
+
+.tutorial .icono .aro {
+  inset: -6px;
+  width: calc(100% + 12px);
+  height: calc(100% + 12px);
+  transform: rotate(-90deg);
+}
+
+.tutorial .icono .aro circle {
+  stroke: var(--gold);
+  stroke-width: 4;
+  stroke-dasharray: 100;
+  animation: aro 1.8s ease-in infinite;
+}
+
+@keyframes aro {
+  0% { stroke-dashoffset: 100; opacity: 1; }
+  70% { stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+
+.tutorial .prueba {
+  margin: 0;
+  min-height: 2.6em;
+  font-weight: 800;
+  font-size: clamp(15px, 4.4vh, 19px);
+  color: var(--gold);
+}
+
+.tutorial .prueba.otra {
+  color: var(--cream);
+}
+
+.tutorial .prueba.sacude {
+  animation: tiembla 0.4s;
+}
+
+.tutorial .saltar {
+  position: absolute;
+  top: var(--safe-t);
+  right: var(--safe-r);
+  background: var(--glass-strong);
+  border-color: var(--gold-soft);
+}
+
+.tutorial .onda {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  border-radius: 50%;
+  border: 3px solid var(--gold);
+  pointer-events: none;
+  animation: onda 0.6s ease-out forwards;
+}
+
+@keyframes onda {
+  to { transform: scale(4); opacity: 0; }
 }
 
 /* ------------------------------------------------------------ the prologue (src/ui/prologo.ts) */

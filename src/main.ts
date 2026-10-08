@@ -15,22 +15,39 @@ import { mostrarPrologo } from './ui/prologo';
 import { capitulo1 } from './capitulos/capitulo1';
 import { h } from './ui/hud';
 import type { Calidad } from './motor/motor';
+import type { Volumen } from './core/audio';
 import { storageGet, storageSet, wait } from './core/util';
 
 interface Ajustes {
-  muted: boolean;
+  /** 2 since the two volumes and «media» as the default quality (8 October 2026). */
+  v: 2;
+  /** Music and sound effects, 0–1. */
+  musica: number;
+  efectos: number;
   calidad: Calidad | 'auto';
   fps: boolean;
+  /** Play full screen (unset: on phones yes, with a mouse no). */
+  pantallaCompleta?: boolean;
 }
 
 /** Quality to start from on «auto»: medium on phones, high with a mouse. */
 const calidadInicial = (): Calidad => (matchMedia('(pointer: coarse)').matches ? 'media' : 'alta');
 
+const AJUSTES: Ajustes = { v: 2, musica: 0.7, efectos: 1, calidad: 'media', fps: false };
+
 function cargarAjustes(): Ajustes {
   try {
-    return { muted: false, calidad: 'auto', fps: false, ...JSON.parse(storageGet('cyc.ajustes') ?? '{}') };
+    const viejos = JSON.parse(storageGet('cyc.ajustes') ?? '{}') as Partial<Ajustes> & { muted?: boolean };
+    if (viejos.v !== 2) {
+      // Settings from before: «auto» was the default (now «media»), and one sound switch.
+      if (viejos.calidad === 'auto') delete viejos.calidad;
+      if (viejos.muted) Object.assign(viejos, { musica: 0, efectos: 0 });
+      delete viejos.muted;
+      delete viejos.v;
+    }
+    return { ...AJUSTES, ...viejos, v: 2 };
   } catch {
-    return { muted: false, calidad: 'auto', fps: false };
+    return { ...AJUSTES };
   }
 }
 
@@ -108,15 +125,32 @@ async function arrancar() {
   g.onCalidadAuto = (q) => storageSet('cyc.calidad.auto', q);
   if (new URLSearchParams(location.search).has('relieve')) g.motor.setRelieve(true);
   g.mostrarFps = ajustes.fps;
-  g.sound.setMuted(ajustes.muted);
+  g.sound.setVolumen('musica', ajustes.musica);
+  g.sound.setVolumen('efectos', ajustes.efectos);
   g.hud.setVisible(false);
   g.start();
 
   // Signs are lettered with the web fonts: wait for them, but never for long.
   await Promise.race([Promise.all([document.fonts.load("44px 'Graduate'"), document.fonts.load("800 34px 'Alegreya Sans'")]), wait(1800)]).catch(() => {});
   const lugar = g.estado.donde[g.estado.activo]?.escena ?? 'piso';
-  const cargada = g.ejecutar(() => g.irA(lugar));
+  // Behind the title the curtain stays down: nothing of the scene shows until the game starts.
+  const cargada = g.ejecutar(() => g.irA(lugar, true, false));
   const logo = await logoClaro().catch(() => logoUrl);
+
+  // ---------------------------------------------------------- full screen
+  // On phones the game plays full screen, asked for with the title's tap. Some browsers drop
+  // it when the app is left for a moment (Firefox on Android) and it can only be asked for
+  // from a tap: so the next tap asks again. The menu turns it off and on.
+  const quierePantallaCompleta = () => ajustes.pantallaCompleta ?? matchMedia('(pointer: coarse)').matches;
+  let empezado = false;
+  const pedirPantallaCompleta = () => {
+    if (document.fullscreenEnabled && !document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
+  };
+  const recuperarPantallaCompleta = (e: Event) => {
+    // (Not the menu's own switch: «No» must not ask for it on its way.)
+    if (empezado && quierePantallaCompleta() && !(e.target as Element | null)?.closest?.('#m-pantalla')) pedirPantallaCompleta();
+  };
+  for (const ev of ['click', 'touchend']) document.addEventListener(ev, recuperarPantallaCompleta, true);
 
   // ---------------------------------------------------------- pause menu
   g.onMenu = () => {
@@ -135,6 +169,23 @@ async function arrancar() {
         wrap.append(b);
       }
       return wrap;
+    };
+    // Music and effects volume: a slider each, heard while it moves, saved when let go.
+    const volumen = (que: Volumen, clave: string) => {
+      const pct = (v: number) => `${Math.round(v * 100)} %`;
+      const valor = h('output', { class: 'valor' }, pct(ajustes[que]));
+      const barra = h('input', { type: 'range', min: '0', max: '100', step: '5', value: String(Math.round(ajustes[que] * 100)), id: `m-${que}`, 'aria-label': texto(clave) });
+      barra.addEventListener('input', () => {
+        ajustes[que] = Number(barra.value) / 100;
+        valor.textContent = pct(ajustes[que]);
+        g.sound.setVolumen(que, ajustes[que]);
+      });
+      barra.addEventListener('change', () => {
+        if (que === 'efectos') g.sound.pickup();
+        guardarAjustes();
+      });
+      for (const ev of ['click', 'pointerdown', 'pointerup']) barra.addEventListener(ev, (e) => e.stopPropagation());
+      return h('div', { class: 'opcion' }, h('span', {}, texto(clave)), h('div', { class: 'volumen' }, barra, valor));
     };
     let seguro = false;
     const reiniciar = h('button', { class: 'btn fantasma', id: 'm-reiniciar' }, texto(g.rejugando ? 'menu.reiniciarRejuego' : 'menu.reiniciar'));
@@ -158,16 +209,13 @@ async function arrancar() {
       '',
       h(
         'div',
-        { class: 'tarjeta vidrio' },
+        { class: 'tarjeta vidrio menu' },
         h('h2', {}, texto('menu.titulo')),
         h(
           'div',
           { class: 'opciones' },
-          h('div', { class: 'opcion' }, h('span', {}, texto('menu.sonido')), seg('m-sonido', [['on', texto('si')], ['off', texto('no')]], ajustes.muted ? 'off' : 'on', (v) => {
-            ajustes.muted = v === 'off';
-            g.sound.setMuted(ajustes.muted);
-            guardarAjustes();
-          })),
+          volumen('musica', 'menu.musica'),
+          volumen('efectos', 'menu.efectos'),
           h('div', { class: 'opcion' }, h('span', {}, texto('menu.calidad')), seg('m-calidad', [['auto', texto('auto')], ['alta', texto('alta')], ['media', texto('media')], ['baja', texto('baja')]], ajustes.calidad, (v) => {
             ajustes.calidad = v;
             // Choosing «auto» again starts it over: it will step down again only if it has to.
@@ -176,6 +224,16 @@ async function arrancar() {
             g.motor.setCalidad(v === 'auto' ? calidadInicial() : v);
             guardarAjustes();
           })),
+          ...(document.fullscreenEnabled
+            ? [
+                h('div', { class: 'opcion' }, h('span', {}, texto('menu.pantallaCompleta')), seg('m-pantalla', [['on', texto('si')], ['off', texto('no')]], quierePantallaCompleta() ? 'on' : 'off', (v) => {
+                  ajustes.pantallaCompleta = v === 'on';
+                  guardarAjustes();
+                  if (v === 'on') pedirPantallaCompleta();
+                  else if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+                })),
+              ]
+            : []),
           h('div', { class: 'opcion' }, h('span', {}, texto('menu.rendimiento')), seg('m-fps', [['on', texto('si')], ['off', texto('no')]], ajustes.fps ? 'on' : 'off', (v) => {
             ajustes.fps = v === 'on';
             g.mostrarFps = ajustes.fps;
@@ -422,7 +480,8 @@ async function arrancar() {
     e.stopPropagation();
     titulo.remove();
     g.sound.start();
-    if (matchMedia('(pointer: coarse)').matches) document.documentElement.requestFullscreen?.().catch(() => {});
+    empezado = true;
+    if (quierePantallaCompleta()) pedirPantallaCompleta();
     // A new game: the prologue first (src/ui/prologo.ts), while the scene finishes loading behind it.
     if (nueva) {
       g.pausado = true;
@@ -436,6 +495,8 @@ async function arrancar() {
     else if (g.llegado(g.estado.activo) && !g.estado.final) await g.ejecutar(async () => g.cambiarA(await g.escogerQuien(texto('eleccion.siguiente'))));
     // A story started again by the repair of an old save (aventura.ts, reparar): its opening.
     else if (!g.flag(`empezado.${g.estado.activo}`)) await g.ejecutar(() => g.cambiarA(g.estado.activo));
+    // Carrying on where it was left: up goes the curtain.
+    else await g.ejecutar(() => g.velar(false));
   });
 
   // Test hook for scripts/playthrough.mjs.

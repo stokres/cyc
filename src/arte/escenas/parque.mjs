@@ -494,10 +494,11 @@ export function escena() {
       piscina: { u: (PISCINA[0] + PISCINA[1]) / 2, k: 1, w: PISCINA[1] - PISCINA[0], top: G - 240, bottom: G, X: PISCINA[0] - 50, y: 880 },
       tobogan: { u: ESTRUCTURA[1] - 300, k: 1, w: 400, top: 290, bottom: 640, X: ESTRUCTURA[1] - 380, y: 880 },
       // The cannon stands in front of the walk band: he takes it from behind, at the grips.
+      // Only its barrel and hopper: the floor round its wheels is for walking (8 October 2026).
       canon: (() => {
         const k = P.f(CANON.y);
         const s = (M * 1.75 * k) / 270;
-        return { u: P.CX + k * (CANON.X - P.CX) - 0.1 * 154 * s, k, w: 1.9 * 154 * s, top: CANON.y - 1.2 * 154 * s, bottom: CANON.y + 10, X: CANON.X + 330, y: 900 };
+        return { u: P.CX + k * (CANON.X - P.CX) - 0.1 * 154 * s, k, w: 1.9 * 154 * s, top: CANON.y - 1.2 * 154 * s, bottom: CANON.y - 0.35 * 154 * s, X: CANON.X + 330, y: 900 };
       })(),
     },
   };

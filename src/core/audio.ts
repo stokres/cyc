@@ -1,8 +1,8 @@
 // Sound: tiny synthesized UI cues, and the music (src/sonido/musica.ts), looped
 // without a gap with Web Audio. Phones only allow sound after a tap, so start() is
-// called from the title screen. Everything goes through one master gain (the
-// menu's sound switch); the music has its own, a little lower. With the page
-// hidden (another app, the phone locked) the whole thing is suspended.
+// called from the title screen. The music and the cues each have their own gain (the
+// menu's two volumes), both into one master. With the page hidden (another app, the
+// phone locked) the whole thing is suspended.
 //
 // Two kinds of music: the scene's (ambiente), asked for every frame as one layer or
 // several, each with its volume and pan — Guille's radio, louder the closer he is; on
@@ -10,8 +10,15 @@
 // minigame's (musica), which plays alone while it lasts and then gives way to them again.
 import { MUSICA, type Pista } from '../sonido/musica';
 
-/** Music level under the master (the cues are short and quiet). */
+/** Music level under the master at full volume (the cues are short and quiet). */
 const NIVEL_MUSICA = 0.55;
+/** Level of the whole mix. */
+const NIVEL_MASTER = 0.8;
+/** The menu's volume (0–1) as gain: squared, so the slider's middle sounds like the middle. */
+const curva = (v: number) => Math.max(0, Math.min(1, v)) ** 2;
+
+/** The menu's two volumes. */
+export type Volumen = 'musica' | 'efectos';
 /**
  * Tracks kept decoded at once (docs/ESTILO.md, T5.11): keeping every track that had played
  * added up to 200 MB on a phone.
@@ -54,6 +61,9 @@ export class Sound {
   private ac: AudioContext | null = null;
   private master: GainNode | null = null;
   private bus: GainNode | null = null;
+  private fx: GainNode | null = null;
+  /** Music and cues, 0–1, as set in the menu. */
+  private volumen: Record<Volumen, number> = { musica: 0.7, efectos: 1 };
   /** Every track playing or on its way: the scene's layers, or the minigame's. */
   private capas = new Map<Pista, Capa>();
   private cargas = new Map<Pista, Promise<AudioBuffer | null>>();
@@ -62,7 +72,6 @@ export class Sound {
   private bytes = new Map<Pista, number>();
   private primerPlano: Pista | null = null;
   private deseado: Ambiente[] = [];
-  muted = false;
 
   start() {
     if (this.ac) {
@@ -79,11 +88,14 @@ export class Sound {
     }
     this.ac = ac;
     this.master = ac.createGain();
-    this.master.gain.value = this.muted ? 0 : 0.8;
+    this.master.gain.value = NIVEL_MASTER;
     this.master.connect(ac.destination);
     this.bus = ac.createGain();
-    this.bus.gain.value = NIVEL_MUSICA;
+    this.bus.gain.value = NIVEL_MUSICA * curva(this.volumen.musica);
     this.bus.connect(this.master);
+    this.fx = ac.createGain();
+    this.fx.gain.value = curva(this.volumen.efectos);
+    this.fx.connect(this.master);
     document.addEventListener('visibilitychange', () => void (document.visibilityState === 'hidden' ? ac.suspend() : ac.resume()));
     // Music asked for before the first tap starts now.
     if (this.primerPlano) this.reproducir(this.primerPlano, 1, 0);
@@ -240,14 +252,16 @@ export class Sound {
     return id ? this.capas.get(id)!.volumen : 0;
   }
 
-  setMuted(m: boolean) {
-    this.muted = m;
-    if (this.master && this.ac) this.master.gain.setTargetAtTime(m ? 0 : 0.8, this.ac.currentTime, 0.05);
+  /** The menu's music or effects volume, 0–1 (it can be changed before the sound starts). */
+  setVolumen(que: Volumen, v: number) {
+    this.volumen[que] = v;
+    const g = que === 'musica' ? this.bus : this.fx;
+    if (g && this.ac) g.gain.setTargetAtTime(que === 'musica' ? NIVEL_MUSICA * curva(v) : curva(v), this.ac.currentTime, 0.05);
   }
 
   private tone(freq: number, dur: number, type: OscillatorType, vol: number, when = 0, slide = 0) {
     const ac = this.ac;
-    if (!ac || !this.master) return;
+    if (!ac || !this.fx) return;
     const t = ac.currentTime + when;
     const o = ac.createOscillator();
     const g = ac.createGain();
@@ -257,7 +271,7 @@ export class Sound {
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g).connect(this.master);
+    o.connect(g).connect(this.fx);
     o.start(t);
     o.stop(t + dur + 0.02);
   }

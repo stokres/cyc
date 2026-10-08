@@ -176,10 +176,11 @@ export class Motor {
     this.svg.setAttribute('viewBox', `0 0 ${this.vw.toFixed(1)} ${H}`);
     const old = this.px;
     this.px = px;
-    // Re-bake when the resolution changes a lot (rotation, quality change).
+    // Re-bake when the resolution changes a lot (rotation, quality change). Meanwhile the
+    // old bake stays on screen, scaled to the new size (see dibujar).
     if (this.S && Math.abs(px - old) / old > 0.2) {
       this.vaciar();
-      void this.cargar(this.S);
+      void this.rehornear();
     }
     this.clampCam(true);
     this.invalidar();
@@ -301,6 +302,28 @@ export class Motor {
       this.glB.clave = k;
       this.glF!.clave = k;
     }
+  }
+
+  /**
+   * The scene on screen, baked again at the new resolution. Unlike cargar(), it never puts
+   * it back on screen if another scene has been loaded meanwhile.
+   */
+  private async rehornear() {
+    const S = this.S;
+    if (!S) return;
+    const key = this.clave(S);
+    const b = await this.hornearYSubir(S);
+    // The resolution changed again meanwhile, or the scene was baked by cargar(): not needed.
+    if (this.clave(S) !== key || this.cache.has(key)) return this.soltar(b);
+    this.cache.set(key, b);
+    this.usos.set(key, ++this.reloj);
+    if (this.S === S) {
+      this.baked = b;
+      if (this.huerfano && this.huerfano !== b) this.soltar(this.huerfano);
+      this.huerfano = null;
+      this.invalidar();
+    }
+    this.recortar();
   }
 
   /** Bake a scene ahead of time so the door to it opens instantly (within MAX_HORNEADAS). */
@@ -453,8 +476,8 @@ export class Motor {
     // The baked layers only when something they depend on has changed.
     const cond = B ? this.condiciones(B) : '';
     const P = this.pintado;
-    if (B && B === P.baked && P.vw === this.vw && P.px === B.px && P.cond === cond && Math.abs(this.cam - P.cam) * B.px < 0.15) return;
-    Object.assign(P, { cam: this.cam, vw: this.vw, px: B?.px ?? 0, baked: B, cond });
+    if (B && B === P.baked && P.vw === this.vw && P.px === this.px && P.cond === cond && Math.abs(this.cam - P.cam) * this.px < 0.15) return;
+    Object.assign(P, { cam: this.cam, vw: this.vw, px: this.px, baked: B, cond });
     const b = this.bctx;
     const f = this.fctx;
     b.setTransform(1, 0, 0, 1, 0, 0);
@@ -463,7 +486,11 @@ export class Motor {
     f.setTransform(1, 0, 0, 1, 0, 0);
     f.clearRect(0, 0, this.front2d.width, this.front2d.height);
     if (!S || !B || B.modo !== '2d') return;
-    const px = B.px;
+    // Drawn at the canvas's resolution. A bake made at another one (the quality has just
+    // changed and the new bake is not ready yet) is scaled to fit, never drawn out of place.
+    const px = this.px;
+    const r = px / B.px;
+    const exacto = Math.abs(r - 1) < 1e-6;
     for (const L of B.capas) {
       if (this.ocultas.has(L.id)) continue;
       const ctx = L.z === 'front' ? f : b;
@@ -482,7 +509,8 @@ export class Motor {
           if (!p.c.width || (p.si && !this.cond(p.si))) continue;
           const x = p.x0 + off;
           if (x > this.vw || x + p.w < 0) continue;
-          ctx.drawImage(p.c, Math.round(x * px), Math.round(p.y0 * px));
+          if (exacto) ctx.drawImage(p.c, Math.round(x * px), Math.round(p.y0 * px));
+          else ctx.drawImage(p.c, Math.round(x * px), Math.round(p.y0 * px), p.c.width * r, p.c.height * r);
         }
       }
       for (const Lw of B.laterales) if (Lw.after === L.id && Lw.c.width) drawLateral(ctx, S, Lw, this.vw, this.cam, px);
@@ -538,7 +566,9 @@ export class Motor {
       c.clearRect(0, 0, W, Hp);
     }
     if (!S || !B || B.modo !== 'gl') return;
-    const px = B.px;
+    // As in the 2D path: a bake at another resolution is scaled to the canvas.
+    const px = this.px;
+    const r = px / B.px;
     for (const L of B.capas) {
       if (this.ocultas.has(L.id)) continue;
       const front = L.z === 'front';
@@ -558,7 +588,7 @@ export class Motor {
           if (x > this.vw || x + p.w < 0) continue;
           const X0 = Math.round(x * px);
           const Y0 = Math.round(p.y0 * px);
-          const m: [number, number, number, number, number, number] = [1, 0, 0, 1, X0, Y0];
+          const m: [number, number, number, number, number, number] = [r, 0, 0, r, X0, Y0];
           g.dibujar(p.tex, { esquinas: esquinas(m, 0, 0, p.tex.w, p.tex.h), capa: [p.x0, p.y0, p.x0 + p.w, p.y0 + p.h] }, p.luces);
         }
       }

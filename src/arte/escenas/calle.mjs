@@ -943,7 +943,8 @@ export function escena() {
       merceria: { u: 800, k: 1, w: 360, top: 140, bottom: 740, X: 800, y: 850 },
       fruteria: { u: 1250, k: 1, w: 440, top: 112, bottom: 760, X: 1250, y: 850 },
       panaderia: { u: 1730, k: 1, w: 460, top: 112, bottom: 700, X: 1730, y: 850 },
-      contenedores: { u: uOf(2330, K_CURB), k: K_CURB, w: 760, top: 580, bottom: 820, X: 2330, y: 900 },
+      // The bins' lids and bodies, not the pavement in front of them.
+      contenedores: { u: uOf(2330, K_CURB), k: K_CURB, w: 760, top: 580, bottom: 780, X: 2330, y: 900 },
       parque: { u: 3190, k: 1, w: 220, top: 380, bottom: 760, X: 3190, y: 846 },
       dragon: { u: at(3200, KD), k: KD, w: 1000, top: 20, bottom: yOf(KD), X: 3000, y: 846 },
       farmacia: { u: 4640, k: 1, w: 480, top: 100, bottom: 720, X: 4640, y: 850 },

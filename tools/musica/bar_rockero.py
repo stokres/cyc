@@ -185,9 +185,11 @@ def ronda(t):
 
 def tras_la_puerta(x):
     """The same mix heard from the street: the wall keeps the lows (kick, bass, the guitars' body)
-    and a little of the mids, almost none of the highs; nearly mono; a small hall outside."""
-    bajo = _filtro(x, 'lowpass', 700, 4)
-    medio = _filtro(_filtro(x, 'highpass', 700), 'lowpass', 3000) * 0.15
+    and some of the mids, none of the highs; nearly mono; a small hall outside. The cut is at
+    1.5 kHz, not lower (8 October 2026): a phone's speaker plays almost nothing under 300 Hz, so
+    with only the lows the bar was barely heard on one, 10 dB under the stroll."""
+    bajo = _filtro(x, 'lowpass', 1500, 4)
+    medio = _filtro(_filtro(x, 'highpass', 1500), 'lowpass', 3200) * 0.3
     y = bajo + medio
     mono = y.mean(axis=0)
     y = 0.75 * np.stack([mono, mono]) + 0.25 * y
@@ -206,7 +208,7 @@ if MODO in ('bucle', 'puerta'):
     if MODO == 'bucle':
         exportar_bucle('bar-rockero-bucle', x, RONDA * 60 / BPM, rms_db=-17, fundir=True, salida=salida)
     else:
-        exportar_bucle('bar-rockero-puerta-bucle', tras_la_puerta(x), RONDA * 60 / BPM, rms_db=-20, fundir=True, salida=salida)
+        exportar_bucle('bar-rockero-puerta-bucle', tras_la_puerta(x), RONDA * 60 / BPM, rms_db=-16, fundir=True, salida=salida)
     sys.exit()
 
 if __name__ == '__main__':
@@ -250,4 +252,4 @@ O.nota(9, t, 2, 57, 120)
 O.nota(9, t, 1, 36, 127)
 x = O.render(pegamento=(-16, 2.5))
 exportar('bar-rockero', x, rms_db=-17, fundido=1.0)
-exportar('bar-rockero-puerta', tras_la_puerta(x), rms_db=-24, fundido=1.0)
+exportar('bar-rockero-puerta', tras_la_puerta(x), rms_db=-20, fundido=1.0)

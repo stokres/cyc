@@ -6,6 +6,7 @@ Decisiones de diseño para que una aventura gráfica con minijuegos funcione en 
 
 - **Juego web** que se abre con un enlace y se puede añadir a la pantalla de inicio. No pasa por tiendas de apps y funciona en iPhone y Android.
 - **Solo en horizontal.** En vertical aparece un aviso para girar el móvil, porque iPhone no deja bloquear la orientación.
+- **Pantalla completa** en el móvil, desde el toque de la pantalla de título. Algunos navegadores la quitan al salir un momento de la app (Firefox en Android) y solo dejan pedirla desde un toque, así que el siguiente toque la vuelve a pedir (8 de octubre de 2026). Se quita y se pone con «Pantalla completa» en el menú (no sale en iPhone, que no la tiene).
 - **Autoguardado** en el propio navegador (cada jugador en su móvil) tras cada acción y al salir de la página, para seguir otro día donde lo dejaste.
 
 ## Partida guardada y capítulos
@@ -27,15 +28,16 @@ En el menú, **Capítulos** enseña cada capítulo (superado, en curso o todaví
 | Problema | Solución |
 |---|---|
 | No hay «pasar el ratón por encima» | El botón del ojo enseña todas las zonas interactivas durante unos segundos |
-| Nueve verbos no caben en un móvil | **Un toque** hace la acción lógica (ir, usar, hablar). **Mantener pulsado** examina, con un anillo que se va llenando |
+| Nueve verbos no caben en un móvil | **Un toque** hace la acción lógica (ir, usar, hablar). **Mantener pulsado** examina, con un anillo que se va llenando alrededor del dedo (grande, para que el dedo no lo tape) |
 | El dedo tapa lo que tocas | Zonas táctiles con margen extra, y un rótulo con el nombre de lo que has tocado |
+| Tocar para andar y que salte otra cosa | El margen extra de las zonas **nunca se mete en el suelo**: un toque en el suelo es un paso, aunque sea justo debajo de una puerta. Los objetos grandes que están en el suelo (el sofá de Fran, los contenedores de la calle, el cañón de bolas) solo responden en su parte de arriba. **Tocarte a ti mismo sin objeto también es un paso**: para mirarte, mantén pulsado (8 de octubre de 2026) |
 | Usar objetos | La bolsa (abajo a la derecha) se despliega con tarjetas grandes; tocas el objeto y luego el destino. El ojo pequeño de cada tarjeta lo examina. Mientras llevas un objeto, un aviso arriba dice «Usar … en…» y tocarlo lo suelta |
-| Aprender a jugar | La primera vez que hace falta cada gesto aparece una ayuda corta abajo («Mantén el dedo sobre algo para mirarlo») |
+| Aprender a jugar | **Al empezar la primera historia de la partida, «Cómo se juega»** (`src/ui/tutorial.ts`, 8 de octubre de 2026): sobre la escena, se prueban de verdad los dos gestos, primero un toque y luego mantener el dedo hasta que se llene el círculo (si el toque es corto, lo dice). Usa los mismos gestos y tiempos que la escena y se puede saltar. Sale una vez por partida (también al empezar de nuevo o al rejugar el capítulo). Además, la primera vez que hace falta cada gesto aparece una ayuda corta abajo («Mantén el dedo sobre algo para mirarlo») |
 | Elegir con quién empezar | Pantalla con los cuatro de frente, en tarjetas grandes, y una frase con su situación. Sale al empezar y cada vez que alguien termina su historia |
-| Hablar con alguien que no es del grupo | Se le toca, como a un amigo. En la historia de Pablo, su sombra (el narrador) le sigue y contesta según el momento |
+| Hablar con alguien que no es del grupo | Se le toca, como a un amigo. En la historia de Pablo, su sombra (el narrador) le sigue y contesta según el momento. Mientras uno de los dos habla, Pablo y su sombra se miran; cuando Pablo echa a andar, la sombra vuelve a copiarle |
 | Varios amigos | Columna de retratos grandes a la izquierda (al menos 52 px, el activo más grande y con su color). Tocar a otro lleva a su historia, donde la dejaste, como en *Day of the Tentacle*. Cada uno tiene su bolsa, su reloj y sus frases (`clave.pablo` en los textos gana a `clave` cuando juegas con Pablo). Quien ya va de camino al Río sale apagado y con una ✓ |
 | Acabar una historia | Fundido a negro antes de llegar al bar y un rótulo («Pablo ya va de camino al Río · Faltan…»). Con los cuatro de camino, escena final: llegan a la vez |
-| Usar algo contigo | Eliges el objeto en la bolsa y tocas a tu propio personaje (vestirse, probar el jamón, mirar el móvil) |
+| Usar algo contigo | Eliges el objeto en la bolsa y tocas a tu propio personaje (vestirse, probar el jamón, mirar el móvil). Sin objeto, tocarte es andar; mantener pulsado sobre ti te mira |
 | Dar cosas a otro amigo | Tocas el objeto y luego al amigo |
 | Coger objetos | **Lo que se puede coger se puede coger siempre** (decidido el 3 de octubre de 2026), aunque todavía no se sepa para qué sirve; y también se puede juntar con otros. Nada se bloquea hasta «su momento» de la historia |
 | Juntar dos objetos | Eliges uno en la bolsa, vuelves a abrirla y tocas el otro (alcohol + romero en la historia de Guille). Si no pegan, el personaje lo dice |
@@ -44,16 +46,17 @@ En el menú, **Capítulos** enseña cada capítulo (superado, en curso o todaví
 
 ## Sonido y música
 
-- El sonido arranca con el primer toque (los móviles no dejan antes) y se apaga entero con «Sonido» en el menú. Con la app en segundo plano o el móvil bloqueado, se suspende.
+- El sonido arranca con el primer toque (los móviles no dejan antes). En el menú, **«Música» y «Efectos» tienen cada uno su volumen** (8 de octubre de 2026): de serie, la música al 70 % y los efectos al 100 %. El deslizador va «al cuadrado» (el 70 % es la mitad de fuerte que el 100 %), que es como lo oye el oído; a cero, en silencio. Con la app en segundo plano o el móvil bloqueado, se suspende.
 - Ya no hay ruido de fondo constante (decidido el 4 de octubre de 2026): era un siseo molesto.
 - **Música en bucle sin cortes** (`src/core/audio.ts`, pistas en `src/sonido/musica.ts`): se genera con `tools/musica` (cada pieza con `bucle` y la ruta de `src/sonido`, por ejemplo `python3 barrio.py bucle ../../src/sonido/barrio.mp3`). Cada archivo lleva medio segundo de margen a cada lado del bucle con lo que va justo antes y después, y el final del bucle se funde con lo que precede a su inicio, así que la junta no da chasquido en ningún móvil. Entra y sale con un fundido.
 - **Dos clases de música:** la de la escena, que la escena pide en cada fotograma como una o varias capas, cada una con su volumen y su posición (`musica` en el capítulo), y la de un minijuego, que suena sola mientras dura y después devuelve la de la escena.
 - **«Por el barrio»** (`barrio.py`), el paseo tranquilo, suena en el piso de Fran, en su calle y en el backstage de Pablo.
-- **El rock del Bar del Río desde la puerta** (`bar_rockero.py puerta`: la mezcla con solo los graves y algo de medios, casi en mono): en la calle de Fran se oye muy bajito al principio y sube según se acerca a la puerta del bar, hacia su lado, mientras «Por el barrio» se va apagando; en el final, con los cuatro en la puerta, suena solo el bar. Se ajusta en `src/capitulos/capitulo1.ts` (`BARRIO`, `BAR_MIN`, `BAR_LEJOS`).
+- **El rock del Bar del Río desde la puerta** (`bar_rockero.py puerta`: la mezcla sin agudos, cortada a 1,5 kHz, con algo de medios y casi en mono): en la calle de Fran se oye bajito al principio (al 20 %) y sube según se acerca a la puerta del bar, hacia su lado, mientras «Por el barrio» se va apagando; en el final, con los cuatro en la puerta, suena solo el bar. **Subido el 8 de octubre de 2026:** antes solo dejaba los graves (corte a 700 Hz), y el altavoz de un móvil apenas da nada por debajo de 300 Hz, así que en el móvil sonaba 10 dB por debajo de «Por el barrio» y casi no se oía. Ahora queda 3 dB por debajo, como corresponde a oírlo desde fuera (se mide con `ffmpeg -af highpass=f=300,highpass=f=300,ebur128`). Se ajusta en `src/capitulos/capitulo1.ts` (`BARRIO`, `BAR_MIN`, `BAR_LEJOS`).
 - **El «Continuará…» del final** tiene su pasodoble (`pasodoble.py`, original: un pasodoble festero con bocina de camión, motor, frenos y pitido de marcha atrás). El arranque del camión y la fanfarria suenan una vez y el resto se repite mientras dure el rótulo; al cerrarlo vuelve el bar.
 - **La radio de la granja** (Guille) suena desde el principio de la escena con la polca de banjo (`tools/musica/banjo.py radio`): más fuerte cuanto más cerca está Guille (nunca baja del 22 %) y un poco hacia el lado de la radio. Al quitarle las pilas se corta. Se ajusta en `src/capitulos/guille.ts` (`RADIO_MIN`, `RADIO_LEJOS`).
 - **Minijuegos**, en la historia y sin fin: «Dándole vueltas» (`vueltas.py`) en la rana de Aceituna; «Jaleo» (`jaleo.py`), el big band frenético, en la batalla de palabras de Pablo; «Contra Robi» (`contra_robi.py`), con el «Cumpleaños feliz» de Robi en pitidos de robot, en el cañón de Bolilandia; y la polca de la granja, más rápida y con escobillas, cencerro y gruñidos (`banjo.py cerdos`), en la torre de cerdos.
-- El parque de Bolilandia (Chuchi) aún no tiene música de escena. El tema principal está por rehacer, más pop-rock; el resto de los efectos, por decidir.
+- **Bolilandia** (Chuchi, 8 de octubre de 2026) tiene su vals de caja de música, «Bolilandia, cerrado» (`bolilandia_noche.py`): el tiovivo de un parque de bolas oído de noche y a oscuras, en re menor, con pizzicato de puntillas, una caja de madera que tantea, un fagot que refunfuña en los huecos y un coro lejano; cómico más que de miedo. Cuando Chuchi da la luz, la misma partitura con el parque despierto (`bolilandia_noche.py luz`: glockenspiel, xilófono, calíope, tuba, pandereta y un silbato de fiesta). Las dos duran lo mismo; la de la luz se precarga al abrir el cuarto del personal, para que entre sin hueco. Se ajusta en `src/capitulos/chuchi.ts` (`musica`).
+- El tema principal está por rehacer, más pop-rock; el resto de los efectos, por decidir.
 
 ## Reglas de los minijuegos
 

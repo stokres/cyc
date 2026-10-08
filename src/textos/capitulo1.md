@@ -1052,7 +1052,9 @@ CHUCHI: Un calcetín con estrellitas. Esto es un yacimiento arqueológico.
 
 ## c.gafas
 CHUCHI (contento): ¡Mis gafas! Con una pegatina de unicornio en un cristal, pero mis gafas.
-> Y de pronto el mundo vuelve a tener bordes.
+
+## c.gafas.puestas
+> Chuchi se las pone. Y de pronto el mundo vuelve a tener bordes.
 
 ## c.rebusca.despues
 CHUCHI: Una pinza del pelo, un dinosaurio y media galleta. Mejor no sigo.

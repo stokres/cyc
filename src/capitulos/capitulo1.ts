@@ -46,7 +46,8 @@ function estadoInicial(): Estado {
       chuchi: { escena: 'parque', X: 2380, y: 880, face: 1 },
       guille: { escena: 'granja', X: 1000, y: 890, face: 1 },
     },
-    ropa: { fran: 'casa' },
+    // Fran naps in his house clothes; Chuchi lost his glasses in the tube slide.
+    ropa: { fran: 'casa', chuchi: 'singafas' },
     inv: { fran: [], pablo: [], chuchi: [], guille: [] },
     flags: {},
     minutos: { fran: HORA(20, 35), pablo: HORA(20, 30), chuchi: HORA(20, 20), guille: HORA(20, 10) },
@@ -310,8 +311,11 @@ const PUERTA_BAR = { X: 6712, y: 838 };
 
 /** «Por el barrio», the stroll: Fran's flat and street, Pablo's backstage. */
 const BARRIO = 0.9;
-/** The Río's rock through its door: faint from the far end of the street, full at the door. */
-const BAR_MIN = 0.05;
+/**
+ * The Río's rock through its door: soft from the far end of the street, full at the door.
+ * (Raised on 8 October 2026: at 5 % at the start of the street it could not be heard.)
+ */
+const BAR_MIN = 0.2;
 const BAR_LEJOS = 6300;
 
 /**
@@ -324,7 +328,7 @@ function musicaCalle(g: Aventura): Ambiente[] {
   const x = F && !g.estado.final && g.estado.donde.fran?.escena === g.escena ? F.X : g.motor.cam;
   const d = PUERTA_BAR.X - x;
   const cerca = Math.max(0, 1 - Math.abs(d) / BAR_LEJOS);
-  const bar: Ambiente = { pista: 'barPuerta', volumen: BAR_MIN + (1 - BAR_MIN) * cerca ** 2.5, pan: Math.max(-0.6, Math.min(0.6, d / 2500)) };
+  const bar: Ambiente = { pista: 'barPuerta', volumen: BAR_MIN + (1 - BAR_MIN) * cerca ** 1.5, pan: Math.max(-0.6, Math.min(0.6, d / 2500)) };
   if (g.estado.final) return [bar];
   // The stroll stays on while it fades out, so walking back picks it up where it was.
   return [bar, { pista: 'barrio', volumen: BARRIO * Math.min(1, Math.max(0, (0.8 - cerca) / 0.3)) }];
@@ -420,13 +424,16 @@ export const capitulo1: Capitulo = {
   situacion: (quien) => texto(`situacion.${quien}`),
 
   async empezar(g, quien) {
+    // The first story of the game ends its opening with how to play (only once).
     if (quien === 'fran') {
       await g.hablar('intro');
+      await g.tutorial();
       g.hud.ayuda(texto('objetivo.despierta'), 8);
       return;
     }
     await g.hablar(`intro.${quien}`);
     if (quien === 'pablo') await pablo.aparece(g);
+    await g.tutorial();
     g.ayudaUnaVez('cambiar');
   },
 
@@ -434,6 +441,10 @@ export const capitulo1: Capitulo = {
 
   async alEntrar(g, escena) {
     if (escena === 'backstage' && g.sombra && g.flag('p.canon') && !g.flag('p.ganado')) g.sombra.visible = false;
+    // Saves from before Chuchi lost his glasses for real: off they come until he finds them.
+    if (escena === 'parque' && !g.flag('c.gafas') && g.estado.ropa.chuchi !== 'singafas') g.vestir('chuchi', 'singafas');
+    // Back in the park with the staff room open: the lights' music ready.
+    if (escena === 'parque' && g.flag('c.cuarto') && !g.flag('c.luz')) g.sound.precargar('bolilandiaLuz');
     if (escena === 'piso') {
       const F = g.pjs.get('fran');
       if (F && !g.flag('despierto')) {
@@ -456,6 +467,7 @@ export const capitulo1: Capitulo = {
 
   musica: (g) => {
     if (g.escena === 'granja') return guille.musica(g);
+    if (g.escena === 'parque') return chuchi.musica(g);
     if (g.escena === 'calle') return musicaCalle(g);
     if (g.escena === 'piso' || g.escena === 'backstage') return { pista: 'barrio', volumen: BARRIO };
     return null;

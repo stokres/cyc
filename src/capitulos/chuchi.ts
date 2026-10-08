@@ -6,7 +6,8 @@
 // The girls never appear: only their mischief does.
 //
 //   1. His glasses are somewhere in the ball pit: rummage until they turn up.
-//      Without them, small things cannot be seen (nor touched).
+//      Without them (he starts without them on: the 'singafas' outfit), small things
+//      cannot be seen (nor touched).
 //   2. The exit's shutter is electric; the fuse box is in the staff room, and
 //      the key hangs up high, out of the children's reach. And Chuchi's.
 //   3. The ball net + the piñata stick (put together with its duct tape, in the
@@ -19,6 +20,7 @@
 // Anything that can be picked up can be picked up any time (once he can see it).
 // Every line comes from src/textos/capitulo1.md (keys starting with c.).
 import type { Aventura, ZonaLogica } from '../juego/aventura';
+import type { Ambiente } from '../core/audio';
 import { texto } from '../juego/textos';
 import { jugarRobot } from '../ui/robot';
 
@@ -38,11 +40,13 @@ async function rebuscar(g: Aventura) {
   const n = (Number(g.estado.flags['c.rebusca']) || 0) + 1;
   g.poner('c.rebusca', n);
   if (n < 3) return g.hablar(`c.rebusca.${n}`);
-  g.poner('c.gafas');
-  // The milky view is drawn with the static layers: repaint them.
-  g.motor.invalidar();
   g.sound.pickup();
   await g.hablar('c.gafas');
+  // On they go. The milky view is drawn with the static layers: repaint them.
+  g.poner('c.gafas');
+  g.vestir('chuchi', 'calle');
+  g.motor.invalidar();
+  await g.hablar('c.gafas.puestas');
   g.ayudaUnaVez('ojo');
 }
 
@@ -147,6 +151,8 @@ export function zonasParque(g: Aventura): Record<string, ZonaLogica> {
         if (item !== 'llave') return false;
         g.quitar('llave');
         g.poner('c.cuarto');
+        // The light is one lever away: its music, ready to come in without a gap.
+        g.sound.precargar('bolilandiaLuz');
         g.sound.pickup();
         g.avanzarReloj(1);
         await g.hablar('c.puerta.abre');
@@ -183,6 +189,12 @@ export function zonasParque(g: Aventura): Record<string, ZonaLogica> {
       },
     },
   };
+}
+
+/** The park's waltz: on a music box in the dark; once the lights are on, the whole park awake. */
+const VOLUMEN = 0.85;
+export function musica(g: Aventura): Ambiente {
+  return { pista: f(g, 'c.luz') ? 'bolilandiaLuz' : 'bolilandia', volumen: VOLUMEN };
 }
 
 export async function combinar(g: Aventura, a: string, b: string) {

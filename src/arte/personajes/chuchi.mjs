@@ -163,12 +163,13 @@ function mouth(kind = 'reposo') {
 
 const JAW_DROP = { reposo: 0, m: 0, sonrisa: 1.2, a: 4.5, o: 3.5, e: 2 };
 
-export function head({ mood = 'smug', mouthKind, blink = false, look = 0 } = {}) {
+/** `gafas: false`: without his glasses (Bolilandia, until he finds them), squinting a little. */
+export function head({ mood = 'smug', mouthKind, blink = false, look = 0, gafas = true } = {}) {
   // Sad raises the inner ends of the brows; angry pulls them down towards the nose.
   const lift = mood === 'surprised' ? 5 : mood === 'happy' ? 1.5 : mood === 'angry' ? -1 : 0;
   const knit = mood === 'sad' ? 3.5 : mood === 'angry' ? -4.5 : 0;
   const cocked = mood === 'smug' || mood === 'neutral' ? 1.6 : 0;
-  const open = mood === 'surprised' ? 1.22 : 1;
+  const open = (mood === 'surprised' ? 1.22 : 1) * (gafas ? 1 : 0.8);
   const m = mouthKind ?? (mood === 'happy' ? 'sonrisa' : mood === 'surprised' ? 'o' : mood === 'sad' ? 'triste' : mood === 'angry' ? 'enfado' : 'reposo');
   const jaw = JAW_DROP[m] ?? 0;
   const eyes = (w) => (blink ? eyelid(w) : mood === 'happy' ? happyEye(w) : eye(w, look, open, mood === 'angry'));
@@ -180,7 +181,7 @@ export function head({ mood = 'smug', mouthKind, blink = false, look = 0 } = {})
     g('nariz', nose()),
     g('ojo_cerca', eyes('cerca')),
     g('ojo_lejos', eyes('lejos')),
-    g('gafas', glasses()),
+    gafas ? g('gafas', glasses()) : '',
     g('cejas', brows(lift, knit, cocked)),
   ].join('');
 }
@@ -192,7 +193,7 @@ export function guides() {
 
 // ---------------------------------------------------------------- turnaround (head)
 
-export function headFront({ mood = 'smug', mouthKind, blink = false } = {}) {
+export function headFront({ mood = 'smug', mouthKind, blink = false, gafas = true } = {}) {
   const mirror = (pts) => [...pts, ...pts.slice().reverse().map(([x, y]) => [-x, y])];
   const skull = smooth(mirror([[0, -68], [24, -64], [38, -50], [44, -26], [45, 0], [42, 22], [34, 38], [18, 47]]).slice(0, -1));
   const beard = smooth([
@@ -231,12 +232,16 @@ export function headFront({ mood = 'smug', mouthKind, blink = false } = {}) {
     path(ellipse(3.5, 16, 1.9, 1.2), C.skinDeep),
     path(ellipse(2, 7, 2.3, 5), C.skinLight),
     ojos({ C, eye: eyeF, mood, blink, rx: 3.8, ry: 4.6 }),
-    lens(-16) + lens(16),
-    stroke(smooth([[-6, -4], [0, -7], [6, -4]], false), C.frame, 2.4),
-    stroke(smooth([[-26, -5], [-38, -6]], false), C.frame, 2.4),
-    stroke(smooth([[26, -5], [38, -6]], false), C.frame, 2.4),
-    stroke(smooth([[-21, -9], [-17, -10.5]], false), '#ffffff', 1.4, { opacity: 0.55 }),
-    stroke(smooth([[11, -9], [15, -10.5]], false), '#ffffff', 1.4, { opacity: 0.55 }),
+    ...(gafas
+      ? [
+          lens(-16) + lens(16),
+          stroke(smooth([[-6, -4], [0, -7], [6, -4]], false), C.frame, 2.4),
+          stroke(smooth([[-26, -5], [-38, -6]], false), C.frame, 2.4),
+          stroke(smooth([[26, -5], [38, -6]], false), C.frame, 2.4),
+          stroke(smooth([[-21, -9], [-17, -10.5]], false), '#ffffff', 1.4, { opacity: 0.55 }),
+          stroke(smooth([[11, -9], [15, -10.5]], false), '#ffffff', 1.4, { opacity: 0.55 }),
+        ]
+      : []),
     cejas({ izq: path(smooth([[-26, -16], [-20, -20], [-11, -20.5], [-6, -17.5], [-8, -15.5], [-14, -17.5], [-22, -16.5], [-25, -13.5]]), C.brow), der: path(smooth([[26, -17.5], [20, -21.5], [11, -22], [6, -19], [8, -17], [14, -19], [22, -18], [25, -15]]), C.brow), mood }),
   ].join('');
 }
@@ -280,9 +285,24 @@ export const JOINTS = {
   muslo_delante: [12, -114], pierna_delante: [12, -60], pie_delante: [12, -10],
 };
 
+/**
+ * Chuchi's «wardrobe»: the same clothes, with or without his glasses. 'singafas' is how his
+ * story starts (they fell off in the tube slide); an outfit may change the head, here and in
+ * the dialogue portraits (headFront).
+ */
+export const OUTFITS = {
+  calle: {},
+  singafas: {
+    head: (face) => head({ ...face, gafas: false }),
+    headFront: (o) => headFront({ ...o, gafas: false }),
+  },
+};
+
 /** Slim and tall: maroon crew-neck sweatshirt, black jeans, white trainers. */
 export const body = makeBody({
   skin: C,
+  outfits: OUTFITS,
+  outfit: 'calle',
   top: { style: 'hoodie', hood: false, base: '#7b2432', shadow: '#5b1824', deep: '#43101a', light: '#9b3646', line: '#2c0a10' },
   pants: { base: '#2b2c32', shadow: '#1f2025', deep: '#16171a', light: '#40434c', line: '#0c0c0e' },
   shoes: { style: 'sneaker', base: '#ecebe6', back: '#cfccc4', light: '#ffffff', line: '#8a877f', sole: '#dcd7cb', soleBack: '#bdb8ad', lace: '#c4bfb4' },
