@@ -23,16 +23,16 @@ Los textos de este capítulo son provisionales: están para probar el puzle.
 // nombre encima. Añade, quita o cambia líneas a tu gusto.
 
 ## prologo
-> Usera, Madrid. Un jueves cualquiera.
-> Desde hace años, cuatro amigos cumplen una ley sagrada: los jueves, a las nueve, en el Bar del Río.
-> Ni bodas, ni bautizos, ni comuniones. Lo del trabajo se negocia.
-FRAN (contento): Humorista, vasco nacido en Ávila y fundador de la quedada. Si te vas antes de la tercera caña, te lo recuerda en Navidad.
-PABLO (chulo): Dramaturgo, galán oficial y del pueblo del turrón blando. Escribe obras de teatro. Alguna, incluso, la termina.
-CHUCHI: Informático y padre de dos niñas. Llega tarde siempre, pero con mucho estilo.
-GUILLE (contento): Mañico, doctor en cerdos y el más cariñoso de los cuatro. Se le ve poco y se le echa mucho de menos. Esta noche, por fin, viene.
-> Pero el jueves tiene otros planes.
-> Una siesta traicionera. Una sombra con opiniones. Un parque de bolas cerrado a cal y canto. Ocho cerdos sin pesar.
-> Hay que llegar al Río. Como sea.
+> Usera, Madrid. Un jueves más. Pero no es un jueves cualquiera.
+> Cuatro amigos han quedado para tomar algo en un bar. El Bar del Río.
+> Lo que no saben es que esta noche nacerá la leyenda de Camiones y Caravanas...
+FRAN (contento): Humorista, vasco nacido en Ávila y organizador de la quedada. Si te vas antes de la tercera caña, te lo recuerda hasta tu tumba.
+PABLO (chulo): Dramaturgo, levantador de cajas y galán oficial del grupo. En sus años mozos era experto en tripitir.
+CHUCHI (chulo): Padre, kinki e informático, todo en uno. Siempre llega tarde y apurado.
+GUILLE (contento): Criaturita del bosque, doctorado en Jurassic Park y muy abrazable. Se le ve poco y se le echa mucho de menos.
+> Pero todo se complica antes de empezar...
+> Una siesta traicionera. Un narrador muy rebelde. Un parque de bolas cerrado a cal y canto. Ocho cerdos sin pesar.
+> Hay que llegar al bar a tiempo. Como sea.
 
 // ---------------------------------------------------------------- las cuatro historias
 
@@ -94,7 +94,7 @@ ayuda.andar = Toca el suelo para andar.
 ayuda.mirar = Mantén el dedo sobre algo para mirarlo.
 ayuda.usar = Toca algo para usarlo o cogerlo.
 ayuda.bolsa = Lo que coges va a la bolsa. Ábrela, elige un objeto y toca dónde usarlo.
-ayuda.tuyo = Para usar un objeto contigo, elige el objeto y toca a Fran.
+ayuda.tuyo = Para usar un objeto contigo, elige el objeto y toca al personaje.
 ayuda.combinar = Para juntar dos cosas, elige una en la bolsa, vuelve a abrirla y toca la otra.
 ayuda.ojo = Si te atascas, el ojo enseña todo lo que se puede tocar y la bombilla da pistas.
 
@@ -125,10 +125,10 @@ zona.fran = Fran
 
 ## mirar.reloj
 FRAN: Las {hora}. ¿Las {hora}?
-FRAN (sorprendido): ¡Ene! ¡Que he quedado a las nueve en el Río con estos!
-FRAN (nervioso): Diez minutos de siesta, dije. Diez. Soy un mentiroso profesional.
+FRAN (sorprendido): ¡Hostias! ¡Que he quedado a las nueve en el Río con estos!
+FRAN (nervioso): Diez minutos de siesta, dije. Diez. Pero estaba soñando con la juerga de esta noche.
 ---
-FRAN (nervioso): Las {hora}. El reloj no para. Qué manía tiene.
+FRAN (nervioso): Las {hora}. ¡El reloj no para y yo sin salir!
 
 ## mirar.ventana
 FRAN: Usera anocheciendo. Desde aquí casi se ve el Río. Casi se huelen las bravas.
@@ -137,20 +137,20 @@ FRAN: Usera anocheciendo. Desde aquí casi se ve el Río. Casi se huelen las bra
 FRAN: Si salgo por la ventana llego antes, pero llego en camilla.
 
 ## mirar.grifo
-FRAN: El grifo. Sale agua fría, agua caliente y, los martes, agua marrón.
+FRAN: El grifo. Sale agua fría, agua caliente. Ojalá fuera un grifo de cerveza.
 
 ## usar.grifo
 FRAN: Un traguito de agua... No. Que luego no me cabe la caña.
 
 ## mirar.nevera
-FRAN: Mi nevera. Con imanes de Aceituna, de Madrid y la lista de la compra de hace un mes.
+FRAN: Mi nevera. Con todo listo por si tengo que dar a alguien de desayunar.
 
 ## usar.nevera
 FRAN: A ver qué hay... ¡Taquitos de jamón! Del bueno, del de las ocasiones especiales.
 FRAN (contento): Y esto es una ocasión especial: es jueves.
 
 ## usar.nevera.vacia
-FRAN: Un yogur caducado y media cebolla. La nevera de un artista.
+FRAN (nervioso): La primera cerveza me la quiero tomar con estos. ¡Qué nervios!
 
 ## mirar.movil
 FRAN: Mi móvil, vibrando como loco. Eso son estos, seguro.
@@ -159,17 +159,17 @@ FRAN: Mi móvil, vibrando como loco. Eso son estos, seguro.
 FRAN: A ver qué dice el grupo...
 
 ## movil.chat
-PABLO [20:02]: Señores, ¿sigue en pie lo del Río esta noche? Tengo escena nueva y necesito público.
-GUILLE [20:05]: Yo voy seguro. Hoy he pesado cuarenta cerdos y tengo una sed que flipas.
-CHUCHI [20:11]: Voy, pero tarde. Las niñas no se duermen ni con un monólogo de Fran.
+PABLO [20:02]: Yendo, ¿venís todos no?
+GUILLE [20:05]: Yo voy seguro. Acabo de pesar unos cerdos y salgo!
+CHUCHI [20:11]: Hombreee. Llego un poco tarde pero llego.
 PABLO [20:20]: ¿Fran? ¿Estás vivo?
-GUILLE [20:31]: Este se ha dormido. Me juego una caña.
+GUILLE [20:31]: Este se ha dormido. Me juego una jarra.
 
 ## movil.respuesta
-FRAN [{hora}]: ¡Saliendo de casa! Pedidme una caña.
+FRAN [{hora}]: ¡Saliendo de casa! Pedidme una caña. Mejor dos!
 
 ## movil.despues
-FRAN: Técnicamente no he mentido. Estoy saliendo. Mentalmente.
+FRAN: Joder, venga, venga, que tengo una sed...
 
 ## movil.otravez
 FRAN: Mejor no lo miro, que me pongo más nervioso.
@@ -178,7 +178,7 @@ FRAN: Mejor no lo miro, que me pongo más nervioso.
 FRAN: El cuenco de las aceitunas. Solo quedan huesos. ¿Quién se habrá comido...? Ah. Yo.
 
 ## usar.huesos
-FRAN: Chupar un hueso de aceituna no cuenta como cena. Ni como soborno.
+FRAN: Chupar un hueso de aceituna no cuenta como cena.
 
 ## mirar.tocadiscos
 FRAN: Mi tocadiscos. Hoy no hay tiempo para vinilos. Hoy hay tiempo para cañas.
@@ -193,7 +193,7 @@ FRAN: La chimenea. En Usera. Que me digan a mí que no vivo como un marqués.
 FRAN: Las brasas aún aguantan. Como yo a las dos de la mañana.
 
 ## mirar.cuadro
-FRAN: Un cuadro de la pareja. Dicen que es arte. Yo veo un rectángulo verde.
+FRAN: Un cuadro de la pareja. A ver cuándo cuelgo una foto mía con Aceituna.
 
 ## mirar.cartel
 FRAN (contento): «Más Patxi que nunca». Mi show. Si no lo has visto, no sé a qué esperas.
@@ -208,27 +208,27 @@ FRAN: El sofá. Mi enemigo. Me atrapa todos los jueves a la misma hora.
 FRAN: Si me siento, no me levanto hasta el sábado.
 
 ## mirar.terraza
-FRAN: La terraza, con el tendedero. Ahí está mi ropa buena, secándose.
+FRAN: La terraza, con el tendedero. Ahí está mi ropa de salir, secándose.
 
 ## mirar.terraza.vacia
 FRAN: La terraza. El tendedero ya no tiene nada que me interese.
 
 ## usar.terraza
 > Fran sale a la terraza en calzoncillos.
-FRAN (nervioso): ¡Qué rasca! Que no me vea la del quinto, que luego lo cuenta en la frutería.
+FRAN (chulo): ¡Qué frío! Y me ha visto la del quinto medio en pelotas. Eso que se lleva.
 FRAN: Mi camiseta y mi pantaloneta. Secas. Bueno, secas de Madrid.
 
 ## usar.terraza.vacia
 FRAN: Ya no queda nada mío en el tendedero. Lo demás es de la pareja.
 
 ## mirar.bano
-FRAN: El baño. Paso, que si entro me pongo a leer el champú.
+FRAN: El baño. No tiene nada de especial.
 
 ## usar.bano
-FRAN: Ahora no. Ya iré al del Río, que tiene más ambiente.
+FRAN: Ahora no. Ya iré en el bar.
 
 ## mirar.perchero
-FRAN: Mi chubasquero, una gorra y la correa de Aceituna.
+FRAN: Mi chaqueta, una gorra que robé a Chuchi y la correa de Aceituna.
 
 ## usar.perchero
 FRAN: Hoy no llueve. Y Aceituna ya ha salido esta tarde. Dos veces.
@@ -245,7 +245,7 @@ FRAN: La puerta de la calle. Al otro lado: cañas, bravas y estos tres.
 ## usar.puerta
 > Fran gira el pomo. Nada.
 FRAN (sorprendido): ¡Está cerrada con llave! La pareja se ha ido de finde y han echado la llave por fuera.
-FRAN (enfadado): ¡Que vivo aquí! ¡Que pago la mitad del wifi!
+FRAN (enfadado): ¡Y ahora cómo llego yo al bar!
 
 ## usar.puerta.sinllaves
 FRAN (nervioso): Sigue cerrada. Sin llaves no salgo de aquí ni a tiros.
@@ -260,12 +260,12 @@ FRAN (contento): ¡Libertad! Aceituna, cariño, pórtate bien, que papá vuelve 
 FRAN: Bueno, pronto pronto, no.
 
 ## mirar.telefonillo
-FRAN: El telefonillo. Solo llama el del butano y el de Glovo equivocándose de piso.
+FRAN: El telefonillo. Solo llama el del Bárbara y el de Glovo equivocándose de piso.
 
 ## usar.telefonillo
 FRAN: ¿Hola? ¿Hay alguien? ¡Que me han encerrado!
-> El telefonillo solo devuelve un zumbido.
-FRAN: Ni el del butano me quiere.
+> Alguien responde en chino.
+FRAN: ¡No es momento de rollitos de primavera!
 
 // ---------------------------------------------------------------- Fran se mira
 
@@ -273,7 +273,7 @@ FRAN: Ni el del butano me quiere.
 FRAN: Camiseta del festival de 2014, calzoncillos de corazones y zapatillas de felpa. Irresistible.
 
 ## mirar.fran.calle
-FRAN (contento): Camiseta verde y la pantaloneta. Que se rían, que la pantaloneta es un estilo de vida.
+FRAN (contento): Camiseta verde y la pantaloneta. No hay nada mejor que una pantaloneta.
 
 ## despertar.ya
 FRAN: ¡Ya voy, ya voy! Que no estaba dormido.
@@ -325,7 +325,7 @@ FRAN (contento): ¡La cama libre! ¡Mis llaves! Si es que en el fondo eres facil
 FRAN (sorprendido): ¡Oye! Bueno... ¡La cama libre! ¡Mis llaves!
 
 ## rana.cancelada
-FRAN: Luego sigo, que me tiembla el pulso. Es el hambre.
+FRAN: Luego sigo, que me tiembla el pulso. Necesito una cerveza, pero antes tengo que salir...
 
 // ---------------------------------------------------------------- objetos de Fran
 
@@ -334,7 +334,7 @@ objeto.movil.texto = Mi móvil. Tengo el grupo echando humo.
 objeto.jamon = Taquitos de jamón
 objeto.jamon.texto = Un paquete de taquitos de jamón serrano. Veinticuatro. Bueno, ahora veintitrés.
 objeto.llaves = Llaves
-objeto.llaves.texto = Mis llaves. Con el llavero del Athletic que me regaló mi tío.
+objeto.llaves.texto = Mis llaves. Con el llavero de Osasuna.
 objeto.ropa = Ropa buena
 objeto.ropa.texto = Mi camiseta y mi pantaloneta. La de los jueves.
 
@@ -346,8 +346,8 @@ FRAN: Ahora a ponérmela, que no es plan de ir en calzoncillos.
 
 ## vestirse
 > Fran se cambia en un tiempo récord.
-FRAN (contento): Camiseta. Pantaloneta. Ya pueden decir lo que quieran de mi pantaloneta.
-FRAN: Hoy voy guapo. Hoy ligamos. Bueno, ligan ellos y yo me como las bravas.
+FRAN (contento): Camiseta. Pantaloneta. Sed. Hambre. Estoy listo.
+FRAN: ¡Qué nervios! ¿Qué chanzas y aventuras viviremos hoy?
 
 ## vestido.ya
 FRAN: Ya voy vestido. Más guapo no puedo ir.
@@ -407,23 +407,23 @@ zona.puerta40 = Portal 40
 zona.peluqueria = Peluquería
 
 ## salir.calle
-FRAN (contento): ¡Aire! Bueno, aire de Usera, que es aire con olor a churros.
-FRAN: Al Río, que está al final de la calle.
+FRAN (contento): ¡Por fin libre! Y qué bonito se está poniendo el barrio, copón.
+FRAN: Pal bar, que está al final de la calle.
 
 ## mirar.ventanaBajo
 FRAN: Los del bajo. Siempre tienen la tele puesta. Hoy, «Saber y ganar».
 
 ## mirar.portal
-FRAN: Mi portal. El número 12. Me lo sé porque el del Glovo nunca se lo sabe.
+FRAN: Mi portal.
 
 ## usar.portal
-FRAN: ¿Volver a casa? ¡Si acabo de salir! Aceituna me ha visto la cara de fiesta.
+FRAN: ¿Volver a casa? ¡Si acabo de salir!
 
 ## mirar.merceria
 FRAN: La mercería Loli. Cerrada desde que yo vivo aquí. Y los grafitis, cada vez mejores.
 
 ## mirar.fruteria
-FRAN: Frutería y lo que haga falta. A las nueve de la noche te venden una sandía y una pila.
+FRAN: Frutería y lo que haga falta. A las nueve de la noche te venden cilantro o una pila.
 
 ## usar.fruteria
 FRAN: Una fruta... No, que luego no me cabe la caña.
