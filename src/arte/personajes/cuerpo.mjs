@@ -3,6 +3,29 @@
 // template, so every character uses the same rig and animations.
 import { smooth, ellipse, path, stroke, g, shape, pivot } from './svg.mjs';
 
+const f = (v) => +(+v).toFixed(1);
+const poli = (pts) => `M${pts.map(([x, y]) => `${f(x)} ${f(y)}`).join('L')}Z`;
+
+// Limbs of the second version (cfg.v2): capsules, a round end at each joint. Where
+// two pieces meet, the one on top has no outline at its round end and the one
+// below has an outlined end a touch wider: straight, the joint melts away; bent,
+// that outline is the elbow or the knee.
+/** Capsule from (x1, y1) with half width r1 down to (x2, y2) with r2. */
+function capsula(x1, y1, r1, x2, y2, r2) {
+  return `M${f(x1 - r1)} ${f(y1)}L${f(x2 - r2)} ${f(y2)}A${f(r2)} ${f(r2)} 0 0 0 ${f(x2 + r2)} ${f(y2)}L${f(x1 + r1)} ${f(y1)}A${f(r1)} ${f(r1)} 0 0 0 ${f(x1 - r1)} ${f(y1)}Z`;
+}
+/** Outline of a capsule's two long sides, and of its top or bottom end if asked. */
+function contorno(x1, y1, r1, x2, y2, r2, color, w, { arriba = false, abajo = false } = {}) {
+  const d = [`M${f(x1 - r1)} ${f(y1)}L${f(x2 - r2)} ${f(y2)}`, `M${f(x1 + r1)} ${f(y1)}L${f(x2 + r2)} ${f(y2)}`];
+  if (arriba) d.push(`M${f(x1 + r1)} ${f(y1)}A${f(r1)} ${f(r1)} 0 0 0 ${f(x1 - r1)} ${f(y1)}`);
+  if (abajo) d.push(`M${f(x2 - r2)} ${f(y2)}A${f(r2)} ${f(r2)} 0 0 0 ${f(x2 + r2)} ${f(y2)}`);
+  return stroke(d.join(''), color, w);
+}
+/** Shade down the back of a limb (the side away from the light). */
+function sombraLado(x1, y1, r1, x2, y2, r2, color, k = 0.3) {
+  return path(poli([[x1 - r1 - 6, y1 - r1 - 2], [x1 - r1 + r1 * 2 * k, y1 - r1 - 2], [x2 - r2 + r2 * 2 * k, y2 + r2 + 2], [x2 - r2 - 6, y2 + r2 + 2]]), color, { opacity: 0.85 });
+}
+
 /**
  * cfg = {
  *   skin: { skin, skinShadow, skinDeep, skinLine },
@@ -74,6 +97,7 @@ function buildBody(cfg) {
   const front = Math.max(...cfg.torso.map((p) => p[0]));
   const back = Math.min(...cfg.torso.map((p) => p[0]));
   const aw = cfg.limb ?? 10; // half width of the upper arm
+  const V2 = !!cfg.v2;
 
   function torso() {
     const [nx, ny] = J.cabeza;
@@ -90,7 +114,7 @@ function buildBody(cfg) {
       path(smooth([[back - 8, top - 8], [back + 18, top - 4], [back + 14, (top + hipY) / 2], [back + 18, hipY + 4], [back - 8, hipY + 8]]), T.shadow),
       path(smooth([[back, hipY - 8], [0, hipY - 12], [front - 7, hipY - 14], [front + 5, hipY - 2], [back, hipY + 8]]), T.shadow, { opacity: 0.8 }),
       // Light on the chest.
-      path(ellipse(front - 17, top + 28, 11, 16, -0.25), T.light, { opacity: 0.9 }),
+      path(ellipse(front - 17, top + 28, 11, 16, -0.25), T.light, { opacity: V2 ? 0.45 : 0.9 }),
     ];
     if (cfg.belly) shading.push(path(ellipse(front - 6, hipY - 32, 5, 11, -0.2), T.light, { opacity: 0.5 }));
     if (T.style === 'tee') {
@@ -98,6 +122,17 @@ function buildBody(cfg) {
         stroke(smooth([[-14, top + 1], [-2, top + 5], [12, top + 2]], false), T.shadow, 3),
         stroke(smooth([[26, hipY - 18], [31, hipY - 21], [36, hipY - 17]], false), T.light, 1.4, { opacity: 0.7 }),
       );
+      if (V2) {
+        // Rib of the neck, a stitched hem, and the folds where the tee hangs over the belly.
+        shading.push(
+          stroke(smooth([[-15, top + 6], [-2, top + 10], [13, top + 7]], false), T.deep, 1, { opacity: 0.6 }),
+          stroke(`M${back - 2} ${hipY - 7}L${front + 4} ${hipY - 9}`, T.deep, 1, { 'stroke-dasharray': '3 2.4', opacity: 0.7 }),
+          stroke(smooth([[front - 30, hipY - 26], [front - 18, hipY - 20], [front - 6, hipY - 22]], false), T.shadow, 2, { opacity: 0.9 }),
+          stroke(smooth([[front - 34, hipY - 14], [front - 22, hipY - 10], [front - 12, hipY - 12]], false), T.shadow, 1.6, { opacity: 0.8 }),
+          stroke(smooth([[back + 12, top + 26], [back + 16, top + 40], [back + 14, top + 52]], false), T.shadow, 1.6, { opacity: 0.8 }),
+          stroke(smooth([[front - 8, top + 14], [front - 2, top + 30], [front - 2, top + 46]], false), T.light, 2.2, { opacity: 0.5 }),
+        );
+      }
       // House tee: a sauce stain and a hole over the belly.
       if (T.stain) shading.push(path(smooth([[front - 26, top + 40], [front - 16, top + 36], [front - 12, top + 46], [front - 20, top + 52], [front - 28, top + 48]]), T.stain, { opacity: 0.7 }));
       if (T.hole) shading.push(path(ellipse(front - 10, hipY - 30, 4, 3, 0.3), S.skinShadow), path(ellipse(front - 10.5, hipY - 30.5, 2.6, 1.8, 0.3), S.skin));
@@ -177,7 +212,64 @@ function buildBody(cfg) {
     return neck + hips + garment + collar;
   }
 
+  /** A relaxed hand hanging from the wrist: palm, fingers curled a little and the thumb in front. */
+  function manoV2(wx, wy, rw, isBack) {
+    const skin = isBack ? S.skinShadow : S.skin;
+    const shade = isBack ? S.skinDeep : S.skinShadow;
+    const palma = `M${f(wx - rw)} ${f(wy)}A${f(rw)} ${f(rw)} 0 0 1 ${f(wx + rw)} ${f(wy)}` +
+      `C${f(wx + rw + 1.5)} ${f(wy + 6)} ${f(wx + 10)} ${f(wy + 12)} ${f(wx + 8.5)} ${f(wy + 19)}` +
+      `C${f(wx + 7)} ${f(wy + 25)} ${f(wx + 1)} ${f(wy + 27.5)} ${f(wx - 3)} ${f(wy + 26)}` +
+      `C${f(wx - 8)} ${f(wy + 24)} ${f(wx - 10)} ${f(wy + 15)} ${f(wx - 9.5)} ${f(wy + 8)}` +
+      `C${f(wx - 9)} ${f(wy + 4)} ${f(wx - rw - 0.5)} ${f(wy + 2)} ${f(wx - rw)} ${f(wy)}Z`;
+    const pulgar = smooth([[wx + 3, wy + 2], [wx + 8.5, wy + 3.5], [wx + 12, wy + 9], [wx + 12.5, wy + 15], [wx + 10, wy + 17], [wx + 7.5, wy + 13], [wx + 4, wy + 8]]);
+    const dedos = [0, 1, 2].map((i) => stroke(smooth([[wx - 5.5 + i * 4, wy + 14], [wx - 5 + i * 4.3, wy + 20], [wx - 4 + i * 4.6, wy + 25]], false), shade, 1.1));
+    return [
+      shape(palma, skin, [
+        path(poli([[wx - 14, wy - 8], [wx - 4, wy - 8], [wx - 4, wy + 30], [wx - 14, wy + 30]]), shade, { opacity: 0.7 }),
+        stroke(smooth([[wx - 8, wy + 13], [wx - 1, wy + 15], [wx + 7, wy + 13]], false), shade, 1, { opacity: 0.6 }),
+        ...dedos,
+      ], S.skinLine, 1.4),
+      shape(pulgar, skin, [path(ellipse(wx + 10.3, wy + 13.6, 1.8, 1.3, 0.4), S.skinLight ?? S.skin, { opacity: 0.8 })], S.skinLine, 1.2),
+    ].join('');
+  }
+
+  /** Arm of the second version (short sleeves): no joint lines at the elbow or the wrist. */
+  function armV2(side) {
+    const isBack = side === 'detras';
+    const [sx, sy] = J[`brazo_sup_${side}`];
+    const [ex, ey] = J[`antebrazo_${side}`];
+    const [wx, wy] = J[`mano_${side}`];
+    const skin = isBack ? S.skinShadow : S.skin;
+    const shade = isBack ? S.skinDeep : S.skinShadow;
+    const cloth = isBack ? T.shadow : T.base;
+    const re = aw - 1;
+    const rw = aw * 0.66;
+    const L = S.skinLine;
+    // Upper arm on top: its elbow end has no outline. Forearm below: its elbow end, wider and outlined.
+    const upper = shape(capsula(sx, sy + 4, aw, ex, ey, re), skin, [sombraLado(sx, sy + 4, aw, ex, ey, re, shade)]) + contorno(sx, sy + 4, aw, ex, ey, re, L, 1.4);
+    const fore = shape(capsula(ex, ey, re + 0.8, wx, wy, rw), skin, [
+      sombraLado(ex, ey, re + 0.8, wx, wy, rw, shade),
+      isBack ? '' : path(ellipse(ex + re * 0.35, (ey + wy) / 2 - 4, 2.4, 9), S.skinLight ?? S.skin, { opacity: 0.55 }),
+    ]) + contorno(ex, ey, re + 0.8, wx, wy, rw, L, 1.4, { arriba: true });
+    const sleeve = smooth([[sx - 13, sy - 4], [sx - 6, sy - 13], [sx + 7, sy - 14], [sx + 15, sy - 5], [sx + 16, sy + 12], [sx + 15, sy + 24, 'c'], [sx - 15, sy + 24, 'c'], [sx - 15, sy + 10]]);
+    return g(`brazo_${side}`, [
+      g(`mano_${side}`, [manoV2(wx, wy, rw + 0.8, isBack), pivot(`mano_${side}`, wx, wy)]),
+      g(`antebrazo_${side}`, [fore, pivot(`antebrazo_${side}`, ex, ey)]),
+      g(`brazo_sup_${side}`, [
+        upper,
+        shape(sleeve, cloth, [
+          path(smooth([[sx - 20, sy - 16], [sx - 5, sy - 16], [sx - 6, sy + 30], [sx - 20, sy + 30]]), isBack ? T.deep : T.shadow),
+          isBack ? '' : path(smooth([[sx + 4, sy - 12], [sx + 11, sy - 8], [sx + 12, sy + 8], [sx + 7, sy + 10]]), T.light, { opacity: 0.6 }),
+          stroke(`M${sx - 16} ${sy + 19}L${sx + 16} ${sy + 19}`, isBack ? T.seamBack ?? T.line : T.deep, 1, { 'stroke-dasharray': '2.6 2', opacity: 0.8 }),
+          stroke(smooth([[sx - 4, sy + 2], [sx + 2, sy + 10], [sx + 1, sy + 16]], false), isBack ? T.deep : T.shadow, 1.4, { opacity: 0.8 }),
+        ], T.line, 1.5),
+        pivot(`brazo_sup_${side}`, sx, sy),
+      ]),
+    ]);
+  }
+
   function arm(side) {
+    if (V2 && T.style === 'tee') return armV2(side);
     const isBack = side === 'detras';
     const [sx, sy] = J[`brazo_sup_${side}`];
     const [ex, ey] = J[`antebrazo_${side}`];
@@ -231,19 +323,8 @@ function buildBody(cfg) {
     ]);
   }
 
-  function leg(side) {
-    const isBack = side === 'detras';
-    const [hx, hy] = J[`muslo_${side}`];
-    const [kx, ky] = J[`pierna_${side}`];
-    const [ax, ay] = J[`pie_${side}`];
-    const tw = cfg.thigh ?? 19;
-    const base = isBack ? Pn.shadow : Pn.base;
-    const thigh = smooth([[hx - tw, hy - 8], [hx + tw, hy - 8], [kx + tw - 3.5, ky], [kx + 1, ky + 9], [kx - tw + 4, ky]]);
-    const shin = smooth([[kx - 14, ky - 6], [kx + 14, ky - 6], [ax + 14, ay - 2, 'c'], [ax + 1, ay + 2], [ax - 14, ay - 2, 'c']]);
-    const shade = [
-      path(smooth([[hx - 24, hy - 10], [hx - 7, hy - 10], [kx - 6, ky], [ax - 7, ay], [ax - 24, ay]]), isBack ? Pn.deep : Pn.shadow),
-      isBack ? '' : path(smooth([[hx + 7, hy], [hx + 13, hy], [kx + 11, ky], [ax + 10, ay - 4], [ax + 6, ay - 4], [kx + 6, ky]]), Pn.light, { opacity: 0.7 }),
-    ];
+  /** The shoe at the ankle (sneaker, boot or slipper), the near one lit. */
+  function pie(ax, ay, isBack) {
     const Sh = cfg.shoes;
     let foot;
     if (Sh.style === 'slipper') {
@@ -266,8 +347,111 @@ function buildBody(cfg) {
         path(smooth([[ax - 18, ay + 3], [ax + 30, ay + 3], [ax + 30, ay + 10], [ax - 18, ay + 10]]), isBack ? Sh.soleBack : Sh.sole),
         isBack ? '' : path(ellipse(ax + 8, ay - 5, 8, 3, -0.15), Sh.light),
         isBack ? '' : stroke(smooth([[ax + 2, ay - 8], [ax + 6, ay - 4], [ax + 10, ay - 7]], false), Sh.lace ?? Sh.sole, 1.2, { opacity: 0.8 }),
+        // Second version: toe cap, a side stripe, eyelets and laces, heel tab and tread.
+        ...(V2 ? [
+          path(smooth([[ax + 14, ay - 5], [ax + 22, ay - 3], [ax + 30, ay + 2], [ax + 30, ay + 4], [ax + 16, ay + 3], [ax + 12, ay - 1]]), isBack ? Sh.back : Sh.light, { opacity: 0.7 }),
+          stroke(smooth([[ax - 12, ay - 1], [ax - 2, ay - 5], [ax + 10, ay - 4], [ax + 16, ay + 0.5]], false), isBack ? Sh.soleBack : Sh.sole, 2.2, { opacity: isBack ? 0.5 : 0.85 }),
+          ...[0, 1, 2].map((i) => path(ellipse(ax - 2 + i * 4.5, ay - 8.5 + i * 0.8, 0.9, 0.9), isBack ? Sh.back : Sh.sole)),
+          ...(isBack ? [] : [0, 1].map((i) => stroke(`M${f(ax - 3 + i * 4.5)} ${f(ay - 7)}l4 -2.4`, Sh.lace ?? Sh.sole, 1.1))),
+          path(poli([[ax - 19, ay - 4], [ax - 14, ay - 11], [ax - 10, ay - 10], [ax - 13, ay - 1]]), isBack ? Sh.soleBack : Sh.light, { opacity: 0.8 }),
+          stroke(`M${f(ax - 18)} ${f(ay + 6)}L${f(ax + 30)} ${f(ay + 6)}`, isBack ? Sh.back : Sh.soleBack, 0.9, { 'stroke-dasharray': '2 1.6' }),
+        ] : []),
       ], Sh.line, 1.4);
     }
+    return foot;
+  }
+
+  /**
+   * Leg of the second version: the thigh's knee end is outlined (the shin covers
+   * it while the leg is straight) and the shin's is not, so no line crosses the knee.
+   */
+  function legV2(side) {
+    const isBack = side === 'detras';
+    const [hx, hy] = J[`muslo_${side}`];
+    const [kx, ky] = J[`pierna_${side}`];
+    const [ax, ay] = J[`pie_${side}`];
+    const tw = cfg.thigh ?? 19;
+    const rk = tw - 4;
+    const ra = 8;
+    const cloth = isBack ? Pn.shadow : Pn.base;
+    const clothShade = isBack ? Pn.deep : Pn.shadow;
+    const skin = isBack ? S.skinShadow : S.skin;
+    const skinShade = isBack ? S.skinDeep : S.skinShadow;
+    const L = Pn.line;
+    const SL = S.skinLine;
+    const luz = (x1, y1, x2, y2) => (isBack ? '' : path(poli([[x1 + 6, y1], [x1 + 11, y1], [x2 + 9, y2], [x2 + 5, y2]]), Pn.light, { opacity: 0.6 }));
+    const costura = (x1, y1, x2, y2) => (Pn.stitch && !isBack ? stroke(`M${f(x1)} ${f(y1)}L${f(x2)} ${f(y2)}`, Pn.stitch, 0.9, { 'stroke-dasharray': '2.2 1.8', opacity: 0.85 }) : '');
+    const calcetin = (y0) => [
+      path(poli([[ax - 14, y0], [ax + 14, y0], [ax + 14, ay + 4], [ax - 14, ay + 4]]), Pn.sock ?? '#ece7dc'),
+      ...[-4, 0, 4].map((dx) => stroke(`M${f(ax + dx)} ${f(y0 + 1)}l0 4`, '#c9c2b4', 0.8)),
+    ];
+    let thighArt;
+    if (Pn.length === 'boxers') {
+      const t = Pn.hem ?? 0.45;
+      const bx = hx + (kx - hx) * t;
+      const by = hy + (ky - hy) * t;
+      const hearts = Pn.hearts ? [[-6, 0.25], [6, 0.5], [-4, 0.75], [8, 0.15]].map(([dx, k]) => {
+        const x = hx + (bx - hx) * k + dx;
+        const y = hy - 4 + (by - hy) * k;
+        return path(`M${x} ${y + 2.6}l-2.6 -2.6a1.5 1.5 0 0 1 2.6 -1.7a1.5 1.5 0 0 1 2.6 1.7z`, Pn.hearts);
+      }) : [];
+      const boxer = smooth([[hx - tw - 1, hy - 9], [hx + tw + 1, hy - 9], [bx + tw + 1.5, by, 'c'], [bx - tw - 1.5, by, 'c']]);
+      thighArt = shape(capsula(hx, hy - 4, tw - 3, kx, ky, rk + 0.8), skin, [sombraLado(hx, hy - 4, tw - 3, kx, ky, rk, skinShade)]) +
+        contorno(hx, hy - 4, tw - 3, kx, ky, rk + 0.8, SL, 1.3, { abajo: true }) +
+        shape(boxer, cloth, [sombraLado(hx, hy - 9, tw, bx, by, tw, clothShade), ...hearts, stroke(`M${bx - tw} ${by - 3}L${bx + tw} ${by - 3}`, Pn.shadow, 1.2, { 'stroke-dasharray': '2.4 2' })], L, 1.5);
+    } else {
+      thighArt = shape(capsula(hx, hy - 8, tw, kx, ky, rk + 0.8), cloth, [
+        sombraLado(hx, hy - 8, tw, kx, ky, rk, clothShade, 0.32),
+        luz(hx, hy - 8, kx, ky),
+        costura(hx - tw + 5, hy - 4, kx - rk + 3, ky - 2),
+        isBack ? '' : stroke(smooth([[kx - 6, ky - 10], [kx + 2, ky - 6], [kx + 9, ky - 9]], false), clothShade, 1.4, { opacity: 0.8 }),
+      ]) + contorno(hx, hy - 8, tw, kx, ky, rk + 0.8, L, 1.5, { abajo: true });
+    }
+    let shinArt;
+    if (Pn.length === 'shorts') {
+      // Shorts that stop below the knee: a denim tube with a turned-up hem, the calf and a low sock below.
+      const t = Pn.hem ?? 0.6;
+      const hxm = kx + (ax - kx) * t;
+      const hym = ky + (ay - ky) * t;
+      const rh = rk + 1.5;
+      const calf = shape(capsula(kx, ky + 8, 10.5, ax, ay, ra), skin, [sombraLado(kx, ky + 8, 10.5, ax, ay, ra, skinShade), ...calcetin(ay - 16)]) + contorno(kx, ky + 8, 10.5, ax, ay, ra, SL, 1.3);
+      const tubo = `M${f(kx - rk)} ${f(ky)}L${f(hxm - rh)} ${f(hym)}L${f(hxm + rh)} ${f(hym)}L${f(kx + rk)} ${f(ky)}A${f(rk)} ${f(rk)} 0 0 0 ${f(kx - rk)} ${f(ky)}Z`;
+      const denim = shape(tubo, cloth, [
+        sombraLado(kx, ky, rk, hxm, hym, rh, clothShade, 0.32),
+        luz(kx, ky, hxm, hym),
+        costura(kx - rk + 3, ky, hxm - rh + 3, hym - 6),
+        path(poli([[hxm - rh - 2, hym - 7], [hxm + rh + 2, hym - 7], [hxm + rh + 2, hym + 2], [hxm - rh - 2, hym + 2]]), isBack ? Pn.deep : Pn.light, { opacity: 0.55 }),
+        stroke(`M${f(hxm - rh)} ${f(hym - 7)}L${f(hxm + rh)} ${f(hym - 7)}`, L, 1.1),
+      ]) + stroke(`M${f(kx - rk)} ${f(ky)}L${f(hxm - rh)} ${f(hym)}L${f(hxm + rh)} ${f(hym)}L${f(kx + rk)} ${f(ky)}`, L, 1.5);
+      shinArt = calf + denim;
+    } else if (Pn.length === 'boxers') {
+      shinArt = shape(capsula(kx, ky, rk, ax, ay, ra), skin, [sombraLado(kx, ky, rk, ax, ay, ra, skinShade), ...calcetin(ay - 16)]) + contorno(kx, ky, rk, ax, ay, ra, SL, 1.3);
+    } else {
+      shinArt = shape(capsula(kx, ky, rk, ax, ay, rk - 2), cloth, [sombraLado(kx, ky, rk, ax, ay, rk - 2, clothShade, 0.32), luz(kx, ky, ax, ay), costura(kx - rk + 3, ky, ax - rk + 4, ay - 6)]) +
+        contorno(kx, ky, rk, ax, ay, rk - 2, L, 1.5);
+    }
+    return g(`pierna_${side}_grupo`, [
+      g(`muslo_${side}`, [thighArt, pivot(`muslo_${side}`, hx, hy)]),
+      g(`pierna_${side}`, [shinArt, pivot(`pierna_${side}`, kx, ky)]),
+      g(`pie_${side}`, [pie(ax, ay, isBack), pivot(`pie_${side}`, ax, ay)]),
+    ]);
+  }
+
+  function leg(side) {
+    if (V2) return legV2(side);
+    const isBack = side === 'detras';
+    const [hx, hy] = J[`muslo_${side}`];
+    const [kx, ky] = J[`pierna_${side}`];
+    const [ax, ay] = J[`pie_${side}`];
+    const tw = cfg.thigh ?? 19;
+    const base = isBack ? Pn.shadow : Pn.base;
+    const thigh = smooth([[hx - tw, hy - 8], [hx + tw, hy - 8], [kx + tw - 3.5, ky], [kx + 1, ky + 9], [kx - tw + 4, ky]]);
+    const shin = smooth([[kx - 14, ky - 6], [kx + 14, ky - 6], [ax + 14, ay - 2, 'c'], [ax + 1, ay + 2], [ax - 14, ay - 2, 'c']]);
+    const shade = [
+      path(smooth([[hx - 24, hy - 10], [hx - 7, hy - 10], [kx - 6, ky], [ax - 7, ay], [ax - 24, ay]]), isBack ? Pn.deep : Pn.shadow),
+      isBack ? '' : path(smooth([[hx + 7, hy], [hx + 13, hy], [kx + 11, ky], [ax + 10, ay - 4], [ax + 6, ay - 4], [kx + 6, ky]]), Pn.light, { opacity: 0.7 }),
+    ];
+    const foot = pie(ax, ay, isBack);
     let shinArt;
     let thighArt = shape(thigh, base, shade, Pn.line, 1.5);
     if (Pn.length === 'boxers') {

@@ -22,6 +22,7 @@ export const C = {
   beardLine: '#120d0b',
   brow: '#1f1815',
   eye: '#2a1a16',
+  iris: '#5a3826',
   lip: '#b5675b',
   mouth: '#5a2422',
   teeth: '#f4efe4',
@@ -124,8 +125,13 @@ export function eye(which, look = 0, open = 1, squint = 0, angry = false) {
     ? smooth([[x - rx - 2, cy - ry - 3], [x + rx + 2, cy - ry - 3], [x + rx + 1, rt], [x, (lt + rt) / 2 - 0.4], [x - rx - 1, lt]])
     : smooth([[x - rx - 2, cy - ry - 3], [x + rx + 2, cy - ry - 3], [x + rx + 1, top + 0.6], [x, top - 0.6], [x - rx - 1, top + 1.2]]);
   const parts = [
-    path(ellipse(x + rx * 0.3, cy - ry * 0.25, rx * 0.32, rx * 0.32), '#ffffff'),
+    path(ellipse(x + rx * 0.12, cy + ry * 0.08, rx * 0.86, ry * 0.8), C.iris),
+    path(ellipse(x + rx * 0.18, cy + ry * 0.1, rx * 0.46, ry * 0.46), C.eye),
+    path(ellipse(x + rx * 0.3, cy - ry * 0.25, rx * 0.34, rx * 0.34), '#ffffff'),
+    path(ellipse(x - rx * 0.32, cy + ry * 0.38, rx * 0.13, rx * 0.13), '#ffffff', { opacity: 0.8 }),
     path(lid, C.skinShadow),
+    // Lash line along the lid.
+    stroke(angry ? smooth([[x - rx - 1, lt], [x, (lt + rt) / 2 - 0.4], [x + rx + 1, rt]], false) : smooth([[x - rx - 1, top + 1.2], [x, top - 0.6], [x + rx + 1, top + 0.6]], false), C.eye, 1.5),
   ];
   // Happy: cheeks push the lower lid up into a smile-shaped eye.
   if (squint) parts.push(path(smooth([[x - rx - 2, cy + ry + 3], [x - rx - 1, cy + ry * (1 - squint)], [x, cy + ry * (0.55 - squint)], [x + rx + 1, cy + ry * (1 - squint)], [x + rx + 2, cy + ry + 3]]), C.skin));
@@ -264,7 +270,7 @@ export const OUTFITS = {
   calle: {
     top: { style: 'tee', base: '#2e8a8c', shadow: '#1f6567', deep: '#174f51', light: '#4fb0ae', line: '#154647', seamBack: '#123e40' },
     // His famous «pantaloneta»: denim shorts that stop below the knee.
-    pants: { base: '#3e5279', shadow: '#2c3b5a', deep: '#222e47', light: '#566c96', line: '#1d2840', length: 'shorts', hem: 0.5, sock: '#e9e4da' },
+    pants: { base: '#3e5279', shadow: '#2c3b5a', deep: '#222e47', light: '#566c96', line: '#1d2840', length: 'shorts', hem: 0.5, sock: '#e9e4da', stitch: '#c99a4a' },
     shoes: { style: 'sneaker', base: '#2f3138', back: '#26282e', light: '#4b4e57', line: '#15161a', sole: '#ece7dc', soleBack: '#c9c2b4' },
   },
   casa: {
@@ -286,6 +292,8 @@ export const body = makeBody({
     [44, -122], [47, -138], [45, -156], [40, -174], [30, -188], [14, -197], [-6, -199],
   ],
   belly: 1,
+  // Second version of the body (docs/ESTILO.md, P8): no joint lines, hands with fingers.
+  v2: true,
   limb: 10,
   thigh: 19,
   headAt: HEAD_AT,
@@ -314,8 +322,12 @@ export function headFront({ mood = 'neutral', mouthKind, blink = false } = {}) {
   ]);
   const mustache = smooth([[-20, 30], [-14, 22], [-5, 20], [0, 22], [5, 20], [14, 22], [20, 30], [22, 37], [17, 34], [10, 28], [0, 28], [-10, 28], [-17, 34], [-22, 37]]);
   const eyeF = (x) => shape(ellipse(x, -2, 4.4, 5.4), C.eye, [
-    path(ellipse(x + 1.4, -3.4, 1.4, 1.4), '#ffffff'),
+    path(ellipse(x, -1.6, 3.8, 4.4), C.iris),
+    path(ellipse(x, -1.4, 2, 2.4), C.eye),
+    path(ellipse(x + 1.4, -3.4, 1.5, 1.5), '#ffffff'),
+    path(ellipse(x - 1.5, 0.6, 0.6, 0.6), '#ffffff', { opacity: 0.8 }),
     path(smooth([[x - 7, -10], [x + 7, -10], [x + 5.5, -5.6], [x, -6.6], [x - 5.5, -5.4]]), C.skinShadow),
+    stroke(smooth([[x - 5.5, -5.4], [x, -6.6], [x + 5.5, -5.6]], false), C.eye, 1.4),
   ]);
   return [
     shape(skull, C.skin, [

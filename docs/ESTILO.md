@@ -74,6 +74,8 @@ Imágenes de referencia del kit, solo como referencia de ambiente: `docs/referen
 
 **Expresiones de todos:** de siempre, contento, sorprendido, triste (interior de las cejas hacia arriba) y enfadado (interior de las cejas hacia abajo y párpado caído hacia la nariz), más cinco bocas para hablar y parpadeo.
 
+- **P8 · Cuerpo, segunda versión** (`v2: true` al llamar a `makeBody`; de momento solo Fran, el resto pasará cuando se apruebe). Codos y rodillas sin línea de junta: cada pieza acaba en un extremo redondo y la de encima tapa la unión. Manos con pulgar y dedos marcados; costuras, pliegues, bajos y cordones en la ropa; ojos con iris, pupila y dos brillos. Es solo detalle dentro de las mismas piezas y casi del mismo tamaño, así que no cuesta nada por fotograma: solo se nota un poco al convertir las piezas en imágenes al cargar.
+
 ## 6. Interfaz
 
 - **I1:** paneles redondeados de cristal ahumado con filete dorado.
