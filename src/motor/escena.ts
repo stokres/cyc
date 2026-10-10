@@ -59,6 +59,8 @@ export interface Capa {
   lit?: boolean;
   ambient?: string;
   lights?: false;
+  /** Painted texture (paper grain and pigment) baked into the albedo, 0–1. Free per frame. */
+  textura?: number;
 }
 
 export interface Luz {
@@ -265,6 +267,110 @@ function drawTexts(ctx: CanvasRenderingContext2D, texts: Texto[], x0: number, y0
   ctx.restore();
 }
 
+/**
+ * Painted texture: paper grain and blotches of pigment, as two tiles made once
+ * from value noise in octaves on a grid that wraps (so they repeat without seams).
+ * Where the noise is below its mean the paint gets darker (multiplied), where it
+ * is above, lighter (the paint added to itself): both scale the three channels
+ * alike, so colours keep their saturation. Soft light would wash them out.
+ */
+const TEX_N = 512;
+/** Scene units one tile covers: the grain stays the same size at every quality. */
+const TEX_U = 640;
+/** Strongest change of brightness at full strength. */
+const TEX_AMP = 0.25;
+let teselas: { oscura: HTMLCanvasElement; clara: HTMLCanvasElement } | null = null;
+
+function teselasTextura() {
+  if (teselas) return teselas;
+  const octava = (celdas: number, seed: number) => {
+    let s = seed;
+    const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+    const g = Array.from({ length: celdas * celdas }, r);
+    const v = (i: number, j: number) => g[(j % celdas) * celdas + (i % celdas)];
+    return (x: number, y: number) => {
+      const gx = (x / TEX_N) * celdas;
+      const gy = (y / TEX_N) * celdas;
+      const i = Math.floor(gx);
+      const j = Math.floor(gy);
+      const fx = gx - i;
+      const fy = gy - j;
+      const sx = fx * fx * (3 - 2 * fx);
+      const sy = fy * fy * (3 - 2 * fy);
+      const a = v(i, j);
+      const b = v(i + 1, j);
+      const c = v(i, j + 1);
+      const d = v(i + 1, j + 1);
+      return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy;
+    };
+  };
+  // Broad blotches, brush-sized patches, then fine grain (cells of ~4 scene units, still visible at «media»).
+  const capas: Array<[(x: number, y: number) => number, number]> = [
+    [octava(4, 7), 0.3],
+    [octava(16, 11), 0.35],
+    [octava(64, 13), 0.23],
+    [octava(160, 17), 0.12],
+  ];
+  const oscura = lienzo(TEX_N, TEX_N);
+  const clara = lienzo(TEX_N, TEX_N);
+  const dO = oscura.getContext('2d')!.createImageData(TEX_N, TEX_N);
+  const dC = clara.getContext('2d')!.createImageData(TEX_N, TEX_N);
+  for (let j = 0; j < TEX_N; j++) {
+    for (let i = 0; i < TEX_N; i++) {
+      let v = 0;
+      for (const [o, w] of capas) v += o(i, j) * w;
+      const m = Math.max(-1, Math.min(1, (v - 0.5) * 3.3)) * TEX_AMP;
+      const p = (j * TEX_N + i) * 4;
+      dO.data[p] = dO.data[p + 1] = dO.data[p + 2] = 255 * (1 + Math.min(0, m));
+      dO.data[p + 3] = 255;
+      dC.data[p] = dC.data[p + 1] = dC.data[p + 2] = 255;
+      dC.data[p + 3] = 255 * Math.max(0, m);
+    }
+  }
+  oscura.getContext('2d')!.putImageData(dO, 0, 0);
+  clara.getContext('2d')!.putImageData(dC, 0, 0);
+  return (teselas = { oscura, clara });
+}
+
+/**
+ * Paint the texture into a piece's albedo, anchored to the scene (not to the
+ * piece, so neighbouring tiles meet without a seam) and only where the piece
+ * has paint.
+ */
+function texturizar(alb: HTMLCanvasElement, x0: number, y0: number, px: number, fuerza: number) {
+  const T = teselasTextura();
+  const ctx = alb.getContext('2d')!;
+  const t = lienzo(alb.width, alb.height);
+  const tx = t.getContext('2d')!;
+  const capa = (tesela: HTMLCanvasElement) => {
+    const pat = tx.createPattern(tesela, 'repeat')!;
+    pat.setTransform(new DOMMatrix().scale(TEX_U / TEX_N));
+    tx.setTransform(px, 0, 0, px, -x0 * px, -y0 * px);
+    tx.globalCompositeOperation = 'copy';
+    tx.fillStyle = pat;
+    tx.fillRect(x0, y0, alb.width / px, alb.height / px);
+    tx.setTransform(1, 0, 0, 1, 0, 0);
+  };
+  ctx.save();
+  ctx.globalAlpha = Math.min(1, fuerza);
+  // Lighter: the albedo itself, through the light tile's alpha, added on top.
+  capa(T.clara);
+  tx.globalCompositeOperation = 'source-in';
+  tx.drawImage(alb, 0, 0);
+  const claro = lienzo(alb.width, alb.height);
+  claro.getContext('2d')!.drawImage(t, 0, 0);
+  // Darker: the dark tile, cut to the piece, multiplied.
+  capa(T.oscura);
+  tx.globalCompositeOperation = 'destination-in';
+  tx.drawImage(alb, 0, 0);
+  ctx.globalCompositeOperation = 'multiply';
+  ctx.drawImage(t, 0, 0);
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.drawImage(claro, 0, 0);
+  ctx.restore();
+  t.width = t.height = claro.width = claro.height = 0;
+}
+
 function multiplyLight(c: HTMLCanvasElement, lm: HTMLCanvasElement) {
   const ctx = c.getContext('2d')!;
   const alpha = lienzo(c.width, c.height);
@@ -385,6 +491,7 @@ export async function hornear(S: Escena, px: number, onProgress?: (p: number) =>
       const w = p.x1 - p.x0;
       const h = p.y1 - p.y0;
       const alb = await raster(p.body, p.x0, p.y0, w, h, px);
+      if (L.textura) texturizar(alb, p.x0, p.y0, px, L.textura);
       if (L.texts) drawTexts(alb.getContext('2d')!, L.texts, p.x0, p.y0, px, false);
       let lm: HTMLCanvasElement | null = null;
       if (L.lit) {
