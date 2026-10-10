@@ -985,6 +985,24 @@ fin.capitulo = Fin del capítulo 1
 fin.titulo = Fin del capítulo 1
 fin.texto = Los cuatro ya están en el Río. Lo que pasó dentro, en el capítulo 2.
 
+// ---------------------------------------------------------------- tráiler del capítulo 2
+// Sale tras el «Continuará…»: escenas sueltas del capítulo 2 con música de tráiler.
+// Cada texto sale a su golpe de música (src/ui/trailer.ts); si alargas mucho uno, no da
+// tiempo a leerlo. El canto va por sílabas, separadas con guiones: cada una sale con un
+// golpe de metales. El letrero de la tragaperras va en su marquesina: corto.
+
+trailer.cartel1 = Una resaca...
+trailer.cartel2 = Con consecuencias
+trailer.cartel3 = Inesperadas
+trailer.pang.jugador = FRAN
+trailer.pang.fase = USERA
+trailer.invaders.jugador = CHUCHI
+trailer.invaders.puntos = PUNTOS
+trailer.tragaperras.premio = PREMIO
+trailer.canto = ¡Ca-mio-neees y ca-ra-va-naaas!
+trailer.capitulo = Capítulo 2
+trailer.proximamente = Próximamente
+
 // ---------------------------------------------------------------- historia de Chuchi: Bolilandia
 
 zona.persiana = Salida

@@ -15,7 +15,7 @@
 // without it, to compare.
 //
 // Usage: node scripts/rendimiento.mjs [escena...]   (against npm run dev on :5173)
-//   escenas: prologo, piso, calle, granja, cerdos, backstage, palabras, rana, parque, robot, sinfin (all by default)
+//   escenas: prologo, piso, calle, granja, cerdos, backstage, palabras, rana, parque, robot, sinfin, trailer (all by default)
 import { chromium } from 'playwright';
 import { readFileSync, readdirSync } from 'node:fs';
 
@@ -76,6 +76,7 @@ async function medir(nombre, prep, contar = 'escena') {
   // Close any minigame left open by the previous scenario.
   await page.evaluate(() => {
     document.querySelectorAll('.cubierta.minijuego .cerrar, .cubierta.prologo .saltar').forEach((b) => b.click());
+    window.__trailer?.().cerrar();
     // The minigames started here do not unpause the scene themselves.
     window.__cyc.g.pausado = false;
   });
@@ -100,9 +101,10 @@ async function medir(nombre, prep, contar = 'escena') {
     const p0 = window.__palabras?.().fotogramas ?? 0;
     const r0 = window.__rana?.().fotogramas ?? 0;
     const b0 = window.__robot?.().fotogramas ?? 0;
+    const t0 = window.__trailer?.().fotogramas ?? 0;
     setTimeout(() => {
       m.dibujar = d;
-      res(contar === 'cerdos' ? ((window.__cerdos?.().fotogramas ?? 0) - f0) / seg : contar === 'palabras' ? ((window.__palabras?.().fotogramas ?? 0) - p0) / seg : contar === 'rana' ? ((window.__rana?.().fotogramas ?? 0) - r0) / seg : contar === 'robot' ? ((window.__robot?.().fotogramas ?? 0) - b0) / seg : n / seg);
+      res(contar === 'cerdos' ? ((window.__cerdos?.().fotogramas ?? 0) - f0) / seg : contar === 'palabras' ? ((window.__palabras?.().fotogramas ?? 0) - p0) / seg : contar === 'rana' ? ((window.__rana?.().fotogramas ?? 0) - r0) / seg : contar === 'robot' ? ((window.__robot?.().fotogramas ?? 0) - b0) / seg : contar === 'trailer' ? ((window.__trailer?.().fotogramas ?? 0) - t0) / seg : n / seg);
     }, seg * 1000);
   }), { seg: SEG, contar });
   const cpu = ((cpuChrome() - c0) / SEG) * 100;
@@ -259,6 +261,22 @@ if (toca('sinfin')) {
     };
     setTimeout(juega, 1500);
   })()`, 'cerdos');
+}
+
+if (toca('trailer')) {
+  // The chapter 2 trailer, over the paused scene: the bar and the desert road (painted layers
+  // scrolling, a few shapes on top); then the montage: the arcade games (256×144, scaled up),
+  // the beer sliding, the slot machine and Vero (a few paths a frame). Each stretch plays in a
+  // loop while it is measured.
+  for (const [nombre, desde, hasta] of [['tráiler, barra y carretera', 2, 8], ['tráiler, montaje y Vero', 10, 26]]) {
+    await medir(nombre, `(async () => {
+      clearInterval(window.__paseo);
+      const g = window.__cyc.g;
+      const { mostrarTrailer } = await import('/src/ui/trailer.ts');
+      g.pausado = true;
+      void mostrarTrailer(g.root.parentElement, g.sound, false, { desde: ${desde}, hasta: ${hasta} });
+    })()`, 'trailer');
+  }
 }
 
 // Memory after the whole tour (docs/ESTILO.md, T5.11): baked scenery and decoded music are
