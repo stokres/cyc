@@ -25,6 +25,13 @@ function contorno(x1, y1, r1, x2, y2, r2, color, w, { arriba = false, abajo = fa
 function sombraLado(x1, y1, r1, x2, y2, r2, color, k = 0.3) {
   return path(poli([[x1 - r1 - 6, y1 - r1 - 2], [x1 - r1 + r1 * 2 * k, y1 - r1 - 2], [x2 - r2 + r2 * 2 * k, y2 + r2 + 2], [x2 - r2 - 6, y2 + r2 + 2]]), color, { opacity: 0.85 });
 }
+/** Soft specks scattered over a box (fleece), always the same for the same seed: one short path for all of them. */
+function motas(x0, y0, w, h, n, color, seed = 7) {
+  let st = seed;
+  const r = () => ((st = (st * 16807) % 2147483647) / 2147483647);
+  const d = Array.from({ length: n }, () => `M${f(x0 + r() * w - 1.3)} ${f(y0 + r() * h)}a1.3 1 0 1 0 2.6 0a1.3 1 0 1 0 -2.6 0`).join('');
+  return [path(d, color, { opacity: 0.3 })];
+}
 
 /**
  * cfg = {
@@ -146,6 +153,16 @@ function buildBody(cfg) {
         stroke(smooth([[px, top + 22], [px - 1, (top + hipY) / 2], [px + 1, hipY + 6]], false), T.deep, 1.4),
         ...[0.32, 0.55, 0.78].map((k) => path(ellipse(px + 2.5, top + 22 + (hipY - top - 22) * k, 1.6, 1.6), T.button ?? '#efe6d0')),
       );
+      if (V2) {
+        // Stitched placket and hem, and the folds where the shirt blouses over the belt.
+        shading.push(
+          stroke(smooth([[px + 5, top + 24], [px + 4, (top + hipY) / 2], [px + 6, hipY + 4]], false), T.deep, 0.9, { 'stroke-dasharray': '2.4 2', opacity: 0.7 }),
+          stroke(`M${back - 2} ${hipY - 6}L${front + 4} ${hipY - 8}`, T.deep, 1, { 'stroke-dasharray': '3 2.4', opacity: 0.7 }),
+          stroke(smooth([[back + 8, hipY - 22], [back + 16, hipY - 16], [back + 26, hipY - 18]], false), T.deep, 1.6, { opacity: 0.55 }),
+          stroke(smooth([[front - 30, hipY - 18], [front - 20, hipY - 12], [front - 10, hipY - 15]], false), T.deep, 1.6, { opacity: 0.55 }),
+          stroke(smooth([[back + 12, top + 24], [back + 16, top + 40], [back + 13, top + 54]], false), T.deep, 1.6, { opacity: 0.5 }),
+        );
+      }
     } else if (T.style === 'hoodie') {
       // Kangaroo pocket, ribbed hem, drawstrings.
       const pk = smooth([[back + 10, hipY - 40], [front - 10, hipY - 42], [front - 4, hipY - 14, 'c'], [back + 8, hipY - 14, 'c']]);
@@ -161,6 +178,16 @@ function buildBody(cfg) {
               stroke(smooth([[front - 14, top + 5], [front - 13, top + 24], [front - 12, top + 31]], false), T.string, 1.6),
             ]),
       );
+      if (V2) {
+        // Edge of the neck rib, folds over the ribbed hem and down the side, a seam under the arm.
+        shading.push(
+          ...(T.hood === false ? [stroke(smooth([[-17, top + 6.5], [-2, top + 11.5], [15, top + 7.5]], false), T.deep, 1, { opacity: 0.8 })] : []),
+          stroke(smooth([[front - 30, hipY - 22], [front - 18, hipY - 17], [front - 7, hipY - 19]], false), T.deep, 1.8, { opacity: 0.6 }),
+          stroke(smooth([[back + 10, hipY - 20], [back + 20, hipY - 15], [back + 30, hipY - 17]], false), T.deep, 1.6, { opacity: 0.55 }),
+          stroke(smooth([[back + 12, top + 26], [back + 16, top + 42], [back + 13, top + 56]], false), T.deep, 1.6, { opacity: 0.55 }),
+          stroke(smooth([[front - 6, top + 16], [front - 1, top + 32], [front - 2, top + 48]], false), T.light, 2.2, { opacity: 0.45 }),
+        );
+      }
     } else if (T.style === 'sweater') {
       // Crew neck rib and ribbed hem.
       shading.push(
@@ -186,6 +213,18 @@ function buildBody(cfg) {
           return path(ellipse(x, y, 1.3, 1), T.light, { opacity: 0.28 });
         }),
       );
+      if (V2) {
+        // Zip teeth along the opening, the tee's neck rib inside, a zipped chest pocket and soft folds.
+        shading.push(
+          stroke(smooth([[cx - 3, top + 2], [cx - 7, mid], [cx + 4, hipY + 4]], false), '#c9cad0', 1.6, { 'stroke-dasharray': '1 1.6', opacity: 0.8 }),
+          stroke(smooth([[cx + 1, top + 1], [cx + 8, top + 5], [cx + 15, top + 2]], false), T.innerShadow ?? T.shadow, 1.6),
+          stroke(smooth([[back + 26, top + 30], [cx - 10, top + 28]], false), T.deep, 1.8),
+          stroke(smooth([[back + 26, top + 30], [cx - 10, top + 28]], false), '#a3a4ab', 0.8, { 'stroke-dasharray': '1 1.4', opacity: 0.8 }),
+          stroke(smooth([[back + 8, hipY - 26], [back + 18, hipY - 19], [back + 30, hipY - 21]], false), T.deep, 1.8, { opacity: 0.7 }),
+          stroke(smooth([[back + 10, top + 24], [back + 15, top + 42], [back + 12, top + 58]], false), T.deep, 1.8, { opacity: 0.6 }),
+          ...motas(back + 4, top + 6, cx - back - 10, hipY - top - 18, 40, T.light, 11),
+        );
+      }
     }
     const garment = shape(TORSO, T.base, shading, T.line, 1.6);
     let collar = '';
@@ -260,6 +299,7 @@ function buildBody(cfg) {
         shape(sleeve, cloth, [
           path(smooth([[sx - 20, sy - 16], [sx - 5, sy - 16], [sx - 6, sy + 30], [sx - 20, sy + 30]]), isBack ? T.deep : T.shadow),
           isBack ? '' : path(smooth([[sx + 4, sy - 12], [sx + 11, sy - 8], [sx + 12, sy + 8], [sx + 7, sy + 10]]), T.light, { opacity: 0.6 }),
+          ...(T.pattern ? hawaiian(sx - 18, sy - 16, 36, 40, T.pattern, isBack ? 9 : 7, 6) : []),
           stroke(`M${sx - 16} ${sy + 19}L${sx + 16} ${sy + 19}`, isBack ? T.seamBack ?? T.line : T.deep, 1, { 'stroke-dasharray': '2.6 2', opacity: 0.8 }),
           stroke(smooth([[sx - 4, sy + 2], [sx + 2, sy + 10], [sx + 1, sy + 16]], false), isBack ? T.deep : T.shadow, 1.4, { opacity: 0.8 }),
         ], T.line, 1.5),
@@ -268,8 +308,48 @@ function buildBody(cfg) {
     ]);
   }
 
+  /** Arm of the second version with long sleeves: the sleeve bends at the elbow without a seam, and the cuff covers the wrist. */
+  function armLargoV2(side) {
+    const isBack = side === 'detras';
+    const [sx, sy] = J[`brazo_sup_${side}`];
+    const [ex, ey] = J[`antebrazo_${side}`];
+    const [wx, wy] = J[`mano_${side}`];
+    const cloth = isBack ? T.shadow : T.base;
+    const shade = isBack ? T.deep : T.shadow;
+    const rs = aw + 3;
+    const re = aw + 1.5;
+    const rc = aw + 0.5;
+    const L = T.line;
+    const ribbed = T.style === 'sweater' || T.style === 'hoodie';
+    const fleece = (x, y, w, h, seed) => (T.style === 'sherpa' ? motas(x, y, w, h, 8, T.light, seed) : []);
+    // Upper sleeve on top: its elbow end has no outline. Forearm below: its elbow end, wider and outlined.
+    const upper = shape(capsula(sx, sy - 4, rs, ex, ey, re), cloth, [
+      sombraLado(sx, sy - 4, rs, ex, ey, re, shade),
+      isBack ? '' : path(ellipse(sx + 5, sy + 2, 4.5, 13), T.light, { opacity: 0.55 }),
+      ...fleece(sx - rs, sy - 12, rs * 2, ey - sy + 6, isBack ? 5 : 3),
+      stroke(smooth([[ex - 3, ey - 18], [ex + 3, ey - 11], [ex + 2, ey - 4]], false), shade, 1.4, { opacity: 0.8 }),
+    ]) + contorno(sx, sy - 4, rs, ex, ey, re, L, 1.5, { arriba: true });
+    const fore = shape(capsula(ex, ey, re + 0.8, wx, wy - 10, rc), cloth, [
+      sombraLado(ex, ey, re + 0.8, wx, wy - 10, rc, shade),
+      isBack ? '' : path(ellipse(ex + re * 0.4, (ey + wy) / 2 - 4, 2.6, 10), T.light, { opacity: 0.5 }),
+      ...fleece(ex - re, ey, re * 2, wy - ey - 10, isBack ? 9 : 4),
+      // Creases where the sleeve bunches above the cuff.
+      stroke(smooth([[wx - rc + 1, wy - 20], [wx - 2, wy - 16], [wx + 3, wy - 18]], false), shade, 1.2, { opacity: 0.8 }),
+      stroke(smooth([[wx - 1, wy - 28], [wx + 4, wy - 25], [wx + rc - 1, wy - 27]], false), shade, 1.2, { opacity: 0.7 }),
+    ]) + contorno(ex, ey, re + 0.8, wx, wy - 10, rc, L, 1.4, { arriba: true });
+    const puno = smooth([[wx - rc - 1, wy - 11], [wx + rc + 1, wy - 11], [wx + rc + 1, wy - 1, 'c'], [wx - rc - 1, wy - 1, 'c']]);
+    const cuff = shape(puno, isBack || ribbed ? T.shadow : T.light, ribbed
+      ? [0.2, 0.4, 0.6, 0.8].map((k) => stroke(`M${f(wx - rc + 2 * rc * k)} ${f(wy - 10)}l0 8`, T.deep, 1))
+      : [stroke(`M${f(wx - rc)} ${f(wy - 4)}L${f(wx + rc)} ${f(wy - 4)}`, T.deep, 0.9, { 'stroke-dasharray': '2 1.6', opacity: 0.8 })], L, 1.3);
+    return g(`brazo_${side}`, [
+      g(`mano_${side}`, [manoV2(wx, wy, aw * 0.66 + 0.8, isBack), pivot(`mano_${side}`, wx, wy)]),
+      g(`antebrazo_${side}`, [fore, cuff, pivot(`antebrazo_${side}`, ex, ey)]),
+      g(`brazo_sup_${side}`, [upper, pivot(`brazo_sup_${side}`, sx, sy)]),
+    ]);
+  }
+
   function arm(side) {
-    if (V2 && T.style === 'tee') return armV2(side);
+    if (V2) return T.style === 'tee' || T.style === 'shirt' ? armV2(side) : armLargoV2(side);
     const isBack = side === 'detras';
     const [sx, sy] = J[`brazo_sup_${side}`];
     const [ex, ey] = J[`antebrazo_${side}`];
@@ -350,8 +430,8 @@ function buildBody(cfg) {
         // Second version: toe cap, a side stripe, eyelets and laces, heel tab and tread.
         ...(V2 ? [
           path(smooth([[ax + 14, ay - 5], [ax + 22, ay - 3], [ax + 30, ay + 2], [ax + 30, ay + 4], [ax + 16, ay + 3], [ax + 12, ay - 1]]), isBack ? Sh.back : Sh.light, { opacity: 0.7 }),
-          stroke(smooth([[ax - 12, ay - 1], [ax - 2, ay - 5], [ax + 10, ay - 4], [ax + 16, ay + 0.5]], false), isBack ? Sh.soleBack : Sh.sole, 2.2, { opacity: isBack ? 0.5 : 0.85 }),
-          ...[0, 1, 2].map((i) => path(ellipse(ax - 2 + i * 4.5, ay - 8.5 + i * 0.8, 0.9, 0.9), isBack ? Sh.back : Sh.sole)),
+          stroke(smooth([[ax - 12, ay - 1], [ax - 2, ay - 5], [ax + 10, ay - 4], [ax + 16, ay + 0.5]], false), isBack ? Sh.soleBack : Sh.stripe ?? Sh.sole, 2.2, { opacity: isBack ? 0.5 : 0.85 }),
+          path([0, 1, 2].map((i) => `M${f(ax - 2.9 + i * 4.5)} ${f(ay - 8.5 + i * 0.8)}a0.9 0.9 0 1 0 1.8 0a0.9 0.9 0 1 0 -1.8 0`).join(''), isBack ? Sh.back : Sh.eyelet ?? Sh.sole),
           ...(isBack ? [] : [0, 1].map((i) => stroke(`M${f(ax - 3 + i * 4.5)} ${f(ay - 7)}l4 -2.4`, Sh.lace ?? Sh.sole, 1.1))),
           path(poli([[ax - 19, ay - 4], [ax - 14, ay - 11], [ax - 10, ay - 10], [ax - 13, ay - 1]]), isBack ? Sh.soleBack : Sh.light, { opacity: 0.8 }),
           stroke(`M${f(ax - 18)} ${f(ay + 6)}L${f(ax + 30)} ${f(ay + 6)}`, isBack ? Sh.back : Sh.soleBack, 0.9, { 'stroke-dasharray': '2 1.6' }),
@@ -427,8 +507,17 @@ function buildBody(cfg) {
     } else if (Pn.length === 'boxers') {
       shinArt = shape(capsula(kx, ky, rk, ax, ay, ra), skin, [sombraLado(kx, ky, rk, ax, ay, ra, skinShade), ...calcetin(ay - 16)]) + contorno(kx, ky, rk, ax, ay, ra, SL, 1.3);
     } else {
-      shinArt = shape(capsula(kx, ky, rk, ax, ay, rk - 2), cloth, [sombraLado(kx, ky, rk, ax, ay, rk - 2, clothShade, 0.32), luz(kx, ky, ax, ay), costura(kx - rk + 3, ky, ax - rk + 4, ay - 6)]) +
-        contorno(kx, ky, rk, ax, ay, rk - 2, L, 1.5);
+      // The round end stops inside the shoe, so it never shows under the sole.
+      const ay2 = ay - 6;
+      shinArt = shape(capsula(kx, ky, rk, ax, ay2, rk - 2), cloth, [
+        sombraLado(kx, ky, rk, ax, ay2, rk - 2, clothShade, 0.32),
+        luz(kx, ky, ax, ay2),
+        costura(kx - rk + 3, ky, ax - rk + 4, ay - 6),
+        // The hem breaks over the shoe: a couple of creases and the stitched edge.
+        stroke(smooth([[ax - rk + 3, ay - 22], [ax - 1, ay - 17], [ax + rk - 4, ay - 20]], false), clothShade, 1.3, { opacity: 0.85 }),
+        stroke(smooth([[ax - rk + 4, ay - 32], [ax + 2, ay - 29], [ax + rk - 5, ay - 31]], false), clothShade, 1.1, { opacity: 0.6 }),
+        Pn.stitch && !isBack ? stroke(`M${f(ax - rk)} ${f(ay - 11)}L${f(ax + rk)} ${f(ay - 11)}`, Pn.stitch, 0.9, { 'stroke-dasharray': '2.2 1.8', opacity: 0.8 }) : '',
+      ]) + contorno(kx, ky, rk, ax, ay2, rk - 2, L, 1.5);
     }
     return g(`pierna_${side}_grupo`, [
       g(`muslo_${side}`, [thighArt, pivot(`muslo_${side}`, hx, hy)]),

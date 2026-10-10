@@ -2,7 +2,7 @@
 //   eye line y=-2 · brow line y=-15 · nose base y=18 · mouth y=30 · face front x≈46.
 // Likeness: big open grin with teeth, smiling eyes, brown hair swept up with a
 // loose strand, short full beard darker than the hair, earring, tanned skin.
-import { ojos, cejas, boca, bocaDelAnimo } from './frente.mjs';
+import { ojos, cejas, boca, bocaDelAnimo, iris, brillo } from './frente.mjs';
 import { smooth, ellipse, path, stroke, g, shape, angryLid } from './svg.mjs';
 import { makeBody } from './cuerpo.mjs';
 
@@ -36,6 +36,7 @@ export const C = {
   beardLine: '#24180f',
   brow: '#3f2a1c',
   eye: '#2a1a14',
+  iris: '#6a4628',
   lip: '#b8604f',
   mouth: '#5a2020',
   teeth: '#f6f2e8',
@@ -113,7 +114,7 @@ function eye(which, look = 0, open = 1, smile = 0.3, angry = false) {
   const rx = rx0 * open;
   const ry = ry0 * open;
   const x = cx + look;
-  const parts = [path(ellipse(x + rx * 0.3, cy - ry * 0.3, rx * 0.32, rx * 0.32), '#ffffff')];
+  const parts = [...iris(x, cy, rx, ry, C), path(ellipse(x + rx * 0.3, cy - ry * 0.3, rx * 0.34, rx * 0.34), '#ffffff'), brillo(x, cy, rx, ry)];
   if (smile) parts.push(path(ellipse(x, cy + ry * (1.55 - smile), rx * 1.8, ry * 0.9), C.skin));
   if (angry) parts.push(path(angryLid(which, x, cy, rx, ry), C.skinShadow));
   return [
@@ -240,7 +241,7 @@ export function headFront({ mood = 'neutral', mouthKind, blink = false } = {}) {
   ]);
   const mustache = smooth([[-18, 25], [-10, 20], [0, 19], [10, 20], [18, 25], [20, 29], [12, 26], [0, 25], [-12, 26], [-20, 29]]);
   const eyeF = (x) => [
-    shape(ellipse(x, -2, 4.2, 5.2), C.eye, [path(ellipse(x + 1.3, -3.6, 1.3, 1.3), '#ffffff'), path(ellipse(x, 4.4, 8, 4.5), C.skin)]),
+    shape(ellipse(x, -2, 4.2, 5.2), C.eye, [...iris(x, -2, 4.2, 5.2, C, 0), path(ellipse(x + 1.3, -3.6, 1.4, 1.4), '#ffffff'), brillo(x, -2, 4.2, 5.2), path(ellipse(x, 4.4, 8, 4.5), C.skin)]),
     stroke(smooth([[x - 5, 2.6], [x, 4.4], [x + 5, 2.4]], false), C.skinShadow, 1.1),
   ].join('');
   return [
@@ -322,14 +323,16 @@ export const body = makeBody({
     style: 'sherpa', base: '#3b3b41', shadow: '#29292e', deep: '#1d1d21', light: '#5f5f68', line: '#131316', inner: '#8a8d94', innerShadow: '#5d6067',
     collar: { base: '#4d4943', shadow: '#38352f', light: '#6c665c', line: '#1b1916' },
   },
-  pants: { base: '#4f6d9f', shadow: '#3b5582', deep: '#2f466d', light: '#6886b8', line: '#22314d' },
-  shoes: { style: 'sneaker', base: '#ecebe6', back: '#cfccc4', light: '#ffffff', line: '#8a877f', sole: '#dcd7cb', soleBack: '#bdb8ad', lace: '#c4bfb4' },
+  pants: { base: '#4f6d9f', shadow: '#3b5582', deep: '#2f466d', light: '#6886b8', line: '#22314d', stitch: '#c99a4a' },
+  shoes: { style: 'sneaker', base: '#ecebe6', back: '#cfccc4', light: '#ffffff', line: '#8a877f', sole: '#dcd7cb', soleBack: '#bdb8ad', lace: '#c4bfb4', stripe: '#c4bfb4', eyelet: '#8a877f' },
   joints: JOINTS,
   torso: [
     [-20, -196], [-30, -189], [-33, -172], [-33, -150], [-32, -130], [-31, -116], [-29, -107], [0, -104], [24, -106], [34, -110],
     [38, -124], [39, -140], [38, -158], [35, -175], [27, -189], [12, -197], [-6, -199],
   ],
   belly: 0,
+  // Second version of the body (docs/ESTILO.md, P8).
+  v2: true,
   limb: 9.5,
   thigh: 16.5,
   headAt: HEAD_AT,
