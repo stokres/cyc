@@ -55,6 +55,8 @@ interface Capa {
   panActual: number;
   /** When its volume or pan last changed (ms): each change is an automation event. */
   cambio: number;
+  /** The AudioContext time at which the track's second 0 would have played. */
+  cero: number;
 }
 
 export class Sound {
@@ -102,13 +104,28 @@ export class Sound {
     else for (const d of this.deseado) this.reproducir(d.pista, d.volumen, d.pan ?? 0);
   }
 
-  /** A minigame's music: plays alone, in a loop, until pararMusica(). */
-  musica(id: Pista) {
+  /**
+   * A minigame's music: plays alone, in a loop, until pararMusica(). It fades in over
+   * `entra` seconds; 0 starts it at full blast (the trailer's first hit).
+   */
+  musica(id: Pista, entra = 0.5) {
     this.primerPlano = id;
     for (const c of [...this.capas.values()]) if (c.id !== id) this.callar(c.id, 0.4);
     const c = this.capas.get(id);
     if (c) this.ajustar(c, 1, 0, true);
-    else this.reproducir(id, 1, 0);
+    else this.reproducir(id, 1, 0, entra);
+  }
+
+  /**
+   * How far into this track the ear is (seconds, counted from its start, not wrapped by the
+   * loop), or null if it is not playing yet: for what must stay on its beat (the trailer).
+   * It stops with the sound when the page is hidden.
+   */
+  posicion(id: Pista): number | null {
+    const c = this.capas.get(id);
+    if (!c?.src || !this.ac) return null;
+    const retraso = this.ac.outputLatency || this.ac.baseLatency || 0;
+    return Math.max(0, this.ac.currentTime - retraso - c.cero);
   }
 
   /** The minigame's music fades out, and the scene's comes back. */
@@ -215,10 +232,10 @@ export class Sound {
   }
 
   /** Fades this track in, in a loop, once it has loaded — unless it was dropped meanwhile. */
-  private reproducir(id: Pista, volumen: number, pan: number) {
+  private reproducir(id: Pista, volumen: number, pan: number, entra = 0.5) {
     const ac = this.ac;
     if (!ac || !this.bus) return;
-    const capa: Capa = { id, src: null, g: null, pan: null, volumen, panActual: pan, cambio: 0 };
+    const capa: Capa = { id, src: null, g: null, pan: null, volumen, panActual: pan, cambio: 0, cero: 0 };
     this.capas.set(id, capa);
     const pista = MUSICA[id];
     void this.cargar(id, ac).then((buf) => {
@@ -230,15 +247,18 @@ export class Sound {
       src.loopEnd = Math.min(pista.fin, buf.duration);
       const g = ac.createGain();
       const t = ac.currentTime;
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(Math.max(0.0001, capa.volumen), t + 0.5);
+      if (entra > 0) {
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(Math.max(0.0001, capa.volumen), t + entra);
+      } else g.gain.setValueAtTime(Math.max(0.0001, capa.volumen), t);
       const p = typeof ac.createStereoPanner === 'function' ? ac.createStereoPanner() : null;
       if (p) {
         p.pan.value = capa.panActual;
         src.connect(g).connect(p).connect(this.bus);
       } else src.connect(g).connect(this.bus);
-      src.start(t, 'entrada' in pista ? pista.entrada : pista.inicio);
-      Object.assign(capa, { src, g, pan: p });
+      const desde = 'entrada' in pista ? pista.entrada : pista.inicio;
+      src.start(t, desde);
+      Object.assign(capa, { src, g, pan: p, cero: t - desde });
     });
   }
 

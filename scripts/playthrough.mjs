@@ -636,7 +636,7 @@ await paso('Los cuatro llegan a la vez', async () => {
   await page.waitForSelector('.cubierta.trailer', { timeout: 10000 });
   await sonando('trailer', 'en el tráiler');
   const enPlano = (p) => page.waitForFunction((p) => window.__trailer?.().plano === p, p, { timeout: 30000 });
-  for (const [p, ms] of [['desierto', 1500], ['caravana', 1800], ['pang', 900], ['invaders', 900], ['vero', 1900], ['titulo', 1500]]) {
+  for (const [p, ms] of [['barra', 1700], ['carretera', 1000], ['pang', 900], ['cerveza', 350], ['invaders', 900], ['tragaperras', 1700], ['vero', 1300], ['titulo', 1500]]) {
     await enPlano(p);
     await wait(ms);
     await shot(`trailer-${p}`);

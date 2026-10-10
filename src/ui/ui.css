@@ -1847,40 +1847,15 @@ button:focus-visible {
   color: var(--cream);
 }
 
-.trailer .manana {
-  font: italic 500 clamp(20px, 6.5vh, 34px) var(--body);
-  animation: trailer-funde 2.8s ease-in-out both;
-}
-
-.trailer .lugar {
-  left: calc(var(--safe-l) + 12px);
-  bottom: calc(var(--safe-b) + 14px);
-  font: 400 clamp(14px, 4.4vh, 22px) var(--display);
-  letter-spacing: 0.08em;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
-  animation: trailer-aparece 0.9s ease-out both;
-}
-
-/* The montage's cards: they hit, then drift back slowly. */
+/* The cards between the shots: they hit, then drift back slowly. */
 .trailer .cartel {
-  font: 400 clamp(30px, 13vh, 72px) var(--display);
+  width: min(92vw, 1100px);
+  font: 400 clamp(26px, min(13vh, 7.5vw), 72px) / 1.15 var(--display);
+  text-wrap: balance;
   color: var(--gold);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   animation: trailer-golpe 2s ease-out both;
-}
-
-.trailer .narrador {
-  display: grid;
-  gap: 0.4em;
-  width: min(88vw, 760px);
-  font: italic 500 clamp(18px, 6vh, 30px) / 1.35 var(--body);
-  text-wrap: balance;
-}
-
-.trailer .narrador p {
-  margin: 0;
-  animation: trailer-aparece 0.8s ease-out both;
 }
 
 .trailer .canto {
@@ -1929,18 +1904,6 @@ button:focus-visible {
   letter-spacing: 0.3em;
   text-transform: uppercase;
   animation: trailer-aparece 0.8s 1.2s ease-out both;
-}
-
-.trailer .saltar {
-  position: absolute;
-  top: var(--safe-t);
-  right: var(--safe-r);
-}
-
-@keyframes trailer-funde {
-  0% { opacity: 0; }
-  25%, 75% { opacity: 1; }
-  100% { opacity: 0; }
 }
 
 @keyframes trailer-aparece {

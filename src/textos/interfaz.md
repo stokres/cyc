@@ -8,7 +8,6 @@ titulo.seguir = Toca para continuar
 titulo.rejugando = Rejugando el capítulo · tu partida sigue guardada
 cargando = Preparando la escena…
 prologo.saltar = Saltar intro
-trailer.saltar = Saltar tráiler
 
 tutorial.titulo = Cómo se juega
 tutorial.tocar = Un toque:

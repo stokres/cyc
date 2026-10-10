@@ -37,7 +37,7 @@ export const MUSICA = {
   /** «Pasodoble del camionero», the end card: the lorry and the fanfare once, then the pasodoble (pasodoble.py). */
   pasodoble: { url: pasodoble, entrada: 0, inicio: 12.413787, fin: 79.65517 },
   /** «Próximamente», the chapter 2 trailer's action music, once through; then a low drone loops while the title stays up (trailer.py). */
-  trailer: { url: trailer, entrada: 0, inicio: 42, fin: 50 },
+  trailer: { url: trailer, entrada: 0, inicio: 39.4, fin: 47.4 },
 } as const;
 
 export type Pista = keyof typeof MUSICA;

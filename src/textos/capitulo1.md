@@ -989,24 +989,19 @@ fin.texto = Los cuatro ya están en el Río. Lo que pasó dentro, en el capítul
 // Sale tras el «Continuará…»: escenas sueltas del capítulo 2 con música de tráiler.
 // Cada texto sale a su golpe de música (src/ui/trailer.ts); si alargas mucho uno, no da
 // tiempo a leerlo. El canto va por sílabas, separadas con guiones: cada una sale con un
-// golpe de metales.
+// golpe de metales. El letrero de la tragaperras va en su marquesina: corto.
 
-trailer.manana = A la mañana siguiente...
-trailer.lugar = Nevada, EEUU. 7:12
-trailer.cartel1 = Un jueves
-trailer.cartel2 = Cuatro amigos
-trailer.cartel3 = Ningún recuerdo
+trailer.cartel1 = Una resaca...
+trailer.cartel2 = Con consecuencias
+trailer.cartel3 = Inesperadas
 trailer.pang.jugador = FRAN
 trailer.pang.fase = USERA
 trailer.invaders.jugador = CHUCHI
 trailer.invaders.puntos = PUNTOS
+trailer.tragaperras.premio = PREMIO
 trailer.canto = ¡Ca-mio-neees y ca-ra-va-naaas!
 trailer.capitulo = Capítulo 2
 trailer.proximamente = Próximamente
-
-## trailer.narrador
-> Ya os dije que lo de dentro era otra historia.
-> Lo que no os dije es cuál.
 
 // ---------------------------------------------------------------- historia de Chuchi: Bolilandia
 

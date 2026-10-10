@@ -75,7 +75,8 @@ const filas = [];
 async function medir(nombre, prep, contar = 'escena') {
   // Close any minigame left open by the previous scenario.
   await page.evaluate(() => {
-    document.querySelectorAll('.cubierta.minijuego .cerrar, .cubierta.prologo .saltar, .cubierta.trailer .saltar').forEach((b) => b.click());
+    document.querySelectorAll('.cubierta.minijuego .cerrar, .cubierta.prologo .saltar').forEach((b) => b.click());
+    window.__trailer?.().cerrar();
     // The minigames started here do not unpause the scene themselves.
     window.__cyc.g.pausado = false;
   });
@@ -263,10 +264,11 @@ if (toca('sinfin')) {
 }
 
 if (toca('trailer')) {
-  // The chapter 2 trailer, over the paused scene: the painted desert (pushed in, with its
-  // smoke) and the caravan's lumps; then the arcade games (256×144, scaled up) and Vero
-  // (a few paths a frame). Each pair of shots plays in a loop while it is measured.
-  for (const [nombre, desde, hasta] of [['tráiler, desierto y caravana', 4, 12.5], ['tráiler, recreativas y Vero', 14.5, 24.5]]) {
+  // The chapter 2 trailer, over the paused scene: the bar and the desert road (painted layers
+  // scrolling, a few shapes on top); then the montage: the arcade games (256×144, scaled up),
+  // the beer sliding, the slot machine and Vero (a few paths a frame). Each stretch plays in a
+  // loop while it is measured.
+  for (const [nombre, desde, hasta] of [['tráiler, barra y carretera', 2, 8], ['tráiler, montaje y Vero', 10, 26]]) {
     await medir(nombre, `(async () => {
       clearInterval(window.__paseo);
       const g = window.__cyc.g;

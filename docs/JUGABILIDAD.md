@@ -53,7 +53,7 @@ En el menú, **Capítulos** enseña cada capítulo (superado, en curso o todaví
 - **«Por el barrio»** (`barrio.py`), el paseo tranquilo, suena en el piso de Fran, en su calle y en el backstage de Pablo.
 - **El rock del Bar del Río desde la puerta** (`bar_rockero.py puerta`: la mezcla sin agudos, cortada a 1,5 kHz, con algo de medios y casi en mono): en la calle de Fran se oye bajito al principio (al 20 %) y sube según se acerca a la puerta del bar, hacia su lado, mientras «Por el barrio» se va apagando; en el final, con los cuatro en la puerta, suena solo el bar. **Subido el 8 de octubre de 2026:** antes solo dejaba los graves (corte a 700 Hz), y el altavoz de un móvil apenas da nada por debajo de 300 Hz, así que en el móvil sonaba 10 dB por debajo de «Por el barrio» y casi no se oía. Ahora queda 3 dB por debajo, como corresponde a oírlo desde fuera (se mide con `ffmpeg -af highpass=f=300,highpass=f=300,ebur128`). Se ajusta en `src/capitulos/capitulo1.ts` (`BARRIO`, `BAR_MIN`, `BAR_LEJOS`).
 - **El «Continuará…» del final** tiene su pasodoble (`pasodoble.py`, original: un pasodoble festero con bocina de camión, motor, frenos y pitido de marcha atrás). El arranque del camión y la fanfarria suenan una vez y el resto se repite mientras dure el rótulo; al cerrarlo empieza el tráiler.
-- **El tráiler del capítulo 2** (10 de octubre de 2026) tiene su música de tráiler de acción, «Próximamente» (`trailer.py`, síntesis pura, sin SoundFont): golpes graves («braaam»), un reloj, viento, taikos que se aceleran en el montaje, un ascenso de ruido hasta el corte a negro, el canto en golpes de metales con melodía propia (no la de *Paquito el Chocolatero*, que tiene derechos) y el golpe final del título. Suena una vez y después se repite un dron grave (de 42 a 50 s) mientras siga el título. Va segundo a segundo con los planos: si se cambia un tiempo en `trailer.py`, hay que cambiarlo también en `PLANOS` y `CANTO` de `src/ui/trailer.ts`. Se genera con `python3 trailer.py ../../src/sonido/trailer.mp3`.
+- **El tráiler del capítulo 2** (10 de octubre de 2026) tiene su música de tráiler de acción, «Próximamente» (`trailer.py`, síntesis pura, sin SoundFont), a tope desde el primer golpe: golpes graves («braaam») en cada rótulo, cuerdas y pulso grave sin parar, chupitos golpeando la barra, el motor de la camioneta al pasar, taikos que se aceleran en el montaje, los rodillos y las campanas del premio de la tragaperras, un ascenso de ruido hasta el corte a negro, el canto en golpes de metales con melodía propia (no la de *Paquito el Chocolatero*, que tiene derechos) y el golpe final del título. Suena una vez y después se repite un dron grave (de 39,4 a 47,4 s) mientras siga el título. Va golpe a golpe con los planos: si se cambia un tiempo en `trailer.py`, hay que cambiarlo también en `PLANOS` y `CANTO` de `src/ui/trailer.ts`. Se genera con `python3 trailer.py ../../src/sonido/trailer.mp3`.
 - **La radio de la granja** (Guille) suena desde el principio de la escena con la polca de banjo (`tools/musica/banjo.py radio`): más fuerte cuanto más cerca está Guille (nunca baja del 22 %) y un poco hacia el lado de la radio. Al quitarle las pilas se corta. Se ajusta en `src/capitulos/guille.ts` (`RADIO_MIN`, `RADIO_LEJOS`).
 - **Minijuegos**, en la historia y sin fin: «Dándole vueltas» (`vueltas.py`) en la rana de Aceituna; «Jaleo» (`jaleo.py`), el big band frenético, en la batalla de palabras de Pablo; «Contra Robi» (`contra_robi.py`), con el «Cumpleaños feliz» de Robi en pitidos de robot, en el cañón de Bolilandia; y la polca de la granja, más rápida y con escobillas, cencerro y gruñidos (`banjo.py cerdos`), en la torre de cerdos.
 - **Bolilandia** (Chuchi, 8 de octubre de 2026) tiene su vals de caja de música, «Bolilandia, cerrado» (`bolilandia_noche.py`): el tiovivo de un parque de bolas oído de noche y a oscuras, en re menor, con pizzicato de puntillas, una caja de madera que tantea, un fagot que refunfuña en los huecos y un coro lejano; cómico más que de miedo. Cuando Chuchi da la luz, la misma partitura con el parque despierto (`bolilandia_noche.py luz`: glockenspiel, xilófono, calíope, tuba, pandereta y un silbato de fiesta). Las dos duran lo mismo; la de la luz se precarga al abrir el cuarto del personal, para que entre sin hueco. Se ajusta en `src/capitulos/chuchi.ts` (`musica`).
@@ -149,22 +149,25 @@ El reloj de Fran avanza con cada paso y se va poniendo nervioso. Cuando los cuat
 
 ### El tráiler del capítulo 2
 
-Decidido el 10 de octubre de 2026: al tocar el «Continuará…» sale un tráiler de unos 38 segundos con escenas sueltas del capítulo 2 y su música de tráiler de acción (`src/ui/trailer.ts`). Después vuelve la terraza con la tarjeta de fin del capítulo. Se puede saltar con «Saltar tráiler» y, ya en el título, con un toque.
+Decidido el 10 de octubre de 2026 y rehecho ese mismo día a petición de Jesús (versión final): al tocar el «Continuará…» sale un tráiler de 36 segundos con escenas sueltas del capítulo 2 y su música de tráiler de acción (`src/ui/trailer.ts`), que arranca a tope desde el primer fotograma. Rótulos y escenas se alternan al golpe de la música. Después vuelve la terraza con la tarjeta de fin del capítulo. No tiene botón de saltar; ya en el título, se cierra con un toque.
 
 | Segundo | Plano |
 |---:|---|
-| 0 | Negro y un golpe grave. «A la mañana siguiente...» |
-| 4 | El desierto de Nevada al amanecer: muy a lo lejos, una caravana torcida y con una rueda pinchada, echando humo. La cámara se acerca despacio. «Nevada, EEUU. 7:12» |
-| 9,5 | Dentro de la caravana, a oscuras: los cuatro durmiendo bajo mantas (Pablo con una gorra de piloto del Joso, Chuchi con las gafas puestas, que da un respingo), una ficha de recreativa y latas por el suelo |
-| 12,5 | Montaje con taikos: «Un jueves», Fran en su *Pang* (revienta una burbuja de cerveza en Usera, con el dragón al fondo), «Cuatro amigos», Chuchi en su *Space Invaders* (contra correos, avisos de chat y reuniones, con el jefe en un platillo con corbata) y «Ningún recuerdo» |
-| 22 | Vero, de la nariz para abajo: sonríe y abre la boca cada vez más; al fondo se ven las lucecitas de un bar. Corte a negro |
-| 24,5 | El narrador: «Ya os dije que lo de dentro era otra historia. Lo que no os dije es cuál». |
-| 29,6 | «¡Camioneees y caravanaaas!», una sílaba por golpe de metales |
-| 32,6 | El logo, «Capítulo 2» y «Próximamente» |
+| 0 | «Una resaca...» |
+| 2 | Chupitos y cañas en la barra de un bar: cae un chupito de golpe en cada tiempo de la música, salpicando |
+| 4 | «Con consecuencias» |
+| 6 | La caravana a toda velocidad por el desierto americano, remolcada por una camioneta vieja, con su nube de polvo |
+| 8 | «Inesperadas» |
+| 10 | Montaje, un corte por golpe y cada vez más rápido (cada 2 s, luego cada segundo y al final cada medio): Fran en su *Pang* (burbujas de cerveza en Usera, con el dragón al fondo), una caña que resbala a toda velocidad por la barra, Chuchi en su *Space Invaders* (contra correos, avisos de chat y reuniones; al final derriba el platillo del jefe, el de la corbata) y una tragaperras de frente que para sus rodillos a golpe de música y da el premio gordo (tres sietes y una lluvia de monedas). Cada juego sigue donde se quedó la vez anterior |
+| 23 | Vero, muy de cerca: piel morena, labios grandes; sonríe, abre la boca, dentro se ven las luces de un bar y la cámara se mete hasta que todo es negro |
+| 26 | Negro |
+| 27 | «¡Camioneees y caravanaaas!», una sílaba por golpe de metales |
+| 30 | El logo, «Capítulo 2» y «Próximamente» |
 
-- **Las recreativas son pixel art a propósito:** son juegos dentro del juego (la guía de estilo descarta el pixel art para el juego en sí). Se dibujan a 256×144 y se amplían sin suavizar; Fran y Chuchi son mapas de letras pasados a imagen una vez.
-- **Los textos** están en `src/textos/capitulo1.md` (`trailer.*`, el canto con las sílabas separadas por guiones) y el botón en `interfaz.md`.
-- **Rendimiento:** el desierto y la caravana se pintan una vez y cada fotograma solo dibuja esa imagen y unas pocas formas; los carteles, el narrador, el canto y el título son texto sobre un negro que no se repinta. `node scripts/rendimiento.mjs trailer` lo mide.
+- **Va con el reloj de la música** (`Sound.posicion`): en un móvil lento se pierden fotogramas, pero los cortes nunca se retrasan respecto a los golpes. Sin sonido, va con el reloj de los fotogramas.
+- **Las recreativas son pixel art a propósito:** son juegos dentro del juego (la guía de estilo descarta el pixel art para el juego en sí). Se dibujan a 256×144 y se amplían sin suavizar; Fran y Chuchi son mapas de letras pasados a imagen una vez. Cada partida se simula una vez al empezar y cada fotograma solo consulta dónde está todo.
+- **Los textos** están en `src/textos/capitulo1.md` (`trailer.*`, el canto con las sílabas separadas por guiones).
+- **Rendimiento:** la barra, las capas del desierto, la camioneta con la caravana y la tragaperras se pintan una vez (a 1,5× como mucho) y cada fotograma solo dibuja esas imágenes y unas pocas formas; los rótulos, el canto y el título son texto sobre un negro que no se repinta. `node scripts/rendimiento.mjs trailer` lo mide.
 
 **Todos los textos son provisionales** y se cambian en `src/textos/capitulo1.md`.
 

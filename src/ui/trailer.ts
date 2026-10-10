@@ -1,68 +1,87 @@
 // The trailer of chapter 2: after the «Continuará…» of chapter 1, some loose shots of what
-// comes next, cut to an action-trailer track. Black and a deep horn; far away, a battered
-// caravan in the Nevada desert at dawn; four lumps snoring inside it; the montage (Fran in
-// his Pang, Chuchi in his Space Invaders, between title cards); Vero smiling and opening her
-// mouth, cut to black; the narrator; the chant; the logo and «Próximamente».
+// comes next, cut to an action-trailer track that is at full blast from the first frame.
+// Three cards, each followed by a shot: «Una resaca...», shots slammed on a bar; «Con
+// consecuencias», the caravan flat out across the desert; «Inesperadas», and the montage,
+// one cut per hit and faster and faster: Fran in his Pang, a beer sliding down the bar,
+// Chuchi in his Space Invaders, a slot machine paying the jackpot; Vero opening her mouth
+// until it swallows the camera; black; the chant; the logo and «Próximamente».
 //
-// The shots follow the music second by second (src/sonido/trailer.mp3, made by
+// The shots follow the music beat by beat (src/sonido/trailer.mp3, made by
 // tools/musica/trailer.py): PLANOS and CANTO here are the times of the hits there, so
-// change one, change both. The words are in src/textos/capitulo1.md (trailer.*), the
-// «Saltar» button in interfaz.md. The script of the trailer is in docs/JUGABILIDAD.md.
+// change one, change both. The time is the music's own clock while it plays (Sound.posicion),
+// so a slow phone drops frames but never falls behind the beat. The words are in
+// src/textos/capitulo1.md (trailer.*). The script of the trailer is in docs/JUGABILIDAD.md.
 //
 // The arcade games are pixel art on purpose: they are games inside the game (the style
-// guide's «no pixel art» is about the game itself). Fran and Chuchi there are tiny
-// bitmaps made once from the maps below.
+// guide's «no pixel art» is about the game itself). Fran and Chuchi there are tiny bitmaps
+// made once from the maps below; each game is simulated once, at the start, and a frame
+// only looks up where everything is.
 //
-// Performance (docs/ESTILO.md, T5): the desert and the inside of the caravan are painted
-// once (again if the screen changes size) and each frame only draws that image and a few
-// small shapes; the games are drawn at 256×144 and scaled up; the cards, the narrator,
-// the chant and the title are DOM over a black canvas that is not redrawn. The loop never
-// passes 60 fps and the scene underneath is paused meanwhile (capitulo1.ts).
+// Performance (docs/ESTILO.md, T5): the bar, the desert's layers, the pickup with its
+// caravan and the slot machine are painted once (again if the screen changes size) and each
+// frame only draws those images and a few small shapes; the games are drawn at 256×144 and
+// scaled up; the cards, the chant and the title are DOM over a black canvas that is not
+// redrawn. The loop never passes 60 fps and the scene underneath is paused meanwhile
+// (capitulo1.ts).
 import { h } from './hud';
-import { dialogo, texto } from '../juego/textos';
+import { texto } from '../juego/textos';
 import type { Pista } from '../sonido/musica';
 import { logoClaro } from './logo';
 
-/** What the trailer needs from the sound: its track, started once it has loaded. */
+/** What the trailer needs from the sound: its track, started at once, and where it is. */
 export interface SonidoTrailer {
-  musica(id: Pista): void;
+  musica(id: Pista, entra?: number): void;
   pararMusica(fundido?: number): void;
   lista?(id: Pista): Promise<void>;
+  posicion?(id: Pista): number | null;
 }
 
-type Plano = 'negro' | 'desierto' | 'caravana' | 'cartel' | 'pang' | 'invaders' | 'vero' | 'narrador' | 'canto' | 'titulo';
+type Plano = 'cartel' | 'barra' | 'carretera' | 'pang' | 'cerveza' | 'invaders' | 'tragaperras' | 'vero' | 'negro' | 'canto' | 'titulo';
 
-/** When each shot starts (seconds), the same as the music's (tools/musica/trailer.py). */
-const PLANOS: Array<[number, Plano]> = [
-  [0, 'negro'],
-  [4, 'desierto'],
-  [9.5, 'caravana'],
-  [12.5, 'cartel'],
-  [14.5, 'pang'],
-  [16.5, 'cartel'],
-  [18.5, 'invaders'],
-  [20.5, 'cartel'],
-  [22, 'vero'],
-  [24.5, 'narrador'],
-  [29.6, 'canto'],
-  [32.6, 'titulo'],
+/**
+ * When each shot starts (seconds), the same as the music's (tools/musica/trailer.py), and
+ * how far into its own action it picks up: the montage comes back to each game where it left it.
+ */
+const PLANOS: Array<[number, Plano, number]> = [
+  [0, 'cartel', 0],
+  [2, 'barra', 0],
+  [4, 'cartel', 0],
+  [6, 'carretera', 0],
+  [8, 'cartel', 0],
+  [10, 'pang', 0],
+  [12, 'cerveza', 0],
+  [13, 'invaders', 0],
+  [15, 'tragaperras', 0],
+  [17, 'pang', 2],
+  [18, 'cerveza', 1],
+  [19, 'invaders', 2],
+  [20, 'tragaperras', 2],
+  [21, 'pang', 3],
+  [21.5, 'cerveza', 2],
+  [22, 'invaders', 3],
+  [22.5, 'tragaperras', 3],
+  [23, 'vero', 0],
+  [26, 'negro', 0],
+  [27, 'canto', 0],
+  [30, 'titulo', 0],
 ];
 /** The brass stabs of the chant, one syllable each («Ca-mio-neees y ca-ra-va-naaas»). */
-const CANTO = [29.6, 29.85, 30.1, 30.85, 31.05, 31.3, 31.55, 31.8];
+const CANTO = [27, 27.25, 27.5, 28.25, 28.45, 28.7, 28.95, 29.2];
 /** The title can be tapped away from here; it goes by itself at FIN. */
-const TOCABLE = 33.6;
-const FIN = 38.5;
+const TOCABLE = 31;
+const FIN = 36;
 
 const plano = (t: number): [Plano, number] => {
   let i = 0;
   while (i + 1 < PLANOS.length && t >= PLANOS[i + 1][0]) i++;
-  return [PLANOS[i][1], t - PLANOS[i][0]];
+  return [PLANOS[i][1], t - PLANOS[i][0] + PLANOS[i][2]];
 };
 
 const azar = (semilla: number) => () => ((semilla = (semilla * 16807) % 2147483647) / 2147483647);
 const suave = (u: number) => (u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u));
+const mezclar = (a: number, b: number, u: number) => a + (b - a) * u;
 
-/** A canvas of W×H CSS px at the screen's density, with its context already scaled. */
+/** A canvas of W×H CSS px at density `dpr`, with its context already scaled. */
 function lienzo(W: number, H: number, dpr: number) {
   const c = document.createElement('canvas');
   c.width = Math.max(2, Math.round(W * dpr));
@@ -72,373 +91,842 @@ function lienzo(W: number, H: number, dpr: number) {
   return [c, x] as const;
 }
 
-// ---------------------------------------------------------------- the desert at dawn
+const elipse = (x: CanvasRenderingContext2D, ex: number, ey: number, rx: number, ry: number, color: string, giro = 0) => {
+  x.fillStyle = color;
+  x.beginPath();
+  x.ellipse(ex, ey, Math.max(0.1, rx), Math.max(0.1, ry), giro, 0, Math.PI * 2);
+  x.fill();
+};
 
-/** Where the caravan and its chimney are, for the camera's push and the smoke. */
-interface Desierto {
+// ---------------------------------------------------------------- the bar
+
+/** The bar's counter, painted once: wider than the screen, so the camera can follow a glass. */
+interface Bar {
   img: HTMLCanvasElement;
-  cx: number;
-  cy: number;
-  humoX: number;
-  humoY: number;
+  /** Its width in CSS px (the height is the screen's). */
+  ancho: number;
+  /** Where things stand on the counter. */
+  encimera: number;
 }
 
 /**
- * Nevada at dawn, painted once: a violet sky going orange at the horizon, the sun just up
- * on the right (L1), mesas in the haze (F4), the desert floor, scrub, a dirt track and,
- * far away and a bit crooked, the caravan with a flat tyre.
+ * A bar at night, painted once: a warm dark wall, shelves of bottles in the haze behind, a
+ * string of little bulbs, and the counter in front, seen from above: polished wood that gets
+ * nearer and warmer towards the bottom, with the bulbs' light on its varnish.
  */
-function pintarDesierto(W: number, H: number, dpr: number): Desierto {
-  const [img, x] = lienzo(W, H, dpr);
-  const r = azar(11);
-  const hz = H * 0.6;
-  const cielo = x.createLinearGradient(0, 0, 0, hz);
-  cielo.addColorStop(0, '#1d1c46');
-  cielo.addColorStop(0.45, '#4b3566');
-  cielo.addColorStop(0.8, '#b9606a');
-  cielo.addColorStop(1, '#f2a25c');
-  x.fillStyle = cielo;
-  x.fillRect(0, 0, W, hz + 2);
-  for (let i = 0; i < 26; i++) {
-    x.globalAlpha = 0.15 + r() * 0.35;
-    x.fillStyle = '#eef0ff';
-    const s = 1.2 + r() * 1.4;
-    x.fillRect(r() * W * 0.6, r() * hz * 0.35, s, s);
-  }
-  x.globalAlpha = 1;
-  // The sun and its glow (the only glow: L5).
-  const sx = W * 0.72;
-  const sy = hz - H * 0.015;
-  const sr = H * 0.05;
-  const halo = x.createRadialGradient(sx, sy, sr, sx, sy, sr * 6);
-  halo.addColorStop(0, 'rgba(255,196,120,0.45)');
-  halo.addColorStop(1, 'rgba(255,196,120,0)');
-  x.fillStyle = halo;
-  x.fillRect(sx - sr * 6, sy - sr * 6, sr * 12, sr * 6 + 2);
-  x.fillStyle = '#ffdc94';
-  x.beginPath();
-  x.arc(sx, sy, sr, Math.PI, 0);
-  x.fill();
-  // Mesas far away, then a nearer ridge: flat tops, steep sides.
-  const sierra = (color: string, alto: number, semilla: number) => {
-    const rr = azar(semilla);
-    x.fillStyle = color;
-    x.beginPath();
-    x.moveTo(0, hz + 1);
-    let px = 0;
-    while (px < W) {
-      const ancho = W * (0.05 + rr() * 0.12);
-      const a = alto * (0.25 + rr() * 0.75);
-      const lado = ancho * 0.12;
-      x.lineTo(px + lado, hz - a);
-      x.lineTo(px + ancho - lado, hz - a);
-      x.lineTo(px + ancho, hz - alto * rr() * 0.15);
-      px += ancho + W * rr() * 0.04;
-      x.lineTo(px, hz - alto * rr() * 0.1);
+function pintarBar(W: number, H: number, dpr: number): Bar {
+  const ancho = W * 1.5;
+  const [img, x] = lienzo(ancho, H, dpr);
+  const r = azar(21);
+  const fondo = H * 0.56;
+  const pared = x.createLinearGradient(0, 0, 0, fondo);
+  pared.addColorStop(0, '#140b10');
+  pared.addColorStop(1, '#3a1d18');
+  x.fillStyle = pared;
+  x.fillRect(0, 0, ancho, fondo);
+  // Three shelves of bottles.
+  for (const by of [H * 0.17, H * 0.32, H * 0.47]) {
+    for (let bx = r() * 20; bx < ancho; ) {
+      const bw = H * (0.03 + r() * 0.02);
+      const bh = H * (0.075 + r() * 0.04);
+      x.fillStyle = ['#8a4a1c', '#2e5a2a', '#9aa7a0', '#6a1820', '#b07a2a', '#3a2a4a'][Math.floor(r() * 6)];
+      x.beginPath();
+      x.roundRect(bx, by - bh, bw, bh, bw * 0.3);
+      x.fill();
+      x.fillRect(bx + bw * 0.32, by - bh - H * 0.025, bw * 0.36, H * 0.03);
+      x.fillStyle = 'rgba(255,220,170,0.25)';
+      x.fillRect(bx + bw * 0.18, by - bh * 0.85, bw * 0.14, bh * 0.6);
+      bx += bw + H * (0.01 + r() * 0.03);
     }
-    x.lineTo(W, hz + 1);
-    x.fill();
+    x.fillStyle = '#5a3422';
+    x.fillRect(0, by, ancho, H * 0.016);
+    x.fillStyle = '#8a5a36';
+    x.fillRect(0, by, ancho, H * 0.004);
+  }
+  // A warm haze over the back of the bar, so what is on the counter stands out (F4).
+  x.fillStyle = 'rgba(40,18,16,0.45)';
+  x.fillRect(0, 0, ancho, fondo);
+  // A string of bulbs sagging across the top, each with its own small glow (L5).
+  for (let k = 0; k < 3; k++) {
+    const x0 = (ancho / 3) * k;
+    const x1 = x0 + ancho / 3;
+    x.strokeStyle = '#2a1a16';
+    x.lineWidth = 1.5;
+    x.beginPath();
+    x.moveTo(x0, H * 0.04);
+    x.quadraticCurveTo((x0 + x1) / 2, H * 0.13, x1, H * 0.04);
+    x.stroke();
+    for (let j = 1; j < 8; j++) {
+      const u = j / 8;
+      const bx = mezclar(x0, x1, u);
+      const by = H * 0.04 + 4 * u * (1 - u) * H * 0.045 + H * 0.012;
+      const halo = x.createRadialGradient(bx, by, 0, bx, by, H * 0.06);
+      halo.addColorStop(0, 'rgba(255,190,110,0.35)');
+      halo.addColorStop(1, 'rgba(255,190,110,0)');
+      x.fillStyle = halo;
+      x.fillRect(bx - H * 0.06, by - H * 0.06, H * 0.12, H * 0.12);
+      elipse(x, bx, by, H * 0.008, H * 0.011, '#ffd9a0');
+    }
+  }
+  // The counter's far edge, then its top coming towards us.
+  x.fillStyle = '#b07a48';
+  x.fillRect(0, fondo - H * 0.008, ancho, H * 0.008);
+  const tapa = x.createLinearGradient(0, fondo, 0, H);
+  tapa.addColorStop(0, '#3a1c10');
+  tapa.addColorStop(1, '#8e502c');
+  x.fillStyle = tapa;
+  x.fillRect(0, fondo, ancho, H - fondo);
+  // The grain of the wood, running along the counter.
+  x.fillStyle = 'rgba(40,16,8,0.18)';
+  for (let k = 0; k < 9; k++) {
+    const y = fondo + (H - fondo) * ((k + r() * 0.5) / 9) ** 1.4;
+    x.fillRect(0, y, ancho, Math.max(1, H * 0.003 * (1 + k * 0.3)));
+  }
+  // The bulbs and the bottles shining on the varnish.
+  for (let bx = r() * 40; bx < ancho; bx += H * (0.1 + r() * 0.14)) {
+    const brillo = x.createLinearGradient(0, fondo, 0, fondo + H * 0.22);
+    brillo.addColorStop(0, 'rgba(255,200,130,0.16)');
+    brillo.addColorStop(1, 'rgba(255,200,130,0)');
+    x.fillStyle = brillo;
+    x.fillRect(bx, fondo, H * (0.01 + r() * 0.02), H * 0.22);
+  }
+  return { img, ancho, encimera: H * 0.83 };
+}
+
+/** A pint of beer `ph` px tall with its head of foam, painted once (its bottom centre is at the middle of the bottom). */
+function pintarCana(ph: number, dpr: number) {
+  const pw = ph * 0.52;
+  const [c, x] = lienzo(pw * 1.3, ph * 1.12, dpr);
+  const ox = pw * 0.15;
+  const oy = ph * 0.12;
+  const vaso = () => {
+    x.beginPath();
+    x.moveTo(ox, oy);
+    x.lineTo(ox + pw, oy);
+    x.lineTo(ox + pw * 0.88, oy + ph);
+    x.lineTo(ox + pw * 0.12, oy + ph);
+    x.closePath();
   };
-  sierra('#8a5a6e', H * 0.075, 3);
-  sierra('#62405a', H * 0.035, 8);
-  // The desert floor.
+  x.save();
+  vaso();
+  x.clip();
+  const cerveza = x.createLinearGradient(0, oy, 0, oy + ph);
+  cerveza.addColorStop(0, '#f2b632');
+  cerveza.addColorStop(1, '#b8701a');
+  x.fillStyle = cerveza;
+  x.fillRect(0, oy, pw * 1.3, ph);
+  x.fillStyle = 'rgba(255,240,200,0.35)';
+  x.fillRect(ox + pw * 0.12, oy, pw * 0.1, ph);
+  x.restore();
+  // The head of foam, spilling a little over the rim.
+  x.fillStyle = '#fbf3dc';
+  x.fillRect(ox, oy, pw, ph * 0.14);
+  for (let k = 0; k < 5; k++) elipse(x, ox + pw * (0.1 + k * 0.2), oy, pw * 0.14, ph * 0.08, '#fbf3dc');
+  x.strokeStyle = 'rgba(235,245,250,0.55)';
+  x.lineWidth = Math.max(1, ph * 0.012);
+  vaso();
+  x.stroke();
+  x.fillStyle = 'rgba(235,245,250,0.4)';
+  x.fillRect(ox + pw * 0.12, oy + ph - ph * 0.05, pw * 0.76, ph * 0.05);
+  return { img: c, w: pw * 1.3, h: ph * 1.12 };
+}
+type Cana = ReturnType<typeof pintarCana>;
+
+/** The four shots slammed down on the counter, one a beat, and the liquor inside each. */
+const CHUPITOS = ['#d08a2a', '#6fae3a', '#c8323a', '#e0a83a'];
+
+/**
+ * Shots and beers on the bar: two pints with their bubbles going up, and a shot glass
+ * slammed down on each beat (a quick fall, a squash, a splash), the camera jolting each time.
+ */
+function dibujarBarra(x: CanvasRenderingContext2D, W: number, H: number, bar: Bar, cana: Cana, s: number) {
+  const golpe = s % 0.5;
+  const sacudida = s < 2 ? Math.max(0, 1 - golpe / 0.14) * H * 0.012 : 0;
+  const z = 1.04 + 0.04 * suave(s / 2);
+  x.save();
+  x.translate(W / 2, H / 2 + sacudida * Math.sin(s * 90));
+  x.scale(z, z);
+  x.translate(-W / 2, -H / 2);
+  x.drawImage(bar.img, -(bar.ancho - W) * 0.35, 0, bar.ancho, H);
+  const base = bar.encimera;
+  // The pints on either side, their bubbles rising.
+  for (const [px, fase] of [[W * 0.15, 0], [W * 0.85, 0.5]]) {
+    x.drawImage(cana.img, px - cana.w / 2, base - cana.h + cana.h * 0.02, cana.w, cana.h);
+    x.fillStyle = 'rgba(255,245,215,0.7)';
+    for (let k = 0; k < 6; k++) {
+      const u = (s * 0.8 + fase + k / 6) % 1;
+      x.fillRect(px - cana.w * 0.22 + ((k * 37) % 10) * cana.w * 0.045, base - cana.h * 0.06 - u * cana.h * 0.68, 2, 2);
+    }
+  }
+  // The shots.
+  const sh = H * 0.21;
+  const tw = sh * 0.72;
+  const bw = sh * 0.56;
+  CHUPITOS.forEach((licor, k) => {
+    // It lands on the beat: it starts falling just before (the first one is already landing at the cut).
+    const d = s - k * 0.5 + 0.07;
+    if (d < 0) return;
+    const gx = W * (0.335 + k * 0.11);
+    const cae = d < 0.07 ? (1 - d / 0.07) ** 2 * H * 0.45 : 0;
+    const aplasta = d >= 0.07 && d < 0.2 ? 1 - 0.14 * Math.sin(((d - 0.07) / 0.13) * Math.PI) : 1;
+    const alto = sh * aplasta;
+    const ancho = 1 + (1 - aplasta) * 0.6;
+    const y0 = base - cae;
+    x.save();
+    x.translate(gx, y0);
+    x.scale(ancho, 1);
+    // The glass: a thick base, the liquor, the rim.
+    x.fillStyle = 'rgba(215,232,238,0.32)';
+    x.beginPath();
+    x.moveTo(-tw / 2, -alto);
+    x.lineTo(tw / 2, -alto);
+    x.lineTo(bw / 2, 0);
+    x.lineTo(-bw / 2, 0);
+    x.closePath();
+    x.fill();
+    const nivel = 0.62 + (d < 0.3 ? 0.05 * Math.sin(d * 40) * (1 - d / 0.3) : 0);
+    x.fillStyle = licor;
+    x.beginPath();
+    x.moveTo(-mezclar(bw, tw, nivel) / 2 + 2, -alto * nivel);
+    x.lineTo(mezclar(bw, tw, nivel) / 2 - 2, -alto * nivel);
+    x.lineTo(bw / 2 - 2, -alto * 0.2);
+    x.lineTo(-bw / 2 + 2, -alto * 0.2);
+    x.closePath();
+    x.fill();
+    x.fillStyle = 'rgba(235,245,250,0.5)';
+    x.fillRect(-bw / 2, -alto * 0.2, bw, alto * 0.2);
+    x.fillRect(-tw / 2, -alto, tw, Math.max(1.5, alto * 0.025));
+    x.fillStyle = 'rgba(255,255,255,0.35)';
+    x.fillRect(-tw * 0.32, -alto * 0.9, tw * 0.08, alto * 0.6);
+    x.restore();
+    // The splash: drops of liquor thrown up and out, falling back.
+    if (d >= 0.07 && d < 0.45) {
+      const u = d - 0.07;
+      x.fillStyle = licor;
+      for (let j = 0; j < 7; j++) {
+        const a = -Math.PI / 2 + (j - 3) * 0.38;
+        const v = H * (0.5 + (j % 3) * 0.18);
+        const dx = Math.cos(a) * v * u;
+        const dy = Math.sin(a) * v * u + H * 3.2 * u * u;
+        elipse(x, gx + dx, base - sh * 0.62 + dy, H * 0.007, H * 0.009, licor);
+      }
+    }
+  });
+  x.restore();
+}
+
+/**
+ * A beer sliding down the bar at full speed: the camera at the counter's height swings after
+ * it, the glass leans back and leaves a wet trail and its own ghosts behind. It crosses once
+ * per stretch of the montage, each time the other way.
+ */
+const CRUCES: Array<[number, number]> = [
+  [0, 1],
+  [1, 2],
+  [2, 2.5],
+];
+function dibujarCerveza(x: CanvasRenderingContext2D, W: number, H: number, bar: Bar, cana: Cana, s: number) {
+  const i = Math.max(0, CRUCES.findIndex(([a, b]) => s >= a && s < b));
+  const [a, b] = CRUCES[i];
+  const u = Math.min(1, (s - a) / (b - a));
+  const dir = i % 2 ? -1 : 1;
+  const z = 1.1;
+  const gx = dir > 0 ? mezclar(-W * 0.25, W * 1.25, u) : mezclar(W * 1.25, -W * 0.25, u);
+  // The camera swings after the glass, but slower: the bar runs past the other way.
+  const panorama = (bar.ancho * z - W) * (dir > 0 ? u : 1 - u);
+  x.drawImage(bar.img, -panorama, -H * 0.06, bar.ancho * z, H * z);
+  const base = H * 0.93;
+  const vel = (W * 1.5) / (b - a);
+  // The wet trail on the varnish.
+  const desde = dir > 0 ? Math.max(0, gx - W * 0.9) : gx;
+  const hasta = dir > 0 ? gx : Math.min(W, gx + W * 0.9);
+  const rastro = x.createLinearGradient(dir > 0 ? hasta : desde, 0, dir > 0 ? desde : hasta, 0);
+  rastro.addColorStop(0, 'rgba(255,220,160,0.35)');
+  rastro.addColorStop(1, 'rgba(255,220,160,0)');
+  x.fillStyle = rastro;
+  x.fillRect(desde, base - H * 0.008, Math.max(0, hasta - desde), H * 0.012);
+  // Speed lines behind it.
+  x.fillStyle = 'rgba(255,240,210,0.5)';
+  for (let k = 0; k < 6; k++) {
+    const largo = W * (0.12 + ((k * 13) % 7) * 0.03) * Math.min(1, vel / (W * 1.5));
+    const ly = base - cana.h * (0.15 + k * 0.13);
+    x.fillRect(dir > 0 ? gx - cana.w * 0.6 - largo : gx + cana.w * 0.6, ly, largo, Math.max(1, H * 0.004));
+  }
+  // The glass, leaning back against the speed, and two ghosts trailing it.
+  for (let g = 2; g >= 0; g--) {
+    x.save();
+    x.globalAlpha = g ? 0.18 / g : 1;
+    x.translate(gx - dir * g * cana.w * 0.35, base);
+    x.rotate(-dir * 0.07);
+    x.drawImage(cana.img, -cana.w / 2, -cana.h, cana.w, cana.h);
+    x.restore();
+  }
+  // Foam flicked off the top.
+  for (let k = 0; k < 5; k++) {
+    const atras = ((s * 7 + k / 5) % 1) * cana.w * 1.1;
+    elipse(x, gx - dir * (cana.w * 0.35 + atras), base - cana.h * 0.9 + atras * 0.25, H * 0.008, H * 0.006, 'rgba(251,243,220,0.8)');
+  }
+}
+
+// ---------------------------------------------------------------- the caravan flat out
+
+/** The desert road's layers, painted once; the near ones are tiles that scroll past. */
+interface Carretera {
+  cielo: HTMLCanvasElement;
+  mesas: HTMLCanvasElement;
+  medio: HTMLCanvasElement;
+  delante: HTMLCanvasElement;
+  vehiculo: HTMLCanvasElement;
+  /** The vehicle's size, and where its wheels are (from its top left, CSS px). */
+  vw: number;
+  vh: number;
+  ruedas: Array<[number, number, number]>;
+  /** The pickup's exhaust pipe. */
+  escape: [number, number];
+  /** The road: its top and bottom edges. */
+  r0: number;
+  r1: number;
+}
+
+/**
+ * The American desert in the late afternoon, side on: the sky and the plain (still), the
+ * mesas far away (slow), Joshua trees and telegraph poles (fast), the scrub in front (a
+ * blur); and the battered pickup, a «camión» of sorts, towing the caravan, painted once.
+ */
+function pintarCarretera(W: number, H: number, dpr: number): Carretera {
+  const hz = H * 0.56;
+  const r0 = H * 0.75;
+  const r1 = H * 0.88;
+  const [cielo, x] = lienzo(W, H, dpr);
+  const g = x.createLinearGradient(0, 0, 0, hz);
+  g.addColorStop(0, '#2d4f8e');
+  g.addColorStop(0.6, '#c9806a');
+  g.addColorStop(1, '#f4b26a');
+  x.fillStyle = g;
+  x.fillRect(0, 0, W, hz + 1);
+  const sx = W * 0.2;
+  const sy = hz - H * 0.12;
+  const halo = x.createRadialGradient(sx, sy, H * 0.04, sx, sy, H * 0.3);
+  halo.addColorStop(0, 'rgba(255,214,140,0.5)');
+  halo.addColorStop(1, 'rgba(255,214,140,0)');
+  x.fillStyle = halo;
+  x.fillRect(sx - H * 0.3, sy - H * 0.3, H * 0.6, H * 0.6);
+  elipse(x, sx, sy, H * 0.05, H * 0.05, '#ffe2a6');
   const suelo = x.createLinearGradient(0, hz, 0, H);
-  suelo.addColorStop(0, '#d08a58');
-  suelo.addColorStop(0.35, '#a8623f');
-  suelo.addColorStop(1, '#5e3329');
+  suelo.addColorStop(0, '#d89a62');
+  suelo.addColorStop(1, '#9a5a36');
   x.fillStyle = suelo;
   x.fillRect(0, hz, W, H - hz);
-  // The caravan's place, and the dirt track that leads to it from the bottom of the screen.
-  const cw = W * 0.085;
-  const ch = cw * 0.42;
-  const cx = W * 0.4;
-  const cy = hz + H * 0.065;
-  x.fillStyle = '#b8744a';
-  x.beginPath();
-  x.moveTo(cx - cw * 0.1, cy);
-  x.lineTo(cx + cw * 0.1, cy);
-  x.lineTo(W * 0.62, H);
-  x.lineTo(W * 0.36, H);
-  x.fill();
-  // Scrub, bigger the nearer it is.
-  for (let i = 0; i < 70; i++) {
-    const y = hz + (H - hz) * r() ** 1.6;
-    const k = (y - hz) / (H - hz);
-    const px = r() * W;
-    x.fillStyle = r() < 0.5 ? '#5b4a35' : '#6a5a3e';
-    x.beginPath();
-    x.ellipse(px, y, 2 + k * 16, 1 + k * 7, 0, Math.PI, 0);
-    x.fill();
-  }
-  // Three Joshua trees, in silhouette against the sun.
-  const arbol = (ax: number, ay: number, s: number) => {
-    x.strokeStyle = '#3b2a33';
-    x.lineCap = 'round';
-    x.lineWidth = s * 0.12;
-    x.beginPath();
-    x.moveTo(ax, ay);
-    x.lineTo(ax, ay - s);
-    x.moveTo(ax, ay - s * 0.6);
-    x.quadraticCurveTo(ax - s * 0.4, ay - s * 0.65, ax - s * 0.38, ay - s * 1.05);
-    x.moveTo(ax, ay - s * 0.75);
-    x.quadraticCurveTo(ax + s * 0.35, ay - s * 0.8, ax + s * 0.32, ay - s * 1.2);
-    x.stroke();
-    x.fillStyle = '#3b2a33';
-    for (const [dx, dy] of [[0, -1], [-0.38, -1.05], [0.32, -1.2]]) {
-      x.beginPath();
-      x.ellipse(ax + dx * s, ay + dy * s, s * 0.12, s * 0.16, 0, 0, Math.PI * 2);
-      x.fill();
+  // The road: asphalt with a pale shoulder on each side.
+  x.fillStyle = '#c99a6a';
+  x.fillRect(0, r0 - H * 0.012, W, r1 - r0 + H * 0.024);
+  x.fillStyle = '#3e3438';
+  x.fillRect(0, r0, W, r1 - r0);
+  x.fillStyle = '#4c4044';
+  x.fillRect(0, r0, W, H * 0.01);
+
+  // Mesas, far away: a tile as wide as the screen that repeats seamlessly.
+  const [mesas, m] = lienzo(W, hz, dpr);
+  const sierra = (color: string, alto: number, semilla: number) => {
+    const rr = azar(semilla);
+    m.fillStyle = color;
+    m.beginPath();
+    m.moveTo(0, hz);
+    let px = 0;
+    while (px < W - W * 0.05) {
+      const ancho = W * (0.06 + rr() * 0.12);
+      const a = alto * (0.3 + rr() * 0.7);
+      const lado = ancho * 0.14;
+      m.lineTo(px + lado, hz - a);
+      m.lineTo(px + ancho - lado, hz - a);
+      m.lineTo(px + ancho, hz);
+      px += ancho + W * rr() * 0.05;
+      m.lineTo(px, hz);
     }
+    m.lineTo(W, hz);
+    m.fill();
   };
-  arbol(W * 0.12, hz + H * 0.09, H * 0.16);
-  arbol(W * 0.86, hz + H * 0.05, H * 0.1);
-  arbol(W * 0.63, hz + H * 0.02, H * 0.05);
-  // The caravan: cream with a brown stripe, rounded ends, a cracked window, a flat tyre;
-  // the sun lights its right side. A little crooked, sunk on the flat side.
-  x.save();
-  x.fillStyle = 'rgba(60,28,30,0.35)';
-  x.beginPath();
-  x.ellipse(cx, cy + 1, cw * 0.62, ch * 0.13, 0, 0, Math.PI * 2);
-  x.fill();
-  x.translate(cx, cy);
-  x.rotate(-0.045);
-  const bx = -cw / 2;
-  const by = -ch - ch * 0.18;
-  const caja = (color: string, dx: number, dy: number, w: number, hh: number, rad: number) => {
-    x.fillStyle = color;
-    x.beginPath();
-    x.roundRect(bx + dx, by + dy, w, hh, rad);
-    x.fill();
+  sierra('#b0705e', H * 0.13, 4);
+  sierra('#8a4e46', H * 0.07, 9);
+
+  // In between: Joshua trees and telegraph poles, a tile one and a half screens wide.
+  const mw = W * 1.5;
+  const [medio, d] = lienzo(mw, H * 0.4, dpr);
+  const base = H * 0.36;
+  const arbol = (ax: number, s: number) => {
+    d.strokeStyle = '#5a3a2e';
+    d.lineCap = 'round';
+    d.lineWidth = s * 0.12;
+    d.beginPath();
+    d.moveTo(ax, base);
+    d.lineTo(ax, base - s);
+    d.moveTo(ax, base - s * 0.55);
+    d.quadraticCurveTo(ax - s * 0.4, base - s * 0.6, ax - s * 0.38, base - s * 1.0);
+    d.moveTo(ax, base - s * 0.7);
+    d.quadraticCurveTo(ax + s * 0.35, base - s * 0.75, ax + s * 0.32, base - s * 1.15);
+    d.stroke();
+    for (const [dx, dy] of [[0, -1], [-0.38, -1.0], [0.32, -1.15]]) elipse(d, ax + dx * s, base + dy * s, s * 0.12, s * 0.16, '#5a3a2e');
   };
-  // The tow bar and its brick.
-  x.strokeStyle = '#4a3a36';
-  x.lineWidth = Math.max(1.5, cw * 0.025);
-  x.beginPath();
-  x.moveTo(bx + cw * 0.05, by + ch * 0.85);
-  x.lineTo(bx - cw * 0.16, by + ch * 1.08);
-  x.stroke();
-  caja('#8c4a36', -cw * 0.2, ch * 1.06, cw * 0.08, ch * 0.12, 1);
-  caja('#e9dcc0', 0, 0, cw, ch, ch * 0.35);
-  caja('#d4c4a4', 0, 0, cw, ch * 0.16, ch * 0.08);
-  caja('#9a5a3c', 0, ch * 0.62, cw, ch * 0.12, 0);
-  caja('#3a3346', cw * 0.14, ch * 0.2, cw * 0.26, ch * 0.3, ch * 0.08);
-  caja('#d8c8a8', cw * 0.6, ch * 0.18, cw * 0.15, ch * 0.66, ch * 0.05);
-  caja('#3a3346', cw * 0.63, ch * 0.24, cw * 0.09, ch * 0.16, ch * 0.04);
-  x.strokeStyle = '#a9a0b4';
-  x.lineWidth = 1;
-  x.beginPath();
-  x.moveTo(bx + cw * 0.18, by + ch * 0.24);
-  x.lineTo(bx + cw * 0.27, by + ch * 0.36);
-  x.lineTo(bx + cw * 0.24, by + ch * 0.46);
-  x.stroke();
-  // Sunlit side.
-  const luz = x.createLinearGradient(bx + cw * 0.55, 0, bx + cw, 0);
-  luz.addColorStop(0, 'rgba(255,200,140,0)');
-  luz.addColorStop(1, 'rgba(255,200,140,0.35)');
-  x.fillStyle = luz;
-  x.beginPath();
-  x.roundRect(bx, by, cw, ch, ch * 0.35);
-  x.fill();
-  // The chimney, and the wheel: the flat one.
-  caja('#6a5a56', cw * 0.78, -ch * 0.16, cw * 0.05, ch * 0.18, 1);
-  x.fillStyle = '#26202a';
-  x.beginPath();
-  x.ellipse(bx + cw * 0.42, by + ch * 1.02, ch * 0.2, ch * 0.13, 0, 0, Math.PI * 2);
-  x.fill();
-  x.restore();
-  const humoX = cx + Math.cos(-0.045) * (bx + cw * 0.805) - Math.sin(-0.045) * (by - ch * 0.16);
-  const humoY = cy + Math.sin(-0.045) * (bx + cw * 0.805) + Math.cos(-0.045) * (by - ch * 0.16);
-  return { img, cx, cy: cy - ch * 0.5, humoX, humoY };
+  const rr = azar(17);
+  for (let px = mw * 0.05; px < mw - mw * 0.05; px += mw * (0.1 + rr() * 0.12)) {
+    if (rr() < 0.35) {
+      // A telegraph pole.
+      d.fillStyle = '#4a3026';
+      d.fillRect(px, base - H * 0.3, H * 0.012, H * 0.3);
+      d.fillRect(px - H * 0.03, base - H * 0.28, H * 0.072, H * 0.01);
+    } else arbol(px, H * (0.12 + rr() * 0.1));
+  }
+  for (let k = 0; k < 40; k++) elipse(d, rr() * mw, base - rr() * H * 0.02, H * (0.01 + rr() * 0.02), H * 0.008, '#8a6a3e');
+
+  // In front of the road: scrub streaked by the speed.
+  const [delante, f] = lienzo(W, H - r1, dpr);
+  const rf = azar(23);
+  for (let k = 0; k < 26; k++) {
+    const y = H * 0.02 + rf() * (H - r1 - H * 0.02);
+    f.fillStyle = rf() < 0.5 ? '#7a5434' : '#6a4a2e';
+    f.beginPath();
+    f.ellipse(rf() * W, y, H * (0.06 + rf() * 0.1), H * (0.008 + rf() * 0.008), 0, 0, Math.PI * 2);
+    f.fill();
+  }
+
+  // The pickup and its caravan, facing right. The wheels are drawn every frame (they turn).
+  const vh = H * 0.27;
+  const cw = vh * 2.0;
+  const vw = cw + vh * 0.25 + vh * 1.8;
+  const [vehiculo, v] = lienzo(vw, vh, dpr);
+  const caja = (color: string, bx: number, by: number, w: number, hh: number, rad: number) => {
+    v.fillStyle = color;
+    v.beginPath();
+    v.roundRect(bx, by, w, hh, rad);
+    v.fill();
+  };
+  // The caravan: cream, a brown stripe, rounded ends, a window and its door.
+  const ch = vh * 0.78;
+  caja('#e9dcc0', 0, 0, cw, ch, ch * 0.32);
+  caja('#d4c4a4', 0, 0, cw, ch * 0.14, ch * 0.08);
+  caja('#9a5a3c', 0, ch * 0.58, cw, ch * 0.12, 0);
+  caja('#c9b896', 0, ch * 0.86, cw, ch * 0.14, ch * 0.05);
+  caja('#3a4a66', cw * 0.12, ch * 0.2, cw * 0.3, ch * 0.28, ch * 0.08);
+  caja('#d8c8a8', cw * 0.62, ch * 0.16, cw * 0.15, ch * 0.66, ch * 0.05);
+  caja('#3a4a66', cw * 0.645, ch * 0.22, cw * 0.1, ch * 0.16, ch * 0.04);
+  caja('#e0a24a', cw * 0.02, ch * 0.62, cw * 0.025, ch * 0.06, 1);
+  // A crack in the window, and the sun along its top.
+  v.strokeStyle = '#a9b4c8';
+  v.lineWidth = 1;
+  v.beginPath();
+  v.moveTo(cw * 0.16, ch * 0.24);
+  v.lineTo(cw * 0.25, ch * 0.34);
+  v.lineTo(cw * 0.22, ch * 0.44);
+  v.stroke();
+  const luz = v.createLinearGradient(0, 0, 0, ch * 0.5);
+  luz.addColorStop(0, 'rgba(255,214,150,0.35)');
+  luz.addColorStop(1, 'rgba(255,214,150,0)');
+  v.fillStyle = luz;
+  v.beginPath();
+  v.roundRect(0, 0, cw, ch, ch * 0.32);
+  v.fill();
+  // The tow bar.
+  v.fillStyle = '#4a3a36';
+  v.fillRect(cw - 2, ch * 0.8, vh * 0.3, vh * 0.05);
+  // The pickup: rusty red, a cream roof, the bed behind the cab, a chrome bumper.
+  const px = cw + vh * 0.25;
+  const pw = vh * 1.8;
+  caja('#a8402c', px, vh * 0.5, pw, vh * 0.3, vh * 0.06);
+  caja('#a8402c', px + pw * 0.42, vh * 0.12, pw * 0.36, vh * 0.42, vh * 0.08);
+  caja('#efe2c4', px + pw * 0.42, vh * 0.1, pw * 0.36, vh * 0.07, vh * 0.04);
+  caja('#7e2e20', px, vh * 0.5, pw * 0.4, vh * 0.05, 0);
+  caja('#2e3c5a', px + pw * 0.5, vh * 0.2, pw * 0.24, vh * 0.22, vh * 0.04);
+  // Two heads in the cab, against the windscreen.
+  elipse(v, px + pw * 0.56, vh * 0.33, vh * 0.055, vh * 0.065, '#1c1612');
+  elipse(v, px + pw * 0.68, vh * 0.32, vh * 0.055, vh * 0.065, '#1c1612');
+  caja('#a8402c', px + pw * 0.78, vh * 0.38, pw * 0.22, vh * 0.42, vh * 0.1);
+  caja('#7e2e20', px + pw * 0.08, vh * 0.58, pw * 0.85, vh * 0.025, 0);
+  caja('#c8ccd2', px + pw * 0.95, vh * 0.66, pw * 0.07, vh * 0.12, vh * 0.03);
+  caja('#ffe6a0', px + pw * 0.95, vh * 0.44, pw * 0.05, vh * 0.08, vh * 0.03);
+  caja('#4a3a36', px - vh * 0.02, vh * 0.7, vh * 0.04, vh * 0.08, 1);
+  // The sun along the top of everything.
+  v.fillStyle = 'rgba(255,214,150,0.3)';
+  v.fillRect(px + pw * 0.42, vh * 0.12, pw * 0.36, vh * 0.03);
+  v.fillRect(px, vh * 0.5, pw, vh * 0.025);
+  const ruedas: Array<[number, number, number]> = [
+    [cw * 0.42, vh * 0.86, vh * 0.14],
+    [px + pw * 0.22, vh * 0.84, vh * 0.16],
+    [px + pw * 0.8, vh * 0.84, vh * 0.16],
+  ];
+  return { cielo, mesas, medio, delante, vehiculo, vw, vh, ruedas, escape: [px - vh * 0.02, vh * 0.74], r0, r1 };
 }
 
-// ---------------------------------------------------------------- inside the caravan
+/** A tile that repeats sideways, scrolled `dx` px to the left. */
+function rodar(x: CanvasRenderingContext2D, img: HTMLCanvasElement, w: number, hh: number, y: number, dx: number, W: number) {
+  const o = -(((dx % w) + w) % w);
+  for (let px = o; px < W; px += w) x.drawImage(img, px, y, w, hh);
+}
 
 /**
- * The inside of the caravan in the dark, painted once: wood panelling, a little window
- * with the dawn in it and its beam on the floor, the bench and the bunk, and what the
- * night left lying about (cans, an arcade token in the light, a pilot's cap on a hook).
+ * The caravan flat out across the desert: the layers scroll past at their speeds, the road's
+ * dashes whip by, the pickup and its caravan bounce on their own springs with the wheels
+ * spinning, and a cloud of dust boils up behind them. They slowly gain on the camera.
  */
-function pintarCaravana(W: number, H: number, dpr: number) {
-  const [img, x] = lienzo(W, H, dpr);
-  x.fillStyle = '#0d1126';
-  x.fillRect(0, 0, W, H);
-  x.fillStyle = '#141a34';
-  x.fillRect(0, 0, W, H * 0.72);
-  x.strokeStyle = 'rgba(255,255,255,0.035)';
-  x.lineWidth = 2;
-  for (let px = W * 0.03; px < W; px += W * 0.045) {
+function dibujarCarretera(x: CanvasRenderingContext2D, W: number, H: number, c: Carretera, s: number) {
+  const hz = H * 0.56;
+  x.drawImage(c.cielo, 0, 0, W, H);
+  rodar(x, c.mesas, W, hz, 0, s * W * 0.04, W);
+  rodar(x, c.medio, W * 1.5, H * 0.4, hz - H * 0.36 + H * 0.06, s * W * 0.9, W);
+  // The dashes down the middle of the road.
+  x.fillStyle = '#e8d8a0';
+  const my = (c.r0 + c.r1) / 2;
+  const paso = W * 0.22;
+  const o = -((s * W * 2.4) % paso);
+  for (let px = o; px < W; px += paso) x.fillRect(px, my - H * 0.005, W * 0.1, H * 0.01);
+  // The vehicle: gaining slowly, bouncing; dust behind and under it.
+  const vx = mezclar(W * 0.4, W * 0.56, suave(s / 2)) - c.vw / 2 + Math.sin(s * 3) * W * 0.005;
+  const vy = c.r0 + (c.r1 - c.r0) * 0.55 - c.vh;
+  const traseraX = vx + c.ruedas[0][0];
+  const sueloY = vy + c.vh * 0.98;
+  for (let k = 0; k < 16; k++) {
+    const u = (s * 2.6 + k / 16) % 1;
+    const r = H * (0.03 + u * 0.09);
+    elipse(x, traseraX - c.vw * 0.15 - u * W * 0.35, sueloY - u * H * 0.12 - r * 0.3, r, r * 0.75, `rgba(222,186,140,${0.42 * (1 - u)})`);
+  }
+  const bote = (f: number) => Math.sin(s * 31 + f) * H * 0.004 + Math.max(0, Math.sin(s * 9 + f)) * H * 0.004;
+  x.save();
+  x.translate(vx, vy + bote(0));
+  x.drawImage(c.vehiculo, 0, 0, c.vw, c.vh);
+  // The wheels: a tyre, a hub and a spoke turning fast.
+  for (const [rx, ry, rr] of c.ruedas) {
+    elipse(x, rx, ry, rr, rr, '#221c20');
+    elipse(x, rx, ry, rr * 0.5, rr * 0.5, '#9a9ca4');
+    x.strokeStyle = '#5a5c64';
+    x.lineWidth = Math.max(1.5, rr * 0.16);
+    const a = s * 38;
     x.beginPath();
-    x.moveTo(px, 0);
-    x.lineTo(px, H * 0.72);
+    x.moveTo(rx + Math.cos(a) * rr * 0.45, ry + Math.sin(a) * rr * 0.45);
+    x.lineTo(rx - Math.cos(a) * rr * 0.45, ry - Math.sin(a) * rr * 0.45);
+    x.moveTo(rx + Math.cos(a + 1.57) * rr * 0.45, ry + Math.sin(a + 1.57) * rr * 0.45);
+    x.lineTo(rx - Math.cos(a + 1.57) * rr * 0.45, ry - Math.sin(a + 1.57) * rr * 0.45);
     x.stroke();
   }
-  // The window with the dawn, a curtain drawn over its right half.
-  const vx = W * 0.14;
-  const vy = H * 0.16;
-  const vw = W * 0.15;
-  const vh = H * 0.22;
-  const alba = x.createLinearGradient(0, vy, 0, vy + vh);
-  alba.addColorStop(0, '#b9606a');
-  alba.addColorStop(1, '#f2a25c');
-  x.fillStyle = '#2a2236';
-  x.beginPath();
-  x.roundRect(vx - 6, vy - 6, vw + 12, vh + 12, 16);
-  x.fill();
-  x.fillStyle = alba;
-  x.beginPath();
-  x.roundRect(vx, vy, vw, vh, 12);
-  x.fill();
-  x.fillStyle = '#3a2a3a';
-  x.beginPath();
-  x.moveTo(vx + vw * 0.62, vy - 8);
-  x.quadraticCurveTo(vx + vw * 0.56, vy + vh * 0.5, vx + vw * 0.66, vy + vh + 8);
-  x.lineTo(vx + vw + 8, vy + vh + 8);
-  x.lineTo(vx + vw + 8, vy - 8);
-  x.fill();
-  // The bench along the bottom and the bunk up on the right.
-  x.fillStyle = '#1b2142';
-  x.fillRect(W * 0.28, H * 0.66, W * 0.64, H * 0.12);
-  x.fillStyle = '#151a36';
-  x.fillRect(W * 0.28, H * 0.78, W * 0.64, H * 0.22);
-  x.fillStyle = '#1b2142';
-  x.fillRect(W * 0.64, H * 0.3, W * 0.36, H * 0.07);
-  x.fillStyle = '#10142c';
-  x.fillRect(W * 0.64, H * 0.37, W * 0.36, H * 0.03);
-  // The window's beam, across the bench to the floor.
-  const haz = x.createLinearGradient(vx, vy + vh, W * 0.5, H);
-  haz.addColorStop(0, 'rgba(242,162,92,0.2)');
-  haz.addColorStop(1, 'rgba(242,162,92,0.03)');
-  x.fillStyle = haz;
-  x.beginPath();
-  x.moveTo(vx, vy + vh);
-  x.lineTo(vx + vw * 0.6, vy + vh);
-  x.lineTo(W * 0.58, H);
-  x.lineTo(W * 0.3, H);
-  x.fill();
-  // On the floor, in the light: two cans and the arcade token.
-  const lata = (lx: number, ly: number, giro: number) => {
-    x.save();
-    x.translate(lx, ly);
-    x.rotate(giro);
-    x.fillStyle = '#a8873e';
-    x.fillRect(-H * 0.025, -H * 0.014, H * 0.05, H * 0.028);
-    x.fillStyle = '#7c6230';
-    x.fillRect(-H * 0.025, -H * 0.014, H * 0.006, H * 0.028);
-    x.restore();
-  };
-  lata(W * 0.36, H * 0.93, 0.3);
-  lata(W * 0.52, H * 0.96, 1.4);
-  x.fillStyle = '#e0b84a';
-  x.beginPath();
-  x.ellipse(W * 0.45, H * 0.9, H * 0.022, H * 0.012, 0, 0, Math.PI * 2);
-  x.fill();
-  x.strokeStyle = '#a07a24';
-  x.lineWidth = 1.5;
-  x.beginPath();
-  x.ellipse(W * 0.45, H * 0.9, H * 0.013, H * 0.007, 0, 0, Math.PI * 2);
-  x.stroke();
-  // A pilot's cap on a hook (the Joso's), by the window.
-  const gx = W * 0.4;
-  const gy = H * 0.2;
-  x.fillStyle = '#5a5a66';
-  x.fillRect(gx - 2, gy - H * 0.04, 4, H * 0.045);
-  x.fillStyle = '#232a4c';
-  x.beginPath();
-  x.ellipse(gx, gy + H * 0.05, H * 0.07, H * 0.05, 0, Math.PI, 0);
-  x.fill();
-  x.fillStyle = '#171c36';
-  x.beginPath();
-  x.ellipse(gx + H * 0.03, gy + H * 0.055, H * 0.06, H * 0.016, 0, 0, Math.PI * 2);
-  x.fill();
-  x.fillStyle = '#9a8248';
-  x.fillRect(gx - H * 0.065, gy + H * 0.03, H * 0.13, H * 0.012);
-  return img;
+  x.restore();
+  // Exhaust puffs from the pickup's pipe.
+  for (let k = 0; k < 5; k++) {
+    const u = (s * 3.4 + k / 5) % 1;
+    elipse(x, vx + c.escape[0] - u * W * 0.08, vy + c.escape[1] - u * H * 0.03, H * (0.008 + u * 0.02), H * (0.006 + u * 0.016), `rgba(120,110,120,${0.5 * (1 - u)})`);
+  }
+  // The scrub in front, a blur.
+  rodar(x, c.delante, W, H - c.r1, c.r1, s * W * 3.2, W);
 }
 
-/** The four lumps under their blankets, breathing, each head peeking out; Chuchi's jolts up. */
-function dibujarBultos(x: CanvasRenderingContext2D, W: number, H: number, s: number) {
-  const bulto = (bx: number, by: number, rw: number, rh: number, color: string, fase: number) => {
-    const resp = 1 + 0.05 * Math.sin(s * 2.4 + fase);
-    x.fillStyle = color;
+// ---------------------------------------------------------------- the slot machine
+
+/** The symbols on each reel, top to bottom; the jackpot is three sevens. */
+const SIMBOLOS = ['siete', 'cereza', 'campana', 'limon', 'diamante', 'estrella'] as const;
+type Simbolo = (typeof SIMBOLOS)[number];
+const SIETE = SIMBOLOS.indexOf('siete');
+/** When each reel stops (seconds into the shot): on the beat, the third one on the jackpot. */
+const PARADAS = [0.5, 1.0, 1.5];
+const PREMIO = PARADAS[2];
+/** Symbols a second while a reel spins. */
+const GIRO = 16;
+
+interface Tragaperras {
+  maquina: HTMLCanvasElement;
+  cartelOn: HTMLCanvasElement;
+  tira: HTMLCanvasElement;
+  cristal: HTMLCanvasElement;
+  /** The reels' window: where it is and how big, and each symbol's height on the reel. */
+  vx: number;
+  vy: number;
+  vw: number;
+  vh: number;
+  celda: number;
+  /** The marquee's bulbs, and where the coins come out. */
+  bombillas: Array<[number, number]>;
+  bocaX: number;
+  bocaY: number;
+}
+
+function simbolo(x: CanvasRenderingContext2D, que: Simbolo, cx: number, cy: number, t: number) {
+  if (que === 'siete') {
+    // A fat red seven with a gold edge (drawn, not a font: it must look the same everywhere).
+    const sete = (k: number, color: string) => {
+      x.fillStyle = color;
+      x.beginPath();
+      x.moveTo(cx - t * 0.32 * k, cy - t * 0.38 * k);
+      x.lineTo(cx + t * 0.34 * k, cy - t * 0.38 * k);
+      x.lineTo(cx + t * 0.34 * k, cy - t * 0.22 * k);
+      x.lineTo(cx - t * 0.02 * k, cy + t * 0.4 * k);
+      x.lineTo(cx - t * 0.24 * k, cy + t * 0.4 * k);
+      x.lineTo(cx + t * 0.1 * k, cy - t * 0.2 * k);
+      x.lineTo(cx - t * 0.32 * k, cy - t * 0.2 * k);
+      x.closePath();
+      x.fill();
+    };
+    sete(1.12, '#e8b84a');
+    sete(1, '#d8282e');
+  } else if (que === 'cereza') {
+    x.strokeStyle = '#3a8a3a';
+    x.lineWidth = t * 0.05;
     x.beginPath();
-    x.ellipse(bx, by, rw, rh * resp, 0, Math.PI, 0);
+    x.moveTo(cx - t * 0.16, cy + t * 0.08);
+    x.quadraticCurveTo(cx - t * 0.05, cy - t * 0.3, cx + t * 0.12, cy - t * 0.34);
+    x.moveTo(cx + t * 0.16, cy + t * 0.12);
+    x.quadraticCurveTo(cx + t * 0.12, cy - t * 0.2, cx + t * 0.12, cy - t * 0.34);
+    x.stroke();
+    elipse(x, cx - t * 0.16, cy + t * 0.16, t * 0.15, t * 0.15, '#c8202e');
+    elipse(x, cx + t * 0.16, cy + t * 0.2, t * 0.15, t * 0.15, '#a8182a');
+    elipse(x, cx - t * 0.2, cy + t * 0.1, t * 0.035, t * 0.035, 'rgba(255,255,255,0.6)');
+  } else if (que === 'campana') {
+    x.fillStyle = '#e8b030';
+    x.beginPath();
+    x.moveTo(cx - t * 0.32, cy + t * 0.22);
+    x.quadraticCurveTo(cx - t * 0.22, cy + t * 0.12, cx - t * 0.22, cy - t * 0.08);
+    x.quadraticCurveTo(cx - t * 0.2, cy - t * 0.34, cx, cy - t * 0.34);
+    x.quadraticCurveTo(cx + t * 0.2, cy - t * 0.34, cx + t * 0.22, cy - t * 0.08);
+    x.quadraticCurveTo(cx + t * 0.22, cy + t * 0.12, cx + t * 0.32, cy + t * 0.22);
+    x.closePath();
     x.fill();
-  };
-  const bola = (bx: number, by: number, r: number, color: string) => {
-    x.fillStyle = color;
+    elipse(x, cx, cy + t * 0.28, t * 0.07, t * 0.07, '#b07a1a');
+    x.fillStyle = '#b07a1a';
+    x.fillRect(cx - t * 0.32, cy + t * 0.2, t * 0.64, t * 0.04);
+  } else if (que === 'limon') {
+    elipse(x, cx, cy, t * 0.32, t * 0.22, '#f2d23a', -0.3);
+    elipse(x, cx + t * 0.27, cy - t * 0.14, t * 0.05, t * 0.04, '#d8b42a', -0.3);
+    elipse(x, cx - t * 0.27, cy + t * 0.14, t * 0.05, t * 0.04, '#d8b42a', -0.3);
+  } else if (que === 'diamante') {
+    x.fillStyle = '#4ab4e0';
     x.beginPath();
-    x.arc(bx, by, r, 0, Math.PI * 2);
+    x.moveTo(cx - t * 0.32, cy - t * 0.1);
+    x.lineTo(cx - t * 0.18, cy - t * 0.28);
+    x.lineTo(cx + t * 0.18, cy - t * 0.28);
+    x.lineTo(cx + t * 0.32, cy - t * 0.1);
+    x.lineTo(cx, cy + t * 0.34);
+    x.closePath();
     x.fill();
-  };
-  const r = H * 0.05;
-  // Pablo on the floor, still in a pilot's cap.
-  bola(W * 0.1, H * 0.93, r, '#1a1412');
-  x.fillStyle = '#232a4c';
-  x.beginPath();
-  x.ellipse(W * 0.1, H * 0.905, r * 1.15, r * 0.75, -0.3, Math.PI, 0);
-  x.fill();
-  x.fillStyle = '#9a8248';
-  x.save();
-  x.translate(W * 0.1, H * 0.905);
-  x.rotate(-0.3);
-  x.fillRect(-r * 1.1, -r * 0.25, r * 2.2, r * 0.2);
-  x.restore();
-  bulto(W * 0.21, H * 0.98, W * 0.1, H * 0.12, '#262c48', 0.5);
-  // Fran on the bench: the back of his head, the beard, a sock sticking out of the teal blanket.
-  bola(W * 0.32, H * 0.62, r, '#1f1814');
-  bola(W * 0.335, H * 0.65, r * 0.8, '#1a1210');
-  bulto(W * 0.44, H * 0.67, W * 0.11, H * 0.13, '#245a5e', 1.8);
-  x.fillStyle = '#b9b3a8';
-  x.beginPath();
-  x.ellipse(W * 0.555, H * 0.65, H * 0.03, H * 0.02, 0.2, 0, Math.PI * 2);
-  x.fill();
-  // Chuchi on the bench: bald, glasses still on; around a second and a half in, his head jolts up.
-  const salto = s > 1.5 && s < 2.1 ? Math.sin(((s - 1.5) / 0.6) * Math.PI) * H * 0.07 : 0;
-  const cx = W * 0.665;
-  const cy = H * 0.62 - salto;
-  bola(cx, cy, r, '#b98a70');
-  bola(cx - r * 0.3, cy - r * 0.4, r * 0.25, '#d8b29a');
-  bola(cx + r * 0.1, cy + r * 0.55, r * 0.6, '#7b4627');
-  x.strokeStyle = '#8a5a3c';
-  x.lineWidth = Math.max(2, r * 0.14);
-  x.strokeRect(cx - r * 0.85, cy - r * 0.05, r * 0.7, r * 0.45);
-  x.strokeRect(cx + r * 0.05, cy - r * 0.05, r * 0.7, r * 0.45);
-  bulto(W * 0.77, H * 0.67, W * 0.1, H * 0.12, '#55202c', 3.1);
-  // Guille up on the bunk, under a mustard blanket with red flowers.
-  bola(W * 0.72, H * 0.255, r, '#1f1814');
-  bulto(W * 0.84, H * 0.3, W * 0.11, H * 0.09, '#8a6a26', 4.4);
-  x.fillStyle = '#7a2a26';
-  for (const [dx, dy] of [
-    [-0.05, -0.03],
-    [0.02, -0.06],
-    [0.07, -0.02],
-  ]) {
+    x.fillStyle = '#8ad8f4';
     x.beginPath();
-    x.arc(W * (0.84 + dx), H * (0.3 + dy), H * 0.012, 0, Math.PI * 2);
+    x.moveTo(cx - t * 0.18, cy - t * 0.28);
+    x.lineTo(cx + t * 0.18, cy - t * 0.28);
+    x.lineTo(cx + t * 0.06, cy - t * 0.1);
+    x.lineTo(cx - t * 0.06, cy - t * 0.1);
+    x.closePath();
+    x.fill();
+  } else {
+    x.fillStyle = '#f0a020';
+    x.beginPath();
+    for (let k = 0; k < 10; k++) {
+      const a = -Math.PI / 2 + (k * Math.PI) / 5;
+      const r = k % 2 ? t * 0.15 : t * 0.36;
+      x.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+    }
+    x.closePath();
     x.fill();
   }
-  // Zzz from Fran and Guille, rising and fading.
-  const zeta = (zx: number, zy: number, tam: number, a: number) => {
-    x.globalAlpha = a;
-    x.strokeStyle = '#f3ead6';
-    x.lineWidth = Math.max(1.5, tam * 0.16);
-    x.beginPath();
-    x.moveTo(zx, zy);
-    x.lineTo(zx + tam, zy);
-    x.lineTo(zx, zy + tam);
-    x.lineTo(zx + tam, zy + tam);
-    x.stroke();
-    x.globalAlpha = 1;
+}
+
+/**
+ * A slot machine seen from the front, so close it fills the screen, painted once: the red
+ * cabinet, the chrome around the reels, the marquee with its sign and its bulbs, the coin tray;
+ * the reels' strip (the six symbols, once more at the end so it wraps); the glass over the
+ * reels, darker at the top and bottom, with the pay line.
+ */
+function pintarTragaperras(W: number, H: number, dpr: number): Tragaperras {
+  const [maquina, x] = lienzo(W, H, dpr);
+  const fondo = x.createRadialGradient(W / 2, H * 0.5, H * 0.2, W / 2, H * 0.5, W * 0.7);
+  fondo.addColorStop(0, '#2a0e1e');
+  fondo.addColorStop(1, '#0c050c');
+  x.fillStyle = fondo;
+  x.fillRect(0, 0, W, H);
+  const mx = W * 0.12;
+  const mw = W * 0.76;
+  const cuerpo = x.createLinearGradient(mx, 0, mx + mw, 0);
+  cuerpo.addColorStop(0, '#7a1018');
+  cuerpo.addColorStop(0.5, '#c0222c');
+  cuerpo.addColorStop(1, '#7a1018');
+  x.fillStyle = cuerpo;
+  x.beginPath();
+  x.roundRect(mx, -H * 0.05, mw, H * 1.1, H * 0.06);
+  x.fill();
+  // The marquee: a dark panel with the sign; its bulbs are drawn every frame.
+  const cy0 = H * 0.04;
+  const ch = H * 0.2;
+  x.fillStyle = '#1a0a10';
+  x.beginPath();
+  x.roundRect(mx + mw * 0.06, cy0, mw * 0.88, ch, ch * 0.2);
+  x.fill();
+  const letrero = texto('trailer.tragaperras.premio');
+  const cartel = (c: CanvasRenderingContext2D, color: string) => {
+    c.fillStyle = color;
+    c.font = `400 ${Math.round(ch * 0.5)}px Graduate, Rockwell, Georgia, serif`;
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillText(letrero, W / 2, cy0 + ch * 0.54, mw * 0.7);
   };
-  for (const [ox, oy, f] of [
-    [0.33, 0.5, 0],
-    [0.71, 0.17, 0.5],
-  ]) {
-    for (let k = 0; k < 3; k++) {
-      const u = (s * 0.5 + f + k / 3) % 1;
-      zeta(W * ox - u * W * 0.02, H * oy - u * H * 0.12, H * (0.025 + u * 0.02), 0.7 * Math.sin(u * Math.PI));
+  cartel(x, '#7a5a2a');
+  const [cartelOn, co] = lienzo(W, H * 0.3, dpr);
+  co.shadowColor = 'rgba(255,200,90,0.9)';
+  co.shadowBlur = ch * 0.25;
+  cartel(co, '#ffe08a');
+  const bombillas: Array<[number, number]> = [];
+  const bx0 = mx + mw * 0.06;
+  const bw = mw * 0.88;
+  for (let k = 0; k <= 15; k++) {
+    bombillas.push([bx0 + (bw * k) / 15, cy0]);
+    bombillas.push([bx0 + bw - (bw * k) / 15, cy0 + ch]);
+  }
+  // The chrome frame around the reels.
+  const vx = W * 0.19;
+  const vy = H * 0.31;
+  const vw = W * 0.62;
+  const vh = H * 0.43;
+  const cromo = x.createLinearGradient(0, vy - H * 0.04, 0, vy + vh + H * 0.04);
+  cromo.addColorStop(0, '#f2f4f8');
+  cromo.addColorStop(0.5, '#8a8e98');
+  cromo.addColorStop(1, '#d8dce4');
+  x.fillStyle = cromo;
+  x.beginPath();
+  x.roundRect(vx - H * 0.035, vy - H * 0.035, vw + H * 0.07, vh + H * 0.07, H * 0.04);
+  x.fill();
+  x.fillStyle = '#121014';
+  x.fillRect(vx, vy, vw, vh);
+  // The coin tray at the bottom, and the dark mouth the coins come out of.
+  const bocaX = W / 2;
+  const bocaY = H * 0.86;
+  x.fillStyle = cromo;
+  x.beginPath();
+  x.roundRect(W * 0.3, H * 0.82, W * 0.4, H * 0.2, H * 0.03);
+  x.fill();
+  x.fillStyle = '#100608';
+  x.beginPath();
+  x.roundRect(W * 0.36, H * 0.84, W * 0.28, H * 0.06, H * 0.02);
+  x.fill();
+  // The lever's knob on the right edge.
+  elipse(x, mx + mw + W * 0.035, H * 0.36, H * 0.045, H * 0.045, '#d8282e');
+  x.fillStyle = '#9a9ea8';
+  x.fillRect(mx + mw, H * 0.4, W * 0.04, H * 0.03);
+
+  // The reels' strip: each symbol on an ivory cell; the first comes again at the end.
+  const rw = (vw - H * 0.04) / 3;
+  const celda = vh * 0.62;
+  const [tira, t] = lienzo(rw, celda * (SIMBOLOS.length + 1), dpr);
+  const marfil = t.createLinearGradient(0, 0, rw, 0);
+  marfil.addColorStop(0, '#cfc6b0');
+  marfil.addColorStop(0.5, '#fbf6ea');
+  marfil.addColorStop(1, '#cfc6b0');
+  t.fillStyle = marfil;
+  t.fillRect(0, 0, rw, celda * (SIMBOLOS.length + 1));
+  for (let k = 0; k <= SIMBOLOS.length; k++) simbolo(t, SIMBOLOS[k % SIMBOLOS.length], rw / 2, celda * (k + 0.5), celda * 0.9);
+
+  // The glass: shade at the top and bottom of the drum, the gaps between reels, the pay line.
+  const [cristal, g] = lienzo(vw, vh, dpr);
+  const sombra = g.createLinearGradient(0, 0, 0, vh);
+  sombra.addColorStop(0, 'rgba(0,0,0,0.75)');
+  sombra.addColorStop(0.25, 'rgba(0,0,0,0)');
+  sombra.addColorStop(0.75, 'rgba(0,0,0,0)');
+  sombra.addColorStop(1, 'rgba(0,0,0,0.75)');
+  g.fillStyle = sombra;
+  g.fillRect(0, 0, vw, vh);
+  g.fillStyle = '#2a0a10';
+  for (let k = 1; k < 3; k++) g.fillRect(k * (rw + H * 0.02) - H * 0.02, 0, H * 0.02, vh);
+  g.fillStyle = 'rgba(216,40,46,0.8)';
+  g.fillRect(0, vh / 2 - 1, vw, 2);
+  g.fillStyle = 'rgba(255,255,255,0.12)';
+  g.beginPath();
+  g.moveTo(vw * 0.05, 0);
+  g.lineTo(vw * 0.22, 0);
+  g.lineTo(vw * 0.1, vh);
+  g.lineTo(0, vh);
+  g.lineTo(0, vh * 0.3);
+  g.fill();
+  return { maquina, cartelOn, tira, cristal, vx, vy, vw, vh, celda, bombillas, bocaX, bocaY };
+}
+
+/** Where reel `i` stands at `s` (in symbols down the strip): spinning, then landing on a seven with a bounce. */
+function rodillo(i: number, s: number) {
+  const fin = PARADAS[i];
+  const destino = SIETE + SIMBOLOS.length * 40;
+  if (s < fin) return destino + GIRO * (fin - s);
+  const d = s - fin;
+  return destino + Math.sin(d * 30) * Math.exp(-d * 14) * 0.12;
+}
+
+/** The coins of the jackpot: when each jumps out of the tray, and how. */
+const MONEDAS = (() => {
+  const r = azar(77);
+  return Array.from({ length: 70 }, (_, k) => ({ t: PREMIO + k * 0.028, vx: (r() - 0.5) * 1.4, vy: -(0.7 + r() * 0.7), giro: r() * 6, vel: 8 + r() * 10 }));
+})();
+
+/**
+ * The slot machine paying out: the reels spinning in a blur and stopping one per beat; on the
+ * third seven the bulbs go wild, the sign lights up, the sevens flash and a fountain of coins
+ * pours out of the tray, the camera shaking.
+ */
+function dibujarTragaperras(x: CanvasRenderingContext2D, W: number, H: number, m: Tragaperras, s: number) {
+  const premio = s >= PREMIO;
+  const golpe = PARADAS.reduce((a, p) => (s >= p ? Math.max(0, 1 - (s - p) / 0.15) : a), 0);
+  const tiembla = premio ? Math.max(0.25, 1 - (s - PREMIO) / 0.6) : 0;
+  const z = 1 + 0.02 * golpe + 0.03 * suave(s / 3.5);
+  x.save();
+  x.translate(W / 2 + (tiembla ? Math.sin(s * 70) * H * 0.006 * tiembla : 0), H / 2 + (tiembla ? Math.cos(s * 83) * H * 0.006 * tiembla : 0));
+  x.scale(z, z);
+  x.translate(-W / 2, -H / 2);
+  x.drawImage(m.maquina, 0, 0, W, H);
+  // The reels.
+  const rw = (m.vw - H * 0.04) / 3;
+  const n = SIMBOLOS.length;
+  x.save();
+  x.beginPath();
+  x.rect(m.vx, m.vy, m.vw, m.vh);
+  x.clip();
+  for (let i = 0; i < 3; i++) {
+    const p = rodillo(i, s);
+    const gira = s < PARADAS[i];
+    const rx = m.vx + i * (rw + H * 0.02);
+    // The symbol at the pay line is p; the strip is drawn so it sits at the window's middle.
+    const pinta = (desfase: number, alfa: number) => {
+      const q = (((p + desfase) % n) + n) % n;
+      const y0 = m.vy + m.vh / 2 - (q + 0.5) * m.celda;
+      x.globalAlpha = alfa;
+      for (const k of [-1, 0, 1]) x.drawImage(m.tira, rx, y0 + k * n * m.celda, rw, m.celda * (n + 1));
+      x.globalAlpha = 1;
+    };
+    if (gira) {
+      pinta(0, 1);
+      pinta(0.3, 0.45);
+      pinta(0.6, 0.25);
+    } else pinta(0, 1);
+  }
+  x.restore();
+  x.drawImage(m.cristal, m.vx, m.vy, m.vw, m.vh);
+  // The jackpot: a gold frame pulsing round the three sevens.
+  if (premio) {
+    const pulso = 0.5 + 0.5 * Math.sin((s - PREMIO) * 24);
+    x.strokeStyle = `rgba(255,214,110,${0.5 + 0.5 * pulso})`;
+    x.lineWidth = H * 0.012;
+    x.strokeRect(m.vx + H * 0.01, m.vy + m.vh / 2 - m.celda / 2, m.vw - H * 0.02, m.celda);
+    x.globalAlpha = 0.55 + 0.45 * pulso;
+    x.drawImage(m.cartelOn, 0, 0, W, H * 0.3);
+    x.globalAlpha = 1;
+  }
+  // The marquee's bulbs: chasing round while it spins, all flashing on the jackpot.
+  m.bombillas.forEach(([bx, by], k) => {
+    const on = premio ? (Math.floor((s - PREMIO) * 12) + k) % 2 === 0 : (k + Math.floor(s * 14)) % 4 === 0;
+    elipse(x, bx, by, H * 0.012, H * 0.012, on ? '#fff0b0' : '#6a4a2a');
+    if (on && premio && k % 3 === 0) elipse(x, bx, by, H * 0.024, H * 0.024, 'rgba(255,220,120,0.25)');
+  });
+  // The coins: jumping out of the tray, spinning, falling back.
+  if (premio) {
+    for (const c of MONEDAS) {
+      const d = s - c.t;
+      if (d < 0 || d > 1.2) continue;
+      const cx = m.bocaX + c.vx * H * d;
+      const cy = m.bocaY + c.vy * H * d + 1.6 * H * d * d;
+      if (cy > H * 1.05) continue;
+      const ancho = Math.abs(Math.cos(c.giro + d * c.vel));
+      elipse(x, cx, cy, H * 0.036 * Math.max(0.15, ancho), H * 0.036, '#b07a1a');
+      elipse(x, cx, cy, H * 0.028 * Math.max(0.1, ancho), H * 0.028, '#f2c84a');
     }
   }
+  x.restore();
 }
 
 // ---------------------------------------------------------------- the arcade games (256×144)
@@ -609,69 +1097,6 @@ function burbuja(x: CanvasRenderingContext2D, bx: number, by: number, r: number)
   x.fillRect(Math.round(bx - r * 0.45), Math.round(by - r * 0.15), Math.max(1, Math.round(r * 0.18)), Math.max(1, Math.round(r * 0.18)));
 }
 
-/** Where the big bubble is at `s` seconds into the shot. */
-const grande = (s: number) => ({ x: 170 - s * 70, y: 92 - 64 * Math.abs(Math.sin(((s + 0.15) * Math.PI) / 1.25)), r: 17 });
-const DISPARO = 0.4;
-const VEL_ARPON = 200;
-const arponX = (s: number) => 106 + Math.min(s, DISPARO) * 12 + 7;
-/** When the harpoon first touches the big bubble (found once by stepping through the shot). */
-const POP = (() => {
-  for (let s = DISPARO; s < 2; s += 0.005) {
-    const b = grande(s);
-    const tope = 90 - (s - DISPARO) * VEL_ARPON;
-    if (tope <= b.y + b.r && Math.abs(arponX(s) - b.x) < b.r) return s;
-  }
-  return 1;
-})();
-
-function dibujarPang(x: CanvasRenderingContext2D, fondo: HTMLCanvasElement, s: number) {
-  x.drawImage(fondo, 0, 0);
-  const fx = 106 + Math.min(s, DISPARO) * 12;
-  x.drawImage(FRAN, Math.round(fx), 90);
-  // The harpoon: a zigzag rope from Fran up to its arrow, until it pops the bubble.
-  if (s >= DISPARO && s < POP) {
-    const ax = arponX(s);
-    const tope = Math.max(8, 90 - (s - DISPARO) * VEL_ARPON);
-    x.fillStyle = '#c9c2b4';
-    for (let y = 90; y > tope; y -= 2) x.fillRect(ax + ((y >> 1) % 2 ? -1 : 0), y, 1, 2);
-    x.fillStyle = '#e8e4d8';
-    x.fillRect(ax - 2, tope, 5, 2);
-    x.fillRect(ax - 1, tope - 2, 3, 2);
-    x.fillRect(ax, tope - 3, 1, 1);
-  }
-  if (s < POP) {
-    const b = grande(s);
-    burbuja(x, b.x, b.y, b.r);
-  } else {
-    const p = grande(POP);
-    const d = s - POP;
-    // The pop: a spray of foam, and two smaller bubbles going their ways.
-    if (d < 0.25) {
-      x.fillStyle = '#fbf3dc';
-      for (let k = 0; k < 10; k++) {
-        const a = (k / 10) * Math.PI * 2;
-        x.fillRect(Math.round(p.x + Math.cos(a) * (6 + d * 90)), Math.round(p.y + Math.sin(a) * (6 + d * 90)), 2, 2);
-      }
-    }
-    for (const lado of [-1, 1]) {
-      let y = p.y - 60 * d + 110 * d * d;
-      if (y > 100) y = 200 - y;
-      burbuja(x, p.x + lado * 46 * d, y, 9);
-    }
-  }
-  // The score strip.
-  x.fillStyle = '#f3ead6';
-  x.font = 'bold 9px monospace';
-  x.textBaseline = 'top';
-  x.fillText(texto('trailer.pang.jugador'), 12, 125);
-  x.fillStyle = '#ffd36a';
-  x.fillText(String(s < POP ? 4200 : 4700).padStart(6, '0'), 12, 134);
-  x.fillStyle = '#f3ead6';
-  const fase = texto('trailer.pang.fase');
-  x.fillText(fase, (AW - x.measureText(fase).width) / 2, 129);
-  for (let k = 0; k < 3; k++) x.drawImage(FRAN, 0, 0, 14, 8, AW - 22 - k * 16, 128, 14, 8);
-}
-
 /** An invader of the inbox: an envelope, a chat bubble or a calendar, in two frames. */
 function invasor(x: CanvasRenderingContext2D, fila: number, ix: number, iy: number, paso: number) {
   const f = paso % 2;
@@ -702,6 +1127,132 @@ function invasor(x: CanvasRenderingContext2D, fila: number, ix: number, iy: numb
   }
 }
 
+
+/**
+ * Pang, simulated once: Fran walks under the biggest bubble and fires; a bubble hit splits
+ * in two smaller ones (17 → 9 → 5 px) and the smallest burst. A frame looks up the step.
+ */
+interface PasoPang {
+  fx: number;
+  anda: boolean;
+  bolas: Array<[number, number, number]>;
+  arpon: [number, number] | null;
+  puntos: number;
+}
+const PASO = 1 / 120;
+const DURA_JUEGO = 3.6;
+const PANG = (() => {
+  const SUELO = 112;
+  const G = 230;
+  const BOTE: Record<number, number> = { 17: 215, 9: 180, 5: 150 };
+  let bolas = [{ x: 172, y: 40, vx: -62, vy: 0, r: 17 }];
+  let fx = 106;
+  let arpon: { x: number; top: number } | null = null;
+  let espera = 0.6;
+  let puntos = 4200;
+  const pasos: PasoPang[] = [];
+  const estallidos: Array<{ x: number; y: number; t: number }> = [];
+  for (let k = 0; k * PASO < DURA_JUEGO; k++) {
+    const s = k * PASO;
+    // Fran: under the biggest, lowest bubble, then fire.
+    let anda = false;
+    const blanco = [...bolas].sort((a, b) => b.r - a.r || b.y - a.y)[0];
+    if (blanco) {
+      const dx = blanco.x - (fx + 7);
+      if (Math.abs(dx) > 3) {
+        fx += Math.sign(dx) * Math.min(Math.abs(dx), 75 * PASO);
+        anda = true;
+      }
+      fx = Math.max(10, Math.min(232, fx));
+      if (!arpon && s >= espera && Math.abs(dx) < blanco.r * 0.7) arpon = { x: Math.round(fx + 7), top: 90 };
+    }
+    if (arpon) {
+      arpon.top -= 240 * PASO;
+      const a = arpon;
+      const golpe = bolas.find((b) => Math.abs(b.x - a.x) < b.r && b.y + b.r > a.top);
+      if (golpe) {
+        bolas = bolas.filter((b) => b !== golpe);
+        estallidos.push({ x: golpe.x, y: golpe.y, t: s });
+        puntos += golpe.r === 17 ? 100 : golpe.r === 9 ? 200 : 300;
+        const nueva = golpe.r === 17 ? 9 : golpe.r === 9 ? 5 : 0;
+        if (nueva) for (const lado of [-1, 1]) bolas.push({ x: golpe.x + lado * 4, y: golpe.y, vx: lado * (golpe.r === 17 ? 58 : 70), vy: -120, r: nueva });
+        arpon = null;
+        espera = s + 0.3;
+      } else if (a.top <= 8) {
+        arpon = null;
+        espera = s + 0.2;
+      }
+    }
+    for (const b of bolas) {
+      b.vy += G * PASO;
+      b.x += b.vx * PASO;
+      b.y += b.vy * PASO;
+      if (b.y + b.r > SUELO) {
+        b.y = SUELO - b.r;
+        b.vy = -BOTE[b.r];
+      }
+      if (b.x - b.r < 8 || b.x + b.r > 248) {
+        b.vx = -b.vx;
+        b.x = Math.max(8 + b.r, Math.min(248 - b.r, b.x));
+      }
+    }
+    pasos.push({ fx, anda, bolas: bolas.map((b) => [b.x, b.y, b.r]), arpon: arpon ? [arpon.x, arpon.top] : null, puntos });
+  }
+  return { pasos, estallidos };
+})();
+
+const paso = <T,>(lista: T[], s: number) => lista[Math.max(0, Math.min(lista.length - 1, Math.floor(s / PASO)))];
+
+function dibujarPang(x: CanvasRenderingContext2D, fondo: HTMLCanvasElement, s: number) {
+  const p = paso(PANG.pasos, s);
+  x.drawImage(fondo, 0, 0);
+  x.drawImage(FRAN, Math.round(p.fx), 90 - (p.anda && Math.floor(s * 10) % 2 ? 1 : 0));
+  // The harpoon: a zigzag rope from the floor up to its arrow.
+  if (p.arpon) {
+    const [ax, tope] = p.arpon;
+    x.fillStyle = '#c9c2b4';
+    for (let y = 110; y > tope; y -= 2) x.fillRect(ax + ((y >> 1) % 2 ? -1 : 0), y, 1, 2);
+    x.fillStyle = '#e8e4d8';
+    x.fillRect(ax - 2, tope, 5, 2);
+    x.fillRect(ax - 1, tope - 2, 3, 2);
+    x.fillRect(ax, tope - 3, 1, 1);
+  }
+  for (const [bx, by, r] of p.bolas) burbuja(x, bx, by, r);
+  // Each pop: a ring of foam spraying out.
+  x.fillStyle = '#fbf3dc';
+  for (const e of PANG.estallidos) {
+    const d = s - e.t;
+    if (d < 0 || d > 0.25) continue;
+    for (let k = 0; k < 10; k++) {
+      const a = (k / 10) * Math.PI * 2;
+      x.fillRect(Math.round(e.x + Math.cos(a) * (5 + d * 90)), Math.round(e.y + Math.sin(a) * (5 + d * 90)), 2, 2);
+    }
+  }
+  // The score strip.
+  x.fillStyle = '#f3ead6';
+  x.font = 'bold 9px monospace';
+  x.textBaseline = 'top';
+  x.fillText(texto('trailer.pang.jugador'), 12, 125);
+  x.fillStyle = '#ffd36a';
+  x.fillText(String(p.puntos).padStart(6, '0'), 12, 134);
+  x.fillStyle = '#f3ead6';
+  const fase = texto('trailer.pang.fase');
+  x.fillText(fase, (AW - x.measureText(fase).width) / 2, 129);
+  for (let k = 0; k < 3; k++) x.drawImage(FRAN, 0, 0, 14, 8, AW - 22 - k * 16, 128, 14, 8);
+}
+
+/**
+ * Space Invaders, simulated once: the inbox marches sideways and down; Chuchi picks off the
+ * lowest invader nearest to him, one shot at a time; the boss's saucer (a tie swinging under
+ * it) crosses once, comes back the other way, and he brings it down. A frame looks up the step.
+ */
+interface PasoInvaders {
+  cx: number;
+  disparo: [number, number] | null;
+  vivos: boolean[];
+  platillo: number | null;
+  puntos: number;
+}
 const COLS = 7;
 /** Where the inbox's grid is at `s`: marching sideways in steps, a row down at each turn. */
 const rejilla = (s: number) => {
@@ -710,56 +1261,131 @@ const rejilla = (s: number) => {
   const k = paso % 8;
   return { x: 54 + (vuelta % 2 ? 8 - k : k) * 4, y: 22 + vuelta * 5, paso };
 };
-/** Chuchi's three shots: when each fires, and which invader it gets (found once). */
-const TIROS = [0.25, 0.85, 1.45].map((t0) => {
-  const cx = 70 + 40 * Math.sin(t0 * 2) + 7;
-  for (let s = t0; s < 2; s += 0.005) {
-    const y = 100 - (s - t0) * 230;
+/** The saucer's x at `s`: left to right, off screen, then back right to left. */
+const platilloX = (s: number) => (s < 2 ? -24 + s * 150 : s < 2.15 ? 999 : 256 - (s - 2.15) * 130);
+/** Where Chuchi waits for the saucer (its centre passes there about 2.65 s in, during the second visit). */
+const EMBOSCADA = 200;
+const INVADERS = (() => {
+  const vivos = Array<boolean>(COLS * 3).fill(true);
+  let cx = 70;
+  let disparo: { x: number; y: number } | null = null;
+  let espera = 0.25;
+  let puntos = 1280;
+  let platillo = true;
+  const pasos: PasoInvaders[] = [];
+  const golpes: Array<{ x: number; y: number; t: number; jefe: boolean }> = [];
+  for (let k = 0; k * PASO < DURA_JUEGO; k++) {
+    const s = k * PASO;
     const g = rejilla(s);
-    for (let fila = 2; fila >= 0; fila--) {
-      const iy = g.y + fila * 14;
-      if (y > iy + 10 || y < iy) continue;
-      const col = Math.round((cx - 6 - g.x) / 18);
-      if (col >= 0 && col < COLS && Math.abs(g.x + col * 18 + 6 - cx) <= 7) return { t0, cx, s, fila, col };
+    // The saucer on its way back: he waits for it where it will pass and fires so the shot
+    // meets it; otherwise he goes for the lowest invader nearest to him.
+    const ux = platilloX(s);
+    let blanco: number | null = null;
+    let listo = false;
+    if (platillo && s > 1.6) {
+      blanco = EMBOSCADA;
+      listo = s > 2.15 && Math.abs(platilloX(s + 87 / 230) + 10 - (cx + 7)) < 3;
+    } else {
+      let mejor = Infinity;
+      for (let i = 0; i < vivos.length; i++) {
+        if (!vivos[i]) continue;
+        const fila = Math.floor(i / COLS);
+        const ix = g.x + (i % COLS) * 18 + 6;
+        const coste = Math.abs(ix - (cx + 7)) - fila * 40;
+        if (coste < mejor) {
+          mejor = coste;
+          blanco = ix;
+        }
+      }
     }
+    if (blanco !== null) {
+      const dx = blanco - (cx + 7);
+      cx += Math.sign(dx) * Math.min(Math.abs(dx), 95 * PASO);
+      cx = Math.max(4, Math.min(238, cx));
+      if (!(platillo && s > 1.6)) listo = Math.abs(dx) < 3;
+      if (!disparo && s >= espera && listo) disparo = { x: Math.round(cx + 7), y: 100 };
+    }
+    if (disparo) {
+      disparo.y -= 230 * PASO;
+      const d = disparo;
+      let hit = false;
+      if (platillo && d.x >= ux && d.x <= ux + 20 && d.y <= 17 && d.y >= 9) {
+        platillo = false;
+        puntos += 500;
+        golpes.push({ x: ux + 10, y: 13, t: s, jefe: true });
+        hit = true;
+      }
+      for (let i = 0; i < vivos.length && !hit; i++) {
+        if (!vivos[i]) continue;
+        const ix = g.x + (i % COLS) * 18;
+        const iy = g.y + Math.floor(i / COLS) * 14;
+        if (d.x >= ix && d.x <= ix + 12 && d.y >= iy && d.y <= iy + 10) {
+          vivos[i] = false;
+          puntos += 30;
+          golpes.push({ x: ix + 6, y: iy + 5, t: s, jefe: false });
+          hit = true;
+        }
+      }
+      if (hit || d.y < 0) {
+        disparo = null;
+        espera = s + 0.18;
+      }
+    }
+    pasos.push({ cx, disparo: disparo ? [disparo.x, disparo.y] : null, vivos: [...vivos], platillo: platillo && ux < 300 ? ux : null, puntos });
   }
-  return { t0, cx, s: 9, fila: -1, col: -1 };
-});
+  return { pasos, golpes };
+})();
+/** The bombs the inbox drops on him (they never land: he dodges). */
+const BOMBAS = [0.5, 1.2, 1.9, 2.5, 3.1].map((t0, k) => ({ t0, col: (k * 3 + 1) % COLS }));
 
 function dibujarInvaders(x: CanvasRenderingContext2D, s: number) {
+  const p = paso(INVADERS.pasos, s);
   x.fillStyle = '#05060c';
   x.fillRect(0, 0, AW, AH);
   const r = azar(9);
   x.fillStyle = '#3a3e5a';
   for (let k = 0; k < 30; k++) x.fillRect(Math.floor(r() * AW), Math.floor(12 + r() * 100), 1, 1);
   const g = rejilla(s);
-  for (let fila = 0; fila < 3; fila++)
-    for (let col = 0; col < COLS; col++) {
-      const tiro = TIROS.find((t) => t.fila === fila && t.col === col);
-      const ix = g.x + col * 18;
-      const iy = g.y + fila * 14;
-      if (tiro && s >= tiro.s) {
-        // Hit: a burst for a moment, then gone.
-        if (s - tiro.s < 0.2) {
-          x.fillStyle = '#ffd36a';
-          for (const [dx, dy] of [[0, 0], [-4, -3], [4, -3], [-4, 3], [4, 3], [0, -5], [0, 5], [-6, 0], [6, 0]]) x.fillRect(ix + 5 + dx, iy + 4 + dy, 2, 2);
-        }
-        continue;
-      }
-      invasor(x, fila, ix, iy, g.paso);
+  for (let i = 0; i < p.vivos.length; i++) if (p.vivos[i]) invasor(x, Math.floor(i / COLS), g.x + (i % COLS) * 18, g.y + Math.floor(i / COLS) * 14, g.paso);
+  // The bombs: little zigzags falling.
+  x.fillStyle = '#e86a6a';
+  for (const b of BOMBAS) {
+    const d = s - b.t0;
+    if (d < 0) continue;
+    const by = g.y + 40 + d * 70;
+    if (by > 122) continue;
+    const bx = g.x + b.col * 18 + 6;
+    x.fillRect(bx + (Math.floor(by / 3) % 2), by, 1, 2);
+    x.fillRect(bx + 1 - (Math.floor(by / 3) % 2), by + 2, 1, 2);
+  }
+  // Hits: a burst for a moment (the saucer's bigger, with its points).
+  for (const e of INVADERS.golpes) {
+    const d = s - e.t;
+    if (d < 0 || d > (e.jefe ? 0.6 : 0.2)) continue;
+    x.fillStyle = e.jefe ? '#ff8a4a' : '#ffd36a';
+    const k = e.jefe ? 2 : 1;
+    for (const [dx, dy] of [[0, 0], [-4, -3], [4, -3], [-4, 3], [4, 3], [0, -5], [0, 5], [-6, 0], [6, 0]]) x.fillRect(e.x - 1 + dx * k * (1 + d * 3), e.y - 1 + dy * k * (1 + d * 3), 2, 2);
+    if (e.jefe) {
+      x.fillStyle = '#ffd36a';
+      x.font = 'bold 9px monospace';
+      x.textBaseline = 'top';
+      x.fillText('500', e.x - 8, e.y + 6 - d * 10);
     }
-  // The boss crossing the top: a grey saucer with a red tie swinging under it.
-  const ux = -24 + s * 150;
-  x.fillStyle = '#9aa0ae';
-  x.fillRect(ux, 13, 20, 4);
-  x.fillRect(ux + 5, 10, 10, 3);
-  x.fillStyle = '#d8dde6';
-  x.fillRect(ux + 7, 9, 6, 2);
-  const balanceo = Math.round(Math.sin(s * 9) * 2);
-  x.fillStyle = '#c8323a';
-  x.fillRect(ux + 9, 17, 3, 2);
-  x.fillRect(ux + 9 + (balanceo >> 1), 19, 3, 4);
-  x.fillRect(ux + 8 + balanceo, 23, 5, 3);
+  }
+  // The boss: a grey saucer with a red tie swinging under it.
+  if (p.platillo !== null) {
+    const ux = p.platillo;
+    x.fillStyle = '#9aa0ae';
+    x.fillRect(ux, 13, 20, 4);
+    x.fillRect(ux + 5, 10, 10, 3);
+    x.fillStyle = '#d8dde6';
+    x.fillRect(ux + 7, 9, 6, 2);
+    const balanceo = Math.round(Math.sin(s * 9) * 2);
+    x.fillStyle = '#c8323a';
+    x.fillRect(ux + 9, 17, 3, 2);
+    x.fillRect(ux + 9 + (balanceo >> 1), 19, 3, 4);
+    x.fillRect(ux + 8 + balanceo, 23, 5, 3);
+  }
   // The shields.
   x.fillStyle = '#3ad06a';
   for (const bx of [40, 112, 184]) {
@@ -769,13 +1395,11 @@ function dibujarInvaders(x: CanvasRenderingContext2D, s: number) {
     x.fillRect(bx + 8, 90, 8, 4);
     x.fillStyle = '#3ad06a';
   }
-  // Chuchi and his shots.
-  const cx = 70 + 40 * Math.sin(s * 2);
-  x.drawImage(CHUCHI, Math.round(cx), 102);
-  x.fillStyle = '#ffd36a';
-  for (const t of TIROS) {
-    if (s < t.t0 || s >= t.s) continue;
-    x.fillRect(Math.round(t.cx), Math.round(100 - (s - t.t0) * 230), 1, 4);
+  // Chuchi and his shot.
+  x.drawImage(CHUCHI, Math.round(p.cx), 102);
+  if (p.disparo) {
+    x.fillStyle = '#ffd36a';
+    x.fillRect(p.disparo[0], Math.round(p.disparo[1]), 1, 4);
   }
   x.fillStyle = '#3ad06a';
   x.fillRect(0, 124, AW, 1);
@@ -786,7 +1410,7 @@ function dibujarInvaders(x: CanvasRenderingContext2D, s: number) {
   const puntos = texto('trailer.invaders.puntos');
   x.fillText(puntos, 8, 1);
   x.fillStyle = '#3ad06a';
-  x.fillText(String(1280 + TIROS.filter((t) => s >= t.s).length * 30).padStart(5, '0'), 12 + x.measureText(puntos).width, 1);
+  x.fillText(String(p.puntos).padStart(5, '0'), 12 + x.measureText(puntos).width, 1);
   x.fillStyle = '#f3ead6';
   x.fillText(texto('trailer.invaders.jugador'), 8, 130);
   for (let k = 0; k < 2; k++) x.drawImage(CHUCHI, 0, 0, 14, 9, AW - 22 - k * 16, 130, 14, 9);
@@ -794,54 +1418,53 @@ function dibujarInvaders(x: CanvasRenderingContext2D, s: number) {
 
 // ---------------------------------------------------------------- Vero
 
+/** The bar's lights inside her mouth: where (in fiftieths of the screen's height), how big, and whether red. */
+const BOKEH: Array<[number, number, number, boolean]> = [
+  [-3.4, -1.3, 0.7, false],
+  [-1.2, -2.1, 0.5, false],
+  [0.7, -1.0, 0.85, false],
+  [2.5, -2.0, 0.5, true],
+  [3.7, -0.5, 0.6, false],
+  [-2.3, 0.4, 0.45, true],
+  [1.8, 0.7, 0.5, false],
+];
+
 /**
- * Vero, from the nose down, so close that her face fills the screen: perfect skin, a
- * smile, and her mouth opening wider and wider; deep inside, the warm little lights of
- * a bar. Drawn every frame (a handful of paths).
+ * Vero, so close that her mouth fills the screen: warm brown skin, full lips, a smile; her
+ * mouth opens wider and wider, there are the little lights of a bar deep inside, and the
+ * camera dives in until everything is black. Drawn every frame (a handful of paths).
  */
 function dibujarVero(x: CanvasRenderingContext2D, W: number, H: number, s: number) {
   const cx = W / 2;
-  const cy = H * 0.58;
-  const piel = x.createRadialGradient(cx, H * 0.45, H * 0.1, cx, H * 0.5, Math.max(W, H) * 0.7);
-  piel.addColorStop(0, '#f8dccb');
-  piel.addColorStop(0.55, '#efc5ad');
-  piel.addColorStop(1, '#d9a087');
+  const cy = H * 0.55;
+  const piel = x.createRadialGradient(cx, H * 0.42, H * 0.1, cx, H * 0.5, Math.max(W, H) * 0.75);
+  piel.addColorStop(0, '#b67a52');
+  piel.addColorStop(0.55, '#9c623e');
+  piel.addColorStop(1, '#6e4028');
   x.fillStyle = piel;
   x.fillRect(0, 0, W, H);
-  const zoom = 1 + 0.06 * suave(s / 2.5);
-  x.save();
-  x.translate(cx, cy);
-  x.scale(zoom, zoom);
-  x.translate(-cx, -cy);
-  // The underside of the nose, and the soft groove down to the lip.
-  x.fillStyle = 'rgba(176,110,90,0.22)';
-  x.beginPath();
-  x.ellipse(cx, H * 0.05, H * 0.2, H * 0.06, 0, 0, Math.PI * 2);
-  x.fill();
-  x.fillStyle = 'rgba(150,90,72,0.5)';
-  for (const lado of [-1, 1]) {
-    x.beginPath();
-    x.ellipse(cx + lado * H * 0.065, H * 0.07, H * 0.032, H * 0.016, lado * 0.25, 0, Math.PI * 2);
-    x.fill();
-  }
-  x.fillStyle = 'rgba(200,140,118,0.08)';
-  x.beginPath();
-  x.ellipse(cx, H * 0.27, H * 0.04, H * 0.1, 0, 0, Math.PI * 2);
-  x.fill();
-  // The mouth: a closed smile, then opening.
-  const o = suave((s - 0.5) / 1.7);
-  const mw = H * 0.62 * (1 + 0.12 * o);
+  const o = suave((s - 0.35) / 1.15);
+  const mw = H * 1.45 * (1 + 0.08 * o);
   const iz = cx - mw / 2;
   const de = cx + mw / 2;
-  const esquina = cy - H * 0.03 - o * H * 0.01;
-  const arriba = cy + H * 0.03 - o * H * 0.05;
-  const abajo = arriba + o * H * 0.65;
-  const grosor = H * 0.1;
+  const esquina = cy - H * 0.02 - o * H * 0.02;
+  const arriba = cy + H * 0.035 - o * H * 0.08;
+  const abajo = arriba + o * H * 0.5;
+  const grosor = H * 0.17;
+  const my = (esquina + (arriba + abajo) / 2) / 2;
+  // The dive: from 1.6 s the camera rushes into the mouth.
+  const buceo = suave((s - 1.6) / 1.2);
+  const zoom = (1 + 0.05 * suave(s / 1.6)) * (1 + 14 * buceo * buceo);
+  x.save();
+  x.translate(cx, my);
+  x.scale(zoom, zoom);
+  x.translate(-cx, -my);
+  // The underside of the nose, cut by the top of the screen.
+  elipse(x, cx, -H * 0.04, H * 0.3, H * 0.07, 'rgba(70,36,20,0.25)');
+  for (const lado of [-1, 1]) elipse(x, cx + lado * H * 0.1, -H * 0.012, H * 0.05, H * 0.022, 'rgba(48,22,12,0.55)', lado * 0.25);
+  elipse(x, cx, H * 0.15, H * 0.06, H * 0.11, 'rgba(255,220,190,0.06)');
   // The lower lip's shadow on the chin.
-  x.fillStyle = 'rgba(176,110,90,0.22)';
-  x.beginPath();
-  x.ellipse(cx, (esquina + abajo) / 2 + grosor * 1.2, mw * 0.32, grosor * 0.5, 0, 0, Math.PI * 2);
-  x.fill();
+  elipse(x, cx, (esquina + abajo) / 2 + grosor * 1.25, mw * 0.3, grosor * 0.4, 'rgba(60,30,16,0.08)');
   if (o > 0.01) {
     x.save();
     x.beginPath();
@@ -849,73 +1472,95 @@ function dibujarVero(x: CanvasRenderingContext2D, W: number, H: number, s: numbe
     x.quadraticCurveTo(cx, arriba, de, esquina);
     x.quadraticCurveTo(cx, abajo, iz, esquina);
     x.clip();
-    x.fillStyle = '#2a0c14';
-    x.fillRect(iz, esquina - H * 0.1, mw, H);
-    const my = (esquina + (arriba + abajo) / 2) / 2;
-    const hondo = x.createRadialGradient(cx, my, 0, cx, my, mw * 0.4);
-    hondo.addColorStop(0, '#0c0306');
-    hondo.addColorStop(1, 'rgba(12,3,6,0)');
+    x.fillStyle = '#240810';
+    x.fillRect(iz, esquina - H * 0.2, mw, H * 1.2);
+    const hondo = x.createRadialGradient(cx, my, 0, cx, my, mw * 0.42);
+    hondo.addColorStop(0, '#080204');
+    hondo.addColorStop(1, 'rgba(8,2,4,0)');
     x.fillStyle = hondo;
-    x.fillRect(iz, esquina - H * 0.1, mw, H);
-    // Deep inside: the little lights of a bar, and a red neon.
-    if (o > 0.45) {
-      const a = Math.min(1, (o - 0.45) * 2.5);
-      x.fillStyle = `rgba(255,207,122,${0.85 * a})`;
-      for (let k = 0; k < 5; k++) x.fillRect(cx - H * 0.06 + k * H * 0.03, my - H * 0.02, H * 0.008, H * 0.008);
-      x.fillStyle = `rgba(255,90,90,${0.8 * a})`;
-      x.fillRect(cx - H * 0.025, my + H * 0.01, H * 0.05, H * 0.012);
+    x.fillRect(iz, esquina - H * 0.2, mw, H * 1.2);
+    // Deep inside: the lights of a bar, out of focus, warm and a little red.
+    if (o > 0.35) {
+      const a = Math.min(1, (o - 0.35) * 2.5);
+      const k = H * 0.02;
+      for (const [dx, dy, r, rojo] of BOKEH) {
+        const lx = cx + dx * k;
+        const ly = my + dy * k;
+        const luz = x.createRadialGradient(lx, ly, 0, lx, ly, r * k);
+        luz.addColorStop(0, rojo ? `rgba(255,110,110,${0.8 * a})` : `rgba(255,214,140,${0.9 * a})`);
+        luz.addColorStop(1, rojo ? 'rgba(255,110,110,0)' : 'rgba(255,214,140,0)');
+        x.fillStyle = luz;
+        x.fillRect(lx - r * k, ly - r * k, 2 * r * k, 2 * r * k);
+      }
     }
     // The upper teeth.
-    x.fillStyle = '#f4efe6';
+    x.fillStyle = '#f6f1e8';
     x.beginPath();
     x.moveTo(iz, esquina);
     x.quadraticCurveTo(cx, arriba, de, esquina);
-    x.quadraticCurveTo(cx, arriba + H * 0.1, iz, esquina);
+    x.quadraticCurveTo(cx, arriba + H * 0.14, iz, esquina);
     x.fill();
     x.restore();
   }
-  // Upper lip: the cupid's bow down to the mouth's line.
-  x.fillStyle = '#b8323f';
+  // Upper lip: a full cupid's bow down to the mouth's line.
+  x.fillStyle = '#6e1e2c';
   x.beginPath();
   x.moveTo(iz, esquina);
-  x.bezierCurveTo(cx - mw * 0.3, esquina - H * 0.05, cx - mw * 0.14, cy - H * 0.1, cx - mw * 0.06, cy - H * 0.09);
-  x.quadraticCurveTo(cx, cy - H * 0.07, cx + mw * 0.06, cy - H * 0.09);
-  x.bezierCurveTo(cx + mw * 0.14, cy - H * 0.1, cx + mw * 0.3, esquina - H * 0.05, de, esquina);
+  x.bezierCurveTo(cx - mw * 0.3, esquina - H * 0.1, cx - mw * 0.15, cy - H * 0.2, cx - mw * 0.06, cy - H * 0.18);
+  x.quadraticCurveTo(cx, cy - H * 0.13, cx + mw * 0.06, cy - H * 0.18);
+  x.bezierCurveTo(cx + mw * 0.15, cy - H * 0.2, cx + mw * 0.3, esquina - H * 0.1, de, esquina);
   x.quadraticCurveTo(cx, arriba, iz, esquina);
   x.fill();
-  // Lower lip: the same thickness all along, whatever the mouth does.
-  x.fillStyle = '#c63e4e';
+  // Lower lip: the same thickness all along, whatever the mouth does, with a soft sheen.
+  x.fillStyle = '#86283a';
   x.beginPath();
   x.moveTo(iz, esquina);
   x.quadraticCurveTo(cx, abajo, de, esquina);
   x.quadraticCurveTo(cx, abajo + grosor * 2, iz, esquina);
   x.fill();
+  elipse(x, cx - mw * 0.06, (esquina + abajo) / 2 + grosor * 0.55, mw * 0.14, grosor * 0.16, 'rgba(255,200,205,0.16)');
+  elipse(x, cx - mw * 0.1, cy - H * 0.13, mw * 0.06, H * 0.014, 'rgba(255,200,205,0.12)');
   if (o <= 0.01) {
-    x.strokeStyle = '#7a1e2a';
-    x.lineWidth = Math.max(1.5, H * 0.006);
+    x.strokeStyle = '#3e0c16';
+    x.lineWidth = Math.max(1.5, H * 0.007);
     x.beginPath();
     x.moveTo(iz, esquina);
     x.quadraticCurveTo(cx, arriba, de, esquina);
     x.stroke();
   }
   // The smile's dimples.
-  x.strokeStyle = 'rgba(176,110,90,0.4)';
-  x.lineWidth = Math.max(2, H * 0.008);
+  x.strokeStyle = 'rgba(60,30,16,0.4)';
+  x.lineWidth = Math.max(2, H * 0.009);
   x.lineCap = 'round';
   for (const lado of [-1, 1]) {
     x.beginPath();
-    x.arc(cx + lado * (mw / 2 - H * 0.01), esquina, H * 0.05, lado > 0 ? -0.5 : Math.PI - 0.5, lado > 0 ? 0.5 : Math.PI + 0.5);
+    x.arc(cx + lado * (mw / 2 - H * 0.01), esquina, H * 0.06, lado > 0 ? -0.5 : Math.PI - 0.5, lado > 0 ? 0.5 : Math.PI + 0.5);
     x.stroke();
   }
   x.restore();
+  // The last instant of the dive: all black.
+  const negro = suave((s - 2.55) / 0.35);
+  if (negro > 0) {
+    x.fillStyle = `rgba(0,0,0,${negro})`;
+    x.fillRect(0, 0, W, H);
+  }
 }
 
 // ---------------------------------------------------------------- the trailer
 
 export interface OpcionesTrailer {
-  /** For the tests: play from here (seconds) and loop back at `hasta`. */
+  /** For the tests: play from here (seconds) and loop back at `hasta`, on the frames' clock. */
   desde?: number;
   hasta?: number;
+}
+
+/** The painted shots (the painted layers are held at 1.5× at most: soft shapes, scaled up). */
+interface Pintados {
+  bar: Bar;
+  cana: Cana;
+  canaGrande: Cana;
+  carretera: Carretera;
+  tragaperras: Tragaperras;
 }
 
 export function mostrarTrailer(parent: HTMLElement, sonido: SonidoTrailer | null, rapido = false, op: OpcionesTrailer = {}): Promise<void> {
@@ -930,7 +1575,6 @@ export function mostrarTrailer(parent: HTMLElement, sonido: SonidoTrailer | null
 
   // The words, each shown between two times.
   const tx = (clase: string, ...kids: Array<Node | string>) => h('div', { class: `texto ${clase}`, hidden: true }, ...kids);
-  const narrador = dialogo('trailer.narrador');
   const silabas = texto('trailer.canto')
     .split(' ')
     .map((p) => p.split('-'));
@@ -950,60 +1594,54 @@ export function mostrarTrailer(parent: HTMLElement, sonido: SonidoTrailer | null
   const logo = h('img', { alt: '' });
   void logoClaro().then((u) => (logo.src = u));
   const textos: Array<[number, number, HTMLElement]> = [
-    [1.0, 3.8, tx('manana', texto('trailer.manana'))],
-    [5.0, 9.4, tx('lugar', texto('trailer.lugar'))],
-    [12.5, 14.5, tx('cartel', texto('trailer.cartel1'))],
-    [16.5, 18.5, tx('cartel', texto('trailer.cartel2'))],
-    [20.5, 22.0, tx('cartel', texto('trailer.cartel3'))],
-    [25.0, 29.4, tx('narrador', ...narrador.map((l, i) => h('p', { style: `animation-delay:${i * 1.8}s` }, l.texto)))],
-    [29.6, 32.6, canto],
-    [32.6, 99, tx('cierre', logo, h('div', { class: 'capitulo' }, texto('trailer.capitulo')), h('div', { class: 'proximamente' }, texto('trailer.proximamente')))],
+    [0, 2, tx('cartel', texto('trailer.cartel1'))],
+    [4, 6, tx('cartel', texto('trailer.cartel2'))],
+    [8, 10, tx('cartel', texto('trailer.cartel3'))],
+    [27, 30, canto],
+    [30, 99, tx('cierre', logo, h('div', { class: 'capitulo' }, texto('trailer.capitulo')), h('div', { class: 'proximamente' }, texto('trailer.proximamente')))],
   ];
-  const saltar = h('button', { class: 'btn fantasma saltar' }, texto('trailer.saltar'));
-  const capa = h('div', { class: 'cubierta trailer' }, canvas, ...textos.map(([, , e]) => e), saltar);
+  const capa = h('div', { class: 'cubierta trailer' }, canvas, ...textos.map(([, , e]) => e));
   parent.append(capa);
 
   // The painted shots, again if the screen changes size.
   let W = 0;
   let H = 0;
   let dpr = 1;
-  let desierto: Desierto | null = null;
-  let caravana: HTMLCanvasElement | null = null;
+  let pintados: Pintados | null = null;
   let pintado: Plano | null = null;
   const medir = () => {
     const caja = capa.getBoundingClientRect();
-    W = Math.max(2, caja.width);
-    H = Math.max(2, caja.height);
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.max(2, caja.width);
+    const hh = Math.max(2, caja.height);
+    const d = Math.min(window.devicePixelRatio || 1, 2);
+    if (pintados && w === W && hh === H && d === dpr) return;
+    W = w;
+    H = hh;
+    dpr = d;
     canvas.width = Math.round(W * dpr);
     canvas.height = Math.round(H * dpr);
-    desierto = pintarDesierto(W, H, dpr);
-    caravana = pintarCaravana(W, H, dpr);
+    const dp = Math.min(dpr, 1.5);
+    pintados = { bar: pintarBar(W, H, dp), cana: pintarCana(H * 0.4, dp), canaGrande: pintarCana(H * 0.56, dp), carretera: pintarCarretera(W, H, dp), tragaperras: pintarTragaperras(W, H, dp) };
     pintado = null;
   };
   medir();
   const ro = new ResizeObserver(medir);
   ro.observe(capa);
+  // The slot machine's sign is in the titles' font: painted again once it has loaded.
+  void document.fonts?.load('400 32px Graduate').then(() => {
+    if (pintados) pintados.tragaperras = pintarTragaperras(W, H, Math.min(dpr, 1.5));
+  });
 
   const dibujar = (t: number) => {
     const [p, s] = plano(t);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    if (p === 'desierto' && desierto) {
-      // A slow push in on the caravan, and its smoke going up and away with the wind.
-      const z = 1 + 0.07 * suave(s / 5.5);
-      ctx.setTransform(dpr * z, 0, 0, dpr * z, dpr * desierto.cx * (1 - z), dpr * desierto.cy * (1 - z));
-      ctx.drawImage(desierto.img, 0, 0, W, H);
-      for (let k = 0; k < 9; k++) {
-        const u = (t * 0.32 + k / 9) % 1;
-        ctx.fillStyle = `rgba(196,186,206,${0.4 * (1 - u)})`;
-        ctx.beginPath();
-        ctx.arc(desierto.humoX - u * W * 0.05 + Math.sin(u * 7 + k) * 2, desierto.humoY - u * H * 0.16, 1.5 + u * H * 0.022, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    } else if (p === 'caravana' && caravana) {
-      ctx.drawImage(caravana, 0, 0, W, H);
-      dibujarBultos(ctx, W, H, s);
-    } else if (p === 'pang' || p === 'invaders') {
+    const pt = pintados!;
+    if (p === 'barra') dibujarBarra(ctx, W, H, pt.bar, pt.cana, s);
+    else if (p === 'cerveza') dibujarCerveza(ctx, W, H, pt.bar, pt.canaGrande, s);
+    else if (p === 'carretera') dibujarCarretera(ctx, W, H, pt.carretera, s);
+    else if (p === 'tragaperras') dibujarTragaperras(ctx, W, H, pt.tragaperras, s);
+    else if (p === 'vero') dibujarVero(ctx, W, H, s);
+    else if (p === 'pang' || p === 'invaders') {
       if (p === 'pang') dibujarPang(px, fondoPang, s);
       else dibujarInvaders(px, s);
       // The game fills the height, centred, on a black bezel.
@@ -1015,8 +1653,6 @@ export function mostrarTrailer(parent: HTMLElement, sonido: SonidoTrailer | null
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(pixel, Math.round((W - AW * k) / 2), Math.round((H - AH * k) / 2), Math.round(AW * k), Math.round(AH * k));
       ctx.imageSmoothingEnabled = true;
-    } else if (p === 'vero') {
-      dibujarVero(ctx, W, H, s);
     } else if (pintado !== p) {
       // Black under the words: drawn once.
       ctx.fillStyle = '#000000';
@@ -1043,7 +1679,8 @@ export function mostrarTrailer(parent: HTMLElement, sonido: SonidoTrailer | null
     let empezado = false;
     let ultimo = 0;
     let fotogramas = 0;
-    let actual: Plano = 'negro';
+    let reloj = false;
+    let actual: Plano = 'cartel';
     const fin = () => {
       if (acabado) return;
       acabado = true;
@@ -1054,7 +1691,7 @@ export function mostrarTrailer(parent: HTMLElement, sonido: SonidoTrailer | null
         capa.remove();
         // Give the painted shots' memory back.
         canvas.width = canvas.height = 0;
-        desierto = caravana = null;
+        pintados = null;
         resolve();
       }, 600);
     };
@@ -1063,8 +1700,13 @@ export function mostrarTrailer(parent: HTMLElement, sonido: SonidoTrailer | null
       requestAnimationFrame(paso);
       // 60 fps at most, also on 120 Hz screens.
       if (ultimo && ahora - ultimo < 1000 / 60 - 4) return;
-      // Time only runs while frames do (a hidden page stops both them and the music).
-      t += ultimo ? Math.min(0.1, (ahora - ultimo) / 1000) : 0;
+      // The music's clock while it plays, so the cuts stay on its hits however slow the frames;
+      // otherwise (no sound, the tests' loops) the frames' own, which stops with them.
+      const oido = op.hasta ? null : (sonido?.posicion?.('trailer') ?? null);
+      if (oido !== null && (reloj || Math.abs(oido - (t - desde)) < 0.75)) {
+        reloj = true;
+        t = desde + oido;
+      } else t += ultimo ? Math.min(0.1, (ahora - ultimo) / 1000) : 0;
       ultimo = ahora;
       if (op.hasta && t >= op.hasta) t = desde;
       if (t >= FIN) return fin();
@@ -1075,21 +1717,19 @@ export function mostrarTrailer(parent: HTMLElement, sonido: SonidoTrailer | null
     const empezar = () => {
       if (empezado || acabado) return;
       empezado = true;
-      sonido?.musica('trailer');
+      sonido?.musica('trailer', 0);
       requestAnimationFrame(paso);
     };
-    // Black until the music has loaded (it was asked for in advance), so the cuts land on its hits.
-    dibujar(t);
+    // Black until the music has loaded (it was asked for in advance), so it starts on its first hit.
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, W, H);
     void Promise.race([sonido?.lista?.('trailer') ?? Promise.resolve(), new Promise((r) => setTimeout(r, 2500))]).then(empezar);
     capa.addEventListener('click', (e) => {
       e.stopPropagation();
       if (t >= TOCABLE) fin();
     });
-    saltar.addEventListener('click', (e) => {
-      e.stopPropagation();
-      fin();
-    });
     // Test hook for scripts/playthrough.mjs and scripts/rendimiento.mjs.
-    (window as unknown as { __trailer: unknown }).__trailer = () => ({ t, plano: actual, fotogramas, acabado });
+    (window as unknown as { __trailer: unknown }).__trailer = () => ({ t, plano: actual, fotogramas, acabado, cerrar: fin });
   });
 }
