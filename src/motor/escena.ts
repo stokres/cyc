@@ -323,8 +323,10 @@ function teselasTextura() {
       const p = (j * TEX_N + i) * 4;
       dO.data[p] = dO.data[p + 1] = dO.data[p + 2] = 255 * (1 + Math.min(0, m));
       dO.data[p + 3] = 255;
-      dC.data[p] = dC.data[p + 1] = dC.data[p + 2] = 255;
-      dC.data[p + 3] = 255 * Math.max(0, m);
+      // Colour dodge by s = m / (1 + m) brightens by (1 + m): the colour gets lighter and keeps its saturation.
+      const mc = Math.max(0, m);
+      dC.data[p] = dC.data[p + 1] = dC.data[p + 2] = (255 * mc) / (1 + mc);
+      dC.data[p + 3] = 255;
     }
   }
   oscura.getContext('2d')!.putImageData(dO, 0, 0);
@@ -335,40 +337,30 @@ function teselasTextura() {
 /**
  * Paint the texture into a piece's albedo, anchored to the scene (not to the
  * piece, so neighbouring tiles meet without a seam) and only where the piece
- * has paint.
+ * has paint: the dark tile multiplied, the light one as a colour dodge, then
+ * the piece's own alpha back (both blends also paint where it is empty).
  */
 function texturizar(alb: HTMLCanvasElement, x0: number, y0: number, px: number, fuerza: number) {
   const T = teselasTextura();
   const ctx = alb.getContext('2d')!;
-  const t = lienzo(alb.width, alb.height);
-  const tx = t.getContext('2d')!;
-  const capa = (tesela: HTMLCanvasElement) => {
-    const pat = tx.createPattern(tesela, 'repeat')!;
-    pat.setTransform(new DOMMatrix().scale(TEX_U / TEX_N));
-    tx.setTransform(px, 0, 0, px, -x0 * px, -y0 * px);
-    tx.globalCompositeOperation = 'copy';
-    tx.fillStyle = pat;
-    tx.fillRect(x0, y0, alb.width / px, alb.height / px);
-    tx.setTransform(1, 0, 0, 1, 0, 0);
-  };
+  const forma = lienzo(alb.width, alb.height);
+  forma.getContext('2d')!.drawImage(alb, 0, 0);
   ctx.save();
+  ctx.setTransform(px, 0, 0, px, -x0 * px, -y0 * px);
   ctx.globalAlpha = Math.min(1, fuerza);
-  // Lighter: the albedo itself, through the light tile's alpha, added on top.
-  capa(T.clara);
-  tx.globalCompositeOperation = 'source-in';
-  tx.drawImage(alb, 0, 0);
-  const claro = lienzo(alb.width, alb.height);
-  claro.getContext('2d')!.drawImage(t, 0, 0);
-  // Darker: the dark tile, cut to the piece, multiplied.
-  capa(T.oscura);
-  tx.globalCompositeOperation = 'destination-in';
-  tx.drawImage(alb, 0, 0);
-  ctx.globalCompositeOperation = 'multiply';
-  ctx.drawImage(t, 0, 0);
-  ctx.globalCompositeOperation = 'lighter';
-  ctx.drawImage(claro, 0, 0);
+  for (const [tesela, modo] of [[T.oscura, 'multiply'], [T.clara, 'color-dodge']] as const) {
+    const pat = ctx.createPattern(tesela, 'repeat')!;
+    pat.setTransform(new DOMMatrix().scale(TEX_U / TEX_N));
+    ctx.globalCompositeOperation = modo;
+    ctx.fillStyle = pat;
+    ctx.fillRect(x0, y0, alb.width / px, alb.height / px);
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'destination-in';
+  ctx.drawImage(forma, 0, 0);
   ctx.restore();
-  t.width = t.height = claro.width = claro.height = 0;
+  forma.width = forma.height = 0;
 }
 
 function multiplyLight(c: HTMLCanvasElement, lm: HTMLCanvasElement) {

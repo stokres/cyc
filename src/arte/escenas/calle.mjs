@@ -9,7 +9,7 @@
 // camera pans.
 import {
   smooth, ellipse, path, stroke, g, shape, rect, circle, line, poly, polyD, rectD, rr, lin, rad, gpath,
-  mat, box, bevel, tiles, bricks, foliage, persp, rng, f2,
+  mat, box, bevel, tiles, bricks, foliage, persp, rng, f2, ao,
 } from './kit.mjs';
 
 export const P = persp({ HOR: 150, BASE: 760, CX: 1170 });
@@ -92,6 +92,119 @@ function shutter(x0, x1, y0, y1, seed) {
   return out.join('');
 }
 
+// ---------------------------------------------------------------- shop windows
+// A lit shop seen through its glass, all of it emissive so it glows at night: the
+// back wall with light pooling under the ceiling lamps, the goods each shop lays
+// out, and the glass on top (the frame's shadow, two slanted reflections and the
+// dark street reflected low down).
+
+/** Back wall, ceiling with its lamps and the strip of floor of a lit shop. */
+function interior(x0, y0, x1, y1, { wall, wall2, floor, ceil = '#3a3434', lamps = 3 }) {
+  const w = x1 - x0;
+  const h = y1 - y0;
+  const o = [gpath(rectD(x0, y0, w, h), lin(0, y0, 0, y1, [[0, wall], [1, wall2]]))];
+  const rx = (w / lamps) * 0.6;
+  const ry = h * 0.5;
+  const xs = Array.from({ length: lamps }, (_, i) => x0 + (w * (i + 0.5)) / lamps);
+  for (const cx of xs) o.push(gpath(ellipse(cx, y0 + 18, rx, ry), rad(cx, y0 + 18, rx, [[0, '#ffffff', 0.55], [1, '#ffffff', 0]], ry / rx)));
+  o.push(rect(x0, y0, w, 16, ceil));
+  for (const cx of xs) o.push(rect(cx - 34, y0 + 12, 68, 5, '#cfd2d4'), rect(cx - 30, y0 + 17, 60, 5, '#ffffff'));
+  o.push(rect(x0, y1 - 24, w, 24, floor), rect(x0, y1 - 24, w, 3, '#000000', { opacity: 0.12 }));
+  return o.join('');
+}
+
+/** The glass over a shop window: frame shadow, reflections and the street low down. */
+function cristal(x0, y0, x1, y1) {
+  const w = x1 - x0;
+  const h = y1 - y0;
+  const brillo = [[0, '#ffffff', 0], [0.33, '#ffffff', 0], [0.34, '#ffffff', 0.16], [0.42, '#ffffff', 0.1], [0.43, '#ffffff', 0], [0.5, '#ffffff', 0], [0.51, '#ffffff', 0.12], [0.54, '#ffffff', 0.07], [0.55, '#ffffff', 0]];
+  return [
+    ao(x0, y0, w, Math.min(34, h * 0.12), 0.32),
+    gpath(rectD(x0, y0, Math.min(16, w * 0.1), h), lin(x0, 0, x0 + Math.min(16, w * 0.1), 0, [[0, '#1a1222', 0.25], [1, '#1a1222', 0]])),
+    gpath(rectD(x0, y1 - h * 0.3, w, h * 0.3), lin(0, y1 - h * 0.3, 0, y1, [[0, '#2a2440', 0], [1, '#2a2440', 0.35]])),
+    gpath(rectD(x0, y0, w, h), lin(x0, y0, x0 + h * 0.6, y0 + h, brillo)),
+  ].join('');
+}
+
+/** A shelf of packed goods (tins, jars, boxes), in runs of one product as shops lay them out. */
+function estante(x0, x1, y, seed, pal, { s = 1, board = '#c8b89a' } = {}) {
+  const r = rng(seed);
+  const o = [];
+  let x = x0 + 4 * s;
+  while (x < x1 - 20 * s) {
+    const kind = Math.floor(r() * 3);
+    const c = pal[Math.floor(r() * pal.length)];
+    const n = 2 + Math.floor(r() * 4);
+    const w = [14, 16, 20][kind] * s;
+    const h = [20, 24, 30][kind] * s;
+    for (let i = 0; i < n && x + w < x1 - 4 * s; i++, x += w + 2 * s) {
+      if (kind === 0) o.push(rect(x, y - h, w, h, '#c8ccd0', { rx: 2 * s }), rect(x, y - h * 0.78, w, h * 0.56, c), rect(x + w * 0.6, y - h, w * 0.22, h, '#ffffff', { opacity: 0.35 }));
+      else if (kind === 1) o.push(rect(x, y - h, w, h, c, { rx: 4 * s, opacity: 0.9 }), rect(x + s, y - h - 4 * s, w - 2 * s, 5 * s, '#c9a14f', { rx: 1.5 * s }), rect(x + 3 * s, y - h * 0.62, w - 6 * s, h * 0.3, '#f6f0e0'));
+      else o.push(rect(x, y - h, w, h, c, { rx: 1.5 * s }), rect(x, y - h * 0.58, w, h * 0.2, '#ffffff', { opacity: 0.75 }), rect(x + w - 3 * s, y - h, 3 * s, h, '#000000', { opacity: 0.15 }));
+    }
+    x += 8 * s;
+  }
+  o.push(rect(x0, y, x1 - x0, 6 * s, board), rect(x0, y + 6 * s, x1 - x0, 5 * s, '#000000', { opacity: 0.14 }));
+  return o.join('');
+}
+
+/** A heap of round fruit in a crate: rows that narrow upwards, each fruit with its shine. */
+function monton(x0, x1, base, rf, m, seed) {
+  const r = rng(seed);
+  const o = [];
+  for (let row = 0, y = base - rf * 0.6, a = x0 + rf, b = x1 - rf; row < 3 && a <= b; row++, y -= rf * 1.45, a += rf, b -= rf) {
+    for (let x = a; x <= b + 0.1; x += rf * 2) {
+      const fx = x + (r() - 0.5) * rf * 0.3;
+      const fy = y + (r() - 0.5) * rf * 0.2;
+      o.push(shape(ellipse(fx, fy, rf, rf * 0.92), m.base, [path(ellipse(fx + rf * 0.3, fy + rf * 0.35, rf * 0.8, rf * 0.6), m.shadow), path(ellipse(fx - rf * 0.35, fy - rf * 0.38, rf * 0.3, rf * 0.2), '#ffffff', { opacity: 0.6 })], m.line, 1));
+    }
+  }
+  return o.join('');
+}
+
+const FRUTA = {
+  naranja: mat('#f08a2e', '#c8661a', '#ffb466', '#7a3a10'),
+  manzana: mat('#d8362e', '#a3221e', '#f26a5a', '#5e1010'),
+  verde: mat('#8ac43a', '#5e9a24', '#b8e06a', '#2e5010'),
+  limon: mat('#f4d43a', '#cfa81a', '#fff08a', '#7a6010'),
+  ciruela: mat('#7a3a8a', '#55245e', '#a868b4', '#2a1030'),
+  tomate: mat('#e8452a', '#b02a18', '#ff7a5a', '#5e1408'),
+};
+
+/** A tilted crate of fruit with its little price card. */
+function cajaFruta(x, base, w, m, rf, seed) {
+  const wood = mat('#c9a06a', '#a47c48', '#e0bc88', '#6e5028');
+  const h = rf * 2.6;
+  return [
+    monton(x + 2, x + w - 2, base - h + rf * 0.7, rf, m, seed),
+    box(x, base - h, w, h, wood, { r: 2, sh: 0.25, li: 0.12, side: false }),
+    rect(x + 4, base - h * 0.5, w - 8, 2.5, wood.shadow),
+    rect(x + 6, base - h + 5, 18, 11, '#ffffff', { rx: 2 }),
+    rect(x + 9, base - h + 9, 12, 2.5, '#d8323a'),
+  ].join('');
+}
+
+/** A lucky cat on the counter, waving. */
+function gatoSuerte(x, base, s = 1) {
+  const blanco = mat('#fbf4e4', '#e8d8b8', '#ffffff', '#a8946a');
+  return [
+    path(ellipse(x, base - 2 * s, 30 * s, 6 * s), '#000000', { opacity: 0.25 }),
+    shape(ellipse(x, base - 30 * s, 26 * s, 30 * s), blanco.base, [path(ellipse(x + 12 * s, base - 22 * s, 16 * s, 26 * s), blanco.shadow)], blanco.line, 1.6),
+    shape(rr(x + 20 * s, base - 86 * s, 13 * s, 38 * s, 6 * s), blanco.base, [], blanco.line, 1.4),
+    path(polyD([[x - 22 * s, base - 82 * s], [x - 14 * s, base - 104 * s], [x - 4 * s, base - 86 * s]]), blanco.line),
+    path(polyD([[x + 4 * s, base - 86 * s], [x + 14 * s, base - 104 * s], [x + 22 * s, base - 82 * s]]), blanco.line),
+    path(polyD([[x - 19 * s, base - 84 * s], [x - 14 * s, base - 98 * s], [x - 8 * s, base - 86 * s]]), '#f2a0a0'),
+    path(polyD([[x + 8 * s, base - 86 * s], [x + 14 * s, base - 98 * s], [x + 19 * s, base - 84 * s]]), '#f2a0a0'),
+    shape(ellipse(x, base - 72 * s, 24 * s, 19 * s), blanco.base, [path(ellipse(x + 10 * s, base - 66 * s, 14 * s, 14 * s), blanco.shadow, { opacity: 0.6 })], blanco.line, 1.6),
+    stroke(`M${x - 13 * s} ${base - 75 * s}q4 -4 8 0`, '#3a2a1a', 2 * s),
+    stroke(`M${x + 5 * s} ${base - 75 * s}q4 -4 8 0`, '#3a2a1a', 2 * s),
+    circle(x, base - 68 * s, 2.4 * s, '#e0606a'),
+    rect(x - 20 * s, base - 55 * s, 40 * s, 6 * s, '#d8323a', { rx: 3 * s }),
+    circle(x, base - 48 * s, 5 * s, '#f0c23a'),
+    shape(ellipse(x - 6 * s, base - 22 * s, 13 * s, 10 * s), '#f0c23a', [], '#9c7a1a', 1.2),
+  ].join('');
+}
+
 function franBuilding(em, tx) {
   const out = [];
   out.push(bricks(0, -40, 1000, 740, BRICK, MORTAR, { bw: 36, bh: 13, seed: 11 }));
@@ -102,6 +215,7 @@ function franBuilding(em, tx) {
   out.push(box(52, 290, 200, 280, GRANITE, { r: 2, sh: 0.05, li: 0.03 }));
   out.push(rect(70, 308, 164, 244, '#2a2430'));
   em.push(gpath(rectD(70, 308, 164, 244), lin(0, 308, 0, 552, [[0, '#ffcf8a'], [1, '#f0a060']])), path(smooth([[70, 308, 'c'], [150, 308, 'c'], [130, 420], [110, 552, 'c'], [70, 552, 'c']]), '#f6e2c0', { opacity: 0.9 }), path(smooth([[234, 308, 'c'], [196, 308, 'c'], [206, 420], [214, 552, 'c'], [234, 552, 'c']]), '#f6e2c0', { opacity: 0.9 }), circle(170, 360, 26, '#2e7a3a', { opacity: 0.55 }));
+  em.push(cristal(70, 308, 234, 552));
   for (let x = 78; x < 234; x += 22) em.push(rect(x, 300, 6, 262, IRON.line));
   em.push(rect(64, 330, 176, 6, IRON.line), rect(64, 520, 176, 6, IRON.line));
   out.push(box(44, 566, 216, 18, GRANITE, { r: 2, sh: 0.4, li: 0.2 }));
@@ -149,15 +263,34 @@ function shopsBuilding(em, tx) {
   out.push(box(f0, 112, f1 - f0, 86, mat('#f4f4ee', '#d8d8ce', '#ffffff', '#8a8a80'), { r: 4 }));
   em.push(rect(f0 + 8, 120, f1 - f0 - 16, 70, '#f8fbf2'));
   tx.push({ x: (f0 + f1) / 2, y: 156, s: 'FRUTERÍA · ALIMENTACIÓN', size: 38, font: 'body', weight: 800, color: '#2e7a3a', maxW: f1 - f0 - 40, emissive: true });
-  out.push(rect(f0 + 20, 290, f1 - f0 - 40, 430, '#2a2a30'));
-  em.push(gpath(rectD(f0 + 20, 290, f1 - f0 - 40, 430), lin(0, 290, 0, 720, [[0, '#f6fbff'], [1, '#d4e4ee']])));
-  const r = rng(31);
-  const pal = ['#e04a3a', '#f0c23a', '#3a7be0', '#3ab070', '#e07a2a', '#9a4ad0', '#f6f0e0'];
-  for (let sy = 340; sy < 600; sy += 56) {
-    em.push(rect(f0 + 30, sy, f1 - f0 - 60, 5, '#9fb0b8'));
-    for (let x = f0 + 34; x < f1 - 40; x += 14) em.push(rect(x, sy - 16 - r() * 18, 11, 34, pal[Math.floor(r() * pal.length)], { opacity: 0.85 }));
+  // Inside: tins and jars at the back, a stepped stand of fruit crates, bananas
+  // hanging, and the counter with the scale behind the glass door on the right.
+  const v0 = f0 + 20;
+  const v1 = f1 - 20;
+  const dx = f1 - 130;
+  out.push(rect(v0, 290, v1 - v0, 430, '#2a2a30'));
+  em.push(interior(v0, 290, v1, 720, { wall: '#f6f8ee', wall2: '#dfe6d2', floor: '#b8b0a0', ceil: '#3a4038' }));
+  const lata = ['#e04a3a', '#f0c23a', '#3a7be0', '#3ab070', '#e07a2a', '#f6f0e0'];
+  em.push(estante(v0 + 150, dx - 6, 380, 31, lata), estante(v0 + 150, dx - 6, 452, 32, lata));
+  em.push(rect(dx + 4, 560, v1 - dx - 4, 160, '#c9b28e'), rect(dx + 4, 560, v1 - dx - 4, 8, '#e6d6b8'), rect(dx + 4, 600, v1 - dx - 4, 120, '#000000', { opacity: 0.12 }));
+  em.push(box(dx + 20, 520, 64, 40, mat('#f4f4f0', '#d4d6d2', '#ffffff', '#7a7e80'), { r: 4 }), rect(dx + 30, 528, 30, 12, '#2a3a2a'), rect(dx + 33, 531, 24, 6, '#d8323a'), path(ellipse(dx + 52, 516, 30, 5), '#cfd2d4'));
+  // Bananas hanging from a rail at the top left.
+  em.push(rect(v0 + 10, 326, 130, 5, '#8a7e70'));
+  for (const bx of [v0 + 36, v0 + 80, v0 + 122]) {
+    em.push(line(bx, 330, bx, 344, '#6a5a3a', 2));
+    for (let i = -2; i <= 2; i++) em.push(path(smooth([[bx, 346, 'c'], [bx + i * 9 - 4, 370], [bx + i * 12, 398, 'c'], [bx + i * 9 + 5, 372]]), i % 2 ? '#f2cf3a' : '#e8c22a'), circle(bx + i * 12, 398, 2.4, '#5a4a2a'));
   }
-  em.push(rect(f1 - 130, 300, 100, 420, '#e8f0f4', { opacity: 0.7 }), rect(f1 - 126, 300, 4, 420, '#9fb0b8'));
+  // The stand: three steps of crates, the back ones higher and smaller.
+  const filas = [[520, 9, ['verde', 'limon', 'ciruela']], [606, 10, ['manzana', 'naranja', 'verde', 'tomate']], [694, 11, ['naranja', 'tomate', 'limon', 'manzana']]];
+  for (const [base, rf, frutas] of filas) {
+    const n = frutas.length;
+    const cw = (dx - v0 - 30) / n;
+    em.push(rect(v0 + 6, base - 4, dx - v0 - 12, 30, '#6a8a4a'), rect(v0 + 6, base - 4, dx - v0 - 12, 4, '#8aaa5a'));
+    frutas.forEach((f, i) => em.push(cajaFruta(v0 + 14 + i * cw, base, cw - 8, FRUTA[f], rf, base + i)));
+  }
+  // The glass door: aluminium frame and its handle.
+  em.push(rect(dx - 4, 290, 8, 430, '#9aa2a8'), rect(v1 - 6, 290, 6, 430, '#9aa2a8'), rect(dx + 14, 440, 6, 80, '#d8dce0', { rx: 3 }));
+  em.push(cristal(v0, 290, dx - 4, 720), cristal(dx + 4, 290, v1 - 6, 720));
   // Awning.
   const stripes = [];
   for (let x = f0 - 10; x < f1 + 10; x += 40) stripes.push(rect(x, 200, 20, 92, '#2e8a46'));
@@ -183,15 +316,40 @@ function shopsBuilding(em, tx) {
   const [b0, b1] = X.panaderia;
   out.push(box(b0, 112, b1 - b0, 86, RED, { r: 4 }));
   tx.push({ x: (b0 + b1) / 2, y: 156, s: 'BOLLERÍA CHINA', size: 40, font: 'display', color: '#ffd56a', maxW: b1 - b0 - 60, emissive: true });
-  out.push(rect(b0 + 20, 230, b1 - b0 - 40, 470, '#2a2026'));
-  em.push(gpath(rectD(b0 + 20, 230, b1 - b0 - 40, 470), lin(0, 230, 0, 700, [[0, '#ffd9a0'], [1, '#f2a868']])));
-  for (const y of [420, 540]) {
-    em.push(rect(b0 + 40, y, b1 - b0 - 80, 8, '#b06a3a'));
-    for (let x = b0 + 60; x < b1 - 60; x += 46) em.push(path(ellipse(x, y - 14, 18, 14), '#fff6e6'), path(ellipse(x, y - 22, 6, 3), '#f0d8b8'));
+  // Inside: photos of the dishes on the back wall, shelves of buns and steamers,
+  // a glass counter of trays, and the lucky cat by the till.
+  const w0 = b0 + 20;
+  const w1 = b1 - 20;
+  const mid = (b0 + b1) / 2;
+  out.push(rect(w0, 230, w1 - w0, 470, '#2a2026'));
+  em.push(interior(w0, 230, w1, 700, { wall: '#ffe4b4', wall2: '#f0b47a', floor: '#9a4a2a', ceil: '#5a2a1a', lamps: 2 }));
+  const platos = [['#f6efe0', 4], ['#e8a040', 0], ['#c8542a', 3], ['#f6efe0', 0]];
+  platos.forEach(([c, n], i) => {
+    const px = w0 + 24 + i * 102;
+    em.push(rect(px, 262, 84, 62, '#fff6e6', { rx: 3 }), rect(px + 4, 266, 76, 54, '#4a2a22'), path(ellipse(px + 42, 300, 30, 12), '#f6f0e6'));
+    if (n) for (let k = 0; k < n; k++) em.push(path(ellipse(px + 28 + k * 9, 296, 7, 6), c));
+    else em.push(path(ellipse(px + 42, 296, 22, 7), c), stroke(`M${px + 26} 296q8 -6 16 0t16 0`, '#fff2c8', 1.6, { opacity: 0.8 }));
+  });
+  for (const fx of [w0 + 4, w1 - 26]) em.push(path(polyD([[fx + 11, 262], [fx + 22, 280], [fx + 11, 298], [fx, 280]]), '#d8323a'), stroke(polyD([[fx + 11, 266], [fx + 18, 280], [fx + 11, 294], [fx + 4, 280]]), '#f0c23a', 1.4));
+  const bao = (x, y) => [path(ellipse(x, y - 3, 17, 5), '#c88a50', { opacity: 0.6 }), path(ellipse(x, y - 10, 16, 11), '#fff8ec'), path(ellipse(x + 5, y - 6, 10, 5), '#f0dcc0', { opacity: 0.8 }), stroke(`M${x - 6} ${y - 16}Q${x} ${y - 22} ${x + 6} ${y - 16}`, '#e0c8a4', 1.6), circle(x, y - 20, 2, '#e0c8a4')].join('');
+  const vaporera = (x, y, n) => {
+    const o = [];
+    for (let k = 0; k < n; k++) o.push(rect(x - 26, y - (k + 1) * 15, 52, 15, '#d8b070', { rx: 3 }), rect(x - 26, y - (k + 1) * 15 + 6, 52, 2, '#a87a3a'), rect(x + 14, y - (k + 1) * 15, 12, 15, '#b88a4a', { opacity: 0.6 }));
+    o.push(path(`M${x - 28} ${y - n * 15}Q${x} ${y - n * 15 - 22} ${x + 28} ${y - n * 15}Z`, '#e6c68a'), stroke(`M${x - 18} ${y - n * 15 - 6}Q${x} ${y - n * 15 - 18} ${x + 18} ${y - n * 15 - 6}`, '#b88a4a', 1.4));
+    return o.join('');
+  };
+  for (const [y, desde] of [[430, 0], [530, 1]]) {
+    em.push(rect(w0 + 16, y, w1 - w0 - 32, 7, '#b06a3a'), rect(w0 + 16, y + 7, w1 - w0 - 32, 5, '#000000', { opacity: 0.15 }));
+    for (let k = 0, x = w0 + 46; x < w1 - 40; k++, x += 58) em.push((k + desde) % 3 === 2 ? vaporera(x, y, 2) : bao(x - 12, y) + bao(x + 12, y) + bao(x, y - 14));
   }
-  em.push(rect(b0 + 40, 620, b1 - b0 - 80, 80, '#9a4a2a', { opacity: 0.8 }));
-  em.push(path(ellipse(b1 - 110, 590, 26, 30), '#f4e2b0'), path(ellipse(b1 - 110, 552, 22, 20), '#f4e2b0'), rect(b1 - 92, 520, 10, 30, '#f4e2b0', { rx: 4 }), circle(b1 - 110, 580, 6, '#d23a2a'));
-  em.push(rect(b0 + 20, 230, b1 - b0 - 40, 10, '#2a2026'), rect((b0 + b1) / 2 - 4, 230, 8, 470, '#5a2a1a'));
+  // Glass counter: dark base, trays of egg tarts and buns behind the glass.
+  em.push(rect(w0 + 10, 600, w1 - w0 - 20, 100, '#7a3a22'), rect(w0 + 10, 600, w1 - w0 - 20, 6, '#c8844a'));
+  for (let x = w0 + 24; x < w1 - 150; x += 30) em.push(path(ellipse(x, 640, 12, 5), '#c8843a'), path(ellipse(x, 638, 8, 3), '#f6c83a'));
+  for (let x = w0 + 30; x < w1 - 150; x += 34) em.push(bao(x, 684));
+  em.push(gpath(rectD(w0 + 10, 612, w1 - w0 - 20, 88), lin(0, 612, 0, 700, [[0, '#ffffff', 0.18], [0.3, '#ffffff', 0.04], [1, '#ffffff', 0.1]])));
+  em.push(gatoSuerte(w1 - 70, 600, 0.85));
+  em.push(cristal(w0, 240, mid - 4, 700), cristal(mid + 4, 240, w1, 700));
+  em.push(rect(w0, 230, w1 - w0, 10, '#2a2026'), rect(mid - 4, 230, 8, 470, '#5a2a1a'));
   for (const lx of [b0 + 60, b1 - 60]) {
     out.push(line(lx, 198, lx, 226, '#2a2026', 2));
     em.push(shape(ellipse(lx, 262, 30, 36), '#e0402e', [path(ellipse(lx - 6, 256, 14, 26), '#ff7a50')], '#7a1a10', 1.4), rect(lx - 14, 222, 28, 8, '#d6a64a'), rect(lx - 14, 294, 28, 8, '#d6a64a'), rect(lx - 2, 302, 4, 20, '#d6a64a'));
@@ -233,14 +391,29 @@ function pharmacy(em, tx) {
   out.push(box(a + 20, 112, b - a - 110, 86, mat('#f4f4ee', '#d8d8ce', '#ffffff', '#8a8a80'), { r: 4 }));
   em.push(rect(a + 28, 120, b - a - 126, 70, '#f2fff6'));
   tx.push({ x: a + 20 + (b - a - 110) / 2, y: 156, s: 'FARMACIA', size: 46, font: 'body', weight: 800, color: '#1f9a4a', emissive: true, spacing: 4 });
-  out.push(rect(a + 20, 230, b - a - 60, 490, '#22302a'));
-  em.push(gpath(rectD(a + 20, 230, b - a - 60, 490), lin(0, 230, 0, 720, [[0, '#f2fff8'], [1, '#cfeadc']])));
-  const r = rng(17);
-  for (let sy = 300; sy < 640; sy += 60) {
-    em.push(rect(a + 30, sy, b - a - 160, 4, '#a8c4b4'));
-    for (let x = a + 34; x < b - 140; x += 12) em.push(rect(x, sy - 14 - r() * 12, 9, 24, ['#ffffff', '#e8f4ff', '#bfe6cc', '#f4d8e0', '#d8e8f8'][Math.floor(r() * 5)]));
-  }
-  em.push(rect(b - 120, 240, 80, 480, '#e6f6ee', { opacity: 0.8 }), rect(b - 118, 240, 4, 480, '#a8c4b4'));
+  // Inside: white shelves of boxes and bottles, a summer poster in a light box,
+  // the counter with its green cross, and the old scale by the glass door.
+  const v0 = a + 20;
+  const v1 = b - 40;
+  const dx = b - 120;
+  out.push(rect(v0, 230, v1 - v0, 490, '#22302a'));
+  em.push(interior(v0, 230, v1, 720, { wall: '#f4fbf6', wall2: '#d6ebdf', floor: '#c8d4cc', ceil: '#3a4a40' }));
+  const cajas = ['#ffffff', '#e8f4ff', '#bfe6cc', '#f4d8e0', '#d8e8f8', '#ffe6b0', '#9ad0f0'];
+  for (const [y, sd] of [[332, 3], [412, 5], [492, 7]]) em.push(estante(v0 + 150, dx - 8, y, sd, cajas, { board: '#e8eeea' }));
+  em.push(rect(v0 + 10, 268, 126, 250, '#dfe6e2', { rx: 4 }));
+  em.push(gpath(rectD(v0 + 18, 276, 110, 234), lin(0, 276, 0, 510, [[0, '#4aa8e8'], [0.55, '#bfe8ff'], [0.56, '#2a8ad0'], [0.7, '#5ab0e0'], [0.71, '#f2d8a0'], [1, '#e8c888']])));
+  em.push(circle(v0 + 104, 312, 18, '#ffd23a'), circle(v0 + 104, 312, 26, '#ffe68a', { opacity: 0.4 }));
+  em.push(shape(rr(v0 + 44, 380, 40, 100, 12), '#f08a2e', [rect(v0 + 70, 380, 14, 100, '#c8661a'), rect(v0 + 48, 410, 32, 40, '#ffffff')], '#7a3a10', 1.4), rect(v0 + 54, 362, 20, 20, '#ffffff', { rx: 3 }), circle(v0 + 64, 430, 9, '#ffd23a'));
+  em.push(rect(v0 + 140, 560, dx - v0 - 210, 160, '#f2f6f4'), rect(v0 + 140, 560, dx - v0 - 210, 8, '#ffffff'), rect(v0 + 150, 580, dx - v0 - 230, 130, '#2fa860', { rx: 4 }), rect(v0 + 150, 580, dx - v0 - 230, 8, '#5ac888', { rx: 4 }));
+  const cx = (v0 + 140 + dx - 70) / 2;
+  em.push(path(`M${cx - 10} 612h20v22h22v20h-22v22h-20v-22h-22v-20h22z`, '#ffffff'));
+  em.push(box(v0 + 160, 520, 70, 40, mat('#3a4048', '#2a3036', '#5a626a', '#14181c'), { r: 4 }), rect(v0 + 170, 526, 36, 14, '#9af0c0'));
+  for (const [x, c] of [[v0 + 250, '#f4d8e0'], [v0 + 274, '#bfe6cc'], [v0 + 298, '#ffffff']]) em.push(rect(x, 536, 20, 24, c, { rx: 2 }), rect(x, 546, 20, 4, '#1f9a4a'));
+  const sx = dx - 34;
+  em.push(rect(sx - 28, 692, 56, 18, '#cfd6da', { rx: 3 }), rect(sx - 8, 560, 16, 134, '#e6eaec'), rect(sx + 2, 560, 6, 134, '#c4cacd'));
+  em.push(shape(ellipse(sx, 540, 28, 28), '#f6f8f8', [path(ellipse(sx + 8, 548, 22, 22), '#dfe4e6')], '#8a9498', 1.6), circle(sx, 540, 18, '#ffffff'), line(sx, 540, sx + 10, 528, '#d8323a', 2.4));
+  em.push(rect(dx - 4, 230, 8, 490, '#9aa2a8'), rect(v1 - 6, 230, 6, 490, '#9aa2a8'), rect(dx + 14, 420, 6, 80, '#d8dce0', { rx: 3 }));
+  em.push(cristal(v0, 230, dx - 4, 720), cristal(dx + 4, 230, v1 - 6, 720));
   // The green cross on its bracket (its LEDs are animated live).
   out.push(rect(b - 60, 148, 40, 10, IRON.base));
   out.push(box(b - 66, 104, 92, 120, mat('#2a3a30', '#1a2620', '#3e5246', '#0e1612'), { r: 6 }));
@@ -328,6 +501,7 @@ function pedestrianBuildings(em, tx) {
   for (const x of [wx0 + 70, wx0 + 86]) em.push(rect(x, 520, 6, 36, '#d8d0c4'));
   em.push(rect(wx0 + 120, 404, 80, 50, '#1a1e28'), rect(wx0 + 124, 408, 72, 42, '#3a8a4a'), rect(wx0 + 124, 428, 72, 2, '#e8f4e0'));
   em.push(circle(wx0 + 150, 590, 20, '#7a4428', { opacity: 0.55 }), path(ellipse(wx0 + 150, 640, 30, 30), '#7a4428', { opacity: 0.55 }));
+  em.push(cristal(dx0 + 12, 392, dx1 - 12, 560), cristal(wx0 + 12, 392, wx1 - 12, 618));
   out.push(rect((wx0 + wx1) / 2 - 4, 380, 8, 250, '#b8bcc0'));
   out.push(box(a - 6, 740, b - a + 12, 20, GRANITE, { r: 2, sh: 0.4, li: 0.3 }));
   // Salmon doorway with the number 40.
@@ -636,8 +810,9 @@ function sideWall({ len, h, face, seed, color, shops }) {
       em.push(gpath(rectD(x0 + 0.15 * M, -2.6 * M, x1 - x0 - 0.3 * M, 2.5 * M), lin(0, -2.6 * M, 0, 0, [[0, s.light], [1, s.light2 ?? s.light]])));
       em.push(rect(x0, -3.2 * M, x1 - x0, 0.6 * M, s.sign));
       tx.push({ x: (x0 + x1) / 2, y: -2.9 * M, s: s.name, size: 0.4 * M, font: 'body', weight: 800, color: s.ink, emissive: true, maxW: x1 - x0 - 0.4 * M });
-      const rr2 = rng(Math.round(x0));
-      for (let x = x0 + 0.3 * M; x < x1 - 0.3 * M; x += 0.2 * M) em.push(rect(x, -1.4 * M - rr2() * 0.3 * M, 0.15 * M, 0.4 * M, ['#e04a3a', '#f0c23a', '#3a7be0', '#3ab070'][Math.floor(rr2() * 4)], { opacity: 0.7 }));
+      const pal = ['#e04a3a', '#f0c23a', '#3a7be0', '#3ab070', '#f6f0e0'];
+      em.push(estante(x0 + 0.3 * M, x1 - 0.3 * M, -1.7 * M, Math.round(x0), pal, { s: 2.4 }), estante(x0 + 0.3 * M, x1 - 0.3 * M, -0.9 * M, Math.round(x0) + 1, pal, { s: 2.4 }));
+      em.push(cristal(x0 + 0.15 * M, -2.6 * M, x1 - 0.15 * M, -0.1 * M));
     }
   }
   return { body: out.join(''), emissive: em.join(''), texts: tx };
@@ -910,12 +1085,12 @@ export function escena() {
       { id: 'cielo', k: 0.03, x0: sk[0], x1: sk[1], y0: -60, y1: 520, body: sky(), lit: false },
       { id: 'lejos', k: KL, x0: fa[0], x1: fa[1], y0: -60, y1: yOf(KL) + 10, body: farSide(), lit: false },
       { id: 'transversal', k: KS, x0: Math.floor(at(4500, KS)), x1: Math.ceil(at(6600, KS)), y0: -60, y1: yOf(KS) + 12, body: sf.body, emissive: sf.emissive, glows: sf.glows, lit: true, ambient: '#454a72', lights: false },
-      { id: 'calzada', floor: true, x0: gr[0], x1: gr[1], y0: 200, y1: 1080, body: ground(), lit: true },
-      { id: 'dragon', k: KD, x0: Math.floor(at(1300, KD)), x1: Math.ceil(at(5500, KD)), y0: -40, y1: yOf(KD) + 6, body: dr.body, emissive: dr.emissive, glows: dr.glows, lit: true, ambient: '#525a88' },
-      { id: 'traseras', k: KT, x0: Math.floor(at(-1200, KT)), x1: Math.ceil(at(9000, KT)), y0: -60, y1: yOf(KT) + 6, body: bk.body, emissive: bk.emissive, lit: true, ambient: '#3a3f66', lights: false },
-      { id: 'parque', k: KP, x0: Math.floor(at(1600, KP)), x1: Math.ceil(at(4800, KP)), y0: -220, y1: yOf(KP) + 8, body: near.body, emissive: near.emissive, glows: near.glows, lit: true },
-      { id: 'fachadas', k: 1, x0: -60, x1: W + 80, y0: -40, y1: 765, body: F.body, emissive: F.emissive, texts: F.texts, lit: true },
-      { id: 'frente', k: KF, z: 'front', lit: true, pieces: foreground() },
+      { id: 'calzada', floor: true, x0: gr[0], x1: gr[1], y0: 200, y1: 1080, body: ground(), lit: true, textura: 0.35 },
+      { id: 'dragon', k: KD, x0: Math.floor(at(1300, KD)), x1: Math.ceil(at(5500, KD)), y0: -40, y1: yOf(KD) + 6, body: dr.body, emissive: dr.emissive, glows: dr.glows, lit: true, ambient: '#525a88', textura: 0.25 },
+      { id: 'traseras', k: KT, x0: Math.floor(at(-1200, KT)), x1: Math.ceil(at(9000, KT)), y0: -60, y1: yOf(KT) + 6, body: bk.body, emissive: bk.emissive, lit: true, ambient: '#3a3f66', lights: false, textura: 0.25 },
+      { id: 'parque', k: KP, x0: Math.floor(at(1600, KP)), x1: Math.ceil(at(4800, KP)), y0: -220, y1: yOf(KP) + 8, body: near.body, emissive: near.emissive, glows: near.glows, lit: true, textura: 0.25 },
+      { id: 'fachadas', k: 1, x0: -60, x1: W + 80, y0: -40, y1: 765, body: F.body, emissive: F.emissive, texts: F.texts, lit: true, textura: 0.3 },
+      { id: 'frente', k: KF, z: 'front', lit: true, textura: 0.3, pieces: foreground() },
     ],
     laterals: laterals(),
     props: [
