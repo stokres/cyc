@@ -9,7 +9,7 @@
 // camera pans.
 import {
   smooth, ellipse, path, stroke, g, shape, rect, circle, line, poly, polyD, rectD, rr, lin, rad, gpath,
-  mat, box, bevel, tiles, bricks, foliage, persp, rng, f2, ao,
+  mat, box, bevel, tiles, bricks, foliage, persp, rng, f2, ao, sombra,
 } from './kit.mjs';
 
 export const P = persp({ HOR: 150, BASE: 760, CX: 1170 });
@@ -37,21 +37,88 @@ const X = {
 
 // ---------------------------------------------------------------- facades
 
+/** Many small squares of one colour as a single path (cheap speckle). */
+const motas = (pts, s) => pts.map(([x, y, k = 1]) => `M${f2(x)} ${f2(y)}h${f2(s * k)}v${f2(s * k)}h${f2(-s * k)}z`).join('');
+
+/** Granite skirting: slabs of uneven width and tone, joints, flecks, chips and the dirt that splashes up the wall. */
 function plinth(x0, x1) {
-  const out = [rect(x0, 700, x1 - x0, 60, GRANITE.base), rect(x0, 700, x1 - x0, 5, GRANITE.light), rect(x0, 752, x1 - x0, 8, GRANITE.shadow)];
-  for (let x = x0 + 70; x < x1; x += 140) out.push(line(x, 705, x, 752, GRANITE.shadow, 1.5));
+  const r = rng(Math.round(x0) + 17);
+  const tones = [GRANITE.base, '#9d9b97', '#b2b0ab', '#a3a19c'];
+  const out = [ao(x0, 700, x1 - x0, 46, 0.34, -1, '#24161c'), rect(x0, 700, x1 - x0, 60, GRANITE.base)];
+  const oscuras = [];
+  const claras = [];
+  const juntas = [];
+  const brillos = [];
+  const lascas = [];
+  for (let x = x0, i = 0; x < x1; i++) {
+    const xe = Math.min(x1, x + 105 + r() * 95);
+    const t = tones[Math.floor(r() * tones.length)];
+    if (t !== GRANITE.base) out.push(rect(x, 705, xe - x, 47, t));
+    juntas.push(`M${f2(x - 1)} 705h2.6v47h-2.6z`);
+    brillos.push(`M${f2(x + 1.6)} 705h1.4v47h-1.4z`);
+    for (let k = 0; k < 18; k++) {
+      const p = [x + 4 + r() * (xe - x - 8), 708 + r() * 42, 0.6 + r() * 0.9];
+      (r() < 0.55 ? oscuras : claras).push(p);
+    }
+    // A chip knocked out of a corner, with a worn patch at the foot of some slabs.
+    if (r() < 0.45) lascas.push(`M${f2(xe - 9)} 752l9 0l0 -8z`, `M${f2(x + 1)} 705l8 0l-8 7z`);
+    if (r() < 0.5) out.push(sombra((x + xe) / 2, 749, (xe - x) * 0.4, 7, 0.3, '#1a1018'));
+    x = xe;
+  }
+  out.push(path(juntas.join(''), GRANITE.shadow), path(brillos.join(''), GRANITE.light, { opacity: 0.55 }));
+  out.push(path(motas(oscuras, 2.4), GRANITE.shadow, { opacity: 0.7 }), path(motas(claras, 2.4), GRANITE.light, { opacity: 0.8 }));
+  out.push(path(lascas.join(''), GRANITE.shadow, { opacity: 0.8 }));
+  // Moulded top edge, the lip's own shadow, and the shaded foot.
+  out.push(rect(x0, 700, x1 - x0, 5, GRANITE.light), rect(x0, 705, x1 - x0, 3, '#000000', { opacity: 0.16 }), rect(x0, 752, x1 - x0, 8, GRANITE.shadow));
+  out.push(ao(x0, 760, x1 - x0, 20, 0.32, -1, '#14101a'));
   return out.join('');
+}
+
+/** Rain streaks and soft stains on a plastered or brick wall, under balconies and sills. */
+function manchas(x0, x1, seed, { yTop = 30, n = 14 } = {}) {
+  const r = rng(seed);
+  const out = [];
+  const rayas = [];
+  for (let i = 0; i < n; i++) {
+    const x = x0 + 20 + r() * (x1 - x0 - 40);
+    const y = yTop + r() * 420;
+    out.push(sombra(x, y + 40, 40 + r() * 60, 50 + r() * 90, 0.12 + r() * 0.1, '#2a1a20'));
+  }
+  for (let i = 0; i < n * 2; i++) {
+    const x = x0 + 14 + r() * (x1 - x0 - 28);
+    const y = yTop + 10 + r() * 380;
+    rayas.push(`M${f2(x)} ${f2(y)}q${f2((r() - 0.5) * 6)} ${f2(40 + r() * 70)} ${f2((r() - 0.5) * 4)} ${f2(80 + r() * 140)}`);
+  }
+  out.push(stroke(rayas.join(''), '#2a1a20', 3.4, { opacity: 0.09 }));
+  return out.join('');
+}
+
+/** A cast-iron or zinc downpipe with its clamps. */
+function bajante(x, y0 = -40, y1 = 700) {
+  const o = [rect(x - 9, y0, 6, y1 - y0, '#000000', { opacity: 0.14 }), rect(x - 5, y0, 13, y1 - y0, '#8a9096'), rect(x - 5, y0, 4, y1 - y0, '#b6bcc2'), rect(x + 4, y0, 4, y1 - y0, '#5c6168')];
+  for (let y = 40; y < y1 - 60; y += 160) o.push(rect(x - 8, y, 19, 8, '#6e747b'), rect(x - 8, y, 19, 2.5, '#b6bcc2'));
+  o.push(rect(x - 8, y1 - 40, 19, 10, '#6e747b'), rect(x - 8, y1 - 40, 19, 3, '#b6bcc2'));
+  return o.join('');
 }
 
 /** First-floor balconies, cut by the top of the frame: slab, bars and a pot or two. */
 function balconies(x0, x1, seed, { every = 330, w = 220, plants = true } = {}) {
   const r = rng(seed);
   const out = [];
+  const goteras = [];
+  const brillos = [];
   for (let x = x0 + (every - w) / 2; x + w <= x1; x += every) {
     out.push(rect(x + 20, -30, w - 40, 30, '#3c2c34', { opacity: 0.55 }));
+    // The slab throws a shadow down the wall, and rain stains run from its corners.
+    out.push(ao(x - 14, 18, w + 28, 64, 0.5, 1, '#1a1018'));
     out.push(box(x, -6, w, 24, GRANITE, { r: 2, sh: 0.4, li: 0.2 }));
-    for (let b = x + 8; b < x + w - 4; b += 14) out.push(rect(b, -40, 4, 36, IRON.base));
-    out.push(rect(x, -12, w, 6, IRON.base));
+    out.push(rect(x + 4, 14, w - 8, 3, '#000000', { opacity: 0.2 }));
+    for (const gx of [x + 12, x + w - 16, x + w * 0.5]) goteras.push(`M${f2(gx)} 18q${f2((r() - 0.5) * 6)} ${f2(30 + r() * 30)} ${f2((r() - 0.5) * 4)} ${f2(60 + r() * 60)}`);
+    for (let b = x + 8; b < x + w - 4; b += 14) {
+      out.push(rect(b, -40, 4, 36, IRON.base));
+      brillos.push(`M${f2(b + 2.6)} -40h1.4v36h-1.4z`);
+    }
+    out.push(rect(x, -12, w, 6, IRON.base), rect(x, -12, w, 1.6, IRON.light, { opacity: 0.8 }));
     if (plants && r() < 0.7) {
       const px = x + 30 + r() * (w - 60);
       out.push(foliage(px, -14, 34, 22, ['#2f5d3a', '#3f7a48', '#5b9a5a', '#7bb46c'], seed + x, { n: 7 }));
@@ -59,6 +126,8 @@ function balconies(x0, x1, seed, { every = 330, w = 220, plants = true } = {}) {
     }
     if (r() < 0.35) out.push(box(x + w - 70, -38, 56, 34, mat('#e9e6df', '#c9c5bc', '#f7f5f0', '#8a8680'), { r: 3 }));
   }
+  out.push(path(brillos.join(''), IRON.light, { opacity: 0.55 }));
+  out.push(stroke(goteras.join(''), '#2a1a20', 4, { opacity: 0.11 }));
   return out.join('');
 }
 
@@ -66,12 +135,18 @@ function balconies(x0, x1, seed, { every = 330, w = 220, plants = true } = {}) {
 function cables(x0, x1, seed, y = 40) {
   const r = rng(seed);
   const out = [];
+  const brillos = [];
   for (let i = 0; i < 4; i++) {
     const ya = y + r() * 40;
     const yb = y + r() * 40;
     const sag = 20 + r() * 40;
-    out.push(stroke(`M${x0} ${ya}C${x0 + (x1 - x0) * 0.3} ${ya + sag} ${x0 + (x1 - x0) * 0.7} ${yb + sag} ${x1} ${yb}`, '#1c1a1e', 2.4 + r() * 1.5));
+    const d = `M${x0} ${ya}C${x0 + (x1 - x0) * 0.3} ${ya + sag} ${x0 + (x1 - x0) * 0.7} ${yb + sag} ${x1} ${yb}`;
+    out.push(stroke(d, '#2a2630', 2.4 + r() * 1.5));
+    brillos.push(d);
+    out.push(rect(x0 - 2, ya - 6, 12, 12, IRON.base, { rx: 2 }), rect(x1 - 10, yb - 6, 12, 12, IRON.base, { rx: 2 }));
   }
+  // A thin lighter line on the upper side of each cable.
+  out.push(`<g transform="translate(0 -1.6)">${stroke(brillos.join(''), '#6a6480', 0.9, { opacity: 0.6 })}</g>`);
   return out.join('');
 }
 
@@ -81,13 +156,40 @@ function tag(x, y, s, seed, colors) {
   const pts = [];
   for (let i = 0; i < 9; i++) pts.push([x + i * 26 * s + (r() - 0.5) * 10 * s, y + (r() - 0.5) * 40 * s]);
   const d = smooth(pts, false);
-  return [stroke(d, '#1a1a22', 20 * s), stroke(d, colors[0], 13 * s), stroke(d, colors[1], 4 * s, { opacity: 0.8 }), ...pts.filter((_, i) => i % 3 === 1).map(([a, b]) => circle(a + 8 * s, b - 22 * s, 4 * s, colors[1]))].join('');
+  return [stroke(d, '#26182e', 20 * s), stroke(d, colors[0], 13 * s), stroke(d, colors[1], 4 * s, { opacity: 0.8 }), ...pts.filter((_, i) => i % 3 === 1).map(([a, b]) => circle(a + 8 * s, b - 22 * s, 4 * s, colors[1]))].join('');
 }
 
+let persiana = 0;
+/** A metal roller shutter: corrugated slats (one tiled pattern), guides, box, lock, flyers and tags. */
 function shutter(x0, x1, y0, y1, seed) {
-  const out = [rect(x0, y0, x1 - x0, y1 - y0, '#9aa0a6')];
-  for (let y = y0 + 6; y < y1; y += 12) out.push(rect(x0, y, x1 - x0, 4, '#7e848b'), rect(x0, y - 2, x1 - x0, 2, '#b6bbc0'));
-  out.push(rect(x0, y1 - 18, x1 - x0, 18, '#6e747b'), rect(x0 - 8, y0 - 26, x1 - x0 + 16, 28, '#8a9096', { rx: 3 }));
+  const id = `lama${++persiana}`;
+  const w = x1 - x0;
+  const h = y1 - y0;
+  const r = rng(seed);
+  const lama = `<defs><linearGradient id="${id}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c2c7cc"/><stop offset="0.16" stop-color="#a9afb5"/><stop offset="0.55" stop-color="#939aa1"/><stop offset="0.86" stop-color="#7a8087"/><stop offset="1" stop-color="#555b62"/></linearGradient><pattern id="${id}" patternUnits="userSpaceOnUse" x="0" y="${y0}" width="40" height="12"><rect width="40" height="12" fill="url(#${id}g)"/></pattern></defs>`;
+  const out = [lama, rect(x0, y0, w, h, '#6e747b')];
+  out.push(rect(x0 + 10, y0, w - 20, h, `url(#${id})`));
+  // Guides at the sides and the sheen of the moon across the slats.
+  out.push(rect(x0, y0, 10, h, '#555b62'), rect(x0, y0, 3, h, '#9aa0a6', { opacity: 0.7 }), rect(x1 - 10, y0, 10, h, '#555b62'), rect(x1 - 4, y0, 4, h, '#2e3238', { opacity: 0.6 }));
+  out.push(gpath(rectD(x0 + 10, y0, w - 20, h), lin(x0 + 10, y0, x1 - 10, y0 + h * 0.2, [[0, '#14101a', 0.28], [0.55, '#14101a', 0], [1, '#ffffff', 0.12]])));
+  out.push(ao(x0 + 10, y0, w - 20, 40, 0.5));
+  // Rust and grime running down from the box, and the dark foot.
+  const goteras = [];
+  for (let i = 0; i < 7; i++) {
+    const gx = x0 + 24 + r() * (w - 48);
+    goteras.push(`M${f2(gx)} ${f2(y0 + 4)}q${f2((r() - 0.5) * 6)} ${f2(30 + r() * 40)} ${f2((r() - 0.5) * 4)} ${f2(60 + r() * 150)}`);
+  }
+  out.push(stroke(goteras.join(''), '#6a4a34', 5, { opacity: 0.2 }));
+  out.push(ao(x0 + 10, y1, w - 20, 70, 0.38, -1, '#14101a'));
+  // Bottom bar with its lock, the roller box above and its end caps.
+  out.push(box(x0 + 4, y1 - 20, w - 8, 20, mat('#707680', '#555b62', '#9aa0a6', '#3a3f45'), { r: 2, sh: 0.3, li: 0.2, side: false }));
+  out.push(box(x0 + w * 0.5 - 14, y1 - 17, 28, 14, mat('#4a4f56', '#32363c', '#7a8087', '#1e2226'), { r: 3, lw: 1.2 }), circle(x0 + w * 0.5, y1 - 10, 2.4, '#1e2226'));
+  out.push(box(x0 - 8, y0 - 26, w + 16, 28, mat('#8f959c', '#6e747b', '#b6bbc0', '#454a50'), { r: 3, sh: 0.3, li: 0.14 }));
+  for (const cx of [x0 - 8, x1 + 2]) out.push(rect(cx, y0 - 26, 6, 28, '#555b62', { rx: 2 }));
+  // Two flyers glued on and half torn off.
+  for (const [fx, fy, c] of [[x0 + 30 + r() * (w * 0.25), y0 + 60 + r() * 60, '#e8e0c8'], [x1 - 70 - r() * (w * 0.2), y0 + 110 + r() * 80, '#cfe0e8']]) {
+    out.push(rect(fx + 3, fy + 3, 30, 42, '#000000', { opacity: 0.18 }), rect(fx, fy, 30, 42, c), rect(fx + 4, fy + 5, 22, 8, '#c04a3a', { opacity: 0.8 }), rect(fx + 4, fy + 18, 22, 3, '#7a7a80', { opacity: 0.6 }), rect(fx + 4, fy + 25, 16, 3, '#7a7a80', { opacity: 0.6 }), path(polyD([[fx + 22, fy + 42], [fx + 30, fy + 42], [fx + 30, fy + 34]]), '#8f959c'));
+  }
   out.push(tag(x0 + 40, y0 + (y1 - y0) * 0.55, 1.3, seed, ['#ff5aa0', '#7af0e0']), tag(x0 + (x1 - x0) * 0.5, y0 + (y1 - y0) * 0.3, 0.9, seed + 3, ['#ffd23a', '#ffffff']));
   return out.join('');
 }
@@ -209,6 +311,7 @@ function franBuilding(em, tx) {
   const out = [];
   out.push(bricks(0, -40, 1000, 740, BRICK, MORTAR, { bw: 36, bh: 13, seed: 11 }));
   out.push(gpath(rectD(0, -40, 1000, 300), lin(0, -40, 0, 260, [[0, '#2a1a20', 0.35], [1, '#2a1a20', 0]])));
+  out.push(manchas(0, 1000, 31));
   out.push(balconies(0, 1000, 5));
   out.push(plinth(0, 1000));
   // Ground-floor window with bars and a lit curtain.
@@ -219,9 +322,20 @@ function franBuilding(em, tx) {
   for (let x = 78; x < 234; x += 22) em.push(rect(x, 300, 6, 262, IRON.line));
   em.push(rect(64, 330, 176, 6, IRON.line), rect(64, 520, 176, 6, IRON.line));
   out.push(box(44, 566, 216, 18, GRANITE, { r: 2, sh: 0.4, li: 0.2 }));
+  // Window surround in dressed stone (joints at the voussoirs), and the sill's shadow and drips on the brick.
+  for (const y of [340, 400, 460, 520]) out.push(rect(52, y, 18, 2.4, GRANITE.shadow), rect(234, y, 18, 2.4, GRANITE.shadow));
+  for (const x of [100, 150, 200]) out.push(rect(x, 290, 2.4, 18, GRANITE.shadow));
+  out.push(rect(52, 290, 200, 3, GRANITE.light), rect(52, 290, 3, 276, GRANITE.light, { opacity: 0.7 }), rect(247, 290, 5, 276, GRANITE.shadow, { opacity: 0.6 }));
+  out.push(ao(40, 584, 224, 78, 0.5, 1, '#1a1018'), ao(50, 270, 204, 20, 0.35, -1, '#1a1018'));
+  out.push(stroke('M70 584q2 24 0 52M120 584q-2 30 1 74M178 584q2 22 0 46M230 584q-3 28 0 60', '#2a1a20', 4, { opacity: 0.14 }));
   // Fran's portal: granite surround, fanlight and a green iron-and-glass door.
   const [p0, p1] = X.portal;
+  out.push(ao(p0 - 40, 150, p1 - p0 + 80, 40, 0.4, -1, '#1a1018'));
   out.push(box(p0 - 14, 150, p1 - p0 + 28, 610, GRANITE, { r: 2, sh: 0.02, li: 0.02 }));
+  // Dressed granite: courses on the jambs, a keystone in the lintel, a moulded cornice above.
+  for (let y = 214; y < 740; y += 62) out.push(rect(p0 - 14, y, 32, 2.6, GRANITE.shadow), rect(p1 - 18, y + 31, 32, 2.6, GRANITE.shadow), rect(p0 - 14, y + 2.6, 32, 1.4, GRANITE.light, { opacity: 0.7 }), rect(p1 - 18, y + 33.6, 32, 1.4, GRANITE.light, { opacity: 0.7 }));
+  out.push(path(polyD([[(p0 + p1) / 2 - 26, 150], [(p0 + p1) / 2 + 26, 150], [(p0 + p1) / 2 + 18, 186], [(p0 + p1) / 2 - 18, 186]]), GRANITE.light, { opacity: 0.85 }), rect(p0 - 14, 150, p1 - p0 + 28, 4, GRANITE.light), rect(p0 - 14, 182, p1 - p0 + 28, 4, GRANITE.shadow, { opacity: 0.7 }), rect(p0 - 14, 150, 4, 610, GRANITE.light, { opacity: 0.6 }), rect(p1 + 6, 150, 8, 610, GRANITE.shadow, { opacity: 0.55 }));
+  out.push(box(p0 - 28, 132, p1 - p0 + 56, 20, GRANITE, { r: 2, sh: 0.4, li: 0.22 }), ao(p0 - 28, 152, p1 - p0 + 56, 30, 0.3));
   out.push(rect(p0 + 18, 186, p1 - p0 - 36, 560, IRON.line));
   em.push(gpath(rectD(p0 + 24, 192, p1 - p0 - 48, 548), lin(0, 192, 0, 740, [[0, '#ffe2a8'], [0.5, '#f4c07a'], [1, '#c98a50']])));
   // Inside: stairs and the mailboxes, soft and warm.
@@ -235,15 +349,20 @@ function franBuilding(em, tx) {
   for (const x of [p0 + 60, p0 + 90, p1 - 90, p1 - 60]) door.push(rect(x, 610, 6, 130, IRON.base));
   door.push(box((p0 + p1) / 2 - 22, 470, 10, 60, mat('#c9a14f', '#9c7a35', '#e6c97c', '#5e4719'), { r: 4 }), box((p0 + p1) / 2 + 12, 470, 10, 60, mat('#c9a14f', '#9c7a35', '#e6c97c', '#5e4719'), { r: 4 }));
   em.push(...door);
-  out.push(box(p0 - 30, 740, p1 - p0 + 60, 20, GRANITE, { r: 2, sh: 0.4, li: 0.3 }));
+  // The lintel and jambs darken the doorway's edges.
+  em.push(ao(p0 + 30, 198, p1 - p0 - 60, 40, 0.38), gpath(rectD(p0 + 30, 198, 18, 540), lin(p0 + 30, 0, p0 + 48, 0, [[0, '#1a1018', 0.3], [1, '#1a1018', 0]])));
+  out.push(box(p0 - 30, 740, p1 - p0 + 60, 20, GRANITE, { r: 2, sh: 0.4, li: 0.3 }), rect(p0 - 30, 740, p1 - p0 + 60, 3, GRANITE.light), ao(p0 - 30, 722, p1 - p0 + 60, 18, 0.4, 1, '#1a1018'));
   out.push(box(p1 + 20, 400, 44, 150, STEEL, { r: 4 }));
   for (let i = 0; i < 5; i++) out.push(circle(p1 + 33, 430 + i * 22, 5, '#5c6168'), circle(p1 + 51, 430 + i * 22, 5, '#5c6168'));
-  out.push(rect(p1 + 30, 412, 24, 10, '#2a2d32', { rx: 2 }));
-  out.push(box((p0 + p1) / 2 - 40, 120, 80, 50, mat('#2f5d8a', '#234a70', '#4a7ab0', '#14304a'), { r: 4 }));
+  out.push(rect(p1 + 30, 412, 24, 10, '#2a2d32', { rx: 2 }), rect(p1 + 24, 404, 36, 3, '#ffffff', { opacity: 0.5 }));
+  out.push(ao(p1 + 14, 550, 56, 26, 0.35));
+  out.push(box((p0 + p1) / 2 - 40, 120, 80, 50, mat('#2f5d8a', '#234a70', '#4a7ab0', '#14304a'), { r: 4 }), stroke(rr((p0 + p1) / 2 - 35, 125, 70, 40, 3), '#8ab0e0', 1.5, { opacity: 0.8 }));
+  for (const [sx, sy] of [[(p0 + p1) / 2 - 33, 128], [(p0 + p1) / 2 + 33, 128], [(p0 + p1) / 2 - 33, 162], [(p0 + p1) / 2 + 33, 162]]) out.push(circle(sx, sy, 2, '#8ab0e0'));
   tx.push({ x: (p0 + p1) / 2, y: 146, s: '12', size: 32, font: 'display', color: '#f3ead6' });
   // The old haberdashery, closed for years: faded sign and a tagged shutter.
   const [m0, m1] = X.merceria;
-  out.push(box(m0, 140, m1 - m0, 86, mat('#e8dcc0', '#cbbf9f', '#f4ecd8', '#8a7e5e'), { r: 3 }));
+  out.push(box(m0, 140, m1 - m0, 86, mat('#e8dcc0', '#cbbf9f', '#f4ecd8', '#8a7e5e'), { r: 3 }), ao(m0 - 6, 226, m1 - m0 + 12, 30, 0.35), rect(m0 + 6, 146, m1 - m0 - 12, 2, '#ffffff', { opacity: 0.4 }));
+  out.push(bajante(992));
   tx.push({ x: (m0 + m1) / 2, y: 184, s: 'MERCERÍA LOLI', size: 40, font: 'serif', weight: 700, color: '#5e8a6a', maxW: m1 - m0 - 40 });
   out.push(shutter(m0 + 20, m1 - 20, 262, 740, 23));
   return out.join('');
@@ -254,6 +373,7 @@ function shopsBuilding(em, tx) {
   out.push(rect(1000, -40, 1000, 740, '#dcc6a4'));
   out.push(gpath(rectD(1000, -40, 1000, 300), lin(0, -40, 0, 260, [[0, '#2a1a20', 0.3], [1, '#2a1a20', 0]])));
   for (let y = 0; y < 700; y += 46) out.push(rect(1000, y, 1000, 2, '#c9b28e', { opacity: 0.6 }));
+  out.push(manchas(1000, 2000, 32));
   out.push(balconies(1000, 2000, 9, { every: 340, w: 240 }));
   out.push(cables(1000, 2000, 4, 60));
   out.push(plinth(1000, 2000));
@@ -314,7 +434,7 @@ function shopsBuilding(em, tx) {
   out.push(crate(f0 + 20, 640, 110, '#f08a2e'), crate(f0 + 140, 640, 110, '#d8362e'), crate(f0 + 260, 640, 110, 'platano'), crate(f0 + 80, 584, 110, '#5aa83a'), crate(f0 + 200, 584, 110, '#f0c23a'));
   // Chinese bakery: red sign, two paper lanterns, buns and a waving lucky cat.
   const [b0, b1] = X.panaderia;
-  out.push(box(b0, 112, b1 - b0, 86, RED, { r: 4 }));
+  out.push(box(b0, 112, b1 - b0, 86, RED, { r: 4 }), ao(b0 - 4, 198, b1 - b0 + 8, 34, 0.4), rect(b0 + 6, 118, b1 - b0 - 12, 2, '#ffffff', { opacity: 0.3 }));
   tx.push({ x: (b0 + b1) / 2, y: 156, s: 'BOLLERÍA CHINA', size: 40, font: 'display', color: '#ffd56a', maxW: b1 - b0 - 60, emissive: true });
   // Inside: photos of the dishes on the back wall, shelves of buns and steamers,
   // a glass counter of trays, and the lucky cat by the till.
@@ -386,9 +506,10 @@ function pharmacy(em, tx) {
   out.push(rect(a, -40, b - a, 740, '#e8d9b8'));
   out.push(gpath(rectD(a, -40, b - a, 300), lin(0, -40, 0, 260, [[0, '#2a1a20', 0.3], [1, '#2a1a20', 0]])));
   for (let y = 0; y < 700; y += 46) out.push(rect(a, y, b - a, 2, '#cfbf98', { opacity: 0.6 }));
+  out.push(manchas(a, b, 33, { n: 9 }));
   out.push(balconies(a, b, 13, { every: 250, w: 190 }));
   out.push(plinth(a, b));
-  out.push(box(a + 20, 112, b - a - 110, 86, mat('#f4f4ee', '#d8d8ce', '#ffffff', '#8a8a80'), { r: 4 }));
+  out.push(box(a + 20, 112, b - a - 110, 86, mat('#f4f4ee', '#d8d8ce', '#ffffff', '#8a8a80'), { r: 4 }), ao(a + 16, 198, b - a - 102, 34, 0.4));
   em.push(rect(a + 28, 120, b - a - 126, 70, '#f2fff6'));
   tx.push({ x: a + 20 + (b - a - 110) / 2, y: 156, s: 'FARMACIA', size: 46, font: 'body', weight: 800, color: '#1f9a4a', emissive: true, spacing: 4 });
   // Inside: white shelves of boxes and bottles, a summer poster in a light box,
@@ -433,7 +554,9 @@ function pedestrianBuildings(em, tx) {
   out.push(gpath(rectD(c1, -40, X.fin - c1 + 60, 300), lin(0, -40, 0, 260, [[0, '#2a1a20', 0.3], [1, '#2a1a20', 0]])));
   for (let y = 0; y < 700; y += 46) out.push(rect(c1, y, X.fin - c1 + 60, 2, '#000', { opacity: 0.05 }));
   out.push(rect(c1, -40, 16, 800, '#c99482'));
+  out.push(manchas(c1, c1 + 1100, 34), manchas(c1 + 1100, X.fin, 35));
   out.push(balconies(c1, c1 + 1100, 21, { every: 360, w: 240 }), balconies(c1 + 1100, X.fin, 27, { every: 300, w: 200 }));
+  out.push(bajante(c1 + 34));
   out.push(plinth(c1, X.fin + 60));
   out.push(cables(c1, c1 + 1100, 8, 30), cables(c1 + 1100, X.fin, 12, 50));
   // Blue doorway to the left of the bar.
@@ -452,24 +575,37 @@ function pedestrianBuildings(em, tx) {
     out.push(stroke(`M${x + 10 + r() * 40} ${y + 10}Q${x + 60} ${y + 60 + r() * 30} ${x + 100} ${y + 120}`, '#7a7a82', 1.5, { opacity: 0.7 }));
   }
   // Light box "RIO" peeking above the awning, and a beer sign.
-  out.push(box(a + 430, 150, 170, 100, mat('#f4f6fa', '#d4d8e0', '#ffffff', '#6a7080'), { r: 4 }));
+  out.push(box(a + 430, 150, 170, 100, mat('#f4f6fa', '#d4d8e0', '#ffffff', '#6a7080'), { r: 4 }), rect(a + 446, 244, 10, 14, '#5c6168'), rect(a + 574, 244, 10, 14, '#5c6168'), rect(a + 430, 150, 170, 2.4, '#ffffff', { opacity: 0.8 }));
   em.push(rect(a + 438, 158, 154, 84, '#f2f6ff'));
   tx.push({ x: a + 515, y: 200, s: 'RIO', size: 70, font: 'serif', weight: 700, color: '#1a3a9a', emissive: true });
   out.push(box(b + 20, 130, 110, 120, mat('#3a2a26', '#2a1e1a', '#5a4a44', '#140c0a'), { r: 4 }));
   em.push(rect(b + 26, 136, 14, 108, '#d8323a'));
   tx.push({ x: b + 84, y: 175, s: 'CERVEZA', size: 20, font: 'body', weight: 800, color: '#f4e6c8', emissive: true, maxW: 76 });
   tx.push({ x: b + 84, y: 205, s: 'DESDE 1890', size: 13, font: 'body', weight: 700, color: '#d8323a', emissive: true, maxW: 76 });
-  // The awning: slanted top and the valance with the name.
-  out.push(shape(polyD([[a - 30, 236], [b + 30, 236], [b + 50, 300], [a - 50, 300]]), '#1e1e22', [rect(a - 50, 236, b - a + 100, 10, '#2c2c32'), path(polyD([[a + 60, 240], [a + 300, 240], [a + 200, 296], [a - 20, 296]]), '#ffffff', { opacity: 0.05 })], '#0a0a0c', 1.6));
+  // The awning: slanted top in panels with a seam each, the valance with the name, and the dark it throws below.
+  const nAw = 10;
+  const toldo = [];
+  for (let i = 0; i < nAw; i++) {
+    const t0 = i / nAw;
+    const t1 = (i + 1) / nAw;
+    toldo.push(path(polyD([[a - 30 + t0 * (b - a + 60), 236], [a - 30 + t1 * (b - a + 60), 236], [a - 50 + t1 * (b - a + 100), 300], [a - 50 + t0 * (b - a + 100), 300]]), i % 2 ? '#2a2a30' : '#1e1e22'));
+    toldo.push(line(a - 30 + t0 * (b - a + 60), 238, a - 50 + t0 * (b - a + 100), 298, '#38383f', 1.6, { opacity: 0.8 }));
+  }
+  out.push(...toldo);
+  out.push(gpath(polyD([[a - 30, 236], [b + 30, 236], [b + 50, 300], [a - 50, 300]]), lin(0, 236, 0, 300, [[0, '#ffffff', 0.14], [0.35, '#ffffff', 0.02], [1, '#08060c', 0.35]])));
+  out.push(rect(a - 34, 232, b - a + 68, 9, '#34343c', { rx: 2 }), rect(a - 34, 232, b - a + 68, 2.4, '#5a5a64', { rx: 1 }));
   out.push(box(a - 50, 298, b - a + 100, 84, mat('#1e1e22', '#141416', '#2e2e34', '#0a0a0c'), { r: 2, sh: 0.1, li: 0.04 }));
-  out.push(rect(a - 50, 298, b - a + 100, 5, '#e8dcc0'));
+  out.push(rect(a - 50, 298, b - a + 100, 5, '#e8dcc0'), rect(a - 50, 303, b - a + 100, 3, '#000000', { opacity: 0.3 }));
+  for (let x = a - 50 + (b - a + 100) / 5; x < b + 40; x += (b - a + 100) / 5) out.push(rect(x - 1, 306, 2, 70, '#34343c'), rect(x + 1, 306, 1.4, 70, '#000000', { opacity: 0.3 }));
+  out.push(stroke(rr(a - 44, 312, b - a + 88, 58, 3), '#c99a3a', 1.6, { opacity: 0.7 }));
+  out.push(rect(a - 50, 376, b - a + 100, 6, '#0a0a0c'), rect(a - 50, 375, b - a + 100, 1.6, '#e8dcc0', { opacity: 0.5 }));
   tx.push({ x: (a + b) / 2, y: 342, s: 'BAR DEL RIO', size: 56, font: 'serif', weight: 700, color: '#efe2c4', spacing: 2 });
   // Little logo on the left of the valance: a cup and diamonds.
   out.push(path(polyD([[a - 20, 352], [a + 2, 322], [a + 24, 352]]), '#e8b83a'), path(polyD([[a + 14, 352], [a + 36, 322], [a + 58, 352]]), '#d8323a'), path(polyD([[a + 2, 352], [a + 14, 336], [a + 26, 352], [a + 14, 368]]), '#d8323a'));
   out.push(shape(rr(a - 36, 330, 18, 16, 3), '#d8323a', [], '#5e1418', 1), stroke(`M${a - 18} 334q8 4 0 8`, '#d8323a', 2));
   for (const x of [a - 40, b + 40]) out.push(stroke(`M${x} 382L${x + (x < a ? -10 : 10)} 520`, '#c8ccd0', 4));
   // Menu poster on the left panel.
-  out.push(box(a + 20, 420, 140, 200, mat('#141418', '#0c0c10', '#26262c', '#000000'), { r: 2 }));
+  out.push(box(a + 20, 420, 140, 200, mat('#141418', '#0c0c10', '#26262c', '#000000'), { r: 2 }), rect(a + 22, 422, 136, 2.4, '#5a5a64', { opacity: 0.7 }), rect(a + 22, 422, 2.4, 196, '#5a5a64', { opacity: 0.5 }), ao(a + 14, 620, 152, 24, 0.4));
   for (const [y, c] of [[470, '#c8542a'], [520, '#e2a33a'], [568, '#9a3a2a']]) out.push(path(ellipse(a + 120, y, 26, 16), c), path(ellipse(a + 116, y - 4, 10, 6), '#f4d8a0', { opacity: 0.6 }));
   tx.push({ x: a + 56, y: 440, s: 'RACIONES', size: 15, font: 'body', weight: 800, color: '#e8a83a', align: 'center', maxW: 80 });
   for (const [i, s] of ['Oreja plancha', 'Bravas', 'Calamares', 'Alitas', 'Tortilla'].entries()) tx.push({ x: a + 30, y: 466 + i * 18, s: (i + 1) + '· ' + s, size: 11, font: 'body', weight: 700, color: '#f4ecd8', align: 'left', maxW: 64 });
@@ -478,18 +614,18 @@ function pedestrianBuildings(em, tx) {
   // Door: aluminium frame, warm interior, gold letters on the glass.
   const dx0 = a + 180;
   const dx1 = a + 360;
-  out.push(rect(dx0, 380, dx1 - dx0, 370, '#b8bcc0'));
+  out.push(box(dx0, 380, dx1 - dx0, 370, STEEL, { r: 2, sh: 0.04, li: 0.02, side: false }), rect(dx0 + 3, 383, 2.4, 364, '#ffffff', { opacity: 0.55 }), rect(dx1 - 6, 383, 3, 364, STEEL.shadow, { opacity: 0.8 }));
   em.push(gpath(rectD(dx0 + 12, 392, dx1 - dx0 - 24, 346), lin(0, 392, 0, 738, [[0, '#ffdca0'], [1, '#e6a060']])));
   em.push(path(ellipse(dx0 + 90, 600, 30, 60), '#8a5030', { opacity: 0.55 }), circle(dx0 + 90, 520, 22, '#8a5030', { opacity: 0.55 }));
   em.push(rect(dx0 + 12, 560, dx1 - dx0 - 24, 10, '#b8bcc0'), rect(dx0 + 12, 640, dx1 - dx0 - 24, 98, '#3a3a40', { opacity: 0.6 }));
   for (let x = dx0 + 20; x < dx1 - 16; x += 16) em.push(rect(x, 646, 4, 88, '#2a2a30'));
   tx.push({ x: (dx0 + dx1) / 2, y: 452, s: 'BAR', size: 36, font: 'serif', weight: 700, color: '#c99a3a', emissive: true });
   tx.push({ x: (dx0 + dx1) / 2, y: 500, s: 'DEL RIO', size: 30, font: 'serif', weight: 700, color: '#c99a3a', emissive: true });
-  em.push(rect(dx1 - 34, 560, 10, 40, '#d8dce0'));
+  em.push(rect(dx1 - 34, 560, 10, 40, '#d8dce0'), rect(dx1 - 32, 560, 3, 40, '#ffffff'), ao(dx0 + 12, 392, dx1 - dx0 - 24, 34, 0.4));
   // Window: counter, bottles, taps and the telly.
   const wx0 = a + 380;
   const wx1 = b - 20;
-  out.push(rect(wx0, 380, wx1 - wx0, 250, '#b8bcc0'));
+  out.push(box(wx0, 380, wx1 - wx0, 250, STEEL, { r: 2, sh: 0.04, li: 0.02, side: false }), rect(wx0 + 3, 383, wx1 - wx0 - 8, 2.4, '#ffffff', { opacity: 0.55 }), rect(wx1 - 6, 383, 3, 244, STEEL.shadow, { opacity: 0.8 }));
   em.push(gpath(rectD(wx0 + 12, 392, wx1 - wx0 - 24, 226), lin(0, 392, 0, 618, [[0, '#ffe2b0'], [1, '#f0aa66']])));
   em.push(rect(wx0 + 12, 470, wx1 - wx0 - 24, 6, '#8a5a34'));
   const rb = rng(9);
@@ -502,7 +638,9 @@ function pedestrianBuildings(em, tx) {
   em.push(rect(wx0 + 120, 404, 80, 50, '#1a1e28'), rect(wx0 + 124, 408, 72, 42, '#3a8a4a'), rect(wx0 + 124, 428, 72, 2, '#e8f4e0'));
   em.push(circle(wx0 + 150, 590, 20, '#7a4428', { opacity: 0.55 }), path(ellipse(wx0 + 150, 640, 30, 30), '#7a4428', { opacity: 0.55 }));
   em.push(cristal(dx0 + 12, 392, dx1 - 12, 560), cristal(wx0 + 12, 392, wx1 - 12, 618));
-  out.push(rect((wx0 + wx1) / 2 - 4, 380, 8, 250, '#b8bcc0'));
+  out.push(rect((wx0 + wx1) / 2 - 4, 380, 8, 250, '#b8bcc0'), rect((wx0 + wx1) / 2 - 4, 380, 2.4, 250, '#ffffff', { opacity: 0.55 }), rect((wx0 + wx1) / 2 + 2, 380, 2, 250, STEEL.shadow, { opacity: 0.8 }));
+  out.push(box(wx0 - 10, 626, wx1 - wx0 + 20, 14, GRANITE, { r: 2, sh: 0.4, li: 0.25 }), ao(wx0 - 10, 640, wx1 - wx0 + 20, 54, 0.5, 1, '#08060c'));
+  out.push(ao(a - 40, 382, b - a + 80, 80, 0.55, 1, '#08060c'));
   out.push(box(a - 6, 740, b - a + 12, 20, GRANITE, { r: 2, sh: 0.4, li: 0.3 }));
   // Salmon doorway with the number 40.
   const [n0, n1] = X.puerta40;
@@ -538,16 +676,59 @@ const KT = 0.4; // backs of the neighbouring buildings
 const KL = 0.12; // far side of the park
 const KS = kAt(30); // far end of the side street
 
-/** Plane tree: mottled bark and a big canopy. Local units: metres * m. */
+/** Plane tree: mottled bark lit from the moon's side, flared roots and a big canopy. Local units: metres * m. */
 function planeTree(u, base, m, seed) {
   const r = rng(seed);
   const tw = 0.36 * m;
   const top = base - 3.2 * m;
   const out = [];
-  out.push(shape(smooth([[u - tw * 0.7, base, 'c'], [u - tw * 0.5, base - m], [u - tw * 0.55, top + 0.6 * m], [u - tw * 1.4, top - 0.2 * m], [u - tw * 0.6, top - 0.1 * m], [u, top + 0.2 * m], [u + tw * 0.5, top - 0.3 * m], [u + tw * 1.3, top - 0.1 * m], [u + tw * 0.55, top + 0.6 * m], [u + tw * 0.5, base - m], [u + tw * 0.75, base, 'c']]), '#a8a48a', [
-    ...Array.from({ length: 9 }, () => path(ellipse(u + (r() - 0.5) * tw, base - r() * 3 * m, tw * (0.2 + r() * 0.25), tw * (0.3 + r() * 0.4)), r() < 0.5 ? '#7a7a62' : '#c8c4a6')),
-    rect(u + tw * 0.15, top - m, tw, 5 * m, '#6a6a54', { opacity: 0.5 }),
-  ], '#4a4a38', 1.6));
+  const corteza = mat('#8c8868', '#5e5a44', '#e2dcbc', '#463e30');
+  // Contact shadow and the dark of the ground around the foot.
+  out.push(sombra(u + 0.1 * m, base + 0.01 * m, 2.5 * tw, 0.13 * m, 0.55, '#120c18'));
+  // Irregular patches of bark: pale ones that have flaked off, olive ones, dark scars.
+  const parche = (cx, cy, rw, rh) => {
+    const pts = [];
+    for (let i = 0; i < 7; i++) {
+      const an = (i / 7) * Math.PI * 2 + r() * 0.4;
+      const k = 0.65 + r() * 0.55;
+      pts.push([cx + Math.cos(an) * rw * k, cy + Math.sin(an) * rh * k]);
+    }
+    return smooth(pts);
+  };
+  const claros = [];
+  const medios = [];
+  const oscuros = [];
+  for (let i = 0; i < 70; i++) {
+    const cx = u + (r() - 0.5) * tw * 1.15;
+    const e = Math.min(1, Math.abs(cx - u) / (tw * 0.6));
+    const ws = Math.sqrt(Math.max(0.1, 1 - e * e));
+    const cy = base - 0.12 * m - r() * 3.1 * m;
+    const k = r();
+    const rw = tw * (k < 0.5 ? 0.16 + r() * 0.3 : 0.07 + r() * 0.14) * ws + 2.4;
+    const rh = m * (k < 0.5 ? 0.06 + r() * 0.18 : 0.03 + r() * 0.08);
+    (k < 0.5 ? claros : k < 0.8 ? medios : oscuros).push(parche(cx, cy, rw, rh));
+  }
+  // Dark furrows near the foot, where the bark is rougher.
+  const grietas = [];
+  for (let i = 0; i < 7; i++) {
+    const gx = u + (r() - 0.5) * tw * 0.95;
+    const gy = base - 0.1 * m - r() * 0.9 * m;
+    grietas.push(`M${f2(gx)} ${f2(gy)}q${f2((r() - 0.5) * 0.06 * m)} ${f2(-0.2 * m)} ${f2((r() - 0.5) * 0.04 * m)} ${f2(-0.3 * m - r() * 0.3 * m)}`);
+  }
+  const ancho = Math.max(2.4, 0.02 * m);
+  const luz = lin(u - tw * 1.2, 0, u + tw * 1.2, 0, [[0, '#14101e', 0.5], [0.3, '#14101e', 0.22], [0.62, '#14101e', 0], [0.86, '#dfe6ff', 0.12], [1, '#dfe6ff', 0.02]]);
+  out.push(shape(smooth([
+    [u - tw * 1.3, base + 0.02 * m, 'c'], [u - tw * 0.85, base - 0.08 * m], [u - tw * 0.6, base - 0.35 * m], [u - tw * 0.5, base - m], [u - tw * 0.55, top + 0.6 * m], [u - tw * 1.4, top - 0.2 * m], [u - tw * 0.6, top - 0.1 * m], [u, top + 0.2 * m], [u + tw * 0.5, top - 0.3 * m], [u + tw * 1.3, top - 0.1 * m],
+    [u + tw * 0.55, top + 0.6 * m], [u + tw * 0.5, base - m], [u + tw * 0.64, base - 0.35 * m], [u + tw * 0.92, base - 0.08 * m], [u + tw * 1.4, base + 0.03 * m, 'c'],
+  ]), corteza.base, [
+    path(claros.join(''), corteza.light, { opacity: 0.9 }),
+    path(medios.join(''), '#74784f', { opacity: 0.85 }),
+    path(oscuros.join(''), corteza.shadow, { opacity: 0.85 }),
+    stroke(grietas.join(''), corteza.line, ancho, { opacity: 0.7 }),
+    gpath(rectD(u - tw * 2, top - m, tw * 4, base - top + m + 20), luz),
+    ao(u - tw * 2, base - 0.9 * m, tw * 4, 0.9 * m, 0.45, -1, '#120c18'),
+    ao(u - tw * 2, top - 0.2 * m, tw * 4, 1.4 * m, 0.5, 1, '#120c18'),
+  ], corteza.line, Math.max(2, 0.012 * m)));
   out.push(foliage(u, top - 1.2 * m, 2.6 * m, 1.6 * m, ['#2a4a2e', '#365e38', '#4a7a46', '#68985a'], seed, { n: 26, leaf: 0.38 }));
   return out.join('');
 }
@@ -561,12 +742,42 @@ function bench(u, base, m) {
   return o.join('');
 }
 
+const FUNDICION = mat('#2f3a36', '#1f2724', '#56665e', '#141a18');
+
+/** Park lamp: fluted cast-iron column, collars, the cup that holds the globe and the cap on top. The glass is `bola`. */
 function globeLamp(u, base, m) {
+  const gy = base - 3.4 * m;
+  const gr = 0.27 * m;
   return [
-    box(u - 0.08 * m, base - 0.25 * m, 0.16 * m, 0.25 * m, IRON, { r: 3 }),
-    rect(u - 0.035 * m, base - 3.1 * m, 0.07 * m, 2.9 * m, IRON.base),
-    box(u - 0.07 * m, base - 3.15 * m, 0.14 * m, 0.08 * m, IRON, { r: 2 }),
+    sombra(u + 0.06 * m, base, 0.34 * m, 0.05 * m, 0.5, '#120c18'),
+    // Foot: stepped plinth with a flared shaft and two collars.
+    box(u - 0.14 * m, base - 0.1 * m, 0.28 * m, 0.1 * m, FUNDICION, { r: 3, sh: 0.3, li: 0.2, side: false }),
+    shape(polyD([[u - 0.1 * m, base - 0.1 * m], [u + 0.1 * m, base - 0.1 * m], [u + 0.06 * m, base - 0.5 * m], [u - 0.06 * m, base - 0.5 * m]]), FUNDICION.base, [rect(u + 0.02 * m, base - 0.5 * m, 0.1 * m, 0.4 * m, FUNDICION.shadow, { opacity: 0.8 }), rect(u - 0.1 * m, base - 0.5 * m, 0.03 * m, 0.4 * m, FUNDICION.light, { opacity: 0.6 })], FUNDICION.line, 1.4),
+    box(u - 0.09 * m, base - 0.56 * m, 0.18 * m, 0.06 * m, FUNDICION, { r: 3, sh: 0.3, li: 0.3, side: false }),
+    box(u - 0.075 * m, base - 0.64 * m, 0.15 * m, 0.05 * m, FUNDICION, { r: 3, sh: 0.3, li: 0.3, side: false }),
+    // Column, lit from the right edge.
+    rect(u - 0.035 * m, base - 3.1 * m, 0.07 * m, 2.5 * m, FUNDICION.base),
+    rect(u + 0.012 * m, base - 3.1 * m, 0.023 * m, 2.5 * m, FUNDICION.shadow),
+    rect(u - 0.035 * m, base - 3.1 * m, 0.014 * m, 2.5 * m, FUNDICION.light, { opacity: 0.8 }),
+    // Collar and the cup under the globe.
+    box(u - 0.065 * m, base - 3.02 * m, 0.13 * m, 0.05 * m, FUNDICION, { r: 3, sh: 0.3, li: 0.3, side: false }),
+    shape(polyD([[u - 0.05 * m, base - 3 * m], [u + 0.05 * m, base - 3 * m], [u + 0.13 * m, gy + gr * 0.8], [u - 0.13 * m, gy + gr * 0.8]]), FUNDICION.base, [rect(u + 0.03 * m, base - 3.1 * m, 0.12 * m, 0.4 * m, FUNDICION.shadow, { opacity: 0.8 })], FUNDICION.line, 1.4),
+    box(u - 0.15 * m, gy + gr * 0.72, 0.3 * m, 0.05 * m, FUNDICION, { r: 3, sh: 0.3, li: 0.3, side: false }),
+    // Cap and finial.
+    box(u - 0.13 * m, gy - gr - 0.02 * m, 0.26 * m, 0.05 * m, FUNDICION, { r: 3, sh: 0.3, li: 0.3, side: false }),
+    shape(smooth([[u - 0.11 * m, gy - gr - 0.02 * m, 'c'], [u - 0.07 * m, gy - gr - 0.11 * m], [u, gy - gr - 0.15 * m], [u + 0.07 * m, gy - gr - 0.11 * m], [u + 0.11 * m, gy - gr - 0.02 * m, 'c']]), FUNDICION.base, [rect(u + 0.02 * m, gy - gr - 0.16 * m, 0.1 * m, 0.16 * m, FUNDICION.shadow, { opacity: 0.8 })], FUNDICION.line, 1.4),
+    circle(u, gy - gr - 0.18 * m, 0.025 * m, FUNDICION.light),
   ].join('');
+}
+
+/** The glass globe, emissive: brightest at the heart, dimmer towards a cooler, darker rim so the silhouette survives the glow. */
+function bola(cx, cy, r, alta = true) {
+  const o = [
+    gpath(ellipse(cx, cy, r, r), rad(cx - r * 0.1, cy - r * 0.08, r * 1.05, [[0, '#b4a67c'], [0.35, '#9a9ab0'], [0.75, '#7886ac'], [0.93, '#4c5882'], [1, '#323c64']])),
+    stroke(ellipse(cx, cy, r * 0.96, r * 0.96), '#2a3358', Math.max(2.4, r * 0.08), { opacity: 0.7 }),
+  ];
+  if (alta) o.push(path(ellipse(cx - r * 0.42, cy - r * 0.45, r * 0.2, r * 0.11, -0.7), '#ffffff', { opacity: 0.75 }));
+  return o.join('');
 }
 
 function parkNear() {
@@ -580,7 +791,7 @@ function parkNear() {
   out.push(shape(smooth([[at(3320), base, 'c'], [at(3320), base - 0.5 * m], [at(3900), base - 0.62 * m], [at(4420), base - 0.5 * m], [at(4420), base, 'c']]), '#2f5a32', [path(smooth([[at(3320), base - 0.45 * m], [at(3900), base - 0.6 * m], [at(4420), base - 0.48 * m], [at(4420), base - 0.36 * m], [at(3320), base - 0.32 * m]]), '#467a44')], '#1a3a1e', 1.4));
   out.push(bench(at(2560), base - 0.1 * m, m), bench(at(3880), base - 0.1 * m, m));
   out.push(globeLamp(at(2760), base, m), globeLamp(at(3560), base, m));
-  for (const xb of [2760, 3560]) em.push(gpath(ellipse(at(xb), base - 3.4 * m, 0.27 * m, 0.27 * m), rad(at(xb) - 0.08 * m, base - 3.48 * m, 0.3 * m, [[0, '#ffffff'], [0.6, '#eef2ff'], [1, '#c8d4f0']])));
+  for (const xb of [2760, 3560]) em.push(bola(at(xb), base - 3.4 * m, 0.27 * m));
   out.push(planeTree(at(2170), base, m, 3), planeTree(at(3180), base + 0.2 * m, m * 1.05, 8), planeTree(at(4260), base, m, 14));
   return { body: out.join(''), emissive: em.join(''), glows: [2760, 3560].map((xb) => ({ x: at(xb), y: base - 3.4 * m, r: 0.9 * m, color: '#dfe8ff', a: 0.55 })) };
 }
@@ -674,8 +885,8 @@ function dragonLayer() {
   const gl = [];
   for (const xb of [2400, 4000]) {
     const u = at(xb);
-    out.push(rect(u - 0.035 * m, base - 3.1 * m, 0.07 * m, 3.1 * m, IRON.base));
-    em.push(circle(u, base - 3.35 * m, 0.27 * m, '#f4f6ff'));
+    out.push(rect(u - 0.035 * m, base - 3.1 * m, 0.07 * m, 3.1 * m, IRON.base), rect(u + 0.01 * m, base - 3.1 * m, 0.025 * m, 3.1 * m, IRON.shadow), rect(u - 0.1 * m, base - 3.12 * m, 0.2 * m, 0.08 * m, IRON.base), rect(u - 0.12 * m, base - 3.62 * m - 0.07 * m, 0.24 * m, 0.07 * m, IRON.base, { rx: 2 }));
+    em.push(bola(u, base - 3.35 * m, 0.27 * m, false));
     gl.push({ x: u, y: base - 3.35 * m, r: 0.8 * m, color: '#dfe8ff', a: 0.5 });
   }
   return { body: out.join(''), emissive: em.join(''), glows: gl };
@@ -872,6 +1083,11 @@ function ground() {
   out.push(Q(X.puerta[0], X.puerta[1], kAt(5), 1, '#c9b48e'));
   const zone = [[2300, 6], [2000, 12], [2200, 20], [3200, 23], [4300, 20], [4500, 12], [4200, 6], [3200, 5]];
   const proj = (pts) => smooth(pts.map(([x, d]) => gp(x, kAt(d))));
+  // World helpers: x in facade units, d in metres behind the facades (negative = towards the camera).
+  const kOfD = (d) => ZW / (ZW + d);
+  const dOfK = (k) => ZW / k - ZW;
+  const disc = (Xc, d, r, n = 14, sx = 1) => proj(Array.from({ length: n }, (_, i) => [Xc + Math.cos((i / n) * Math.PI * 2) * r * M * sx, d + Math.sin((i / n) * Math.PI * 2) * r]));
+  const pt = (X, k) => gp(X, k).map(f2).join(' ');
   out.push(path(proj(zone), '#d9a43a'));
   for (const [x, d, rx, rd, c] of [[2600, 9, 300, 2.2, '#8e2a2a'], [3500, 14, 420, 3, '#8e2a2a'], [2500, 17, 260, 2, '#7a7a7a'], [4000, 8.5, 200, 1.5, '#7a7a7a'], [3000, 7, 160, 1, '#8e2a2a'], [4100, 17, 220, 1.6, '#8e2a2a']]) {
     const pts = [];
@@ -881,7 +1097,7 @@ function ground() {
     }
     out.push(path(proj(pts), c));
   }
-  // Main sidewalk: Madrid grey tiles with their four pastilles.
+  // Main sidewalk: Madrid grey tiles with their four pastilles, uneven in tone, stained, cracked and worn by the curb.
   const side = (X0, X1) => {
     const o = [Q(X0, X1, 1, K_CURB, '#a7a49e')];
     const rr2 = rng(Math.round(X0));
@@ -889,35 +1105,148 @@ function ground() {
     const zs = [];
     for (let z = ZW; z > ZW / K_CURB; z -= 0.3) zs.push(ZW / z);
     zs.push(K_CURB);
+    const tonos = ['#b6b3ac', '#b2afa8', '#a9a6a0', '#b8b5ae', '#a29f99'];
+    const juntas = [];
     for (let x = X0; x < X1; x += step) {
       for (let i = 0; i < zs.length - 1; i++) {
         const x1 = Math.min(X1, x + step);
         const t = rr2();
-        o.push(Q(x + 1.5, x1 - 1.5, zs[i] + 0.002, zs[i + 1] - 0.002, t < 0.3 ? '#b2afa8' : t < 0.6 ? '#a9a6a0' : '#b8b5ae'));
+        const borde = i >= zs.length - 3; // the two rows by the curb are the most worn
+        o.push(Q(x + 1.5, x1 - 1.5, zs[i] + 0.002, zs[i + 1] - 0.002, borde && t < 0.45 ? '#9a9792' : t < 0.2 ? tonos[0] : t < 0.42 ? tonos[1] : t < 0.64 ? tonos[2] : t < 0.9 ? tonos[3] : tonos[4]));
         const xm = (x + x1) / 2;
         const km = (zs[i] + zs[i + 1]) / 2;
-        o.push(stroke(`M${gp(xm, zs[i] + 0.004).join(' ')}L${gp(xm, zs[i + 1] - 0.004).join(' ')}M${gp(x + 8, km).join(' ')}L${gp(x1 - 8, km).join(' ')}`, '#8f8c86', 1.6));
+        juntas.push(`M${pt(xm, zs[i] + 0.004)}L${pt(xm, zs[i + 1] - 0.004)}M${pt(x + 8, km)}L${pt(x1 - 8, km)}`);
       }
     }
+    o.push(stroke(juntas.join(''), '#8f8c86', 1.6));
+    // Stains, tile cracks and old chewing gum.
+    const manchas2 = [];
+    const grietas = [];
+    const chicles = [];
+    for (let i = 0, n = Math.round((X1 - X0) / 150); i < n; i++) {
+      const x = X0 + rr2() * (X1 - X0);
+      const d = dOfK(1.03 + rr2() * (K_CURB - 1.06));
+      const rx = 40 + rr2() * 90;
+      const rd = 0.12 + rr2() * 0.3;
+      manchas2.push(proj(Array.from({ length: 9 }, (_, j) => [x + Math.cos((j / 9) * 6.283) * rx * (0.8 + rr2() * 0.4), d + Math.sin((j / 9) * 6.283) * rd * (0.8 + rr2() * 0.4)])));
+    }
+    for (let i = 0, n = Math.round((X1 - X0) / 420); i < n; i++) {
+      let x = X0 + rr2() * (X1 - X0);
+      let k = 1.03 + rr2() * 0.25;
+      let d2 = `M${pt(x, k)}`;
+      for (let j = 0; j < 5; j++) {
+        x += (rr2() - 0.3) * 30;
+        k += (rr2() - 0.5) * 0.03;
+        d2 += `L${pt(x, k)}`;
+      }
+      grietas.push(d2);
+    }
+    for (let i = 0, n = Math.round((X1 - X0) / 60); i < n; i++) chicles.push([...gp(X0 + rr2() * (X1 - X0), 1.02 + rr2() * (K_CURB - 1.04)), 0.9 + rr2() * 0.5]);
+    o.push(path(manchas2.join(''), '#2c2630', { opacity: 0.13 }), stroke(grietas.join(''), '#6a6660', 2, { opacity: 0.85 }), path(motas(chicles.map(([x, y, k2]) => [x, y, k2]), 3.4), '#5e5850', { opacity: 0.8 }));
+    // Dirt gathers along the curb.
+    o.push(gpath(polyD([gp(X0, K_CURB - 0.05), gp(X1, K_CURB - 0.05), gp(X1, K_CURB), gp(X0, K_CURB)]), lin(0, yOf(K_CURB - 0.05), 0, yOf(K_CURB), [[0, '#1a1222', 0], [1, '#1a1222', 0.26]])));
     return o.join('');
   };
   out.push(side(-500, c0), side(c0 - 10, c0 + 140), side(c1 - 140, c1 + 10));
-  // Curb and road along the first stretch.
-  out.push(Q(-500, c0 + 140, K_CURB, K_CURB + 0.012, '#d2cec6'), Q(-500, c0 + 140, K_CURB + 0.012, K_ROAD, '#8e8a84'));
-  out.push(Q(-500, c1 + 10, K_ROAD, kBot, '#45464e'));
+  // Curb: lit top face with its joints, the grey front face, and the line of grime where it meets the road.
+  const bordillo = (X0, X1) => {
+    const o = [Q(X0, X1, K_CURB, K_CURB + 0.012, '#d9d5cd')];
+    o.push(gpath(quad(X0, X1, K_CURB + 0.012, K_ROAD), lin(0, yOf(K_CURB + 0.012), 0, yOf(K_ROAD), [[0, '#a9a59d'], [0.55, '#8e8a84'], [1, '#625e5a']])));
+    const j = [];
+    const rc = rng(Math.round(X0) + 9);
+    for (let x = Math.ceil(X0 / 210) * 210; x < X1; x += 210) j.push(`M${pt(x, K_CURB)}L${pt(x + 1.5, K_ROAD)}`);
+    o.push(stroke(j.join(''), '#5a5652', 2.2, { opacity: 0.9 }));
+    const desg = [];
+    for (let i = 0, n = Math.round((X1 - X0) / 70); i < n; i++) desg.push([...gp(X0 + rc() * (X1 - X0), K_CURB + 0.014 + rc() * 0.018), 0.8 + rc() * 0.7]);
+    o.push(path(motas(desg, 3.4), '#4a4642', { opacity: 0.55 }));
+    o.push(Q(X0, X1, K_CURB, K_CURB + 0.003, '#f2efe8', { opacity: 0.7 }), Q(X0, X1, K_ROAD - 0.006, K_ROAD + 0.01, '#14141a', { opacity: 0.4 }));
+    return o.join('');
+  };
+  out.push(bordillo(-500, c0 + 140));
+  // Roadway: patched asphalt with aggregate, cracks and a manhole.
+  out.push(gpath(quad(-500, c1 + 10, K_ROAD, kBot), lin(0, yOf(K_ROAD), 0, yOf(kBot), [[0, '#52535d'], [1, '#5e5f6a']])));
   const ra = rng(7);
   for (let i = 0; i < 260; i++) {
     const x = -500 + ra() * (c1 + 500);
     const k = K_ROAD + ra() * (kBot - K_ROAD);
     out.push(circle(...gp(x, k), 1 + ra() * 2, ra() < 0.5 ? '#3a3b42' : '#55565e'));
   }
+  const parchesCalzada = [];
+  for (const [x, w, k0] of [[420, 260, 1.43], [1500, 330, 1.46], [2950, 240, 1.41], [3900, 300, 1.48], [4600, 220, 1.44]]) parchesCalzada.push(polyD([gp(x, k0), gp(x + w, k0 + 0.004), gp(x + w + 6, k0 + 0.05), gp(x - 4, k0 + 0.045)]));
+  out.push(path(parchesCalzada.join(''), '#3a3b43', { opacity: 0.8 }), stroke(parchesCalzada.join(''), '#2c2d34', 2, { opacity: 0.7 }));
   out.push(Q(1700, 1830, K_ROAD + 0.01, K_ROAD + 0.05, '#2a2b30'));
   for (let i = 0; i < 6; i++) out.push(Q(1705 + i * 21, 1715 + i * 21, K_ROAD + 0.015, K_ROAD + 0.045, '#55565e'));
+  // Manhole covers: cast-iron rim, plate with its grid, a worn ring.
+  const tapa = (Xc, d, rad2) => {
+    const o = [path(disc(Xc, d, rad2 * 1.14), '#25262c'), path(disc(Xc, d, rad2), '#4a4c56'), stroke(disc(Xc, d, rad2 * 0.72), '#34353d', 2.6), stroke(disc(Xc, d - rad2 * 0.04, rad2 * 1.02), '#7a7c88', 2, { opacity: 0.6 })];
+    const rej = [];
+    for (const off of [-0.5, -0.25, 0, 0.25, 0.5]) {
+      const hl = Math.sqrt(1 - off * off) * 0.78 * rad2 * M;
+      rej.push(`M${pt(Xc - hl, kOfD(d + off * rad2))}L${pt(Xc + hl, kOfD(d + off * rad2))}`);
+    }
+    o.push(stroke(rej.join(''), '#33343c', 3));
+    return o.join('');
+  };
+  out.push(tapa(1180, -2.75, 0.38), tapa(3600, -2.75, 0.38));
+  // Puddles that hold the colour of the lamps: dark water, a warm reflection, a cold glint of the moon.
+  const charco = (Xc, d, rx, rd, warm = true) => {
+    // Irregular outline, no rim: a film of water on the asphalt with a faint sheen, not a disc.
+    const e = (k2, ox = 0, oy = 0, sy = 1) => proj(Array.from({ length: 16 }, (_, i) => [Xc + ox + Math.cos((i / 16) * 6.283) * rx * k2 * (1 + 0.22 * Math.sin(i * 2.3 + Xc)), d + oy + Math.sin((i / 16) * 6.283) * rd * k2 * sy * (1 + 0.18 * Math.cos(i * 1.7 + Xc))]));
+    return [
+      path(e(1), '#1e2236', { opacity: 0.55 }),
+      path(e(0.75, rx * 0.05, 0, 0.6), warm ? '#e8a868' : '#8ea4d8', { opacity: 0.22 }),
+      path(e(0.45, -rx * 0.1, -rd * 0.08, 0.3), warm ? '#fff0c8' : '#e6eeff', { opacity: 0.35 }),
+    ].join('');
+  };
+  out.push(charco(800, -2.45, 130, 0.2), charco(2080, -2.5, 150, 0.22), charco(3070, -2.45, 120, 0.2), charco(4180, -2.5, 140, 0.2));
   // Side street: its own narrow sidewalks, the road, and the zebra crossing.
   out.push(Q(c0, c0 + 140, KS, 1, '#a7a49e'), Q(c1 - 140, c1, KS, 1, '#a7a49e'));
-  out.push(Q(c0 + 140, c1 - 140, KS, K_ROAD, '#4a4b53'));
-  out.push(Q(c0 + 130, c0 + 142, KS, K_CURB, '#d2cec6'), Q(c1 - 142, c1 - 130, KS, K_CURB, '#d2cec6'));
-  for (let x = c0 + 190; x < c1 - 200; x += 110) out.push(Q(x, x + 60, 1.06, 1.3, '#e6e3dc', { opacity: 0.92 }));
+  out.push(gpath(quad(c0 + 140, c1 - 140, KS, K_ROAD), lin(0, yOf(KS), 0, yOf(K_ROAD), [[0, '#52576c'], [0.5, '#626478'], [1, '#6e707e']])));
+  // Soft tonal drift of the asphalt, repair patches with their edges, cracks and aggregate.
+  const rs = rng(23);
+  for (let i = 0; i < 9; i++) out.push(path(disc(c0 + 230 + rs() * 780, 0.5 + rs() * 7, 0.6 + rs() * 1.2, 10, 1.4), rs() < 0.5 ? '#3a3c4a' : '#7a7c8c', { opacity: 0.22 }));
+  const parches = [];
+  for (const [x, w, d, h] of [[5180, 220, 1.4, 1.1], [5760, 170, 3.2, 0.8], [5420, 260, 5.4, 1.3], [5900, 140, 0.4, 0.7]]) parches.push(polyD([[x, d], [x + w, d + 0.04], [x + w - 6, d + h], [x + 4, d + h - 0.03]].map(([a2, b2]) => gp(a2, kOfD(b2)))));
+  out.push(path(parches.join(''), '#454856', { opacity: 0.6 }), stroke(parches.join(''), '#3a3c4a', 2.4, { opacity: 0.7 }));
+  const grietasC = [];
+  for (let i = 0; i < 7; i++) {
+    let x = c0 + 200 + rs() * 700;
+    let d = 0.2 + rs() * 6;
+    let d2 = `M${pt(x, kOfD(d))}`;
+    for (let j = 0; j < 6; j++) {
+      x += (rs() - 0.4) * 50;
+      d += (rs() - 0.2) * 0.6;
+      d2 += `L${pt(x, kOfD(d))}`;
+    }
+    grietasC.push(d2);
+  }
+  out.push(stroke(grietasC.join(''), '#2a2c3a', 2.4, { opacity: 0.65 }));
+  const g1 = [];
+  const g2 = [];
+  for (let i = 0; i < 200; i++) (i % 2 ? g1 : g2).push([...gp(c0 + 150 + rs() * 900, kOfD(rs() * 8.5)), 0.8 + rs() * 0.8]);
+  out.push(path(motas(g1, 3.4), '#2e2f37', { opacity: 0.8 }), path(motas(g2, 3.4), '#6a6b75', { opacity: 0.6 }));
+  out.push(tapa(5560, 2.2, 0.36));
+  out.push(charco(5320, 0.8, 120, 0.3), charco(5820, 1.6, 110, 0.28, false), charco(5700, 4.2, 90, 0.4));
+  // Curbs along the side street (top faces) and a worn zebra crossing: stripes a little uneven, with the paint rubbed off and tyre marks.
+  out.push(Q(c0 + 130, c0 + 142, KS, K_CURB, '#d2cec6'), Q(c1 - 142, c1 - 130, KS, K_CURB, '#d2cec6'), Q(c0 + 140, c0 + 144, KS, K_CURB, '#8e8a84'), Q(c1 - 144, c1 - 140, KS, K_CURB, '#6a6660'));
+  const rz = rng(41);
+  const cebra = [];
+  const gastado = [];
+  const huellas = [];
+  const sx = [];
+  for (let x = c0 + 190; x < c1 - 200; x += 110) {
+    const j = () => (rz() - 0.5) * 6;
+    cebra.push(polyD([gp(x + j(), 1.06), gp(x + 60 + j(), 1.06), gp(x + 60 + j(), 1.3), gp(x + j(), 1.3)]));
+    for (let i = 0; i < 5; i++) {
+      const kk = 1.062 + rz() * 0.22;
+      const xx = x + rz() * 48;
+      gastado.push(polyD([gp(xx, kk), gp(xx + 6 + rz() * 14, kk), gp(xx + 6 + rz() * 14, kk + 0.01 + rz() * 0.02), gp(xx, kk + 0.014)]));
+    }
+    const xa = x + 14 + rz() * 10;
+    huellas.push(`M${pt(xa, 1.06)}L${pt(xa + 3, 1.3)}`, `M${pt(xa + 24, 1.06)}L${pt(xa + 26, 1.3)}`);
+    sx.push([...gp(x + rz() * 56, 1.07 + rz() * 0.22), 1.2]);
+  }
+  out.push(path(cebra.join(''), '#e6e3dc', { opacity: 0.92 }), path(gastado.join(''), '#a7a49e', { opacity: 0.6 }), stroke(huellas.join(''), '#2a2b30', 8, { opacity: 0.16 }), path(motas(sx, 3.4), '#7a7670', { opacity: 0.6 }));
   out.push(Q(5450, 5650, kAt(8), kAt(7.4), '#2e2f36'));
   // Pedestrian street: big granite slabs, no curb.
   const r = rng(13);
@@ -941,60 +1270,187 @@ function ground() {
 
 const KF = K_CURB;
 
+const FAROLA = mat('#2c3732', '#18201c', '#52625a', '#0c1210');
+
 function lampPost(u, base, m) {
+  const pie = (x, y, w, h, r = 3) => box(x, y, w, h, FAROLA, { r, sh: 0.3, li: 0.3, side: false });
+  const cx = u - 0.07 * m;
   return [
-    box(u - 0.22 * m, base - 0.7 * m, 0.44 * m, 0.7 * m, mat('#26302c', '#18201c', '#3a4640', '#0c1210'), { r: 6 }),
-    box(u - 0.3 * m, base - 0.18 * m, 0.6 * m, 0.18 * m, mat('#26302c', '#18201c', '#3a4640', '#0c1210'), { r: 4 }),
-    shape(polyD([[u - 0.1 * m, base - 0.7 * m], [u + 0.1 * m, base - 0.7 * m], [u + 0.07 * m, -200], [u - 0.07 * m, -200]]), '#26302c', [rect(u + 0.02 * m, -200, 0.08 * m, base + 200, '#18201c'), rect(u - 0.07 * m, -200, 0.03 * m, base + 200, '#3a4640')], '#0c1210', 1.6),
-    box(u - 0.14 * m, base - 2.2 * m, 0.28 * m, 0.12 * m, mat('#26302c', '#18201c', '#3a4640', '#0c1210'), { r: 3 }),
-    box(u - 0.12 * m, base - 0.95 * m, 0.24 * m, 0.1 * m, mat('#26302c', '#18201c', '#3a4640', '#0c1210'), { r: 3 }),
+    sombra(u + 0.03 * m, base + 0.01 * m, 0.36 * m, 0.055 * m, 0.55, '#120c18'),
+    // Cast-iron foot: plate with its bolts, a block with a moulded cornice and an access hatch.
+    shape(rr(u - 0.3 * m, base - 0.18 * m, 0.6 * m, 0.18 * m, 6), FAROLA.base, [rect(u - 0.3 * m, base - 0.18 * m, 0.6 * m, 0.04 * m, FAROLA.light, { opacity: 0.8 }), rect(u - 0.3 * m, base - 0.05 * m, 0.6 * m, 0.05 * m, FAROLA.shadow), rect(u + 0.2 * m, base - 0.18 * m, 0.1 * m, 0.18 * m, FAROLA.shadow, { opacity: 0.6 })], FAROLA.line, 1.8),
+    ...[-0.24, -0.08, 0.08, 0.24].map((k) => circle(u + k * m, base - 0.1 * m, 0.022 * m, FAROLA.light)),
+    shape(rr(u - 0.22 * m, base - 0.7 * m, 0.44 * m, 0.52 * m, 5), FAROLA.base, [rect(u - 0.22 * m, base - 0.7 * m, 0.07 * m, 0.52 * m, FAROLA.shadow, { opacity: 0.8 }), rect(u + 0.16 * m, base - 0.7 * m, 0.06 * m, 0.52 * m, FAROLA.light, { opacity: 0.55 }), ao(u - 0.22 * m, base - 0.34 * m, 0.44 * m, 0.16 * m, 0.4, -1, '#06080a')], FAROLA.line, 1.8),
+    pie(u - 0.27 * m, base - 0.76 * m, 0.54 * m, 0.08 * m, 4),
+    ao(u - 0.22 * m, base - 0.68 * m, 0.44 * m, 0.1 * m, 0.4),
+    shape(rr(u - 0.11 * m, base - 0.56 * m, 0.22 * m, 0.3 * m, 4), FAROLA.shadow, [rect(u - 0.11 * m, base - 0.56 * m, 0.22 * m, 0.03 * m, '#06080a', { opacity: 0.5 }), rect(u - 0.11 * m, base - 0.26 * m, 0.22 * m, 0.02 * m, FAROLA.light, { opacity: 0.6 })], FAROLA.line, 1.4),
+    circle(u + 0.05 * m, base - 0.41 * m, 0.02 * m, '#8a9a90'), rect(u - 0.06 * m, base - 0.48 * m, 0.12 * m, 0.02 * m, FAROLA.light, { opacity: 0.5 }),
+    // Column: tapered, shaded on the left, the moon on its right edge.
+    shape(polyD([[u - 0.1 * m, base - 0.74 * m], [u + 0.1 * m, base - 0.74 * m], [u + 0.07 * m, -200], [u - 0.07 * m, -200]]), FAROLA.base, [rect(u - 0.12 * m, -200, 0.08 * m, base + 200, FAROLA.shadow, { opacity: 0.85 }), rect(u + 0.035 * m, -200, 0.05 * m, base + 200, FAROLA.light, { opacity: 0.7 }), rect(u + 0.065 * m, -200, 0.02 * m, base + 200, '#9fb0a6', { opacity: 0.35 })], FAROLA.line, 1.6),
+    pie(u - 0.14 * m, base - 2.2 * m, 0.28 * m, 0.12 * m), ao(u - 0.07 * m, base - 2.08 * m, 0.14 * m, 0.2 * m, 0.3),
+    pie(u - 0.12 * m, base - 0.95 * m, 0.24 * m, 0.1 * m), ao(u - 0.08 * m, base - 0.85 * m, 0.16 * m, 0.16 * m, 0.3),
+    pie(u - 0.1 * m, base - 1.1 * m, 0.2 * m, 0.04 * m, 2),
   ].join('');
 }
+
+const BOLARDO = mat('#3a3d44', '#222429', '#6e727c', '#101114');
 
 function bollard(u, base, m) {
-  return shape(smooth([[u - 0.07 * m, base, 'c'], [u - 0.07 * m, base - 0.78 * m], [u - 0.05 * m, base - 0.86 * m], [u, base - 0.9 * m], [u + 0.05 * m, base - 0.86 * m], [u + 0.07 * m, base - 0.78 * m], [u + 0.07 * m, base, 'c']]), '#2a2c32', [rect(u + 0.02 * m, base - m, 0.06 * m, m, '#1a1c20'), rect(u - 0.08 * m, base - 0.7 * m, 0.16 * m, 0.04 * m, '#3e4048')], '#0e0f12', 1.4);
+  const sil = smooth([[u - 0.07 * m, base, 'c'], [u - 0.07 * m, base - 0.78 * m], [u - 0.05 * m, base - 0.86 * m], [u, base - 0.9 * m], [u + 0.05 * m, base - 0.86 * m], [u + 0.07 * m, base - 0.78 * m], [u + 0.07 * m, base, 'c']]);
+  return [
+    sombra(u + 0.015 * m, base + 0.005 * m, 0.1 * m, 0.022 * m, 0.55, '#120c18'),
+    shape(sil, BOLARDO.base, [
+      rect(u - 0.08 * m, base - m, 0.05 * m, m, BOLARDO.shadow, { opacity: 0.85 }),
+      rect(u + 0.035 * m, base - m, 0.045 * m, m, BOLARDO.light, { opacity: 0.6 }),
+      // Reflective band and the groove under the dome.
+      rect(u - 0.08 * m, base - 0.7 * m, 0.16 * m, 0.045 * m, '#d8d8cf', { opacity: 0.55 }),
+      rect(u - 0.08 * m, base - 0.74 * m, 0.16 * m, 0.03 * m, BOLARDO.line, { opacity: 0.7 }),
+      path(ellipse(u + 0.025 * m, base - 0.84 * m, 0.03 * m, 0.02 * m), '#ffffff', { opacity: 0.35 }),
+      ao(u - 0.08 * m, base - 0.3 * m, 0.16 * m, 0.3 * m, 0.4, -1, '#06080a'),
+    ], BOLARDO.line, 1.6),
+    box(u - 0.085 * m, base - 0.05 * m, 0.17 * m, 0.05 * m, BOLARDO, { r: 2, lw: 1.2, sh: 0.3, li: 0.3, side: false }),
+  ].join('');
 }
 
+/** Madrid street bins: yellow for packaging, blue for paper, grey for the rest. Wheels, ribs, hinged lid, side handles, pedal. */
 function containers(u, base, m) {
-  const one = (x, w, c, lid, label) => [
-    shape(rr(x, base - 1.3 * m, w, 1.25 * m, 8), c.base, [rect(x, base - 0.5 * m, w, 0.45 * m, c.shadow), rect(x + w - 0.1 * m, base - 1.3 * m, 0.1 * m, 1.3 * m, c.shadow)], c.line, 1.8),
-    box(x - 0.05 * m, base - 1.42 * m, w + 0.1 * m, 0.16 * m, lid, { r: 6 }),
-    circle(x + 0.2 * m, base - 0.02 * m, 0.08 * m, '#141414'), circle(x + w - 0.2 * m, base - 0.02 * m, 0.08 * m, '#141414'),
-    rect(x + w / 2 - 0.25 * m, base - 1.05 * m, 0.5 * m, 0.3 * m, '#f4f4ee', { rx: 4, opacity: 0.85 }),
-    label,
-  ].join('');
+  const one = (x, w, c, icono, k) => {
+    const top = base - 1.28 * m;
+    const fondo = base - 0.1 * m;
+    const h = fondo - top;
+    const cx = x + w / 2;
+    const o = [sombra(cx + 0.05 * m, base, w * 0.64, 0.07 * m, 0.6, '#120c18')];
+    // Wheels, half hidden by the body.
+    for (const wx of [x + 0.17 * m, x + w - 0.17 * m]) o.push(sombra(wx + 0.03 * m, base + 0.005 * m, 0.1 * m, 0.02 * m, 0.5, '#120c18'), circle(wx, base - 0.085 * m, 0.085 * m, '#1a1c20'), circle(wx, base - 0.085 * m, 0.042 * m, '#6e727c'), circle(wx - 0.01 * m, base - 0.095 * m, 0.016 * m, '#9a9ea8'));
+    // Body: a little narrower at the foot, ribbed, dirty at the bottom.
+    const costillas = [];
+    const brillo = [];
+    for (let i = 0; i < 6; i++) {
+      const rx = x + w * (0.1 + i * 0.16);
+      costillas.push(`M${f2(rx)} ${f2(top + 0.2 * m)}h${f2(w * 0.04)}v${f2(h - 0.42 * m)}h${f2(-w * 0.04)}z`);
+      brillo.push(`M${f2(rx + w * 0.04)} ${f2(top + 0.2 * m)}h${f2(w * 0.014)}v${f2(h - 0.42 * m)}h${f2(-w * 0.014)}z`);
+    }
+    const rr3 = rng(k * 11 + 3);
+    const manchas2 = [];
+    for (let i = 0; i < 5; i++) {
+      const sx = x + w * (0.1 + rr3() * 0.8);
+      manchas2.push(`M${f2(sx)} ${f2(top + 0.3 * m + rr3() * 0.3 * m)}q${f2((rr3() - 0.5) * 6)} ${f2(0.2 * m)} ${f2((rr3() - 0.5) * 4)} ${f2(0.3 * m + rr3() * 0.3 * m)}`);
+    }
+    o.push(shape(smooth([[x, top, 'c'], [x + w, top, 'c'], [x + w - 0.03 * w, fondo - 14], [x + w - 0.045 * w, fondo, 'c'], [x + 0.045 * w, fondo, 'c'], [x + 0.03 * w, fondo - 14]]), c.base, [
+      rect(x, top, w * 0.15, h, c.shadow, { opacity: 0.6 }),
+      gpath(rectD(x + w * 0.62, top, w * 0.38, h), lin(x + w * 0.62, 0, x + w, 0, [[0, c.light, 0], [1, c.light, 0.5]])),
+      path(costillas.join(''), c.shadow, { opacity: 0.55 }),
+      path(brillo.join(''), c.light, { opacity: 0.5 }),
+      stroke(manchas2.join(''), c.line, Math.max(3, 0.012 * m), { opacity: 0.3 }),
+      rect(x, fondo - 0.16 * m, w, 0.1 * m, c.shadow, { opacity: 0.5 }),
+      rect(x, fondo - 0.16 * m, w, 2.4, c.light, { opacity: 0.35 }),
+      ao(x, top + 0.15 * m, w, 0.14 * m, 0.55, -1, c.line),
+      ao(x, fondo - 0.45 * m, w, 0.45 * m, 0.45, -1, '#0a0810'),
+      path(ellipse(x + w * 0.2, top + 0.85 * m, 0.1 * m, 0.14 * m), c.shadow, { opacity: 0.3 }),
+    ], c.line, 2));
+    // Pedal bar along the foot and the rubber pad.
+    o.push(box(x + w * 0.1, fondo - 0.1 * m, w * 0.8, 0.045 * m, mat('#7a808a', '#555b62', '#a8aeb8', '#2a2e34'), { r: 2, lw: 1.2, sh: 0.3, li: 0.3, side: false }), box(x + w * 0.4, fondo - 0.2 * m, w * 0.2, 0.06 * m, mat('#2a2c32', '#16171b', '#4a4e58', '#0a0b0e'), { r: 3, lw: 1.2, sh: 0.2, li: 0.3, side: false }));
+    // Label with its pictogram (no words), an old sticker and a scribble.
+    const ly = top + 0.42 * m;
+    o.push(rect(cx - 0.3 * w + 3, ly + 4, 0.6 * w, 0.36 * m, '#000000', { opacity: 0.18, rx: 5 }), rect(cx - 0.3 * w, ly, 0.6 * w, 0.36 * m, '#d6d6cc', { rx: 5 }), rect(cx - 0.3 * w, ly, 0.6 * w, 3, '#ffffff', { rx: 2, opacity: 0.7 }), icono(cx, ly + 0.18 * m, 0.12 * m, c));
+    o.push(rect(x + w * 0.12, base - 0.62 * m, 0.2 * w, 0.1 * m, k % 2 ? '#e8d44a' : '#e0508a', { rx: 2, opacity: 0.85 }), rect(x + w * 0.12, base - 0.62 * m, 0.2 * w, 2.4, '#ffffff', { opacity: 0.5 }));
+    if (k === 1) o.push(stroke(`M${x + w * 0.55} ${base - 0.5 * m}q10 -16 22 -2t24 -6q10 -4 18 4`, '#e0508a', 5, { opacity: 0.8 }));
+    if (k === 2) o.push(stroke(`M${x + w * 0.2} ${base - 0.8 * m}l30 -12m-4 18l36 -10`, '#d8d8d0', 3.4, { opacity: 0.55 }));
+    // Lid: slightly domed, hinged knuckles on top, a grip groove and a shadow under it.
+    o.push(ao(x, top + 0.02 * m, w, 0.16 * m, 0.55, 1, '#0a0810'));
+    o.push(box(x + w * 0.1, top - 0.215 * m, w * 0.12, 0.05 * m, mat('#2e3238', '#1a1d21', '#555b64', '#0a0b0e'), { r: 2, lw: 1.2, side: false }), box(x + w * 0.78, top - 0.215 * m, w * 0.12, 0.05 * m, mat('#2e3238', '#1a1d21', '#555b64', '#0a0b0e'), { r: 2, lw: 1.2, side: false }));
+    o.push(shape(smooth([[x - 0.04 * w, top + 0.05 * m, 'c'], [x - 0.03 * w, top - 0.1 * m], [x + 0.18 * w, top - 0.17 * m], [x + 0.82 * w, top - 0.17 * m], [x + 1.03 * w, top - 0.1 * m], [x + 1.04 * w, top + 0.05 * m, 'c']]), c.base, [
+      rect(x - 0.05 * w, top - 0.2 * m, 1.1 * w, 0.045 * m, c.light, { opacity: 0.75 }),
+      rect(x - 0.05 * w, top - 0.02 * m, 1.1 * w, 0.07 * m, c.shadow),
+      rect(x - 0.05 * w, top - 0.02 * m, 1.1 * w, 2.4, c.line, { opacity: 0.5 }),
+      rect(x - 0.05 * w, top - 0.2 * m, 0.1 * w, 0.3 * m, c.shadow, { opacity: 0.5 }),
+      gpath(rectD(x + w * 0.7, top - 0.2 * m, w * 0.35, 0.3 * m), lin(x + w * 0.7, 0, x + w * 1.05, 0, [[0, c.light, 0], [1, c.light, 0.55]])),
+      rect(x + w * 0.28, top - 0.1 * m, w * 0.44, 0.065 * m, c.line, { opacity: 0.8, rx: 5 }),
+      rect(x + w * 0.28, top - 0.045 * m, w * 0.44, 2.4, c.light, { opacity: 0.6 }),
+    ], c.line, 2));
+    // Side handles.
+    for (const sx of [-1, 1]) o.push(stroke(`M${f2(sx < 0 ? x + 0.01 * w : x + w * 0.99)} ${f2(top + 0.1 * m)}h${f2(sx * 0.05 * m)}v${f2(0.1 * m)}h${f2(-sx * 0.05 * m)}`, c.shadow, Math.max(4, 0.025 * m)));
+    return o.join('');
+  };
+  const bolsa = (x, y, r, c) => [path(smooth([[x - r * 0.7, y - r * 0.5, 'c'], [x + r * 0.7, y - r * 0.5, 'c'], [x + r * 0.9, y + r * 0.7], [x - r * 0.9, y + r * 0.7]]), c.shadow), path(polyD([[x - r * 0.5, y - r * 0.5], [x + r * 0.5, y - r * 0.5], [x + r * 0.35, y - r * 0.85], [x - r * 0.35, y - r * 0.85]]), c.shadow), stroke(`M${f2(x - r * 0.3)} ${f2(y - r * 0.1)}h${f2(r * 0.6)}`, '#eeeee4', 2.4)].join('');
+  const hoja = (x, y, r, c) => [path(polyD([[x - r * 0.6, y - r], [x + r * 0.3, y - r], [x + r * 0.6, y - r * 0.6], [x + r * 0.6, y + r], [x - r * 0.6, y + r]]), c.shadow), path(polyD([[x + r * 0.3, y - r], [x + r * 0.6, y - r * 0.6], [x + r * 0.3, y - r * 0.6]]), '#eeeee4'), stroke(`M${f2(x - r * 0.35)} ${f2(y - r * 0.1)}h${f2(r * 0.7)}M${f2(x - r * 0.35)} ${f2(y + r * 0.3)}h${f2(r * 0.7)}`, '#eeeee4', 2.4)].join('');
+  const cubo = (x, y, r, c) => [path(polyD([[x - r * 0.8, y - r * 0.6], [x + r * 0.8, y - r * 0.6], [x + r * 0.55, y + r], [x - r * 0.55, y + r]]), c.shadow), rect(x - r * 0.95, y - r * 0.85, r * 1.9, r * 0.3, c.shadow, { rx: 2 }), stroke(`M${f2(x - r * 0.2)} ${f2(y - r * 0.2)}v${f2(r * 0.9)}M${f2(x + r * 0.2)} ${f2(y - r * 0.2)}v${f2(r * 0.9)}`, '#eeeee4', 2.4)].join('');
   return [
-    one(u - 1.9 * m, 1.2 * m, mat('#f0c23a', '#c9921a', '#ffe48a', '#7a5414'), mat('#e8b82a', '#c9921a', '#ffe48a', '#7a5414'), ''),
-    one(u - 0.6 * m, 1.2 * m, mat('#2a6ab0', '#1e5090', '#4a8ad0', '#0e2a50'), mat('#225ea0', '#1e5090', '#4a8ad0', '#0e2a50'), ''),
-    one(u + 0.7 * m, 1.2 * m, mat('#6a6e74', '#50545a', '#8a8e94', '#2a2e34'), mat('#5a5e64', '#50545a', '#8a8e94', '#2a2e34'), ''),
+    one(u - 1.9 * m, 1.2 * m, mat('#f0c23a', '#c9921a', '#ffe48a', '#7a5414'), bolsa, 0),
+    one(u - 0.6 * m, 1.2 * m, mat('#2a6ab0', '#1e5090', '#4a8ad0', '#0e2a50'), hoja, 1),
+    one(u + 0.7 * m, 1.2 * m, mat('#6a6e74', '#50545a', '#8a8e94', '#2a2e34'), cubo, 2),
   ].join('');
 }
 
 function crossingSign(u, base, m) {
+  const az = mat('#2a5aa8', '#1e4890', '#4a7ad0', '#0e2a60');
   return [
+    sombra(u + 0.02 * m, base + 0.005 * m, 0.16 * m, 0.03 * m, 0.55, '#120c18'),
+    path(ellipse(u, base - 0.01 * m, 0.09 * m, 0.022 * m), '#3a4046'),
     rect(u - 0.04 * m, base - 2.6 * m, 0.08 * m, 2.6 * m, '#8a9096'),
-    box(u - 0.33 * m, base - 3.3 * m, 0.66 * m, 0.66 * m, mat('#2a5aa8', '#1e4890', '#4a7ad0', '#0e2a60'), { r: 6 }),
+    rect(u - 0.04 * m, base - 2.6 * m, 0.025 * m, 2.6 * m, '#5c6168', { opacity: 0.8 }),
+    rect(u + 0.02 * m, base - 2.6 * m, 0.02 * m, 2.6 * m, '#d0d5da', { opacity: 0.7 }),
+    // The sign: thick plate with its border, clamps on the pole.
+    rect(u - 0.31 * m, base - 3.26 * m, 0.66 * m, 0.66 * m, '#000000', { opacity: 0.22, rx: 6 }),
+    box(u - 0.33 * m, base - 3.3 * m, 0.66 * m, 0.66 * m, az, { r: 6, li: 0.05, sh: 0.1 }),
+    stroke(rr(u - 0.3 * m, base - 3.27 * m, 0.6 * m, 0.6 * m, 4), '#f4f4ee', Math.max(3, 0.018 * m)),
+    rect(u + 0.32 * m, base - 3.26 * m, 0.02 * m, 0.58 * m, '#d0d5da', { opacity: 0.45 }),
+    rect(u - 0.06 * m, base - 2.74 * m, 0.12 * m, 0.035 * m, '#5c6168'), rect(u - 0.06 * m, base - 3.24 * m, 0.12 * m, 0.035 * m, '#5c6168'),
+    rect(u - 0.06 * m, base - 2.3 * m, 0.12 * m, 0.04 * m, '#6e747b', { rx: 2 }), rect(u - 0.06 * m, base - 2.3 * m, 0.12 * m, 2.4, '#d0d5da', { opacity: 0.7 }),
     path(polyD([[u - 0.25 * m, base - 2.74 * m], [u, base - 3.18 * m], [u + 0.25 * m, base - 2.74 * m]]), '#f4f4ee'),
-    circle(u + 0.01 * m, base - 3.0 * m, 0.035 * m, '#141414'), stroke(`M${u} ${base - 2.96 * m}L${u - 0.03 * m} ${base - 2.86 * m}M${u - 0.03 * m} ${base - 2.86 * m}L${u - 0.07 * m} ${base - 2.78 * m}M${u - 0.03 * m} ${base - 2.86 * m}L${u + 0.04 * m} ${base - 2.79 * m}`, '#141414', 0.03 * m),
+    path(polyD([[u - 0.19 * m, base - 2.78 * m], [u, base - 3.1 * m], [u + 0.19 * m, base - 2.78 * m]]), az.base),
+    circle(u + 0.01 * m, base - 3.0 * m, 0.035 * m, '#f4f4ee'), stroke(`M${u} ${base - 2.96 * m}L${u - 0.03 * m} ${base - 2.86 * m}M${u - 0.03 * m} ${base - 2.86 * m}L${u - 0.07 * m} ${base - 2.78 * m}M${u - 0.03 * m} ${base - 2.86 * m}L${u + 0.04 * m} ${base - 2.79 * m}`, '#f4f4ee', 0.03 * m),
   ].join('');
 }
 
 function streetTree(u, base, m, seed) {
+  // The tree stands in a pit with an iron-and-granite surround, a grate over the earth.
+  const cy = base - 0.14 * m;
+  const rx = 0.85 * m;
+  const ry = 0.14 * m;
+  const barras = [];
+  const luz = [];
+  for (let x = -0.78; x < 0.8; x += 0.13) {
+    barras.push(`M${f2(u + x * m)} ${f2(cy - ry)}V${f2(cy + ry)}`);
+    luz.push(`M${f2(u + x * m + 0.014 * m)} ${f2(cy - ry)}V${f2(cy + ry)}`);
+  }
+  const r2 = rng(seed * 3 + 1);
+  const grava = [];
+  for (let i = 0; i < 30; i++) grava.push([u + (r2() - 0.5) * rx * 1.7, cy + (r2() - 0.5) * ry * 1.7, 0.8 + r2()]);
   return [
-    path(polyD([[u - 0.6 * m, base], [u + 0.6 * m, base], [u + 0.5 * m, base + 0.06 * m], [u - 0.5 * m, base + 0.06 * m]]), '#3a3630'),
-    planeTree(u, base, m * 1.1, seed),
+    path(ellipse(u, cy + 0.035 * m, rx + 0.1 * m, ry + 0.035 * m), '#1c201e'),
+    shape(ellipse(u, cy, rx + 0.08 * m, ry + 0.025 * m), '#8e8c86', [rect(u - rx - 0.1 * m, cy - ry - 0.03 * m, 2 * rx + 0.2 * m, 0.04 * m, '#cfcbc2', { opacity: 0.8 }), rect(u + rx * 0.55, cy - ry - 0.03 * m, rx, 2 * ry + 0.1 * m, '#6a6862', { opacity: 0.5 })], '#4e4c46', 1.8),
+    shape(ellipse(u, cy, rx - 0.03 * m, ry - 0.012 * m), '#3a2e26', [
+      path(motas(grava, 3.4), '#6a5a48', { opacity: 0.8 }),
+      stroke(barras.join(''), '#2a322e', Math.max(5, 0.04 * m)),
+      stroke(luz.join(''), '#6a7a70', Math.max(2.4, 0.014 * m), { opacity: 0.8 }),
+      ao(u - rx, cy - ry, 2 * rx, ry * 0.9, 0.55, 1, '#06080a'),
+    ], '#1c201e', 2),
+    planeTree(u, cy, m * 1.1, seed),
+  ].join('');
+}
+
+/** A black plastic terrace chair seen from the side, facing `dir`: seat with a lit top, slatted back, legs with a highlight. */
+function silla(x, y, m, dir, atras = false) {
+  const s = dir;
+  const c = atras ? mat('#2a2a32', '#18181e', '#4a4a58', '#0a0a0e') : mat('#38383f', '#1e1e24', '#6e6e7e', '#101014');
+  const pata = (x0, y0, x1, y1) => stroke(`M${f2(x0)} ${f2(y0)}L${f2(x1)} ${f2(y1)}`, c.base, 0.05 * m) + stroke(`M${f2(x0 + 0.014 * m)} ${f2(y0)}L${f2(x1 + 0.014 * m)} ${f2(y1)}`, c.light, 0.014 * m, { opacity: 0.8 });
+  const xs = Math.min(x, x + 0.46 * m * s) - 0.02 * m;
+  return [
+    sombra(x + 0.22 * m * s, y, 0.34 * m, 0.045 * m, 0.55, '#120c18'),
+    pata(x - 0.02 * m * s, y, x + 0.05 * m * s, y - 0.47 * m),
+    pata(x + 0.44 * m * s, y, x + 0.4 * m * s, y - 0.47 * m),
+    shape(smooth([[x + 0.0 * m * s, y - 0.47 * m, 'c'], [x - 0.04 * m * s, y - 0.86 * m], [x + 0.06 * m * s, y - 0.92 * m], [x + 0.12 * m * s, y - 0.5 * m, 'c']]), c.base, [
+      rect(x - 0.1 * m, y - 0.67 * m, 0.3 * m, 0.04 * m, c.line, { opacity: 0.9 }),
+      rect(Math.max(x - 0.04 * m * s, x + 0.12 * m * s) - 0.06 * m, y - 0.95 * m, 0.045 * m, 0.5 * m, c.light, { opacity: 0.7 }),
+    ], c.line, 1.4),
+    box(xs, y - 0.52 * m, 0.48 * m, 0.075 * m, c, { r: 5, lw: 1.4, sh: 0.3, li: 0.4, side: false }),
+    ao(xs, y - 0.445 * m, 0.48 * m, 0.1 * m, 0.4, 1, '#06060a'),
   ].join('');
 }
 
 function terraceChair(u, base, m, dir = 1) {
-  // Black plastic terrace chair, seen from the side.
-  const c = mat('#26262c', '#18181c', '#3e3e48', '#0a0a0c');
-  const s = dir;
-  return [
-    stroke(`M${u} ${base}L${u + 0.04 * m * s} ${base - 0.45 * m}M${u + 0.42 * m * s} ${base}L${u + 0.4 * m * s} ${base - 0.45 * m}`, c.base, 0.05 * m),
-    box(Math.min(u, u + 0.46 * m * s) - 0.02 * m, base - 0.5 * m, 0.48 * m, 0.07 * m, c, { r: 4 }),
-    shape(smooth([[u + 0.02 * m * s, base - 0.48 * m], [u - 0.02 * m * s, base - 0.86 * m], [u + 0.06 * m * s, base - 0.9 * m], [u + 0.1 * m * s, base - 0.5 * m]]), c.base, [], c.line, 1.4),
-  ].join('');
+  return silla(u, base, m, dir);
 }
 
 function foreground() {
@@ -1019,24 +1475,21 @@ function terraceTable(seed) {
   // Character units (Fran is 270 tall = 1.75 m): 1 m = 154 units.
   const m = 154;
   const r = rng(seed);
-  const al = mat('#c8ccd2', '#a2a8b0', '#e4e6ea', '#5c626a');
-  const ch = mat('#26262c', '#18181c', '#3e3e48', '#0a0a0c');
-  const chair = (x, dir, back) => {
-    const s = dir;
-    return [
-      stroke(`M${x} 0L${x + 0.04 * m * s} ${-0.45 * m}M${x + 0.42 * m * s} 0L${x + 0.4 * m * s} ${-0.45 * m}`, back ? ch.shadow : ch.base, 0.05 * m),
-      box(Math.min(x, x + 0.46 * m * s) - 0.02 * m, -0.5 * m, 0.48 * m, 0.07 * m, ch, { r: 4, lw: 1 }),
-      shape(smooth([[x + 0.02 * m * s, -0.48 * m], [x - 0.02 * m * s, -0.86 * m], [x + 0.06 * m * s, -0.9 * m], [x + 0.1 * m * s, -0.5 * m]]), back ? ch.shadow : ch.base, [], ch.line, 1),
-    ].join('');
-  };
-  const out = [path(ellipse(0, 2, 0.75 * m, 0.1 * m), '#000', { opacity: 0.3 })];
-  out.push(chair(-0.62 * m, -1, true), chair(0.62 * m, 1, true));
-  out.push(stroke(`M0 0L0 ${-0.7 * m}`, al.base, 0.06 * m), path(ellipse(0, -0.02 * m, 0.25 * m, 0.04 * m), al.shadow));
-  out.push(shape(polyD([[-0.4 * m, -0.74 * m], [0.4 * m, -0.74 * m], [0.44 * m, -0.7 * m], [-0.44 * m, -0.7 * m]]), al.light, [], al.line, 1.2), box(-0.44 * m, -0.71 * m, 0.88 * m, 0.04 * m, al, { r: 2, lw: 1 }));
+  const al = mat('#c8ccd2', '#8f959e', '#f0f2f4', '#5c626a');
+  const out = [sombra(0.05 * m, 2, 0.95 * m, 0.11 * m, 0.55, '#120c18')];
+  out.push(silla(-0.62 * m, 0, m, -1, true), silla(0.62 * m, 0, m, 1, true));
+  // Pedestal: a foot with a rim, the column with the moon on its edge.
+  out.push(path(ellipse(0, -0.02 * m, 0.27 * m, 0.045 * m), al.shadow), path(ellipse(0, -0.035 * m, 0.27 * m, 0.04 * m), al.base), stroke(`M${-0.2 * m} ${-0.05 * m}Q0 ${-0.015 * m} ${0.2 * m} ${-0.05 * m}`, al.light, 2.4, { opacity: 0.8 }));
+  out.push(stroke(`M0 -0.03L0 ${-0.7 * m}`, al.shadow, 0.065 * m), stroke(`M${-0.012 * m} -0.03L${-0.012 * m} ${-0.7 * m}`, al.base, 0.04 * m), stroke(`M${0.02 * m} -0.1L${0.02 * m} ${-0.68 * m}`, al.light, 0.012 * m, { opacity: 0.8 }));
+  // Round top seen from above at an angle: thickness, surface, rim light and the moon's glint.
+  out.push(path(ellipse(0, -0.715 * m, 0.45 * m, 0.082 * m), al.shadow), path(ellipse(0, -0.73 * m, 0.45 * m, 0.08 * m), al.base));
+  out.push(gpath(ellipse(0, -0.73 * m, 0.45 * m, 0.08 * m), rad(0.1 * m, -0.74 * m, 0.45 * m, [[0, '#ffffff', 0.55], [0.7, '#ffffff', 0.05], [1, '#1a1a28', 0.2]], 0.18)));
+  out.push(stroke(ellipse(0, -0.73 * m, 0.45 * m, 0.08 * m), al.light, 2.4, { opacity: 0.85 }));
   // A napkin holder and, sometimes, a glass someone left.
-  out.push(box(-0.12 * m, -0.86 * m, 0.1 * m, 0.12 * m, mat('#d8dce0', '#a8acb0', '#f4f6f8', '#5c626a'), { r: 2, lw: 0.8 }), rect(-0.1 * m, -0.9 * m, 0.06 * m, 0.06 * m, '#ffffff'));
-  if (r() < 0.6) out.push(shape(polyD([[0.1 * m, -0.9 * m], [0.18 * m, -0.9 * m], [0.17 * m, -0.74 * m], [0.11 * m, -0.74 * m]]), '#f0c25a', [rect(0.1 * m, -0.9 * m, 0.08 * m, 0.03 * m, '#fff8e8')], '#8a6a2a', 0.8));
-  out.push(chair(-0.5 * m, 1, false), chair(0.5 * m, -1, false));
+  out.push(sombra(-0.07 * m, -0.735 * m, 0.1 * m, 0.02 * m, 0.4, '#120c18'));
+  out.push(box(-0.12 * m, -0.86 * m, 0.1 * m, 0.12 * m, mat('#d8dce0', '#a8acb0', '#f4f6f8', '#5c626a'), { r: 2, lw: 0.8, li: 0.2 }), rect(-0.1 * m, -0.9 * m, 0.06 * m, 0.06 * m, '#ffffff'));
+  if (r() < 0.6) out.push(sombra(0.15 * m, -0.74 * m, 0.08 * m, 0.016 * m, 0.4, '#120c18'), shape(polyD([[0.1 * m, -0.9 * m], [0.18 * m, -0.9 * m], [0.17 * m, -0.74 * m], [0.11 * m, -0.74 * m]]), '#f0c25a', [rect(0.1 * m, -0.9 * m, 0.08 * m, 0.03 * m, '#fff8e8'), rect(0.15 * m, -0.9 * m, 0.03 * m, 0.16 * m, '#b8862a', { opacity: 0.6 })], '#8a6a2a', 0.8));
+  out.push(silla(-0.5 * m, 0, m, 1), silla(0.5 * m, 0, m, -1));
   return g(null, out);
 }
 
