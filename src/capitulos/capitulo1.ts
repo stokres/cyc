@@ -28,6 +28,7 @@ import type { Ambiente } from '../core/audio';
 import { dialogo, texto } from '../juego/textos';
 import { abrirMovil } from '../ui/movil';
 import { jugarRana } from '../ui/rana';
+import { mostrarTrailer } from '../ui/trailer';
 import { REPARTO } from '../juego/reparto';
 import { FONTS } from '../motor/escena';
 
@@ -342,6 +343,7 @@ function musicaCalle(g: Aventura): Ambiente[] {
 async function final(g: Aventura) {
   const e = g.estado;
   g.sound.precargar('pasodoble');
+  g.sound.precargar('trailer');
   const hora = Math.max(...Object.values(e.minutos));
   for (const id of e.jugables) e.minutos[id] = hora;
   // Each one comes from a different side; they walk in together.
@@ -384,6 +386,10 @@ async function final(g: Aventura) {
   // The end card gets its pasodoble, the lorry honking in it; the bar comes back after.
   g.sound.musica('pasodoble');
   await g.hud.rotulo(texto('fin.continuara'), texto('fin.capitulo'), undefined, 'continuara');
+  // Then the trailer of chapter 2 (src/ui/trailer.ts), with its own music, over the paused scene.
+  g.pausado = true;
+  await mostrarTrailer(g.root.parentElement!, g.sound, g.rapido);
+  g.pausado = false;
   g.sound.pararMusica();
   // Back on the terrace, for whoever wants to stay a while after the end card.
   for (const id of e.jugables) {

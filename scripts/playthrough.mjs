@@ -632,6 +632,17 @@ await paso('Los cuatro llegan a la vez', async () => {
   await wait(2800);
   await shot('continuara');
   await page.click('.cubierta.rotulo.continuara');
+  // The trailer of chapter 2 (src/ui/trailer.ts): its own music, each shot on time, and it ends by itself.
+  await page.waitForSelector('.cubierta.trailer', { timeout: 10000 });
+  await sonando('trailer', 'en el tráiler');
+  const enPlano = (p) => page.waitForFunction((p) => window.__trailer?.().plano === p, p, { timeout: 30000 });
+  for (const [p, ms] of [['desierto', 1500], ['caravana', 1800], ['pang', 900], ['invaders', 900], ['vero', 1900], ['titulo', 1500]]) {
+    await enPlano(p);
+    await wait(ms);
+    await shot(`trailer-${p}`);
+  }
+  await page.waitForSelector('.cubierta.trailer', { state: 'detached', timeout: 15000 });
+  check(!('trailer' in (await musicas())), 'la música del tráiler sigue sonando después del tráiler');
   await page.waitForSelector('.cubierta.titulo', { timeout: 30000 });
   check(!('pasodoble' in (await musicas())), 'el pasodoble sigue sonando después del «Continuará…»');
   const e = await page.evaluate(() => ({ final: window.__cyc.g.estado.final, aqui: Object.values(window.__cyc.g.estado.donde).filter((d) => d.escena === 'calle').length, hora: window.__cyc.g.hora }));

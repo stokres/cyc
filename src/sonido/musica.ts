@@ -13,6 +13,7 @@ import barPuerta from './bar-puerta.mp3?url';
 import pasodoble from './pasodoble.mp3?url';
 import bolilandia from './bolilandia.mp3?url';
 import bolilandiaLuz from './bolilandia-luz.mp3?url';
+import trailer from './trailer.mp3?url';
 
 export const MUSICA = {
   /** The farm polka on banjo, from Guille's radio (banjo.py radio). */
@@ -35,6 +36,8 @@ export const MUSICA = {
   bolilandiaLuz: { url: bolilandiaLuz, inicio: 0.5, fin: 63.108707 },
   /** «Pasodoble del camionero», the end card: the lorry and the fanfare once, then the pasodoble (pasodoble.py). */
   pasodoble: { url: pasodoble, entrada: 0, inicio: 12.413787, fin: 79.65517 },
+  /** «Próximamente», the chapter 2 trailer's action music, once through; then a low drone loops while the title stays up (trailer.py). */
+  trailer: { url: trailer, entrada: 0, inicio: 42, fin: 50 },
 } as const;
 
 export type Pista = keyof typeof MUSICA;

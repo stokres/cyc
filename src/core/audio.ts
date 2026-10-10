@@ -170,6 +170,11 @@ export class Sound {
     c.src.stop(t + fundido + 0.05);
   }
 
+  /** Resolves once this track has loaded (at once without sound): for what must start on its beat (the trailer). */
+  async lista(id: Pista) {
+    if (this.ac) await this.cargar(id, this.ac);
+  }
+
   /** Fetches and decodes a track ahead of time, so it starts at once when asked for. */
   precargar(id: Pista) {
     if (this.ac) this.cargar(id, this.ac);
