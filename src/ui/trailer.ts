@@ -24,6 +24,7 @@
 // redrawn. The loop never passes 60 fps and the scene underneath is paused meanwhile
 // (capitulo1.ts).
 import { h } from './hud';
+import { esVertical } from './orientacion';
 import { texto } from '../juego/textos';
 import type { Pista } from '../sonido/musica';
 import { logoClaro } from './logo';
@@ -1698,6 +1699,11 @@ export function mostrarTrailer(parent: HTMLElement, sonido: SonidoTrailer | null
     const paso = (ahora: number) => {
       if (acabado) return;
       requestAnimationFrame(paso);
+      // Phone held upright: the notice covers it and the sound is suspended. Time does not pass.
+      if (esVertical()) {
+        ultimo = ahora;
+        return;
+      }
       // 60 fps at most, also on 120 Hz screens.
       if (ultimo && ahora - ultimo < 1000 / 60 - 4) return;
       // The music's clock while it plays, so the cuts stay on its hits however slow the frames;

@@ -958,6 +958,8 @@ button:focus-visible {
 }
 
 .girar {
+  /* Above every other overlay (the highest of them is 10): nothing may show over it. */
+  z-index: 100;
   background: var(--ink);
   text-align: center;
 }

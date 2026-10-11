@@ -10,6 +10,7 @@
 // three slips or a collapse end the game. A point per pig, two if it lands dead
 // centre.
 import { h } from './hud';
+import { esVertical } from './orientacion';
 import { marcador, type Infinito } from './infinito';
 import type { SonidoMinijuego } from '../core/audio';
 import { svgABitmap } from '../motor/sprites';
@@ -395,6 +396,12 @@ export function jugarCerdos(parent: HTMLElement, rapido = false, infinito?: Infi
     };
     const paso = (ahora: number) => {
       if (!vivo) return;
+      // Phone held upright: the notice covers the game. Time does not pass, so nothing jumps on return.
+      if (esVertical()) {
+        ultimo = ahora;
+        requestAnimationFrame(paso);
+        return;
+      }
       // 60 fps at most, also on 120 Hz screens.
       if (ahora - ultimo < 1000 / 60 - 4) {
         requestAnimationFrame(paso);

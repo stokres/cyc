@@ -2,13 +2,14 @@
 // without a gap with Web Audio. Phones only allow sound after a tap, so start() is
 // called from the title screen. The music and the cues each have their own gain (the
 // menu's two volumes), both into one master. With the page hidden (another app, the
-// phone locked) the whole thing is suspended.
+// phone locked) or the phone is held upright (the «turn your phone» notice) the whole thing is suspended.
 //
 // Two kinds of music: the scene's (ambiente), asked for every frame as one layer or
 // several, each with its volume and pan — Guille's radio, louder the closer he is; on
 // Fran's street, the stroll giving way to the Río's rock as he nears its door — and a
 // minigame's (musica), which plays alone while it lasts and then gives way to them again.
 import { MUSICA, type Pista } from '../sonido/musica';
+import { alCambiarOrientacion, esVertical } from '../ui/orientacion';
 
 /** Music level under the master at full volume (the cues are short and quiet). */
 const NIVEL_MUSICA = 0.55;
@@ -77,7 +78,7 @@ export class Sound {
 
   start() {
     if (this.ac) {
-      void this.ac.resume();
+      this.sincronizar();
       return;
     }
     const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
@@ -98,10 +99,19 @@ export class Sound {
     this.fx = ac.createGain();
     this.fx.gain.value = curva(this.volumen.efectos);
     this.fx.connect(this.master);
-    document.addEventListener('visibilitychange', () => void (document.visibilityState === 'hidden' ? ac.suspend() : ac.resume()));
+    document.addEventListener('visibilitychange', () => this.sincronizar());
+    alCambiarOrientacion(() => this.sincronizar());
+    this.sincronizar();
     // Music asked for before the first tap starts now.
     if (this.primerPlano) this.reproducir(this.primerPlano, 1, 0);
     else for (const d of this.deseado) this.reproducir(d.pista, d.volumen, d.pan ?? 0);
+  }
+
+  /** Sound runs only while the page is visible and the phone is not upright: one place for both. */
+  private sincronizar() {
+    const ac = this.ac;
+    if (!ac) return;
+    void (document.visibilityState === 'visible' && !esVertical() ? ac.resume() : ac.suspend());
   }
 
   /**

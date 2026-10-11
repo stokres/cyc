@@ -82,7 +82,16 @@ export class Aventura {
   props: Objeto[] = [];
   private zonasLogicas: Record<string, ZonaLogica> = {};
   private ocupado = false;
-  pausado = false;
+  /** Paused by the game itself (a menu, the prologue, a minigame). Set by the callers. */
+  private pausaPropia = false;
+  /** The «turn your phone» notice is up (main.ts): a pause of its own, so leaving it frees nothing else. */
+  girando = false;
+  get pausado() {
+    return this.pausaPropia || this.girando;
+  }
+  set pausado(v: boolean) {
+    this.pausaPropia = v;
+  }
   /** Camera focus override (e.g. the sofa while Fran sleeps). */
   foco: number | null = null;
   /** Aceituna's behaviour in the flat. */

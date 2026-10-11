@@ -13,8 +13,10 @@
 // Performance (docs/ESTILO.md, T5): the night is drawn once on a canvas; a timer
 // fades one of ten small elements (six windows going out, four stars) now and
 // then, each on its own layer so nothing else is repainted; each line fades in
-// once. The scene underneath is paused meanwhile (main.ts).
+// once. The scene underneath is paused meanwhile (main.ts). With the phone held upright the
+// lines' timer and the twinkling stop (src/ui/orientacion.ts) and carry on where they were.
 import { h } from './hud';
+import { alCambiarOrientacion, esVertical } from './orientacion';
 import { dialogo, texto } from '../juego/textos';
 import { REPARTO, retrato, type PjId } from '../juego/reparto';
 
@@ -295,18 +297,45 @@ export function mostrarPrologo(parent: HTMLElement, rapido = false): Promise<voi
   dibujar();
   const ro = new ResizeObserver(dibujar);
   ro.observe(capa);
-  const vida = window.setInterval(() => luces[Math.floor(Math.random() * luces.length)]?.classList.toggle('on'), 900);
+  let vida = 0;
+  const encender = () => {
+    clearInterval(vida);
+    vida = window.setInterval(() => luces[Math.floor(Math.random() * luces.length)]?.classList.toggle('on'), 900);
+  };
+  if (!esVertical()) encender();
 
   return new Promise((resolve) => {
     let i = -1;
     let reloj = 0;
     let acabado = false;
     let desde = 0;
+    /** Time the current line still has on screen (ms), and when its timer last started. */
+    let quedan = 0;
+    let arranque = 0;
+    const correr = () => {
+      arranque = performance.now();
+      reloj = window.setTimeout(siguiente, quedan);
+    };
+    // Upright phone: stop the line's timer, keeping what it had left, and the twinkling; back in landscape, carry on.
+    const alGirar = (vertical: boolean) => {
+      if (acabado) return;
+      if (vertical) {
+        if (reloj) quedan = Math.max(0, quedan - (performance.now() - arranque));
+        clearTimeout(reloj);
+        reloj = 0;
+        clearInterval(vida);
+      } else {
+        encender();
+        if (i >= 0 && !reloj) correr();
+      }
+    };
+    const dejarDeVigilar = alCambiarOrientacion(alGirar);
     const fin = () => {
       if (acabado) return;
       acabado = true;
       clearTimeout(reloj);
       clearInterval(vida);
+      dejarDeVigilar();
       ro.disconnect();
       capa.classList.add('sale');
       setTimeout(() => {
@@ -333,15 +362,20 @@ export function mostrarPrologo(parent: HTMLElement, rapido = false): Promise<voi
       bloque.classList.add('entra');
       desde = performance.now();
       // Long enough to read it, then the next one.
-      reloj = window.setTimeout(siguiente, rapido ? 60 : Math.max(2800, 1500 + l.texto.length * 55));
+      quedan = rapido ? 60 : Math.max(2800, 1500 + l.texto.length * 55);
+      // (Started upright, the line waits for the phone to turn.)
+      reloj = 0;
+      if (!esVertical()) correr();
     };
     capa.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (esVertical()) return;
       // A tap right as a line comes in (meant for the one before) does not skip it.
       if (performance.now() - desde > 400) siguiente();
     });
     saltar.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (esVertical()) return;
       fin();
     });
     siguiente();

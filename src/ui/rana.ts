@@ -21,6 +21,7 @@
 // her tail, the shade, the curtains and the ham are bitmaps made once per screen
 // size; each frame only moves them. The loop never runs faster than 60 fps.
 import { h } from './hud';
+import { esVertical } from './orientacion';
 import { texto } from '../juego/textos';
 import { FONTS } from '../motor/escena';
 import { silueta, svgABitmap } from '../motor/sprites';
@@ -605,6 +606,12 @@ export function jugarRana(parent: HTMLElement, op: OpcionesRana): Promise<Result
     };
     const paso = (ahora: number) => {
       if (!vivo) return;
+      // Phone held upright: the notice covers the game. Time does not pass, so nothing jumps on return.
+      if (esVertical()) {
+        ultimo = ahora;
+        requestAnimationFrame(paso);
+        return;
+      }
       // 60 fps at most, also on 120 Hz screens.
       if (ahora - ultimo < 1000 / 60 - 4) {
         requestAnimationFrame(paso);
