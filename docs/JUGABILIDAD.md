@@ -28,16 +28,16 @@ En el menú, **Capítulos** enseña cada capítulo (superado, en curso o todaví
 | Problema | Solución |
 |---|---|
 | No hay «pasar el ratón por encima» | El botón del ojo enseña todas las zonas interactivas durante unos segundos |
-| Nueve verbos no caben en un móvil | **Un toque** hace la acción lógica (ir, usar, hablar). **Mantener pulsado** examina, con un anillo que se va llenando alrededor del dedo (grande, para que el dedo no lo tape) |
+| Nueve verbos no caben en un móvil | **Un solo gesto: el toque** (11 de octubre de 2026). Hace la acción lógica: ir, usar, coger, hablar; y en lo que no se puede usar, lo mira y lo cuenta. Ya no hay «mantener pulsado» para mirar (ni anillo, ni clic derecho): un dedo que se queda quieto un rato y se levanta cuenta como un toque |
 | El dedo tapa lo que tocas | Zonas táctiles con margen extra, y un rótulo con el nombre de lo que has tocado |
-| Tocar para andar y que salte otra cosa | El margen extra de las zonas **nunca se mete en el suelo**: un toque en el suelo es un paso, aunque sea justo debajo de una puerta. Los objetos grandes que están en el suelo (el sofá de Fran, los contenedores de la calle, el cañón de bolas) solo responden en su parte de arriba. **Tocarte a ti mismo sin objeto también es un paso**: para mirarte, mantén pulsado (8 de octubre de 2026) |
-| Usar objetos | La bolsa (abajo a la derecha) se despliega con tarjetas grandes; tocas el objeto y luego el destino. El ojo pequeño de cada tarjeta lo examina. Mientras llevas un objeto, un aviso arriba dice «Usar … en…» y tocarlo lo suelta |
-| Aprender a jugar | **Al empezar la primera historia de la partida, «Cómo se juega»** (`src/ui/tutorial.ts`, 8 de octubre de 2026): sobre la escena, se prueban de verdad los dos gestos, primero un toque y luego mantener el dedo hasta que se llene el círculo (si el toque es corto, lo dice). Usa los mismos gestos y tiempos que la escena y se puede saltar. Sale una vez por partida (también al empezar de nuevo o al rejugar el capítulo). Además, la primera vez que hace falta cada gesto aparece una ayuda corta abajo («Mantén el dedo sobre algo para mirarlo») |
+| Tocar para andar y que salte otra cosa | El margen extra de las zonas **nunca se mete en el suelo**: un toque en el suelo es un paso, aunque sea justo debajo de una puerta. Los objetos grandes que están en el suelo (el sofá de Fran, los contenedores de la calle, el cañón de bolas) solo responden en su parte de arriba. **Tocarte a ti mismo sin objeto también es un paso** (8 de octubre de 2026) |
+| Usar objetos | La bolsa (abajo a la derecha) se despliega con tarjetas grandes; tocas el objeto y luego el destino. El ojo pequeño de cada tarjeta lo examina (es un botón). Mientras llevas un objeto, un aviso arriba dice «Usar … en…» y tocarlo lo suelta |
+| Aprender a jugar | **Al empezar la primera historia de la partida, «Cómo se juega»** (`src/ui/tutorial.ts`, 8 de octubre de 2026; desde el 11 de octubre, un solo paso): sobre la escena, se prueba de verdad el toque, que es el mismo de la escena, y se puede saltar. Sale una vez por partida (también al empezar de nuevo o al rejugar el capítulo). Además, la primera vez que hace falta aparece una ayuda corta abajo («Toca algo para usarlo o cogerlo») |
 | Elegir con quién empezar | Pantalla con los cuatro de frente, en tarjetas grandes, y una frase con su situación. Sale al empezar y cada vez que alguien termina su historia |
 | Hablar con alguien que no es del grupo | Se le toca, como a un amigo. En la historia de Pablo, su sombra (el narrador) le sigue y contesta según el momento. Mientras uno de los dos habla, Pablo y su sombra se miran; cuando Pablo echa a andar, la sombra vuelve a copiarle |
 | Varios amigos | Columna de retratos grandes a la izquierda (al menos 52 px, el activo más grande y con su color). Tocar a otro lleva a su historia, donde la dejaste, como en *Day of the Tentacle*. Cada uno tiene su bolsa, su reloj y sus frases (`clave.pablo` en los textos gana a `clave` cuando juegas con Pablo). Quien ya va de camino al Río sale apagado y con una ✓ |
 | Acabar una historia | Fundido a negro antes de llegar al bar y un rótulo («Pablo ya va de camino al Río · Faltan…»). Con los cuatro de camino, escena final: llegan a la vez |
-| Usar algo contigo | Eliges el objeto en la bolsa y tocas a tu propio personaje (vestirse, probar el jamón, mirar el móvil). Sin objeto, tocarte es andar; mantener pulsado sobre ti te mira |
+| Usar algo contigo | Eliges el objeto en la bolsa y tocas a tu propio personaje (vestirse, probar el jamón, mirar el móvil). Sin objeto, tocarte es andar |
 | Dar cosas a otro amigo | Tocas el objeto y luego al amigo |
 | Coger objetos | **Lo que se puede coger se puede coger siempre** (decidido el 3 de octubre de 2026), aunque todavía no se sepa para qué sirve; y también se puede juntar con otros. Nada se bloquea hasta «su momento» de la historia |
 | Juntar dos objetos | Eliges uno en la bolsa, vuelves a abrirla y tocas el otro (alcohol + romero en la historia de Guille). Si no pegan, el personaje lo dice |
@@ -135,7 +135,7 @@ Después se elige con quién empezar y se puede cambiar cuando se quiera (ver `d
 Fran se despierta de la siesta a las 20:35 y había quedado a las 21:00 en el Bar del Río. Cada paso enseña una mecánica:
 
 1. **Tocar** para despertarle.
-2. **Mirar** (mantener pulsado) el reloj: se da cuenta de la hora.
+2. **Tocar el reloj** de la cocina: lo mira y se da cuenta de la hora.
 3. **Coger** el móvil: el grupo de WhatsApp presenta a los demás.
 4. **La puerta** está cerrada con llave: la pareja se ha ido de finde y la ha echado por fuera.
 5. Las llaves no están en el cuenco: **Aceituna** está tumbada encima y no se mueve.

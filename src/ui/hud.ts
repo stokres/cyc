@@ -69,7 +69,6 @@ export class Hud {
   private ayudaEl: HTMLDivElement;
   private ayudaT = 0;
   private dialogoEl: HTMLDivElement | null = null;
-  private anilloEl: SVGSVGElement;
   private fpsEl: HTMLDivElement;
   private avance: (() => void) | null = null;
   private escribiendo: { full: string; shown: number; el: HTMLElement } | null = null;
@@ -109,13 +108,6 @@ export class Hud {
 
     this.ayudaEl = h('div', { class: 'ayuda vidrio', hidden: true });
     this.root.append(this.ayudaEl);
-
-    this.anilloEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    this.anilloEl.setAttribute('class', 'anillo');
-    this.anilloEl.setAttribute('viewBox', '0 0 64 64');
-    this.anilloEl.innerHTML = '<circle class="pista" cx="32" cy="32" r="26"/><circle class="lleno" cx="32" cy="32" r="26" pathLength="100" stroke-dasharray="0 100"/>';
-    this.anilloEl.style.display = 'none';
-    this.root.append(this.anilloEl);
 
     this.fpsEl = h('div', { class: 'fps vidrio', hidden: true });
     this.root.append(this.fpsEl);
@@ -315,17 +307,6 @@ export class Hud {
     if (item) el.querySelector('.icono')!.innerHTML = icono(item);
     this.root.append(el);
     setTimeout(() => el.remove(), 2600);
-  }
-
-  anillo(x: number | null, y: number, t: number) {
-    if (x === null) {
-      this.anilloEl.style.display = 'none';
-      return;
-    }
-    this.anilloEl.style.display = 'block';
-    this.anilloEl.style.left = `${x}px`;
-    this.anilloEl.style.top = `${y}px`;
-    this.anilloEl.querySelector('.lleno')!.setAttribute('stroke-dasharray', `${(t * 100).toFixed(1)} 100`);
   }
 
   fps(t: string | null) {

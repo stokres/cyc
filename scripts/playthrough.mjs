@@ -50,23 +50,20 @@ async function sonando(pista, donde) {
 }
 
 /**
- * How to play (src/ui/tutorial.ts), the first time a story starts in a game: a tap, then
- * a short tap that is not enough, then holding the finger until the ring fills.
+ * How to play (src/ui/tutorial.ts), the first time a story starts in a game: one step, a tap.
+ * The finger is held down for a while first (there is no long press: it is still a tap).
  */
 let tutoriales = 0;
 async function tutorial() {
   await wait(500);
-  await page.touchscreen.tap(300, 250);
-  await wait(300);
-  check(await page.$('.tutorial .paso.tocar.ok'), 'el tutorial no da por bueno el toque');
-  await page.touchscreen.tap(300, 250);
-  await wait(300);
-  check(!(await page.$('.tutorial .paso.mantener.ok')), 'el tutorial da por bueno un toque como mantener');
-  await page.mouse.move(600, 250);
+  check(!(await page.$('.tutorial .paso.mantener')), 'el tutorial todavía tiene el paso de mantener');
+  await page.mouse.move(300, 250);
   await page.mouse.down();
   await wait(700);
+  check(!(await page.$('.anillo')), 'sale un anillo al mantener el dedo');
   await page.mouse.up();
-  check(await page.$('.tutorial .paso.mantener.ok'), 'el tutorial no da por bueno mantener el dedo');
+  await wait(300);
+  check(await page.$('.tutorial .paso.tocar.ok'), 'el tutorial no da por bueno el toque');
   await page.waitForSelector('.cubierta.tutorial', { state: 'detached', timeout: 8000 });
   tutoriales++;
 }
@@ -150,15 +147,6 @@ async function verActor(id) {
 
 async function tocar([x, y]) {
   await page.touchscreen.tap(x, y);
-  await wait(150);
-  await charla();
-}
-
-async function mantener([x, y]) {
-  await page.mouse.move(x, y);
-  await page.mouse.down();
-  await wait(700);
-  await page.mouse.up();
   await wait(150);
   await charla();
 }
@@ -420,6 +408,8 @@ async function historiaPablo() {
     await page.touchscreen.tap(x, y);
     // While they talk, Pablo and his shadow look at each other (not the same way).
     await page.waitForSelector('.dialogo', { timeout: 10000 });
+    // The shadow may still be settling after the walk (slow machines): it looks once it stops.
+    await page.waitForFunction(() => !window.__cyc.g.sombra.moving, null, { timeout: 5000 }).catch(() => {});
     await wait(400);
     const caras = await page.evaluate(() => {
       const g = window.__cyc.g;
@@ -520,6 +510,8 @@ await escoger('fran');
 await shot('dormido');
 check(tutoriales === 1, `el tutorial sale ${tutoriales} veces al empezar la primera historia`);
 await paso('Despertar a Fran', () => tocar([420, 200]), 'despierto');
+check(await flag('ayuda:usar'), 'tras despertar no sale la ayuda de tocar para usar');
+check(!(await flag('ayuda:mirar')), 'sale la ayuda de mirar, que ya no existe');
 await sonando('barrio', 'en el piso de Fran');
 await shot('despierto');
 await paso('Cambiar a Pablo desde el selector', async () => {
@@ -534,7 +526,7 @@ await paso('Volver con Fran, donde lo dejamos', async () => {
   const ok = await page.evaluate(() => window.__cyc.g.escena === 'piso' && window.__cyc.g.estado.activo === 'fran');
   check(ok, 'no vuelve al piso de Fran');
 }, 'despierto');
-await paso('Mirar el reloj (mantener pulsado)', async () => mantener(await verZona('reloj')), 'horaVista');
+await paso('Tocar el reloj', async () => tocar(await verZona('reloj')), 'horaVista');
 await paso('Coger el móvil y leer el grupo', async () => {
   await tocar(await verZona('movil'));
   await page.waitForSelector('.cubierta.movil');
@@ -550,8 +542,7 @@ await paso('Coger el móvil y leer el grupo', async () => {
 await paso('Probar la puerta', async () => tocar(await verZona('puerta')), 'puertaProbada');
 await shot('puerta');
 await paso('Mirar el cuenco de las llaves', async () => tocar(await verZona('llavero')), 'llaveroVisto');
-await paso('Mirar a Aceituna', async () => mantener(await actorCss('aceituna')), 'aceitunaVista');
-await paso('Pedirle las llaves', async () => tocar(await actorCss('aceituna')));
+await paso('Tocar a Aceituna (pedirle las llaves)', async () => tocar(await actorCss('aceituna')), 'aceitunaVista');
 await paso('Sacar el jamón de la nevera', async () => tocar(await verZona('nevera')), 'jamon');
 await paso('Probar un taquito (usarlo con Fran)', async () => {
   await objeto('jamon');

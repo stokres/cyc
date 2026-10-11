@@ -207,8 +207,8 @@ export async function combinar(g: Aventura, a: string, b: string) {
 }
 
 /** Chuchi looking at himself, or using something on himself. */
-export async function aSiMismo(g: Aventura, item: string | null, mirar: boolean) {
-  if (mirar || !item) return g.hablar(ve(g) ? 'mirar.chuchi' : 'c.mirar.chuchi.borroso');
+export async function aSiMismo(g: Aventura, item: string | null) {
+  if (!item) return g.hablar(ve(g) ? 'mirar.chuchi' : 'c.mirar.chuchi.borroso');
   if (item === 'zapato') return g.hablar('c.zapato.probar');
   return g.hablar('nadacontigo');
 }

@@ -570,34 +570,6 @@ button:focus-visible {
   display: block;
 }
 
-/* Holding the finger down: a ring that fills round it. Big enough to show around the
-   fingertip (a 64 px one was hidden under the finger), over a dark track. */
-.anillo {
-  position: absolute;
-  width: clamp(104px, 32vh, 136px);
-  height: clamp(104px, 32vh, 136px);
-  transform: translate(-50%, -50%);
-  pointer-events: none !important;
-  overflow: visible;
-}
-
-.anillo circle {
-  fill: none;
-  stroke-width: 5;
-}
-
-.anillo .pista {
-  stroke: rgba(11, 17, 36, 0.5);
-  stroke-width: 7;
-}
-
-.anillo .lleno {
-  stroke: var(--gold);
-  stroke-linecap: round;
-  transform: rotate(-90deg);
-  transform-origin: 50% 50%;
-}
-
 .fps {
   position: absolute;
   left: 50%;
@@ -1643,40 +1615,12 @@ button:focus-visible {
   25% { transform: translateY(3px) scale(0.92); }
 }
 
-.tutorial .icono .aro {
-  inset: -6px;
-  width: calc(100% + 12px);
-  height: calc(100% + 12px);
-  transform: rotate(-90deg);
-}
-
-.tutorial .icono .aro circle {
-  stroke: var(--gold);
-  stroke-width: 4;
-  stroke-dasharray: 100;
-  animation: aro 1.8s ease-in infinite;
-}
-
-@keyframes aro {
-  0% { stroke-dashoffset: 100; opacity: 1; }
-  70% { stroke-dashoffset: 0; opacity: 1; }
-  100% { stroke-dashoffset: 0; opacity: 0; }
-}
-
 .tutorial .prueba {
   margin: 0;
   min-height: 2.6em;
   font-weight: 800;
   font-size: clamp(15px, 4.4vh, 19px);
   color: var(--gold);
-}
-
-.tutorial .prueba.otra {
-  color: var(--cream);
-}
-
-.tutorial .prueba.sacude {
-  animation: tiembla 0.4s;
 }
 
 .tutorial .saltar {

@@ -73,7 +73,7 @@ objetivo.vestirse = Vístete: en calzoncillos no se va al Río
 objetivo.bar = Ve al Bar del Río
 objetivo.fin = ¡Los cuatro en el Río!
 
-pista.hora = El reloj de la cocina está encima de la ventana. Mantén el dedo sobre él para mirarlo.
+pista.hora = El reloj de la cocina está encima de la ventana. Tócalo para mirarlo.
 pista.movil = Tu móvil no para de vibrar encima de la mesa.
 pista.puerta = Prueba a salir por la puerta del recibidor.
 pista.llavero = Las llaves siempre van en el cuenco del recibidor. Siempre.
@@ -91,7 +91,6 @@ pista.bar = El Bar del Río está al final de la calle, pasado el parque y el cr
 // ---------------------------------------------------------------- ayudas de primera vez
 
 ayuda.andar = Toca el suelo para andar.
-ayuda.mirar = Mantén el dedo sobre algo para mirarlo.
 ayuda.usar = Toca algo para usarlo o cogerlo.
 ayuda.bolsa = Lo que coges va a la bolsa. Ábrela, elige un objeto y toca dónde usarlo.
 ayuda.tuyo = Para usar un objeto contigo, elige el objeto y toca a Fran.

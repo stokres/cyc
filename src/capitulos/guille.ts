@@ -141,8 +141,8 @@ export async function combinar(g: Aventura, a: string, b: string) {
 }
 
 /** Guille using something on himself, or looking at himself. */
-export async function aSiMismo(g: Aventura, item: string | null, mirar: boolean) {
-  if (mirar || !item) return g.hablar(f(g, 'g.limpio') ? 'g.mirar.guille.limpio' : f(g, 'g.olor') ? 'g.mirar.guille.olor' : 'mirar.guille');
+export async function aSiMismo(g: Aventura, item: string | null) {
+  if (!item) return g.hablar(f(g, 'g.limpio') ? 'g.mirar.guille.limpio' : f(g, 'g.olor') ? 'g.mirar.guille.olor' : 'mirar.guille');
   if (item === 'colonia') {
     // Made before he needs it: he keeps it for later.
     if (!f(g, 'g.olor')) return g.hablar('g.colonia.antes');

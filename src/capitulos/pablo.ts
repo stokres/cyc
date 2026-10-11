@@ -147,17 +147,16 @@ export async function combinar(g: Aventura, a: string, b: string) {
   return true;
 }
 
-/** Tapping, looking at or giving something to the shadow. */
-export async function sombra(g: Aventura, item: string | null, mirar: boolean) {
+/** Tapping, or giving something to, the shadow. */
+export async function sombra(g: Aventura, item: string | null) {
   // After the battle the shadow is no longer on the scene: there is nobody to tap.
   const etapa = f(g, 'p.bloqueado') ? 'bloqueo' : 'papel';
-  if (mirar) return g.hablar(`p.mirar.sombra.${etapa}`);
   if (item) return g.hablar(g.hayDialogo(`p.sombra.${item}`) ? `p.sombra.${item}` : 'p.sombra.objeto');
   await g.hablar(`p.hablar.sombra.${etapa}`);
 }
 
-export async function aSiMismo(g: Aventura, item: string | null, mirar: boolean) {
-  if (mirar || !item) return g.hablar(f(g, 'p.ganado') ? 'p.mirar.pablo.despues' : 'mirar.pablo');
+export async function aSiMismo(g: Aventura, item: string | null) {
+  if (!item) return g.hablar(f(g, 'p.ganado') ? 'p.mirar.pablo.despues' : 'mirar.pablo');
   return g.hablar('nadacontigo');
 }
 
