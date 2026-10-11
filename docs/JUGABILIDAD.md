@@ -86,11 +86,13 @@ Cortar con el dedo las palabras negativas (en sentido de impro) que lanza el nar
 
 ### Los cerdos (Guille)
 
-Apilar los ocho cerdos encima de la báscula, estilo *Tower Bloxx*: un toque suelta el cerdo que se balancea en la polea. Descentrado, la torre se tambalea más; fuera del borde, resbala. Tres resbalones o un derrumbe y se repite; tras dos rondas perdidas aparece «Saltar». El último es el peor de todos.
+Apilar los ocho cerdos encima de la báscula, estilo *Tower Bloxx*: un toque suelta el cerdo que se balancea en la polea. Descentrado, la torre se tambalea más; fuera del borde, resbala. Hay tres corazones: cada resbalón y cada derrumbe cuesta uno, y sin corazones se repite desde abajo; tras dos rondas perdidas aparece «Saltar». El último es el peor de todos.
 
 - **La polea va rápida desde el primer cerdo** y acelera con cada uno (5 de octubre de 2026: empezaba tan lenta que los ocho salían a la primera).
 - **Cada cerdo carga con los de encima:** si el peso de los que tiene encima se sale de su lomo (con el vaivén), la torre se viene abajo a esa altura, aunque abajo esté recta. Cada cerdo que cae la sacude, más cuanto más descentrado y más pesado, y cuanto más alta, más se mece la cima.
-- Se ajusta con `node scripts/cerdos-sim.mjs`: jugadores que apuntan adonde caerá el cerdo y tocan con un error de ±30, ±60 o ±100 ms. El preciso la hace casi siempre a la primera, el normal en una a tres rondas y el torpe suele necesitar «Saltar».
+- **El derrumbe se ve venir y se ve caer** (11 de octubre de 2026: antes la torre desaparecía de golpe y salía «¡Se acabó la torre!» sin que se viera nada, con 15 o 16 cerdos en pie). Desde algo más de la mitad del límite, la torre se inclina hacia su lado a partir de esa juntura, los cerdos de ahí tiemblan más cuanto más cerca del límite y una barra roja late sobre la juntura. Al pasarse, los cerdos de encima vuelcan hacia donde se inclinaban, se sueltan de uno en uno (el de arriba primero) y caen fuera de la pantalla, mientras el resto de la torre se sacude. Solo después sale el mensaje.
+- **Un derrumbe cuesta un corazón, como un resbalón** (11 de octubre de 2026): una sola regla, tres corazones. La torre se queda a la altura que aguantó y los cerdos caídos se vuelven a apilar, en el mismo orden (el peor, siempre el último). Sin corazones, se repite desde abajo («¡Sin corazones! Otra vez desde abajo»).
+- Se ajusta con `node scripts/cerdos-sim.mjs`: jugadores que apuntan adonde caerá el cerdo y tocan con un error de ±30, ±60 o ±100 ms. El preciso la hace casi siempre a la primera, el normal en una a tres rondas y el torpe suele necesitar «Saltar». Con `node scripts/cerdos-sim.mjs infinito` (opcionalmente con el número de partidas y cuántas a la vez) se ve el sin fin: cuántos cerdos se apilaron y qué costó el último corazón.
 
 ### El cañón contra Robi (Chuchi)
 
@@ -105,7 +107,7 @@ En el menú, **Minijuegos** abre los minijuegos que hayas superado en la histori
 | La rana de Aceituna | 1 por taquito a la boca | Los cuatro tramos de la historia y, después, su meneo, su boca y la corriente cada vez más rápidos y fuertes | A los tres fallos (con un acierto de una de cada dos al principio, uno solo duraría dos tiros) |
 | Las palabras de Pablo | 1 por palabra que bloquea cortada | Pasada la página de la historia, caen cada vez más rápido y más seguidas | Cuando se llena el bloqueo |
 | El cañón contra Robi | 1 por bola en el botón | Pasados los seis aciertos, Robi se mueve y avanza cada vez más rápido, y cada acierto le echa menos atrás | Cuando llega a abrazarte |
-| La torre de cerdos | 1 por cerdo, 2 si cae en el centro | La piara vuelve a empezar (el peor, cada ocho) y la polea se balancea cada vez más ancha y rápida | Tres resbalones o un derrumbe |
+| La torre de cerdos | 1 por cerdo, 2 si cae en el centro | La piara vuelve a empezar (el peor, cada ocho) y la polea se balancea cada vez más ancha y rápida | Cuando se pierden los tres corazones (cada resbalón y cada derrumbe cuesta uno), tras verse caer la torre |
 
 Cada pocos aciertos sale «¡Nivel N!». Al acabar, una tarjeta enseña los puntos, si es récord y **tus cinco mejores partidas** de ese minijuego, con la fecha. El ranking es de cada móvil: se guarda con la partida (`src/juego/partida.ts`, `apuntarPuntos`) y no se borra al empezar de nuevo. Un ranking compartido entre los cuatro necesitaría un servidor (GitHub Pages solo sirve archivos), así que queda como mejora futura.
 
