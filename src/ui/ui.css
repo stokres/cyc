@@ -1114,11 +1114,27 @@ button:focus-visible {
 }
 
 .minijuego .instrucciones {
+  position: absolute;
+  top: var(--safe-t);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: calc(100% - 2 * (var(--safe-r) + 58px));
   margin: 0;
+  padding: 6px 18px;
+  border-radius: 14px;
+  background: var(--glass-strong);
+  border: 1px solid var(--gold);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
   font: 400 clamp(14px, 4vh, 20px) var(--display);
+  line-height: 1.25;
   color: var(--gold);
   text-align: center;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
+  text-shadow: none;
+  pointer-events: none;
 }
 
 .minijuego .cerrar {
@@ -1183,15 +1199,6 @@ button:focus-visible {
   touch-action: none;
 }
 
-.minijuego.cerdos .instrucciones {
-  position: absolute;
-  top: calc(var(--safe-t) + 34px);
-  left: 0;
-  right: 0;
-  pointer-events: none;
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
-}
-
 .cuenta-cerdos {
   position: absolute;
   left: var(--safe-l);
@@ -1226,10 +1233,25 @@ button:focus-visible {
   from { transform: translate(-50%, -50%) scale(0.6); opacity: 0; }
 }
 
-.minijuego .saltar {
+.minijuego .btn.saltar {
   position: absolute;
   right: var(--safe-r);
-  bottom: var(--safe-b);
+  bottom: calc(var(--safe-b) + 40px);
+  z-index: 3;
+  min-height: 44px;
+  padding: 6px 20px;
+  border-radius: 999px;
+  background: var(--gold);
+  border: 2px solid var(--gold);
+  color: var(--ink);
+  font: 400 clamp(15px, 4.2vh, 19px) var(--display);
+  letter-spacing: 0.04em;
+  box-shadow: 0 0 0 2px rgba(11, 17, 36, 0.55), 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+
+.minijuego .btn.saltar:active {
+  filter: brightness(1.1);
+  transform: scale(0.97);
 }
 
 /* ------------------------------------------------------------ ball cannon minigame (Chuchi) */
@@ -1245,15 +1267,6 @@ button:focus-visible {
   width: 100%;
   height: 100%;
   touch-action: none;
-}
-
-.minijuego.robot .instrucciones {
-  position: absolute;
-  top: calc(var(--safe-t) + 4px);
-  left: 0;
-  right: 0;
-  pointer-events: none;
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
 }
 
 .barra.cerca {
@@ -1287,15 +1300,6 @@ button:focus-visible {
   width: 100%;
   height: 100%;
   touch-action: none;
-}
-
-.minijuego.rana .instrucciones {
-  position: absolute;
-  top: calc(var(--safe-t) + 4px);
-  left: 0;
-  right: 0;
-  pointer-events: none;
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
 }
 
 .barra.ganas {
@@ -1344,15 +1348,6 @@ button:focus-visible {
   width: 100%;
   height: 100%;
   touch-action: none;
-}
-
-.minijuego.palabras .instrucciones {
-  position: absolute;
-  top: calc(var(--safe-t) + 4px);
-  left: 0;
-  right: 0;
-  pointer-events: none;
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
 }
 
 .barra {
