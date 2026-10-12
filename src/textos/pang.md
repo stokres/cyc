@@ -38,6 +38,9 @@ menu.ayuda = ◀ ▶ para andar. Disparo para lanzar el arpón hacia arriba. Cua
 fases.titulo = Elegir fase
 fases.bloqueada = Llega hasta aquí para desbloquearla
 cargando = Encendiendo la recreativa…
+girar = Gira el móvil para jugar
+dialogo.saltar = Saltar
+nombre.sombra = El narrador
 
 // ---------------------------------------------------------------- elegir personaje
 

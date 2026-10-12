@@ -3,11 +3,15 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "vite --host",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
-    "shots": "node scripts/shots.mjs"
+    "shots": "node scripts/shots.mjs",
+    "start": "node scripts/servir-pang.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",
