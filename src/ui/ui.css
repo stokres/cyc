@@ -132,8 +132,8 @@ button:focus-visible {
   --chico: clamp(52px, 15vh, 74px);
 }
 
-/* Folded: only the active face shows, with two darker faces peeking out behind it like a stack of tokens.
-   Every button stays in the column; the others are pulled up behind the first with a transform. */
+/* Folded: only the active face shows, with «Cambiar» under it.
+   Every button stays in the column; the others are hidden behind the first and slide out when it opens. */
 .reparto[data-abierto='false'] {
   pointer-events: none;
 }
@@ -161,31 +161,9 @@ button:focus-visible {
   z-index: calc(4 - var(--i, 0));
 }
 
-/* Darkening of the faces behind (opacity only, so it can animate cheaply). */
-.reparto .pj::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: rgba(11, 17, 36, 0.5);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.18s ease-out;
-}
-
 .reparto[data-abierto='false'] .pj:not(:first-child) {
-  /* small face grown to the size of the active one, then tucked behind it, peeking out to the right (16 % and 32 % of its size) */
-  transform-origin: 0 0;
-  transform: translate(calc(var(--grande) * 0.16 * var(--k)), calc(var(--grande) * 0.04 * var(--k) - var(--grande) - var(--gap) - (var(--i) - 1) * (var(--chico) + var(--gap)))) scale(1.2);
-  opacity: 1;
-}
-
-.reparto[data-abierto='false'] .pj:nth-child(n + 4) {
+  transform: translateY(calc(-1 * (var(--grande) + var(--gap) + (var(--i) - 1) * (var(--chico) + var(--gap)))));
   opacity: 0;
-}
-
-.reparto[data-abierto='false'] .pj:not(:first-child)::after {
-  opacity: 1;
 }
 
 .reparto[data-abierto='false'] .pj .hecho,
@@ -247,8 +225,7 @@ button:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .reparto .pj,
-  .reparto .pj::after {
+  .reparto .pj {
     transition: none;
   }
 }

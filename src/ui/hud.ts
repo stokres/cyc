@@ -59,7 +59,7 @@ export interface EntradaReparto {
 export class Hud {
   readonly root: HTMLDivElement;
   private dock: HTMLDivElement;
-  /** Character dock: folded (only the active face on top of a small stack) or open (the column). */
+  /** Character dock: folded (only the active face) or open (the column). */
   private repartoAbierto = false;
   private repartoClave = '';
   private objEl: HTMLDivElement;
@@ -142,7 +142,7 @@ export class Hud {
             'aria-pressed': String(esActivo),
             'aria-label': `${F.nombre}${e.aqui ? '' : ` (${e.lugar})`}`,
             'data-etiqueta': `${F.nombre}${e.aqui ? '' : ` (${e.lugar})`}`,
-            style: `--color:${F.color};--i:${n};--k:${Math.min(n, 2)}`,
+            style: `--color:${F.color};--i:${n}`,
             onclick: (ev) => {
               ev.stopPropagation();
               if (esActivo && !this.repartoAbierto) return this.abrirReparto();
