@@ -17,7 +17,7 @@
 //   suelo   (rows)  black stage floor with spike tape marks
 //   [characters]
 //   frente  (1.45)  a flight case and a coil of cable at the edges
-import { smooth, ellipse, path, stroke, g, shape, rect, circle, line, poly, polyD, rectD, rr, lin, rad, gpath, mat, box, bevel, bricks, persp, rng } from './kit.mjs';
+import { smooth, ellipse, path, stroke, g, shape, rect, circle, line, poly, polyD, rectD, rr, lin, rad, gpath, mat, box, bevel, bricks, persp, rng, ao, sombra } from './kit.mjs';
 
 export const P = persp({ HOR: 380, BASE: 820, CX: 1170 });
 export const W = 3800;
@@ -34,6 +34,7 @@ const GOLD = '#d8b25a';
 const TURQ = mat('#3fc0b8', '#2a9890', '#7ae0d8', '#16605a');
 const WHITE = mat('#ece8e2', '#c8c2b8', '#faf8f4', '#7e786e');
 const JOSO = '#e8452e'; // the theatre's red
+const BRASS_T = '#a8843c'; // trunk corners
 
 // Layout along the back wall.
 const DOOR = [150, 470];
@@ -65,11 +66,13 @@ function uRange(k, pad = 80) {
 function wall() {
   const out = [];
   // Black-painted brick, a little lighter near the floor where the work lights reach.
-  out.push(bricks(-200, -60, W + 400, G + 60, ['#26232c', '#2c2932', '#221f28'], '#1a181e', { bw: 46, bh: 16, seed: 3 }));
+  out.push(bricks(-200, -60, W + 400, G + 60, ['#322f3b', '#3b3846', '#292630'], '#15131a', { bw: 46, bh: 16, seed: 3 }));
   out.push(gpath(rectD(-200, -60, W + 400, G + 60), lin(0, -60, 0, G, [[0, '#000000', 0.55], [0.7, '#000000', 0.15], [1, '#000000', 0]])));
+  out.push(ao(-200, -60, W + 400, 190, 0.45));
   // Pipes and cable runs.
-  out.push(rect(-200, 60, W + 400, 14, '#4a4852'), rect(-200, 60, W + 400, 3, '#6a6872'));
-  for (const x of [520, 1720, 2620, 3380]) out.push(rect(x, 74, 10, G - 74, '#3c3a44'));
+  out.push(ao(-200, 74, W + 400, 56, 0.5));
+  out.push(rect(-200, 60, W + 400, 14, '#4a4852'), rect(-200, 60, W + 400, 3, '#6a6872'), rect(-200, 70, W + 400, 4, '#2a2830'));
+  for (const x of [520, 1720, 2620, 3380]) out.push(rect(x + 10, 74, 8, G - 74, '#000', { opacity: 0.22 }), rect(x, 74, 10, G - 74, '#3c3a44'), rect(x, 74, 3.5, G - 74, '#5a5864'));
   out.push(stroke(`M-200 110Q600 140 1400 112T3800 120`, '#141218', 5), stroke(`M-200 128Q900 160 2000 126T3800 140`, '#1a1820', 4));
   // A black velvet drape hanging on the left of the projection screen.
   const d0 = CICLO[0] - 150;
@@ -103,7 +106,7 @@ function poster() {
   const y = 300;
   const w = 220;
   const h = 300;
-  const out = [rect(x - 8, y - 8, w + 16, h + 16, JOSO), rect(x, y, w, h, '#2c2a30')];
+  const out = [rect(x, y + 4, w + 24, h + 24, '#000', { opacity: 0.22 }), rect(x - 8, y - 8, w + 16, h + 16, JOSO), rect(x - 8, y - 8, w + 16, 4, '#ff7a5a'), rect(x - 8, y + h + 4, w + 16, 4, '#a42a1a'), rect(x, y, w, h, '#2c2a30'), rect(x, y, w, 10, '#0e0c12', { opacity: 0.5 })];
   // The elephant, in the same red line style as the owl it replaces: big ears,
   // round head, two eyes, a curling trunk and little feet.
   const cx = x + w / 2;
@@ -159,14 +162,17 @@ function rack() {
   const [x0, x1] = RACK;
   const out = [];
   // Rail on two uprights with wheels; a hat shelf on top.
-  out.push(rect(x0, 300, x1 - x0, 10, STEEL.base), rect(x0 + 6, 300, 8, G - 330, STEEL.shadow), rect(x1 - 14, 300, 8, G - 330, STEEL.shadow));
-  out.push(rect(x0 - 10, 220, x1 - x0 + 20, 10, STEEL.base));
+  out.push(ao(x0 - 10, 230, x1 - x0 + 20, 54, 0.45), ao(x0, 310, x1 - x0, 40, 0.3));
+  out.push(rect(x0 + 6, G - 36, x1 - x0 - 12, 10, STEEL.shadow), rect(x0 + 6, G - 36, x1 - x0 - 12, 3, STEEL.light));
+  out.push(rect(x0, 300, x1 - x0, 10, STEEL.base), rect(x0, 300, x1 - x0, 3, STEEL.light), rect(x0 + 5, 300, 10, G - 330, STEEL.shadow), rect(x0 + 5, 300, 3.5, G - 330, STEEL.light), rect(x1 - 15, 300, 10, G - 330, STEEL.shadow), rect(x1 - 15, 300, 3.5, G - 330, STEEL.light));
+  out.push(rect(x0 - 10, 220, x1 - x0 + 20, 12, STEEL.base), rect(x0 - 10, 220, x1 - x0 + 20, 3.5, STEEL.light), rect(x0 - 10, 230, x1 - x0 + 20, 3, STEEL.line));
   for (const x of [x0 + 10, x1 - 10]) out.push(circle(x, G - 14, 14, '#1a1a1e'), circle(x, G - 14, 5, STEEL.base));
   out.push(gorra(x0 + 70, 214, 0.9), gorra(x0 + 190, 214, 0.9), gorra(x0 + 320, 214, 0.9));
   out.push(chaqueta(x0 + 90, 316), chaqueta(x0 + 210, 316), panuelo(x0 + 290, 312), panuelo(x0 + 320, 312), chaqueta(x0 + 360, 316, 0.96));
   // A sewing table beside it, with the costume scissors.
   const tx = x1 + 20;
-  out.push(box(tx, 600, 90, 16, WOOD), rect(tx + 8, 616, 8, G - 616, WOOD.shadow), rect(tx + 74, 616, 8, G - 616, WOOD.shadow));
+  out.push(ao(tx, 616, 90, 40, 0.4));
+  out.push(box(tx, 600, 90, 18, WOOD, { r: 3 }), box(tx + 6, 616, 78, 10, WOOD, { r: 2, sh: 0.4, li: 0, side: false }), box(tx + 6, 624, 10, G - 624, WOOD, { r: 2, sh: 0, li: 0, lw: 1.2 }), box(tx + 72, 624, 10, G - 624, WOOD, { r: 2, sh: 0, li: 0, lw: 1.2 }));
   out.push(stroke(`M${tx + 26} 594l34 -10M${tx + 26} 584l34 10`, STEEL.light, 3), circle(tx + 22, 596, 6, 'none', { stroke: '#c8433a', 'stroke-width': 3 }), circle(tx + 22, 582, 6, 'none', { stroke: '#c8433a', 'stroke-width': 3 }));
   return out.join('');
 }
@@ -175,32 +181,60 @@ function maniqui() {
   const x = MANIQUI;
   const out = [];
   // Tailor's dummy on a stand, dressed as a captain, scarf and cap.
-  out.push(rect(x - 4, 560, 8, G - 590, '#2a2830'), path(ellipse(x, G - 14, 46, 10), '#2a2830'));
+  out.push(rect(x - 5, 560, 10, G - 590, '#2a2830'), rect(x - 5, 560, 3.5, G - 590, '#4a4852'), path(ellipse(x, G - 14, 50, 12), '#1c1a20'), path(ellipse(x, G - 17, 46, 9), '#3a3842'), path(ellipse(x - 8, G - 19, 20, 3.5), '#5a5864'));
   out.push(shape(smooth([[x - 50, 330], [x + 50, 330], [x + 44, 420], [x + 34, 560, 'c'], [x - 34, 560, 'c'], [x - 44, 420]]), NAVY.base, [path(smooth([[x - 4, 330], [x + 4, 330], [x + 2, 560], [x - 2, 560]]), NAVY.shadow)], NAVY.line, 1.6));
+  out.push(path(smooth([[x - 50, 330], [x - 26, 322], [x + 26, 322], [x + 50, 330], [x + 44, 346], [x - 44, 346]]), NAVY.light, { opacity: 0.55 }), rect(x - 48, 420, 96, 5, NAVY.shadow, { opacity: 0.6 }));
   out.push(path(smooth([[x - 18, 330], [x, 380], [x + 18, 330]]), '#e8e4dc'), panuelo(x - 4, 330));
   for (let i = 0; i < 3; i++) out.push(circle(x - 14, 400 + i * 40, 4, GOLD), circle(x + 14, 400 + i * 40, 4, GOLD));
-  out.push(path(ellipse(x, 300, 26, 32), '#d8cfc2'), rect(x - 10, 324, 20, 12, '#c8bfb2'), gorra(x, 278, 0.75));
+  out.push(rect(x - 10, 324, 20, 12, '#b8afa2'), path(ellipse(x, 300, 26, 32), '#d8cfc2'), path(ellipse(x + 11, 304, 14, 28), '#b8afa2', { opacity: 0.55 }), path(ellipse(x - 10, 292, 6, 14), '#f0e8dc', { opacity: 0.6 }), gorra(x, 278, 0.75));
   return out.join('');
 }
 
 function trunk() {
   const [x0, x1] = BAUL;
   const out = [];
+  const M = mat('#5a3424', '#42261a', '#74462e', '#22120a');
+  const B = mat('#8a6a3a', '#5e4624', '#b08c52', '#2e200c');
+  const w = x1 - x0;
   // Old props trunk, lid ajar, a script peeking out.
-  out.push(box(x0, G - 150, x1 - x0, 150, mat('#5a3424', '#42261a', '#74462e', '#22120a'), { r: 6 }));
-  for (const x of [x0 + 30, x1 - 40]) out.push(rect(x, G - 150, 12, 150, '#8a6a3a'));
-  out.push(rect(x0, G - 90, x1 - x0, 10, '#8a6a3a'), path(rr((x0 + x1) / 2 - 16, G - 128, 32, 24, 3), GOLD));
+  out.push(rect(x0 + 6, G - 196, w, 190, '#000', { opacity: 0.2 }));
+  out.push(box(x0, G - 150, w, 150, M, { r: 6, sh: 0.1, li: 0.05 }));
+  // Wooden slats, leather straps with rivets and brass corners.
+  for (const y of [G - 112, G - 64]) out.push(rect(x0 + 4, y, w - 8, 3.5, M.shadow, { opacity: 0.8 }), rect(x0 + 4, y + 3.5, w - 8, 2.5, M.light, { opacity: 0.5 }));
+  for (const x of [x0 + 30, x1 - 42]) out.push(rect(x, G - 150, 14, 150, B.base), rect(x, G - 150, 4, 150, B.light), rect(x + 10, G - 150, 4, 150, B.shadow), ...[0, 1, 2].map((i) => circle(x + 7, G - 130 + i * 50, 3.4, B.light)));
+  out.push(rect(x0, G - 90, w, 10, B.base), rect(x0, G - 90, w, 3, B.light), rect(x0, G - 83, w, 3, B.shadow));
+  for (const x of [x0, x1 - 22]) out.push(poly([[x, G - 150], [x + 22, G - 150], [x + 22, G - 128], [x + 8, G - 128], [x + 8, G - 12], [x, G - 12]], BRASS_T), poly([[x, G], [x + 22, G], [x + 22, G - 14], [x, G - 14]], BRASS_T));
+  out.push(path(rr((x0 + x1) / 2 - 22, G - 134, 44, 36, 4), B.shadow), path(rr((x0 + x1) / 2 - 18, G - 130, 36, 28, 3), GOLD), circle((x0 + x1) / 2, G - 118, 4.5, '#3e2614'), rect((x0 + x1) / 2 - 2, G - 118, 4, 9, '#3e2614'));
+  // Lid: dark gap, then the lid with its lit top edge and a thick lip.
+  out.push(poly([[x0 - 4, G - 152], [x1 + 4, G - 152], [x1 + 4, G - 144], [x0 - 4, G - 144]], '#150a06'));
   out.push(poly([[x0 - 4, G - 152], [x1 + 4, G - 152], [x1 - 6, G - 196], [x0 + 6, G - 190]], '#6a3e2a'));
-  out.push(path(rr(x0 + 70, G - 168, 110, 20, 2), '#efe6d2'), rect(x0 + 70, G - 168, 110, 5, '#c8433a'));
+  out.push(poly([[x0 + 6, G - 190], [x1 - 6, G - 196], [x1 - 8, G - 188], [x0 + 8, G - 182]], '#8a5238'));
+  out.push(poly([[x0 - 4, G - 160], [x1 + 4, G - 160], [x1 + 4, G - 152], [x0 - 4, G - 152]], '#52301f'), rect(x0 - 4, G - 160, w + 8, 3, '#8a5238'));
+  out.push(rect(x0 + 24, G - 196, 14, 44, B.base, { opacity: 0.9 }), rect(x1 - 38, G - 196, 14, 44, B.base, { opacity: 0.9 }));
+  out.push(path(rr(x0 + 70, G - 168, 110, 20, 2), '#efe6d2'), rect(x0 + 70, G - 168, 110, 5, '#c8433a'), rect(x0 + 70, G - 152, 110, 4, '#b8ad96'));
+  out.push(rect(x0 + 4, G - 8, w - 8, 8, '#150a06', { opacity: 0.55 }));
   return out.join('');
 }
 
 function suitcases() {
   const [x0] = MALETAS;
   const out = [];
-  // Three white suitcases, big to small, stacked.
-  const maleta = (x, y, w, h) => [box(x, y - h, w, h, WHITE, { r: 10 }), rect(x + 10, y - h / 2 - 2, w - 20, 4, WHITE.shadow), path(rr(x + w / 2 - 18, y - h - 14, 36, 16, 6), 'none', { stroke: '#8a8478', 'stroke-width': 4 })].join('');
-  out.push(maleta(x0, G, 170, 110), maleta(x0 + 14, G - 112, 140, 90), maleta(x0 + 30, G - 204, 110, 70));
+  // Three white suitcases, big to small, stacked, with stickers from the tour.
+  const stk = ['#3fc0b8', '#e8452e', '#e8c23a'];
+  const maleta = (x, y, w, h, n) => [
+    rect(x + 6, y - h + 4, w, h, '#000', { opacity: 0.14, rx: 10 }),
+    box(x, y - h, w, h, WHITE, { r: 10, sh: 0.1, li: 0.06 }),
+    // ribs, corner caps, latches and a thick handle
+    ...[0.3, 0.7].map((k) => rect(x + w * k - 2.5, y - h + 8, 5, h - 16, WHITE.shadow, { opacity: 0.8 })),
+    rect(x + 10, y - h / 2 - 3, w - 20, 5, WHITE.shadow), rect(x + 10, y - h / 2 + 2, w - 20, 2.5, WHITE.light),
+    ...[x + 8, x + w - 20].map((cx) => rect(cx, y - 14, 12, 12, '#8a8f94', { rx: 3 })),
+    ...[x + 8, x + w - 20].map((cx) => rect(cx, y - h + 2, 12, 12, '#8a8f94', { rx: 3 })),
+    ...[x + w * 0.3 - 9, x + w * 0.7 - 9].map((cx) => rect(cx, y - h / 2 - 10, 18, 22, '#b8a470', { rx: 3 })),
+    path(rr(x + w / 2 - 20, y - h - 16, 40, 18, 7), 'none', { stroke: '#6a6458', 'stroke-width': 6 }),
+    path(rr(x + w / 2 - 20, y - h - 16, 40, 18, 7), 'none', { stroke: '#a8a294', 'stroke-width': 2.5, transform: 'translate(0 -1.5)' }),
+    rect(x + w * 0.5 + 8, y - h + 14, 20, 16, stk[n % 3], { rx: 3, transform: `rotate(${n * 7 - 6} ${x + w * 0.5 + 18} ${y - h + 22})` }),
+  ].join('');
+  out.push(maleta(x0, G, 170, 110, 0), maleta(x0 + 14, G - 112, 140, 90, 1), maleta(x0 + 30, G - 204, 110, 70, 2));
   return out.join('');
 }
 
@@ -209,10 +243,21 @@ function desk() {
   const out = [];
   const em = [];
   // Pablo's work table: typewriter, a lamp, crumpled pages, a cajón (his drum box) underneath.
-  out.push(box(x0, 600, x1 - x0, 20, WOOD), rect(x0 + 12, 620, 12, G - 620, WOOD.shadow), rect(x1 - 24, 620, 12, G - 620, WOOD.shadow));
-  out.push(box(x0 + 30, G - 120, 110, 120, mat('#9a6a3e', '#7a5230', '#b6844e', '#3e2614'), { r: 4 }), circle(x0 + 85, G - 70, 18, '#3e2614'));
+  const CAJ = mat('#9a6a3e', '#7a5230', '#b6844e', '#3e2614');
+  out.push(ao(x0 - 10, 636, x1 - x0 + 20, 70, 0.5), rect(x0 + 14, 628, x1 - x0 - 20, G - 628, '#000', { opacity: 0.16 }));
+  // Legs with body (lit left edge), a low stretcher and an apron under the top.
+  out.push(rect(x0 + 24, G - 70, x1 - x0 - 60, 9, WOOD.shadow), rect(x0 + 24, G - 70, x1 - x0 - 60, 3, WOOD.base));
+  for (const lx of [x0 + 10, x1 - 28]) out.push(box(lx, 620, 18, G - 620, WOOD, { r: 3, sh: 0, li: 0, lw: 1.2 }), rect(lx + 2, 622, 4, G - 626, WOOD.light, { opacity: 0.8 }));
+  out.push(box(x0 + 14, 618, x1 - x0 - 28, 22, WOOD, { r: 2, sh: 0.35, li: 0, side: false, lw: 1.2 }));
+  out.push(box(x0, 596, x1 - x0, 26, WOOD, { r: 4, sh: 0.22, li: 0.18 }), rect(x0 + 4, 596, x1 - x0 - 8, 4, '#a07a52', { opacity: 0.9 }));
+  // The cajon: lit top, framed front face with the sound hole, screws and little feet.
+  out.push(rect(x0 + 40, G - 8, 12, 8, '#2a1a0c'), rect(x0 + 118, G - 8, 12, 8, '#2a1a0c'));
+  out.push(box(x0 + 30, G - 120, 110, 114, CAJ, { r: 4, sh: 0.06, li: 0.02 }), poly([[x0 + 30, G - 120], [x0 + 140, G - 120], [x0 + 134, G - 130], [x0 + 36, G - 130]], CAJ.light));
+  out.push(path(rr(x0 + 40, G - 110, 90, 94, 4), 'none', { stroke: CAJ.shadow, 'stroke-width': 3.5 }), rect(x0 + 40, G - 17, 90, 2.5, CAJ.light, { opacity: 0.8 }));
+  out.push(circle(x0 + 85, G - 66, 22, CAJ.shadow), circle(x0 + 85, G - 66, 17, '#2e1a0c'), path(ellipse(x0 + 85, G - 72, 12, 6), '#4a2c16', { opacity: 0.6 }));
+  for (const [dx, dy] of [[47, G - 103], [123, G - 103], [47, G - 24], [123, G - 24]]) out.push(circle(x0 + dx, dy, 3.2, '#c8a46a'));
   const tx = (x0 + x1) / 2;
-  out.push(box(tx - 90, 520, 180, 80, DARK, { r: 12 }), rect(tx - 100, 506, 200, 16, '#1c1a20'), path(rr(tx - 70, 548, 140, 36, 4), '#141218'));
+  out.push(path(ellipse(tx, 598, 108, 8), '#000', { opacity: 0.25 }), box(tx - 90, 520, 180, 80, DARK, { r: 12 }), rect(tx - 100, 506, 200, 16, '#1c1a20'), path(rr(tx - 70, 548, 140, 36, 4), '#141218'));
   for (let r = 0; r < 3; r++) for (let i = 0; i < 9; i++) out.push(circle(tx - 64 + i * 16 + (r % 2) * 6, 556 + r * 11, 4.2, '#d8d4cc'));
   out.push(rect(tx - 60, 490, 120, 18, '#bcb6aa'));
   // Crumpled pages.
@@ -223,7 +268,9 @@ function desk() {
   out.push(path(ellipse(lx, 598, 26, 6), '#2a2830'), stroke(`M${lx} 596L${lx - 30} 520L${lx - 70} 500`, '#2a2830', 6), path(smooth([[lx - 100, 498], [lx - 52, 478], [lx - 40, 510, 'c'], [lx - 96, 524, 'c']]), '#3a6a5a'));
   em.push(path(ellipse(lx - 72, 514, 22, 7, -0.4), '#fff0c0'));
   // A chair.
-  out.push(rect(x0 + 220, 640, 90, 14, WOOD.base), rect(x0 + 226, 654, 8, G - 654, WOOD.shadow), rect(x0 + 296, 654, 8, G - 654, WOOD.shadow), rect(x0 + 296, 520, 10, 130, WOOD.shadow));
+  out.push(box(x0 + 292, 520, 16, 130, WOOD, { r: 3, sh: 0, li: 0, lw: 1.2 }), box(x0 + 286, 530, 28, 12, WOOD, { r: 3, sh: 0.3, li: 0.2, lw: 1.2 }), box(x0 + 286, 562, 28, 10, WOOD, { r: 3, sh: 0.3, li: 0.2, lw: 1.2 }));
+  out.push(box(x0 + 222, 654, 10, G - 654, WOOD, { r: 2, sh: 0, li: 0, lw: 1.2 }), box(x0 + 294, 654, 12, G - 654, WOOD, { r: 2, sh: 0, li: 0, lw: 1.2 }), rect(x0 + 232, G - 60, 62, 6, WOOD.shadow));
+  out.push(box(x0 + 216, 640, 98, 20, WOOD, { r: 5, sh: 0.3, li: 0.2 }));
   return { body: out.join(''), emissive: em.join('') };
 }
 
@@ -232,19 +279,33 @@ function lightingBoard() {
   const out = [];
   const em = [];
   // Grey metal cabinet, open: rows of breakers and dimmer faders, a big lever.
-  out.push(box(x0, 300, x1 - x0, 280, mat('#5a5e64', '#44484e', '#70747a', '#22252a'), { r: 4 }), rect(x0 + 14, 316, x1 - x0 - 28, 248, '#22252a'));
+  const CAB = mat('#5a5e64', '#44484e', '#70747a', '#22252a');
+  out.push(rect(x0 + 10, 310, x1 - x0, 290, '#000', { opacity: 0.22, rx: 6 }), ao(x0 - 6, 580, x1 - x0 + 12, 46, 0.4));
+  out.push(box(x0, 300, x1 - x0, 280, CAB, { r: 4, sh: 0.06, li: 0.03 }), rect(x0 + 14, 316, x1 - x0 - 28, 248, '#22252a'));
+  out.push(rect(x0 + 14, 316, x1 - x0 - 28, 12, '#0e0f12', { opacity: 0.8 }), rect(x0 + 14, 560, x1 - x0 - 28, 4, CAB.light, { opacity: 0.7 }), rect(x0 + 14, 316, 5, 248, '#0e0f12', { opacity: 0.6 }));
+  for (const [bx, by] of [[x0 + 7, 308], [x1 - 7, 308], [x0 + 7, 572], [x1 - 7, 572]]) out.push(circle(bx, by, 3.6, CAB.light));
   for (let rr2 = 0; rr2 < 3; rr2++) for (let i = 0; i < 6; i++) out.push(rect(x0 + 26 + i * 26, 330 + rr2 * 40, 16, 26, '#d8d4cc'), rect(x0 + 29 + i * 26, 334 + rr2 * 40 + ((i + rr2) % 2) * 10, 10, 8, '#3a3a40'));
   for (let i = 0; i < 6; i++) em.push(circle(x0 + 34 + i * 26, 470, 4, i % 3 ? '#ff5a3a' : '#5aff8a'));
   out.push(rect(x0 + 40, 500, 110, 10, '#141218'), box(x0 + 54, 486, 18, 36, mat('#c8433a', '#9a2e28', '#e06a5c', '#5e1814')));
   out.push(path(polyD([[x0 + 50, 312], [x0 + 92, 312], [x0 + 71, 290]]), '#e8c23a'));
   // Cables down to the floor; a ladder leaning on the wall.
-  for (let i = 0; i < 4; i++) out.push(stroke(`M${x0 + 30 + i * 30} 580Q${x0 + 20 + i * 34} ${G - 20} ${x0 - 40 + i * 50} ${G - 4}`, '#141218', 5));
+  for (let i = 0; i < 4; i++) out.push(stroke(`M${x0 + 30 + i * 30} 580Q${x0 + 20 + i * 34} ${G - 20} ${x0 - 40 + i * 50} ${G - 4}`, '#141218', 6));
   const lx = x0 - 150;
-  out.push(stroke(`M${lx} ${G}L${lx + 60} 220M${lx + 70} ${G}L${lx + 130} 220`, '#8a8f94', 8));
+  const A = [lx, G, lx + 60, 220];
+  const B = [lx + 70, G, lx + 130, 220];
+  const rail = ([xa, ya, xb, yb]) => [
+    stroke(`M${xa + 12} ${ya}L${xb + 12} ${yb}`, '#000', 10, { opacity: 0.22 }),
+    stroke(`M${xa} ${ya}L${xb} ${yb}`, '#4a5056', 15),
+    stroke(`M${xa} ${ya}L${xb} ${yb}`, '#868b92', 11),
+    stroke(`M${xa - 3} ${ya}L${xb - 3} ${yb}`, '#b4b9be', 3.5),
+  ].join('');
+  out.push(rail(A), rail(B));
   for (let y = G - 60; y > 240; y -= 70) {
     const k = (G - y) / (G - 220);
-    out.push(line(lx + k * 60, y, lx + 70 + k * 60, y, '#8a8f94', 6));
+    const a = lx + k * 60;
+    out.push(line(a, y, a + 70, y, '#4a5056', 11), line(a, y, a + 70, y, '#7a8086', 7), line(a + 2, y - 2.5, a + 68, y - 2.5, '#b4b9be', 3));
   }
+  out.push(rect(lx - 8, G - 8, 18, 9, '#1c1c20', { rx: 3 }), rect(lx + 62, G - 8, 18, 9, '#1c1c20', { rx: 3 }));
   return { body: out.join(''), emissive: em.join('') };
 }
 
@@ -290,7 +351,7 @@ function backWall() {
   const k = desk();
   const c = lightingBoard();
   return {
-    body: [wall(), d.body, p.body, rack(), maniqui(), trunk(), suitcases(), k.body, c.body, followSpot(), pantalla(), nubes()].join(''),
+    body: [wall(), d.body, p.body, rack(), maniqui(), trunk(), suitcases(), k.body, c.body, followSpot(), pantalla(), nubes(), ao(-200, G, W + 400, 64, 0.42, -1)].join(''),
     emissive: [d.emissive, k.emissive, c.emissive].join(''),
     texts: [...d.texts, ...p.texts],
   };
@@ -302,14 +363,38 @@ function floor() {
   const out = [];
   const kMax = P.f(1080) + 0.4;
   const quad = (X0, X1, k0, k1) => polyD([gp(X0, k0), gp(X1, k0), gp(X1, k1), gp(X0, k1)]);
-  out.push(path(quad(-1600, W + 1600, 1, kMax), '#1e1c22'));
-  // Painted boards running across, scuffed.
-  for (let k = 1.03; k < kMax; k += 0.07) out.push(path(quad(-1600, W + 1600, k, k + 0.004), '#141218'));
+  // Matte-black stage boards running away from the camera (they meet at the horizon),
+  // with staggered end joints. Boards are grouped by tone: one path per tone.
+  const tones = ['#2e2c36', '#33313b', '#2a2832', '#312f39'];
+  const groups = tones.map(() => []);
+  out.push(path(quad(-1600, W + 1600, 1, kMax), '#100e14'));
   const r = rng(12);
-  for (let i = 0; i < 50; i++) {
+  const BW = 46;
+  for (let X = -1600; X < W + 1600; X += BW) {
+    let z = 1 - r() * 0.2;
+    let first = true;
+    while (z > 1 / kMax - 0.1) {
+      const z1 = z - (0.2 + r() * 0.14);
+      const k0 = first ? 1 : Math.max(1, 1 / z);
+      first = false;
+      const k1 = Math.min(kMax, 1 / Math.max(z1, 0.2));
+      groups[Math.floor(r() * tones.length)].push(quad(X + 1, X + BW - 1, k0 + 0.006, k1 - 0.003));
+      z = z1;
+    }
+  }
+  tones.forEach((c, i) => out.push(path(groups[i].join(''), c)));
+  // Worn centre of the boards (where feet go) and scuffs, a little lighter.
+  const scuff = [];
+  for (let i = 0; i < 46; i++) {
     const X = -600 + r() * (W + 1200);
     const k = 1.02 + r() * (kMax - 1.1);
-    out.push(path(smooth([gp(X - 40, k), gp(X + 50, k - 0.01), gp(X + 60, k + 0.012)]), '#2a2830', { opacity: 0.8 }));
+    scuff.push(smooth([gp(X - 50, k), gp(X + 20, k - 0.012), gp(X + 90, k + 0.01)], false));
+  }
+  out.push(stroke(scuff.join(''), '#5a5666', 4, { opacity: 0.3 }));
+  // Dust, in soft patches.
+  for (let i = 0; i < 10; i++) {
+    const [x, y] = gp(-200 + r() * (W + 400), 1.08 + r() * 0.5);
+    out.push(sombra(x, y, 200, 34, 0.18, '#8a86a0'));
   }
   // Spike tape marks for the scenery, in colours.
   const cols = ['#e8c23a', '#3fc0b8', '#e8452e', '#f2f2f4'];
@@ -319,6 +404,14 @@ function floor() {
     const [x, y] = gp(X, k);
     out.push(rect(x - 14 * k, y - 2, 28 * k, 5 * k, cols[i % 4], { opacity: 0.85 }), rect(x - 2, y - 12 * k, 5 * k, 14 * k, cols[i % 4], { opacity: 0.85 }));
   }
+  // Shade along the foot of the wall and soft contact shadows under what stands on the floor.
+  out.push(gpath(quad(-1600, W + 1600, 1, 1.1), lin(0, yOf(1), 0, yOf(1.1), [[0, '#000000', 0.55], [1, '#000000', 0]])));
+  const pie = (x0, x1, a = 0.5, fondo = 0.05) => sombra(uOf((x0 + x1) / 2, 1 + fondo / 3), yOf(1 + fondo / 3), ((x1 - x0) / 2 + 26) * (1 + fondo / 3), (yOf(1 + fondo) - yOf(1)) * 1.15, a, '#000000');
+  out.push(pie(RACK[0] - 10, RACK[1] + 10, 0.4), pie(RACK[1] + 20, RACK[1] + 110, 0.4, 0.04), pie(MANIQUI - 50, MANIQUI + 50, 0.45, 0.04));
+  out.push(pie(BAUL[0], BAUL[1], 0.6, 0.06), pie(MALETAS[0], MALETAS[0] + 170, 0.55, 0.06));
+  out.push(pie(DESK[0], DESK[1], 0.55, 0.06), pie(DESK[0] + 214, DESK[0] + 316, 0.5, 0.07));
+  out.push(pie(CUADRO[0] - 160, CUADRO[0] - 70, 0.5, 0.05), pie(CANON - 70, CANON + 70, 0.5, 0.05));
+  out.push(pie(CICLO[0] + 190, CICLO[0] + 600, 0.45, 0.07), pie(CICLO[1] - 160, CICLO[1] + 40, 0.5, 0.06), pie(CICLO[0] + 40, CICLO[0] + 140, 0.4, 0.04));
   return out.join('');
 }
 
@@ -327,9 +420,22 @@ function foreground() {
   const at = (Xb) => uOf(Xb, KF);
   // A flight case on the left, a coil of cable on the right.
   const a = at(-120);
-  const fc = [box(a, yF - 230, 300, 230, mat('#2a2830', '#1c1a20', '#3a3842', '#0c0a10'), { r: 8 }), ...[0, 1].map((i) => rect(a + 20 + i * 240, yF - 230, 20, 230, '#8a8f94')), rect(a, yF - 130, 300, 14, '#8a8f94')].join('');
+  const FC = mat('#2a2830', '#1c1a20', '#3a3842', '#0c0a10');
+  const fc = [
+    sombra(a + 150, yF - 4, 176, 24, 0.6, '#000000'),
+    box(a, yF - 230, 300, 230, FC, { r: 8, sh: 0.1, li: 0.05 }),
+    // ribbed panels, aluminium edges and corners, two latches and a handle
+    ...[0, 1, 2, 3, 4, 5].map((i) => rect(a + 52 + i * 34, yF - 214, 8, 94, FC.shadow, { opacity: 0.8 })),
+    ...[0, 1].map((i) => rect(a + 20 + i * 240, yF - 230, 20, 230, '#8a8f94')),
+    ...[0, 1].map((i) => rect(a + 20 + i * 240, yF - 230, 5, 230, '#c8ccd0')),
+    rect(a, yF - 130, 300, 14, '#8a8f94'), rect(a, yF - 130, 300, 4, '#c8ccd0'), rect(a, yF - 118, 300, 3, '#4c5158'),
+    ...[a + 100, a + 190].map((x) => rect(x, yF - 140, 26, 34, '#4c5158', { rx: 4 })),
+    ...[a + 100, a + 190].map((x) => rect(x + 4, yF - 134, 18, 8, '#c8ccd0', { rx: 2 })),
+    rect(a + 120, yF - 60, 60, 12, '#4c5158', { rx: 6 }),
+    ...[[a + 6, yF - 224], [a + 294, yF - 224], [a + 6, yF - 8], [a + 294, yF - 8]].map(([x, y]) => circle(x, y, 4, '#c8ccd0')),
+  ].join('');
   const b = at(3560);
-  const cable = [0, 1, 2, 3].map((i) => stroke(`M${b - 80} ${yF - 40}m-${80 - i * 6} 0a${80 - i * 6} ${30 - i * 2} 0 1 0 ${160 - i * 12} 0a${80 - i * 6} ${30 - i * 2} 0 1 0 -${160 - i * 12} 0`, i % 2 ? '#141218' : '#1e1c24', 9)).join('');
+  const cable = sombra(b - 80, yF - 12, 120, 24, 0.55, '#000000') + [0, 1, 2, 3].map((i) => stroke(`M${b - 80} ${yF - 40}m-${80 - i * 6} 0a${80 - i * 6} ${30 - i * 2} 0 1 0 ${160 - i * 12} 0a${80 - i * 6} ${30 - i * 2} 0 1 0 -${160 - i * 12} 0`, i % 2 ? '#141218' : '#1e1c24', 9)).join('');
   return [
     { x0: Math.floor(a - 30), x1: Math.ceil(a + 330), y0: Math.floor(yF - 260), y1: 1080, body: fc },
     { x0: Math.floor(b - 280), x1: Math.ceil(b + 120), y0: Math.floor(yF - 100), y1: 1080, body: cable },
@@ -355,7 +461,7 @@ export function escena() {
     start: { X: 2240, y: 880 },
     layers: [
       {
-        id: 'fondo', k: 1, lit: true,
+        id: 'fondo', k: 1, lit: true, textura: 0.3,
         pieces: [
           { x0: -260, x1: W + 260, y0: -60, y1: G + 6, body: back.body, emissive: back.emissive },
         ],
@@ -366,8 +472,8 @@ export function escena() {
           { x: DESK[1] - 122, y: 520, r: 180, color: '#ffe0a0', a: 0.45 },
         ],
       },
-      { id: 'suelo', floor: true, x0: fl[0], x1: fl[1], y0: 800, y1: 1080, body: floor(), lit: true },
-      { id: 'frente', k: KF, z: 'front', lit: true, pieces: foreground() },
+      { id: 'suelo', floor: true, x0: fl[0], x1: fl[1], y0: 800, y1: 1080, body: floor(), lit: true, textura: 0.3 },
+      { id: 'frente', k: KF, z: 'front', lit: true, textura: 0.3, pieces: foreground() },
     ],
     lights: [
       { X: DESK[1] - 122, y: 520, r: 900, color: '#ffd890', power: 0.95, fy: 880 },

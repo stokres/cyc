@@ -28,16 +28,16 @@ En el menú, **Capítulos** enseña cada capítulo (superado, en curso o todaví
 | Problema | Solución |
 |---|---|
 | No hay «pasar el ratón por encima» | El botón del ojo enseña todas las zonas interactivas durante unos segundos |
-| Nueve verbos no caben en un móvil | **Un toque** hace la acción lógica (ir, usar, hablar). **Mantener pulsado** examina, con un anillo que se va llenando alrededor del dedo (grande, para que el dedo no lo tape) |
+| Nueve verbos no caben en un móvil | **Un solo gesto: el toque** (11 de octubre de 2026). Hace la acción lógica: ir, usar, coger, hablar; y en lo que no se puede usar, lo mira y lo cuenta. Ya no hay «mantener pulsado» para mirar (ni anillo, ni clic derecho): un dedo que se queda quieto un rato y se levanta cuenta como un toque |
 | El dedo tapa lo que tocas | Zonas táctiles con margen extra, y un rótulo con el nombre de lo que has tocado |
-| Tocar para andar y que salte otra cosa | El margen extra de las zonas **nunca se mete en el suelo**: un toque en el suelo es un paso, aunque sea justo debajo de una puerta. Los objetos grandes que están en el suelo (el sofá de Fran, los contenedores de la calle, el cañón de bolas) solo responden en su parte de arriba. **Tocarte a ti mismo sin objeto también es un paso**: para mirarte, mantén pulsado (8 de octubre de 2026) |
-| Usar objetos | La bolsa (abajo a la derecha) se despliega con tarjetas grandes; tocas el objeto y luego el destino. El ojo pequeño de cada tarjeta lo examina. Mientras llevas un objeto, un aviso arriba dice «Usar … en…» y tocarlo lo suelta |
-| Aprender a jugar | **Al empezar la primera historia de la partida, «Cómo se juega»** (`src/ui/tutorial.ts`, 8 de octubre de 2026): sobre la escena, se prueban de verdad los dos gestos, primero un toque y luego mantener el dedo hasta que se llene el círculo (si el toque es corto, lo dice). Usa los mismos gestos y tiempos que la escena y se puede saltar. Sale una vez por partida (también al empezar de nuevo o al rejugar el capítulo). Además, la primera vez que hace falta cada gesto aparece una ayuda corta abajo («Mantén el dedo sobre algo para mirarlo») |
+| Tocar para andar y que salte otra cosa | El margen extra de las zonas **nunca se mete en el suelo**: un toque en el suelo es un paso, aunque sea justo debajo de una puerta. Los objetos grandes que están en el suelo (el sofá de Fran, los contenedores de la calle, el cañón de bolas) solo responden en su parte de arriba. **Tocarte a ti mismo sin objeto también es un paso** (8 de octubre de 2026) |
+| Usar objetos | La bolsa (abajo a la derecha) se despliega con tarjetas grandes; tocas el objeto y luego el destino. El ojo pequeño de cada tarjeta lo examina (es un botón). Mientras llevas un objeto, un aviso arriba dice «Usar … en…» y tocarlo lo suelta |
+| Aprender a jugar | **Al empezar la primera historia de la partida, «Cómo se juega»** (`src/ui/tutorial.ts`, 8 de octubre de 2026; desde el 11 de octubre, un solo paso): sobre la escena, se prueba de verdad el toque, que es el mismo de la escena, y se puede saltar. Sale una vez por partida (también al empezar de nuevo o al rejugar el capítulo). Además, la primera vez que hace falta aparece una ayuda corta abajo («Toca algo para usarlo o cogerlo») |
 | Elegir con quién empezar | Pantalla con los cuatro de frente, en tarjetas grandes, y una frase con su situación. Sale al empezar y cada vez que alguien termina su historia |
 | Hablar con alguien que no es del grupo | Se le toca, como a un amigo. En la historia de Pablo, su sombra (el narrador) le sigue y contesta según el momento. Mientras uno de los dos habla, Pablo y su sombra se miran; cuando Pablo echa a andar, la sombra vuelve a copiarle |
 | Varios amigos | Columna de retratos grandes a la izquierda (al menos 52 px, el activo más grande y con su color). Tocar a otro lleva a su historia, donde la dejaste, como en *Day of the Tentacle*. Cada uno tiene su bolsa, su reloj y sus frases (`clave.pablo` en los textos gana a `clave` cuando juegas con Pablo). Quien ya va de camino al Río sale apagado y con una ✓ |
 | Acabar una historia | Fundido a negro antes de llegar al bar y un rótulo («Pablo ya va de camino al Río · Faltan…»). Con los cuatro de camino, escena final: llegan a la vez |
-| Usar algo contigo | Eliges el objeto en la bolsa y tocas a tu propio personaje (vestirse, probar el jamón, mirar el móvil). Sin objeto, tocarte es andar; mantener pulsado sobre ti te mira |
+| Usar algo contigo | Eliges el objeto en la bolsa y tocas a tu propio personaje (vestirse, probar el jamón, mirar el móvil). Sin objeto, tocarte es andar |
 | Dar cosas a otro amigo | Tocas el objeto y luego al amigo |
 | Coger objetos | **Lo que se puede coger se puede coger siempre** (decidido el 3 de octubre de 2026), aunque todavía no se sepa para qué sirve; y también se puede juntar con otros. Nada se bloquea hasta «su momento» de la historia |
 | Juntar dos objetos | Eliges uno en la bolsa, vuelves a abrirla y tocas el otro (alcohol + romero en la historia de Guille). Si no pegan, el personaje lo dice |
@@ -52,7 +52,8 @@ En el menú, **Capítulos** enseña cada capítulo (superado, en curso o todaví
 - **Dos clases de música:** la de la escena, que la escena pide en cada fotograma como una o varias capas, cada una con su volumen y su posición (`musica` en el capítulo), y la de un minijuego, que suena sola mientras dura y después devuelve la de la escena.
 - **«Por el barrio»** (`barrio.py`), el paseo tranquilo, suena en el piso de Fran, en su calle y en el backstage de Pablo.
 - **El rock del Bar del Río desde la puerta** (`bar_rockero.py puerta`: la mezcla sin agudos, cortada a 1,5 kHz, con algo de medios y casi en mono): en la calle de Fran se oye bajito al principio (al 20 %) y sube según se acerca a la puerta del bar, hacia su lado, mientras «Por el barrio» se va apagando; en el final, con los cuatro en la puerta, suena solo el bar. **Subido el 8 de octubre de 2026:** antes solo dejaba los graves (corte a 700 Hz), y el altavoz de un móvil apenas da nada por debajo de 300 Hz, así que en el móvil sonaba 10 dB por debajo de «Por el barrio» y casi no se oía. Ahora queda 3 dB por debajo, como corresponde a oírlo desde fuera (se mide con `ffmpeg -af highpass=f=300,highpass=f=300,ebur128`). Se ajusta en `src/capitulos/capitulo1.ts` (`BARRIO`, `BAR_MIN`, `BAR_LEJOS`).
-- **El «Continuará…» del final** tiene su pasodoble (`pasodoble.py`, original: un pasodoble festero con bocina de camión, motor, frenos y pitido de marcha atrás). El arranque del camión y la fanfarria suenan una vez y el resto se repite mientras dure el rótulo; al cerrarlo vuelve el bar.
+- **El «Continuará…» del final** tiene su pasodoble (`pasodoble.py`, original: un pasodoble festero con bocina de camión, motor, frenos y pitido de marcha atrás). El arranque del camión y la fanfarria suenan una vez y el resto se repite mientras dure el rótulo; al cerrarlo empieza el tráiler.
+- **El tráiler del capítulo 2** (10 de octubre de 2026) tiene su música de tráiler de acción, «Próximamente» (`trailer.py`, síntesis pura, sin SoundFont), a tope desde el primer golpe: golpes graves («braaam») en cada rótulo, cuerdas y pulso grave sin parar, chupitos golpeando la barra, el motor de la camioneta al pasar, taikos que se aceleran en el montaje, los rodillos y las campanas del premio de la tragaperras, un ascenso de ruido hasta el corte a negro, el canto en golpes de metales con melodía propia (no la de *Paquito el Chocolatero*, que tiene derechos) y el golpe final del título. Suena una vez y después se repite un dron grave (de 39,4 a 47,4 s) mientras siga el título. Va golpe a golpe con los planos: si se cambia un tiempo en `trailer.py`, hay que cambiarlo también en `PLANOS` y `CANTO` de `src/ui/trailer.ts`. Se genera con `python3 trailer.py ../../src/sonido/trailer.mp3`.
 - **La radio de la granja** (Guille) suena desde el principio de la escena con la polca de banjo (`tools/musica/banjo.py radio`): más fuerte cuanto más cerca está Guille (nunca baja del 22 %) y un poco hacia el lado de la radio. Al quitarle las pilas se corta. Se ajusta en `src/capitulos/guille.ts` (`RADIO_MIN`, `RADIO_LEJOS`).
 - **Minijuegos**, en la historia y sin fin: «Dándole vueltas» (`vueltas.py`) en la rana de Aceituna; «Jaleo» (`jaleo.py`), el big band frenético, en la batalla de palabras de Pablo; «Contra Robi» (`contra_robi.py`), con el «Cumpleaños feliz» de Robi en pitidos de robot, en el cañón de Bolilandia; y la polca de la granja, más rápida y con escobillas, cencerro y gruñidos (`banjo.py cerdos`), en la torre de cerdos.
 - **Bolilandia** (Chuchi, 8 de octubre de 2026) tiene su vals de caja de música, «Bolilandia, cerrado» (`bolilandia_noche.py`): el tiovivo de un parque de bolas oído de noche y a oscuras, en re menor, con pizzicato de puntillas, una caja de madera que tantea, un fagot que refunfuña en los huecos y un coro lejano; cómico más que de miedo. Cuando Chuchi da la luz, la misma partitura con el parque despierto (`bolilandia_noche.py luz`: glockenspiel, xilófono, calíope, tuba, pandereta y un silbato de fiesta). Las dos duran lo mismo; la de la luz se precarga al abrir el cuarto del personal, para que entre sin hueco. Se ajusta en `src/capitulos/chuchi.ts` (`musica`).
@@ -85,11 +86,13 @@ Cortar con el dedo las palabras negativas (en sentido de impro) que lanza el nar
 
 ### Los cerdos (Guille)
 
-Apilar los ocho cerdos encima de la báscula, estilo *Tower Bloxx*: un toque suelta el cerdo que se balancea en la polea. Descentrado, la torre se tambalea más; fuera del borde, resbala. Tres resbalones o un derrumbe y se repite; tras dos rondas perdidas aparece «Saltar». El último es el peor de todos.
+Apilar los ocho cerdos encima de la báscula, estilo *Tower Bloxx*: un toque suelta el cerdo que se balancea en la polea. Descentrado, la torre se tambalea más; fuera del borde, resbala. Hay tres corazones: cada resbalón y cada derrumbe cuesta uno, y sin corazones se repite desde abajo; tras dos rondas perdidas aparece «Saltar». El último es el peor de todos.
 
 - **La polea va rápida desde el primer cerdo** y acelera con cada uno (5 de octubre de 2026: empezaba tan lenta que los ocho salían a la primera).
 - **Cada cerdo carga con los de encima:** si el peso de los que tiene encima se sale de su lomo (con el vaivén), la torre se viene abajo a esa altura, aunque abajo esté recta. Cada cerdo que cae la sacude, más cuanto más descentrado y más pesado, y cuanto más alta, más se mece la cima.
-- Se ajusta con `node scripts/cerdos-sim.mjs`: jugadores que apuntan adonde caerá el cerdo y tocan con un error de ±30, ±60 o ±100 ms. El preciso la hace casi siempre a la primera, el normal en una a tres rondas y el torpe suele necesitar «Saltar».
+- **El derrumbe se ve venir y se ve caer** (11 de octubre de 2026: antes la torre desaparecía de golpe y salía «¡Se acabó la torre!» sin que se viera nada, con 15 o 16 cerdos en pie). Desde algo más de la mitad del límite, la torre se inclina hacia su lado a partir de esa juntura, los cerdos de ahí tiemblan más cuanto más cerca del límite y una barra roja late sobre la juntura. Al pasarse, los cerdos de encima vuelcan hacia donde se inclinaban, se sueltan de uno en uno (el de arriba primero) y caen fuera de la pantalla, mientras el resto de la torre se sacude. Solo después sale el mensaje.
+- **Un derrumbe cuesta un corazón, como un resbalón** (11 de octubre de 2026): una sola regla, tres corazones. La torre se queda a la altura que aguantó y los cerdos caídos se vuelven a apilar, en el mismo orden (el peor, siempre el último). Sin corazones, se repite desde abajo («¡Sin corazones! Otra vez desde abajo»).
+- Se ajusta con `node scripts/cerdos-sim.mjs`: jugadores que apuntan adonde caerá el cerdo y tocan con un error de ±30, ±60 o ±100 ms. El preciso la hace casi siempre a la primera, el normal en una a tres rondas y el torpe suele necesitar «Saltar». Con `node scripts/cerdos-sim.mjs infinito` (opcionalmente con el número de partidas y cuántas a la vez) se ve el sin fin: cuántos cerdos se apilaron y qué costó el último corazón.
 
 ### El cañón contra Robi (Chuchi)
 
@@ -104,7 +107,7 @@ En el menú, **Minijuegos** abre los minijuegos que hayas superado en la histori
 | La rana de Aceituna | 1 por taquito a la boca | Los cuatro tramos de la historia y, después, su meneo, su boca y la corriente cada vez más rápidos y fuertes | A los tres fallos (con un acierto de una de cada dos al principio, uno solo duraría dos tiros) |
 | Las palabras de Pablo | 1 por palabra que bloquea cortada | Pasada la página de la historia, caen cada vez más rápido y más seguidas | Cuando se llena el bloqueo |
 | El cañón contra Robi | 1 por bola en el botón | Pasados los seis aciertos, Robi se mueve y avanza cada vez más rápido, y cada acierto le echa menos atrás | Cuando llega a abrazarte |
-| La torre de cerdos | 1 por cerdo, 2 si cae en el centro | La piara vuelve a empezar (el peor, cada ocho) y la polea se balancea cada vez más ancha y rápida | Tres resbalones o un derrumbe |
+| La torre de cerdos | 1 por cerdo, 2 si cae en el centro | La piara vuelve a empezar (el peor, cada ocho) y la polea se balancea cada vez más ancha y rápida | Cuando se pierden los tres corazones (cada resbalón y cada derrumbe cuesta uno), tras verse caer la torre |
 
 Cada pocos aciertos sale «¡Nivel N!». Al acabar, una tarjeta enseña los puntos, si es récord y **tus cinco mejores partidas** de ese minijuego, con la fecha. El ranking es de cada móvil: se guarda con la partida (`src/juego/partida.ts`, `apuntarPuntos`) y no se borra al empezar de nuevo. Un ranking compartido entre los cuatro necesitaría un servidor (GitHub Pages solo sirve archivos), así que queda como mejora futura.
 
@@ -134,7 +137,7 @@ Después se elige con quién empezar y se puede cambiar cuando se quiera (ver `d
 Fran se despierta de la siesta a las 20:35 y había quedado a las 21:00 en el Bar del Río. Cada paso enseña una mecánica:
 
 1. **Tocar** para despertarle.
-2. **Mirar** (mantener pulsado) el reloj: se da cuenta de la hora.
+2. **Tocar el reloj** de la cocina: lo mira y se da cuenta de la hora.
 3. **Coger** el móvil: el grupo de WhatsApp presenta a los demás.
 4. **La puerta** está cerrada con llave: la pareja se ha ido de finde y la ha echado por fuera.
 5. Las llaves no están en el cuenco: **Aceituna** está tumbada encima y no se mueve.
@@ -145,6 +148,28 @@ Fran se despierta de la siesta a las 20:35 y había quedado a las 21:00 en el Ba
 10. Sale a la calle y **anda** hacia el Río. Al pasar el cruce lo ve y se funde a negro: ya va de camino.
 
 El reloj de Fran avanza con cada paso y se va poniendo nervioso. Cuando los cuatro van de camino, llegan a la vez a la terraza del Río, entran en el bar hablando de Vero y, tras un fundido a negro, «Continuará…»: fin del capítulo 1.
+
+### El tráiler del capítulo 2
+
+Decidido el 10 de octubre de 2026 y rehecho ese mismo día a petición de Jesús (versión final): al tocar el «Continuará…» sale un tráiler de 36 segundos con escenas sueltas del capítulo 2 y su música de tráiler de acción (`src/ui/trailer.ts`), que arranca a tope desde el primer fotograma. Rótulos y escenas se alternan al golpe de la música. Después vuelve la terraza con la tarjeta de fin del capítulo. No tiene botón de saltar; ya en el título, se cierra con un toque.
+
+| Segundo | Plano |
+|---:|---|
+| 0 | «Una resaca...» |
+| 2 | Chupitos y cañas en la barra de un bar: cae un chupito de golpe en cada tiempo de la música, salpicando |
+| 4 | «Con consecuencias» |
+| 6 | La caravana a toda velocidad por el desierto americano, remolcada por una camioneta vieja, con su nube de polvo |
+| 8 | «Inesperadas» |
+| 10 | Montaje, un corte por golpe y cada vez más rápido (cada 2 s, luego cada segundo y al final cada medio): Fran en su *Pang* (burbujas de cerveza en Usera, con el dragón al fondo), una caña que resbala a toda velocidad por la barra, Chuchi en su *Space Invaders* (contra correos, avisos de chat y reuniones; al final derriba el platillo del jefe, el de la corbata) y una tragaperras de frente que para sus rodillos a golpe de música y da el premio gordo (tres sietes y una lluvia de monedas). Cada juego sigue donde se quedó la vez anterior |
+| 23 | Vero, muy de cerca: piel morena, labios grandes; sonríe, abre la boca, dentro se ven las luces de un bar y la cámara se mete hasta que todo es negro |
+| 26 | Negro |
+| 27 | «¡Camioneees y caravanaaas!», una sílaba por golpe de metales |
+| 30 | El logo, «Capítulo 2» y «Próximamente» |
+
+- **Va con el reloj de la música** (`Sound.posicion`): en un móvil lento se pierden fotogramas, pero los cortes nunca se retrasan respecto a los golpes. Sin sonido, va con el reloj de los fotogramas.
+- **Las recreativas son pixel art a propósito:** son juegos dentro del juego (la guía de estilo descarta el pixel art para el juego en sí). Se dibujan a 256×144 y se amplían sin suavizar; Fran y Chuchi son mapas de letras pasados a imagen una vez. Cada partida se simula una vez al empezar y cada fotograma solo consulta dónde está todo.
+- **Los textos** están en `src/textos/capitulo1.md` (`trailer.*`, el canto con las sílabas separadas por guiones).
+- **Rendimiento:** la barra, las capas del desierto, la camioneta con la caravana y la tragaperras se pintan una vez (a 1,5× como mucho) y cada fotograma solo dibuja esas imágenes y unas pocas formas; los rótulos, el canto y el título son texto sobre un negro que no se repinta. `node scripts/rendimiento.mjs trailer` lo mide.
 
 **Todos los textos son provisionales** y se cambian en `src/textos/capitulo1.md`.
 

@@ -21,6 +21,7 @@
 // letters are bitmaps made once per screen size, each word is a bitmap made when
 // it appears, and the loop never runs faster than 60 fps.
 import { h } from './hud';
+import { esVertical } from './orientacion';
 import { texto } from '../juego/textos';
 import { FONTS } from '../motor/escena';
 import { SombraHistrionica } from './sombra-histrionica';
@@ -412,6 +413,12 @@ export function jugarPalabras(parent: HTMLElement, cuerpoPablo: string, rapido =
     };
     const paso = (ahora: number) => {
       if (!vivo) return;
+      // Phone held upright: the notice covers the game. Time does not pass, so nothing jumps on return.
+      if (esVertical()) {
+        ultimo = ahora;
+        requestAnimationFrame(paso);
+        return;
+      }
       // 60 fps at most, also on 120 Hz screens.
       if (ahora - ultimo < 1000 / 60 - 4) {
         requestAnimationFrame(paso);

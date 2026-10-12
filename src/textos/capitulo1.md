@@ -73,7 +73,7 @@ objetivo.vestirse = Vístete: en calzoncillos no se va al Río
 objetivo.bar = Ve al Bar del Río
 objetivo.fin = ¡Los cuatro en el Río!
 
-pista.hora = El reloj de la cocina está encima de la ventana. Mantén el dedo sobre él para mirarlo.
+pista.hora = El reloj de la cocina está encima de la ventana. Tócalo para mirarlo.
 pista.movil = Tu móvil no para de vibrar encima de la mesa.
 pista.puerta = Prueba a salir por la puerta del recibidor.
 pista.llavero = Las llaves siempre van en el cuenco del recibidor. Siempre.
@@ -91,7 +91,6 @@ pista.bar = El Bar del Río está al final de la calle, pasado el parque y el cr
 // ---------------------------------------------------------------- ayudas de primera vez
 
 ayuda.andar = Toca el suelo para andar.
-ayuda.mirar = Mantén el dedo sobre algo para mirarlo.
 ayuda.usar = Toca algo para usarlo o cogerlo.
 ayuda.bolsa = Lo que coges va a la bolsa. Ábrela, elige un objeto y toca dónde usarlo.
 ayuda.tuyo = Para usar un objeto contigo, elige el objeto y toca al personaje.
@@ -673,7 +672,8 @@ cerdos.cuenta = {n} de {total} · {vidas}
 cerdos.perfecto = ¡Perfecto!
 cerdos.resbala = ¡Se resbala!
 cerdos.sinvidas = ¡Se escapan todos!
-cerdos.derrumbe = ¡Se cae la torre! Otra vez
+cerdos.secae = ¡Se cae la torre!
+cerdos.derrumbe = ¡Sin corazones! Otra vez desde abajo
 cerdos.peor = ¡Ahora el peor!
 cerdos.hecho = ¡{kg} kilos de cerdo!
 cerdos.cuentaInfinito = {n} cerdos · {vidas}
@@ -984,6 +984,24 @@ fin.continuara = Continuará…
 fin.capitulo = Fin del capítulo 1
 fin.titulo = Fin del capítulo 1
 fin.texto = Los cuatro ya están en el Río. Lo que pasó dentro, en el capítulo 2.
+
+// ---------------------------------------------------------------- tráiler del capítulo 2
+// Sale tras el «Continuará…»: escenas sueltas del capítulo 2 con música de tráiler.
+// Cada texto sale a su golpe de música (src/ui/trailer.ts); si alargas mucho uno, no da
+// tiempo a leerlo. El canto va por sílabas, separadas con guiones: cada una sale con un
+// golpe de metales. El letrero de la tragaperras va en su marquesina: corto.
+
+trailer.cartel1 = Una resaca...
+trailer.cartel2 = Con consecuencias
+trailer.cartel3 = Inesperadas
+trailer.pang.jugador = FRAN
+trailer.pang.fase = USERA
+trailer.invaders.jugador = CHUCHI
+trailer.invaders.puntos = PUNTOS
+trailer.tragaperras.premio = PREMIO
+trailer.canto = ¡Ca-mio-neees y ca-ra-va-naaas!
+trailer.capitulo = Capítulo 2
+trailer.proximamente = Próximamente
 
 // ---------------------------------------------------------------- historia de Chuchi: Bolilandia
 

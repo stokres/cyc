@@ -53,6 +53,21 @@ export function gpath(d, grad, a = {}) {
 }
 
 /**
+ * Ambient occlusion: a soft dark band that fades out from an edge (the foot of a
+ * wall, under the ceiling, under a shelf). Dark at `y`; it fades over `h`
+ * downwards (dir 1) or upwards (dir -1). Baked, so free per frame.
+ */
+export function ao(x, y, w, h, a = 0.3, dir = 1, color = '#1a1222') {
+  const y2 = y + h * dir;
+  return gpath(rectD(x, Math.min(y, y2), w, h), lin(0, y, 0, y2, [[0, color, a], [0.45, color, a * 0.4], [1, color, 0]]));
+}
+
+/** Soft contact shadow: an ellipse that fades out towards its rim. */
+export function sombra(cx, cy, rx, ry, a = 0.35, color = '#1a1222') {
+  return gpath(ellipse(cx, cy, rx, ry), rad(cx, cy, rx, [[0, color, a], [0.55, color, a * 0.7], [1, color, 0]], ry / rx));
+}
+
+/**
  * A material: base, shadow, light and line tones. `box` draws a rounded block
  * lit from the upper left (light strip on top/left, shadow strip bottom/right).
  */

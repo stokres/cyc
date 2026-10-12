@@ -20,7 +20,7 @@
 //   suelo   (rows)  foam mats in colours
 //   [characters and props]
 //   frente  (1.45)  a foam block and stray balls at the edges
-import { smooth, ellipse, path, stroke, g, shape, rect, circle, line, poly, polyD, rectD, rr, lin, gpath, mat, box, bevel, persp, rng } from './kit.mjs';
+import { smooth, ellipse, path, stroke, g, shape, rect, circle, line, poly, polyD, rectD, rr, lin, rad, gpath, mat, box, bevel, persp, rng, ao, sombra } from './kit.mjs';
 import { robot, zapatoBrilli } from '../robot.mjs';
 
 export const P = persp({ HOR: 340, BASE: 820, CX: 1170 });
@@ -67,28 +67,88 @@ function uRange(k, pad = 80) {
 
 // ---------------------------------------------------------------- the back wall
 
+/** A painted cloud: round lobes, a pale blue underside and a lit top. */
 function nube(x, y, s) {
-  return path(smooth([[x - 70 * s, y], [x - 64 * s, y - 26 * s], [x - 30 * s, y - 40 * s], [x, y - 60 * s], [x + 40 * s, y - 50 * s], [x + 70 * s, y - 24 * s], [x + 78 * s, y, 'c']]), '#ffffff', { opacity: 0.85 });
+  const contorno = smooth([[x - 80 * s, y], [x - 72 * s, y - 24 * s], [x - 44 * s, y - 34 * s], [x - 26 * s, y - 56 * s], [x + 6 * s, y - 64 * s], [x + 34 * s, y - 52 * s], [x + 52 * s, y - 34 * s], [x + 78 * s, y - 26 * s], [x + 88 * s, y, 'c']]);
+  return shape(contorno, '#f8fbff', [
+    path(smooth([[x - 90 * s, y - 14 * s], [x - 20 * s, y - 20 * s], [x + 50 * s, y - 12 * s], [x + 96 * s, y - 16 * s], [x + 96 * s, y + 4], [x - 90 * s, y + 4]]), '#cfe0f2'),
+    path(ellipse(x - 2 * s, y - 50 * s, 22 * s, 9 * s), '#ffffff'),
+    path(ellipse(x - 50 * s, y - 28 * s, 14 * s, 6 * s), '#ffffff', { opacity: 0.8 }),
+  ], '#a9c2dc', 2);
+}
+
+/** The mural's smiling sun: a soft halo, rounded rays in two tones and a face. */
+function sol(cx, cy) {
+  const out = [gpath(ellipse(cx, cy, 200, 200), rad(cx, cy, 200, [[0, '#fff6c0', 0.7], [0.5, '#fff0a0', 0.25], [1, '#fff0a0', 0]]))];
+  for (let i = 0; i < 14; i++) {
+    const a = (i / 14) * Math.PI * 2 + 0.1;
+    const p = (r, da) => [cx + Math.cos(a + da) * r, cy + Math.sin(a + da) * r];
+    const largo = i % 2 ? 122 : 136;
+    out.push(path(smooth([p(78, -0.13), p(largo, -0.02), p(largo + 4, 0), p(largo, 0.02), p(78, 0.13)]), i % 2 ? '#ffd65a' : '#ffc23a'));
+  }
+  out.push(shape(ellipse(cx, cy, 74, 74), '#ffcf3a', [
+    path(ellipse(cx + 18, cy + 22, 70, 62), '#f4b02a'),
+    path(ellipse(cx - 22, cy - 26, 34, 24, -0.5), '#ffe79a'),
+  ], '#d8901a', 2.4));
+  out.push(path(ellipse(cx - 24, cy - 6, 6, 9), '#7a4210'), path(ellipse(cx + 24, cy - 6, 6, 9), '#7a4210'));
+  out.push(path(ellipse(cx - 42, cy + 16, 12, 7), '#f59a6a', { opacity: 0.7 }), path(ellipse(cx + 42, cy + 16, 12, 7), '#f59a6a', { opacity: 0.7 }));
+  out.push(stroke(`M${cx - 26} ${cy + 22}Q${cx} ${cy + 46} ${cx + 26} ${cy + 22}`, '#7a4210', 5));
+  return out.join('');
+}
+
+/** Rolling painted hills with round trees along the bottom of the mural. */
+function colinas(y) {
+  const r = rng(41);
+  const out = [];
+  for (const [dy, base, sombraC, alto, paso] of [[-90, '#a6d49c', '#8cc286', 60, 520], [-34, '#7fbe7c', '#68a866', 46, 380]]) {
+    const pts = [[-220, y + 10, 'c']];
+    for (let x = -200; x <= W + 220; x += paso) pts.push([x, y + dy - r() * alto]);
+    pts.push([W + 220, y + 10, 'c']);
+    out.push(shape(smooth(pts), base, [path(smooth([[-220, y + dy + 30], [W / 2, y + dy + 10], [W + 220, y + dy + 30], [W + 220, y + 20], [-220, y + 20]]), sombraC, { opacity: 0.6 })]));
+  }
+  for (let x = -120; x < W + 120; x += 150 + r() * 220) {
+    const ty = y - 30 - r() * 40;
+    const s = 0.7 + r() * 0.5;
+    out.push(rect(x - 5 * s, ty, 10 * s, 40 * s, '#8a6a4a'));
+    out.push(shape(ellipse(x, ty - 22 * s, 34 * s, 30 * s), '#4f9c5c', [path(ellipse(x + 10 * s, ty - 12 * s, 28 * s, 22 * s), '#3f8a4e'), path(ellipse(x - 10 * s, ty - 34 * s, 14 * s, 9 * s), '#79c27a')], '#2f6a3c', 1.6));
+  }
+  for (let i = 0; i < 60; i++) out.push(circle(-200 + r() * (W + 400), y - 6 - r() * 26, 3.2, ['#ffffff', '#ffd65a', '#f59ab8'][i % 3], { opacity: 0.9 }));
+  return out.join('');
 }
 
 function mural() {
   const out = [];
-  // A painted sky down to the padded wainscot, with clouds, a sun and a rainbow.
-  out.push(gpath(rectD(-200, -60, W + 400, G - 160 + 60), lin(0, -60, 0, G - 160, [[0, '#5aa0e0'], [1, '#a8d8f4']])));
-  const arco = (r, c) => stroke(`M${1960 - r} ${G - 160}A${r} ${r * 0.8} 0 0 1 ${1960 + r} ${G - 160}`, c, 34);
-  out.push(arco(560, '#e8452e'), arco(526, '#ff9a3a'), arco(492, '#f5c95f'), arco(458, '#5ad08a'), arco(424, '#5aa8ff'), arco(390, '#8a6ad8'));
-  out.push(circle(560, 170, 70, '#ffd23a'), circle(560, 170, 52, '#ffe68a'));
-  for (let i = 0; i < 12; i++) {
-    const a = (i / 12) * Math.PI * 2;
-    out.push(line(560 + Math.cos(a) * 86, 170 + Math.sin(a) * 86, 560 + Math.cos(a) * 112, 170 + Math.sin(a) * 112, '#ffd23a', 10));
-  }
-  for (const [x, y, s] of [[1100, 160, 1.4], [1500, 110, 1], [2500, 150, 1.6], [3100, 100, 1.2], [3500, 190, 1]]) out.push(nube(x, y, s));
-  // Padded wainscot in colours.
+  const bajo = G - 160;
+  // A painted sky down to the padded wainscot: deeper at the top, pale and a touch warm near the hills.
+  out.push(gpath(rectD(-200, -60, W + 400, bajo + 60), lin(0, 12, 0, bajo, [[0, '#4a88cc'], [0.55, '#86bee8'], [1, '#d9eef0']])));
+  out.push(sol(560, 170));
+  // The rainbow: each band with a lighter stripe inside, its feet hidden in clouds.
+  const CX = 1960;
+  const arco = (r, c, w, op = 1) => stroke(`M${CX - r} ${bajo}A${r} ${r * 0.8} 0 0 1 ${CX + r} ${bajo}`, c, w, { opacity: op });
+  const bandas = [['#e0564a', '#f08a7a'], ['#f39a4a', '#f8bc80'], ['#f2cd6a', '#f8e2a0'], ['#6cc48c', '#a0dcb0'], ['#5f9fe6', '#94c2f2'], ['#8f78d0', '#b4a4e4']];
+  bandas.forEach(([c, luz], i) => out.push(arco(560 - i * 34, c, 35), arco(560 - i * 34 + 8, luz, 7, 0.55)));
+  for (const [x, y, s] of [[1100, 170, 1.3], [1500, 110, 0.9], [2560, 140, 1.5], [3150, 96, 1.1], [3520, 200, 0.9]]) out.push(nube(x, y, s));
+  out.push(colinas(bajo));
+  out.push(nube(CX - 480, bajo - 6, 1.5), nube(CX + 480, bajo - 6, 1.5));
+  // Chair rail above the wainscot, and the padded wainscot in colours, stitched.
+  const RAIL = mat('#f4efe4', '#d8d0c0', '#ffffff', '#9a9080');
   const cols = [AZUL, ROJO, AMARILLO, VERDE];
-  for (let x = -200, i = 0; x < W + 200; x += 180, i++) out.push(box(x, G - 160, 180, 160, cols[i % 4], { r: 14, sh: 0.12, li: 0.1, side: false, lw: 2 }));
-  // Ceiling with light panels.
+  for (let x = -200, i = 0; x < W + 200; x += 180, i++) {
+    const m = cols[i % 4];
+    out.push(box(x, bajo, 180, 160, m, { r: 14, sh: 0.12, li: 0.1, side: false, lw: 2 }));
+    out.push(stroke(rr(x + 12, bajo + 14, 156, 132, 10), m.shadow, 2, { 'stroke-dasharray': '7 6', opacity: 0.9 }));
+    out.push(circle(x + 90, bajo + 80, 5, m.shadow), circle(x + 89, bajo + 79, 2.4, m.light, { opacity: 0.8 }));
+  }
+  out.push(box(-200, bajo - 16, W + 400, 20, RAIL, { r: 4, sh: 0.3, li: 0.25, side: false, lw: 1.6 }));
+  out.push(ao(-200, bajo + 4, W + 400, 26, 0.28));
+  out.push(ao(-200, G, W + 400, 46, 0.35, -1));
+  // Ceiling with framed light panels, and the shade the ceiling throws on the wall.
   out.push(rect(-200, -60, W + 400, 70, '#e8e4dc'), rect(-200, 6, W + 400, 6, '#c8c2b4'));
-  for (const x of [380, 1180, 1980, 2780, 3500]) out.push(rect(x - 130, -4, 260, 18, '#f6f8ff'));
+  out.push(ao(-200, 12, W + 400, 80, 0.3));
+  for (const x of [380, 1180, 1980, 2780, 3500]) {
+    out.push(rect(x - 140, -8, 280, 26, '#b8b2a6', { rx: 3 }), rect(x - 130, -4, 260, 18, '#f6f8ff'));
+    for (let i = 1; i < 8; i++) out.push(rect(x - 130 + i * 32.5, -4, 1.6, 18, '#d6dcea'));
+  }
   return out.join('');
 }
 
@@ -253,7 +313,10 @@ function estructura() {
   const [x0, x1] = ESTRUCTURA;
   const out = [];
   // Padded posts and two platforms, with nets between.
-  for (const x of [x0, x0 + 400, x0 + 800, x1 - 20]) out.push(box(x, 120, 28, G - 120, AMARILLO, { r: 12, sh: 0.05, li: 0.05 }));
+  for (const x of [x0, x0 + 400, x0 + 800, x1 - 20]) {
+    out.push(box(x, 120, 28, G - 120, AMARILLO, { r: 12, sh: 0.05, li: 0.05 }));
+    out.push(stroke(`M${x + 14} 136L${x + 14} ${G - 14}`, AMARILLO.shadow, 2, { 'stroke-dasharray': '9 7', opacity: 0.9 }));
+  }
   out.push(box(x0, 300, x1 - x0, 30, ROJO, { r: 12 }), box(x0, 470, x1 - x0, 30, AZUL, { r: 12 }));
   for (let x = x0 + 30; x < x1; x += 40) out.push(line(x, 120, x, 300, '#2a2e38', 1.6, { opacity: 0.5 }), line(x, 330, x, 470, '#2a2e38', 1.6, { opacity: 0.4 }));
   for (let y = 140; y < 300; y += 40) out.push(line(x0, y, x1, y, '#2a2e38', 1.6, { opacity: 0.5 }));
@@ -374,19 +437,43 @@ function floor() {
   const kMax = P.f(1080) + 0.4;
   const quad = (X0, X1, k0, k1) => polyD([gp(X0, k0), gp(X1, k0), gp(X1, k1), gp(X0, k1)]);
   const cols = ['#c8423a', '#3a74c8', '#e8b83a', '#46a860'];
-  // Interlocking foam mats, a chequer of colours.
+  const r = rng(31);
+  // Interlocking foam mats: each with a bevel, a seam and the puzzle tabs of its neighbour.
   let fila = 0;
   for (let z = 1; 1 / z < kMax; fila++) {
     const z1 = z - 0.12;
     const k0 = 1 / z;
     const k1 = Math.min(kMax, 1 / Math.max(z1, 0.2));
+    const dk = k1 - k0;
     for (let X = -1600, i = 0; X < W + 1600; X += 200, i++) {
       out.push(path(quad(X, X + 200, k0, k1), cols[(i + fila) % 4]));
-      out.push(path(quad(X, X + 4, k0, k1), '#000000', { opacity: 0.18 }));
+      // A little wear: some mats a touch paler or darker than the rest.
+      const v = r();
+      if (v < 0.15) out.push(path(quad(X, X + 200, k0, k1), '#ffffff', { opacity: (0.03 + r() * 0.04).toFixed(2) }));
+      else if (v > 0.75) out.push(path(quad(X, X + 200, k0, k1), '#000000', { opacity: (0.03 + r() * 0.05).toFixed(2) }));
+      out.push(path(quad(X, X + 200, k0, k0 + dk * 0.07), '#ffffff', { opacity: 0.08 }));
+      out.push(path(quad(X, X + 200, k1 - dk * 0.05, k1), '#000000', { opacity: 0.12 }));
+      // Dovetail tabs along the seam with the mat on the left: one of its tabs bites into this
+      // mat, and one of this mat's into it.
+      const izq = cols[(i + fila + 3) % 4];
+      for (const [t, d, c] of [[0.3, 1, izq], [0.7, -1, cols[(i + fila) % 4]]]) {
+        const ka = k0 + dk * (t - 0.07);
+        const kb = k0 + dk * (t + 0.07);
+        const punta = X + 18 * d;
+        out.push(path(polyD([gp(X, ka), gp(punta, ka - dk * 0.03), gp(punta, kb + dk * 0.03), gp(X, kb)]), c));
+        out.push(path(polyD([gp(punta - d, ka - dk * 0.03), gp(punta + 2 * d, ka - dk * 0.03), gp(punta + 2 * d, kb + dk * 0.03), gp(punta - d, kb + dk * 0.03)]), '#000000', { opacity: 0.18 }));
+      }
+      out.push(path(quad(X, X + 3, k0, k1), '#000000', { opacity: 0.2 }));
     }
-    out.push(path(quad(-1600, W + 1600, k0, k0 + 0.004), '#000000', { opacity: 0.2 }));
+    out.push(path(quad(-1600, W + 1600, k0, k0 + 0.004), '#000000', { opacity: 0.22 }));
     z = z1;
   }
+  // Shade along the foot of the wall, and soft contact shadows under what stands against it.
+  out.push(gpath(quad(-1600, W + 1600, 1, 1.09), lin(0, yOf(1), 0, yOf(1.09), [[0, '#1a1222', 0.38], [1, '#1a1222', 0]])));
+  const pie = (x0, x1, a = 0.4, fondo = 0.05) => sombra(uOf((x0 + x1) / 2, 1 + fondo / 3), yOf(1 + fondo / 3), (x1 - x0) / 2 + 30, (yOf(1 + fondo) - yOf(1)) * 1.1, a);
+  out.push(pie(ROBOT_PEANA - 160, ROBOT_PEANA + 160, 0.45), pie(...ZAPATERO), pie(...RECEPCION, 0.45, 0.06), pie(FIESTA[0] + 20, FIESTA[1] - 20, 0.3, 0.07));
+  out.push(pie(PISCINA[0] - 30, PISCINA[1] + 30, 0.4, 0.06));
+  for (const x of [ESTRUCTURA[0], ESTRUCTURA[0] + 400, ESTRUCTURA[0] + 800, ESTRUCTURA[1] - 20]) out.push(pie(x - 10, x + 38, 0.35, 0.04));
   return out.join('');
 }
 
@@ -430,7 +517,7 @@ export function escena() {
     start: { X: 2380, y: 880 },
     layers: [
       {
-        id: 'fondo', k: 1, lit: true,
+        id: 'fondo', k: 1, lit: true, textura: 0.35,
         pieces: [
           { x0: -260, x1: W + 260, y0: -60, y1: G + 6, body: back.body, emissive: back.emissive },
           { x0: PERSIANA[0] - 10, x1: PERSIANA[1] + 10, y0: 250, y1: G + 4, body: persianaBajada(), si: '!c.luz' },
@@ -452,8 +539,8 @@ export function escena() {
           { x: (RECEPCION[0] + RECEPCION[1]) / 2, y: 270, r: 260, color: '#b06aff', a: 0.25 },
         ],
       },
-      { id: 'suelo', floor: true, x0: fl[0], x1: fl[1], y0: 800, y1: 1080, body: floor(), lit: true },
-      { id: 'frente', k: KF, z: 'front', lit: true, pieces: foreground() },
+      { id: 'suelo', floor: true, x0: fl[0], x1: fl[1], y0: 800, y1: 1080, body: floor(), lit: true, textura: 0.45 },
+      { id: 'frente', k: KF, z: 'front', lit: true, textura: 0.35, pieces: foreground() },
     ],
     props: [
       { id: 'zapato', X: ROBOT_PEANA + 160, y: 900, svg: zapatoSuelo(), z: -10, si: 'c.zapatoSuelo' },

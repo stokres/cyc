@@ -6,5 +6,9 @@ Juego web (Vite + TypeScript + Canvas 2D) para móvil en horizontal.
 - Las fotos de los amigos son solo referencia: no las subas al repositorio.
 - Todo el texto está en `src/textos/*.md` (formato al principio de `capitulo1.md`). Nunca pongas frases en el código: añade una clave al archivo de textos. El texto del capítulo 1 es provisional hasta que llegue el guion real.
 - Para escribir a los personajes, lee `docs/PERSONAJES.md`.
-- Antes de hacer commit: `npm run typecheck` y una partida completa con `node scripts/playthrough.mjs` contra `npm run dev`, sin errores de consola. Si cambias el puzle, actualiza también ese script.
-- Rendimiento desde la implementación (`docs/ESTILO.md`, T5 y T6): si tocas el dibujo, una escena o un minijuego, pasa `node scripts/rendimiento.mjs` sin fallos y añade ahí cada escena o minijuego nuevo. Nada de SVG dibujado en canvas por fotograma, personajes siempre como imágenes y bucles con tope de 60 fps.
+- Pruebas mínimas y solo de lo que cambias (decidido por Jesús el 11 de octubre de 2026): ahorran tiempo y tokens, y Jesús prueba a mano.
+  - Antes de hacer commit: `npm run typecheck`.
+  - Si tocas una escena o un minijuego, prueba solo esa escena o ese minijuego, cargándolo directamente (por ejemplo, desde el menú de minijuegos), una vez o muy pocas. Nada de repetirlo decenas de veces ni de lanzar simulaciones (`scripts/*-sim.mjs`) salvo que estés ajustando la dificultad.
+  - La partida completa (`node scripts/playthrough.mjs` contra `npm run dev`) solo para cambios que afecten de verdad a todo el juego, y aun así una vez. Si cambias el puzle, actualiza también ese script.
+  - Al entregar, di en una línea qué has probado y qué conviene que Jesús pruebe a mano.
+- Rendimiento desde la implementación (`docs/ESTILO.md`, T5 y T6): si tocas el dibujo, una escena o un minijuego, pasa `node scripts/rendimiento.mjs <escena>` sin fallos, solo con las escenas que hayas tocado, y añade ahí cada escena o minijuego nuevo. Nada de SVG dibujado en canvas por fotograma, personajes siempre como imágenes y bucles con tope de 60 fps.

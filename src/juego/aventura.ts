@@ -18,9 +18,9 @@ export interface ZonaLogica {
   /** Shown on labels; defaults to `zona.<id>` in the texts. */
   nombre?(): string;
   activa?(): boolean;
-  /** Long press. Defaults to the dialogue `mirar.<id>`. */
+  /** What a tap shows on something that cannot be used. Defaults to the dialogue `mirar.<id>`. */
   mirar?(): Promise<void>;
-  /** Tap. Defaults to `usar.<id>`, or to looking if there is no such block. */
+  /** Tap. Defaults to `usar.<id>`, or to `mirar` if there is no such block. */
   usar?(): Promise<void>;
   /** Tap with an item selected. Return false for the generic "that won't work". */
   usarObjeto?(item: string): Promise<boolean>;
@@ -34,8 +34,8 @@ export interface Capitulo {
   /** A save from an older version: whose story changed so much it has to start again (see reparar). */
   caducados?(e: Estado): PjId[];
   zonas(g: Aventura, escena: string): Record<string, ZonaLogica>;
-  /** Tap (or long press, `mirar`) on a character or Aceituna, maybe with an item. */
-  personaje(g: Aventura, quien: PjId | 'aceituna' | 'sombra', item: string | null, mirar: boolean): Promise<void>;
+  /** Tap on a character or Aceituna, maybe with an item. */
+  personaje(g: Aventura, quien: PjId | 'aceituna' | 'sombra', item: string | null): Promise<void>;
   /** Pablo's shadow (the narrator in person): in which scene, if any, and whether it shows now. */
   sombra?(g: Aventura, escena: string): boolean;
   mirarObjeto(g: Aventura, item: string): Promise<void>;
@@ -82,7 +82,16 @@ export class Aventura {
   props: Objeto[] = [];
   private zonasLogicas: Record<string, ZonaLogica> = {};
   private ocupado = false;
-  pausado = false;
+  /** Paused by the game itself (a menu, the prologue, a minigame). Set by the callers. */
+  private pausaPropia = false;
+  /** The «turn your phone» notice is up (main.ts): a pause of its own, so leaving it frees nothing else. */
+  girando = false;
+  get pausado() {
+    return this.pausaPropia || this.girando;
+  }
+  set pausado(v: boolean) {
+    this.pausaPropia = v;
+  }
   /** Camera focus override (e.g. the sofa while Fran sleeps). */
   foco: number | null = null;
   /** Aceituna's behaviour in the flat. */
@@ -121,8 +130,6 @@ export class Aventura {
     const gest = new Gestures(root);
     gest.handlers = {
       tap: (p) => this.alTocar(p),
-      longPress: (p) => this.alMantener(p),
-      pressProgress: (p, t) => this.hud.anillo(p && !this.ocupado && !this.hud.enDialogo ? p.x : null, p?.y ?? 0, t),
     };
     this.motor.cond = (expr) => (expr.startsWith('!') ? !this.flag(expr.slice(1)) : this.flag(expr));
     this.motor.extra = (ctx, capa) => this.cap.dibujar?.(this, ctx, capa);
@@ -566,8 +573,8 @@ export class Aventura {
     this.hud.cerrarBandeja();
     const { x, y } = this.logico(p);
     const item = this.hud.seleccionado;
-    // Tapping your own character with nothing in hand is a step, not a look (that is the long
-    // press): taps meant to walk a little kept landing on them.
+    // Tapping your own character with nothing in hand is a step, not a look: taps meant to
+    // walk a little kept landing on them.
     const quien = this.actorEn(x, y);
     const actor = quien === this.estado.activo && !item ? null : quien;
     const zona = actor ? null : this.zonaEn(x, y);
@@ -584,7 +591,7 @@ export class Aventura {
           if (actor !== 'aceituna') otro.lookAt(me.X);
           if (actor === 'sombra') this.sombraMira = true;
         }
-        await this.cap.personaje(this, actor, item, false);
+        await this.cap.personaje(this, actor, item);
       });
       return;
     }
@@ -618,26 +625,6 @@ export class Aventura {
     if (!a || a.enCapa) return;
     const f = this.motor.floorAt(x, y, a.y);
     void this.andar(f.X, f.y).then(() => this.guardar());
-  }
-
-  private alMantener(p: PointerInfo) {
-    if (this.ocupado || this.pausado || this.hud.enDialogo || !this.S) return;
-    const { x, y } = this.logico(p);
-    const actor = this.actorEn(x, y);
-    if (actor) {
-      void this.ejecutar(() => this.cap.personaje(this, actor, null, true));
-      return;
-    }
-    const zona = this.zonaEn(x, y);
-    if (!zona) return;
-    const L = this.zonasLogicas[zona];
-    this.etiquetaZona(zona);
-    void this.ejecutar(async () => {
-      const z = this.zona(zona);
-      this.activo?.lookAt(this.S.CX + (z.u - this.S.CX) / z.k);
-      if (L.mirar) await L.mirar();
-      else await this.hablar(`mirar.${zona}`);
-    });
   }
 
   /** The eye button: briefly mark everything that can be touched. */

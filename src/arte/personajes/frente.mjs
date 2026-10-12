@@ -31,6 +31,21 @@ export function ojos({ C, eye, mood = 'neutral', blink = false, rx = 4.4, ry = 5
 }
 
 /**
+ * Iris and pupil of the second version (docs/ESTILO.md, P8), drawn inside the eye
+ * under its highlight, and a second small catchlight. `mira` 1 for the 3/4 view
+ * (looking a little forward), 0 for the front.
+ */
+export function iris(x, cy, rx, ry, C, mira = 1) {
+  return [
+    path(ellipse(x + rx * 0.12 * mira, cy + ry * 0.08, rx * 0.86, ry * 0.8), C.iris),
+    path(ellipse(x + rx * 0.18 * mira, cy + ry * 0.1, rx * 0.46, ry * 0.46), C.eye),
+  ];
+}
+export function brillo(x, cy, rx, ry) {
+  return path(ellipse(x - rx * 0.32, cy + ry * 0.38, rx * 0.13, rx * 0.13), '#ffffff', { opacity: 0.8 });
+}
+
+/**
  * Brows: the character's own two brow shapes (left = viewer's left), tilted by mood.
  * `pivots` are their outer ends.
  */

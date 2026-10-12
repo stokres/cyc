@@ -1,5 +1,6 @@
 import './ui/ui.css';
 import logoUrl from '../assets/logo.png';
+import { logoClaro } from './ui/logo';
 import textosCapitulo from './textos/capitulo1.md?raw';
 import textosInterfaz from './textos/interfaz.md?raw';
 import { cargarTextos, texto } from './juego/textos';
@@ -14,6 +15,7 @@ import { jugarCerdos } from './ui/cerdos';
 import { mostrarPrologo } from './ui/prologo';
 import { capitulo1 } from './capitulos/capitulo1';
 import { h } from './ui/hud';
+import { alCambiarOrientacion, esVertical } from './ui/orientacion';
 import type { Calidad } from './motor/motor';
 import type { Volumen } from './core/audio';
 import { storageGet, storageSet, wait } from './core/util';
@@ -49,29 +51,6 @@ function cargarAjustes(): Ajustes {
   } catch {
     return { ...AJUSTES };
   }
-}
-
-/** The logo is black ink on white: turn it into cream ink on transparent. */
-async function logoClaro(): Promise<string> {
-  const img = new Image();
-  img.src = logoUrl;
-  await img.decode();
-  const c = document.createElement('canvas');
-  c.width = img.naturalWidth;
-  c.height = img.naturalHeight;
-  const ctx = c.getContext('2d')!;
-  ctx.drawImage(img, 0, 0);
-  const d = ctx.getImageData(0, 0, c.width, c.height);
-  for (let i = 0; i < d.data.length; i += 4) {
-    const lum = (d.data[i] * 0.3 + d.data[i + 1] * 0.59 + d.data[i + 2] * 0.11) / 255;
-    const a = (1 - lum) * (d.data[i + 3] / 255);
-    d.data[i] = 243;
-    d.data[i + 1] = 234;
-    d.data[i + 2] = 214;
-    d.data[i + 3] = Math.round(a * 255);
-  }
-  ctx.putImageData(d, 0, 0);
-  return c.toDataURL('image/png');
 }
 
 async function arrancar() {
@@ -447,20 +426,24 @@ async function arrancar() {
   };
 
   // ---------------------------------------------------------- portrait phones
+  // The notice sits above every other overlay (.girar, z-index) and everything that runs on
+  // its own stops meanwhile (src/ui/orientacion.ts). The scene's pause is kept apart from the
+  // game's (g.pausado), so turning the phone back never frees a menu that is still open.
   let girar: HTMLElement | null = null;
-  const orientacion = () => {
-    const vertical = window.innerHeight > window.innerWidth && matchMedia('(pointer: coarse)').matches;
+  const orientacion = (vertical: boolean) => {
+    g.girando = vertical;
     if (vertical && !girar) {
-      girar = g.hud.cubrir('girar', h('div', {}, h('div', { class: 'movil-icono' }), h('p', {}, texto('girar'))));
-      g.pausado = true;
+      // Appended next to #game, where the prologue and the trailer go too: #game is a stacking
+      // context of its own, so inside it the notice could never rise above those.
+      girar = h('div', { class: 'cubierta girar' }, h('div', {}, h('div', { class: 'movil-icono' }), h('p', {}, texto('girar'))));
+      root.parentElement!.append(girar);
     } else if (!vertical && girar) {
       girar.remove();
       girar = null;
-      g.pausado = false;
     }
   };
-  window.addEventListener('resize', orientacion);
-  orientacion();
+  alCambiarOrientacion(orientacion);
+  orientacion(esVertical());
 
   // ---------------------------------------------------------- title
   // A new game until someone's story has started (the save exists as soon as a scene loads).
@@ -478,6 +461,8 @@ async function arrancar() {
   );
   titulo.addEventListener('click', async (e) => {
     e.stopPropagation();
+    // Upright phone: the notice covers the title, and a tap that gets through does nothing.
+    if (esVertical()) return;
     titulo.remove();
     g.sound.start();
     empezado = true;

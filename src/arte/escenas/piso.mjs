@@ -12,7 +12,7 @@
 import { bed, bowls } from '../personajes/aceituna.mjs';
 import {
   smooth, ellipse, path, stroke, g, shape, rect, circle, line, poly, polyD, rectD, rr, lin, rad, gpath,
-  mat, box, bevel, tiles, foliage, pottedPlant, framed, persp, rng,
+  mat, box, bevel, tiles, foliage, pottedPlant, framed, persp, rng, ao, sombra,
 } from './kit.mjs';
 
 export const P = persp({ HOR: 200, BASE: 800, CX: 1170 });
@@ -49,6 +49,7 @@ function wall() {
   out.push(rect(0, 0, W, 46, '#cbbfae'), rect(0, 46, W, 16, '#f0e8dc'), rect(0, 58, W, 4, '#bfb2a0'), rect(0, 62, W, 10, '#3a2e2a', { opacity: 0.08 }));
   // Corners between zones read as soft vertical shadows.
   for (const [x, w] of [[1322, 18], [2290, 14], [2890, 16]]) out.push(gpath(rectD(x, 62, w, 740), lin(x, 0, x + w, 0, [[0, '#2e2620', 0.22], [1, '#2e2620', 0]])));
+  out.push(ao(0, 62, W, 110, 0.3));
   // Skirting board.
   out.push(rect(0, 772, W, 28, '#efe8dc'), rect(0, 772, W, 4, '#fbf7f0'), rect(0, 794, W, 6, '#cfc6b8'));
   return out.join('');
@@ -65,6 +66,14 @@ function bedroomDoor() {
   ].join('');
 }
 
+/** What stands in front of the kitchen window: drawn over the glass, so the cut-out does not hide it. */
+function kitchenWindowFront() {
+  const out = [];
+  out.push(pottedPlant(500, 498, 0.9, 4), pottedPlant(690, 498, 0.75, 9, { tall: 1.25, leaves: ['#2d5a3c', '#3d7449', '#52905a', '#79b06e'] }));
+  out.push(stroke('M612 549L612 470Q612 446 636 446Q660 446 660 470L660 492', '#3b3e44', 8), stroke('M612 549L612 470Q612 446 636 446Q660 446 660 470L660 492', '#6b7078', 2.5, { opacity: 0.8 }));
+  return out.join('');
+}
+
 function kitchen() {
   const out = [];
   // Backsplash: white subway tiles, around the window.
@@ -75,18 +84,20 @@ function kitchen() {
   out.push(box(100, 196, 236, 262, WOOD, { r: 4, sh: 0.05, li: 0.03 }));
   out.push(bevel(108, 204, 108, 244, WOOD), bevel(220, 204, 108, 244, WOOD));
   out.push(box(196, 420, 8, 26, CHARCOAL, { r: 3, sh: 0, li: 0, side: false }), box(232, 420, 8, 26, CHARCOAL, { r: 3, sh: 0, li: 0, side: false }));
-  out.push(rect(100, 458, 236, 10, '#3a2e2a', { opacity: 0.12 }));
+  out.push(rect(100, 458, 236, 10, '#3a2e2a', { opacity: 0.12 }), ao(100, 468, 236, 56, 0.4), ao(100, 458, 236, 6, 0.3, -1));
   out.push(clock(595, 160));
   // Window: white frame, mullion and stone sill. The glass itself is a hole.
   out.push(box(KWIN.x, KWIN.y, KWIN.w, KWIN.h, WHITE, { r: 3, sh: 0, li: 0, side: false, lw: 1.6 }));
   out.push(rect(KWIN.x + 16, KWIN.y + 16, KWIN.w - 32, 4, '#cfc8bc'), rect(589, 266, 12, 218, '#e9e4db'), rect(598, 266, 3, 218, '#cfc8bc'));
   out.push(box(404, 498, 382, 18, STONE, { r: 3, sh: 0.3, li: 0.2 }));
-  out.push(pottedPlant(500, 498, 0.9, 4), pottedPlant(690, 498, 0.75, 9, { tall: 1.25, leaves: ['#2d5a3c', '#3d7449', '#52905a', '#79b06e'] }));
+  out.push(sombra(500, 497, 32, 6, 0.4), sombra(690, 497, 28, 5, 0.4));
+  out.push(ao(404, 516, 382, 28, 0.3));
   // Extractor hood.
   out.push(box(862, 62, 70, 240, STEEL, { r: 2, sh: 0, li: 0, lw: 1.4 }));
   out.push(shape(polyD([[850, 300], [944, 300], [978, 372], [816, 372]]), STEEL.base, [rect(816, 356, 170, 16, STEEL.shadow), rect(816, 300, 170, 8, STEEL.light)], STEEL.line, 1.6));
-  out.push(rect(830, 372, 134, 6, '#585e66'));
+  out.push(rect(830, 372, 134, 6, '#585e66'), ao(816, 378, 162, 50, 0.38));
   // Counter top and front edge.
+  out.push(ao(78, 548, 984, 34, 0.32, -1));
   out.push(box(78, 548, 984, 16, STONE, { r: 3, sh: 0, li: 0.3, side: false }), box(78, 562, 984, 18, STONE, { r: 2, sh: 0.4, li: 0.1, side: false }));
   // Lower units.
   out.push(rect(90, 580, 960, 192, WOOD.deep));
@@ -103,10 +114,9 @@ function kitchen() {
   out.push(rect(714, 596, 154, 22, '#2b2e33'), ...[740, 770, 800, 830].map((x) => circle(x, 607, 6, '#9aa0a8')));
   out.push(gpath(rr(716, 634, 150, 112, 6), lin(0, 634, 0, 746, [[0, '#1d2026'], [1, '#2c2f36']])), rect(716, 626, 150, 6, '#7a8088', { rx: 3 }));
   out.push(path(smooth([[722, 640], [800, 638], [770, 700], [722, 720]]), '#ffffff', { opacity: 0.06 }));
-  out.push(rect(90, 766, 960, 6, '#3a2e2a', { opacity: 0.25 }));
+  out.push(ao(90, 580, 960, 28, 0.32), rect(90, 766, 960, 6, '#3a2e2a', { opacity: 0.25 }));
   // Sink + gooseneck tap under the window.
   out.push(rect(525, 548, 140, 5, '#9aa0a6', { rx: 2 }));
-  out.push(stroke('M612 549L612 470Q612 446 636 446Q660 446 660 470L660 492', '#3b3e44', 8), stroke('M612 549L612 470Q612 446 636 446Q660 446 660 470L660 492', '#6b7078', 2.5, { opacity: 0.8 }));
   out.push(box(600, 540, 26, 10, CHARCOAL, { r: 3, sh: 0, li: 0, side: false, lw: 1 }));
   // Hob, with a red enamel pot and a moka pot (Spanish kitchen staples).
   out.push(rect(714, 545, 156, 5, '#1e1f23', { rx: 2 }));
@@ -162,7 +172,8 @@ function fridge() {
   out.push(rect(1078, 296, 224, 494, STEEL.line), box(1080, 298, 220, 304, STEEL, { r: 10, sh: 0.04, li: 0.02 }), box(1080, 606, 220, 166, STEEL, { r: 10, sh: 0.06, li: 0.03 }));
   out.push(gpath(rectD(1086, 304, 60, 290), lin(1086, 0, 1146, 0, [[0, '#ffffff', 0.35], [1, '#ffffff', 0]])));
   out.push(box(1092, 460, 10, 128, CHARCOAL, { r: 5, sh: 0, li: 0.1, side: false, lw: 1 }), box(1092, 618, 10, 82, CHARCOAL, { r: 5, sh: 0, li: 0.1, side: false, lw: 1 }));
-  out.push(rect(1086, 772, 208, 18, '#3c4046'));
+  out.push(rect(1086, 772, 208, 18, '#3c4046'), ao(1078, 296, 224, 46, 0.34), ao(1078, 306, 22, 480, 0.18, 1));
+  out.push(gpath(rectD(1280, 304, 22, 470), lin(1280, 0, 1302, 0, [[0, '#1a1222', 0], [1, '#1a1222', 0.22]])));
   // Magnets: a polaroid of Aceituna, Madrid's bear-and-tree, a shopping list.
   out.push(g(null, [
     rect(-34, -40, 68, 80, '#000', { opacity: 0.12, transform: 'translate(4 4)' }),
@@ -193,14 +204,16 @@ function living() {
   out.push(box(1440, 392, 20, 30, BRASS, { r: 4, sh: 0.2, li: 0.2 }), stroke('M1450 400Q1450 370 1470 360', BRASS.shadow, 4));
   out.push(shape(polyD([[1446, 330], [1494, 330], [1508, 372], [1432, 372]]), '#efe2c8', [rect(1432, 362, 80, 10, '#d8c6a2')], '#8a7550', 1.4));
   // Sideboard with a record player and records.
-  out.push(box(1360, 640, 190, 132, WALNUT, { r: 3, sh: 0.05 }), bevel(1366, 652, 88, 112, WALNUT), bevel(1456, 652, 88, 112, WALNUT));
+  out.push(rect(1366, 600, 190, 176, '#000', { opacity: 0.1 }), ao(1360, 772, 190, 14, 0.3));
+  out.push(box(1360, 640, 190, 132, WALNUT, { r: 3, sh: 0.05 }), rect(1360, 640, 190, 6, WALNUT.light), rect(1360, 646, 190, 4, '#1a0e08', { opacity: 0.4 }), bevel(1366, 652, 88, 112, WALNUT), bevel(1456, 652, 88, 112, WALNUT));
+  out.push(path(ellipse(1418, 640, 62, 4), '#000', { opacity: 0.25 }));
   out.push(rect(1360, 772, 190, 6, '#2b1d14', { opacity: 0.4 }));
   out.push(box(1376, 614, 104, 26, mat('#3b3530', '#2a2622', '#5a524a', '#1a1714'), { r: 3 }), path(ellipse(1418, 616, 34, 5), '#1b1a1c'), circle(1418, 615, 4, '#c8433a'), stroke('M1466 612L1448 622', '#b8bcc0', 3));
   for (let i = 0; i < 7; i++) out.push(rect(1494 + i * 6, 586, 5, 54, ['#2a3c66', '#c8433a', '#e2b04a', '#2f6a55', '#d8d0c2', '#6a3a7a', '#1e1e22'][i], { rx: 1 }));
   // Fireplace: mantel, surround and firebox.
   out.push(rect(1586, 556, 462, 216, '#000', { opacity: 0.08, transform: 'translate(8 0)' }));
   out.push(box(1590, 556, 452, 216, STONE, { r: 3, sh: 0.04, li: 0.02 }));
-  out.push(box(1556, 536, 518, 24, STONE, { r: 4, sh: 0.35, li: 0.25 }), rect(1556, 560, 518, 8, '#3a2e2a', { opacity: 0.15 }));
+  out.push(box(1556, 536, 518, 24, STONE, { r: 4, sh: 0.35, li: 0.25 }), rect(1556, 560, 518, 8, '#3a2e2a', { opacity: 0.15 }), ao(1590, 568, 452, 46, 0.3), ao(1556, 536, 518, 6, 0.3, -1));
   out.push(gpath(rr(1672, 612, 288, 164, 4), lin(0, 612, 0, 776, [[0, '#1f1917'], [0.7, '#2e2420'], [1, '#3b2c24']])));
   for (let i = 0; i < 5; i++) out.push(line(1680, 630 + i * 28, 1952, 630 + i * 28, '#3e302a', 2, { opacity: 0.6 }));
   out.push(stroke(rr(1672, 612, 288, 164, 4), STONE.shadow, 3));
@@ -217,6 +230,7 @@ function living() {
   };
   out.push(log(1730, 748, 1900, 740, 14), log(1760, 734, 1880, 712, 12), log(1890, 742, 1790, 716, 11));
   // Mantel: plant, candle, books, photo of Aceituna.
+  out.push(sombra(1620, 535, 34, 6, 0.4), sombra(1698, 535, 18, 5, 0.4), sombra(1906, 535, 56, 6, 0.4));
   out.push(pottedPlant(1620, 536, 0.95, 21, { tall: 1.15 }));
   out.push(shape(rr(1688, 494, 20, 42, 3), '#f2ead8', [rect(1700, 494, 8, 42, '#d9ceb6')], '#9a8a68', 1.2), line(1698, 494, 1698, 486, '#2a2522', 1.5));
   out.push(box(1860, 516, 92, 20, mat('#2f5d7a', '#234a62', '#467a98', '#163044'), { r: 2 }), box(1866, 498, 82, 18, mat('#c8433a', '#9e2e27', '#e06a5c', '#6e1c17'), { r: 2 }), box(1872, 482, 70, 16, mat('#e2b04a', '#b8892d', '#f2cc72', '#7a5714'), { r: 2 }));
@@ -232,6 +246,7 @@ function living() {
   // Poster of Fran's own stand-up show (lettering is drawn with the game fonts, see POSTER_TEXTS).
   out.push(posterFran());
   // Tall plant in a basket between the fireplace and the terrace.
+  out.push(ao(2108, 760, 130, 18, 0.35, -1), sombra(2170, 772, 78, 9, 0.4));
   out.push(basketPlant(2170, 772, 1.05, 31));
   return out.join('');
 }
@@ -303,7 +318,7 @@ function bathroom() {
 function hall() {
   const out = [];
   // Coat rack: Fran's rain jacket, a cap and Aceituna's lead.
-  out.push(box(2920, 296, 150, 18, WOOD, { r: 4, sh: 0.3, li: 0.2 }));
+  out.push(ao(2920, 314, 150, 54, 0.28), box(2920, 296, 150, 18, WOOD, { r: 4, sh: 0.3, li: 0.2 }));
   for (const x of [2944, 2994, 3044]) out.push(stroke(`M${x} 312L${x} 326Q${x} 334 ${x + 8} 330`, BRASS.shadow, 4));
   out.push(shape(smooth([[2936, 320, 'c'], [2960, 318, 'c'], [2984, 340], [2992, 420], [2996, 560, 'c'], [2920, 566, 'c'], [2918, 470], [2914, 380], [2924, 336]]), '#6a7a3a', [
     path(smooth([[2950, 330], [2960, 420], [2958, 560], [2946, 560], [2944, 420]]), '#55642c'),
@@ -315,14 +330,15 @@ function hall() {
   out.push(stroke('M3052 330C3070 360 3060 420 3046 450C3036 474 3060 500 3072 470C3084 440 3040 400 3038 440', '#c23a2e', 6), stroke('M3052 330C3070 360 3060 420 3046 450', '#e2604e', 2, { opacity: 0.7 }));
   out.push(box(3030, 440, 18, 12, BRASS, { r: 3, sh: 0.3, li: 0.3, lw: 1 }));
   // Console table with the key bowl and a small lamp (on).
-  out.push(box(2920, 600, 150, 16, WALNUT, { r: 3, sh: 0.3, li: 0.2 }));
-  for (const x of [2928, 3054]) out.push(box(x, 614, 8, 158, WALNUT, { r: 2, sh: 0, li: 0, lw: 1.2 }));
+  out.push(ao(2920, 616, 150, 56, 0.3), rect(2926, 624, 140, 148, '#000', { opacity: 0.08 }));
+  out.push(box(2920, 600, 150, 18, WALNUT, { r: 3, sh: 0.3, li: 0.2 }), rect(2920, 600, 150, 3, WALNUT.light, { opacity: 0.9 }), rect(2926, 618, 138, 8, WALNUT.shadow));
+  for (const x of [2926, 3052]) out.push(box(x, 616, 12, 156, WALNUT, { r: 2, sh: 0, li: 0, lw: 1.2 }), rect(x + 2, 618, 3.5, 152, WALNUT.light, { opacity: 0.7 }));
   out.push(rect(2928, 700, 134, 6, WALNUT.shadow));
   out.push(shape(smooth([[2952, 586], [3004, 586], [2998, 600], [2978, 604], [2958, 600]]), '#3f6f8f', [rect(2952, 596, 52, 8, '#2c5470')], '#183248', 1.3));
   out.push(box(3032, 560, 20, 40, mat('#e9e2d4', '#c9c0ae', '#f7f3ea', '#8a8070'), { r: 8 }));
   out.push(shape(polyD([[3022, 514], [3062, 514], [3070, 552], [3014, 552]]), '#f2e2c0', [rect(3014, 544, 60, 8, '#d9c39a')], '#8a7550', 1.3));
   // Front door: walnut, four panels, brass knob, peephole and chain.
-  out.push(box(3084, 236, 224, 18, WOOD, { r: 2, sh: 0.3, li: 0.2 }), box(3084, 250, 18, 522, WOOD, { r: 2, sh: 0, li: 0 }), box(3290, 250, 18, 522, WOOD, { r: 2, sh: 0, li: 0 }));
+  out.push(ao(3102, 254, 188, 30, 0.3), box(3084, 236, 224, 18, WOOD, { r: 2, sh: 0.3, li: 0.2 }), box(3084, 250, 18, 522, WOOD, { r: 2, sh: 0, li: 0 }), box(3290, 250, 18, 522, WOOD, { r: 2, sh: 0, li: 0 }));
   out.push(box(3102, 254, 188, 518, WALNUT, { r: 2, sh: 0.02, li: 0.01 }));
   for (const [x, y, w, h] of [[3118, 272, 72, 210], [3202, 272, 72, 210], [3118, 500, 72, 250], [3202, 500, 72, 250]]) out.push(bevel(x, y, w, h, WALNUT, { inset: 9 }));
   out.push(circle(3196, 400, 5, '#d4b26a'), circle(3196, 400, 2.2, '#1a1410'));
@@ -359,7 +375,8 @@ function backWall() {
     rect(x, y, w, h, '#c9d6ec', { opacity: 0.08 }),
     path(polyD([[x + w * 0.15, y], [x + w * 0.45, y], [x + w * 0.05, y + h * 0.55], [x, y + h * 0.55], [x, y + h * 0.3]]), '#ffffff', { opacity: 0.07 }),
   ].join('')).join('');
-  return `<mask id="huecos" maskUnits="userSpaceOnUse" x="-100" y="0" width="${W + 200}" height="1080"><rect x="-100" y="0" width="${W + 200}" height="1080" fill="white"/>${holes}</mask><g mask="url(#huecos)">${body}</g>${glass}`;
+  const pie = ao(-60, 800, W + 80, 60, 0.3, -1);
+  return `<mask id="huecos" maskUnits="userSpaceOnUse" x="-100" y="0" width="${W + 200}" height="1080"><rect x="-100" y="0" width="${W + 200}" height="1080" fill="white"/>${holes}</mask><g mask="url(#huecos)">${body}${pie}</g>${glass}${kitchenWindowFront()}`;
 }
 
 /** Light sources painted after the light map (they are the light). */
@@ -455,9 +472,11 @@ function terrace() {
 
 // ---------------------------------------------------------------- floor
 
+const CX_BED = P.CX + P.f(871) * (2440 - P.CX);
+
 function floor() {
   const out = [];
-  const { gp } = P;
+  const { gp, uOf, yOf } = P;
   const kMax = P.f(1080) + 0.02;
   const quad = (X0, X1, k0, k1) => polyD([gp(X0, k0), gp(X1, k0), gp(X1, k1), gp(X0, k1)]);
   // Kitchen: hydraulic tiles (black, cream and terracotta), the classic Madrid flat floor.
@@ -519,6 +538,10 @@ function floor() {
   out.push(rug(3100, 3290, 1.02, 1.14, '#8a6a3c'), rug(3112, 3278, 1.03, 1.13, '#b98f55'));
   // Contact shadow along the wall and under the furniture that touches it.
   out.push(gpath(polyD([gp(-400, 1), gp(3600, 1), gp(3600, 1.05), gp(-400, 1.05)]), lin(0, 800, 0, 832, [[0, '#2a1e16', 0.35], [1, '#2a1e16', 0]])));
+  const pie = (x0, x1, a = 0.4, fondo = 0.05) => sombra(uOf((x0 + x1) / 2, 1 + fondo / 3), yOf(1 + fondo / 3), ((x1 - x0) / 2 + 24) * (1 + fondo / 3), (yOf(1 + fondo) - yOf(1)) * 1.15, a);
+  out.push(pie(1070, 1310, 0.5, 0.06), pie(1360, 1550, 0.45, 0.05), pie(2110, 2230, 0.4, 0.04), pie(2920, 3070, 0.4, 0.04), pie(1590, 2040, 0.3, 0.03));
+  // Aceituna's bed (a prop, so its own shadow is only the contact on the boards).
+  out.push(sombra(CX_BED, yOf(P.f(871)) + 6, 150, 22, 0.32));
   return out.join('');
 }
 
@@ -545,15 +568,19 @@ function table() {
       box(Math.min(x - 2 * s, x + 14 * s) - 6, yF - 340, 24, 110, T, { r: 8 }),
     ].join('');
   };
+  out.push(sombra((u0 + u1) / 2, yF - 4, (u1 - u0) / 2 + 70, 30, 0.45), sombra(u0 - 38, yF - 3, 62, 16, 0.4), sombra(u1 + 46, yF - 3, 62, 16, 0.4));
   out.push(chair(u0 + 10, -1), chair(u1 - 10, 1));
   // Table: top seen slightly from above, two front legs.
   out.push(path(polyD([[u0 - 6, top - 22], [u1 + 6, top - 22], [u1 + 16, top + 4], [u0 - 16, top + 4]]), T.light));
   out.push(path(polyD([[u0 + 30, top - 18], [u1 - 90, top - 18], [u1 - 140, top + 2], [u0 + 10, top + 2]]), '#ffffff', { opacity: 0.08 }));
-  out.push(box(u0 - 16, top + 2, u1 - u0 + 32, 26, T, { r: 3, sh: 0.3, li: 0.15 }));
-  for (const x of [u0 + 4, u1 - 34]) out.push(box(x, top + 26, 30, yF - top - 26, T, { r: 3, sh: 0.05, li: 0 }));
+  out.push(rect(u0 - 4, top - 14, u1 - u0 + 8, 2.5, '#fff', { opacity: 0.12 }), rect(u0 + 60, top - 8, u1 - u0 - 150, 2.5, T.shadow, { opacity: 0.25 }));
+  out.push(box(u0 - 16, top + 2, u1 - u0 + 32, 26, T, { r: 3, sh: 0.3, li: 0.15 }), rect(u0 - 14, top + 2, u1 - u0 + 28, 4, T.light), rect(u0 - 14, top + 6, u1 - u0 + 28, 3, '#2a1a10', { opacity: 0.3 }));
+  for (const x of [u0 + 4, u1 - 34]) out.push(box(x, top + 26, 30, yF - top - 26, T, { r: 3, sh: 0.05, li: 0 }), rect(x + 3, top + 28, 5, yF - top - 34, T.light, { opacity: 0.7 }), rect(x + 22, top + 28, 6, yF - top - 34, T.deep, { opacity: 0.35 }));
   out.push(box(u0 + 34, top + 26, u1 - u0 - 68, 16, T, { r: 2, sh: 0.4, li: 0 }));
+  out.push(ao(u0 - 10, top + 42, u1 - u0 + 20, 46, 0.3));
   // On the table: a bowl of olive stones (a nod to the dog) and an empty can. Fran's phone is
   // a piece of its own (phone()), gone once he picks it up.
+  out.push(path(ellipse(u0 + 342, top + 1, 52, 5), '#000', { opacity: 0.22 }), path(ellipse(u0 + 448, top - 5, 24, 5), '#000', { opacity: 0.22 }));
   out.push(shape(smooth([[u0 + 300, top - 10], [u0 + 380, top - 10], [u0 + 370, top + 4], [u0 + 340, top + 8], [u0 + 310, top + 4]]), '#f0e8d8', [rect(u0 + 300, top, 80, 8, '#d0c6b2')], '#8a8070', 1.3));
   // Only the stones are left: Fran ate every olive before his nap.
   for (const [dx, dy] of [[318, -12], [336, -15], [354, -12], [345, -8], [328, -7]]) out.push(shape(ellipse(u0 + dx, top + dy, 6, 4, 0.4), '#d8c49a', [path(ellipse(u0 + dx - 2, top + dy - 1, 2, 1.2), '#f2e6c8')], '#8a6a3a', 0.8));
@@ -585,22 +612,46 @@ function sofa() {
   const top = yF - 0.86 * M * KF;
   const arm = yF - 0.66 * M * KF;
   const out = [];
-  // Cushion peeking over the back, right side.
-  out.push(shape(smooth([[2270, top + 30], [2286, top - 30], [2350, top - 44], [2400, top - 24], [2404, top + 30]]), '#d9a441', [path(ellipse(2330, top - 20, 40, 12), '#ecc46e', { opacity: 0.7 })], '#7a5714', 1.6));
-  // Armrests.
-  for (const [a, b] of [[u0 - 40, u0 + 70], [u1 - 70, u1 + 40]]) {
-    out.push(shape(smooth([[a, yF - 30, 'c'], [a, arm + 24], [a + 8, arm], [(a + b) / 2, arm - 8], [b - 8, arm], [b, arm + 24], [b, yF - 30, 'c']]), S.base, [rect(a, arm + 70, b - a, yF, S.shadow), path(ellipse((a + b) / 2, arm + 6, (b - a) * 0.4, 10), S.light, { opacity: 0.7 })], S.line, 2));
+  const stitch = (d, c = '#e8a285') => stroke(d, c, 2.2, { 'stroke-dasharray': '7 6', opacity: 0.75 });
+  // Soft shadow on the floor, then the cushion peeking over the back, right side.
+  out.push(sombra((u0 + u1) / 2, yF - 2, (u1 - u0) / 2 + 50, 30, 0.5), ...[u0 - 11, u0 + 309, u1 - 311, u1 + 19].map((x) => sombra(x, yF - 1, 26, 7, 0.5)));
+  out.push(shape(smooth([[2270, top + 30], [2286, top - 30], [2350, top - 44], [2400, top - 24], [2404, top + 30]]), '#d9a441', [path(ellipse(2330, top - 20, 40, 12), '#ecc46e', { opacity: 0.7 }), path(smooth([[2330, top - 40], [2352, top - 30], [2372, top - 10], [2404, top + 30], [2350, top + 30]]), '#b8862c', { opacity: 0.45 }), stitch(`M2290 ${top - 8}Q2340 ${top - 30} 2392 ${top - 8}`, '#f4d98a')], '#7a5714', 1.6));
+  // Armrests: rounded roll on top, lit outer edge, shaded inner side, seam and hem.
+  for (const [a, b, out_] of [[u0 - 40, u0 + 70, -1], [u1 - 70, u1 + 40, 1]]) {
+    const ox = out_ < 0 ? a : b - 16;
+    const ix = out_ < 0 ? b - 18 : a;
+    out.push(shape(smooth([[a, yF - 30, 'c'], [a, arm + 24], [a + 8, arm], [(a + b) / 2, arm - 8], [b - 8, arm], [b, arm + 24], [b, yF - 30, 'c']]), S.base, [
+      rect(a, arm + 70, b - a, yF, S.shadow),
+      rect(ox, arm, 16, yF - arm, out_ < 0 ? S.light : S.deep, { opacity: out_ < 0 ? 0.4 : 0.3 }),
+      rect(ix, arm + 6, 18, yF - arm, out_ < 0 ? S.deep : S.light, { opacity: out_ < 0 ? 0.3 : 0.35 }),
+      path(ellipse((a + b) / 2, arm + 6, (b - a) * 0.4, 10), S.light, { opacity: 0.7 }),
+      rect(a, arm + 62, b - a, 7, S.deep, { opacity: 0.35 }),
+      stitch(`M${a + 10} ${arm + 40}Q${(a + b) / 2} ${arm + 52} ${b - 10} ${arm + 40}`),
+      rect(a, yF - 44, b - a, 4, S.deep, { opacity: 0.4 }),
+    ], S.line, 2));
   }
-  // Back panel.
+  // Back panel: three cushions with piped seams, a stitched top and a pleated skirt.
+  const w3 = (u1 - u0 - 80) / 3;
   out.push(shape(smooth([[u0 + 40, yF - 30, 'c'], [u0 + 40, top + 40], [u0 + 70, top + 4], [(u0 + u1) / 2, top - 8], [u1 - 70, top + 4], [u1 - 40, top + 40], [u1 - 40, yF - 30, 'c']]), S.base, [
     path(smooth([[u0 + 40, top + 50], [(u0 + u1) / 2, top + 30], [u1 - 40, top + 50], [u1 - 40, top + 70], [u0 + 40, top + 70]]), S.light, { opacity: 0.45 }),
+    gpath(rectD(u0 + 40, top - 10, u1 - u0 - 80, yF - top), lin(0, top, 0, yF - 120, [[0, S.light, 0.22], [0.45, S.light, 0], [1, S.deep, 0.32]])),
+    ...[0, 1, 2].map((i) => path(ellipse(u0 + 40 + w3 * (i + 0.5), top + 96, w3 * 0.42, 34), S.light, { opacity: 0.18 })),
     rect(u0, yF - 120, u1 - u0, 120, S.shadow),
+    rect(u0, yF - 122, u1 - u0, 4, S.light, { opacity: 0.4 }),
+    rect(u0, yF - 120, u1 - u0, 12, S.deep, { opacity: 0.4 }),
+    ...[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map((i) => rect(u0 + i * ((u1 - u0) / 15) - 3, yF - 108, 6, 76, S.deep, { opacity: 0.22 })),
+    rect(u0, yF - 38, u1 - u0, 6, S.deep, { opacity: 0.5 }),
     ...[0.33, 0.66].map((k) => stroke(`M${u0 + 40 + (u1 - u0 - 80) * k} ${top + 20}L${u0 + 40 + (u1 - u0 - 80) * k} ${yF - 40}`, S.deep, 2.4, { opacity: 0.6 })),
+    ...[0.33, 0.66].map((k) => stroke(`M${u0 + 46 + (u1 - u0 - 80) * k} ${top + 24}L${u0 + 46 + (u1 - u0 - 80) * k} ${yF - 126}`, S.light, 3, { opacity: 0.4 })),
+    stitch(`M${u0 + 62} ${top + 24}Q${(u0 + u1) / 2} ${top + 6} ${u1 - 62} ${top + 24}`),
   ], S.line, 2.2));
   // Knitted throw draped over the left of the back.
+  out.push(path(smooth([[u0 + 80, top + 12], [u0 + 180, top - 6], [u0 + 316, top], [u0 + 336, top + 66], [u0 + 316, top + 196, 'c'], [u0 + 266, top + 176], [u0 + 216, top + 206, 'c'], [u0 + 166, top + 166], [u0 + 106, top + 196, 'c'], [u0 + 86, top + 96]]), '#000', { opacity: 0.16 }));
   out.push(shape(smooth([[u0 + 60, top + 10], [u0 + 160, top - 10], [u0 + 300, top - 4], [u0 + 320, top + 60], [u0 + 300, top + 190, 'c'], [u0 + 250, top + 170], [u0 + 200, top + 200, 'c'], [u0 + 150, top + 160], [u0 + 90, top + 190, 'c'], [u0 + 70, top + 90]]), '#ece2cc', [
     ...[0, 1, 2, 3, 4].map((i) => stroke(`M${u0 + 100 + i * 44} ${top}Q${u0 + 108 + i * 44} ${top + 90} ${u0 + 98 + i * 44} ${top + 180}`, '#d2c4a6', 5)),
     path(smooth([[u0 + 60, top + 10], [u0 + 300, top - 4], [u0 + 300, top + 20], [u0 + 60, top + 30]]), '#f8f2e4', { opacity: 0.7 }),
+    rect(u0 + 60, top + 30, 270, 10, '#9a8a68', { opacity: 0.18 }),
+    gpath(rectD(u0 + 250, top - 10, 80, 220), lin(u0 + 250, 0, u0 + 330, 0, [[0, '#9a8a68', 0], [1, '#9a8a68', 0.3]])),
   ], '#9a8a68', 1.6));
   // Wooden feet.
   for (const x of [u0 - 20, u0 + 300, u1 - 320, u1 + 10]) out.push(box(x, yF - 30, 18, 30, mat('#6e4a2c', '#4e321c', '#8e6440', '#2e1c0e'), { r: 3 }));
@@ -613,6 +664,7 @@ function floorLamp() {
   // Arc reading lamp at the sofa's left end; the inside of the shade is emissive.
   const { bx, sx, sy } = LAMP;
   return [
+    sombra(bx, yF - 6, 78, 16, 0.5),
     shape(ellipse(bx, yF - 8, 46, 12), '#2a2b30', [path(ellipse(bx, yF - 12, 40, 8), '#3e4048')], '#141418', 1.4),
     stroke(`M${bx} ${yF - 14}L${bx} 360Q${bx} 200 ${bx + 130} 196Q${sx - 10} 196 ${sx} ${sy - 80}`, '#2f3036', 9),
     stroke(`M${bx - 2} ${yF - 14}L${bx - 2} 360Q${bx - 2} 204 ${bx + 130} 200`, '#5a5c66', 2.5, { opacity: 0.8 }),
@@ -622,7 +674,7 @@ function floorLamp() {
 
 function bigPlant() {
   // Big monstera at the far left, framing the start of the scene.
-  return basketPlant(60, yF, 1.7, 55);
+  return sombra(60, yF - 2, 126, 15, 0.45) + basketPlant(60, yF, 1.7, 55);
 }
 
 function frontEmissive() {
@@ -686,7 +738,7 @@ export function escena() {
         ],
       },
       {
-        id: 'pared', k: 1, x0: -60, x1: W + 20, y0: 0, y1: 805, body: backWall(), lit: true, emissive: wallEmissive(), texts: POSTER_TEXTS,
+        id: 'pared', k: 1, textura: 0.2, x0: -60, x1: W + 20, y0: 0, y1: 805, body: backWall(), lit: true, emissive: wallEmissive(), texts: POSTER_TEXTS,
         glows: [
           { x: 1470, y: 352, r: 120, color: '#ffc27a', a: 0.55 },
           { x: 3042, y: 534, r: 90, color: '#ffc27a', a: 0.5 },
@@ -694,9 +746,9 @@ export function escena() {
           { x: 1816, y: 750, r: 200, color: '#ff8a3a', a: 0.35 },
         ],
       },
-      { id: 'suelo', floor: true, x0: fl[0], x1: fl[1], y0: 800, y1: 1080, body: floor(), lit: true },
+      { id: 'suelo', floor: true, x0: fl[0], x1: fl[1], y0: 800, y1: 1080, body: floor(), lit: true, textura: 0.3 },
       {
-        id: 'muebles', k: KF, z: 'front', lit: true,
+        id: 'muebles', k: KF, z: 'front', lit: true, textura: 0.25,
         pieces: [
           { x0: -260, x1: 330, y0: 400, y1: 1080, body: bigPlant() },
           { x0: 140, x1: 930, y0: -10, y1: 1080, body: table() },

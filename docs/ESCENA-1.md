@@ -123,7 +123,7 @@ Cada historia sigue el mismo patrón que la de Fran: **llegar → puzle de objet
   6. Se echa la colonia y se va en el coche.
 - **Minijuego · Apilar cerdos** (`src/ui/cerdos.ts`, estilo *Tower Bloxx*): va tarde, así que los pesa los **8** a la vez.
   - Cada cerdo cuelga balanceándose de una polea y se toca para soltarlo encima de la torre, sobre la báscula, que va sumando los kilos.
-  - Si cae descentrado, la torre se tambalea más; si se sale del borde, resbala. Tres resbalones o un derrumbe y se repite; tras dos rondas perdidas se puede saltar.
+  - Si cae descentrado, la torre se tambalea más; si se sale del borde, resbala. Cada resbalón o derrumbe (la torre se ve caer) cuesta uno de los tres corazones, y sin corazones se repite; tras dos rondas perdidas se puede saltar.
   - **El peor, el último:** más grande, más pesado (152 kg) y no para de revolverse.
   - Los cerdos están en `src/arte/cerdos.mjs` (lámina: `node tools/personajes/cerdos.mjs`). Para ajustar la dificultad: `node scripts/cerdos-sim.mjs`.
 
@@ -148,7 +148,7 @@ Decidido el 4 de octubre de 2026 (`src/capitulos/chuchi.ts`, escena `src/arte/es
 
 ### Final del capítulo 1
 
-Los cuatro llegan a la vez a la terraza (cada uno con algo de su historia: Chuchi con el zapato de purpurina, Guille oliendo a romero) y, camino de la puerta, hablan de **Vero**, la camarera del cutis perfecto. **Entran en el Bar del Río** uno a uno, fundido a negro, el narrador («Lo que pasó dentro... es otra historia») y **«Continuará…»**. Después, la tarjeta de fin del capítulo 1. Ahí acaba el capítulo 1; el capítulo 2 empieza dentro del bar.
+Los cuatro llegan a la vez a la terraza (cada uno con algo de su historia: Chuchi con el zapato de purpurina, Guille oliendo a romero) y, camino de la puerta, hablan de **Vero**, la camarera del cutis perfecto. **Entran en el Bar del Río** uno a uno, fundido a negro, el narrador («Lo que pasó dentro... es otra historia») y **«Continuará…»**. Después, el tráiler del capítulo 2 (`docs/JUGABILIDAD.md`) y la tarjeta de fin del capítulo 1. Ahí acaba el capítulo 1; el capítulo 2 empieza dentro del bar.
 
 ## Pendiente
 

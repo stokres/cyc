@@ -28,6 +28,7 @@ import type { Ambiente } from '../core/audio';
 import { dialogo, texto } from '../juego/textos';
 import { abrirMovil } from '../ui/movil';
 import { jugarRana } from '../ui/rana';
+import { mostrarTrailer } from '../ui/trailer';
 import { REPARTO } from '../juego/reparto';
 import { FONTS } from '../motor/escena';
 
@@ -82,7 +83,7 @@ async function despertar(g: Aventura) {
   F.lift = 0;
   g.foco = null;
   await g.hablar('despertar');
-  g.ayudaUnaVez('mirar');
+  g.ayudaUnaVez('usar');
 }
 
 /** Fran's phone: the group chat and his (slightly optimistic) reply. */
@@ -180,7 +181,6 @@ function zonasPiso(g: Aventura): Record<string, ZonaLogica> {
       async mirar() {
         g.poner('horaVista');
         await g.hablar('mirar.reloj');
-        g.ayudaUnaVez('usar');
       },
     },
     ventana: {},
@@ -342,6 +342,7 @@ function musicaCalle(g: Aventura): Ambiente[] {
 async function final(g: Aventura) {
   const e = g.estado;
   g.sound.precargar('pasodoble');
+  g.sound.precargar('trailer');
   const hora = Math.max(...Object.values(e.minutos));
   for (const id of e.jugables) e.minutos[id] = hora;
   // Each one comes from a different side; they walk in together.
@@ -384,6 +385,10 @@ async function final(g: Aventura) {
   // The end card gets its pasodoble, the lorry honking in it; the bar comes back after.
   g.sound.musica('pasodoble');
   await g.hud.rotulo(texto('fin.continuara'), texto('fin.capitulo'), undefined, 'continuara');
+  // Then the trailer of chapter 2 (src/ui/trailer.ts), with its own music, over the paused scene.
+  g.pausado = true;
+  await mostrarTrailer(g.root.parentElement!, g.sound, g.rapido);
+  g.pausado = false;
   g.sound.pararMusica();
   // Back on the terrace, for whoever wants to stay a while after the end card.
   for (const id of e.jugables) {
@@ -489,26 +494,25 @@ export const capitulo1: Capitulo = {
     return false;
   },
 
-  async personaje(g, quien, item, mirar) {
+  async personaje(g, quien, item) {
     if (quien === 'aceituna') {
       const libre = levantada(g);
       if (item === 'jamon' && !libre) return tirarJamon(g);
       if (item) return g.hablar('nofunciona');
       g.poner('aceitunaVista');
-      if (mirar) return g.hablar(libre ? 'mirar.aceituna.despierta' : g.flag('aceitunaMirada') ? 'mirar.aceituna.otravez' : (g.poner('aceitunaMirada'), 'mirar.aceituna'));
       return g.hablar(libre ? 'usar.aceituna.despierta' : 'usar.aceituna');
     }
-    if (quien === 'sombra') return pablo.sombra(g, item, mirar);
+    if (quien === 'sombra') return pablo.sombra(g, item);
     if (quien !== g.estado.activo) {
       // After the final: the crew on the terrace, chatting.
       return g.hablar(`charla.${quien}`);
     }
-    if (quien === 'guille') return guille.aSiMismo(g, item, mirar);
-    if (quien === 'pablo') return pablo.aSiMismo(g, item, mirar);
-    if (quien === 'chuchi') return chuchi.aSiMismo(g, item, mirar);
-    if (quien !== 'fran') return g.hablar(mirar || !item ? `mirar.${quien}` : 'nadacontigo');
+    if (quien === 'guille') return guille.aSiMismo(g, item);
+    if (quien === 'pablo') return pablo.aSiMismo(g, item);
+    if (quien === 'chuchi') return chuchi.aSiMismo(g, item);
+    if (quien !== 'fran') return g.hablar(!item ? `mirar.${quien}` : 'nadacontigo');
     const ropa = g.estado.ropa[quien] ?? 'calle';
-    if (mirar || !item) return g.hablar(`mirar.fran.${ropa === 'casa' ? 'casa' : 'calle'}`);
+    if (!item) return g.hablar(`mirar.fran.${ropa === 'casa' ? 'casa' : 'calle'}`);
     if (item === 'ropa') return vestirse(g);
     if (item === 'jamon') return g.hablar('jamon.fran');
     if (item === 'movil') return verMovil(g);
