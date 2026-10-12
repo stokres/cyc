@@ -2,21 +2,21 @@
 
 Encargo del 2 de octubre de 2026, con las referencias del grupo (plano del piso, foto del Bar del Río y foto del dragón de Usera). Las fotos son solo referencia y no están en el repositorio.
 
-El bar se llama **Bar del Río**. En los rótulos pone «BAR DEL RIO», en mayúsculas y sin tilde, como en el toldo.
+El bar se llama **Bar del Brío** (hasta el 12 de octubre de 2026, Bar del Río, como el de la foto). En los rótulos pone «BAR DEL BRIO», en mayúsculas y sin tilde, como en el toldo.
 
-## Estructura del capítulo 1: cuatro historias que acaban en el Río
+## Estructura del capítulo 1: cuatro historias que acaban en el Brío
 
 Decidido el 2 de octubre de 2026:
 
 - **Al empezar se elige con quién:** Fran, Pablo, Chuchi o Guille. Cada uno tiene su propia historia, en su sitio, con sus puzles y su reloj.
 - **Se puede cambiar de personaje en cualquier momento** desde la columna de la izquierda; cada uno sigue donde lo dejaste. Si te atascas con uno, sigues con otro. Ningún puzle depende de que otro personaje haga algo antes.
-- **Al terminar su historia, cada uno se funde a negro antes de llegar al bar,** con un rótulo («Fran ya va de camino al Río») y una marca ✓ en el selector. Ya no se puede jugar con él.
-- **Cuando van los cuatro,** escena final en la terraza del Río: llegan a la vez desde sitios distintos, cada uno convencido de que era el último, y entran en el bar. Ahí acaba el capítulo 1.
+- **Al terminar su historia, cada uno se funde a negro antes de llegar al bar,** con un rótulo («Fran ya va de camino al Brío») y una marca ✓ en el selector. Ya no se puede jugar con él.
+- **Cuando van los cuatro,** escena final en la terraza del Brío: llegan a la vez desde sitios distintos, cada uno convencido de que era el último, y entran en el bar. Ahí acaba el capítulo 1.
 - El grupo de WhatsApp puede servir de hilo común y de pista suave entre historias (pendiente).
 
 | Quién | Dónde empieza | Estado |
 |---|---|---|
-| Fran | Su piso; se ha quedado dormido en el sofá | Hecha (el puzle de abajo); acaba al ver el Río desde el cruce |
+| Fran | Su piso; se ha quedado dormido en el sofá | Hecha (el puzle de abajo); acaba al ver el Brío desde el cruce |
 | Pablo | El backstage del teatro Joso: sin papel, bloqueado y discutiendo con su sombra | Hecha |
 | Chuchi | Bolilandia, un parque de bolas: encerrado a oscuras, sin gafas, buscando el zapato de la pequeña | Hecha |
 | Guille | Una granja a las afueras de Madrid: pesar cerdos y quitarse el olor | Hecha |
@@ -51,7 +51,7 @@ Es una calle larga (8.200 unidades, unas tres pantallas y media), de noche. De i
 2. **Comercios:** una frutería con cajas en la acera y una bollería china con farolillos.
 3. **Parque infantil grande**, con verja, árboles, bancos y farolas de bola. **El dragón chino** se ve al fondo, entre las traseras de los bloques vecinos.
 4. **Esquina con farmacia** y **cruce** con paso de cebra. La calle transversal se ve en perspectiva real.
-5. **Calle peatonal con el Bar del Río**, inspirado en la foto pero sin copiarla al detalle. Lleva toldo negro, cartel luminoso, carta de raciones, puerta azul a la izquierda y portal salmón con el 40 a la derecha. Delante tiene la **terraza**: mesas de aluminio y sillas de plástico negras.
+5. **Calle peatonal con el Bar del Brío**, inspirado en la foto pero sin copiarla al detalle. Lleva toldo negro, cartel luminoso, carta de raciones, puerta azul a la izquierda y portal salmón con el 40 a la derecha. Delante tiene la **terraza**: mesas de aluminio y sillas de plástico negras.
 
 **Marcas:** no se usan las de la foto (cerveza, café). En su lugar hay carteles genéricos.
 
@@ -70,7 +70,7 @@ Es una calle larga (8.200 unidades, unas tres pantallas y media), de noche. De i
 
 ## Puzle inicial (en el piloto)
 
-Fran se ha quedado dormido y había quedado a las 21:00 en el Río. Lo que le impide salir:
+Fran se ha quedado dormido y había quedado a las 21:00 en el Brío. Lo que le impide salir:
 
 1. **La puerta** está cerrada con llave por fuera: la pareja se ha ido de finde sin saber que él estaba en casa.
 2. **Las llaves** no están en el cuenco: Aceituna está tumbada encima y no se mueve.
@@ -89,7 +89,7 @@ Se pueden cambiar por la actual o sumarse:
 
 ## Las otras tres historias (en diseño)
 
-Cada historia sigue el mismo patrón que la de Fran: **llegar → puzle de objetos → minijuego → salida** hacia el Río. Hablado el 3 de octubre de 2026; nada implementado todavía.
+Cada historia sigue el mismo patrón que la de Fran: **llegar → puzle de objetos → minijuego → salida** hacia el Brío. Hablado el 3 de octubre de 2026; nada implementado todavía.
 
 ### Pablo · Atrapado en su propia narración (hecha)
 
@@ -148,7 +148,7 @@ Decidido el 4 de octubre de 2026 (`src/capitulos/chuchi.ts`, escena `src/arte/es
 
 ### Final del capítulo 1
 
-Los cuatro llegan a la vez a la terraza (cada uno con algo de su historia: Chuchi con el zapato de purpurina, Guille oliendo a romero) y, camino de la puerta, hablan de **Vero**, la camarera del cutis perfecto. **Entran en el Bar del Río** uno a uno, fundido a negro, el narrador («Lo que pasó dentro... es otra historia») y **«Continuará…»**. Después, el tráiler del capítulo 2 (`docs/JUGABILIDAD.md`) y la tarjeta de fin del capítulo 1. Ahí acaba el capítulo 1; el capítulo 2 empieza dentro del bar.
+Los cuatro llegan a la vez a la terraza (cada uno con algo de su historia: Chuchi con el zapato de purpurina, Guille oliendo a romero) y, camino de la puerta, hablan de **Vero**, la camarera del cutis perfecto. **Entran en el Bar del Brío** uno a uno, fundido a negro, el narrador («Lo que pasó dentro... es otra historia») y **«Continuará…»**. Después, el tráiler del capítulo 2 (`docs/JUGABILIDAD.md`) y la tarjeta de fin del capítulo 1. Ahí acaba el capítulo 1; el capítulo 2 empieza dentro del bar.
 
 ## Pendiente
 

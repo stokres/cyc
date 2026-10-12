@@ -24,7 +24,7 @@ Los textos de este capítulo son provisionales: están para probar el puzle.
 
 ## prologo
 > Usera, Madrid. Un jueves más. Pero no es un jueves cualquiera.
-> Cuatro amigos han quedado para tomar algo en un bar. El Bar del Río.
+> Cuatro amigos han quedado para tomar algo en un bar. El Bar del Brío.
 > Lo que no saben es que esta noche nacerá la leyenda de Camiones y Caravanas...
 FRAN (contento): Humorista, vasco nacido en Ávila y organizador de la quedada. Si te vas antes de la tercera caña, te lo recuerda hasta tu tumba.
 PABLO (chulo): Dramaturgo, levantador de cajas y galán oficial del grupo. En sus años mozos era experto en tripitir.
@@ -41,10 +41,10 @@ situacion.pablo = En el teatro, sin papel y discutiendo con su sombra.
 situacion.chuchi = Encerrado en un parque de bolas, a oscuras.
 situacion.guille = En la granja, con ocho cerdos por pesar.
 
-camino.fran = Fran ya va de camino al Río
-camino.pablo = Pablo ya va de camino al Río
-camino.chuchi = Chuchi ya va de camino al Río
-camino.guille = Guille ya va de camino al Río
+camino.fran = Fran ya va de camino al Brío
+camino.pablo = Pablo ya va de camino al Brío
+camino.chuchi = Chuchi ya va de camino al Brío
+camino.guille = Guille ya va de camino al Brío
 camino.faltan = Faltan {quien}.
 camino.falta = Falta {quien}.
 camino.todos = ¡Ya van los cuatro!
@@ -67,11 +67,11 @@ ACEITUNA: ¡Guau!
 
 objetivo.despierta = Toca la pantalla para despertar a Fran
 objetivo.hora = Mira qué hora es
-objetivo.salir = Sal de casa: a las 21:00 en el Bar del Río
+objetivo.salir = Sal de casa: a las 21:00 en el Bar del Brío
 objetivo.llaves = Recupera tus llaves
-objetivo.vestirse = Vístete: en calzoncillos no se va al Río
-objetivo.bar = Ve al Bar del Río
-objetivo.fin = ¡Los cuatro en el Río!
+objetivo.vestirse = Vístete: en calzoncillos no se va al Brío
+objetivo.bar = Ve al Bar del Brío
+objetivo.fin = ¡Los cuatro en el Brío!
 
 pista.hora = El reloj de la cocina está encima de la ventana. Tócalo para mirarlo.
 pista.movil = Tu móvil no para de vibrar encima de la mesa.
@@ -86,7 +86,7 @@ pista.cogerllaves = Aceituna se ha levantado de su cama. ¿Qué había debajo?
 pista.ropa = Tu ropa buena está tendida en la terraza.
 pista.vestir = Abre la bolsa, elige la ropa y tócate a ti mismo para ponértela.
 pista.abrirpuerta = Ya tienes las llaves: úsalas en la puerta.
-pista.bar = El Bar del Río está al final de la calle, pasado el parque y el cruce.
+pista.bar = El Bar del Brío está al final de la calle, pasado el parque y el cruce.
 
 // ---------------------------------------------------------------- ayudas de primera vez
 
@@ -124,13 +124,13 @@ zona.fran = Fran
 
 ## mirar.reloj
 FRAN: Las {hora}. ¿Las {hora}?
-FRAN (sorprendido): ¡Hostias! ¡Que he quedado a las nueve en el Río con estos!
+FRAN (sorprendido): ¡Hostias! ¡Que he quedado a las nueve en el Brío con estos!
 FRAN (nervioso): Diez minutos de siesta, dije. Diez. Pero estaba soñando con la juerga de esta noche.
 ---
 FRAN (nervioso): Las {hora}. ¡El reloj no para y yo sin salir!
 
 ## mirar.ventana
-FRAN: Usera anocheciendo. Desde aquí casi se ve el Río. Casi se huelen las bravas.
+FRAN: Usera anocheciendo. Desde aquí casi se ve el Brío. Casi se huelen las bravas.
 
 ## usar.ventana
 FRAN: Si salgo por la ventana llego antes, pero llego en camilla.
@@ -312,7 +312,7 @@ FRAN (contento): Uno para mí. Para probar que está bueno, que hay que ser resp
 ---
 FRAN: No, Fran. Que es para Aceituna. Bueno, uno más.
 ---
-FRAN (nervioso): Para, Fran. Que no llegas al Río y además sin jamón.
+FRAN (nervioso): Para, Fran. Que no llegas al Brío y además sin jamón.
 
 ## rana.despues
 > Aceituna se relame, se estira y salta de la cama como si nada.
@@ -368,11 +368,11 @@ FRAN: Eso con eso no pega ni con cola.
 GUILLE: Eso con eso no hace nada. Bueno, sí: un lío.
 
 ## nocombina.pablo
-PABLO: Esas dos cosas no tienen química. Ni en escena ni fuera.
-> Como Pablo y la puntualidad.
+PABLO: Esas dos cosas no tienen química. Ni en escena ni fuera de ella.
+> No es adecuado, narrativamente hablando.
 
 ## nocombina.chuchi
-CHUCHI: Eso no compila.
+CHUCHI: Mejor no, no lo veo nada claro.
 
 ## nofunciona
 FRAN: No creo que eso funcione ahí.
@@ -401,7 +401,7 @@ zona.farmacia = Farmacia
 zona.senal = Paso de cebra
 zona.calleLateral = Calle
 zona.puertaAzul = Portal azul
-zona.bar = Bar del Río
+zona.bar = Bar del Brío
 zona.puerta40 = Portal 40
 zona.peluqueria = Peluquería
 
@@ -419,7 +419,7 @@ FRAN: Mi portal. El número 12. Me lo sé porque el del Glovo nunca se lo sabe.
 FRAN: ¿Volver a casa? ¡Si acabo de salir!
 
 ## mirar.merceria
-FRAN: La mercería Loli. Cerrada desde que yo vivo aquí. Y los grafitis, cada vez mejores.
+FRAN: Una mercería. Ahora cerrada para abrir un bar moderno.
 
 ## mirar.fruteria
 FRAN: Frutería y lo que haga falta. A las nueve de la noche te venden una sandía y una pila.
@@ -443,7 +443,7 @@ FRAN: El parque. De día, lleno de críos. De noche, lleno de gatos y de gente h
 FRAN (contento): ¡El dragón de Usera! Tiene los ojos como yo un viernes por la mañana.
 
 ## usar.dragon
-FRAN: Me tiro por el tobogán... No. Que la última vez me quedé encajado.
+FRAN: Me tiro por el tobogán... No. Luego, después del bar.
 
 ## mirar.farmacia
 FRAN: La farmacia de guardia. Me sé el camino de memoria. Los viernes por la mañana, sobre todo.
@@ -452,10 +452,10 @@ FRAN: La farmacia de guardia. Me sé el camino de memoria. Los viernes por la ma
 FRAN: Paso de cebra. Aquí los coches paran. A veces.
 
 ## mirar.calleLateral
-FRAN: Por ahí se va al Kebab y al locutorio. Hoy no. Hoy, recto al Río.
+FRAN: Por ahí se va al Kebab y al locutorio. Hoy no. Hoy, recto al Brío.
 
 ## mirar.puertaAzul
-FRAN: Ese portal azul siempre tiene un gato en la ventana. Hoy no está. Habrá ido al Río.
+FRAN: Ese portal azul siempre tiene un gato en la ventana. Hoy no está. Habrá ido al Brío.
 
 ## mirar.puerta40
 FRAN: El 40. Como yo dentro de nada. «Los 40: con lo que yo he sido». Otro show mío.
@@ -464,11 +464,11 @@ FRAN: El 40. Como yo dentro de nada. «Los 40: con lo que yo he sido». Otro sho
 FRAN: La peluquería Rosi. Rosi me corta la barba. Bueno, me la negocia.
 
 ## mirar.bar
-FRAN (contento): El Bar del Río. Nuestro bar. Las mejores bravas al sur del Manzanares.
+FRAN (contento): El Bar del Brío. Nuestro bar. Las mejores bravas al sur del Manzanares.
 
 ## llegada.fran
-FRAN (contento): ¡Ahí está el Río! Con su terraza y sus sillas de plástico.
-FRAN (nervioso): Las {hora}. Estos ya estarán por la segunda caña. Pongo cara de «el tráfico».
+FRAN (contento): ¡Ahí está el Brío! Huele a oreja a la plancha desde aquí.
+FRAN (nervioso): Las {hora}. Estos ya estarán por la segunda caña. Ya verás qué juerga hoy...
 
 // ---------------------------------------------------------------- Guille: la granja
 
@@ -486,10 +486,10 @@ objetivo.guille = Pesa los ocho cerdos que quedan
 objetivo.guille.pilas = Busca pilas para la báscula
 objetivo.guille.pesar = Pesa los ocho cerdos de una vez
 objetivo.guille.olor = Quítate el olor a cerdo
-objetivo.guille.salir = Coge el coche y vete al Río
+objetivo.guille.salir = Coge el coche y vete al Brío
 
 pista.guille.bascula = Lo primero es la báscula. Tócala.
-pista.guille.radio = Algo en la granja funciona con pilas y está sonando ahora mismo.
+pista.guille.radio = Algo en la granja funciona con pilas, seguro.
 pista.guille.pilas = Usa las pilas en la báscula: ábrelas en la bolsa y toca la báscula.
 pista.guille.pesar = Toca la báscula y apila los cerdos. Suéltalos cuando estén encima del de abajo.
 pista.guille.botiquin = El alcohol del botiquín huele a limpio. Más o menos.
@@ -497,14 +497,14 @@ pista.guille.romero = Junto al grifo hay una mata de romero que huele de maravil
 pista.guille.combinar = Junta el alcohol y el romero en la bolsa: elige uno, vuelve a abrirla y toca el otro.
 pista.guille.agua = Le falta agua: usa el alcohol de romero en el grifo.
 pista.guille.ponerse = Ya tienes colonia. Elígela en la bolsa y tócate a ti mismo.
-pista.guille.salir = El coche está aparcado a la derecha. Al Río.
+pista.guille.salir = El coche está aparcado a la derecha. Al Brío.
 
 objeto.pilas = Pilas
-objeto.pilas.texto = Dos pilas gordas de la radio. Huelen a jota.
+objeto.pilas.texto = Dos pilas gordas de la radio.
 objeto.alcohol = Alcohol
 objeto.alcohol.texto = Alcohol del botiquín. Para heridas, para limpiar y para emergencias de olor.
 objeto.romero = Romero
-objeto.romero.texto = Unas ramicas de romero. Huelen a monte y a abuela.
+objeto.romero.texto = Unas ramicas de romero. Huelen a monte.
 objeto.alcoholRomero = Alcohol de romero
 objeto.alcoholRomero.texto = Alcohol con romero. Huele bien, pero pica. Le falta rebajarlo con agua.
 objeto.colonia = Colonia de granja
@@ -513,7 +513,7 @@ objeto.colonia.texto = Colonia casera: alcohol, romero y agua de la manguera. Ea
 ## intro.guille
 > Una granja a las afueras de Madrid. Jueves, ocho y diez.
 GUILLE (contento): ¡Hala! Treinta y dos cerdos pesados. Solo me quedan ocho.
-GUILLE (sorprendido): ¿Las ocho y diez ya? ¡Que a las nueve estoy en el Río con estos!
+GUILLE (sorprendido): ¿Las ocho y diez ya? ¡Que voy a llegar tarde!
 GUILLE: Pues nada: los peso todos a la vez y listo. Ocho cerdos encima de la báscula. ¿Qué puede salir mal?
 
 ## g.mirar.corral
@@ -547,7 +547,7 @@ GUILLE (contento): ¡Ahí está! Ya puedo pesar.
 
 ## g.bascula.antes
 GUILLE: Venga: los ocho a la vez, uno encima de otro. Con cariño, que son delicados.
-GUILLE (nervioso): El peor, el último. Que si va abajo, aplasta a los demás de la pura mala leche.
+GUILLE (nervioso): El peor, el último, que se menea mucho y me tira a todos.
 
 ## g.bascula.hecho
 GUILLE: Ya están pesados. Si los peso otra vez, me dan las doce.
@@ -557,7 +557,7 @@ GUILLE: Un momento, que respiro. Y ellos también.
 
 ## g.cerdos.hecho
 GUILLE (contento): ¡Ocho cerdos de una vez! ¡Récord mundial de Guille!
-GUILLE: Apuntado todo. Y el peor, encima de todos, mirándome por encima del hombro.
+GUILLE: Apuntado todo. Hasta el más guerrero de ellos me mira con orgullo.
 
 ## g.cerdos.saltado
 > Guille los acaba pesando uno a uno. Tarda, pero lo hace.
@@ -565,8 +565,8 @@ GUILLE: Bueno. A la antigua. Tampoco me ha ido tan mal.
 
 ## g.olor
 GUILLE (sorprendido): Uy. Uy, uy, uy.
-GUILLE (nervioso): Huelo a cerdo. Pero a cerdo de verdad, a cerdo de concurso.
-GUILLE: Así no me dejan entrar ni en el Río, y eso que en el Río entra todo el mundo.
+GUILLE (nervioso): Huelo a cerdo. ¡Otra vez no!
+GUILLE: Así no me dejan entrar ni en el Brío, y eso que en el Brío entra todo el mundo.
 
 ## g.mirar.radio
 GUILLE (contento): La radio de la nave, con su jota. A los cerdos les encanta, y a mí más.
@@ -575,15 +575,15 @@ GUILLE (contento): La radio de la nave, con su jota. A los cerdos les encanta, y
 GUILLE: La radio, sin pilas y sin jota. Qué triste está.
 
 ## g.radio.pilas
-> Guille abre la tapa de la radio. La jota se corta en lo mejor.
+> Guille abre la tapa de la radio. La canción se corta en lo mejor.
 GUILLE: Perdona, maja. Es por una buena causa.
 
 ## g.radio.silencio
 GUILLE (nervioso): Uy, los cerdos se han quedado mirándome. Sin música se ponen nerviosos.
-GUILLE: Tranquilos, que os canto yo luego. «Si vas a Calatayud...»
+GUILLE: Tranquilos, que os canto yo luego. «Akuna Matataaa...»
 
 ## g.radio.sinpilas
-GUILLE: Ya no tiene pilas. Ni jota. Ni alegría.
+GUILLE: Ya no tiene pilas. Ni alegría.
 
 ## mirar.puertaNave
 GUILLE: La nave. Paja, sacos de pienso y una lavadora que no funciona desde 2019.
@@ -613,7 +613,7 @@ GUILLE: Ya tengo romero. Si cojo más, me quedo sin mata.
 GUILLE: El grifo y la manguera. El agua sale helada. Helada de pingüino.
 
 ## g.manguera.antes
-GUILLE: Agua para los cerdicos. Ahora no, que están en la jota.
+GUILLE: Agua para los cerdicos. Ahora no, que se me espantan.
 
 ## g.manguera
 GUILLE (nervioso): ¿Ducharme con la manguera? A estas horas y con este fresco, ni loco.
@@ -634,14 +634,14 @@ GUILLE (contento): ¡Alcohol de romero! Ahora le falta agua, que esto así quema
 GUILLE (contento): ¡Colonia de granja! Eau de Guille. La patento mañana.
 
 ## g.colonia.antes
-GUILLE: ¿Colonia ahora? Si todavía no he tocado un cerdo. Me la guardo, que luego la voy a necesitar.
+GUILLE: ¿Colonia ahora? Mejor me la guardo, que todavía me quedan cerdos por pesar.
 
 ## g.colonia.falta
 GUILLE: Así, sin rebajar, me deja la piel como un tomate. Le falta agua.
 
 ## g.colonia.usar
-> Guille se echa la colonia por todas partes. Por todas.
-GUILLE (contento): ¡Huelo a romero! Un poco a cerdo también, pero a cerdo que ha ido al monte.
+> Guille se echa la colonia por todas partes.
+GUILLE (contento): ¡Huelo a romero! Un poco a cerdo también, pero a cerdo limpito.
 > Las moscas se van, ofendidas.
 
 ## g.mirar.guille.olor
@@ -658,12 +658,12 @@ GUILLE (nervioso): ¿Así? Si me subo así, el coche huele a cerdo hasta 2040.
 
 ## g.salida
 GUILLE (contento): ¡Cerdicos, me voy! Mañana más. Portaos bien, que os veo.
-> El coche arranca a la segunda. Bueno, a la tercera.
+> El coche arranca a la segunda. Guille canturrea una del Rey León.
 
 ## g.mirar.madrid
 GUILLE: Madrid al fondo. Las Cuatro Torres, las KIO, el Pirulí... Desde aquí parece de juguete.
 ---
-GUILLE (contento): Y allí abajo, en algún sitio, el Río. Con sus bravas. Esperándome.
+GUILLE (contento): Y allí abajo, en algún sitio, el Brío. Con sus bravas. Esperándome.
 
 // ---------------------------------------------------------------- minijuego: apilar cerdos
 
@@ -700,7 +700,7 @@ zona.pantalla = Pantalla de proyección
 objetivo.pablo = Consigue papel para la máquina
 objetivo.pablo.escribir = Pon el papel en la máquina
 objetivo.pablo.luz = Más luz: el cuadro de luces
-objetivo.pablo.salir = Sal por la puerta de artistas: al Río
+objetivo.pablo.salir = Sal por la puerta de artistas: al Brío
 
 pista.pablo.baul = En el baúl de atrezo hay libretos viejos. Impresos por una sola cara.
 pista.pablo.tijeras = Un libreto encuadernado no entra en la máquina. En la mesita del vestuario hay unas tijeras.
@@ -720,24 +720,24 @@ objeto.hojas.texto = Hojas de «La vida es sueño», en blanco por detrás. Cald
 ## intro.pablo
 > Teatro Joso, entre bambalinas. Jueves, ocho y media.
 > Pablo teclea su formato nuevo de impro. Tac, tac, tac...
-PABLO (contento): «Formato número catorce. Título provisional: "Palabra"».
+PABLO (contento): «Formato número nueve. Título provisional: "Narrativa o te reviento"».
 > Era un título excelente.
 PABLO (contento): Gracias.
 > Pablo siguió escribiendo, inspirado como nunca. Tac, tac, tac, tac.
-PABLO (contento): «El público grita una palabra, y los actores...»
-> ...y los actores la olvidan a los diez segundos. Como siempre.
-PABLO (sorprendido): No. Los actores la usan. Con mucho cuidado.
-> Pablo escribió «con mucho cuidado». Luego lo tachó. Luego lo volvió a escribir.
+PABLO (contento): «... entonces, el público levanta las manos para votar y los improvisadores...»
+> ...y los improvisadores no se aclaran para contar los votos.
+PABLO (sorprendido): No, no. Los improvisadores continúan la historia mientras cuentan hábilmente.
+> Pablo escribió «hábilmente». Luego lo tachó. Luego lo volvió a escribir. Se estaba atascando.
 PABLO (enfadado): ¡Eso no ha pasado!
-> Pasó. Y entonces se acabó la hoja. Y con ella, la idea.
+> Pasó. Y justo entonces se acabó la última hoja. Y con ella, la idea.
 PABLO (nervioso): Vale. ¿Quién está narrando esto?
 
 ## intro.pablo.sombra
 > La sombra de Pablo se despega de sus pies, se sacude el polvo y da un paso atrás.
 SOMBRA (chulo): Yo. Tu narrador. Aquí, detrás de ti. No, al otro lado. Eso.
 PABLO (nervioso): ¿Mi sombra habla?
-SOMBRA (chulo): Narro. Es como hablar, pero con más estilo. Y te informo: no queda papel en todo el teatro.
-PABLO: Eso ya lo veremos.
+SOMBRA (chulo): Narro. Es como hablar, pero con más estilo. Pero has perdido mi interés, y además no queda papel en todo el teatro.
+PABLO (chulo): ¡Ja! Eso ya lo veremos, seguro que hay en alguna parte.
 
 ## p.maquina.sinpapel
 PABLO: La máquina, sin papel. Y la frase a medias: «los actores tienen que...». ¿Que qué?
@@ -753,11 +753,11 @@ PABLO (nervioso): Es la luz. Con este flexo no veo ni lo que pienso.
 SOMBRA (chulo): No es la luz, Pablo. Soy yo. Estás bloqueado.
 
 ## p.maquina.bloqueo
-PABLO (enfadado): Ni una letra. Necesito más luz. O menos sombra.
+PABLO (enfadado): Nada. Ni una letra. Necesito más luz para borrar a esta sombra.
 
 ## p.maquina.hecho
-PABLO (contento): «Formato: el público grita una palabra y los actores dicen que sí. A todo.» Perfecto.
-SOMBRA (contento): Lo firmo. Y yo no regalo nada. Ahora, la puerta de artistas: está a la izquierda, bajo el cartel verde.
+PABLO (contento): «... y un final apoteósico hace al público rendirse al arte de los improvisadores y de su director. Fin.» Obra de arte.
+SOMBRA (contento): Lo firmo. Eres un genio. Ahora, la puerta de artistas: está a la izquierda, bajo el cartel verde.
 
 ## mirar.flexo
 PABLO: El flexo. Alumbra lo justo para que se vea que no escribo.
@@ -765,16 +765,16 @@ PABLO: El flexo. Alumbra lo justo para que se vea que no escribo.
 ## p.baul
 PABLO: El baúl de atrezo. Calaveras de plástico, un cetro, una corona... ¡Un libreto!
 PABLO (contento): «La vida es sueño». Impreso por una sola cara. Por detrás, todo blanco.
-> Pablo sonrió. El narrador también, pero por otros motivos.
+> Pablo sonrió. El narrador también, pero con malicia.
 
 ## p.baul.vacio
-PABLO: Ya no hay más libretos. Solo una corona de cartón y una calavera que me mira mal.
+PABLO: Ya no hay más libretos. Solo una camiseta de Impropios arrugada y un reloj de pared sin pilas.
 
 ## mirar.baul
 PABLO: El baúl de atrezo. Aquí acaba todo lo que no se tira. Como en mi cabeza.
 
 ## p.tijeras
-PABLO: Las tijeras de vestuario. Me las llevo. Prometo devolverlas. Bueno, prometo intentarlo.
+PABLO: Las tijeras de vestuario. Me las llevo. Por si hay que cortar por lo sano.
 
 ## mirar.tijeras
 PABLO: Unas tijeras de sastre en la mesita de vestuario.
@@ -789,7 +789,7 @@ PABLO: El vestuario de la compañía: chaquetas de comandante, gorras de comanda
 > Nadie en el teatro sabía por qué había tantos uniformes de piloto. Nadie preguntaba.
 
 ## p.usar.perchero
-PABLO (chulo): Si me pongo la gorra de comandante, ¿me sale el formato? Mejor no. Luego no me la quito.
+PABLO (chulo): Mejor no me pongo la gorra de comandante, eso lo dejo para el show.
 
 ## mirar.maniqui
 PABLO: El maniquí con uniforme de piloto y pañuelo turquesa. Va más elegante que yo.
@@ -810,7 +810,7 @@ PABLO (contento): Las tres nubes de cojín. Las más blanditas de todo Madrid.
 PABLO: Si me tumbo en las nubes, me duermo. Y si me duermo, gana el narrador.
 
 ## p.mirar.cartel
-PABLO (contento): «Joso, Laboratorio Teatral». Con su elefante. Aquí he estrenado más que en ningún sitio.
+PABLO (triste): «Joso, Laboratorio Teatral». Con su elefante. Cuántas cajas he movido en este escenario.
 
 ## p.mirar.cuadro
 PABLO: El cuadro de luces. Palancas, fusibles y un letrero amarillo que da miedo.
@@ -820,7 +820,7 @@ PABLO: No toco el cuadro si no hace falta. La última vez apagué medio Lavapié
 
 ## p.cuadro.despues
 PABLO: Mejor no toco más el cuadro. Ya tengo bastante luz. Por dentro, sobre todo.
-SOMBRA: Haces bien. Que el último que tocó ese cuadro apagó medio Lavapiés. Y era tú.
+SOMBRA: Haces bien. Que el último que tocó ese cuadro apagó medio Lavapiés. Tú.
 
 ## p.canon.despues
 SOMBRA: Déjalo apagado. Ya no necesito tres metros: me quedo a tus pies, que se narra mejor.
@@ -855,7 +855,7 @@ PABLO (nervioso): Mi sombra, de tres metros. Con los brazos cruzados. Esto no pi
 > La sombra de Pablo salta a la pantalla de proyección. Ahora mide tres metros.
 SOMBRA (chulo): ¡Por fin un escenario a mi altura!
 PABLO (sorprendido): ¿Qué haces ahí?
-SOMBRA: Narrar. A lo grande. «No». «Sí, pero». «Ya lo pensarás mañana». ¿Te suena?
+SOMBRA: Narrar. A lo grande. «Negar». «Sí, pero...». «Hablar y hablar sin avanzar...». ¿Te suena?
 PABLO (enfadado): Me suena a bloqueo. Y del bloqueo se sale diciendo que sí.
 SOMBRA (chulo): A ver si es verdad. Te lanzo palabras. Corta las malas. Si puedes.
 
@@ -872,7 +872,7 @@ PABLO (sorprendido): ¿Sigues ahí?
 SOMBRA: Siempre. Pero ahora narro a tu favor. Escribe.
 PABLO (contento): ¿Ves? Sí, y... ahora lo escribo.
 > Y Pablo escribió. Por fin. Hasta el narrador se emocionó un poco.
-SOMBRA: Y ahora, al Río. Por la puerta de artistas, que llegas tarde. Eso también lo narro.
+SOMBRA: Y ahora, al Brío. Por la puerta de artistas, que llegas tarde. Eso también lo narro.
 
 ## p.gana.saltado
 > El narrador se cansa antes que Pablo. La sombra encoge y se mete otra vez bajo sus pies.
@@ -885,7 +885,7 @@ PABLO (enfadado): ¡Eso no se lo cree nadie!
 SOMBRA (chulo): Primero el formato. Luego las cañas. Así funcionan las buenas historias.
 
 ## p.salida
-PABLO (contento): ¡Me voy al Río! ¿Vienes?
+PABLO (contento): ¡Me voy al Brío! ¿Vienes?
 SOMBRA: Soy tu sombra, Pablo. Voy a todas partes. Pero no pido.
 > La puerta de artistas se abre. Por fin.
 
@@ -900,7 +900,7 @@ PABLO: ¿No tienes papel?
 SOMBRA: Soy una sombra. No tengo ni bolsillos.
 ---
 PABLO: ¿Y si me ayudas, en vez de narrar?
-SOMBRA (chulo): «Pablo pidió ayuda. Nadie respondió». ¿Ves? Narrar es más rápido.
+SOMBRA (chulo): «Pablo pidió ayuda. Nadie respondió». ¿Así? ¡Jaja!
 ---
 SOMBRA: Una pista, porque me caes bien: los libretos viejos solo se imprimían por una cara.
 PABLO (sorprendido): ¿Me estás ayudando?
@@ -933,7 +933,7 @@ rana.tramo3 = ¡Ahora abre y cierra!
 rana.tramo4 = ¡Corriente de la terraza!
 rana.suelo = Del suelo no come. Es una señora.
 // Lo que dice Fran cuando tarda en tirar y se come uno. Sepáralos con barras.
-rana.gula = Uno para mí... / Para probar que está bueno / Este tenía mala pinta / Control de calidad
+rana.gula = Uno para mí... / Solo para probar que está bueno / Este mejor me lo como yo / Así cojo fuerzas
 rana.pierde = ¡Se acabó el paquete! Otro, y desde el principio
 rana.gana = ¡Se levanta!
 rana.infinito.fallo = ¡Fallo! / ¡Ni lo ha mirado! / Ese no
@@ -952,38 +952,38 @@ palabras.infinito.fin = ¡Bloqueado! Se acabó
 
 // Las palabras que caen. Sepáralas con barras: «una / otra / otra más».
 palabras.negativas = no / sí, pero / bloquear / negar / dudar / juzgar / controlar / planificar / explicar / corregir / imponer / esperar / ignorar / miedo
-palabras.positivas = sí, y / aceptar / escuchar / adaptar / avanzar / confiar / construir / ofrecer / jugar / arriesgar / compartir / celebrar / fallar
+palabras.positivas = sí, y / aceptar / escuchar / adaptar / avanzar / confiar / construir / ofrecer / jugar / arriesgar / compartir / celebrar / conectar
 
 // ---------------------------------------------------------------- final: los cuatro llegan a la vez
 
 ## final.antes
-> Bar del Río. A la misma hora, por cuatro sitios distintos...
+> Bar del Brío. A la misma hora, por cuatro sitios distintos...
 
 ## final
 FRAN (sorprendido): ¿Pero qué...? ¿Llegáis ahora?
-PABLO (contento): Llego tarde con estilo. Es una entrada en escena.
-CHUCHI: Yo llego tarde porque tengo dos hijas. Tengo bula. Y un zapato de purpurina en el bolsillo. No preguntéis.
-GUILLE (contento): ¡Maño! ¡Pues ya estamos todos! Y nadie ha pedido, ¿no?
+PABLO (contento): Los protagonistas siempre se hacen de rogar.
+CHUCHI: Yo llego tarde porque tengo dos hijas. Y un zapato de purpurina en el bolsillo. No preguntéis.
+GUILLE (contento): ¡Eeeeh! ¡Pues ya estamos todos! Y nadie ha pedido, ¿no?
 GUILLE: ¿A qué huele? ¿A romero? Soy yo. De nada.
 FRAN: Los cuatro a las {hora}, a la vez. Esto no lo escribe ni Pablo.
 PABLO (chulo): Hombre, yo lo habría escrito mejor.
 
 ## final.entrar
-FRAN (contento): ¡Venga, para dentro! A ver si está Vero.
-PABLO (chulo): Vero. La del cutis perfecto.
-CHUCHI: Ese cutis no es de este mundo. Lo he mirado con las gafas puestas y no tiene ni un píxel fuera de sitio.
-GUILLE (contento): ¡Maño, que es la cerveza! La tira tan bien que rejuvenece a la clientela.
-FRAN: Silencio, que nos oye. Y de cutis delante de ella, ni una palabra, que nos echa.
+FRAN (contento): ¡Venga, para dentro! Qué sed tengo.
+PABLO (chulo): Seguro que hoy me tocan el culo.
+CHUCHI: Si no te lo tocan, ya lo hacemos nosotros.
+GUILLE (contento): Va, va, ¿cuatro jarras grandes no?
+FRAN: A mí pídeme dos, que voy directo a mear.
 PABLO (contento): Escena uno. Interior, noche. Entran cuatro amigos en un bar...
 
 ## final.dentro
-> Y así, a las {hora} de un jueves cualquiera, los cuatro entraron en el Bar del Río.
-> Lo que pasó dentro... es otra historia.
+> Y así, a las {hora} de un jueves cualquiera, los cuatro amigos empezaron la noche en el Bar del Brío.
+> Lo que pasó dentro... eso, en el siguiente capítulo.
 
 fin.continuara = Continuará…
 fin.capitulo = Fin del capítulo 1
 fin.titulo = Fin del capítulo 1
-fin.texto = Los cuatro ya están en el Río. Lo que pasó dentro, en el capítulo 2.
+fin.texto = Los cuatro ya están en el Brío. Continuará en el capítulo 2.
 
 // ---------------------------------------------------------------- tráiler del capítulo 2
 // Sale tras el «Continuará…»: escenas sueltas del capítulo 2 con música de tráiler.
@@ -1025,7 +1025,7 @@ objetivo.chuchi.gafas = Encuentra tus gafas
 objetivo.chuchi.luz = Sal de Bolilandia: la persiana necesita luz
 objetivo.chuchi.robot = Apaga a Robi: no te deja salir
 objetivo.chuchi.zapato = Recoge el zapato de la pequeña
-objetivo.chuchi.salir = Al Río, por la salida
+objetivo.chuchi.salir = Al Brío, por la salida
 
 pista.chuchi.gafas = Se te han caído en la piscina de bolas. Tócala para rebuscar, y no te rindas a la primera.
 pista.chuchi.persiana = La persiana de la salida es eléctrica. ¿Y la puerta de SOLO PERSONAL?
@@ -1037,7 +1037,7 @@ pista.chuchi.puerta = Usa la llave en la puerta de SOLO PERSONAL.
 pista.chuchi.cuadro = El cuadro eléctrico está en el cuarto del personal: dale a la palanca.
 pista.chuchi.canon = El cañón de bolas, el de ruedas delante de la piscina, ya tiene aire. Apunta al botón de la cabeza de Robi.
 pista.chuchi.zapato = El zapato está en el suelo, junto a la peana de Robi.
-pista.chuchi.salir = La salida ya está libre: por la persiana, al Río.
+pista.chuchi.salir = La salida ya está libre: por la persiana, al Brío.
 
 objeto.red = Red de las bolas
 objeto.red.texto = La red de sacar bolas de la piscina. Larga, pero nunca lo bastante.
@@ -1051,10 +1051,10 @@ objeto.zapato = Zapato con brilli-brilli
 objeto.zapato.texto = El zapato de fiesta de la pequeña: rosa, con purpurina y luces en la suela. Talla 26.
 
 ## intro.chuchi
-> Bolilandia, parque de bolas de Usera. Jueves, ocho y veinte.
+> Bolilandia, parque de bolas en Madrid. Jueves, ocho y veinte.
 > El cumpleaños de una compañera de clase de la mayor ha terminado hace un rato. Las niñas ya van para casa. La pequeña, con un solo zapato.
-> El otro, el de brilli-brilli, «se lo ha dejado en el castillo». El castillo son tres plantas de red y espuma.
-> Chuchi ha entrado a buscarlo. Por el tubo. Como un adulto responsable.
+> El otro, el de brilli-brilli, «se lo ha dejado en la piscina de bolas».
+> Chuchi ha entrado a buscarlo. Como un adulto responsable.
 > ¡FLOP!
 CHUCHI (sorprendido): ¿Por qué está todo oscuro? ¿Y por qué lo veo todo como un vídeo de 2005?
 CHUCHI (nervioso): Mis gafas. Se me han caído en el tobogán. O en la piscina de bolas. O en otra dimensión.
@@ -1072,7 +1072,7 @@ CHUCHI: Un calcetín con estrellitas. Esto es un yacimiento arqueológico.
 CHUCHI (contento): ¡Mis gafas! Con una pegatina de unicornio en un cristal, pero mis gafas.
 
 ## c.gafas.puestas
-> Chuchi se las pone. Y de pronto el mundo vuelve a tener bordes.
+> Chuchi se las pone. Y de pronto el mundo vuelve a ser nítido.
 
 ## c.rebusca.despues
 CHUCHI: Una pinza del pelo, un dinosaurio y media galleta. Mejor no sigo.
@@ -1100,17 +1100,17 @@ CHUCHI: La salida, con la persiana bajada. Eléctrica. Sin luz es una pared con 
 CHUCHI: Algo gris y a rayas. Una persiana o una cebra muy triste.
 
 ## c.mirar.persiana.abierta
-CHUCHI: La persiana subida. Al otro lado, la calle. Y el Río, a dos manzanas.
+CHUCHI: La persiana subida. Al otro lado, la calle. Y el Brío, a dos manzanas.
 
 ## c.persiana.bajada
 CHUCHI (enfadado): No sube. Sin luz no hay nada que hacer. ¿Dónde estará el cuadro eléctrico?
 
 ## c.persiana.sinzapato
-CHUCHI (nervioso): No puedo volver sin el zapato. La pequeña lo sabe. Y su madre, más.
+CHUCHI (nervioso): No puedo volver sin el zapato, la enana me mata.
 
 ## c.salida
 CHUCHI (contento): Libre. Con el zapato, con las gafas y con la dignidad... bueno, con el zapato y las gafas.
-> Chuchi sale de Bolilandia. El zapato le va haciendo luces en el bolsillo durante dos manzanas.
+> Chuchi sale de Bolilandia. Con sed de la mala.
 
 ## c.mirar.robot
 CHUCHI: Robi, la mascota de Bolilandia, apagado en su peana. Saluda a los niños, canta el cumpleaños feliz y no deja que nadie se vaya triste.
@@ -1126,11 +1126,11 @@ CHUCHI (nervioso): Robi, encendido y plantado delante de la salida. Con el zapat
 
 ## c.usar.robot.encendido
 > «¡HOLA, AMIGUITO! ¿UN ABRAZO DE CUMPLEAÑOS?», dice Robi, con los brazos abiertos.
-CHUCHI (nervioso): No, gracias. Soy más de dar la mano. A distancia.
+CHUCHI (nervioso): No, muchas gracias, que me voy a ir yendo.
 
 ## c.robot.objeto
 > «¡GRACIAS, AMIGUITO! ¡PERO NADIE SALE HASTA QUE TERMINE LA FIESTA!»
-CHUCHI: No acepta sobornos. Es más íntegro que mi jefe.
+CHUCHI: No acepta sobornos. Un robot sigue las leyes de la robótica, obvio.
 
 ## c.mirar.robot.vencido
 CHUCHI: Robi, apagado otra vez, despatarrado en su peana. Descansa en paz. Hasta el próximo cumpleaños.
@@ -1161,10 +1161,10 @@ CHUCHI: Ahora suena el hilo musical. El cumpleaños feliz, versión xilófono. E
 CHUCHI: Una llave con una etiqueta roja: «CUARTO». Colgada a tres metros. Fuera del alcance de los niños. Y del mío.
 
 ## c.gancho.nollego
-CHUCHI: Ni de puntillas. Y eso que soy alto. Esto lo ha colgado un jugador de baloncesto.
+CHUCHI: Nada, ni de puntillas, no llego.
 
 ## c.gancho.red
-CHUCHI: Casi... Me falta medio metro. Siempre falta medio metro.
+CHUCHI: Casi... Me falta un poco.
 
 ## c.gancho.palo
 CHUCHI: Con el palo le doy, pero no la cojo. Y si la tiro, se cae a la piscina de bolas. Ya sé lo que es buscar ahí.
@@ -1193,7 +1193,7 @@ CHUCHI: El cuadro eléctrico, con la palanca general abajo. Como mi ánimo.
 CHUCHI: La palanca, arriba. La luz, encendida. Mi ánimo, regular.
 
 ## c.cuadro.hecho
-CHUCHI: Ya hay luz. No toco más, no vaya a ser que apague Usera entera.
+CHUCHI: Ya hay luz. No toco más, no sea que la líe.
 
 ## c.luz
 > Chuchi sube la palanca. Los fluorescentes parpadean y se encienden uno a uno.
@@ -1221,13 +1221,13 @@ CHUCHI: Un trozo de tarta, para el camino. Es cena. Técnicamente.
 CHUCHI: La piñata, una llama, destripada. Los niños de hoy no tienen piedad.
 
 ## c.usar.pinata
-CHUCHI: Ya no queda nada dentro. Solo un caramelo de anís. Nadie quiere el caramelo de anís.
+CHUCHI: Ya no queda nada dentro. Solo un caramelo de anís. Solo a Fran le gustan.
 
 ## c.palo
 CHUCHI: El palo de la piñata, con cinta americana en el mango. Me lo llevo.
 
 ## c.red
-CHUCHI: La red de sacar bolas de la piscina. Larga, pero no lo bastante. Nunca lo es.
+CHUCHI: La red de sacar bolas de la piscina. Larga, pero no lo suficiente.
 
 ## c.combinar
 > Chuchi empalma la red y el palo con la cinta americana del mango.
@@ -1249,7 +1249,7 @@ CHUCHI: El cañón ya ha hecho su trabajo. Lo dejo, que me vengo arriba.
 ## c.robot.vencido
 > El botón se apaga. Robi hace «biiiiiip», rueda hasta su peana y se queda despatarrado.
 > El zapato rosa cae al suelo, haciendo luces.
-CHUCHI (contento): Apagado forzoso. Como en el trabajo, pero con bolas.
+CHUCHI (chulo): Chuchi 1, Robi 0
 
 ## c.robot.saltado
 > Robi se queda sin batería de tanto cantar. Rueda hasta su peana y se apaga, despatarrado.
@@ -1300,10 +1300,10 @@ GUILLE (contento): Camisa de flores y oliendo a romero. Hoy ligo yo, ¿eh? Bueno
 PABLO: Eso no tiene arco dramático.
 
 ## nofunciona.chuchi
-CHUCHI: Eso no compila.
+CHUCHI: Eso no me acaba de encajar.
 
 ## nofunciona.guille
-GUILLE: ¡Maño, eso no va ahí!
+GUILLE: ¡Eso no va ahí!
 
 ## nadacontigo.pablo
 PABLO: No sé qué quieres que haga yo con eso.
@@ -1312,20 +1312,20 @@ PABLO: No sé qué quieres que haga yo con eso.
 CHUCHI: No sé qué quieres que haga yo con eso.
 
 ## nadacontigo.guille
-GUILLE: ¿Y yo qué hago con eso, maño? ¿Me lo pongo de sombrero?
+GUILLE: ¿Y yo qué hago con eso?
 
 ## charla.fran
-FRAN (contento): ¡Venga, que esta la pago yo! Bueno, la siguiente. La siguiente seguro.
+FRAN (contento): ¡Venga, que esta la pago yo!
 ---
 FRAN: ¿Otra caña? Venga, la última. La penúltima. Una más y nos vamos.
 
 ## charla.pablo
 PABLO (contento): He escrito una escena en la que un camarero se enamora de un grifo de cerveza. ¿Os la leo?
 ---
-PABLO: ¿Habéis visto a la camarera nueva? No, yo tampoco. Tengo novia. Solo comento la iluminación.
+PABLO: ¿Me dejarían traerme el cajón?
 
 ## charla.chuchi
-CHUCHI (chulo): He dejado a las niñas dormidas, el portátil cerrado y el móvil en silencio. Hoy no existo.
+CHUCHI (chulo): He dejado a las niñas dormidas, el portátil cerrado y el móvil en silencio. Hoy solo existo para vosotros.
 ---
 CHUCHI (chulo): Una más y me pongo kinki. Avisados quedáis.
 

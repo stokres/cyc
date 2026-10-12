@@ -574,10 +574,10 @@ function pedestrianBuildings(em, tx) {
     out.push(rect(x + 2, y + 2, 116, 126, r() < 0.5 ? '#68686e' : '#5a5a60'));
     out.push(stroke(`M${x + 10 + r() * 40} ${y + 10}Q${x + 60} ${y + 60 + r() * 30} ${x + 100} ${y + 120}`, '#7a7a82', 1.5, { opacity: 0.7 }));
   }
-  // Light box "RIO" peeking above the awning, and a beer sign.
+  // Light box "BRIO" peeking above the awning, and a beer sign.
   out.push(box(a + 430, 150, 170, 100, mat('#f4f6fa', '#d4d8e0', '#ffffff', '#6a7080'), { r: 4 }), rect(a + 446, 244, 10, 14, '#5c6168'), rect(a + 574, 244, 10, 14, '#5c6168'), rect(a + 430, 150, 170, 2.4, '#ffffff', { opacity: 0.8 }));
   em.push(rect(a + 438, 158, 154, 84, '#f2f6ff'));
-  tx.push({ x: a + 515, y: 200, s: 'RIO', size: 70, font: 'serif', weight: 700, color: '#1a3a9a', emissive: true });
+  tx.push({ x: a + 515, y: 200, s: 'BRIO', size: 70, font: 'serif', weight: 700, color: '#1a3a9a', emissive: true, maxW: 140 });
   out.push(box(b + 20, 130, 110, 120, mat('#3a2a26', '#2a1e1a', '#5a4a44', '#140c0a'), { r: 4 }));
   em.push(rect(b + 26, 136, 14, 108, '#d8323a'));
   tx.push({ x: b + 84, y: 175, s: 'CERVEZA', size: 20, font: 'body', weight: 800, color: '#f4e6c8', emissive: true, maxW: 76 });
@@ -599,7 +599,7 @@ function pedestrianBuildings(em, tx) {
   for (let x = a - 50 + (b - a + 100) / 5; x < b + 40; x += (b - a + 100) / 5) out.push(rect(x - 1, 306, 2, 70, '#34343c'), rect(x + 1, 306, 1.4, 70, '#000000', { opacity: 0.3 }));
   out.push(stroke(rr(a - 44, 312, b - a + 88, 58, 3), '#c99a3a', 1.6, { opacity: 0.7 }));
   out.push(rect(a - 50, 376, b - a + 100, 6, '#0a0a0c'), rect(a - 50, 375, b - a + 100, 1.6, '#e8dcc0', { opacity: 0.5 }));
-  tx.push({ x: (a + b) / 2, y: 342, s: 'BAR DEL RIO', size: 56, font: 'serif', weight: 700, color: '#efe2c4', spacing: 2 });
+  tx.push({ x: (a + b) / 2, y: 342, s: 'BAR DEL BRIO', size: 56, font: 'serif', weight: 700, color: '#efe2c4', spacing: 2, maxW: b - a + 60 });
   // Little logo on the left of the valance: a cup and diamonds.
   out.push(path(polyD([[a - 20, 352], [a + 2, 322], [a + 24, 352]]), '#e8b83a'), path(polyD([[a + 14, 352], [a + 36, 322], [a + 58, 352]]), '#d8323a'), path(polyD([[a + 2, 352], [a + 14, 336], [a + 26, 352], [a + 14, 368]]), '#d8323a'));
   out.push(shape(rr(a - 36, 330, 18, 16, 3), '#d8323a', [], '#5e1418', 1), stroke(`M${a - 18} 334q8 4 0 8`, '#d8323a', 2));
@@ -620,7 +620,7 @@ function pedestrianBuildings(em, tx) {
   em.push(rect(dx0 + 12, 560, dx1 - dx0 - 24, 10, '#b8bcc0'), rect(dx0 + 12, 640, dx1 - dx0 - 24, 98, '#3a3a40', { opacity: 0.6 }));
   for (let x = dx0 + 20; x < dx1 - 16; x += 16) em.push(rect(x, 646, 4, 88, '#2a2a30'));
   tx.push({ x: (dx0 + dx1) / 2, y: 452, s: 'BAR', size: 36, font: 'serif', weight: 700, color: '#c99a3a', emissive: true });
-  tx.push({ x: (dx0 + dx1) / 2, y: 500, s: 'DEL RIO', size: 30, font: 'serif', weight: 700, color: '#c99a3a', emissive: true });
+  tx.push({ x: (dx0 + dx1) / 2, y: 500, s: 'DEL BRIO', size: 30, font: 'serif', weight: 700, color: '#c99a3a', emissive: true, maxW: dx1 - dx0 - 30 });
   em.push(rect(dx1 - 34, 560, 10, 40, '#d8dce0'), rect(dx1 - 32, 560, 3, 40, '#ffffff'), ao(dx0 + 12, 392, dx1 - dx0 - 24, 34, 0.4));
   // Window: counter, bottles, taps and the telly.
   const wx0 = a + 380;

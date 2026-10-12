@@ -35,8 +35,8 @@ En el menú, **Capítulos** enseña cada capítulo (superado, en curso o todaví
 | Aprender a jugar | **Al empezar la primera historia de la partida, «Cómo se juega»** (`src/ui/tutorial.ts`, 8 de octubre de 2026; desde el 11 de octubre, un solo paso): sobre la escena, se prueba de verdad el toque, que es el mismo de la escena, y se puede saltar. Sale una vez por partida (también al empezar de nuevo o al rejugar el capítulo). Además, la primera vez que hace falta aparece una ayuda corta abajo («Toca algo para usarlo o cogerlo») |
 | Elegir con quién empezar | Pantalla con los cuatro de frente, en tarjetas grandes, y una frase con su situación. Sale al empezar y cada vez que alguien termina su historia |
 | Hablar con alguien que no es del grupo | Se le toca, como a un amigo. En la historia de Pablo, su sombra (el narrador) le sigue y contesta según el momento. Mientras uno de los dos habla, Pablo y su sombra se miran; cuando Pablo echa a andar, la sombra vuelve a copiarle |
-| Varios amigos | Columna de retratos grandes a la izquierda (al menos 52 px, el activo más grande y con su color). Tocar a otro lleva a su historia, donde la dejaste, como en *Day of the Tentacle*. Cada uno tiene su bolsa, su reloj y sus frases (`clave.pablo` en los textos gana a `clave` cuando juegas con Pablo). Quien ya va de camino al Río sale apagado y con una ✓ |
-| Acabar una historia | Fundido a negro antes de llegar al bar y un rótulo («Pablo ya va de camino al Río · Faltan…»). Con los cuatro de camino, escena final: llegan a la vez |
+| Varios amigos | Columna de retratos grandes a la izquierda (al menos 52 px, el activo más grande y con su color). Tocar a otro lleva a su historia, donde la dejaste, como en *Day of the Tentacle*. Cada uno tiene su bolsa, su reloj y sus frases (`clave.pablo` en los textos gana a `clave` cuando juegas con Pablo). Quien ya va de camino al Brío sale apagado y con una ✓ |
+| Acabar una historia | Fundido a negro antes de llegar al bar y un rótulo («Pablo ya va de camino al Brío · Faltan…»). Con los cuatro de camino, escena final: llegan a la vez |
 | Usar algo contigo | Eliges el objeto en la bolsa y tocas a tu propio personaje (vestirse, probar el jamón, mirar el móvil). Sin objeto, tocarte es andar |
 | Dar cosas a otro amigo | Tocas el objeto y luego al amigo |
 | Coger objetos | **Lo que se puede coger se puede coger siempre** (decidido el 3 de octubre de 2026), aunque todavía no se sepa para qué sirve; y también se puede juntar con otros. Nada se bloquea hasta «su momento» de la historia |
@@ -51,7 +51,7 @@ En el menú, **Capítulos** enseña cada capítulo (superado, en curso o todaví
 - **Música en bucle sin cortes** (`src/core/audio.ts`, pistas en `src/sonido/musica.ts`): se genera con `tools/musica` (cada pieza con `bucle` y la ruta de `src/sonido`, por ejemplo `python3 barrio.py bucle ../../src/sonido/barrio.mp3`). Cada archivo lleva medio segundo de margen a cada lado del bucle con lo que va justo antes y después, y el final del bucle se funde con lo que precede a su inicio, así que la junta no da chasquido en ningún móvil. Entra y sale con un fundido.
 - **Dos clases de música:** la de la escena, que la escena pide en cada fotograma como una o varias capas, cada una con su volumen y su posición (`musica` en el capítulo), y la de un minijuego, que suena sola mientras dura y después devuelve la de la escena.
 - **«Por el barrio»** (`barrio.py`), el paseo tranquilo, suena en el piso de Fran, en su calle y en el backstage de Pablo.
-- **El rock del Bar del Río desde la puerta** (`bar_rockero.py puerta`: la mezcla sin agudos, cortada a 1,5 kHz, con algo de medios y casi en mono): en la calle de Fran se oye bajito al principio (al 20 %) y sube según se acerca a la puerta del bar, hacia su lado, mientras «Por el barrio» se va apagando; en el final, con los cuatro en la puerta, suena solo el bar. **Subido el 8 de octubre de 2026:** antes solo dejaba los graves (corte a 700 Hz), y el altavoz de un móvil apenas da nada por debajo de 300 Hz, así que en el móvil sonaba 10 dB por debajo de «Por el barrio» y casi no se oía. Ahora queda 3 dB por debajo, como corresponde a oírlo desde fuera (se mide con `ffmpeg -af highpass=f=300,highpass=f=300,ebur128`). Se ajusta en `src/capitulos/capitulo1.ts` (`BARRIO`, `BAR_MIN`, `BAR_LEJOS`).
+- **El rock del Bar del Brío desde la puerta** (`bar_rockero.py puerta`: la mezcla sin agudos, cortada a 1,5 kHz, con algo de medios y casi en mono): en la calle de Fran se oye bajito al principio (al 20 %) y sube según se acerca a la puerta del bar, hacia su lado, mientras «Por el barrio» se va apagando; en el final, con los cuatro en la puerta, suena solo el bar. **Subido el 8 de octubre de 2026:** antes solo dejaba los graves (corte a 700 Hz), y el altavoz de un móvil apenas da nada por debajo de 300 Hz, así que en el móvil sonaba 10 dB por debajo de «Por el barrio» y casi no se oía. Ahora queda 3 dB por debajo, como corresponde a oírlo desde fuera (se mide con `ffmpeg -af highpass=f=300,highpass=f=300,ebur128`). Se ajusta en `src/capitulos/capitulo1.ts` (`BARRIO`, `BAR_MIN`, `BAR_LEJOS`).
 - **El «Continuará…» del final** tiene su pasodoble (`pasodoble.py`, original: un pasodoble festero con bocina de camión, motor, frenos y pitido de marcha atrás). El arranque del camión y la fanfarria suenan una vez y el resto se repite mientras dure el rótulo; al cerrarlo empieza el tráiler.
 - **El tráiler del capítulo 2** (10 de octubre de 2026) tiene su música de tráiler de acción, «Próximamente» (`trailer.py`, síntesis pura, sin SoundFont), a tope desde el primer golpe: golpes graves («braaam») en cada rótulo, cuerdas y pulso grave sin parar, chupitos golpeando la barra, el motor de la camioneta al pasar, taikos que se aceleran en el montaje, los rodillos y las campanas del premio de la tragaperras, un ascenso de ruido hasta el corte a negro, el canto en golpes de metales con melodía propia (no la de *Paquito el Chocolatero*, que tiene derechos) y el golpe final del título. Suena una vez y después se repite un dron grave (de 39,4 a 47,4 s) mientras siga el título. Va golpe a golpe con los planos: si se cambia un tiempo en `trailer.py`, hay que cambiarlo también en `PLANOS` y `CANTO` de `src/ui/trailer.ts`. Se genera con `python3 trailer.py ../../src/sonido/trailer.mp3`.
 - **La radio de la granja** (Guille) suena desde el principio de la escena con la polca de banjo (`tools/musica/banjo.py radio`): más fuerte cuanto más cerca está Guille (nunca baja del 22 %) y un poco hacia el lado de la radio. Al quitarle las pilas se corta. Se ajusta en `src/capitulos/guille.ts` (`RADIO_MIN`, `RADIO_LEJOS`).
@@ -115,7 +115,7 @@ Equilibrio: `node scripts/robot-sim.mjs` también simula la versión sin fin (un
 
 ### La ronda (aparcada)
 
-Llevar cuatro cañas de la barra a la terraza inclinando el móvil o deslizando el dedo. Estaba en el mockup; volverá cuando la crew esté en el Río, con el arte nuevo.
+Llevar cuatro cañas de la barra a la terraza inclinando el móvil o deslizando el dedo. Estaba en el mockup; volverá cuando la crew esté en el Brío, con el arte nuevo.
 
 ### Ideas para otros minijuegos
 
@@ -134,7 +134,7 @@ Después se elige con quién empezar y se puede cambiar cuando se quiera (ver `d
 
 ### La historia de Fran
 
-Fran se despierta de la siesta a las 20:35 y había quedado a las 21:00 en el Bar del Río. Cada paso enseña una mecánica:
+Fran se despierta de la siesta a las 20:35 y había quedado a las 21:00 en el Bar del Brío. Cada paso enseña una mecánica:
 
 1. **Tocar** para despertarle.
 2. **Tocar el reloj** de la cocina: lo mira y se da cuenta de la hora.
@@ -145,9 +145,9 @@ Fran se despierta de la siesta a las 20:35 y había quedado a las 21:00 en el Ba
 7. **Usar el jamón en Aceituna:** si se lo das, se hace la digna; si se lo tiras a la boca, eso ya es cazar. Abre el minijuego de **la rana de Aceituna**.
 8. Con ocho a la boca, se levanta de la cama, va a por Fran meneando el rabo y deja las llaves a la vista.
 9. Para salir falta vestirse: la **ropa** está tendida en la terraza. **Usarla contigo** cambia el vestuario de Fran.
-10. Sale a la calle y **anda** hacia el Río. Al pasar el cruce lo ve y se funde a negro: ya va de camino.
+10. Sale a la calle y **anda** hacia el Brío. Al pasar el cruce lo ve y se funde a negro: ya va de camino.
 
-El reloj de Fran avanza con cada paso y se va poniendo nervioso. Cuando los cuatro van de camino, llegan a la vez a la terraza del Río, entran en el bar hablando de Vero y, tras un fundido a negro, «Continuará…»: fin del capítulo 1.
+El reloj de Fran avanza con cada paso y se va poniendo nervioso. Cuando los cuatro van de camino, llegan a la vez a la terraza del Brío, entran en el bar hablando de Vero y, tras un fundido a negro, «Continuará…»: fin del capítulo 1.
 
 ### El tráiler del capítulo 2
 
