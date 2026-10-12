@@ -12,8 +12,15 @@ export const CLARO = '#f3ead6';
 
 const rotulos = new Map<string, HTMLCanvasElement>();
 
+/**
+ * Press Start 2P has no accented capitals (Á, É, Í, Ó, Ú came out as small letters or not
+ * at all): the arcade writes them plain, as the old machines did. Ñ is kept.
+ */
+export const pixel = (s: string) => s.normalize('NFD').replace(/[\u0300-\u0302\u0308]/g, '').normalize('NFC').replace(/…/g, '...');
+
 /** A line of pixel text with a black outline, painted once per (text, colour, size). */
 export function rotulo(txt: string, color = CLARO, tam = 8): HTMLCanvasElement {
+  txt = pixel(txt);
   const k = `${tam}|${color}|${txt}`;
   let c = rotulos.get(k);
   if (c) return c;
@@ -39,6 +46,7 @@ export function centrado(g: CanvasRenderingContext2D, img: HTMLCanvasElement, cx
 
 /** Outlined pixel text drawn straight onto the canvas, centred on `cx` (for numbers that change every frame). */
 export function pintarTexto(g: CanvasRenderingContext2D, txt: string, cx: number, y: number, color = CLARO) {
+  txt = pixel(txt);
   g.font = `8px ${FUENTE}, monospace`;
   g.textBaseline = 'top';
   g.textAlign = 'center';
@@ -98,9 +106,9 @@ export class Marcador {
     // Centre: stage.
     x.textAlign = 'center';
     x.fillStyle = CLARO;
-    x.fillText(texto('hud.fase', { n: m.fase.n }), W / 2, 3);
+    x.fillText(pixel(texto('hud.fase', { n: m.fase.n })), W / 2, 3);
     x.fillStyle = ORO;
-    x.fillText(texto(`fase.${m.fase.n}.nombre`), W / 2, 14);
+    x.fillText(pixel(texto(`fase.${m.fase.n}.nombre`)), W / 2, 14);
     // Right: time and the special bar.
     x.textAlign = 'right';
     x.fillStyle = seg <= 15 ? '#ff6a5a' : CLARO;
@@ -108,7 +116,7 @@ export class Marcador {
     const bw = BARRA_LLENA * 3 - 1;
     const bx = W - 8 - bw;
     x.fillStyle = llena && parpadeoBarra ? '#ffffff' : llena ? ORO : CLARO;
-    x.fillText(texto('hud.especial'), bx - 5, 14);
+    x.fillText(pixel(texto('hud.especial')), bx - 5, 14);
     x.fillStyle = '#5a5450';
     x.fillRect(bx - 1, 13, bw + 2, 9);
     x.fillStyle = '#05060c';

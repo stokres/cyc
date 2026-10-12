@@ -179,7 +179,11 @@
 .pg-empezar {
   align-self: end;
   justify-self: center;
-  margin-bottom: clamp(6px, 3vh, 20px);
+  /* Above the demo's score strip, on a dark pill so the two never mix. */
+  margin-bottom: 22vh;
+  padding: 6px 18px;
+  border-radius: 999px;
+  background: rgba(5, 7, 15, 0.8);
   font: 400 clamp(14px, 4vh, 19px) var(--display);
   letter-spacing: 0.12em;
   color: var(--cream);
