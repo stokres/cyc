@@ -136,13 +136,13 @@ FRAN: Usera anocheciendo. Desde aquí casi se ve el Río. Casi se huelen las bra
 FRAN: Si salgo por la ventana llego antes, pero llego en camilla.
 
 ## mirar.grifo
-FRAN: El grifo. Sale agua fría, agua caliente. Ojalá fuera un grifo de cerveza.
+FRAN: El grifo. Sale agua fría, agua caliente y, los martes, agua marrón.
 
 ## usar.grifo
 FRAN: Un traguito de agua... No. Que luego no me cabe la caña.
 
 ## mirar.nevera
-FRAN: Mi nevera. Con todo listo por si tengo que dar a alguien de desayunar.
+FRAN: Mi nevera. Con imanes de Aceituna, de Madrid y la lista de la compra de hace un mes.
 
 ## usar.nevera
 FRAN: A ver qué hay... ¡Taquitos de jamón! Del bueno, del de las ocasiones especiales.
@@ -207,7 +207,7 @@ FRAN: El sofá. Mi enemigo. Me atrapa todos los jueves a la misma hora.
 FRAN: Si me siento, no me levanto hasta el sábado.
 
 ## mirar.terraza
-FRAN: La terraza, con el tendedero. Ahí está mi ropa de salir, secándose.
+FRAN: La terraza, con el tendedero. Ahí está mi ropa buena, secándose.
 
 ## mirar.terraza.vacia
 FRAN: La terraza. El tendedero ya no tiene nada que me interese.
@@ -221,13 +221,13 @@ FRAN: Mi camiseta y mi pantaloneta. Secas. Bueno, secas de Madrid.
 FRAN: Ya no queda nada mío en el tendedero. Lo demás es de la pareja.
 
 ## mirar.bano
-FRAN: El baño. No tiene nada de especial.
+FRAN: El baño. Paso, que si entro me pongo a leer el champú.
 
 ## usar.bano
 FRAN: Ahora no. Ya iré en el bar.
 
 ## mirar.perchero
-FRAN: Mi chaqueta, una gorra que robé a Chuchi y la correa de Aceituna.
+FRAN: Mi chubasquero, una gorra y la correa de Aceituna.
 
 ## usar.perchero
 FRAN: Hoy no llueve. Y Aceituna ya ha salido esta tarde. Dos veces.
@@ -259,7 +259,7 @@ FRAN (contento): ¡Libertad! Aceituna, cariño, pórtate bien, que papá vuelve 
 FRAN: Bueno, pronto pronto, no.
 
 ## mirar.telefonillo
-FRAN: El telefonillo. Solo llama el del Bárbara y el de Glovo equivocándose de piso.
+FRAN: El telefonillo. Solo llama el del butano y el de Glovo equivocándose de piso.
 
 ## usar.telefonillo
 FRAN: ¿Hola? ¿Hay alguien? ¡Que me han encerrado!
@@ -272,7 +272,7 @@ FRAN: ¡No es momento de rollitos de primavera!
 FRAN: Camiseta del festival de 2014, calzoncillos de corazones y zapatillas de felpa. Irresistible.
 
 ## mirar.fran.calle
-FRAN (contento): Camiseta verde y la pantaloneta. No hay nada mejor que una pantaloneta.
+FRAN (contento): Camiseta verde y la pantaloneta. Que se rían, que la pantaloneta es un estilo de vida.
 
 ## despertar.ya
 FRAN: ¡Ya voy, ya voy! Que no estaba dormido.
@@ -413,7 +413,7 @@ FRAN: Pal bar, que está al final de la calle.
 FRAN: Los del bajo. Siempre tienen la tele puesta. Hoy, «Saber y ganar».
 
 ## mirar.portal
-FRAN: Mi portal.
+FRAN: Mi portal. El número 12. Me lo sé porque el del Glovo nunca se lo sabe.
 
 ## usar.portal
 FRAN: ¿Volver a casa? ¡Si acabo de salir!
@@ -422,7 +422,7 @@ FRAN: ¿Volver a casa? ¡Si acabo de salir!
 FRAN: La mercería Loli. Cerrada desde que yo vivo aquí. Y los grafitis, cada vez mejores.
 
 ## mirar.fruteria
-FRAN: Frutería y lo que haga falta. A las nueve de la noche te venden cilantro o una pila.
+FRAN: Frutería y lo que haga falta. A las nueve de la noche te venden una sandía y una pila.
 
 ## usar.fruteria
 FRAN: Una fruta... No, que luego no me cabe la caña.
@@ -684,16 +684,16 @@ cerdos.infinito.fin = ¡Se acabó la torre!
 nombre.sombra = El narrador
 
 zona.puertaArtistas = Puerta de artistas
-zona.cartel = Cartel del Joso
-zona.perchero = Perchero de vestuario
+p.zona.cartel = Cartel del Joso
+p.zona.perchero = Perchero de vestuario
 zona.tijeras = Tijeras
 zona.maniqui = Maniquí
 zona.baul = Baúl de atrezo
 zona.maletas = Maletas
 zona.maquina = Máquina de escribir
 zona.flexo = Flexo
-zona.cuadro = Cuadro de luces
-zona.canon = Cañón de seguimiento
+p.zona.cuadro = Cuadro de luces
+p.zona.canon = Cañón de seguimiento
 zona.nubes = Nubes de cojín
 zona.pantalla = Pantalla de proyección
 
@@ -784,11 +784,11 @@ PABLO: Unas tijeras de sastre en la mesita de vestuario.
 PABLO (contento): ¡Hojas sueltas! Calderón por delante, mi formato por detrás.
 SOMBRA: Calderón está revolviéndose en su tumba. Con estilo, eso sí.
 
-## mirar.perchero
+## p.mirar.perchero
 PABLO: El vestuario de la compañía: chaquetas de comandante, gorras de comandante y pañuelos turquesa.
 > Nadie en el teatro sabía por qué había tantos uniformes de piloto. Nadie preguntaba.
 
-## usar.perchero
+## p.usar.perchero
 PABLO (chulo): Si me pongo la gorra de comandante, ¿me sale el formato? Mejor no. Luego no me la quito.
 
 ## mirar.maniqui
@@ -809,10 +809,10 @@ PABLO (contento): Las tres nubes de cojín. Las más blanditas de todo Madrid.
 ## usar.nubes
 PABLO: Si me tumbo en las nubes, me duermo. Y si me duermo, gana el narrador.
 
-## mirar.cartel
+## p.mirar.cartel
 PABLO (contento): «Joso, Laboratorio Teatral». Con su elefante. Aquí he estrenado más que en ningún sitio.
 
-## mirar.cuadro
+## p.mirar.cuadro
 PABLO: El cuadro de luces. Palancas, fusibles y un letrero amarillo que da miedo.
 
 ## p.cuadro.antes

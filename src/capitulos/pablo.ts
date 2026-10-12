@@ -105,15 +105,18 @@ export function zonasBackstage(g: Aventura): Record<string, ZonaLogica> {
         if (g.tiene('libreto')) g.ayudaUnaVez('combinar');
       },
     },
-    perchero: {},
+    // Fran's flat has a perchero, a cartel and a cuadro too: these keys are Pablo's own.
+    perchero: { nombre: () => texto('p.zona.perchero'), usar: () => g.hablar('p.usar.perchero') },
     maniqui: {},
     maletas: {},
     nubes: {},
-    cartel: {},
+    cartel: { nombre: () => texto('p.zona.cartel'), usar: () => g.hablar('p.mirar.cartel') },
     canon: {
+      nombre: () => texto('p.zona.canon'),
       usar: () => g.hablar(f(g, 'p.ganado') ? 'p.canon.despues' : enLaPantalla(g) ? 'p.canon.encendido' : 'p.canon.usar'),
     },
     cuadro: {
+      nombre: () => texto('p.zona.cuadro'),
       async usar() {
         if (f(g, 'p.ganado')) return g.hablar('p.cuadro.despues');
         if (!f(g, 'p.bloqueado')) return g.hablar('p.cuadro.antes');
