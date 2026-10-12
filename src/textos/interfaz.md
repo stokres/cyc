@@ -52,6 +52,7 @@ movil.grupo = Los del jueves
 movil.miembros = Chuchi, Fran, Guille, Pablo
 movil.enviar = Enviar
 selector.titulo = Cambiar de personaje
+selector.cambiar = Cambiar
 selector.aqui = Aquí
 selector.fuera = En {lugar}
 selector.camino = De camino al Brío

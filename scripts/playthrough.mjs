@@ -515,7 +515,9 @@ check(!(await flag('ayuda:mirar')), 'sale la ayuda de mirar, que ya no existe');
 await sonando('barrio', 'en el piso de Fran');
 await shot('despierto');
 await paso('Cambiar a Pablo desde el selector', async () => {
-  await page.click('.reparto .pj:nth-child(2)');
+  await page.click('.reparto .pj:first-child'); // el selector está plegado: tocar el activo lo abre
+  await wait(300);
+  await page.click('.reparto .pj[data-id="pablo"]');
   await wait(300);
   await page.waitForFunction(() => window.__cyc.g.escena === 'backstage' && !document.querySelector('.velo.on'), null, { timeout: 30000 });
   await charla();

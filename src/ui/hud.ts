@@ -59,6 +59,9 @@ export interface EntradaReparto {
 export class Hud {
   readonly root: HTMLDivElement;
   private dock: HTMLDivElement;
+  /** Character dock: folded (only the active face on top of a small stack) or open (the column). */
+  private repartoAbierto = false;
+  private repartoClave = '';
   private objEl: HTMLDivElement;
   private objTexto: HTMLSpanElement;
   private reloj: HTMLSpanElement;
@@ -89,6 +92,10 @@ export class Hud {
 
     this.dock = h('div', { class: 'reparto', role: 'group', 'aria-label': texto('selector.titulo') });
     this.root.append(this.dock);
+    // A tap anywhere outside the dock folds it; the tap itself carries on as usual (capture phase, never consumed).
+    document.addEventListener('pointerdown', (e) => {
+      if (this.repartoAbierto && !this.dock.contains(e.target as Node)) this.plegarReparto();
+    }, true);
 
     this.root.append(h('div', { class: 'herramientas' }, boton('ojo', texto('boton.ojo'), ev.ojo), boton('pista', texto('boton.pista'), ev.pista), boton('menu', texto('boton.menu'), ev.menu)));
 
@@ -116,26 +123,70 @@ export class Hud {
   // ------------------------------------------------------------ character dock
 
   setReparto(lista: EntradaReparto[], activo: PjId) {
+    // Rebuilt only when something shows; an open dock folds when it is rebuilt.
+    const clave = JSON.stringify([lista, activo, lista.map((e) => this.ropas[e.id] ?? '')]);
+    if (clave === this.repartoClave) return;
+    this.repartoClave = clave;
+    this.repartoAbierto = false;
+    // The active one goes first (it is the folded circle); the rest keep the order of `lista`.
+    const orden = [...lista.filter((e) => e.id === activo), ...lista.filter((e) => e.id !== activo)];
     this.dock.replaceChildren(
-      ...lista.map((e) => {
+      ...orden.map((e, n) => {
         const F = REPARTO[e.id];
+        const esActivo = e.id === activo;
         const b = h(
           'button',
           {
             class: `pj${e.camino ? ' camino' : ''}`,
-            'aria-pressed': String(e.id === activo),
+            'data-id': e.id,
+            'aria-pressed': String(esActivo),
             'aria-label': `${F.nombre}${e.aqui ? '' : ` (${e.lugar})`}`,
-            style: `--color:${F.color}`,
-            onclick: (ev) => (ev.stopPropagation(), this.ev.elegir(e.id)),
+            'data-etiqueta': `${F.nombre}${e.aqui ? '' : ` (${e.lugar})`}`,
+            style: `--color:${F.color};--i:${n};--k:${Math.min(n, 2)}`,
+            onclick: (ev) => {
+              ev.stopPropagation();
+              if (esActivo && !this.repartoAbierto) return this.abrirReparto();
+              this.plegarReparto();
+              this.ev.elegir(e.id);
+            },
           },
           h('span', { class: 'cara' }),
           h('span', { class: 'nombre' }, F.nombre),
+          esActivo ? h('span', { class: 'cambiar', 'aria-hidden': 'true' }, texto('selector.cambiar')) : null,
           e.camino ? h('span', { class: 'hecho', 'aria-hidden': 'true' }, '✓') : null,
         );
         b.querySelector('.cara')!.innerHTML = retrato(e.id, { mood: F.arte.INFO.defaultMood, ropa: this.ropas[e.id] });
         return b;
       }),
     );
+    this.pintarReparto();
+  }
+
+  private abrirReparto() {
+    this.repartoAbierto = true;
+    this.pintarReparto();
+  }
+
+  private plegarReparto() {
+    if (!this.repartoAbierto) return;
+    this.repartoAbierto = false;
+    this.pintarReparto();
+  }
+
+  /** Folded or open: the dock attribute drives the CSS; keyboard and screen readers only reach what is visible. */
+  private pintarReparto() {
+    const abierto = this.repartoAbierto;
+    this.dock.dataset.abierto = String(abierto);
+    const botones = [...this.dock.querySelectorAll<HTMLButtonElement>('.pj')];
+    botones.forEach((b, n) => {
+      b.tabIndex = abierto || n === 0 ? 0 : -1;
+      if (n > 0) b.setAttribute('aria-hidden', String(!abierto));
+    });
+    const primero = botones[0];
+    if (!primero) return;
+    primero.setAttribute('aria-expanded', String(abierto));
+    const nombre = REPARTO[primero.dataset.id as PjId]?.nombre ?? '';
+    primero.setAttribute('aria-label', abierto ? primero.dataset.etiqueta ?? nombre : `${texto('selector.titulo')} (${nombre})`);
   }
 
   // ------------------------------------------------------------ objective
@@ -231,6 +282,7 @@ export class Hud {
   /** Show a line; resolves when the player taps past it. */
   decir(quien: Quien, frase: string, animo = 'neutral', hora?: string): Promise<void> {
     this.cerrarBandeja();
+    this.plegarReparto();
     this.ayudaEl.hidden = true;
     this.ayudaT = 0;
     if (!this.dialogoEl) {
@@ -315,6 +367,7 @@ export class Hud {
   }
 
   setVisible(v: boolean) {
+    if (!v) this.plegarReparto();
     this.root.dataset.oculto = String(!v);
   }
 

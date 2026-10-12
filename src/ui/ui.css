@@ -128,10 +128,26 @@ button:focus-visible {
   display: flex;
   flex-direction: column;
   gap: var(--gap);
+  --grande: clamp(60px, 18vh, 86px);
+  --chico: clamp(52px, 15vh, 74px);
+}
+
+/* Folded: only the active face shows, with two darker faces peeking out behind it like a stack of tokens.
+   Every button stays in the column; the others are pulled up behind the first with a transform. */
+.reparto[data-abierto='false'] {
+  pointer-events: none;
+}
+
+.reparto[data-abierto='false'] .pj {
+  pointer-events: none;
+}
+
+.reparto[data-abierto='false'] .pj:first-child {
+  pointer-events: auto;
 }
 
 .reparto .pj {
-  --size: clamp(52px, 15vh, 74px);
+  --size: var(--chico);
   position: relative;
   width: var(--size);
   height: var(--size);
@@ -141,11 +157,44 @@ button:focus-visible {
   background: radial-gradient(circle at 50% 35%, #2a3458, #121831);
   overflow: visible;
   opacity: 0.86;
-  transition: transform 0.15s, opacity 0.15s, border-color 0.15s;
+  transition: transform 0.18s ease-out, opacity 0.18s ease-out, border-color 0.15s;
+  z-index: calc(4 - var(--i, 0));
+}
+
+/* Darkening of the faces behind (opacity only, so it can animate cheaply). */
+.reparto .pj::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(11, 17, 36, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease-out;
+}
+
+.reparto[data-abierto='false'] .pj:not(:first-child) {
+  /* small face grown to the size of the active one, then tucked behind it, peeking out to the right (16 % and 32 % of its size) */
+  transform-origin: 0 0;
+  transform: translate(calc(var(--grande) * 0.16 * var(--k)), calc(var(--grande) * 0.04 * var(--k) - var(--grande) - var(--gap) - (var(--i) - 1) * (var(--chico) + var(--gap)))) scale(1.2);
+  opacity: 1;
+}
+
+.reparto[data-abierto='false'] .pj:nth-child(n + 4) {
+  opacity: 0;
+}
+
+.reparto[data-abierto='false'] .pj:not(:first-child)::after {
+  opacity: 1;
+}
+
+.reparto[data-abierto='false'] .pj .hecho,
+.reparto[data-abierto='false'] .pj:not(:first-child) .nombre {
+  display: none;
 }
 
 .reparto .pj[aria-pressed='true'] {
-  --size: clamp(60px, 18vh, 86px);
+  --size: var(--grande);
   border: 3px solid var(--color, var(--gold));
   box-shadow: 0 0 0 3px rgba(11, 17, 36, 0.85), 0 0 18px color-mix(in srgb, var(--color, var(--gold)) 55%, transparent);
   opacity: 1;
@@ -163,7 +212,8 @@ button:focus-visible {
   height: 100%;
 }
 
-.reparto .nombre {
+.reparto .nombre,
+.reparto .cambiar {
   position: absolute;
   left: 50%;
   bottom: -0.45em;
@@ -175,6 +225,32 @@ button:focus-visible {
   border-radius: 999px;
   padding: 1px 8px;
   white-space: nowrap;
+}
+
+.reparto .cambiar {
+  display: none;
+  z-index: 1;
+  font-size: 14px; /* I3: never below 14 px */
+}
+
+.reparto[data-abierto='false'] .pj:first-child .cambiar {
+  display: block;
+}
+
+.reparto[data-abierto='false'] .pj:first-child .nombre {
+  display: none;
+}
+
+.reparto .nombre,
+.reparto .hecho {
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reparto .pj,
+  .reparto .pj::after {
+    transition: none;
+  }
 }
 
 .reparto .pj.camino {
