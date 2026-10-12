@@ -294,7 +294,7 @@ if (!soloPang) {
   filas.push(fallosMem);
   console.log(`memoria al final: decorados ${mem.decorado.mb} MB en ${mem.decorado.escenas} escenas, música ${mem.musica} MB${fallosMem.length ? '   ✗ ' + fallosMem.join('; ') : ''}`);
 }
-// Pang: its own page; the stage 12 demo (boss, bubbles, bullets, wires, HUD) played by the bot.
+// Pang: its own page; demos played by bots (stage 12 alone and stage 5 with four players).
 if (toca('pang')) {
   // The main game's page would keep running beside it and spoil the CPU figure.
   if (!soloPang) await page.close();
@@ -309,21 +309,25 @@ if (toca('pang')) {
       return d.call(this, img, ...a);
     };
   });
-  await pp.goto('http://localhost:5173/pang.html?fase=12&pj=chuchi&demo');
-  await pp.waitForFunction(() => window.__pang, null, { timeout: 30000 });
-  await pp.waitForTimeout(6000); // title card, «¡LISTOS!» and the boss waking up
-  const svg0 = await pp.evaluate(() => window.__svgEnCanvas);
-  const c0 = cpuChrome();
-  const f0 = await pp.evaluate(() => window.__pang().fotogramas);
-  await pp.waitForTimeout(SEG * 1000);
-  const fps = ((await pp.evaluate(() => window.__pang().fotogramas)) - f0) / SEG;
-  const cpu = ((cpuChrome() - c0) / SEG) * 100;
-  const svg = (await pp.evaluate(() => window.__svgEnCanvas)) - svg0;
-  const fallos = [];
-  if (svg > 0 && svg / SEG >= fps * 0.5) fallos.push(`${Math.round(svg / SEG)} imágenes SVG dibujadas en canvas por segundo`);
-  if (fps > 62) fallos.push(`${fps.toFixed(0)} fps, por encima del tope de 60`);
-  filas.push(fallos);
-  console.log(`${'pang, fase 12 (demo)'.padEnd(32)} CPU ${cpu.toFixed(0).padStart(4)} %   ${fps.toFixed(0).padStart(3)} fotogramas/s${fallos.length ? '   ✗ ' + fallos.join('; ') : ''}`);
+  // Stage 12 alone (boss, bubbles, bullets, wires, HUD), and stage 5 with four players (darkness with four
+  // lights, four wires and the four-panel strip), both played by bots.
+  for (const [nombre, url] of [['pang, fase 12 (demo)', 'fase=12&pj=chuchi&demo'], ['pang, fase 5, 4 jugadores (demo)', 'fase=5&pj=chuchi&bots=3&demo']]) {
+    await pp.goto('http://localhost:5173/pang.html?' + url);
+    await pp.waitForFunction(() => window.__pang, null, { timeout: 30000 });
+    await pp.waitForTimeout(6000); // title card, «¡LISTOS!» and the boss waking up
+    const svg0 = await pp.evaluate(() => window.__svgEnCanvas);
+    const c0 = cpuChrome();
+    const f0 = await pp.evaluate(() => window.__pang().fotogramas);
+    await pp.waitForTimeout(SEG * 1000);
+    const fps = ((await pp.evaluate(() => window.__pang().fotogramas)) - f0) / SEG;
+    const cpu = ((cpuChrome() - c0) / SEG) * 100;
+    const svg = (await pp.evaluate(() => window.__svgEnCanvas)) - svg0;
+    const fallos = [];
+    if (svg > 0 && svg / SEG >= fps * 0.5) fallos.push(`${Math.round(svg / SEG)} imágenes SVG dibujadas en canvas por segundo`);
+    if (fps > 62) fallos.push(`${fps.toFixed(0)} fps, por encima del tope de 60`);
+    filas.push(fallos);
+    console.log(`${nombre.padEnd(32)} CPU ${cpu.toFixed(0).padStart(4)} %   ${fps.toFixed(0).padStart(3)} fotogramas/s${fallos.length ? '   ✗ ' + fallos.join('; ') : ''}`);
+  }
   await pp.close();
 }
 

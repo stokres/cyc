@@ -3,7 +3,7 @@
 import { aceituna } from './arte/sprites';
 import { avisar } from './base';
 import { golpearJefe } from './jefes';
-import { type Mundo, BARRA_LLENA } from './mundo';
+import { type JugadorVivo, type Mundo, BARRA_LLENA } from './mundo';
 import { ponerObjeto } from './objetos';
 import { partirTodas } from './reglas';
 import { rotulo } from './hud';
@@ -15,10 +15,14 @@ import { AREA } from './tipos';
 const DURA_CONGELADO = 5;
 const DURA_KINKI = 6;
 
-/** Uses the special if the bar is full. Returns true if it went off. */
-export function usarPoder(m: Mundo): boolean {
-  if (m.barra < BARRA_LLENA) return false;
-  const poder = m.estilo.poder;
+/**
+ * Player `j` uses his special if his bar is full. Returns true if it went off. Fran's
+ * freezes everything for everybody; Pablo's splits every bubble (the points are his);
+ * the kinki and the bear hug are only his.
+ */
+export function usarPoder(m: Mundo, j: JugadorVivo): boolean {
+  if (j.barra < BARRA_LLENA) return false;
+  const poder = j.estilo.poder;
   avisar(m, `hud.poder.${poder}`);
   m.sfx.poder();
   switch (poder) {
@@ -26,17 +30,17 @@ export function usarPoder(m: Mundo): boolean {
       m.congelado = Math.max(m.congelado, DURA_CONGELADO);
       break;
     case 'siy':
-      partirTodas(m);
-      if (m.jefe) golpearJefe(m, 3, true);
+      partirTodas(m, j);
+      if (m.jefe) golpearJefe(m, j, 3, true);
       break;
     case 'kinki':
-      m.kinki = DURA_KINKI;
+      j.kinki = DURA_KINKI;
       break;
     case 'abrazo':
-      m.jugador.escudo = 1;
+      j.escudo = 1;
       break;
   }
-  m.barra = 0;
+  j.barra = 0;
   m.hudSucio = true;
   return true;
 }
@@ -123,7 +127,10 @@ function dibujarOscuridad(g: CanvasRenderingContext2D, m: Mundo) {
   x.fillStyle = 'rgba(2,3,10,0.9)';
   x.fillRect(0, 0, ANCHO_AREA, ALTO_AREA);
   x.globalCompositeOperation = 'destination-out';
-  x.drawImage(luces!.jugador, Math.round(m.jugador.x - 46 - AREA.izq), Math.round(m.jugador.y - 16 - 46 - AREA.techo));
+  for (const j of m.jugadores) {
+    if (j.fuera) continue;
+    x.drawImage(luces!.jugador, Math.round(j.x - 46 - AREA.izq), Math.round(j.y - 16 - 46 - AREA.techo));
+  }
   const f = foco(m.oscuro.t);
   x.drawImage(luces!.foco, Math.round(f.x - 40 - AREA.izq), Math.round(f.y - 40 - AREA.techo));
   g.globalAlpha = a;

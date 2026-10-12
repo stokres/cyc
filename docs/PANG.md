@@ -6,10 +6,11 @@ Juego aparte (12 de octubre de 2026, a petición de Jesús): un *Pang* de recrea
 
 | Archivo | Qué hace |
 |---|---|
-| `pang.html` | Página del juego. `pang.html?fase=N&pj=fran` juega esa fase directamente (para probar); `&demo` la juega sola |
+| `pang.html` | Página del juego. `pang.html?fase=N&pj=fran` juega esa fase directamente (para probar); `&bots=1..3` añade bots con los otros personajes; `&demo` la juega sola |
 | `src/pang/tipos.ts` | Contrato común: pantalla lógica, área de juego, tallas de burbuja, datos de fase, estilo de cada personaje |
 | `src/pang/fases.ts` | Las doce fases (burbujas, bloques, escaleras, jefe, especial, música, tiempo) |
-| `src/pang/juego.ts` | Una fase jugada: bucle, física, armas, objetos, jefes, marcador y botones táctiles |
+| `src/pang/juego.ts` | Una fase jugada por 1 a 4 jugadores (`Partida`: un `Mandos` y un `JugadorVivo` por jugador): bucle, física, armas, objetos, jefes, marcador y botones táctiles. Con varios jugadores rigen las reglas de `docs/PANG-ONLINE.md` |
+| `src/pang/mundo.ts`, `hud.ts`, `bot.ts` | El estado de la fase (`Mundo.jugadores`), el marcador (un panel por jugador si son varios) y el bot (uno por jugador) |
 | `src/pang/sonido.ts` | Efectos de sonido sintetizados |
 | `src/pang/arte/sprites.ts` | Pixel art de muñecos, burbujas, jefes, objetos, bloques y escaleras |
 | `src/pang/arte/fondos.ts` | Los doce fondos de pixel art |

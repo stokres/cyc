@@ -8,41 +8,86 @@ import { esVertical } from '../ui/orientacion';
 import { fondo } from './arte/fondos';
 import { bloque, escalera, escudo, jugador, JUGADOR } from './arte/sprites';
 import { actualizarArmas, dibujarArmas, disparar } from './armas';
-import { crearBurbuja, sumar, velocidadBurbujas } from './base';
+import { crearBurbuja, primeraVidaExtra, sumar, velocidadBurbujas } from './base';
 import { Bot } from './bot';
 import { crearEntrada, mandosNuevos, type Entrada, type Mandos } from './entrada';
 import { dibujarAbajo, dibujarArriba, actualizarEspecial, proximaAceituna, usarPoder } from './especiales';
 import { circuloRect, moverCuerpo } from './fisica';
 import { centrado, Marcador, ORO, pintarTexto, rotulo } from './hud';
 import { actualizarJefe, crearJefe, marcoJefe } from './jefes';
-import { BARRA_LLENA, CAJA, GRAVEDAD, PASO, type Mundo } from './mundo';
+import { BARRA_LLENA, CAJA, GRAVEDAD, PASO, type JugadorVivo, type Mundo } from './mundo';
 import { actualizarObjetos, objetoVisible } from './objetos';
 import { herir, recoger } from './reglas';
 import { Efectos } from './sonido';
 import { AREA, ESTILO, H, W, type Fase, type PjId, type ResultadoFase } from './tipos';
 
+let flecha: HTMLCanvasElement | null = null;
+
+/** The little arrow over the player of this screen (several players): pixel art, painted once. */
+function flechaYo(): HTMLCanvasElement {
+  if (flecha) return flecha;
+  // Shaft 3 wide, then a head 9, 7, 5, 3 and 1 wide; one pixel of outline all round.
+  const filas = [3, 3, 3, 9, 7, 5, 3, 1];
+  const c = document.createElement('canvas');
+  c.width = 9 + 2;
+  c.height = filas.length + 2;
+  const x = c.getContext('2d')!;
+  const pintar = (dx: number, dy: number, color: string) => {
+    x.fillStyle = color;
+    filas.forEach((w, i) => x.fillRect(1 + dx + (9 - w) / 2, 1 + dy + i, w, 1));
+  };
+  for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, 1], [-1, 1], [1, -1]]) pintar(dx, dy, '#000');
+  pintar(0, 0, ORO);
+  flecha = c;
+  return c;
+}
+
+/** A player at the start of the stage. */
+export interface JugadorInicial {
+  pj: PjId;
+  vidas: number;
+  puntos: number;
+}
+
+/**
+ * Who moves a player: 'local' reads this screen's touch buttons and keyboard, 'bot' is the
+ * computer. (A later phase adds a third kind fed from the network: its `Mandos` are the
+ * ones Partida creates in `mandos[i]`, which the network layer writes into.)
+ */
+export type Control = 'local' | 'bot';
+
 export interface OpcionesFase {
   /** Where the game puts its canvas and its touch buttons (removed when it ends). */
   padre: HTMLElement;
   fase: Fase;
-  pj: PjId;
-  vidas: number;
-  puntos: number;
+  /** One to four players, in order (index = the player's number everywhere in the game). */
+  jugadores: JugadorInicial[];
+  /** One per player: who moves it. The demo is all 'bot'. */
+  controles: Control[];
+  /** Index of the player this screen belongs to (the local buttons and keyboard; the little arrow). */
+  yo: number;
   sonido: Sound;
   /** Opens the pause menu (pantallas.ts); resolves with what the player chose. */
   pausa: () => Promise<'seguir' | 'salir'>;
-  /** Title-screen attract mode: a bot plays, no input, no sound, never ends on its own. */
+  /** Title-screen attract mode: bots play, no input, no sound, never ends on its own. */
   demo?: boolean;
   /** Aborting it ends the stage at once (cleans up, resolves 'salir'): the title screen stops its demo. */
   senal?: AbortSignal;
+  /** Called with the running Partida as soon as it exists (the network layer takes its `mandos` here). */
+  alCrear?: (p: Partida) => void;
 }
 
 /**
- * Plays one stage. Losing a life restarts the stage (as in Pang) while lives remain.
+ * Plays one stage. With one player, losing a life restarts the stage (as in Pang) while
+ * lives remain; with several the stage goes on (docs/PANG-ONLINE.md).
  * Resolves with the result, or 'salir' if the player quit from the pause menu.
  */
 export function jugarFase(o: OpcionesFase): Promise<ResultadoFase | 'salir'> {
-  return new Promise((resolver) => void new Partida(o, resolver).arrancar());
+  return new Promise((resolver) => {
+    const p = new Partida(o, resolver);
+    o.alCrear?.(p);
+    void p.arrancar();
+  });
 }
 
 type Estado = 'titulo' | 'listo' | 'ya' | 'jugando' | 'herido' | 'victoria' | 'bonus';
@@ -55,8 +100,13 @@ const TICK_BONUS = 0.016;
 const POP_FRAME = 0.06;
 const MAX_PASOS = 12;
 const VIDAS_DEMO = 3;
+/** Several players: seconds a hurt player lies down, and the blinking invulnerability after it. */
+const DURA_CAIDO = 1.2;
+const INV_REAPARECE = 2;
+/** Several players start this many px apart. */
+const SEPARACION = 40;
 
-class Partida {
+export class Partida {
   private readonly fase: Fase;
   private readonly raiz = document.createElement('div');
   private readonly pantalla = document.createElement('canvas');
@@ -64,11 +114,14 @@ class Partida {
   private readonly logico = document.createElement('canvas');
   private readonly g: CanvasRenderingContext2D;
   private entrada: Entrada | null = null;
-  private readonly mandos: Mandos;
-  private readonly bot: Bot | null;
+  /** The buttons of each player (index = player). The local one is the keyboard/touch layer's own. */
+  readonly mandos: Mandos[] = [];
+  private readonly bots: Array<Bot | null> = [];
+  /** Index of the player the local buttons drive, or -1 (demo). */
+  private readonly local: number;
   private readonly m: Mundo;
   private readonly marcador: Marcador;
-  private readonly cuerpo: ReturnType<typeof jugador>;
+  private readonly cuerpos: Array<ReturnType<typeof jugador>>;
   private readonly espejos = new Map<HTMLCanvasElement, HTMLCanvasElement>();
 
   private estado: Estado = 'titulo';
@@ -96,7 +149,7 @@ class Partida {
     private readonly resolver: (r: ResultadoFase | 'salir') => void,
   ) {
     this.fase = o.fase;
-    this.cuerpo = jugador(o.pj);
+    this.cuerpos = o.jugadores.map((p) => jugador(p.pj));
     this.raiz.style.cssText = 'position:fixed;inset:0;z-index:0;background:#000;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;display:flex;align-items:center;justify-content:center';
     this.pantalla.style.cssText = 'display:block;image-rendering:pixelated;touch-action:none';
     this.raiz.appendChild(this.pantalla);
@@ -110,16 +163,23 @@ class Partida {
 
     this.m = this.crearMundo();
     this.marcador = new Marcador(this.m);
-    if (o.demo) {
-      this.mandos = mandosNuevos();
-      this.bot = new Bot();
-    } else {
-      this.entrada = crearEntrada(this.raiz, { escaleras: this.fase.escaleras.length > 0 });
-      this.mandos = this.entrada.mandos;
-      this.bot = null;
+    // The local buttons drive the player of this screen (`yo`); bots get a Bot each.
+    this.local = o.demo ? -1 : o.controles[o.yo] === 'local' ? o.yo : o.controles.indexOf('local');
+    if (this.local >= 0) this.entrada = crearEntrada(this.raiz, { escaleras: this.fase.escaleras.length > 0 });
+    for (let i = 0; i < o.jugadores.length; i++) {
+      this.mandos.push(i === this.local ? this.entrada!.mandos : mandosNuevos());
+      this.bots.push(o.demo || o.controles[i] === 'bot' ? new Bot(i) : null);
     }
     this.cargarFase();
     (window as unknown as { __pang: () => unknown }).__pang = () => ({ fotogramas: this.fotogramas, estado: this.estado, mundo: this.m, mandos: this.mandos });
+  }
+
+  /** For the network layer: the stage state and the flow state. */
+  get mundo(): Mundo {
+    return this.m;
+  }
+  get fotograma(): string {
+    return this.estado;
   }
 
   async arrancar() {
@@ -151,18 +211,12 @@ class Partida {
   // --- the world -------------------------------------------------------------------------
 
   private crearMundo(): Mundo {
-    const { fase, pj, puntos, vidas, sonido, demo } = this.o;
+    const { fase, sonido, demo } = this.o;
     return {
       fase,
-      pj,
-      estilo: ESTILO[pj],
       sfx: new Efectos(sonido, !demo),
       t: 0,
       tiempo: fase.tiempo,
-      puntos,
-      vidas,
-      barra: 0,
-      siguienteVida: (Math.floor(puntos / 20000) + 1) * 20000,
       canaDada: false,
       sigId: 1,
       burbujas: [],
@@ -174,10 +228,30 @@ class Partida {
       popups: [],
       jefe: null,
       finJefe: -1,
-      jugador: { x: fase.inicio, y: AREA.suelo, vy: 0, dir: 1, escalera: -1, escalado: 0, disparoT: 0, inv: 0, escudo: 0, animT: 0, anda: false },
+      jugadores: this.o.jugadores.map((p) => ({
+        pj: p.pj,
+        estilo: ESTILO[p.pj],
+        puntos: p.puntos,
+        vidas: p.vidas,
+        barra: 0,
+        siguienteVida: primeraVidaExtra(p.puntos),
+        kinki: 0,
+        enfriamiento: 0,
+        caido: 0,
+        fuera: false,
+        x: fase.inicio,
+        y: AREA.suelo,
+        vy: 0,
+        dir: 1,
+        escalera: -1,
+        escalado: 0,
+        disparoT: 0,
+        inv: 0,
+        escudo: 0,
+        animT: 0,
+        anda: false,
+      })),
       congelado: 0,
-      kinki: 0,
-      enfriamiento: 0,
       aviso: null,
       hijos: [],
       viento: 0,
@@ -188,7 +262,17 @@ class Partida {
     };
   }
 
-  /** The stage as it starts (also after losing a life). Score, lives and the special bar stay. */
+  /** Where each player starts: spread around `fase.inicio`, 40 px apart, all inside the play area. */
+  private inicios(): number[] {
+    const n = this.m.jugadores.length;
+    const lo = AREA.izq + CAJA.semi;
+    const hi = AREA.der - CAJA.semi;
+    const ancho = (n - 1) * SEPARACION;
+    const x0 = Math.max(lo, Math.min(hi - ancho, this.fase.inicio - ancho / 2));
+    return this.m.jugadores.map((_, i) => x0 + i * SEPARACION);
+  }
+
+  /** The stage as it starts (also after losing a life). Score, lives, the special bar and who is out stay. */
   private cargarFase() {
     const m = this.m;
     const f = this.fase;
@@ -205,12 +289,11 @@ class Partida {
     m.objetos = [];
     m.efectos = [];
     m.popups = [];
-    m.jefe = f.jefe ? crearJefe(f.jefe) : null;
+    m.jefe = f.jefe ? crearJefe(f.jefe, m.jugadores.length) : null;
     m.finJefe = -1;
-    Object.assign(m.jugador, { x: f.inicio, y: AREA.suelo, vy: 0, dir: 1, escalera: -1, escalado: 0, disparoT: 0, inv: 0, escudo: 0, animT: 0, anda: false });
+    const xs = this.inicios();
+    m.jugadores.forEach((j, i) => Object.assign(j, { x: xs[i], y: AREA.suelo, vy: 0, dir: 1, escalera: -1, escalado: 0, disparoT: 0, inv: 0, escudo: 0, animT: 0, anda: false, kinki: 0, enfriamiento: 0, caido: 0 }));
     m.congelado = 0;
-    m.kinki = 0;
-    m.enfriamiento = 0;
     m.aviso = null;
     m.viento = 0;
     m.aceituna = { prox: proximaAceituna(), activa: false, x: 0, dir: 1, soltarX: 0, soltada: false, t: 0 };
@@ -228,9 +311,10 @@ class Partida {
     this.ultimo = t;
     // Nothing runs behind the page being hidden or the phone upright.
     if (document.hidden || esVertical()) return;
-    if (this.mandos.pausa) {
-      this.mandos.pausa = false;
-      if (!this.o.demo) void this.pausar();
+    const local = this.entrada?.mandos;
+    if (local?.pausa) {
+      local.pausa = false;
+      void this.pausar();
       return;
     }
     if (dt > 0.1) dt = 0.1;
@@ -306,12 +390,12 @@ class Partida {
         break;
       case 'herido':
         this.animaciones(dt);
-        m.jugador.animT += dt;
+        for (const j of m.jugadores) j.animT += dt;
         if (this.tEstado >= DURA.herido) this.despuesDeHerido();
         break;
       case 'victoria':
         this.animaciones(dt);
-        m.jugador.animT += dt;
+        for (const j of m.jugadores) j.animT += dt;
         if (this.tEstado >= DURA.victoria) {
           this.bonusRestante = Math.max(0, Math.floor(m.tiempo));
           this.bonusAcum = 0;
@@ -326,43 +410,95 @@ class Partida {
     }
   }
 
-  /** The player has been touched (or time ran out): a life is lost. */
+  /** The result handed back: score and lives of each player (0 lives for one who is out). */
+  private resultado(superada: boolean): ResultadoFase {
+    return { superada, jugadores: this.m.jugadores.map((j) => ({ puntos: Math.floor(j.puntos), vidas: j.fuera ? 0 : Math.max(0, j.vidas) })) };
+  }
+
+  /** Nobody is left standing: every player is out of lives. */
+  private todosFuera() {
+    return this.m.jugadores.every((j) => j.fuera);
+  }
+
+  /**
+   * The stage stops for a moment and everybody still in loses a life: one player touched
+   * (the only way to be hurt with one player) or time ran out.
+   */
   private herido(causa: 'bicho' | 'tiempo') {
     const m = this.m;
     this.causa = causa;
-    m.vidas--;
+    for (const j of m.jugadores) {
+      if (j.fuera) continue;
+      // A player already lying down has paid for his hit.
+      if (j.caido <= 0) j.vidas--;
+      j.caido = 0;
+      j.animT = 0;
+      j.escalera = -1;
+    }
     m.hudSucio = true;
     m.sfx.herido();
-    m.jugador.animT = 0;
-    m.jugador.escalera = -1;
     this.ir('herido');
   }
 
   private despuesDeHerido() {
     const m = this.m;
-    if (m.vidas <= 0) {
-      if (!this.o.demo) return this.terminar({ superada: false, puntos: Math.floor(m.puntos), vidas: 0 });
-      m.vidas = VIDAS_DEMO;
+    for (const j of m.jugadores) {
+      if (j.fuera || j.vidas > 0) continue;
+      if (this.o.demo) j.vidas = VIDAS_DEMO;
+      else j.fuera = true;
     }
+    if (this.todosFuera()) return this.terminar(this.resultado(false));
     this.cargarFase();
     this.ir('listo');
+  }
+
+  /** Several players: `j` was hit. He lies down where he stands, then comes back blinking (or is out). */
+  private golpeado(j: JugadorVivo) {
+    j.vidas--;
+    j.caido = DURA_CAIDO;
+    j.animT = 0;
+    j.escalera = -1;
+    j.anda = false;
+    this.m.hudSucio = true;
+    this.m.sfx.herido();
+  }
+
+  /** Several players: the end of `j`'s fall. */
+  private levantarse(j: JugadorVivo) {
+    this.m.hudSucio = true;
+    if (j.vidas <= 0) {
+      if (!this.o.demo) {
+        j.fuera = true;
+        if (this.todosFuera()) this.terminar(this.resultado(false));
+        return;
+      }
+      j.vidas = VIDAS_DEMO;
+    }
+    j.inv = INV_REAPARECE;
   }
 
   private superar() {
     const m = this.m;
     m.sfx.fanfarria();
     if (!this.o.demo) this.o.sonido.pararMusica();
-    m.jugador.animT = 0;
-    m.jugador.escalera = -1;
-    m.jugador.anda = false;
+    for (const j of m.jugadores) {
+      // A player still lying down gets up (or is out, if that hit was his last life).
+      if (j.caido > 0) {
+        j.caido = 0;
+        if (j.vidas <= 0 && !this.o.demo) j.fuera = true;
+      }
+      j.animT = 0;
+      j.escalera = -1;
+      j.anda = false;
+    }
     m.aviso = null;
     this.ir('victoria');
   }
 
-  /** Counts the seconds left into points, 20 each, quickly. */
+  /** Counts the seconds left into points, 20 each, quickly; every player still in gets them. */
   private contarBonus(dt: number) {
     const m = this.m;
-    m.jugador.animT += dt;
+    for (const j of m.jugadores) j.animT += dt;
     this.animaciones(dt);
     this.bonusAcum += dt;
     while (this.bonusAcum >= TICK_BONUS && this.bonusRestante > 0) {
@@ -370,12 +506,12 @@ class Partida {
       this.bonusRestante--;
       this.bonusGanado += PUNTOS_SEGUNDO;
       m.tiempo = this.bonusRestante;
-      sumar(m, PUNTOS_SEGUNDO);
+      for (const j of m.jugadores) if (!j.fuera) sumar(m, j, PUNTOS_SEGUNDO);
       if (++this.bonusTicks % 3 === 0) m.sfx.cuenta();
     }
     if (this.bonusRestante > 0) this.tEstado = 0;
     else if (this.tEstado >= DURA.bonus) {
-      if (!this.o.demo) return this.terminar({ superada: true, puntos: Math.floor(m.puntos), vidas: m.vidas });
+      if (!this.o.demo) return this.terminar(this.resultado(true));
       this.cargarFase();
       this.ir('listo');
     }
@@ -385,8 +521,6 @@ class Partida {
 
   private jugando(dt: number) {
     const m = this.m;
-    const j = m.jugador;
-    const mand = this.mandos;
     m.t += dt;
     const antes = Math.ceil(m.tiempo);
     m.tiempo -= dt;
@@ -398,24 +532,41 @@ class Partida {
       m.tiempo = 0;
       return this.herido('tiempo');
     }
-    this.bot?.pensar(m, mand, dt);
 
-    if (mand.subeOEspecial) {
-      mand.subeOEspecial = false;
-      if (!this.juntoAEscalera()) mand.especial = true;
-    }
-    if (mand.especial) {
-      mand.especial = false;
-      usarPoder(m);
-    }
-    const auto = m.estilo.arma === 'rafaga' || m.kinki > 0;
-    if (mand.disparo || (auto && mand.fuego)) disparar(m);
-    mand.disparo = false;
+    for (let i = 0; i < m.jugadores.length; i++) {
+      const j = m.jugadores[i];
+      const mand = this.mandos[i];
+      if (j.fuera) continue;
+      if (j.caido > 0) {
+        // Lying down: no input (presses are dropped), then back on the spot.
+        mand.disparo = mand.especial = mand.subeOEspecial = false;
+        j.animT += dt;
+        j.caido -= dt;
+        if (j.caido <= 0) {
+          j.caido = 0;
+          this.levantarse(j);
+          if (this.fin) return;
+        }
+        continue;
+      }
+      this.bots[i]?.pensar(m, mand, dt);
+      if (mand.subeOEspecial) {
+        mand.subeOEspecial = false;
+        if (!this.juntoAEscalera(j)) mand.especial = true;
+      }
+      if (mand.especial) {
+        mand.especial = false;
+        usarPoder(m, j);
+      }
+      const auto = j.estilo.arma === 'rafaga' || j.kinki > 0;
+      if (mand.disparo || (auto && mand.fuego)) disparar(m, j);
+      mand.disparo = false;
 
-    this.moverJugador(dt);
-    if (j.inv > 0) j.inv -= dt;
-    if (j.disparoT > 0) j.disparoT -= dt;
-    if (m.kinki > 0) m.kinki -= dt;
+      this.moverJugador(j, mand, dt);
+      if (j.inv > 0) j.inv -= dt;
+      if (j.disparoT > 0) j.disparoT -= dt;
+      if (j.kinki > 0) j.kinki -= dt;
+    }
 
     if (m.congelado > 0) {
       m.congelado -= dt;
@@ -432,9 +583,10 @@ class Partida {
     this.animaciones(dt);
 
     if (m.congelado <= 0) this.chocar();
-    if (this.estado !== 'jugando') return;
+    if (this.estado !== 'jugando' || this.fin) return;
 
-    const lista = m.barra >= BARRA_LLENA;
+    const yo = m.jugadores[this.local];
+    const lista = !!yo && yo.barra >= BARRA_LLENA;
     if (this.entrada && lista !== this.espLista) {
       this.espLista = lista;
       this.entrada.especialLista(lista);
@@ -444,16 +596,13 @@ class Partida {
   }
 
   /** On a ladder, or at the foot of one: there ↑ climbs instead of firing the special. */
-  private juntoAEscalera() {
-    const j = this.m.jugador;
+  private juntoAEscalera(j: JugadorVivo) {
     if (j.escalera >= 0) return true;
     return this.fase.escaleras.some((e) => Math.abs(j.x - (e.x + 8)) <= 8 && j.y > e.arriba + 0.5 && j.y <= e.abajo + 0.5);
   }
 
-  private moverJugador(dt: number) {
+  private moverJugador(j: JugadorVivo, mand: Mandos, dt: number) {
     const m = this.m;
-    const j = m.jugador;
-    const mand = this.mandos;
     const dir = (mand.der ? 1 : 0) - (mand.izq ? 1 : 0);
     const vert = (mand.abajo ? 1 : 0) - (mand.arriba ? 1 : 0);
     const escaleras = this.fase.escaleras;
@@ -487,7 +636,7 @@ class Partida {
     }
     if (dir !== 0) {
       j.dir = dir > 0 ? 1 : -1;
-      j.x += dir * m.estilo.paso * dt;
+      j.x += dir * j.estilo.paso * dt;
       j.anda = true;
     }
     j.x += m.viento * 22 * dt;
@@ -511,32 +660,40 @@ class Partida {
     return s;
   }
 
+  /** Whoever touches an item first takes it (players who are down or out cannot). */
   private recogerObjetos() {
     const m = this.m;
-    const j = m.jugador;
     for (let i = m.objetos.length - 1; i >= 0; i--) {
       const o = m.objetos[i];
-      if (Math.abs(o.x - j.x) > CAJA.semi + 6 || o.y + 6 < j.y - CAJA.alto || o.y - 6 > j.y) continue;
-      m.objetos[i] = m.objetos[m.objetos.length - 1];
-      m.objetos.pop();
-      recoger(m, o);
+      for (const j of m.jugadores) {
+        if (j.fuera || j.caido > 0) continue;
+        if (Math.abs(o.x - j.x) > CAJA.semi + 6 || o.y + 6 < j.y - CAJA.alto || o.y - 6 > j.y) continue;
+        m.objetos[i] = m.objetos[m.objetos.length - 1];
+        m.objetos.pop();
+        recoger(m, j, o);
+        break;
+      }
     }
   }
 
-  /** Bubbles and the boss against the player. */
+  /** Bubbles and the boss against each player. */
   private chocar() {
     const m = this.m;
-    const j = m.jugador;
-    if (j.inv > 0) return;
-    const x0 = j.x - CAJA.semi;
-    const y0 = j.y - CAJA.alto;
-    let toca = false;
-    for (let i = 0; i < m.burbujas.length && !toca; i++) {
-      const b = m.burbujas[i];
-      toca = circuloRect(b.x, b.y, b.r, x0, y0, CAJA.semi * 2, CAJA.alto);
+    for (const j of m.jugadores) {
+      if (j.fuera || j.caido > 0 || j.inv > 0) continue;
+      const x0 = j.x - CAJA.semi;
+      const y0 = j.y - CAJA.alto;
+      let toca = false;
+      for (let i = 0; i < m.burbujas.length && !toca; i++) {
+        const b = m.burbujas[i];
+        toca = circuloRect(b.x, b.y, b.r, x0, y0, CAJA.semi * 2, CAJA.alto);
+      }
+      if (!toca && m.jefe) toca = circuloRect(m.jefe.x, m.jefe.y, m.jefe.r, x0, y0, CAJA.semi * 2, CAJA.alto);
+      if (!toca || !herir(m, j)) continue;
+      // One player: the stage stops and restarts. Several: only he falls, the stage goes on.
+      if (m.jugadores.length === 1) return this.herido('bicho');
+      this.golpeado(j);
     }
-    if (!toca && m.jefe) toca = circuloRect(m.jefe.x, m.jefe.y, m.jefe.r, x0, y0, CAJA.semi * 2, CAJA.alto);
-    if (toca && herir(m)) this.herido('bicho');
   }
 
   /** Pops, floating numbers and the banner age. */
@@ -599,7 +756,7 @@ class Partida {
       if (j) g.drawImage(marcoJefe(j), Math.round(j.x - j.hoja.w / 2), Math.round(j.y - j.hoja.h / 2));
       for (const b of m.burbujas) g.drawImage(b.img, Math.round(b.x - b.r - 1), Math.round(b.y - b.r - 1));
     }
-    this.dibujarJugador(g);
+    this.dibujarJugadores(g);
     for (const e of m.efectos) {
       if (e.t < 0) continue;
       const f = e.frames[Math.min(e.frames.length - 1, Math.floor(e.t / POP_FRAME))];
@@ -614,14 +771,28 @@ class Partida {
     this.dctx.drawImage(this.logico, 0, 0, this.pantalla.width, this.pantalla.height);
   }
 
-  private dibujarJugador(g: CanvasRenderingContext2D) {
+  /** Every player who is not out, the one of this screen last (on top). */
+  private dibujarJugadores(g: CanvasRenderingContext2D) {
+    const js = this.m.jugadores;
+    for (let i = 0; i < js.length; i++) if (i !== this.o.yo) this.dibujarJugador(g, js[i], this.cuerpos[i]);
+    if (js[this.o.yo]) this.dibujarJugador(g, js[this.o.yo], this.cuerpos[this.o.yo]);
+    // Several players: a little arrow over this screen's one while «¡LISTOS!» and «¡YA!» show.
+    const yo = js[this.o.yo];
+    if (js.length > 1 && yo && !yo.fuera && (this.estado === 'listo' || this.estado === 'ya')) {
+      const f = flechaYo();
+      const salto = Math.round(Math.abs(Math.sin(this.tEstado * 9)) * 3);
+      g.drawImage(f, Math.round(yo.x - f.width / 2), Math.round(yo.y - JUGADOR.h - f.height - 2 - salto));
+    }
+  }
+
+  private dibujarJugador(g: CanvasRenderingContext2D, j: JugadorVivo, cuerpo: ReturnType<typeof jugador>) {
+    if (j.fuera) return;
     const m = this.m;
-    const j = m.jugador;
     if (j.inv > 0 && Math.floor(j.inv * 12) % 2 === 0) return;
-    let anim: keyof typeof this.cuerpo;
+    let anim: keyof typeof cuerpo;
     let i = 0;
     let gira = true;
-    if (this.estado === 'herido') {
+    if (this.estado === 'herido' || j.caido > 0) {
       anim = 'herido';
       i = Math.floor(j.animT / 0.15) % 2;
     } else if (this.estado === 'victoria' || this.estado === 'bonus') {
@@ -642,7 +813,7 @@ class Partida {
       anim = 'quieto';
       i = Math.floor(j.animT * 2) % 2;
     }
-    const frames = this.cuerpo[anim];
+    const frames = cuerpo[anim];
     let img = frames[i % frames.length];
     if (gira && j.dir < 0) img = this.espejo(img);
     g.drawImage(img, Math.round(j.x - JUGADOR.w / 2), Math.round(j.y - JUGADOR.h));

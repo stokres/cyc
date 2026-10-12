@@ -3,7 +3,7 @@
 import { jefe as hojaJefe } from './arte/sprites';
 import { avisar, crearBurbuja, efectoPop, llenarBarra, sumar, velocidadBurbujas } from './base';
 import { moverCuerpo } from './fisica';
-import type { JefeVivo, Mundo } from './mundo';
+import type { JefeVivo, JugadorVivo, Mundo } from './mundo';
 import { reventarTodas } from './reglas';
 import { AREA, type ColorBola, type Jefe } from './tipos';
 
@@ -14,13 +14,15 @@ const PUNTOS_JEFE: Record<Jefe, number> = { robi: 3000, peor: 4000, penultima: 8
 const SIN_GORRO = 7;
 const CON_GORRO = 3;
 
-export function crearJefe(tipo: Jefe): JefeVivo {
+/** The boss has more hit points the more players there are: × (1 + 0.5 × (n − 1)). */
+export function crearJefe(tipo: Jefe, jugadores = 1): JefeVivo {
   const hoja = hojaJefe(tipo);
   const datos = {
     robi: { hp: 16, bote: 130, vel: 36, x: 96, y: 50 },
     peor: { hp: 18, bote: 100, vel: 46, x: 288, y: 60 },
     penultima: { hp: 30, bote: 0, vel: 38, x: 192, y: 70 },
   }[tipo];
+  const hp = Math.round(datos.hp * (1 + 0.5 * (jugadores - 1)));
   return {
     tipo,
     hoja,
@@ -30,8 +32,8 @@ export function crearJefe(tipo: Jefe): JefeVivo {
     vy: 0,
     r: hoja.radio,
     bote: datos.bote,
-    hp: datos.hp,
-    hpMax: datos.hp,
+    hp,
+    hpMax: hp,
     golpeT: 0,
     t: 0,
     acumulado: 0,
@@ -71,7 +73,7 @@ export function actualizarJefe(m: Mundo, dt: number) {
     }
     moverCuerpo(j, dt, m.bloques);
   } else if (j.tipo === 'peor') {
-    j.velocidad = j.hp <= 6 ? 46 * 1.3 : 46;
+    j.velocidad = j.hp <= j.hpMax / 3 ? 46 * 1.3 : 46;
     j.vx = Math.sign(j.vx || 1) * j.velocidad;
     moverCuerpo(j, dt, m.bloques);
   } else {
@@ -91,7 +93,7 @@ function flotar(m: Mundo, j: JefeVivo, dt: number) {
   }
   j.y = 70 + 20 * Math.sin(j.t * 1.1);
   if (j.t < j.proximo) return;
-  const furiosa = j.hp <= 15;
+  const furiosa = j.hp <= j.hpMax / 2;
   j.proximo = j.t + (furiosa ? 2.5 : 3.5);
   j.escupeT = 0.45;
   const dos = furiosa && j.escupidas % 2 === 1;
@@ -118,10 +120,10 @@ function alGolpe(m: Mundo, j: JefeVivo) {
 }
 
 /**
- * A shot reaches the boss. Returns false if it bounced off (Robi's party hat). `danio` is
- * 1 for a harpoon, 0.34 for a bullet; the special ignores the hat.
+ * A shot of player `p` reaches the boss. Returns false if it bounced off (Robi's party hat).
+ * `danio` is 1 for a harpoon, 0.34 for a bullet; the special ignores the hat.
  */
-export function golpearJefe(m: Mundo, danio: number, ignoraGorro = false): boolean {
+export function golpearJefe(m: Mundo, p: JugadorVivo, danio: number, ignoraGorro = false): boolean {
   const j = m.jefe;
   if (!j) return false;
   if (j.gorro && !ignoraGorro) {
@@ -135,20 +137,20 @@ export function golpearJefe(m: Mundo, danio: number, ignoraGorro = false): boole
   j.hp -= danio;
   j.golpeT = 0.1;
   m.sfx.golpeJefe();
-  llenarBarra(m, Math.min(1, danio));
+  llenarBarra(p, Math.min(1, danio));
   j.acumulado += danio;
   const enteros = Math.floor(j.acumulado);
   if (enteros > 0) {
     j.acumulado -= enteros;
-    sumar(m, PUNTOS_GOLPE, j.x, j.y - j.r);
+    sumar(m, p, PUNTOS_GOLPE, j.x, j.y - j.r);
     if (j.hp > 0) alGolpe(m, j);
   }
-  if (j.hp <= 0) matarJefe(m);
+  if (j.hp <= 0) matarJefe(m, p);
   return true;
 }
 
 /** The boss bursts into a string of pops. La Penúltima takes every bubble with her. */
-function matarJefe(m: Mundo) {
+function matarJefe(m: Mundo, p: JugadorVivo) {
   const j = m.jefe;
   if (!j) return;
   m.jefe = null;
@@ -156,7 +158,7 @@ function matarJefe(m: Mundo) {
   for (let k = 0; k < 12; k++) {
     efectoPop(m, j.x + (Math.random() - 0.5) * j.hoja.w * 0.8, j.y + (Math.random() - 0.5) * j.hoja.h * 0.8, 'cerveza', k % 3 === 0 ? 0 : 1, k * 0.08);
   }
-  sumar(m, PUNTOS_JEFE[j.tipo], j.x, j.y);
+  sumar(m, p, PUNTOS_JEFE[j.tipo], j.x, j.y);
   m.sfx.jefeDerrotado();
-  if (j.tipo === 'penultima') reventarTodas(m);
+  if (j.tipo === 'penultima') reventarTodas(m, p);
 }

@@ -141,3 +141,30 @@ records.cyc = CYC
 final.titulo = FIN
 final.gracias = Gracias por jugar
 final.puntos = {n} puntos
+
+// ---------------------------------------------------------------- online
+
+online.titulo = Jugar online
+online.clave = Contraseña de la sala
+online.entrar = Entrar
+online.conectando = Conectando…
+online.error.clave = Esa no es la contraseña.
+online.error.llena = La sala está llena: ya sois cuatro.
+online.error.en-partida = Hay una partida en marcha. Espera a que termine.
+online.error.red = No hay manera de conectar. Prueba en un rato.
+online.cerrada = El anfitrión se ha ido y la sala se ha cerrado.
+online.perdida = Se ha cortado la conexión.
+online.sala = La sala
+online.jugadores = {n} de 4 en la sala
+online.libre = Libre
+online.ocupado = Ocupado
+online.tuyo = Tú
+online.elige = Elige tu personaje
+online.esperando = Esperando a que el anfitrión empiece
+online.empezar = Empezar
+online.faltan = Todos tienen que elegir personaje
+online.salir = Salir
+
+// ---------------------------------------------------------------- varios jugadores
+
+hud.fuera = FUERA

@@ -3,7 +3,7 @@
 import { efectoPop, sumar } from './base';
 import { circuloRect } from './fisica';
 import { golpearJefe } from './jefes';
-import type { Bala, Cable, Mundo } from './mundo';
+import type { Bala, Cable, JugadorVivo, Mundo } from './mundo';
 import { reventar } from './reglas';
 import { AREA } from './tipos';
 
@@ -17,41 +17,50 @@ const MAX_BALAS_KINKI = 48;
 const ANGULOS_KINKI = [-12, 0, 12].map((a) => (a * Math.PI) / 180);
 const LARGO_MAX = AREA.suelo - AREA.techo;
 
-function vuelan(m: Mundo) {
-  let n = 0;
-  for (const c of m.cables) if (!c.fijo) n++;
-  return n;
+/** Wires in the air (not stuck) and in all, and bullets, of one player: the limits are per player. */
+function cuenta(m: Mundo, dueno: number) {
+  let vuelan = 0;
+  let cables = 0;
+  let balas = 0;
+  for (const c of m.cables) {
+    if (c.dueno !== dueno) continue;
+    cables++;
+    if (!c.fijo) vuelan++;
+  }
+  for (const b of m.balas) if (b.dueno === dueno) balas++;
+  return { vuelan, cables, balas };
 }
 
-/** Fires if the weapon allows it now. Returns true if a shot left. */
-export function disparar(m: Mundo): boolean {
-  const j = m.jugador;
+/** Player `j` fires if his weapon allows it now. Returns true if a shot left. */
+export function disparar(m: Mundo, j: JugadorVivo): boolean {
   if (j.escalera >= 0) return false;
-  const arma = m.estilo.arma;
-  if (m.kinki > 0) {
-    if (m.enfriamiento > 0 || m.balas.length > MAX_BALAS_KINKI - 3) return false;
-    for (const a of ANGULOS_KINKI) m.balas.push({ x: j.x, y: j.y - 10, vx: Math.sin(a) * VEL_BALA, vy: -Math.cos(a) * VEL_BALA, atraviesa: true, golpeadas: [] });
-    m.enfriamiento = ENFRIA_KINKI;
+  const dueno = m.jugadores.indexOf(j);
+  const arma = j.estilo.arma;
+  const n = cuenta(m, dueno);
+  if (j.kinki > 0) {
+    if (j.enfriamiento > 0 || n.balas > MAX_BALAS_KINKI - 3) return false;
+    for (const a of ANGULOS_KINKI) m.balas.push({ x: j.x, y: j.y - 10, vx: Math.sin(a) * VEL_BALA, vy: -Math.cos(a) * VEL_BALA, atraviesa: true, golpeadas: [], dueno });
+    j.enfriamiento = ENFRIA_KINKI;
   } else if (arma === 'rafaga') {
-    if (m.enfriamiento > 0 || m.balas.length >= MAX_BALAS) return false;
-    m.balas.push({ x: j.x, y: j.y - 10, vx: 0, vy: -VEL_BALA, atraviesa: false, golpeadas: [] });
-    m.enfriamiento = ENFRIA_BALA;
+    if (j.enfriamiento > 0 || n.balas >= MAX_BALAS) return false;
+    m.balas.push({ x: j.x, y: j.y - 10, vx: 0, vy: -VEL_BALA, atraviesa: false, golpeadas: [], dueno });
+    j.enfriamiento = ENFRIA_BALA;
   } else {
     const tope = arma === 'doble' ? 2 : 1;
-    if (vuelan(m) >= tope || m.cables.length >= tope + 2) return false;
-    m.cables.push({ x: Math.round(j.x), base: j.y, punta: j.y - 2, ancho: arma === 'ancho' ? 7 : 3, fijo: false, t: 0 });
+    if (n.vuelan >= tope || n.cables >= tope + 2) return false;
+    m.cables.push({ x: Math.round(j.x), base: j.y, punta: j.y - 2, ancho: arma === 'ancho' ? 7 : 3, fijo: false, t: 0, dueno });
   }
   j.disparoT = 0.15;
   m.sfx.disparo();
   return true;
 }
 
-function romperBloque(m: Mundo, k: number) {
+function romperBloque(m: Mundo, j: JugadorVivo, k: number) {
   const b = m.bloques[k];
   m.bloques.splice(k, 1);
   efectoPop(m, b.x + b.w / 2, b.y + b.h / 2, 'cerveza', 3);
   m.sfx.romper();
-  sumar(m, 100, b.x + b.w / 2, b.y);
+  sumar(m, j, 100, b.x + b.w / 2, b.y);
 }
 
 function quitar<T>(lista: T[], i: number) {
@@ -60,23 +69,24 @@ function quitar<T>(lista: T[], i: number) {
 }
 
 /** The bubble hit by the wire is burst; true if there was one. */
-function cableContraBurbujas(m: Mundo, c: Cable): boolean {
+function cableContraBurbujas(m: Mundo, j: JugadorVivo, c: Cable): boolean {
   const th = c.ancho / 2;
   for (let k = m.burbujas.length - 1; k >= 0; k--) {
     const b = m.burbujas[k];
     if (!circuloRect(b.x, b.y, b.r, c.x - th, c.punta, c.ancho, c.base - c.punta)) continue;
     quitar(m.burbujas, k);
-    reventar(m, b);
+    reventar(m, j, b);
     return true;
   }
   return false;
 }
 
 export function actualizarArmas(m: Mundo, dt: number) {
-  if (m.enfriamiento > 0) m.enfriamiento -= dt;
-  const pegajoso = m.estilo.arma === 'fijo';
+  for (const p of m.jugadores) if (p.enfriamiento > 0) p.enfriamiento -= dt;
   for (let i = m.cables.length - 1; i >= 0; i--) {
     const c = m.cables[i];
+    const j = m.jugadores[c.dueno];
+    const pegajoso = j.estilo.arma === 'fijo';
     const th = c.ancho / 2;
     let fuera = false;
     if (c.fijo) {
@@ -90,7 +100,7 @@ export function actualizarArmas(m: Mundo, dt: number) {
         if (fondo > c.base || c.punta > fondo || c.x + th <= b.x || c.x - th >= b.x + b.w) continue;
         c.punta = fondo;
         if (b.rompible) {
-          romperBloque(m, k);
+          romperBloque(m, j, k);
           fuera = true;
         } else if (pegajoso) c.fijo = true;
         else fuera = true;
@@ -103,9 +113,9 @@ export function actualizarArmas(m: Mundo, dt: number) {
       }
     }
     if (!fuera) {
-      if (cableContraBurbujas(m, c)) fuera = true;
+      if (cableContraBurbujas(m, j, c)) fuera = true;
       else if (m.jefe && circuloRect(m.jefe.x, m.jefe.y, m.jefe.r, c.x - th, c.punta, c.ancho, c.base - c.punta)) {
-        golpearJefe(m, 1);
+        golpearJefe(m, j, 1);
         fuera = true;
       }
     }
@@ -125,7 +135,7 @@ function balaTermina(m: Mundo, b: Bala): boolean {
   for (let k = 0; k < m.bloques.length; k++) {
     const bl = m.bloques[k];
     if (b.x < bl.x || b.x > bl.x + bl.w || b.y < bl.y || b.y > bl.y + bl.h) continue;
-    if (bl.rompible) romperBloque(m, k);
+    if (bl.rompible) romperBloque(m, m.jugadores[b.dueno], k);
     return true;
   }
   for (let k = m.burbujas.length - 1; k >= 0; k--) {
@@ -133,14 +143,14 @@ function balaTermina(m: Mundo, b: Bala): boolean {
     if (b.atraviesa && b.golpeadas.includes(u.id)) continue;
     if (!circuloRect(u.x, u.y, u.r, b.x - 1, b.y - 3, 2, 6)) continue;
     quitar(m.burbujas, k);
-    reventar(m, u);
+    reventar(m, m.jugadores[b.dueno], u);
     if (!b.atraviesa) return true;
     b.golpeadas.push(u.id);
     for (const h of m.hijos) b.golpeadas.push(h.id);
   }
   const j = m.jefe;
   if (j && !(b.atraviesa && b.golpeadas.includes(-1)) && circuloRect(j.x, j.y, j.r, b.x - 1, b.y - 3, 2, 6)) {
-    golpearJefe(m, 0.34);
+    golpearJefe(m, m.jugadores[b.dueno], 0.34);
     if (!b.atraviesa || j.gorro) return true;
     b.golpeadas.push(-1);
   }

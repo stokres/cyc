@@ -2,7 +2,8 @@
 // The flow: title (with an attract demo behind) → menu → character → the stages one after
 // another → «¿Continuar?» when the lives run out → end screen → records. No story: just the
 // game (Jesús, 12 October 2026).
-// For testing, pang.html?fase=N&pj=fran plays that stage straight away (add &demo to let a bot play it).
+// For testing, pang.html?fase=N&pj=fran plays that stage straight away (add &demo to let a bot play it,
+// and &bots=1..3 to add that many bot players with the other characters).
 import '../ui/ui.css';
 import './pang.css';
 import textosPang from '../textos/pang.md?raw';
@@ -62,18 +63,24 @@ async function arrancar() {
 
   // ---------------------------------------------------------- one stage
   const pausa = () => pantallaPausa(ui, sonido);
-  const jugar = (o: Pick<OpcionesFase, 'fase' | 'pj' | 'vidas' | 'puntos' | 'demo' | 'senal'>): Promise<ResultadoFase | 'salir'> =>
+  const jugar = (o: Pick<OpcionesFase, 'fase' | 'jugadores' | 'controles' | 'yo' | 'demo' | 'senal'>): Promise<ResultadoFase | 'salir'> =>
     jugarFase({ padre: capaJuego, sonido, pausa, ...o });
+  /** The next stage's players: a player who ended out of lives comes back with one. */
+  const siguientes = (pjs: PjId[], r: ResultadoFase) => pjs.map((pj, i) => ({ pj, puntos: r.jugadores[i].puntos, vidas: Math.max(1, r.jugadores[i].vidas) }));
 
   // Test mode: the stage(s) straight away, no menus.
   if (q.has('fase')) {
     const n = Math.min(FASES.length, Math.max(1, Number(q.get('fase')) || 1));
     const pj = (PJS.includes(q.get('pj') as PjId) ? q.get('pj') : 'fran') as PjId;
-    let puntos = 0;
+    // The local player plus `bots` bot players with the other characters.
+    const bots = Math.min(3, Math.max(0, Math.floor(Number(q.get('bots')) || 0)));
+    const pjs = [pj, ...PJS.filter((p) => p !== pj).slice(0, bots)];
+    const controles = pjs.map((_, i) => (i === 0 && !q.has('demo') ? ('local' as const) : ('bot' as const)));
+    let jugadores = pjs.map((p) => ({ pj: p, vidas: VIDAS, puntos: 0 }));
     for (let i = n - 1; i < FASES.length; i++) {
-      const r = await jugar({ fase: FASES[i], pj, vidas: VIDAS, puntos, demo: q.has('demo') });
+      const r = await jugar({ fase: FASES[i], jugadores, controles, yo: 0, demo: q.has('demo') });
       if (r === 'salir' || !r.superada) break;
-      puntos = r.puntos;
+      jugadores = siguientes(pjs, r);
     }
     return;
   }
@@ -92,7 +99,7 @@ async function arrancar() {
       do k = Math.floor(Math.random() * FASES.length);
       while (k === ultima && FASES.length > 1);
       ultima = k;
-      const juego = jugar({ fase: FASES[k], pj: azar(PJS), vidas: VIDAS, puntos: 0, demo: true, senal: corte.signal }).catch(() => 'salir' as const);
+      const juego = jugar({ fase: FASES[k], jugadores: [{ pj: azar(PJS), vidas: VIDAS, puntos: 0 }], controles: ['bot'], yo: 0, demo: true, senal: corte.signal }).catch(() => 'salir' as const);
       // Until the time is up (or the demo is stopped); a stage that ends sooner just waits.
       await new Promise<void>((fin) => {
         const t = setTimeout(fin, CICLO_DEMO);
@@ -136,14 +143,14 @@ async function arrancar() {
     let vidas = VIDAS;
     while (n <= FASES.length) {
       alcanzarFase(n);
-      const r = await jugar({ fase: FASES[n - 1], pj, vidas, puntos });
+      const r = await jugar({ fase: FASES[n - 1], jugadores: [{ pj, vidas, puntos }], controles: ['local'], yo: 0 });
       if (r === 'salir') {
         // (The game does not say how many points the stage in progress had: those before it count.)
         await cerrarPartida(puntos, pj, n, false);
         return;
       }
-      puntos = r.puntos;
-      vidas = r.vidas;
+      puntos = r.jugadores[0].puntos;
+      vidas = r.jugadores[0].vidas;
       if (r.superada) {
         n++;
         continue;

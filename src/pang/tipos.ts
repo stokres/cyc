@@ -150,8 +150,8 @@ export type Objeto = 'reloj' | 'chupito' | 'escudo' | 'cana' | 'jamon' | 'aceitu
 export type Anim = 'quieto' | 'andar' | 'disparar' | 'escalar' | 'herido' | 'victoria';
 
 export interface ResultadoFase {
-  /** true: stage cleared; false: out of lives (the caller offers to continue). */
+  /** true: stage cleared; false: nobody left standing (the caller offers to continue). */
   superada: boolean;
-  puntos: number;
-  vidas: number;
+  /** One per player, in order. `vidas` 0: he was out of lives when the stage ended (the next stage starts him with 1). */
+  jugadores: { puntos: number; vidas: number }[];
 }

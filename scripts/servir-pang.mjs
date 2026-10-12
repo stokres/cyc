@@ -1,10 +1,11 @@
-// Serves ./dist for Railway (`npm start`, after `npm run build`). No dependencies.
+// Serves ./dist for Railway (`npm start`, after `npm run build`), plus the online room at /sala (scripts/sala-pang.mjs).
 // «/» opens the Pang (dist/pang.html); the chapter 1 stays at /index.html.
 import { createServer } from 'node:http';
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { adjuntarSala } from './sala-pang.mjs';
 
 const RAIZ = resolve(fileURLToPath(new URL('../dist', import.meta.url)));
 const PUERTO = Number(process.env.PORT) || 8080;
@@ -78,4 +79,5 @@ const servidor = createServer(async (req, res) => {
   createReadStream(hallado.archivo).on('error', () => res.destroy()).pipe(res);
 });
 
+adjuntarSala(servidor);
 servidor.listen(PUERTO, '0.0.0.0', () => console.log(`Pang en el puerto ${PUERTO} (sirviendo ${RAIZ})`));

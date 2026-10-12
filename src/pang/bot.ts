@@ -13,6 +13,9 @@ const MUESTRA = 0.1;
 const SUB = 0.05;
 
 export class Bot {
+  /** `idx`: the player (index in `Mundo.jugadores`) this bot plays. */
+  constructor(private readonly idx = 0) {}
+
   private espera = 0;
   private disparoEn = 0;
   private bx = new Float32Array(MAX * N);
@@ -27,9 +30,9 @@ export class Bot {
     if (this.espera > 0) return;
     this.espera = 0.05;
     this.predecir(m);
-    const j = m.jugador;
-    const paso = m.estilo.paso;
-    if (m.barra >= BARRA_LLENA && this.n > 0) mandos.especial = true;
+    const j = m.jugadores[this.idx];
+    const paso = j.estilo.paso;
+    if (j.barra >= BARRA_LLENA && this.n > 0) mandos.especial = true;
 
     // The target: big, near in x, and above.
     let mejor = -1;
@@ -63,7 +66,7 @@ export class Bot {
     mandos.izq = elegido < 0;
     mandos.der = elegido > 0;
     const alineado = mejor >= 0 && Math.abs(objetivo - j.x) <= Math.max(3, radio * 0.6);
-    const auto = m.estilo.arma === 'rafaga' || m.kinki > 0;
+    const auto = j.estilo.arma === 'rafaga' || j.kinki > 0;
     mandos.fuego = alineado && auto;
     if (alineado && this.disparoEn <= 0) {
       mandos.disparo = true;

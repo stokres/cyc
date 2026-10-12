@@ -53,6 +53,8 @@ export interface Cable {
   /** Stuck to the ceiling or a block (Pablo's): seconds it has been there. */
   fijo: boolean;
   t: number;
+  /** Index (in `Mundo.jugadores`) of the player who fired it: points, bar and limits are his. */
+  dueno: number;
 }
 
 export interface Bala {
@@ -63,6 +65,8 @@ export interface Bala {
   /** Kinki: goes through bubbles, hitting each at most once. */
   atraviesa: boolean;
   golpeadas: number[];
+  /** Index (in `Mundo.jugadores`) of the player who fired it. */
+  dueno: number;
 }
 
 export interface ObjetoSuelto {
@@ -120,7 +124,22 @@ export interface Aviso {
 
 export type Escudo = 0 | 1 | 2; // none, bear hug (pops on break), item
 
+/** One player of the stage: body, weapon state and his own score, lives and special bar. */
 export interface JugadorVivo {
+  pj: PjId;
+  estilo: Estilo;
+  puntos: number;
+  vidas: number;
+  barra: number;
+  siguienteVida: number;
+  /** Chuchi's rapid fire: seconds left. */
+  kinki: number;
+  /** Seconds until the next bullet may leave. */
+  enfriamiento: number;
+  /** Seconds left of the hit animation (several players only): 0 = up and playing. No collisions meanwhile. */
+  caido: number;
+  /** Out of lives until the stage ends (several players only): not drawn, no collisions, no input. */
+  fuera: boolean;
   x: number;
   /** Feet. */
   y: number;
@@ -140,16 +159,10 @@ export interface JugadorVivo {
 
 export interface Mundo {
   fase: Fase;
-  pj: PjId;
-  estilo: Estilo;
   sfx: Efectos;
   /** Seconds of play since the stage (re)started. */
   t: number;
   tiempo: number;
-  puntos: number;
-  vidas: number;
-  barra: number;
-  siguienteVida: number;
   canaDada: boolean;
   sigId: number;
   burbujas: Burbuja[];
@@ -162,12 +175,10 @@ export interface Mundo {
   jefe: JefeVivo | null;
   /** Seconds since the boss died, or -1. */
   finJefe: number;
-  jugador: JugadorVivo;
-  /** Bubbles and boss stand still (clock item, Fran's special). */
+  /** One to four players, in the order of the room (index = `dueno` of their shots). */
+  jugadores: JugadorVivo[];
+  /** Bubbles and boss stand still (clock item, Fran's special): for everybody. */
   congelado: number;
-  /** Chuchi's rapid fire. */
-  kinki: number;
-  enfriamiento: number;
   aviso: Aviso | null;
   /** Scratch: the children of the last bubble popped. */
   hijos: Burbuja[];
