@@ -1217,12 +1217,28 @@ button:focus-visible {
   top: 38%;
   left: 50%;
   transform: translate(-50%, -50%);
+  z-index: 2;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: calc(100% - 2 * (var(--safe-r) + 58px));
+  padding: 8px 26px;
+  border-radius: 18px;
+  background: var(--glass-strong);
+  border: 1px solid var(--gold);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
   font: 400 clamp(20px, 7vh, 36px) var(--display);
+  line-height: 1.2;
   color: var(--gold);
   text-align: center;
-  text-shadow: 0 3px 10px rgba(0, 0, 0, 0.8);
+  text-shadow: none;
   pointer-events: none;
-  white-space: nowrap;
+  white-space: normal;
+}
+
+/* With the tower's view, the hanging pig is around a third of the way down and the
+   top of the tower at half height: an opaque panel at 38% would hide them. */
+.minijuego.cerdos .aviso-cerdos {
+  top: 64%;
 }
 
 .aviso-cerdos.salta {
