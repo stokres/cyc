@@ -105,7 +105,8 @@ export function jugarRobot(parent: HTMLElement, rapido = false, infinito?: Infin
   const cerrar = h('button', { class: 'cerrar', 'aria-label': texto('boton.cerrar') }, '×');
   const puntos = infinito ? marcador(infinito) : null;
   bateriaEl.hidden = !!infinito;
-  const capa = h('div', { class: 'cubierta minijuego robot' }, lienzo, h('p', { class: 'instrucciones' }, texto('robot.instrucciones')), cercaEl, bateriaEl, ...(puntos ? [puntos.el] : []), aviso, saltar, cerrar);
+  const instrucciones = h('p', { class: 'instrucciones' }, texto('robot.instrucciones'));
+  const capa = h('div', { class: 'cubierta minijuego robot' }, lienzo, instrucciones, cercaEl, bateriaEl, ...(puntos ? [puntos.el] : []), aviso, saltar, cerrar);
   parent.append(capa);
   sonido?.musica('contraRobi');
   const ctx = lienzo.getContext('2d')!;
@@ -190,6 +191,8 @@ export function jugarRobot(parent: HTMLElement, rapido = false, infinito?: Infin
   let caida = 0; // Robi slumping when switched off
   let apagado = false; // switched off: the story's win
   let pausa = 0;
+  // Seconds of play left before the instructions strip fades away on its own (if he has not fired yet).
+  let instruccionesT = 5;
   let terminado: Resultado | null = null;
   let tras: null | (() => void) = null;
   let fotogramas = 0;
@@ -204,6 +207,8 @@ export function jugarRobot(parent: HTMLElement, rapido = false, infinito?: Infin
     tras = luego ?? null;
   };
   const empezar = () => {
+    instruccionesT = 5;
+    instrucciones.classList.remove('apartada');
     golpes = 0;
     cerca = 0;
     t = 0;
@@ -227,6 +232,8 @@ export function jugarRobot(parent: HTMLElement, rapido = false, infinito?: Infin
     bolas.push({ c: Math.floor(Math.random() * BOLAS.length), x0: b.x, y0: b.y, x1: x, y1: y, t: 0, fin: null });
     recarga = R.RECARGA;
     retroceso = 1;
+    instruccionesT = 0;
+    instrucciones.classList.add('apartada');
   };
 
   const llega = (b: Bola) => {
@@ -435,6 +442,10 @@ export function jugarRobot(parent: HTMLElement, rapido = false, infinito?: Infin
           luego?.();
         }
       } else if (!terminado) {
+        if (instruccionesT > 0) {
+          instruccionesT -= dt;
+          if (instruccionesT <= 0) instrucciones.classList.add('apartada');
+        }
         // Endless: past six hits his routine and his walk speed up (always 1 in the story).
         const ritmo = R.ritmo(golpes);
         t += dt * ritmo;

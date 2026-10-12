@@ -1135,6 +1135,12 @@ button:focus-visible {
   letter-spacing: 0.02em;
   text-shadow: none;
   pointer-events: none;
+  transition: opacity 0.5s;
+}
+
+/* In Robi's game his head reaches the top edge, so the strip steps aside after the first shot (or a few seconds). */
+.minijuego .instrucciones.apartada {
+  opacity: 0;
 }
 
 .minijuego .cerrar {
