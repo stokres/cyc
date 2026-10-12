@@ -8,8 +8,15 @@ import type { Efectos } from './sonido';
 /** Fixed simulation step, seconds. */
 export const PASO = 1 / 120;
 export const GRAVEDAD = 320;
-/** Horizontal speed of every bubble (times the stage's `prisa`), px/s. */
-export const VEL_BURBUJA = 52;
+/**
+ * Bubbles fall slower than the player and the items, so they float like Pang's (Jesús, 12
+ * October 2026: they were too fast, the big ones above all).
+ */
+export const GRAVEDAD_BURBUJA = 200;
+/** Horizontal speed of a bubble, px/s, before the stage's pace and its size (base.ts). */
+export const VEL_BURBUJA = 40;
+/** The big ones drift slowest. */
+export const VEL_TALLA: Record<Talla, number> = { 0: 0.8, 1: 0.9, 2: 1, 3: 1.05 };
 /** Height the BOTTOM of a bubble reaches above what it bounced on, by size. */
 export const ALTURA_BOTE: Record<Talla, number> = { 0: 120, 1: 92, 2: 64, 3: 40 };
 export const PUNTOS_BURBUJA: Record<Talla, number> = { 0: 50, 1: 100, 2: 150, 3: 200 };

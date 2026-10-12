@@ -31,7 +31,7 @@ export function reventar(m: Mundo, b: Burbuja, op: OpcionesReventar = {}): void 
   const v = velocidadBurbujas(m);
   for (const lado of [-1, 1]) {
     // Beer mats keep their straight diagonals; the rest hop up a little.
-    const h = crearBurbuja(m, b.x, b.y, talla, b.variante, b.color, lado * v, b.variante === 'posavasos' ? -v : -150);
+    const h = crearBurbuja(m, b.x, b.y, talla, b.variante, b.color, lado * v, b.variante === 'posavasos' ? -v : -120);
     m.burbujas.push(h);
     m.hijos.push(h);
   }
@@ -77,7 +77,7 @@ export function chupito(m: Mundo) {
     const n = 2 ** (3 - b.talla);
     for (let k = 0; k < n; k++) {
       const lado = k % 2 ? 1 : -1;
-      const h = crearBurbuja(m, b.x + (k - n / 2) * 2, b.y, 3, b.variante, b.color, lado * v, b.variante === 'posavasos' ? (k % 4 < 2 ? -v : v) : -150 - (k % 3) * 25);
+      const h = crearBurbuja(m, b.x + (k - n / 2) * 2, b.y, 3, b.variante, b.color, lado * v, b.variante === 'posavasos' ? (k % 4 < 2 ? -v : v) : -120 - (k % 3) * 20);
       m.burbujas.push(h);
     }
   }

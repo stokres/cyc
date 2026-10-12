@@ -14,10 +14,12 @@ export interface Mandos {
   /** Presses, not yet taken by the game. */
   disparo: boolean;
   especial: boolean;
+  /** ↑ pressed on the keyboard: climbs at a ladder, otherwise fires the special (Jesús, 12 October 2026). */
+  subeOEspecial: boolean;
   pausa: boolean;
 }
 
-export const mandosNuevos = (): Mandos => ({ izq: false, der: false, arriba: false, abajo: false, fuego: false, disparo: false, especial: false, pausa: false });
+export const mandosNuevos = (): Mandos => ({ izq: false, der: false, arriba: false, abajo: false, fuego: false, disparo: false, especial: false, subeOEspecial: false, pausa: false });
 
 export interface Entrada {
   mandos: Mandos;
@@ -192,7 +194,8 @@ export function crearEntrada(raiz: HTMLElement, opc: { escaleras: boolean }): En
   // Keyboard.
   const MAPA: Record<string, string> = {
     ArrowLeft: 'izq', KeyA: 'izq', ArrowRight: 'der', KeyD: 'der', ArrowUp: 'arriba', KeyW: 'arriba', ArrowDown: 'abajo', KeyS: 'abajo',
-    Space: 'fuego', KeyZ: 'fuego', KeyJ: 'fuego', KeyX: 'especial', KeyK: 'especial', ShiftLeft: 'especial', ShiftRight: 'especial', Escape: 'pausa', KeyP: 'pausa',
+    Space: 'fuego', KeyZ: 'fuego', KeyJ: 'fuego', KeyX: 'especial', KeyK: 'especial', ShiftLeft: 'especial', ShiftRight: 'especial',
+    ControlLeft: 'especial', ControlRight: 'especial', MetaLeft: 'especial', MetaRight: 'especial', Escape: 'pausa', KeyP: 'pausa',
   };
   const abajo = (e: KeyboardEvent) => {
     const k = MAPA[e.code];
@@ -204,6 +207,7 @@ export function crearEntrada(raiz: HTMLElement, opc: { escaleras: boolean }): En
     else {
       teclas.add(k);
       if (k === 'fuego') mandos.disparo = true;
+      if (k === 'arriba') mandos.subeOEspecial = true;
       sumar();
     }
   };
@@ -217,7 +221,7 @@ export function crearEntrada(raiz: HTMLElement, opc: { escaleras: boolean }): En
   const soltarTodo = () => {
     teclas.clear();
     for (const f of sueltas) f();
-    mandos.disparo = mandos.especial = mandos.pausa = false;
+    mandos.disparo = mandos.especial = mandos.subeOEspecial = mandos.pausa = false;
     sumar();
   };
   const alOcultar = () => {

@@ -25,7 +25,7 @@ Juego aparte (12 de octubre de 2026, a petición de Jesús): un *Pang* de recrea
 
 ## Reglas
 
-- **Burbujas.** Cuatro tallas (radio 20, 12, 7 y 4). Un impacto parte una en dos de la talla siguiente, que saltan un poco hacia arriba y salen en direcciones opuestas; la más pequeña revienta. Botan siempre a la misma altura según su talla y avanzan de lado a velocidad fija. Los **posavasos** (fase 7) no caen: van en diagonal y rebotan en todo. Puntos: 50, 100, 150 y 200 de mayor a menor.
+- **Burbujas.** Cuatro tallas (radio 20, 12, 7 y 4). Un impacto parte una en dos de la talla siguiente, que saltan un poco hacia arriba y salen en direcciones opuestas; la más pequeña revienta. Botan siempre a la misma altura según su talla y flotan como en el original (12 de octubre de 2026, Jesús: iban demasiado rápidas): caen con menos gravedad que el jugador, las grandes van más despacio que las pequeñas y todas aceleran fase a fase (de ×0,8 en la 1 a ×1,2 en la 12). Los **posavasos** (fase 7) no caen: van en diagonal y rebotan en todo. Puntos: 50, 100, 150 y 200 de mayor a menor.
 - **Jugador.** Anda a izquierda y derecha y nunca salta. En la fase 8 sube y baja por escaleras a las murallas. Si le toca una burbuja o un jefe, pierde una vida y la fase empieza otra vez (como en el original); igual si se acaba el tiempo. Tres vidas; sin vidas, «¿Continuar?», que repite la fase con tres vidas y los puntos a cero (continuaciones sin límite, para que todos vean el final).
 - **Al superar una fase**, bonus por el tiempo que sobra.
 
@@ -57,10 +57,14 @@ La barra del especial se llena con 16 burbujas reventadas (o golpes al jefe) y s
 - **6 · El Peor** (jefe): el cerdo de 152 kilos bota más bajo y más rápido; cada golpe suelta un cerdito (una burbuja pequeña). Al final, más rápido.
 - **12 · La Penúltima** (jefe final): una jarra gigante que flota por arriba y escupe burbujas de champán; a media vida se enfada y escupe más.
 
+## Música
+
+Tres temas propios, sintetizados con `tools/musica/pang.py` (12 de octubre de 2026, Jesús pidió música cañera con melodías buenas, en la línea de *VVVVVV* y *Streets of Rage 2*): «A tope por Usera» (chiptune, 150 ppm, la menor; también en el título y los menús), «La calle de la penúltima» (house con FM de Mega Drive, 126 ppm, re dórico) y «Última ronda» (168 ppm, mi menor; la de los jefes). Se turnan fase a fase (`musica` en `src/pang/fases.ts`). Se generan con `python3 pang.py <usera|calle|ronda> bucle ../../src/sonido/pang-<nombre>.mp3`.
+
 ## Controles
 
 - **Móvil (horizontal):** ◀ ▶ abajo a la izquierda (se puede deslizar el dedo de uno a otro), Disparo y Especial abajo a la derecha, y Pausa arriba a la derecha. En la fase 8 salen ▲ ▼ para las escaleras. Botones de al menos 44 px CSS, semitransparentes y en las zonas seguras.
-- **Teclado:** flechas o A/D para andar, ↑/↓ o W/S en las escaleras, espacio, Z o J para disparar, X, K o Mayúsculas para el especial, Esc o P para la pausa.
+- **Teclado:** flechas o A/D para andar, ↑/↓ o W/S en las escaleras, espacio, Z o J para disparar, ↑ (o W, fuera de las escaleras), Ctrl o Cmd, X, K o Mayúsculas para el especial, Esc o P para la pausa.
 
 ## Guardado
 

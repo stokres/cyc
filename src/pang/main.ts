@@ -104,6 +104,8 @@ async function arrancar() {
   };
   const demo = {
     iniciar() {
+      // The title and the menus have their music too: «A tope por Usera» (Jesús, 12 October 2026).
+      sonido.musica('pangUsera');
       if (demoActiva) return;
       demoActiva = true;
       demoCiclo = demoBucle();

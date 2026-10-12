@@ -2,13 +2,14 @@
 import { texto } from '../juego/textos';
 import { burbuja, estallido } from './arte/sprites';
 import { rotulo } from './hud';
-import { ALTURA_BOTE, BARRA_LLENA, VEL_BURBUJA, type Burbuja, type Mundo } from './mundo';
+import { ALTURA_BOTE, BARRA_LLENA, VEL_BURBUJA, VEL_TALLA, type Burbuja, type Mundo } from './mundo';
 import { RADIO, type ColorBola, type Talla, type Variante } from './tipos';
 
 /** An extra life every this many points. */
 const PUNTOS_POR_VIDA = 20000;
 
-export const velocidadBurbujas = (m: Mundo) => VEL_BURBUJA * (m.fase.prisa ?? 1);
+/** Bubbles start slow on stage 1 and speed up stage by stage (×0.8 → ×1.2 on stage 12). */
+export const velocidadBurbujas = (m: Mundo) => VEL_BURBUJA * (0.8 + (0.4 * (m.fase.n - 1)) / 11) * (m.fase.prisa ?? 1);
 
 /** A floating number (or short word) that rises and fades. */
 export function popup(m: Mundo, x: number, y: number, txt: string, color = '#ffffff') {
@@ -48,8 +49,9 @@ export function crearBurbuja(m: Mundo, x: number, y: number, talla: Talla, varia
     id: m.sigId++,
     x,
     y,
-    vx,
-    vy,
+    // Speeds are given for a middle-sized bubble: the big ones drift slower, the small faster.
+    vx: vx * VEL_TALLA[talla],
+    vy: variante === 'posavasos' ? vy * VEL_TALLA[talla] : vy,
     r: RADIO[talla],
     bote: variante === 'posavasos' ? 0 : ALTURA_BOTE[talla],
     talla,

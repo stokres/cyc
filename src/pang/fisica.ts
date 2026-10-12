@@ -1,7 +1,7 @@
 // Bouncing bodies (bubbles and bosses) and the small geometry the game needs.
 import type { Bloque } from './tipos';
 import { AREA } from './tipos';
-import { GRAVEDAD, type Cuerpo } from './mundo';
+import { GRAVEDAD_BURBUJA, type Cuerpo } from './mundo';
 
 /** Does the circle touch the rectangle? */
 export function circuloRect(cx: number, cy: number, r: number, rx: number, ry: number, rw: number, rh: number): boolean {
@@ -13,7 +13,7 @@ export function circuloRect(cx: number, cy: number, r: number, rx: number, ry: n
 }
 
 /** The vertical speed that makes the bottom of a body rise `h` px above where it bounced. */
-export const velocidadBote = (h: number) => -Math.sqrt(2 * GRAVEDAD * h);
+export const velocidadBote = (h: number) => -Math.sqrt(2 * GRAVEDAD_BURBUJA * h);
 
 function rebotarArriba(c: Cuerpo) {
   if (c.bote > 0) c.vy = velocidadBote(c.bote);
@@ -26,7 +26,7 @@ function rebotarArriba(c: Cuerpo) {
  * always rises to the same height. `viento` pushes it sideways without changing `vx`.
  */
 export function moverCuerpo(c: Cuerpo, dt: number, bloques: Bloque[], viento = 0) {
-  if (c.bote > 0) c.vy += GRAVEDAD * dt;
+  if (c.bote > 0) c.vy += GRAVEDAD_BURBUJA * dt;
   c.x += (c.vx + viento) * dt;
   c.y += c.vy * dt;
   const r = c.r;

@@ -251,6 +251,12 @@ def golpe(tipo, vel, semilla=0):
         arranque = (t < 0.9) * 0.35 * np.sin(2 * np.pi * 180 * t) * (0.6 + 0.4 * np.sin(2 * np.pi * 7 * t))  # the starter's whine
         traqueteo = _filtro(ruido(nm, semilla=semilla + 2), 'highpass', 1200) * 0.12 * oaconvolve(golpes_, np.exp(-k / 0.008))[:nm]
         w = _filtro(w + arranque + traqueteo, 'lowpass', 2500) * np.minimum(1, (3.6 - t) / 0.5)
+    elif tipo == 'palmas':  # a drum machine's handclap: three quick bursts of band-passed noise, then a tail
+        nm = int(0.3 * SR)
+        t = np.arange(nm) / SR
+        r = _filtro(_filtro(ruido(nm, semilla=semilla), 'highpass', 900), 'lowpass', 5200)
+        env = sum(np.exp(-np.maximum(0, t - k * 0.009) / 0.004) * (t >= k * 0.009) for k in range(3))
+        w = r * 1.5 * (env + 0.55 * np.exp(-np.maximum(0, t - 0.027) / 0.09) * (t >= 0.027))
     elif tipo == 'clic':  # a rimshot-ish tick
         nm = int(0.06 * SR)
         t = np.arange(nm) / SR

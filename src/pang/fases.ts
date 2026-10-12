@@ -1,5 +1,5 @@
 // The twelve stages: a world tour from Usera to Las Vegas (docs/PANG.md). Each one adds
-// something, as in the original. Play area: x 8–376, ceiling 8, floor 184 (tipos.ts).
+// something, as in the original. The three themes take turns; the bosses get «Última ronda». Play area: x 8–376, ceiling 8, floor 184 (tipos.ts).
 // Floating blocks keep their underside at y ≤ 148, so the player walks under them;
 // platforms the player stands on are reached by ladders (the player never jumps).
 import type { Fase } from './tipos';
@@ -8,7 +8,7 @@ export const FASES: Fase[] = [
   {
     n: 1,
     fondo: 'usera',
-    musica: 'barrio',
+    musica: 'pangUsera',
     tiempo: 100,
     inicio: 192,
     burbujas: [{ x: 96, y: 60, talla: 0, dir: 1 }],
@@ -18,7 +18,7 @@ export const FASES: Fase[] = [
   {
     n: 2,
     fondo: 'calle',
-    musica: 'barrio',
+    musica: 'pangCalle',
     tiempo: 110,
     inicio: 192,
     burbujas: [
@@ -34,7 +34,7 @@ export const FASES: Fase[] = [
   {
     n: 3,
     fondo: 'piso',
-    musica: 'vueltas',
+    musica: 'pangUsera',
     tiempo: 110,
     inicio: 192,
     especial: 'aceituna',
@@ -49,7 +49,7 @@ export const FASES: Fase[] = [
   {
     n: 4,
     fondo: 'bolilandia',
-    musica: 'contraRobi',
+    musica: 'pangRonda',
     tiempo: 150,
     inicio: 192,
     jefe: 'robi',
@@ -63,7 +63,7 @@ export const FASES: Fase[] = [
   {
     n: 5,
     fondo: 'teatro',
-    musica: 'jaleo',
+    musica: 'pangCalle',
     tiempo: 120,
     inicio: 192,
     especial: 'oscuro',
@@ -78,7 +78,7 @@ export const FASES: Fase[] = [
   {
     n: 6,
     fondo: 'granja',
-    musica: 'granjaCerdos',
+    musica: 'pangRonda',
     tiempo: 160,
     inicio: 192,
     jefe: 'peor',
@@ -92,7 +92,7 @@ export const FASES: Fase[] = [
   {
     n: 7,
     fondo: 'madridrio',
-    musica: 'barrio',
+    musica: 'pangUsera',
     tiempo: 120,
     inicio: 192,
     burbujas: [
@@ -106,7 +106,7 @@ export const FASES: Fase[] = [
   {
     n: 8,
     fondo: 'avila',
-    musica: 'barPuerta',
+    musica: 'pangCalle',
     tiempo: 130,
     inicio: 192,
     burbujas: [
@@ -127,7 +127,7 @@ export const FASES: Fase[] = [
   {
     n: 9,
     fondo: 'zaragoza',
-    musica: 'granjaRadio',
+    musica: 'pangRonda',
     tiempo: 130,
     inicio: 192,
     especial: 'cierzo',
@@ -142,7 +142,7 @@ export const FASES: Fase[] = [
   {
     n: 10,
     fondo: 'jijona',
-    musica: 'jaleo',
+    musica: 'pangUsera',
     tiempo: 140,
     inicio: 192,
     burbujas: [
@@ -161,10 +161,10 @@ export const FASES: Fase[] = [
   {
     n: 11,
     fondo: 'nevada',
-    musica: 'trailer',
+    musica: 'pangCalle',
     tiempo: 90,
     inicio: 192,
-    prisa: 1.3,
+    prisa: 1.15,
     burbujas: [
       { x: 64, y: 56, talla: 0, dir: 1 },
       { x: 192, y: 44, talla: 0, dir: -1 },
@@ -180,7 +180,7 @@ export const FASES: Fase[] = [
   {
     n: 12,
     fondo: 'vegas',
-    musica: 'contraRobi',
+    musica: 'pangRonda',
     tiempo: 200,
     inicio: 192,
     jefe: 'penultima',

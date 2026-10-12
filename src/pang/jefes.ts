@@ -17,8 +17,8 @@ const CON_GORRO = 3;
 export function crearJefe(tipo: Jefe): JefeVivo {
   const hoja = hojaJefe(tipo);
   const datos = {
-    robi: { hp: 16, bote: 130, vel: 46, x: 96, y: 50 },
-    peor: { hp: 18, bote: 100, vel: 60, x: 288, y: 60 },
+    robi: { hp: 16, bote: 130, vel: 36, x: 96, y: 50 },
+    peor: { hp: 18, bote: 100, vel: 46, x: 288, y: 60 },
     penultima: { hp: 30, bote: 0, vel: 38, x: 192, y: 70 },
   }[tipo];
   return {
@@ -71,7 +71,7 @@ export function actualizarJefe(m: Mundo, dt: number) {
     }
     moverCuerpo(j, dt, m.bloques);
   } else if (j.tipo === 'peor') {
-    j.velocidad = j.hp <= 6 ? 60 * 1.3 : 60;
+    j.velocidad = j.hp <= 6 ? 46 * 1.3 : 46;
     j.vx = Math.sign(j.vx || 1) * j.velocidad;
     moverCuerpo(j, dt, m.bloques);
   } else {
@@ -111,9 +111,9 @@ function alGolpe(m: Mundo, j: JefeVivo) {
   const lado = Math.random() < 0.5 ? -1 : 1;
   if (j.tipo === 'robi') {
     j.golpes++;
-    if (j.golpes % 2 === 0) m.burbujas.push(crearBurbuja(m, j.x, j.y, 3, 'bola', COLORES[Math.floor(Math.random() * COLORES.length)], lado * v, -150));
+    if (j.golpes % 2 === 0) m.burbujas.push(crearBurbuja(m, j.x, j.y, 3, 'bola', COLORES[Math.floor(Math.random() * COLORES.length)], lado * v, -120));
   } else if (j.tipo === 'peor') {
-    m.burbujas.push(crearBurbuja(m, j.x, j.y, 3, 'cerdito', 'roja', lado * v, -150));
+    m.burbujas.push(crearBurbuja(m, j.x, j.y, 3, 'cerdito', 'roja', lado * v, -120));
   }
 }
 

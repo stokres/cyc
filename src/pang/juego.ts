@@ -400,6 +400,10 @@ class Partida {
     }
     this.bot?.pensar(m, mand, dt);
 
+    if (mand.subeOEspecial) {
+      mand.subeOEspecial = false;
+      if (!this.juntoAEscalera()) mand.especial = true;
+    }
     if (mand.especial) {
       mand.especial = false;
       usarPoder(m);
@@ -417,7 +421,7 @@ class Partida {
       m.congelado -= dt;
       if (m.jefe && m.jefe.golpeT > 0) m.jefe.golpeT -= dt;
     } else {
-      const viento = m.viento * 28;
+      const viento = m.viento * 20;
       for (let i = 0; i < m.burbujas.length; i++) moverCuerpo(m.burbujas[i], dt, m.bloques, viento);
       actualizarJefe(m, dt);
     }
@@ -437,6 +441,13 @@ class Partida {
     }
     if (m.finJefe >= 0) m.finJefe += dt;
     if (!m.jefe && m.burbujas.length === 0 && (m.finJefe < 0 || m.finJefe >= 0.9)) this.superar();
+  }
+
+  /** On a ladder, or at the foot of one: there ↑ climbs instead of firing the special. */
+  private juntoAEscalera() {
+    const j = this.m.jugador;
+    if (j.escalera >= 0) return true;
+    return this.fase.escaleras.some((e) => Math.abs(j.x - (e.x + 8)) <= 8 && j.y > e.arriba + 0.5 && j.y <= e.abajo + 0.5);
   }
 
   private moverJugador(dt: number) {
@@ -574,6 +585,9 @@ class Partida {
     const m = this.m;
     g.drawImage(fondo(this.fase.fondo), 0, 0);
     for (const e of this.fase.escaleras) g.drawImage(escalera(e.abajo - e.arriba), e.x, e.arriba);
+    // A drop shadow under each block lifts it off the background.
+    g.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    for (const b of m.bloques) g.fillRect(b.x + 3, b.y + 3, b.w, b.h);
     for (const b of m.bloques) g.drawImage(bloque(b), b.x, b.y);
     dibujarAbajo(g, m, (c) => this.espejo(c));
     for (const o of m.objetos) if (objetoVisible(o.t)) g.drawImage(o.img, Math.round(o.x - 6), Math.round(o.y - 6));

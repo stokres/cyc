@@ -1184,7 +1184,27 @@ function pintarBloque(estilo: string, w: number, h: number, rompible: boolean): 
 
 /** A block, painted at its size. Breakable ones (`rompible`) carry a crack; they go in one hit. */
 export function bloque(b: Pick<Bloque, 'w' | 'h' | 'estilo' | 'rompible'>): HTMLCanvasElement {
-  return una(`k|${b.estilo}|${b.w}|${b.h}|${b.rompible ? 1 : 0}`, () => pintarBloque(b.estilo, b.w, b.h, !!b.rompible));
+  return una(`k|${b.estilo}|${b.w}|${b.h}|${b.rompible ? 1 : 0}`, () => recortado(pintarBloque(b.estilo, b.w, b.h, !!b.rompible)));
+}
+
+/**
+ * Every block gets the same arcade edge so it never melts into the background (Jesús, 12
+ * October 2026: on stage 2 the bins looked like part of the street): a near-black outline, a
+ * bright line along the top (what the bubbles bounce on) and a darker one along the bottom.
+ */
+function recortado(c: HTMLCanvasElement): HTMLCanvasElement {
+  const x = ctx(c);
+  const { width: w, height: h } = c;
+  x.fillStyle = 'rgba(255, 244, 214, 0.75)';
+  x.fillRect(1, 1, w - 2, 1);
+  x.fillStyle = 'rgba(0, 0, 0, 0.35)';
+  x.fillRect(1, h - 2, w - 2, 1);
+  x.fillStyle = '#0b0a14';
+  x.fillRect(0, 0, w, 1);
+  x.fillRect(0, h - 1, w, 1);
+  x.fillRect(0, 0, 1, h);
+  x.fillRect(w - 1, 0, 1, h);
+  return c;
 }
 
 /** A wooden ladder, 16 wide and `alto` tall: two rails and a rung every 6 px. */

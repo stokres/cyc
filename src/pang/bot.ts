@@ -3,7 +3,7 @@
 // the same `Mandos` the buttons do.
 import type { Mandos } from './entrada';
 import { circuloRect, velocidadBote } from './fisica';
-import { BARRA_LLENA, GRAVEDAD, type Mundo } from './mundo';
+import { BARRA_LLENA, GRAVEDAD_BURBUJA, type Mundo } from './mundo';
 import { AREA } from './tipos';
 
 const MAX = 48;
@@ -99,7 +99,7 @@ export class Bot {
     const i = this.n++;
     this.br[i] = r;
     for (let k = 1; k <= N * 2; k++) {
-      if (bote > 0) vy += GRAVEDAD * SUB;
+      if (bote > 0) vy += GRAVEDAD_BURBUJA * SUB;
       x += vx * SUB;
       y += vy * SUB;
       if (x - r < AREA.izq) {
