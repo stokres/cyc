@@ -13,7 +13,7 @@ export const velocidadBurbujas = (m: Mundo) => VEL_BURBUJA * (0.8 + (0.4 * (m.fa
 
 /** A floating number (or short word) that rises and fades. */
 export function popup(m: Mundo, x: number, y: number, txt: string, color = '#ffffff') {
-  if (m.popups.length < 24) m.popups.push({ x, y, t: 0, img: rotulo(txt, color) });
+  if (m.popups.length < 24) m.popups.push({ x, y, t: 0, img: rotulo(txt, color), txt, color });
 }
 
 /** Adds points to a player; with a position, shows them floating there. Every 20 000 gives him a life. */
@@ -36,7 +36,7 @@ export function vidaExtra(m: Mundo, j: JugadorVivo) {
 
 /** The big line in the middle of the play area (texts: `hud.*`). */
 export function avisar(m: Mundo, clave: string, color = '#ffd36a') {
-  m.aviso = { img: rotulo(texto(clave), color, 16), t: 0 };
+  m.aviso = { img: rotulo(texto(clave), color, 16), t: 0, clave, color };
 }
 
 export function llenarBarra(j: JugadorVivo, n: number) {
@@ -66,5 +66,5 @@ export function crearBurbuja(m: Mundo, x: number, y: number, talla: Talla, varia
 
 /** The puff of a burst bubble (or a piece of an exploding boss) at a point. */
 export function efectoPop(m: Mundo, x: number, y: number, variante: Variante, talla: Talla, retraso = 0) {
-  m.efectos.push({ x, y, t: -retraso, frames: estallido(variante, talla) });
+  m.efectos.push({ x, y, t: -retraso, frames: estallido(variante, talla), variante, talla });
 }

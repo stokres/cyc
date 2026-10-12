@@ -167,12 +167,16 @@ function actualizarCierzo(m: Mundo, dt: number) {
   }
   // Wind strength: ramps up and down over half a second.
   m.viento = c.soplando ? c.dir * Math.min(1, c.t / 0.5, (RACHA - c.t) / 0.5) : 0;
-  if (Math.abs(m.viento) > 0.02) {
-    for (let i = 0; i < RAYAS; i++) {
-      rx[i] += m.viento * 260 * rv[i] * dt;
-      if (rx[i] > AREA.der) rx[i] = AREA.izq - rl[i];
-      else if (rx[i] + rl[i] < AREA.izq) rx[i] = AREA.der;
-    }
+  moverRayas(m.viento, dt);
+}
+
+/** The streaks that show the wind. Purely visual: an online guest moves them too. */
+export function moverRayas(viento: number, dt: number) {
+  if (Math.abs(viento) <= 0.02) return;
+  for (let i = 0; i < RAYAS; i++) {
+    rx[i] += viento * 260 * rv[i] * dt;
+    if (rx[i] > AREA.der) rx[i] = AREA.izq - rl[i];
+    else if (rx[i] + rl[i] < AREA.izq) rx[i] = AREA.der;
   }
 }
 

@@ -45,7 +45,7 @@ const CSS = `
 .pg-esp{right:calc(max(14px,env(safe-area-inset-right,0px)) + var(--f) + 12px);bottom:calc(max(14px,env(safe-area-inset-bottom,0px)) + var(--f) * .55);width:var(--e);height:var(--e);border-radius:50%;font-size:clamp(10px,3.2vh,14px);opacity:.4}
 .pg-esp.pg-listo{opacity:1;background:rgba(201,162,74,.55);animation:pg-late .7s ease-in-out infinite alternate}
 @keyframes pg-late{from{transform:scale(1)}to{transform:scale(1.1)}}
-.pg-pausa{top:max(10px,env(safe-area-inset-top,0px));right:max(10px,env(safe-area-inset-right,0px));width:44px;height:44px;border-radius:10px;font-size:16px}
+.pg-boton-pausa{top:max(10px,env(safe-area-inset-top,0px));right:max(10px,env(safe-area-inset-right,0px));width:44px;height:44px;border-radius:10px;font-size:16px}
 .pg-oculto .pg-ctl,.pg-oculto .pg-pad,.pg-oculto .pg-vert{display:none}
 `;
 
@@ -182,7 +182,7 @@ export function crearEntrada(raiz: HTMLElement, opc: { escaleras: boolean }): En
     }),
   );
 
-  const pausa = caja('pg-ctl pg-pausa', '❚❚');
+  const pausa = caja('pg-ctl pg-boton-pausa', '❚❚');
   pausa.setAttribute('aria-label', texto('boton.pausa'));
   pausa.title = texto('boton.pausa');
   sueltas.push(

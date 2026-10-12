@@ -11,12 +11,13 @@ import { actualizarArmas, dibujarArmas, disparar } from './armas';
 import { crearBurbuja, primeraVidaExtra, sumar, velocidadBurbujas } from './base';
 import { Bot } from './bot';
 import { crearEntrada, mandosNuevos, type Entrada, type Mandos } from './entrada';
-import { dibujarAbajo, dibujarArriba, actualizarEspecial, proximaAceituna, usarPoder } from './especiales';
+import { dibujarAbajo, dibujarArriba, actualizarEspecial, moverRayas, proximaAceituna, usarPoder } from './especiales';
 import { circuloRect, moverCuerpo } from './fisica';
 import { centrado, Marcador, ORO, pintarTexto, rotulo } from './hud';
 import { actualizarJefe, crearJefe, marcoJefe } from './jefes';
 import { BARRA_LLENA, CAJA, GRAVEDAD, PASO, type JugadorVivo, type Mundo } from './mundo';
 import { actualizarObjetos, objetoVisible } from './objetos';
+import { Espejo, sacarFoto, type Estado, type Flujo, type Foto } from './red/foto';
 import { herir, recoger } from './reglas';
 import { Efectos } from './sonido';
 import { AREA, ESTILO, H, W, type Fase, type PjId, type ResultadoFase } from './tipos';
@@ -51,10 +52,10 @@ export interface JugadorInicial {
 
 /**
  * Who moves a player: 'local' reads this screen's touch buttons and keyboard, 'bot' is the
- * computer. (A later phase adds a third kind fed from the network: its `Mandos` are the
- * ones Partida creates in `mandos[i]`, which the network layer writes into.)
+ * computer, 'red' is another person online: his `Mandos` are the ones Partida creates in
+ * `mandos[i]`, which the network layer (red/online.ts) writes into.
  */
-export type Control = 'local' | 'bot';
+export type Control = 'local' | 'bot' | 'red';
 
 export interface OpcionesFase {
   /** Where the game puts its canvas and its touch buttons (removed when it ends). */
@@ -67,14 +68,25 @@ export interface OpcionesFase {
   /** Index of the player this screen belongs to (the local buttons and keyboard; the little arrow). */
   yo: number;
   sonido: Sound;
-  /** Opens the pause menu (pantallas.ts); resolves with what the player chose. */
-  pausa: () => Promise<'seguir' | 'salir'>;
+  /**
+   * Opens the pause menu (pantallas.ts); resolves with what the player chose. Online the game goes on
+   * behind it, and the menu is closed (resolving 'seguir') through the signal if the stage ends meanwhile.
+   */
+  pausa: (senal?: AbortSignal) => Promise<'seguir' | 'salir'>;
   /** Title-screen attract mode: bots play, no input, no sound, never ends on its own. */
   demo?: boolean;
   /** Aborting it ends the stage at once (cleans up, resolves 'salir'): the title screen stops its demo. */
   senal?: AbortSignal;
   /** Called with the running Partida as soon as it exists (the network layer takes its `mandos` here). */
   alCrear?: (p: Partida) => void;
+  /**
+   * Online (absent = offline, nothing changes). 'anfitrion': simulates as always, with the other people
+   * as 'red' players, and calls `alFoto` about 30 times a second. 'invitado': does not simulate; it
+   * paints the fotos the host sends (`recibirFoto`) and its buttons are read by the network layer.
+   * Either way the pause menu opens over the game while it keeps running.
+   */
+  rol?: 'anfitrion' | 'invitado';
+  alFoto?: (foto: Foto) => void;
 }
 
 /**
@@ -90,8 +102,6 @@ export function jugarFase(o: OpcionesFase): Promise<ResultadoFase | 'salir'> {
   });
 }
 
-type Estado = 'titulo' | 'listo' | 'ya' | 'jugando' | 'herido' | 'victoria' | 'bonus';
-
 /** Seconds each part of the flow lasts. */
 const DURA = { titulo: 1.6, listo: 1.0, ya: 0.6, herido: 1.2, victoria: 1.5, bonus: 1.0 } as const;
 /** Time bonus: points per second left, and seconds between counting ticks. */
@@ -99,6 +109,10 @@ const PUNTOS_SEGUNDO = 20;
 const TICK_BONUS = 0.016;
 const POP_FRAME = 0.06;
 const MAX_PASOS = 12;
+/** Online host: ms between two fotos (a little under 1/30 s, so a 60 Hz screen gets one every second frame). */
+const INTERVALO_FOTO = 30;
+/** Online guest: this long without a foto shows «esperando al anfitrión». */
+const SIN_FOTOS_MS = 2000;
 const VIDAS_DEMO = 3;
 /** Several players: seconds a hurt player lies down, and the blinking invulnerability after it. */
 const DURA_CAIDO = 1.2;
@@ -140,6 +154,14 @@ export class Partida {
   private acum = 0;
   private fotogramas = 0;
   private enPausa = false;
+  /** The pause menu is open over the running game (online); when it last closed (the key that closes it must not reopen it). */
+  private menuAbierto = false;
+  private menuCerrado = 0;
+  private corteMenu: AbortController | null = null;
+  private ultimaFoto = -Infinity;
+  /** Online guest: the host's fotos. */
+  private readonly copia: Espejo | null = null;
+  private musicaParada = false;
   private fin = false;
   private readonly alAjustar = () => this.ajustar();
   private readonly alAbortar = () => this.terminar('salir');
@@ -162,6 +184,8 @@ export class Partida {
     window.addEventListener('resize', this.alAjustar);
 
     this.m = this.crearMundo();
+    if (o.rol === 'anfitrion') this.m.sfx.grabadora = [];
+    else if (o.rol === 'invitado') this.copia = new Espejo(this.m);
     this.marcador = new Marcador(this.m);
     // The local buttons drive the player of this screen (`yo`); bots get a Bot each.
     this.local = o.demo ? -1 : o.controles[o.yo] === 'local' ? o.yo : o.controles.indexOf('local');
@@ -171,7 +195,7 @@ export class Partida {
       this.bots.push(o.demo || o.controles[i] === 'bot' ? new Bot(i) : null);
     }
     this.cargarFase();
-    (window as unknown as { __pang: () => unknown }).__pang = () => ({ fotogramas: this.fotogramas, estado: this.estado, mundo: this.m, mandos: this.mandos });
+    (window as unknown as { __pang: () => unknown }).__pang = () => ({ fotogramas: this.fotogramas, estado: this.estado, mundo: this.m, mandos: this.mandos, fotos: this.copia?.recibidas ?? 0 });
   }
 
   /** For the network layer: the stage state and the flow state. */
@@ -180,6 +204,32 @@ export class Partida {
   }
   get fotograma(): string {
     return this.estado;
+  }
+  /** For the snapshots: the flow of the stage. */
+  get flujo(): Flujo {
+    return { estado: this.estado, tEstado: this.tEstado, causa: this.causa, bonusGanado: this.bonusGanado };
+  }
+
+  /** Online guest: a foto from the host. */
+  recibirFoto(f: Foto) {
+    this.copia?.meter(f, performance.now());
+  }
+
+  /** Online guest: the host says the stage is over (or the connection is gone: 'salir'). */
+  terminarRed(r: ResultadoFase | 'salir') {
+    this.terminar(r);
+  }
+
+  /** Online host: player `i` left the room. His character disappears and the stage goes on for the rest. */
+  sacarJugador(i: number) {
+    const j = this.m.jugadores[i];
+    if (!j || j.fuera || this.fin) return;
+    j.fuera = true;
+    j.caido = 0;
+    j.escalera = -1;
+    this.m.hudSucio = true;
+    if (this.mandos[i] && i !== this.local) Object.assign(this.mandos[i], mandosNuevos());
+    if (this.todosFuera()) this.terminar(this.resultado(false));
   }
 
   async arrancar() {
@@ -314,19 +364,31 @@ export class Partida {
     const local = this.entrada?.mandos;
     if (local?.pausa) {
       local.pausa = false;
-      void this.pausar();
-      return;
+      if (this.o.rol) {
+        // Online the others keep playing: the menu opens over the game, which does not stop.
+        if (!this.menuAbierto && t - this.menuCerrado > 300) void this.pausarOnline();
+      } else if (t - this.menuCerrado > 300) {
+        void this.pausar();
+        return;
+      }
     }
     if (dt > 0.1) dt = 0.1;
-    this.acum += dt;
-    let pasos = 0;
-    while (this.acum >= PASO && pasos < MAX_PASOS) {
-      this.simular(PASO);
-      this.acum -= PASO;
-      pasos++;
-      if (this.fin) return;
+    if (this.copia) this.verFoto(t, dt);
+    else {
+      this.acum += dt;
+      let pasos = 0;
+      while (this.acum >= PASO && pasos < MAX_PASOS) {
+        this.simular(PASO);
+        this.acum -= PASO;
+        pasos++;
+        if (this.fin) return;
+      }
+      if (pasos >= MAX_PASOS) this.acum = 0;
+      if (this.o.alFoto && t - this.ultimaFoto >= INTERVALO_FOTO) {
+        this.ultimaFoto = t;
+        this.o.alFoto(sacarFoto(this));
+      }
     }
-    if (pasos >= MAX_PASOS) this.acum = 0;
     // 120 Hz screens: draw every other frame.
     if (t - this.ultimoDibujo >= 15) {
       this.ultimoDibujo = t;
@@ -334,6 +396,33 @@ export class Partida {
       this.fotogramas++;
     }
   };
+
+  /** Online guest: the state of the host's stage for this frame goes into the Mundo and the flow fields. */
+  private verFoto(t: number, dt: number) {
+    const fl = this.copia!.aplicar(t);
+    if (!fl) return;
+    // The host stops the music when the stage is cleared (`superar`).
+    if ((fl.estado === 'victoria' || fl.estado === 'bonus') && !this.musicaParada) {
+      this.musicaParada = true;
+      if (!this.o.demo) this.o.sonido.pararMusica();
+    }
+    this.estado = fl.estado;
+    this.tEstado = fl.tEstado;
+    this.causa = fl.causa;
+    this.bonusGanado = fl.bonusGanado;
+    if (this.fase.especial === 'cierzo') moverRayas(this.m.viento, dt);
+    this.luzEspecial();
+  }
+
+  /** The special button lights up while this screen's player has a full bar. */
+  private luzEspecial() {
+    const yo = this.m.jugadores[this.local];
+    const lista = !!yo && yo.barra >= BARRA_LLENA;
+    if (this.entrada && lista !== this.espLista) {
+      this.espLista = lista;
+      this.entrada.especialLista(lista);
+    }
+  }
 
   private async pausar() {
     this.enPausa = true;
@@ -347,13 +436,31 @@ export class Partida {
     this.raiz.style.zIndex = '0';
     this.entrada?.mostrar(true);
     this.enPausa = false;
+    // The key that closed the menu (Esc or P) also reaches the game: it must not open it again.
+    this.menuCerrado = performance.now();
     this.ultimo = performance.now();
     this.raf = requestAnimationFrame(this.cuadro);
+  }
+
+  /** Online pause: the menu over the game, which keeps running (the others are playing). «Salir» leaves. */
+  private async pausarOnline() {
+    this.menuAbierto = true;
+    this.entrada?.soltarTodo();
+    this.entrada?.mostrar(false);
+    const corte = (this.corteMenu = new AbortController());
+    const r = await this.o.pausa(corte.signal);
+    this.corteMenu = null;
+    if (this.fin) return;
+    if (r === 'salir') return this.terminar('salir');
+    this.entrada?.mostrar(true);
+    this.menuAbierto = false;
+    this.menuCerrado = performance.now();
   }
 
   private terminar(r: ResultadoFase | 'salir') {
     if (this.fin) return;
     this.fin = true;
+    this.corteMenu?.abort();
     cancelAnimationFrame(this.raf);
     window.removeEventListener('resize', this.alAjustar);
     this.o.senal?.removeEventListener('abort', this.alAbortar);
@@ -585,12 +692,7 @@ export class Partida {
     if (m.congelado <= 0) this.chocar();
     if (this.estado !== 'jugando' || this.fin) return;
 
-    const yo = m.jugadores[this.local];
-    const lista = !!yo && yo.barra >= BARRA_LLENA;
-    if (this.entrada && lista !== this.espLista) {
-      this.espLista = lista;
-      this.entrada.especialLista(lista);
-    }
+    this.luzEspecial();
     if (m.finJefe >= 0) m.finJefe += dt;
     if (!m.jefe && m.burbujas.length === 0 && (m.finJefe < 0 || m.finJefe >= 0.9)) this.superar();
   }
@@ -768,6 +870,8 @@ export class Partida {
     this.dibujarRotulos(g);
     this.marcador.actualizar(this.estado === 'jugando');
     this.marcador.dibujar(g);
+    // Online guest: nothing from the host for a while.
+    if (this.copia && performance.now() - this.copia.llegada > SIN_FOTOS_MS) centrado(g, rotulo(texto('hud.esperando'), ORO), W / 2, 100);
     this.dctx.drawImage(this.logico, 0, 0, this.pantalla.width, this.pantalla.height);
   }
 

@@ -11,7 +11,8 @@ Juego aparte (12 de octubre de 2026, a petición de Jesús): un *Pang* de recrea
 | `src/pang/fases.ts` | Las doce fases (burbujas, bloques, escaleras, jefe, especial, música, tiempo) |
 | `src/pang/juego.ts` | Una fase jugada por 1 a 4 jugadores (`Partida`: un `Mandos` y un `JugadorVivo` por jugador): bucle, física, armas, objetos, jefes, marcador y botones táctiles. Con varios jugadores rigen las reglas de `docs/PANG-ONLINE.md` |
 | `src/pang/mundo.ts`, `hud.ts`, `bot.ts` | El estado de la fase (`Mundo.jugadores`), el marcador (un panel por jugador si son varios) y el bot (uno por jugador) |
-| `src/pang/sonido.ts` | Efectos de sonido sintetizados |
+| `src/pang/sonido.ts` | Efectos de sonido sintetizados (con grabadora opcional para el juego online) |
+| `src/pang/red/` | Jugar online (`docs/PANG-ONLINE.md`): conexión, sala, fotos de la partida y el flujo de un juego online |
 | `src/pang/arte/sprites.ts` | Pixel art de muñecos, burbujas, jefes, objetos, bloques y escaleras |
 | `src/pang/arte/fondos.ts` | Los doce fondos de pixel art |
 | `src/pang/main.ts`, `pantallas.ts`, `ui/`, `guardado.ts`, `pang.css` | Título, menú, elegir personaje, continuar, final, récords, ajustes y guardado |
@@ -66,6 +67,10 @@ Tres temas propios, sintetizados con `tools/musica/pang.py` (12 de octubre de 20
 
 - **Móvil (horizontal):** ◀ ▶ abajo a la izquierda (se puede deslizar el dedo de uno a otro), Disparo y Especial abajo a la derecha, y Pausa arriba a la derecha. En la fase 8 salen ▲ ▼ para las escaleras. Botones de al menos 44 px CSS, semitransparentes y en las zonas seguras.
 - **Teclado:** flechas o A/D para andar, ↑/↓ o W/S en las escaleras, espacio, Z o J para disparar, ↑ (o W, fuera de las escaleras), Ctrl o Cmd, X, K o Mayúsculas para el especial, Esc o P para la pausa.
+
+## Jugar online
+
+«Jugar online» en el menú principal abre la sala (hasta cuatro jugadores, una sola sala, con contraseña): cada uno elige personaje, el anfitrión empieza y elige la fase. La contraseña es la variable de entorno `PANG_CLAVE` del servidor (en Railway; para probar en local, `PANG_CLAVE=prueba npm start`); si no está puesta, la sala no pide contraseña. Cómo funciona y los mensajes: `docs/PANG-ONLINE.md`.
 
 ## Guardado
 

@@ -63,8 +63,11 @@ export function elegirPersonaje(ui: HTMLElement, previo: PjId | null = null): Pr
 
 export type Decision = 'si' | 'cambiar' | 'no';
 
-/** Out of lives: continue the stage (three lives, no points), change character, or leave. */
-export function pantallaContinuar(ui: HTMLElement, fase: number, puntos: number): Promise<Decision> {
+/**
+ * Out of lives: continue the stage (three lives, no points), change character, or leave.
+ * Online (`cambiar` false) there is no changing character.
+ */
+export function pantallaContinuar(ui: HTMLElement, fase: number, puntos: number, cambiar = true): Promise<Decision> {
   const el = h('div', { class: 'pg-pantalla pg-continuar' });
   return mostrar<Decision>(ui, el, (fin) => {
     el.append(
@@ -74,7 +77,7 @@ export function pantallaContinuar(ui: HTMLElement, fase: number, puntos: number)
         h('h2', { class: 'pg-h2 grande' }, texto('continuar.titulo')),
         h('p', { class: 'pg-texto-c' }, texto('continuar.texto', { n: fase })),
         h('p', { class: 'pg-puntos' }, texto('final.puntos', { n: miles(puntos) })),
-        h('div', { class: 'pg-fila' }, boton(texto('continuar.si'), () => fin('si'), 'primario'), boton(texto('elegir.cambiar'), () => fin('cambiar')), boton(texto('continuar.no'), () => fin('no'), 'fantasma')),
+        h('div', { class: 'pg-fila' }, boton(texto('continuar.si'), () => fin('si'), 'primario'), cambiar ? boton(texto('elegir.cambiar'), () => fin('cambiar')) : null, boton(texto('continuar.no'), () => fin('no'), 'fantasma')),
       ),
     );
   });

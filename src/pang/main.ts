@@ -16,6 +16,8 @@ import { PJS, type PjId, type ResultadoFase } from './tipos';
 import { alcanzarFase, anotarRecord, datos, type Marca } from './guardado';
 import { elegirPersonaje, pantallaAjustes, pantallaContinuar, pantallaFases, pantallaFinal, pantallaMenu, pantallaPausa, pantallaRecords, pantallaTitulo } from './pantallas';
 import { h } from './ui/dom';
+import { jugarOnline } from './red/online';
+import { pantallaOnline } from './red/sala';
 
 const VIDAS = 3;
 /** The attract demo changes stage this often (ms). */
@@ -62,7 +64,7 @@ async function arrancar() {
   orientacion(esVertical());
 
   // ---------------------------------------------------------- one stage
-  const pausa = () => pantallaPausa(ui, sonido);
+  const pausa = (senal?: AbortSignal) => pantallaPausa(ui, sonido, senal);
   const jugar = (o: Pick<OpcionesFase, 'fase' | 'jugadores' | 'controles' | 'yo' | 'demo' | 'senal'>): Promise<ResultadoFase | 'salir'> =>
     jugarFase({ padre: capaJuego, sonido, pausa, ...o });
   /** The next stage's players: a player who ended out of lives comes back with one. */
@@ -181,6 +183,12 @@ async function arrancar() {
     const accion = await pantallaMenu(ui);
     if (accion === 'nueva') await partida(1);
     else if (accion === 'seguir') await partida(datos.faseMax);
+    else if (accion === 'online') {
+      // The lobby, then a whole game in the room (red/online.ts); the demo stays off meanwhile.
+      await demo.parar();
+      const sala = await pantallaOnline(ui);
+      if (sala) await jugarOnline(sala, { ui, capaJuego, sonido, pausa });
+    }
     else if (accion === 'fases') {
       const n = await pantallaFases(ui);
       if (n) await partida(n);

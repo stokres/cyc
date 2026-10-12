@@ -26,14 +26,14 @@ export function pantallaTitulo(ui: HTMLElement): Promise<void> {
 
 // ---------------------------------------------------------------- main menu
 
-export type AccionMenu = 'nueva' | 'seguir' | 'fases' | 'records' | 'ajustes';
+export type AccionMenu = 'nueva' | 'seguir' | 'online' | 'fases' | 'records' | 'ajustes';
 
 export function pantallaMenu(ui: HTMLElement): Promise<AccionMenu> {
   const el = h('div', { class: 'pg-pantalla pg-menu' });
   return mostrar<AccionMenu>(ui, el, (fin) => {
     const botones: Array<[AccionMenu, string]> = [];
     if (datos.faseMax > 1) botones.push(['seguir', texto('menu.seguir', { n: datos.faseMax })]);
-    botones.push(['nueva', texto('menu.nueva')], ['fases', texto('menu.fases')], ['records', texto('menu.records')], ['ajustes', texto('menu.ajustes')]);
+    botones.push(['nueva', texto('menu.nueva')], ['online', texto('menu.online')], ['fases', texto('menu.fases')], ['records', texto('menu.records')], ['ajustes', texto('menu.ajustes')]);
     el.append(
       h('div', { class: 'pg-marca' }, h('div', { class: 'pg-nombre-juego' }, texto('titulo')), h('div', { class: 'pg-pang' }, texto('titulo.pang'))),
       h('div', { class: 'pg-panel pg-menu-botones' }, ...botones.map(([a, t], i) => boton(t, () => fin(a), i === 0 ? 'primario' : ''))),
@@ -159,8 +159,11 @@ export function pantallaRecords(ui: HTMLElement, nuevo: Marca | null = null): Pr
 
 // ---------------------------------------------------------------- pause
 
-/** The pause panel over the running game. «Salir» needs a second tap. */
-export function pantallaPausa(ui: HTMLElement, sonido: Sound): Promise<'seguir' | 'salir'> {
+/**
+ * The pause panel over the running game. «Salir» needs a second tap. Online the game goes on behind
+ * it, so `senal` can close the panel from outside (the stage ended): it resolves 'seguir'.
+ */
+export function pantallaPausa(ui: HTMLElement, sonido: Sound, senal?: AbortSignal): Promise<'seguir' | 'salir'> {
   const el = h('div', { class: 'pg-pantalla pg-pausa' });
   return mostrar<'seguir' | 'salir'>(ui, el, (fin) => {
     let seguro = 0;
@@ -188,9 +191,12 @@ export function pantallaPausa(ui: HTMLElement, sonido: Sound): Promise<'seguir' 
     const quitar = alTeclear((e) => {
       if (e.key === 'Escape' || e.key.toLowerCase() === 'p') fin('seguir');
     });
+    const alAbortar = () => fin('seguir');
+    senal?.addEventListener('abort', alAbortar, { once: true });
     return () => {
       clearTimeout(seguro);
       quitar();
+      senal?.removeEventListener('abort', alAbortar);
     };
   });
 }

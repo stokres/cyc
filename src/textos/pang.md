@@ -19,6 +19,7 @@ titulo.sub = La vuelta al mundo de la penúltima
 titulo.empezar = Toca para empezar
 menu.nueva = Partida nueva
 menu.seguir = Seguir en la fase {n}
+menu.online = Jugar online
 menu.fases = Elegir fase
 menu.records = Récords
 menu.ajustes = Ajustes
@@ -164,7 +165,11 @@ online.esperando = Esperando a que el anfitrión empiece
 online.empezar = Empezar
 online.faltan = Todos tienen que elegir personaje
 online.salir = Salir
+online.eligeFase = El anfitrión está eligiendo fase…
+online.decide = El anfitrión decide si seguís…
+online.anfitrionFuera = El anfitrión ha salido de la partida.
 
 // ---------------------------------------------------------------- varios jugadores
 
 hud.fuera = FUERA
+hud.esperando = ESPERANDO AL ANFITRION

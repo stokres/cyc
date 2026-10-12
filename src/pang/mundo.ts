@@ -85,6 +85,9 @@ export interface Efecto {
   y: number;
   t: number;
   frames: HTMLCanvasElement[];
+  /** What the frames were made from (the snapshot of an online game sends these, not the images). */
+  variante: Variante;
+  talla: Talla;
 }
 
 export interface Popup {
@@ -92,6 +95,9 @@ export interface Popup {
   y: number;
   t: number;
   img: HTMLCanvasElement;
+  /** Text and colour of `img`. */
+  txt: string;
+  color: string;
 }
 
 export interface JefeVivo extends Cuerpo {
@@ -120,6 +126,9 @@ export interface JefeVivo extends Cuerpo {
 export interface Aviso {
   img: HTMLCanvasElement;
   t: number;
+  /** Text key and colour of `img`. */
+  clave: string;
+  color: string;
 }
 
 export type Escudo = 0 | 1 | 2; // none, bear hug (pops on break), item
