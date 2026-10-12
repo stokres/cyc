@@ -2,17 +2,12 @@
 
 <!--
 CÓMO EDITAR ESTE ARCHIVO
-Todo lo que se dice en el Pang está aquí. Mismo formato que capitulo1.md:
+Todo lo que se lee en el Pang está aquí. Mismo formato que capitulo1.md:
 
-  ## clave                     un bloque de diálogo (no cambies la clave)
-  FRAN: texto                  lo dice Fran (también PABLO, CHUCHI, GUILLE, ACEITUNA, SOMBRA)
-  FRAN (contento): texto       con cara: normal, contento, sorprendido, nervioso, triste, enfadado, chulo
-  > texto                      lo cuenta el narrador
   clave = texto                un texto suelto
   {n}                          el juego lo cambia por un número
 
-Los diálogos «## fase.N» salen antes de cada fase y «## fase.N.fin» al superarla
-(los dos son opcionales: si borras uno, esa fase empieza o acaba sin conversación).
+Por ahora es solo el juego, sin historia ni conversaciones (decidido por Jesús el 12 de octubre de 2026).
 Los textos en MAYÚSCULAS van dentro de la recreativa, en letra de píxeles: cortos.
 -->
 
@@ -39,8 +34,6 @@ fases.titulo = Elegir fase
 fases.bloqueada = Llega hasta aquí para desbloquearla
 cargando = Encendiendo la recreativa…
 girar = Gira el móvil para jugar
-dialogo.saltar = Saltar
-nombre.sombra = El narrador
 
 // ---------------------------------------------------------------- elegir personaje
 
@@ -148,116 +141,3 @@ records.cyc = CYC
 final.titulo = FIN
 final.gracias = Gracias por jugar
 final.puntos = {n} puntos
-
-// ---------------------------------------------------------------- historia
-
-## intro
-> Bar del Brío. Jueves, 21:00. Cuatro amigos acaban de llegar.
-FRAN (contento): Cuatro jarras grandes, Vero. Y unas bravas. Y luego otras cuatro jarras.
-PABLO (contento): Esta noche pide himno. Escuchad: ¡pam, parapam, pam, pam!
-> Pablo se arranca con el pasodoble de las fiestas del pueblo. Pero solo le salen dos palabras.
-PABLO (chulo): ¡Camioneees y caravanaaas!
-> En el rincón, la recreativa vieja que nunca funciona se enciende sola. «INSERT COIN». Nadie ha echado moneda.
-CHUCHI (sorprendido): Esa máquina lleva enchufada desde el noventa y ocho. No la he visto encendida en la vida.
-GUILLE (contento): ¡Uy, qué bonica! ¿Una partidica?
-> La pantalla tira de ellos como una aspiradora. Fran se agarra a la barra. La barra se va con Fran.
-SOMBRA (chulo): Bienvenidos a la máquina. Aquí dentro todo es espuma, y la espuma no se acaba nunca.
-PABLO (sorprendido): ¿Tú también te has metido?
-SOMBRA: Yo voy donde vayas tú. Y narro lo que pase. Que ayude ya es otra cosa.
-SOMBRA (chulo): Os presento a la dueña de la máquina: la Penúltima. Una jarra que no quiere que esta noche termine nunca.
-FRAN (contento): Hombre, dicho así no suena tan mal.
-SOMBRA: Para salir, la vuelta al mundo. Doce pantallas. La última, en Las Vegas.
-CHUCHI (contento): Burbujas que se parten en dos. Esto es el Pang. Le he echado más monedas que a la hucha de mis hijas.
-GUILLE (contento): ¡Pues venga, a por ellas!
-
-## fase.1
-> Usera. El dragón del parque, a la hora de la siesta de los dragones. Una burbuja de espuma bota hacia vosotros.
-SOMBRA: El arpón, hacia arriba. Una grande se parte en dos medianas, y así hasta que no queda nada. Fácil. De momento.
-
-## fase.2
-FRAN (contento): ¡Mi calle! Ese es mi portal. Y ahí al fondo, el Brío.
-PABLO (contento): Un bar dentro de una máquina dentro de un bar. Metateatro del bueno.
-CHUCHI: Ojo con los contenedores: el arpón no pasa.
-
-## fase.3
-FRAN (sorprendido): ¡Mi salón! ¿Y esa que corre por ahí...?
-ACEITUNA (contento): ¡Guau!
-FRAN (contento): ¡Aceituna! Si pasa corriendo, dejadla, que va soltando taquitos. Es una señora.
-GUILLE: Los cojines se rompen. Fran, luego los recoges tú.
-
-## fase.4
-CHUCHI (nervioso): No. Bolilandia otra vez, no.
-> Del fondo del parque de bolas sale botando una cabeza de robot con un gorrito de fiesta.
-CHUCHI (sorprendido): ¡Robi! ¡Pero si te apagué!
-SOMBRA (chulo): Aquí dentro todo vuelve. Con el gorrito puesto no le hacéis nada. Esperad a que se lo quite.
-GUILLE (triste): Pobrecico. Si solo quiere un abrazo de cumpleaños.
-
-## fase.4.fin
-> Robi se apaga entre bolas de colores. Por última vez. Seguramente.
-CHUCHI (contento): Feliz cumpleaños, Robi. De verdad.
-
-## fase.5
-PABLO (contento): El teatro. Mi casa.
-> Las luces se apagan de golpe.
-SOMBRA (chulo): Mi casa también. Y aquí la luz la llevo yo.
-PABLO (enfadado): ¡Enciende eso!
-SOMBRA: Os dejo un foco. Uno. El drama, a oscuras, gana mucho.
-
-## fase.6
-GUILLE (contento): ¡La granja! Huele a casa.
-CHUCHI: Huele a purín, Guille.
-GUILLE (contento): Eso he dicho.
-> Algo enorme se mueve en la cuadra. Ciento cincuenta y dos kilos de mala leche.
-GUILLE (nervioso): Es el Peor. Cada vez que le deis, soltará cerdicos. Reventadlos también, sin cariño.
-
-## fase.6.fin
-GUILLE (contento): ¡Pesado y medido! Ciento cincuenta y dos kilos. Ya tengo el dato para la tesis.
-
-## fase.7
-> Madrid Río. A orillas del Manzanares, las burbujas ya no caen: van de lado a lado como posavasos voladores.
-CHUCHI (sorprendido): Esto ya no es el Pang que yo jugaba.
-SOMBRA (chulo): Es el remix.
-
-## fase.8
-FRAN (contento): ¡Ávila! ¡Aupa! ¡Mi tierra!
-PABLO (chulo): ¿Tú no eras vasco?
-FRAN: Vasco de corazón, de Ávila de nacimiento y de Usera de cañas. Todo a la vez.
-GUILLE: Hay escaleras en la muralla. Arriba se dispara mejor.
-
-## fase.9
-GUILLE (contento): ¡Zaragoza! ¡El Pilar! ¡Mi casica!
-> Sopla el cierzo. Las burbujas van de lado. Los cuatro, también.
-GUILLE (contento): Esto es una brisica. Vosotros agarraos, por si acaso.
-
-## fase.10
-PABLO (contento): Mi pueblo. Turrón blando, del bueno, del de verdad.
-CHUCHI: Los bloques son de turrón. ¿Se pueden comer?
-PABLO: Se pueden romper. Comer, luego. Primero el formato.
-
-## fase.11
-> El desierto de Nevada. Una caravana vieja flota en el cielo y nadie sabe por qué.
-CHUCHI (nervioso): ¿Por qué me da la sensación de que esto ya lo he vivido?
-PABLO: Será un recuerdo del futuro.
-SOMBRA (chulo): Nada de spoilers. Y daos prisa, que aquí el tiempo corre más.
-
-## fase.12
-> Las Vegas. Neones, máquinas tragaperras y una jarra gigante que no cabe en el escenario.
-SOMBRA: Ahí la tenéis. La Penúltima.
-> La jarra se relame la espuma y habla con voz de bar a las tres de la mañana: «Una más... y nos vamos».
-FRAN (sorprendido): ¡Oye, que eso lo digo yo!
-CHUCHI: Por eso es tan fuerte, Fran. La has criado tú.
-GUILLE (contento): ¡A por ella, que mañana se madruga!
-
-## final
-> La Penúltima revienta en una lluvia de espuma dorada.
-PABLO (contento): Ahora sí. Todos juntos. Una, dos y...
-> «¡Camioneees y caravanaaas!»
-> La máquina tiembla, chisporrotea y los escupe uno detrás de otro sobre el suelo del Brío.
-FRAN (sorprendido): ¿Cuánto rato hemos estado ahí dentro?
-CHUCHI: Según el móvil, dos minutos.
-GUILLE (contento): ¡Pues las jarras siguen frías!
-> En la pantalla de la recreativa sale la tabla de récords. Arriba del todo, unas iniciales que nadie ha escrito: CYC.
-PABLO (chulo): Camiones y Caravanas. Eso suena a leyenda.
-> Desde la barra, Vero: «Vamos cerrando, chicos».
-FRAN (contento): Una más y nos vamos.
-SOMBRA: Y así empezó todo. Pero lo que pasó después... es otra historia.

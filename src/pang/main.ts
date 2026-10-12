@@ -1,18 +1,19 @@
 // Camiones y Caravanas · PANG: entry point (pang.html). See docs/PANG.md.
-// The flow: title (with an attract demo behind) → menu → [intro] → character → stages with
-// their conversations → «¿Continuar?» when the lives run out → final → records.
+// The flow: title (with an attract demo behind) → menu → character → the stages one after
+// another → «¿Continuar?» when the lives run out → end screen → records. No story: just the
+// game (Jesús, 12 October 2026).
 // For testing, pang.html?fase=N&pj=fran plays that stage straight away (add &demo to let a bot play it).
 import '../ui/ui.css';
 import './pang.css';
 import textosPang from '../textos/pang.md?raw';
-import { cargarTextos, dialogo, hayDialogo, texto } from '../juego/textos';
+import { cargarTextos, texto } from '../juego/textos';
 import { Sound } from '../core/audio';
 import { alCambiarOrientacion, esVertical } from '../ui/orientacion';
 import { FASES } from './fases';
 import { jugarFase, type OpcionesFase } from './juego';
 import { PJS, type PjId, type ResultadoFase } from './tipos';
 import { alcanzarFase, anotarRecord, datos, type Marca } from './guardado';
-import { elegirPersonaje, mostrarDialogo, pantallaAjustes, pantallaContinuar, pantallaFases, pantallaFinal, pantallaMenu, pantallaPausa, pantallaRecords, pantallaTitulo } from './pantallas';
+import { elegirPersonaje, pantallaAjustes, pantallaContinuar, pantallaFases, pantallaFinal, pantallaMenu, pantallaPausa, pantallaRecords, pantallaTitulo } from './pantallas';
 import { h } from './ui/dom';
 
 const VIDAS = 3;
@@ -117,8 +118,6 @@ async function arrancar() {
   };
 
   // ---------------------------------------------------------- a run
-  const cabecera = (n: number) => ({ nombre: texto(`fase.${n}.nombre`), lugar: texto(`fase.${n}.lugar`) });
-
   /** Writes the run in the table; if it makes the top five, shows the table with it highlighted. */
   const cerrarPartida = async (puntos: number, pj: PjId, fase: number, mostrar: boolean) => {
     const marca: Marca | null = anotarRecord(puntos, pj, fase);
@@ -126,19 +125,15 @@ async function arrancar() {
   };
 
   /** From stage `inicio` to the end (or until the player leaves). */
-  const partida = async (inicio: number, conIntro: boolean) => {
+  const partida = async (inicio: number) => {
     await demo.parar();
-    if (conIntro) await mostrarDialogo(ui, dialogo('intro'));
     let pj = await elegirPersonaje(ui);
     if (!pj) return;
     let n = inicio;
     let puntos = 0;
     let vidas = VIDAS;
-    // (After «Continuar» the stage starts again without its conversation.)
-    let hablar = true;
     while (n <= FASES.length) {
       alcanzarFase(n);
-      if (hablar && hayDialogo(`fase.${n}`)) await mostrarDialogo(ui, dialogo(`fase.${n}`), cabecera(n));
       const r = await jugar({ fase: FASES[n - 1], pj, vidas, puntos });
       if (r === 'salir') {
         // (The game does not say how many points the stage in progress had: those before it count.)
@@ -148,9 +143,7 @@ async function arrancar() {
       puntos = r.puntos;
       vidas = r.vidas;
       if (r.superada) {
-        if (hayDialogo(`fase.${n}.fin`)) await mostrarDialogo(ui, dialogo(`fase.${n}.fin`), cabecera(n));
         n++;
-        hablar = true;
         continue;
       }
       // Out of lives.
@@ -167,9 +160,7 @@ async function arrancar() {
       if (decision === 'no') return;
       puntos = 0;
       vidas = VIDAS;
-      hablar = false;
     }
-    await mostrarDialogo(ui, dialogo('final'));
     await pantallaFinal(ui, puntos);
     await cerrarPartida(puntos, pj, FASES.length, true);
   };
@@ -179,11 +170,11 @@ async function arrancar() {
   await pantallaTitulo(ui);
   for (;;) {
     const accion = await pantallaMenu(ui);
-    if (accion === 'nueva') await partida(1, true);
-    else if (accion === 'seguir') await partida(datos.faseMax, false);
+    if (accion === 'nueva') await partida(1);
+    else if (accion === 'seguir') await partida(datos.faseMax);
     else if (accion === 'fases') {
       const n = await pantallaFases(ui);
-      if (n) await partida(n, false);
+      if (n) await partida(n);
     } else if (accion === 'records') await pantallaRecords(ui);
     else await pantallaAjustes(ui, sonido);
     demo.iniciar();

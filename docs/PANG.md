@@ -1,6 +1,6 @@
 # Camiones y Caravanas · PANG
 
-Juego aparte (12 de octubre de 2026, a petición de Jesús): un *Pang* de recreativa con los cuatro amigos, doce fases de Usera a Las Vegas, con su historia de principio a fin. Es la recreativa del Bar del Brío del capítulo 2 (ver la propuesta del capítulo 2 en los archivos del proyecto). Vive en la rama `claude/pang-cyc-56o0iv`, se abre con `pang.html` y no toca el capítulo 1.
+Juego aparte (12 de octubre de 2026, a petición de Jesús): un *Pang* de recreativa con los cuatro amigos y doce fases de Usera a Las Vegas. **Por ahora es solo el juego, sin historia** (ni intro ni conversaciones; decidido por Jesús el mismo día): título, elegir personaje y las doce fases seguidas. Vive en la rama `claude/pang-cyc-56o0iv`, se abre con `pang.html` y no toca el capítulo 1.
 
 ## Dónde está cada cosa
 
@@ -13,13 +13,13 @@ Juego aparte (12 de octubre de 2026, a petición de Jesús): un *Pang* de recrea
 | `src/pang/sonido.ts` | Efectos de sonido sintetizados |
 | `src/pang/arte/sprites.ts` | Pixel art de muñecos, burbujas, jefes, objetos, bloques y escaleras |
 | `src/pang/arte/fondos.ts` | Los doce fondos de pixel art |
-| `src/pang/main.ts`, `pantallas.ts`, `guardado.ts`, `pang.css` | Título, menú, elegir personaje, conversaciones, continuar, final, récords, ajustes y guardado |
+| `src/pang/main.ts`, `pantallas.ts`, `ui/`, `guardado.ts`, `pang.css` | Título, menú, elegir personaje, continuar, final, récords, ajustes y guardado |
 | `src/textos/pang.md` | Todos los textos (mismo formato que el capítulo 1) |
 | `scripts/servir-pang.mjs` | Servidor de `dist` para Railway (`npm start`): `/` abre el Pang |
 
 ## Pantalla y aspecto
 
-- **Pixel art de recreativa**, como el *Pang* del tráiler del capítulo 2: lógica de 384 × 216 (16:9), ampliada sin suavizar al mayor múltiplo entero que quepa. Las conversaciones, el menú y la elección de personaje van en HTML con los retratos de siempre (`retrato` de `src/juego/reparto.ts`) y el estilo de la guía (cristal ahumado, filete dorado, Graduate y Alegreya Sans).
+- **Pixel art de recreativa**, como el *Pang* del tráiler del capítulo 2: lógica de 384 × 216 (16:9), ampliada sin suavizar al mayor múltiplo entero que quepa. El menú y la elección de personaje van en HTML con los retratos de siempre (`retrato` de `src/juego/reparto.ts`) y el estilo de la guía (cristal ahumado, filete dorado, Graduate y Alegreya Sans).
 - Área de juego: paredes en x = 8 y x = 376, techo en y = 8, suelo en y = 184. De 192 a 216, el marcador, con la letra *Press Start 2P* (Google Fonts, OFL).
 - **Rendimiento** (`docs/ESTILO.md`, T5): todo se pinta una vez en lienzos pequeños y cada fotograma solo copia imágenes; nada de SVG en el lienzo; bucle con tope de 60 fps; la física va a pasos fijos.
 
@@ -62,13 +62,9 @@ La barra del especial se llena con 16 burbujas reventadas (o golpes al jefe) y s
 - **Móvil (horizontal):** ◀ ▶ abajo a la izquierda (se puede deslizar el dedo de uno a otro), Disparo y Especial abajo a la derecha, y Pausa arriba a la derecha. En la fase 8 salen ▲ ▼ para las escaleras. Botones de al menos 44 px CSS, semitransparentes y en las zonas seguras.
 - **Teclado:** flechas o A/D para andar, ↑/↓ o W/S en las escaleras, espacio, Z o J para disparar, X, K o Mayúsculas para el especial, Esc o P para la pausa.
 
-## Historia
-
-Diálogos en `src/textos/pang.md`: `## intro`, `## fase.N` antes de cada fase, `## fase.N.fin` al superar algunas y `## final`. Pablo canta «¡Camioneees y caravanaaas!» en el Brío, la recreativa se los traga y la sombra de Pablo (el narrador) les presenta a la Penúltima, una jarra que no quiere que la noche acabe. Al vencerla en Las Vegas, la máquina les escupe de vuelta al Brío y en la tabla de récords aparecen las iniciales CYC (las mismas que encuentran en el capítulo 2).
-
 ## Guardado
 
-En el navegador (`cyc.pang.v1`): la fase más alta alcanzada (para «Seguir» y «Elegir fase»), las cinco mejores partidas (puntos, personaje, fase y fecha) y los volúmenes. En la tabla de récords, CYC siempre va primero.
+En el navegador (`cyc.pang.v1`): la fase más alta alcanzada (para «Seguir» y «Elegir fase»), las cinco mejores partidas (puntos, personaje, fase y fecha) y los volúmenes. En la tabla de récords, una marca fija de CYC siempre va primero.
 
 ## Publicación
 

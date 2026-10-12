@@ -1,108 +1,12 @@
-// The Pang's screens: dialogue, character select, continue and end of the game. Title, menu,
+// The Pang's screens: character select, continue and end of the game. Title, menu,
 // stage select, settings, records and pause live in ui/menus.ts (re-exported here), so main.ts
 // has one place to import from. Plain DOM; styles in pang.css.
-import { texto, type Linea } from '../juego/textos';
-import { COLOR_ACEITUNA, COLOR_SOMBRA, NOMBRE_ACEITUNA, REPARTO, retrato } from '../juego/reparto';
+import { texto } from '../juego/textos';
+import { REPARTO, retrato } from '../juego/reparto';
 import { PJS, type PjId } from './tipos';
 import { alTeclear, boton, h, miles, mostrar } from './ui/dom';
 
 export * from './ui/menus';
-
-// ---------------------------------------------------------------- dialogue
-
-/** Mouth shape for a letter, as the main game's dialogue box does (src/ui/hud.ts). */
-const VISEMA = (c: string) => ('aá'.includes(c) ? 'a' : 'oóuú'.includes(c) ? 'o' : 'eéií'.includes(c) ? 'e' : 'mbp'.includes(c) ? 'm' : c === ' ' || c === ',' || c === '.' ? 'reposo' : 'e');
-/** Characters per second of the typewriter. */
-const VELOCIDAD = 45;
-
-export interface Cabecera {
-  nombre: string;
-  lugar: string;
-}
-
-/**
- * A conversation: the box at the bottom with the speaker's portrait, name and text. A tap
- * finishes the line, then goes to the next; «Saltar» skips the lot. Resolves at the end.
- */
-export function mostrarDialogo(ui: HTMLElement, lineas: Linea[], cabecera?: Cabecera): Promise<void> {
-  const caja = h('div', { class: 'pg-caja', role: 'status', 'aria-live': 'polite' });
-  const saltar = boton(texto('dialogo.saltar'), () => {}, 'fantasma pg-saltar');
-  const el = h('div', { class: 'pg-pantalla pg-dialogo' }, cabecera ? h('div', { class: 'pg-cabecera' }, h('b', {}, cabecera.nombre), h('span', {}, cabecera.lugar)) : null, saltar, caja);
-  return mostrar<void>(ui, el, (fin) => {
-    let i = -1;
-    let reloj = 0;
-    let escritas = 0;
-    let linea: Linea | null = null;
-    let ya: Text = document.createTextNode('');
-    let falta: HTMLElement = h('span');
-    let cara: HTMLElement | null = null;
-    let clave = '';
-    const pintarCara = (boca: string) => {
-      if (!cara || !linea?.quien) return;
-      const k = `${linea.animo}|${boca}`;
-      if (k === clave) return;
-      clave = k;
-      const q = linea.quien;
-      const animo = linea.animo ?? (q in REPARTO ? REPARTO[q as PjId].arte.INFO.defaultMood : undefined);
-      cara.innerHTML = retrato(q, { mood: animo, mouthKind: boca === 'reposo' ? undefined : boca });
-    };
-    const escribir = (n: number) => {
-      escritas = n;
-      const t = linea!.texto;
-      ya.data = t.slice(0, n);
-      falta.textContent = t.slice(n);
-      el.classList.toggle('escribiendo', n < t.length);
-      pintarCara(n < t.length ? VISEMA(t[n - 1]?.toLowerCase() ?? ' ') : 'reposo');
-    };
-    const siguiente = () => {
-      clearInterval(reloj);
-      i++;
-      if (i >= lineas.length) return fin();
-      linea = lineas[i];
-      const q = linea.quien;
-      const nombre = q === null ? null : q === 'aceituna' ? NOMBRE_ACEITUNA : q === 'sombra' ? texto('nombre.sombra') : REPARTO[q].nombre;
-      const color = q === null ? '' : q === 'aceituna' ? COLOR_ACEITUNA : q === 'sombra' ? COLOR_SOMBRA : REPARTO[q].color;
-      caja.className = `pg-caja${q === null ? ' narrador' : ''}`;
-      caja.style.setProperty('--color', color || 'var(--gold-soft)');
-      cara = q === null ? null : h('div', { class: 'pg-retrato' });
-      clave = '';
-      ya = document.createTextNode('');
-      falta = h('span', { class: 'pg-falta' });
-      caja.replaceChildren(
-        ...([cara, h('div', { class: 'pg-cuerpo' }, nombre ? h('div', { class: 'pg-quien' }, nombre) : null, h('p', { class: 'pg-linea' }, ya, falta)), h('span', { class: 'pg-sigue', 'aria-hidden': 'true' }, '▸')].filter(Boolean) as Node[]),
-      );
-      escribir(0);
-      const inicio = performance.now();
-      reloj = window.setInterval(() => {
-        const n = Math.min(linea!.texto.length, Math.floor(((performance.now() - inicio) / 1000) * VELOCIDAD));
-        if (n !== escritas) escribir(n);
-        if (n >= linea!.texto.length) clearInterval(reloj);
-      }, 33);
-    };
-    const avanzar = () => {
-      if (linea && escritas < linea.texto.length) {
-        clearInterval(reloj);
-        escribir(linea.texto.length);
-      } else siguiente();
-    };
-    el.addEventListener('click', avanzar);
-    saltar.addEventListener('click', (e) => {
-      e.stopPropagation();
-      fin();
-    });
-    const quitar = alTeclear((e) => {
-      if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowRight') {
-        e.preventDefault();
-        avanzar();
-      }
-    });
-    siguiente();
-    return () => {
-      clearInterval(reloj);
-      quitar();
-    };
-  });
-}
 
 // ---------------------------------------------------------------- character select
 
