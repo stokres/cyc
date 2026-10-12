@@ -55,7 +55,35 @@ async function darLaLuz(g: Aventura) {
   g.poner('c.robot');
   g.sound.pickup();
   g.avanzarReloj(3);
-  await g.hablar('c.luz');
+  // Robi wakes up at the far end of the park: frame him and Chuchi together for the talk.
+  const robi = g.zona('robotSalida');
+  try {
+    await encuadrar(g, robi.u - robi.w / 2);
+    await g.hablar('c.luz');
+  } finally {
+    g.foco = null;
+  }
+}
+
+/**
+ * Camera framing both the active character and something further left (back plane `izq`),
+ * with the same margin on screen at both ends. Chuchi is nearer than the back plane
+ * (scale k), so his side counts k times: cam = (L + k*R) / (1 + k). On narrow screens it
+ * does not fit: he first walks left, just enough, and the camera follows the same formula.
+ */
+async function encuadrar(g: Aventura, izq: number) {
+  const MARGEN = 60; // screen margin around the framed pair
+  const MITAD = 100; // half the width of a character's sprite
+  const m = g.motor;
+  const k = m.f(g.activo.y);
+  const L = izq - MARGEN;
+  const cabe = (X: number) => (k * (X + MITAD + MARGEN - L)) / (1 + k) <= m.vw / 2;
+  if (!cabe(g.activo.X)) {
+    const X = L + ((m.vw / 2) * (1 + k)) / k - MITAD - MARGEN;
+    if (X < g.activo.X) await g.andar(X, g.activo.y);
+  }
+  g.foco = (L + k * (g.activo.X + MITAD + MARGEN)) / (1 + k);
+  g.activo.lookAt(izq);
 }
 
 async function batalla(g: Aventura) {
