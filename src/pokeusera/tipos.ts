@@ -142,7 +142,8 @@ export type Evento = { clave?: string; vars?: Record<string, string | number> } 
   | { k: 'golpe'; j: number; dano: number; ps: number; ef: number; critico: boolean }
   | { k: 'falla'; j: number }
   | { k: 'cura'; j: number; ps: number }
-  | { k: 'estado'; j: number; estado: Estado | 'achispado' | null }
+  /** `estado: null` = a status ended; `de` says which (always set by the engine in that case). */
+  | { k: 'estado'; j: number; estado: Estado | 'achispado' | null; de?: Estado | 'achispado' }
   | { k: 'nivel'; j: number; stat: Stat; cambio: number }
   | { k: 'cae'; j: number }
   | { k: 'sale'; j: number; idx: number }

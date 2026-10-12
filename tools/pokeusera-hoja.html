@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PokéUsera · hoja de arte</title>
+<style>
+  body { margin: 0; padding: 12px; background: #2b2b33; color: #ddd; font: 13px system-ui, sans-serif; }
+  h2 { margin: 18px 0 6px; font-size: 14px; font-weight: 600; }
+  canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; border: 1px solid #555; }
+</style>
+</head>
+<body>
+<h2 id="hz" hidden>Detalle</h2><canvas id="zoom" hidden></canvas>
+<h2>Frentes</h2><canvas id="frentes"></canvas>
+<h2>Espaldas</h2><canvas id="espaldas"></canvas>
+<h2>Entrenadores, iconos y logo</h2><canvas id="gente"></canvas>
+<h2>Letra, marcos, barras e insignias</h2><canvas id="ui"></canvas>
+<script type="module" src="./pokeusera-hoja.ts"></script>
+</body>
+</html>
