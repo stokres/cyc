@@ -15,6 +15,8 @@ export interface OpcionesFase {
   pausa: () => Promise<'seguir' | 'salir'>;
   /** Title-screen attract mode: a bot plays, no input, no sound, never ends on its own. */
   demo?: boolean;
+  /** Aborting it ends the stage at once (cleans up, resolves 'salir'): the title screen stops its demo. */
+  senal?: AbortSignal;
 }
 
 /**
