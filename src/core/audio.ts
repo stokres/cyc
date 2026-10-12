@@ -311,6 +311,32 @@ export class Sound {
     o.stop(t + dur + 0.02);
   }
 
+  /** A short tone for the games' own effects (the Pang): `slide` is the final pitch as a multiple of `freq`. */
+  tono(freq: number, dur: number, type: OscillatorType, vol: number, when = 0, slide = 0) {
+    this.tone(freq, dur, type, vol, when, slide);
+  }
+
+  /** A burst of noise through a low-pass filter (pops, crashes). */
+  ruido(dur: number, vol: number, filtroHz: number) {
+    const ac = this.ac;
+    if (!ac || !this.fx) return;
+    const n = Math.max(1, Math.floor(ac.sampleRate * dur));
+    const buf = ac.createBuffer(1, n, ac.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    const src = ac.createBufferSource();
+    src.buffer = buf;
+    const f = ac.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.value = filtroHz;
+    const g = ac.createGain();
+    const t = ac.currentTime;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f).connect(g).connect(this.fx);
+    src.start(t);
+  }
+
   tap() {
     this.tone(880, 0.06, 'triangle', 0.05);
   }

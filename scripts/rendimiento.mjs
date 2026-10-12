@@ -15,7 +15,8 @@
 // without it, to compare.
 //
 // Usage: node scripts/rendimiento.mjs [escena...]   (against npm run dev on :5173)
-//   escenas: prologo, piso, calle, granja, cerdos, backstage, palabras, rana, parque, robot, sinfin, trailer (all by default)
+//   escenas: prologo, piso, calle, granja, cerdos, backstage, palabras, rana, parque, robot, sinfin, trailer, pang (all by default)
+//   `pang` (the arcade, pang.html) runs on its own page and does not need the main game.
 import { chromium } from 'playwright';
 import { readFileSync, readdirSync } from 'node:fs';
 
@@ -23,6 +24,8 @@ const HZ = 100;
 const SEG = 5;
 const quiero = process.argv.slice(2);
 const toca = (e) => !quiero.length || quiero.includes(e);
+// Only the Pang asked for: the main game is not even loaded.
+const soloPang = quiero.length > 0 && quiero.every((e) => e === 'pang');
 
 function cpuChrome() {
   let t = 0;
@@ -54,22 +57,24 @@ await page.addInitScript(() => {
     return d.call(this, img, ...a);
   };
 });
-await page.goto('http://localhost:5173/');
-await page.waitForFunction(() => window.__cyc);
-await page.evaluate(() => window.__cyc.listo());
-await page.evaluate(() => {
-  const c = window.__cyc;
-  c.titulo.remove();
-  c.g.hud.setVisible(true);
-  for (const id of ['fran', 'pablo', 'chuchi', 'guille']) c.g.poner(`empezado.${id}`);
-  c.g.poner('despierto');
-  // Measured always at the same quality, so runs compare: «auto» would step down here.
-  c.g.calidadAuto = false;
-  c.g.motor.setCalidad('media');
-});
-// The title screen's tap is what starts the sound in the game.
-if (!process.env.SIN_MUSICA) await page.evaluate(() => window.__cyc.g.sound.start());
-if (process.env.FPS_REPOSO) await page.evaluate((v) => (window.__cyc.g.fpsReposo = v), Number(process.env.FPS_REPOSO));
+if (!soloPang) {
+  await page.goto('http://localhost:5173/');
+  await page.waitForFunction(() => window.__cyc);
+  await page.evaluate(() => window.__cyc.listo());
+  await page.evaluate(() => {
+    const c = window.__cyc;
+    c.titulo.remove();
+    c.g.hud.setVisible(true);
+    for (const id of ['fran', 'pablo', 'chuchi', 'guille']) c.g.poner(`empezado.${id}`);
+    c.g.poner('despierto');
+    // Measured always at the same quality, so runs compare: «auto» would step down here.
+    c.g.calidadAuto = false;
+    c.g.motor.setCalidad('media');
+  });
+  // The title screen's tap is what starts the sound in the game.
+  if (!process.env.SIN_MUSICA) await page.evaluate(() => window.__cyc.g.sound.start());
+  if (process.env.FPS_REPOSO) await page.evaluate((v) => (window.__cyc.g.fpsReposo = v), Number(process.env.FPS_REPOSO));
+}
 
 const filas = [];
 async function medir(nombre, prep, contar = 'escena') {
@@ -279,14 +284,49 @@ if (toca('trailer')) {
   }
 }
 
-// Memory after the whole tour (docs/ESTILO.md, T5.11): baked scenery and decoded music are
-// capped; past these budgets a phone runs short of GPU memory and the frame rate falls apart.
-const mem = await page.evaluate(() => ({ decorado: window.__cyc.g.motor.memoriaDecorado, musica: window.__cyc.g.sound.memoriaMusica }));
-const fallosMem = [];
-if (mem.decorado.mb > 100) fallosMem.push(`decorados: ${mem.decorado.mb} MB (máximo 100)`);
-if (mem.musica > 50) fallosMem.push(`música descomprimida: ${mem.musica} MB (máximo 50)`);
-filas.push(fallosMem);
-console.log(`memoria al final: decorados ${mem.decorado.mb} MB en ${mem.decorado.escenas} escenas, música ${mem.musica} MB${fallosMem.length ? '   ✗ ' + fallosMem.join('; ') : ''}`);
+if (!soloPang) {
+  // Memory after the whole tour (docs/ESTILO.md, T5.11): baked scenery and decoded music are
+  // capped; past these budgets a phone runs short of GPU memory and the frame rate falls apart.
+  const mem = await page.evaluate(() => ({ decorado: window.__cyc.g.motor.memoriaDecorado, musica: window.__cyc.g.sound.memoriaMusica }));
+  const fallosMem = [];
+  if (mem.decorado.mb > 100) fallosMem.push(`decorados: ${mem.decorado.mb} MB (máximo 100)`);
+  if (mem.musica > 50) fallosMem.push(`música descomprimida: ${mem.musica} MB (máximo 50)`);
+  filas.push(fallosMem);
+  console.log(`memoria al final: decorados ${mem.decorado.mb} MB en ${mem.decorado.escenas} escenas, música ${mem.musica} MB${fallosMem.length ? '   ✗ ' + fallosMem.join('; ') : ''}`);
+}
+// Pang: its own page; the stage 12 demo (boss, bubbles, bullets, wires, HUD) played by the bot.
+if (toca('pang')) {
+  // The main game's page would keep running beside it and spoil the CPU figure.
+  if (!soloPang) await page.close();
+  const pp = await ctx.newPage();
+  pp.on('pageerror', (e) => errores.push(String(e)));
+  await pp.addInitScript(() => {
+    localStorage.clear();
+    const d = CanvasRenderingContext2D.prototype.drawImage;
+    window.__svgEnCanvas = 0;
+    CanvasRenderingContext2D.prototype.drawImage = function (img, ...a) {
+      if (img instanceof HTMLImageElement && /^data:image\/svg|\.svg(\?|$)/.test(img.src)) window.__svgEnCanvas++;
+      return d.call(this, img, ...a);
+    };
+  });
+  await pp.goto('http://localhost:5173/pang.html?fase=12&pj=chuchi&demo');
+  await pp.waitForFunction(() => window.__pang, null, { timeout: 30000 });
+  await pp.waitForTimeout(6000); // title card, «¡LISTOS!» and the boss waking up
+  const svg0 = await pp.evaluate(() => window.__svgEnCanvas);
+  const c0 = cpuChrome();
+  const f0 = await pp.evaluate(() => window.__pang().fotogramas);
+  await pp.waitForTimeout(SEG * 1000);
+  const fps = ((await pp.evaluate(() => window.__pang().fotogramas)) - f0) / SEG;
+  const cpu = ((cpuChrome() - c0) / SEG) * 100;
+  const svg = (await pp.evaluate(() => window.__svgEnCanvas)) - svg0;
+  const fallos = [];
+  if (svg > 0 && svg / SEG >= fps * 0.5) fallos.push(`${Math.round(svg / SEG)} imágenes SVG dibujadas en canvas por segundo`);
+  if (fps > 62) fallos.push(`${fps.toFixed(0)} fps, por encima del tope de 60`);
+  filas.push(fallos);
+  console.log(`${'pang, fase 12 (demo)'.padEnd(32)} CPU ${cpu.toFixed(0).padStart(4)} %   ${fps.toFixed(0).padStart(3)} fotogramas/s${fallos.length ? '   ✗ ' + fallos.join('; ') : ''}`);
+  await pp.close();
+}
+
 await b.close();
 if (errores.length) console.log('ERRORES:\n' + errores.join('\n'));
 if (errores.length || filas.some((f) => f.length)) process.exit(1);
