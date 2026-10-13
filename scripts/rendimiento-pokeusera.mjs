@@ -7,7 +7,7 @@
 //   - average and worst milliseconds of a drawn frame (`paso` + `dibujar`, from the `?medir` counters of
 //     src/pokeusera/pantalla.ts) and the share of the main thread used by the animation-frame callbacks;
 //   - drawImage calls per drawn frame, canvases created while measuring (should be 0: nothing may be baked
-//     in steady state) and in total since the page loaded (memory), and the first-frames spike (baking);
+//     in steady state; the ones the background baking of precalentar.ts makes are not counted) and in total since the page loaded (memory), and the first-frames spike (baking);
 //   - long tasks (> 50 ms, the browser's own jank measure: a bake that blocks the thread) while measuring.
 // Before measuring, a screen is given time to finish the art the game warms up in the background
 // (src/pokeusera/pantallas/precalentar.ts): it waits until no canvas has been created for 1.5 s.
@@ -16,7 +16,7 @@
 // It starts nothing itself: run `npm run dev` first.
 //   node scripts/rendimiento-pokeusera.mjs [pantalla...]     (default: all)  [PUERTO=5173]
 //   node scripts/rendimiento-pokeusera.mjs 5174 combate-juega     (a bare number is the port)
-//   screens: titulo, menu, entrenador, draft, draft-flujo, combate-elige, combate-juega, podio, estadisticas, guia
+//   screens: titulo, menu, entrenador, draft, draft-flujo, combate-elige, combate-juega, combate-ritmo, podio, estadisticas, useritopedia, useritopedia-ficha, guia
 // Environment: SEG=4 (seconds measured per screen), CPU=4 (throttling rate; 1 = none, budgets then do not apply),
 //   VOLCAR=carpeta (also write a PNG of every screen there, to compare looks before/after).
 import { chromium } from 'playwright';
@@ -44,10 +44,15 @@ const PRESUPUESTOS = {
   entrenador: { redibujos: 15, ms: 2.5, pico: 20, cb: 5, di: 45, lienzos: 0, largas: 0, primer: 1000 },
   draft: { redibujos: 15, ms: 4, pico: 30, cb: 6, di: 80, lienzos: 0, largas: 0, primer: 1600 },
   'draft-flujo': { redibujos: 15, ms: 4, pico: 30, cb: 6, di: 80, lienzos: 40, largas: 1, primer: 300 },
-  'combate-elige': { redibujos: 15, ms: 5, pico: 30, cb: 6, di: 100, lienzos: 0, largas: 0, primer: 900 },
-  'combate-juega': { redibujos: 62, ms: 7, pico: 130, cb: 45, di: 130, lienzos: 150, largas: 12, primer: 900 },
+  'combate-elige': { redibujos: 8, ms: 4, pico: 25, cb: 5, di: 85, lienzos: 0, largas: 0, primer: 600 },
+  // ?auto plays ten times faster than a person sees (the animations last a tenth): nearly always something moves. It also sets off the move effects (≈ 10 drawImage while one flies).
+  // «Lienzos» here are the screen's own (the text lines, damage numbers, badges); the background baking of precalentar.ts is not counted.
+  'combate-juega': { redibujos: 60, ms: 6, pico: 50, cb: 30, di: 120, lienzos: 200, largas: 6, primer: 600 },
+  'combate-ritmo': { redibujos: 40, ms: 5, pico: 50, cb: 16, di: 100, lienzos: 60, largas: 4, primer: 600 },
   podio: { redibujos: 30, ms: 3, pico: 20, cb: 8, di: 55, lienzos: 0, largas: 0, primer: 1500 },
   estadisticas: { redibujos: 8, ms: 6, pico: 25, cb: 4, di: 150, lienzos: 0, largas: 0, primer: 1500 },
+  useritopedia: { redibujos: 2, ms: 3, pico: 10, cb: 3, di: 45, lienzos: 0, largas: 0, primer: 1500 },
+  'useritopedia-ficha': { redibujos: 6, ms: 3, pico: 10, cb: 4, di: 25, lienzos: 0, largas: 0, primer: 1500 },
   guia: { redibujos: 8, ms: 3, pico: 20, cb: 4, di: 70, lienzos: 0, largas: 0, primer: 1000 },
 };
 
@@ -65,11 +70,16 @@ const PANTALLAS = {
   'combate-elige': { url: '?combate&semilla=7', ir: async () => {}, esperar: 2500 },
   // The battle plays by itself (and writes new lines of text all the time): there is no quiet moment to wait for.
   'combate-juega': { url: '?combate&auto&semilla=7', ir: async () => {}, esperar: 1500, quieto: false },
+  // The same battle at the pace a player sees (the speed setting NORMAL, no ?auto shortcut speed-up): `cfg` is changed in the page (dev server only).
+  'combate-ritmo': { url: '?combate&auto&semilla=7', ir: async (p) => { await p.evaluate(async () => { const ui = await import('/src/pokeusera/pantallas/ui.ts'); ui.cfg.rapido = false; ui.cfg.velocidad = 'normal'; }); }, esperar: 3000, quieto: false },
   // Reached by playing a whole quick game by itself (?auto): the podium, then ESTADÍSTICAS with Enter.
   podio: { url: '?auto&semilla=7', ir: async (p) => { await hastaPodio(p); } },
   estadisticas: { url: '?auto&semilla=7', ir: async (p) => { await hastaPodio(p); await tecla(p, 'Enter'); } },
-  // The guide: menu → GUÍA (third entry).
-  guia: { url: '', ir: async (p) => { await tecla(p, 'Enter'); await tecla(p, 'ArrowDown', false); await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
+  // The Useritopedia: menu → USERITOPEDIA (third entry): the list, and a card (Enter on the first userito).
+  useritopedia: { url: '', ir: async (p) => { await tecla(p, 'Enter'); await tecla(p, 'ArrowDown', false); await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
+  'useritopedia-ficha': { url: '', ir: async (p) => { await tecla(p, 'Enter'); await tecla(p, 'ArrowDown', false); await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); await tecla(p, 'Enter', false); }, esperar: 1500 },
+  // The guide: menu → GUÍA (fourth entry).
+  guia: { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 3; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
 };
 for (const n of quiero) if (!PANTALLAS[n]) { console.error(`Pantalla desconocida: ${n}. Hay: ${Object.keys(PANTALLAS).join(', ')}`); process.exit(2); }
 
@@ -90,7 +100,7 @@ async function esperarQuieto(p, max = 45000) {
   let ultimo = -1;
   let quietas = 0;
   while (Date.now() - t0 < max && quietas < 3) {
-    const n = await p.evaluate(() => window.__lienzos);
+    const n = await p.evaluate(() => window.__lienzos + window.__lienzosFondo);
     quietas = n === ultimo ? quietas + 1 : 0;
     ultimo = n;
     await dormir(500);
@@ -129,7 +139,9 @@ for (const nombre of Object.keys(PANTALLAS)) {
     } catch {}
     // Canvases created (baked): each one is memory and a texture upload.
     const ce = document.createElement.bind(document);
-    document.createElement = (tag, o) => { if (String(tag).toLowerCase() === 'canvas') w.__lienzos++; return ce(tag, o); };
+    // (Those made inside a task of the background baking, precalentar.ts, are not the screen's: they are counted apart.)
+    w.__lienzosFondo = 0;
+    document.createElement = (tag, o) => { if (String(tag).toLowerCase() === 'canvas') { if (w.__precalentando) w.__lienzosFondo++; else w.__lienzos++; } return ce(tag, o); };
     // drawImage calls: the cost of a frame on a phone is mostly the number of blits.
     const di = CanvasRenderingContext2D.prototype.drawImage;
     CanvasRenderingContext2D.prototype.drawImage = function (...a) { w.__di++; return di.apply(this, a); };
@@ -160,7 +172,7 @@ for (const nombre of Object.keys(PANTALLAS)) {
   const m = await page.evaluate(() => {
     const seg = (performance.now() - window.__t0) / 1000;
     const x = window.__medir;
-    return { seg, rafs: x.rafs, dibujos: x.dibujos, ms: x.ms, max: x.max, di: window.__di, cb: window.__raf.ms, lienzos: window.__lienzos - window.__lienzos0, lienzosTotal: window.__lienzos, largas: window.__largas.n, largaMax: window.__largas.max };
+    return { seg, rafs: x.rafs, dibujos: x.dibujos, ms: x.ms, max: x.max, di: window.__di, cb: window.__raf.ms, lienzos: window.__lienzos - window.__lienzos0, lienzosTotal: window.__lienzos + window.__lienzosFondo, largas: window.__largas.n, largaMax: window.__largas.max };
   });
   if (process.env.VOLCAR) {
     mkdirSync(process.env.VOLCAR, { recursive: true });

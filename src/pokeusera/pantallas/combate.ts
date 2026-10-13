@@ -13,18 +13,20 @@ import { activo, eliminado, enGrada, movsDisponibles, necesitaObjetivo, puedeCam
 import { anchoTexto2, dibujarTexto2 } from '../arte2/fuente2';
 import { PS_TONOS, TINTA2, TINTA_SUAVE } from '../arte2/paleta2';
 import { spriteEspalda2, spriteFrente2 } from '../arte2/sprites2';
-import { barraPS2, bandaEntrenador, filaMenu, hornear, panel, panelCacheado, pip, relleno } from '../arte2/ui2';
+import { barraPS2, bandaEntrenador, filaMenu, hornear, panel, panelCacheado, pegable, pip, relleno } from '../arte2/ui2';
 import { JUGADORES2, SOMBRA_TEXTO } from '../arte2/paleta2';
 import { entrada, type Accion } from '../entrada';
 import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
 import { CajaTexto } from './caja';
 import { menuPausa } from './ajustes';
+import { EfectosMov, llegadaFx, tareasPrecalentarEfectos, type PuntoFx } from './efectosMov';
 import { cajaSprite, dibujarBandeja, dibujarFondoBar, miniatura, pieSprite, plataformaCacheada } from './fondos';
 import { abrirGuia } from './guia';
 import { sobre } from './modal';
 import {
   ALTO_CELDA,
+  ALTO_INSIGNIA,
   Animador,
   barraArriba,
   barraValor,
@@ -37,6 +39,7 @@ import {
   dormir,
   envolver,
   etiquetaEstado,
+  Firma,
   ficha,
   flecha,
   flechaV,
@@ -53,7 +56,6 @@ import {
   t,
   texto2,
   textoGrande,
-  velo,
 } from './ui';
 
 const PS_ROJO = '#ff6a52';
@@ -107,6 +109,71 @@ type Tema = { k: 'estado'; e: Estado | 'achispado' } | { k: 'stat'; s: 'ps' | 'a
 
 /** Height of the action banner under the text box. */
 const ALTO_CARTEL = 40;
+
+/** The width of a trainer's name in capitals (it is asked for every frame), and of a status tag's text. */
+const anchosNombre = new Map<string, number>();
+const anchoNombre = (nombre: string): number => {
+  let w = anchosNombre.get(nombre);
+  if (w === undefined) anchosNombre.set(nombre, (w = anchoTexto2(nombre.toUpperCase())));
+  return w;
+};
+const anchosEstado = new Map<string, number>();
+const anchoEstado = (e: Estado | 'achispado'): number => {
+  let w = anchosEstado.get(e);
+  if (w === undefined) anchosEstado.set(e, (w = anchoTexto2(t(`estado.${e}`))));
+  return w;
+};
+/** The widths of a userito's type chips with names (`largo`) and as bare squares (`corto`), by the types it has. */
+const chipsAncho = new Map<string, { largo: number; corto: number }>();
+function anchosChips(tipos: readonly Tipo[]): { largo: number; corto: number } {
+  const clave = tipos.join('|');
+  let a = chipsAncho.get(clave);
+  if (!a) {
+    let largo = (tipos.length - 1) * 2;
+    let corto = largo;
+    for (const tp of tipos) {
+      largo += anchoTexto2(t(`tipo.abrev.${tp}`)) + 7;
+      corto += 9;
+    }
+    chipsAncho.set(clave, (a = { largo, corto }));
+  }
+  return a;
+}
+
+/** The three jar pips of a row as one baked strip (25×7, a pip every 9 px) per colour and number of jars standing: one blit instead of three. */
+const tirasPips: Map<string, HTMLCanvasElement>[] = [new Map(), new Map(), new Map(), new Map()];
+function pipsFila(ctx: CanvasRenderingContext2D, x: number, y: number, vivos: number, color: string) {
+  const m = tirasPips[Math.max(0, Math.min(3, vivos))];
+  if (!pegable(ctx, x, y)) {
+    for (let i = 0; i < 3; i++) pip(ctx, x + i * 9, y, i < vivos, color);
+    return;
+  }
+  let c = m.get(color);
+  if (!c) {
+    c = document.createElement('canvas');
+    c.width = 25;
+    c.height = 7;
+    const cx = c.getContext('2d')!;
+    for (let i = 0; i < 3; i++) pip(cx, i * 9, 0, i < vivos, color);
+    m.set(color, c);
+  }
+  ctx.drawImage(c, x, y);
+}
+
+/** The type chips of a userito as one baked strip (with names, or bare squares), by its types. */
+const tirasChips = new Map<string, HTMLCanvasElement>();
+
+/** Floating labels the frame signature looks at one by one (the rest are folded into the last slot). */
+const MAX_FIRMA_FLOT = 12;
+
+/** The dimming of the rows that do not take part fades in over this long, in this many steps (a 40 % veil: 5 % a step cannot be seen). */
+const PASOS_FUNDIDO = 8;
+const duracionFundido = (): number => (cfg.rapido ? 60 : 180);
+
+/** How opaque a floating label is at `p` (0..1 of its life), in sixteenths: it fades over the last quarter. */
+const alfaFlotante = (p: number): number => Math.max(0, Math.round((p > 0.75 ? 1 - (p - 0.75) / 0.25 : 1) * 16));
+/** How many pixels a floating damage number has risen at `p`: a little jump up, then it floats. */
+const subidaFlotante = (p: number): number => Math.round(Math.min(1, p * 4) * 14 + p * 6);
 
 /** A number or tag floating over a userito. The text (with its outline) is baked once when it is created: drawing it is one `drawImage`. */
 interface Flotante {
@@ -179,12 +246,98 @@ function chipAcorralado(): HTMLCanvasElement {
 }
 
 /** A label with a one-pixel dark outline, baked once per text and colour (the outline is 8 text draws: not per frame). */
+const rotulos = new Map<string, HTMLCanvasElement>();
 function rotuloFlotante(s: string, color: string): HTMLCanvasElement {
-  const w = anchoTexto2(s) + 2;
-  return hornear(`flota|${color}|${s}`, w, ALTO_CELDA + 3, (cx) => {
+  // Its own cache (not `hornear`'s, which forgets the oldest quarter at 300 plates: a battle bakes dozens of distinct damage numbers and
+  // would push the panels out). A label is a few hundred bytes and there are at most a hundred numbers and a dozen tags.
+  const clave = `${color}|${s}`;
+  let c = rotulos.get(clave);
+  if (!c) {
+    const w = anchoTexto2(s) + 2;
+    c = document.createElement('canvas');
+    c.width = w;
+    c.height = ALTO_CELDA + 3;
+    const cx = c.getContext('2d')!;
+    cx.imageSmoothingEnabled = false;
     for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, 1], [-1, 1], [1, -1]]) dibujarTexto2(cx, s, 1 + dx, 3 + dy, TINTA2, null);
     dibujarTexto2(cx, s, 1, 3, color, null);
-  });
+    rotulos.set(clave, c);
+  }
+  return c;
+}
+
+/** A translucent veil of a fixed colour as a ready-made `rgba` fill (no `save`, no `globalAlpha`); the strings are made once per level of alpha. */
+function velos(r: number, g: number, b: number) {
+  const cache: string[] = [];
+  return (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, alfa: number) => {
+    const k = Math.max(0, Math.min(255, Math.round(alfa * 255)));
+    if (k === 0) return;
+    ctx.fillStyle = cache[k] ??= `rgba(${r},${g},${b},${k / 255})`;
+    ctx.fillRect(x, y, w, h);
+  };
+}
+const veloCrema = velos(240, 226, 192);
+
+/** The corner brackets of a target (one baked piece per colour and corner), the glow ring of the actor's mat (per size and colour). */
+const esquinas = new Map<string, HTMLCanvasElement>();
+const anillos = new Map<string, HTMLCanvasElement>();
+const BRAZO = 8;
+/** Origin of a corner inside its 20x20 baked piece. */
+const ORIGEN_ESQ = 10;
+
+/** One bracket corner with its dark edge, the corner pixel at (cx, cy); `dx`/`dy` say where its arms go. */
+function trazarEsquina(ctx: CanvasRenderingContext2D, color: string, cx: number, cy: number, dx: 1 | -1, dy: 1 | -1) {
+  const hx = dx > 0 ? cx : cx - BRAZO + 1;
+  const vy = dy > 0 ? cy : cy - BRAZO + 1;
+  const gx = dx > 0 ? cx : cx - 1;
+  const gy = dy > 0 ? cy : cy - 1;
+  rect(ctx, TINTA2, hx - 1, gy - 1, BRAZO + 2, 4);
+  rect(ctx, TINTA2, gx - 1, vy - 1, 4, BRAZO + 2);
+  rect(ctx, color, hx, gy, BRAZO, 2);
+  rect(ctx, color, gx, vy, 2, BRAZO);
+}
+
+function esquinaCacheada(color: string, dx: 1 | -1, dy: 1 | -1): HTMLCanvasElement {
+  const clave = `${color}|${dx}|${dy}`;
+  let c = esquinas.get(clave);
+  if (!c) {
+    c = document.createElement('canvas');
+    c.width = c.height = 2 * ORIGEN_ESQ;
+    trazarEsquina(c.getContext('2d')!, color, ORIGEN_ESQ, ORIGEN_ESQ, dx, dy);
+    esquinas.set(clave, c);
+  }
+  return c;
+}
+
+/** Pixel ellipse outline of 2 px (the glow around a mat), no anti-aliasing. */
+function trazarAnillo(ctx: CanvasRenderingContext2D, cx: number, cy: number, rx: number, ry: number, color: string) {
+  for (let dy = -ry; dy <= ry; dy++) {
+    const ancho = Math.round(rx * Math.sqrt(1 - (dy / ry) ** 2));
+    const borde = Math.abs(dy) >= ry - 1 ? ancho : Math.max(2, Math.round(ancho - rx * Math.sqrt(1 - ((Math.abs(dy) + 1.5) / ry) ** 2)));
+    const y = cy + dy;
+    if (Math.abs(dy) >= ry - 1) rect(ctx, color, cx - ancho, y, ancho * 2, 1);
+    else {
+      rect(ctx, color, cx - ancho, y, borde, 1);
+      rect(ctx, color, cx + ancho - borde, y, borde, 1);
+    }
+  }
+}
+
+/** The mat's glow: a dark ring and a coloured one inside it, baked together once per size and colour. Its top-left is (cx − rx − 1, cy − ry). */
+function anilloCacheado(rx: number, ry: number, color: string): HTMLCanvasElement {
+  const clave = `${rx}|${ry}|${color}`;
+  let c = anillos.get(clave);
+  if (!c) {
+    c = document.createElement('canvas');
+    c.width = 2 * (rx + 1) + 1;
+    c.height = 2 * (ry + 1) + 1;
+    const cx = c.getContext('2d')!;
+    // The dark ring is one pixel bigger on every side; the coloured one sits one pixel up (as it was drawn: centre cy, dark cy + 1).
+    trazarAnillo(cx, rx + 1, ry + 1, rx + 1, ry + 1, TINTA2);
+    trazarAnillo(cx, rx + 1, ry, rx, ry, color);
+    anillos.set(clave, c);
+  }
+  return c;
 }
 
 /** Text lines that only comment on a hit that the screen already shows (tags, numbers). */
@@ -215,6 +368,15 @@ export class VistaCombate implements Escena {
   private turnoHud = 1;
   private foco: Foco | null = null;
   private flotantes: Flotante[] = [];
+  /** The visual effects of the moves (lentils, firecrackers...): see `efectosMov.ts`. */
+  private efectos = new EfectosMov();
+  /** What the frame looks like apart from the animations (see `paso`): redraw only when it changes. */
+  private firma = new Firma(7 + 2 * MAX_FIRMA_FLOT);
+  private geomH = -1;
+  private geomVal: ReturnType<VistaCombate['calcularGeom']> | null = null;
+  private rivLista: number[] = [];
+  private rivYo = -1;
+  private rivN = -1;
   private orden: OrdenTurno | null = null;
   /** performance.now() until which the big «ORDEN DEL TURNO» strip shows (0 = hidden). */
   private ordenHasta = 0;
@@ -249,6 +411,7 @@ export class VistaCombate implements Escena {
   // ------------------------------------------------------------------ feeding (host or network)
 
   async alInicio(estado: EstadoCombate): Promise<void> {
+    await this.calentar(estado);
     this.adoptar(estado);
     this.turnoHud = estado.turno;
     sonido.musica('combate');
@@ -264,6 +427,33 @@ export class VistaCombate implements Escena {
     });
     const texto = this.caja.decir(t('batalla.inicio'), 900);
     await Promise.all([texto, ...sacadas]);
+  }
+
+  /**
+   * Bakes the art of the twelve useritos (both idle frames of front and back, and the thumbnail) and of the move effects before the teams come out, a few at a
+   * time, giving the screen a frame in between: the background baking (`precalentar.ts`) normally has done it long ago, but a
+   * battle can start before that (the ?combate shortcut, an online guest who skipped the title).
+   */
+  private async calentar(estado: EstadoCombate) {
+    const vistas = new Set<string>();
+    const tareas: (() => void)[] = [];
+    for (const q of estado.jugadores) {
+      for (const u of q.equipo) {
+        if (vistas.has(u.especie)) continue;
+        vistas.add(u.especie);
+        tareas.push(() => miniatura(u.especie), () => spriteFrente2(u.especie, 0), () => spriteFrente2(u.especie, 1), () => spriteEspalda2(u.especie, 0), () => spriteEspalda2(u.especie, 1));
+      }
+    }
+    // The sprites of the move effects too (already baked when the background baking is over: then this is a few empty loops).
+    tareas.push(...tareasPrecalentarEfectos());
+    let t0 = performance.now();
+    for (const f of tareas) {
+      f();
+      if (performance.now() - t0 > 8) {
+        await new Promise<void>((res) => requestAnimationFrame(() => res()));
+        t0 = performance.now();
+      }
+    }
   }
 
   /** The local player decides the turn. */
@@ -350,7 +540,14 @@ export class VistaCombate implements Escena {
   // ------------------------------------------------------------------ state helpers
 
   private rivales(): number[] {
-    return this.disp.jugadores.map((_, j) => j).filter((j) => j !== this.yo);
+    const n = this.disp.jugadores.length;
+    if (n !== this.rivN || this.yo !== this.rivYo) {
+      this.rivN = n;
+      this.rivYo = this.yo;
+      this.rivLista = [];
+      for (let j = 0; j < n; j++) if (j !== this.yo) this.rivLista.push(j);
+    }
+    return this.rivLista;
   }
 
   /** Takes `estado` as the truth: sprites, bars, statuses, places. */
@@ -376,11 +573,16 @@ export class VistaCombate implements Escena {
   private musicaSegunJugadores() {
     const enPie = this.disp.jugadores.filter((q) => q.puesto === 0).length;
     sonido.musica(enPie <= 2 ? 'final' : 'combate');
+    // The next tunes are fetched and decoded before they are needed, so that they start at once: the final one when three are left,
+    // the fanfare when two are (a decode takes a while on a phone, and a late tune is worse than none).
+    if (enPie <= 3) sonido.precargar('final');
+    if (enPie <= 2) sonido.precargar('victoria');
   }
 
   // ------------------------------------------------------------------ playing the events
 
   private terminarReproduccion() {
+    this.efectos.limpiar();
     this.foco = null;
     this.orden = null;
     this.ordenHasta = 0;
@@ -562,7 +764,7 @@ export class VistaCombate implements Escena {
   /** Plays one event. `corto`: a hit of a multi-hit move that is followed by another one (quicker flash and bar). */
   private async evento(ev: Evento, corto = false) {
     const tareas: Promise<void>[] = [];
-    const linea = ev.clave ? t(ev.clave, ev.vars) : null;
+    let linea = ev.clave ? t(ev.clave, ev.vars) : null;
     // «X used Y»: the hit comes right after it, so it does not wait as long as other lines.
     let espera: number | undefined;
     this.entrarFin(ev);
@@ -571,13 +773,17 @@ export class VistaCombate implements Escena {
         if (this.hubo) await dormir(ritmo().entre);
         this.hubo = true;
         this.ponerFoco(ev.j, ev.obj ?? [], ev.mov);
-        // (the move's visual effect starts here: actor `ev.j`, targets `ev.obj`)
         const m = MOVS[ev.mov];
         if (m) {
           if (m.pot !== null) sonido.efecto(['normal', 'tierra', 'aire', 'juerga', 'fantasma'].includes(m.tipo) ? 'cursor' : 'cambio');
         }
-        tareas.push(this.embestida(ev.j, ev.obj ?? []));
         if (ritmo().espera > 0) espera = Math.round(ritmo().espera * 0.45);
+        // The move's visual effect flies in the last part of the pause after the line, so that it lands as the hit begins (see `decirYLanzar`).
+        const plan = linea ? this.planEfecto(ev) : null;
+        if (plan && linea) {
+          tareas.push(this.decirYLanzar(linea, espera, ev, plan));
+          linea = null;
+        } else tareas.push(this.embestida(ev.j, ev.obj ?? []));
         break;
       }
       case 'golpe':
@@ -798,6 +1004,45 @@ export class VistaCombate implements Escena {
       f.salto = fuera.length ? dir * Math.round(seno * 7) : 0;
       f.saltoY = Math.round(seno * dy);
     });
+  }
+
+  /** How fast the move effects play: with the speed setting (slow 1, normal 1.15, fast 1.4), and much quicker in the fast test mode. */
+  private escalaFx(): number {
+    return cfg.rapido ? 4 : cfg.velocidad === 'rapida' ? 1.4 : cfg.velocidad === 'normal' ? 1.15 : 1;
+  }
+
+  /** The centre of j's sprite on screen (where an effect starts or lands). */
+  private centroSprite(j: number): PuntoFx {
+    const c = this.cajaDe(j);
+    return { x: (c.x0 + c.x1) >> 1, y: (c.y0 + c.y1) >> 1 };
+  }
+
+  /**
+   * What the effect of a move needs: the attacker's centre and its targets' (several: all at once; none: a move on oneself). Nothing when
+   * the attacker is hidden, or the move found nobody to hit (a failed copy, say). A move that never reached «usa» (asleep, paralysed...) has no event at all.
+   */
+  private planEfecto(ev: Extract<Evento, { k: 'usa' }>): { desde: PuntoFx; a: PuntoFx[]; llega: number } | null {
+    const m = MOVS[ev.mov];
+    if (!m || !this.fx[ev.j] || this.fx[ev.j].oculto) return null;
+    const a: PuntoFx[] = [];
+    for (const o of ev.obj ?? []) if (o !== ev.j && this.fx[o] && !this.fx[o].oculto) a.push(this.centroSprite(o));
+    if (!a.length && m.objetivo !== 'yo') return null;
+    return { desde: this.centroSprite(ev.j), a, llega: llegadaFx(ev.mov, a.length > 0) };
+  }
+
+  /**
+   * The line «X used Y», then the effect. The pause that follows the line is split in two: the first part reading, the last `llega` ms
+   * (when the effect arrives) flying, so that the hit starts as the effect lands and the move takes no longer than before.
+   * With a tap-to-continue pace the effect comes after the tap.
+   */
+  private async decirYLanzar(linea: string, espera: number | undefined, ev: Extract<Evento, { k: 'usa' }>, plan: { desde: PuntoFx; a: PuntoFx[]; llega: number }) {
+    const k = this.escalaFx();
+    const llega = Math.round(plan.llega / k);
+    const esp = espera ?? ritmo().espera;
+    await this.decir(linea, esp >= 0 ? Math.max(0, esp - llega) : esp);
+    this.efectos.lanzar(ev.mov, MOVS[ev.mov].tipo, plan.desde, plan.a);
+    void this.embestida(ev.j, ev.obj ?? []);
+    await dormir(llega);
   }
 
   private parpadea(j: number, corto = false): Promise<void> {
@@ -1027,11 +1272,11 @@ export class VistaCombate implements Escena {
 
   // ------------------------------------------------------------------ frame
 
-  paso(dt: number): boolean {
+  paso(dt: number, ahora: number): boolean {
     let mueve = this.anim.paso(dt);
     if (this.caja.paso(dt)) mueve = true;
-    // The spotlight pulses, numbers float, the order strip counts down.
-    if (this.foco || this.flotantes.length || this.ordenHasta > 0) mueve = true;
+    if (this.efectos.paso(dt, this.escalaFx())) mueve = true;
+    if (this.firmaFoco(ahora)) mueve = true;
     for (const f of this.fx) {
       if (f.parpadeo > 0) {
         f.parpadeo = Math.max(0, f.parpadeo - dt);
@@ -1058,9 +1303,51 @@ export class VistaCombate implements Escena {
     return mueve;
   }
 
+  /**
+   * The spotlight pulses, numbers float and fade, the order strip counts down, but all of it changes what is on screen only a few times a
+   * second (the pulse every 140 ms, a number one pixel at a time, a fade in steps). The values the frame is drawn from are put in
+   * `firma` the way `dibujar` computes them, and the screen asks for a redraw only when one of them changes.
+   */
+  private firmaFoco(ahora: number): boolean {
+    const v = this.firma.v;
+    const ahoraPerf = performance.now();
+    // Labels that are over leave the list here (the drawing does not need to).
+    let n = 0;
+    for (const f of this.flotantes) if (ahoraPerf - f.t0 < f.dur) this.flotantes[n++] = f;
+    this.flotantes.length = n;
+    const foco = this.foco;
+    const activo = foco !== null || n > 0 || this.ordenHasta > 0;
+    v.fill(0);
+    if (activo) {
+      if (foco) {
+        v[0] = 1 + Math.round(Math.min(1, (ahoraPerf - foco.t0) / duracionFundido()) * PASOS_FUNDIDO);
+        v[1] = Math.floor(ahora / 140) % 2;
+      }
+      v[2] = this.ordenHasta > 0 && ahoraPerf < this.ordenHasta ? 1 : 0;
+      // The idle frames of the sprites change on their own while a spotlight (which redraws only on change) is up.
+      for (let j = 0; j < 4; j++) v[3 + j] = reposo(ahora, j * 330);
+      for (let i = 0; i < n; i++) {
+        const f = this.flotantes[i];
+        const p = (ahoraPerf - f.t0) / f.dur;
+        const k = Math.min(i, MAX_FIRMA_FLOT - 1);
+        v[7 + 2 * k] += 1 + alfaFlotante(p);
+        v[8 + 2 * k] += f.tipo === 'num' ? subidaFlotante(p) : 0;
+      }
+    }
+    return this.firma.cambio();
+  }
+
   /** Heights of the field, the tray and the rows for this screen height (see docs/POKEUSERA.md). */
   private geom() {
     const H = pantalla().alto;
+    if (H !== this.geomH || !this.geomVal) {
+      this.geomH = H;
+      this.geomVal = this.calcularGeom(H);
+    }
+    return this.geomVal;
+  }
+
+  private calcularGeom(H: number) {
     const k = Math.max(0, Math.min(1, (H - 384) / 136));
     const hud = 18;
     /** Pitch between the four rows: the sprites may overlap a little on short screens. */
@@ -1116,8 +1403,12 @@ export class VistaCombate implements Escena {
     if (this.modo === 'cola' || this.modo === 'espera') entrada.zona(0, G.hud, ANCHO, G.H - G.hud, () => this.caja.toque());
     // Rows.
     const riv = this.rivales();
-    riv.forEach((j) => this.fila(ctx, j, ahora));
-    this.fila(ctx, this.yo, ahora);
+    for (let i = 0; i < riv.length; i++) this.filaSprite(ctx, riv[i], ahora);
+    this.filaSprite(ctx, this.yo, ahora);
+    // The move effects fly over the sprites and under the panels (a bolt or a gust never covers a name or a bar), the numbers, the tray, the text and the top bar.
+    if (this.efectos.activo) this.efectos.dibujar(ctx);
+    for (let i = 0; i < riv.length; i++) this.fila(ctx, riv[i]);
+    this.fila(ctx, this.yo);
     this.dibujarFoco(ctx, ahora);
     this.dibujarEleccionObjetivo(ctx, ahora);
     this.dibujarOrdenGrande(ctx, G);
@@ -1481,20 +1772,6 @@ export class VistaCombate implements Escena {
 
   // ------------------------------------------------------------------ the spotlight
 
-  /** Pixel ellipse outline of `grosor` px (the glow around a mat), no anti-aliasing. */
-  private anilloMat(ctx: CanvasRenderingContext2D, cx: number, cy: number, rx: number, ry: number, color: string) {
-    for (let dy = -ry; dy <= ry; dy++) {
-      const ancho = Math.round(rx * Math.sqrt(1 - (dy / ry) ** 2));
-      const borde = Math.abs(dy) >= ry - 1 ? ancho : Math.max(2, Math.round(ancho - rx * Math.sqrt(1 - ((Math.abs(dy) + 1.5) / ry) ** 2)));
-      const y = cy + dy;
-      if (Math.abs(dy) >= ry - 1) rect(ctx, color, cx - ancho, y, ancho * 2, 1);
-      else {
-        rect(ctx, color, cx - ancho, y, borde, 1);
-        rect(ctx, color, cx + ancho - borde, y, borde, 1);
-      }
-    }
-  }
-
   /** Where the beer mat of j's sprite sits (centre and radii), for the actor's glow. */
   private matDe(j: number) {
     const mia = j === this.yo;
@@ -1517,44 +1794,39 @@ export class VistaCombate implements Escena {
   /** Pulsing corner brackets hugging a target's sprite: `color` with a dark edge so they read on any background. */
   private marcaObjetivo(ctx: CanvasRenderingContext2D, j: number, color: string, ahora: number, pulsa = true) {
     const fase = pulsa ? Math.floor(ahora / 140) % 2 : 0;
-    const brazo = 8;
     const c = this.cajaDe(j);
     const x0 = c.x0 - 4 - fase;
     const x1 = c.x1 + 4 + fase;
     const y0 = c.y0 - 4 - fase;
     const y1 = c.y1 + 4 + fase;
-    const esquina = (cx: number, cy: number, dx: 1 | -1, dy: 1 | -1) => {
-      const hx = dx > 0 ? cx : cx - brazo + 1;
-      const vy = dy > 0 ? cy : cy - brazo + 1;
-      const gx = dx > 0 ? cx : cx - 1;
-      const gy = dy > 0 ? cy : cy - 1;
-      rect(ctx, TINTA2, hx - 1, gy - 1, brazo + 2, 4);
-      rect(ctx, TINTA2, gx - 1, vy - 1, 4, brazo + 2);
-      rect(ctx, color, hx, gy, brazo, 2);
-      rect(ctx, color, gx, vy, 2, brazo);
-    };
-    esquina(x0, y0, 1, 1);
-    esquina(x1 - 1, y0, -1, 1);
-    esquina(x0, y1 - 1, 1, -1);
-    esquina(x1 - 1, y1 - 1, -1, -1);
+    this.esquina(ctx, color, x0, y0, 1, 1);
+    this.esquina(ctx, color, x1 - 1, y0, -1, 1);
+    this.esquina(ctx, color, x0, y1 - 1, 1, -1);
+    this.esquina(ctx, color, x1 - 1, y1 - 1, -1, -1);
+  }
+
+  /** One corner of the brackets: a baked piece (four rectangles' worth of fills in one blit); drawn directly when the position is not on whole pixels. */
+  private esquina(ctx: CanvasRenderingContext2D, color: string, cx: number, cy: number, dx: 1 | -1, dy: 1 | -1) {
+    if (pegable(ctx, cx, cy)) ctx.drawImage(esquinaCacheada(color, dx, dy), cx - ORIGEN_ESQ, cy - ORIGEN_ESQ);
+    else trazarEsquina(ctx, color, cx, cy, dx, dy);
   }
 
   private dibujarFoco(ctx: CanvasRenderingContext2D, ahora: number) {
     const f = this.foco;
     if (!f) return;
-    const a = Math.min(1, (performance.now() - f.t0) / 180);
+    // In steps, like `firmaFoco` (the redraw is asked for when a step changes).
+    const a = Math.round(Math.min(1, (performance.now() - f.t0) / duracionFundido()) * PASOS_FUNDIDO) / PASOS_FUNDIDO;
     const colorActor = f.actor >= 0 ? colorEnt(this.disp.jugadores[f.actor].entrenador) : null;
     // Dim the rows that have nothing to do with it.
     for (let j = 0; j < this.disp.jugadores.length; j++) {
       if (j === f.actor || f.objetivos.includes(j)) continue;
       const { y, h } = this.filaDe(j);
-      velo(ctx, 0, y, ANCHO, h, '#f0e2c0', 0.42 * a);
+      veloCrema(ctx, 0, y, ANCHO, h, 0.42 * a);
     }
     // The actor: its mat glows in its trainer's colour.
     if (f.actor >= 0 && colorActor && !this.fx[f.actor].oculto) {
       const m = this.matDe(f.actor);
-      this.anilloMat(ctx, m.cx, m.cy + 1, m.rx + 1, m.ry + 1, TINTA2);
-      this.anilloMat(ctx, m.cx, m.cy, m.rx, m.ry, colorActor);
+      ctx.drawImage(anilloCacheado(m.rx, m.ry, colorActor), m.cx - m.rx - 1, m.cy - m.ry);
     }
     // The targets: pulsing brackets in the actor's colour (end-of-turn effects: cream).
     for (const j of f.objetivos) {
@@ -1661,12 +1933,11 @@ export class VistaCombate implements Escena {
     for (const f of this.flotantes) {
       const p = (ahora - f.t0) / f.dur;
       const sp = this.posSprite(f.j);
-      ctx.globalAlpha = Math.max(0, p > 0.75 ? 1 - (p - 0.75) / 0.25 : 1);
+      ctx.globalAlpha = alfaFlotante(p) / 16;
       const w = f.img.width - 2;
       if (f.tipo === 'num') {
         const wn = w * 2;
-        // A little jump up, then it floats.
-        const sube = Math.round(Math.min(1, p * 4) * 14 + p * 6);
+        const sube = subidaFlotante(p);
         const x = Math.max(2, Math.min(ANCHO - wn - 2, sp.x + Math.floor((LADO - wn) / 2)));
         const y = sp.y + 22 - sube;
         // The label is baked with a 1 px margin (outline) at 1x and drawn at 2x.
@@ -1687,7 +1958,18 @@ export class VistaCombate implements Escena {
   // ------------------------------------------------------------------ rows
 
   /** The panel plate of a row (frame, band with the trainer's initial, trainer name), baked once per seat. */
+  private placas: ({ nombre: string; c: HTMLCanvasElement } | undefined)[] = [];
   private placa(asiento: number, nombre: string, mia: boolean): HTMLCanvasElement {
+    // Asked for by every row on every frame: remembered by seat, so no key string is built each time.
+    const i = asiento * 2 + (mia ? 1 : 0);
+    const p = this.placas[i];
+    if (p && p.nombre === nombre) return p.c;
+    const c = this.hornearPlaca(asiento, nombre, mia);
+    this.placas[i] = { nombre, c };
+    return c;
+  }
+
+  private hornearPlaca(asiento: number, nombre: string, mia: boolean): HTMLCanvasElement {
     const w = mia ? 134 : 128;
     const h = mia ? 52 : 40;
     const ini = (nombre[0] ?? '?').toUpperCase();
@@ -1698,7 +1980,20 @@ export class VistaCombate implements Escena {
     });
   }
 
-  private fila(ctx: CanvasRenderingContext2D, j: number, ahora: number) {
+  /** A row in two layers: its mat and sprite (`filaSprite`), then the effects of the moves fly, then its panel and tags (`fila`). */
+  private filaSprite(ctx: CanvasRenderingContext2D, j: number, ahora: number) {
+    const q = this.disp.jugadores[j];
+    const mia = j === this.yo;
+    const f = this.fx[j];
+    const { x: sx, y: sy, pies } = this.posSprite(j);
+    // The beer-mat platform under the sprite.
+    const mat = mia ? plataformaCacheada(42, 10) : plataformaCacheada(30, 7);
+    const cxm = mia ? 52 : 190;
+    ctx.drawImage(mat, cxm - Math.floor(mat.width / 2), pies - 3 - (mia ? 14 : 10));
+    if (!f.oculto && (!q.puesto || f.caida > 0)) this.sprite(ctx, j, sx, sy, pies, mia, ahora);
+  }
+
+  private fila(ctx: CanvasRenderingContext2D, j: number) {
     const G = this.geom();
     const q = this.disp.jugadores[j];
     const mia = j === this.yo;
@@ -1706,12 +2001,7 @@ export class VistaCombate implements Escena {
     const u = activo(this.disp, j);
     const asiento = Math.max(0, ENTRENADORES.indexOf(q.entrenador));
     const top = this.yFila(j);
-    const { x: sx, y: sy, pies } = this.posSprite(j);
-    // The beer-mat platform under the sprite.
-    const mat = mia ? plataformaCacheada(42, 10) : plataformaCacheada(30, 7);
-    const cxm = mia ? 52 : 190;
-    ctx.drawImage(mat, cxm - Math.floor(mat.width / 2), pies - 3 - (mia ? 14 : 10));
-    if (!f.oculto && (!q.puesto || f.caida > 0)) this.sprite(ctx, j, sx, sy, pies, mia, ahora);
+    const { x: sx, y: sy } = this.posSprite(j);
     // Panel.
     const w = mia ? 134 : 128;
     const px = mia ? 102 : 6;
@@ -1730,33 +2020,33 @@ export class VistaCombate implements Escena {
       entrada.zona(px, py, w, h, () => void this.abrirFicha(j));
     }
     // Pips: the jars still standing.
-    const vivos = q.equipo.filter((e) => e.ps > 0).length;
+    let vivos = 0;
+    for (const e of q.equipo) if (e.ps > 0) vivos++;
     // Status tags: next to the trainer's name.
     const ey = py + (mia ? 29 : 29);
-    let ex = px + 18 + anchoTexto2(q.nombre.toUpperCase()) + 6;
+    let ex = px + 18 + anchoNombre(q.nombre) + 6;
     if (mia) {
-      const nums = `${Math.ceil(f.ps)}/${u.psMax}`;
+      const nums = this.numerosPS(f, u.psMax);
       texto2(ctx, nums, px + w - 8 - anchoTexto2(nums), py + 30);
-      for (let i = 0; i < 3; i++) pip(ctx, px + 18 + i * 9, py + 40, i < vivos, JUGADORES2[asiento].base);
+      pipsFila(ctx, px + 18, py + 40, vivos, JUGADORES2[asiento].base);
       ex = px + 18 + 3 * 9 + 6;
       if (u.estado) ex += this.etiqueta(ctx, j, u.estado, ex, py + 39, info) + 2;
       if (u.achispado > 0) this.etiqueta(ctx, j, 'achispado', ex, py + 39, info);
     } else {
       // The tags go after the trainer's name; the jars (pips) sit at the right, and give way when two tags do not fit beside them.
-      const tags = [u.estado, u.achispado > 0 ? ('achispado' as const) : null].filter((e): e is Estado | 'achispado' => !!e);
-      const anchoTags = tags.reduce((acc, e) => acc + anchoTexto2(t(`estado.${e}`)) + 8, 0);
+      const e1: Estado | 'achispado' | null = u.estado;
+      const e2: 'achispado' | null = u.achispado > 0 ? 'achispado' : null;
+      const anchoTags = (e1 ? anchoEstado(e1) + 8 : 0) + (e2 ? anchoEstado(e2) + 8 : 0);
       const conPips = ex + anchoTags <= px + w - 8 - 27 - 1;
-      if (conPips) for (let i = 0; i < 3; i++) pip(ctx, px + w - 8 - 3 * 9 + i * 9 + 1, py + 29, i < vivos, JUGADORES2[asiento].base);
+      if (conPips) pipsFila(ctx, px + w - 8 - 3 * 9 + 1, py + 29, vivos, JUGADORES2[asiento].base);
       const lim = conPips ? px + w - 8 - 27 - 1 : px + w - 6;
-      for (const e of tags) {
-        const tw = anchoTexto2(t(`estado.${e}`)) + 6;
-        if (ex + tw <= lim) ex += this.etiqueta(ctx, j, e, ex, ey - 1, info) + 2;
-      }
+      if (e1 && ex + anchoEstado(e1) + 6 <= lim) ex += this.etiqueta(ctx, j, e1, ex, ey - 1, info) + 2;
+      if (e2 && ex + anchoEstado(e2) + 6 <= lim) ex += this.etiqueta(ctx, j, e2, ex, ey - 1, info) + 2;
     }
     // Eliminated: greyed with the place.
     const filaR = this.filaDe(j);
     if (f.velo > 0) {
-      velo(ctx, 0, filaR.y, ANCHO, filaR.h, '#f0e2c0', 0.62 * f.velo);
+      veloCrema(ctx, 0, filaR.y, ANCHO, filaR.h, 0.62 * f.velo);
       if (q.puesto > 0) {
         ctx.save();
         ctx.globalAlpha = f.velo;
@@ -1775,6 +2065,19 @@ export class VistaCombate implements Escena {
     }
   }
 
+  /** «HP/max» of the player's own panel, rebuilt only when the number shown changes. */
+  private numsPS = { ps: -1, max: -1, s: '' };
+  private numerosPS(f: Fx, psMax: number): string {
+    const ps = Math.ceil(f.ps);
+    const n = this.numsPS;
+    if (n.ps !== ps || n.max !== psMax) {
+      n.ps = ps;
+      n.max = psMax;
+      n.s = `${ps}/${psMax}`;
+    }
+    return n.s;
+  }
+
   /** A status tag that opens its explanation when tapped (when the info is available). Returns its width. */
   private etiqueta(ctx: CanvasRenderingContext2D, j: number, e: Estado | 'achispado', x: number, y: number, tocable: boolean): number {
     const w = etiquetaEstado(ctx, e, x, y);
@@ -1784,12 +2087,29 @@ export class VistaCombate implements Escena {
 
   /** The type chips of a userito, right-aligned to `xMax`: short names, or bare colour squares when there is no room. */
   private chipsTipos(ctx: CanvasRenderingContext2D, tipos: readonly Tipo[], xMin: number, xMax: number, y: number) {
-    const ancho = (solo: boolean) => tipos.reduce((a, tp) => a + (solo ? 9 : anchoTexto2(t(`tipo.abrev.${tp}`)) + 7), 0) + (tipos.length - 1) * 2;
+    const a = anchosChips(tipos);
     let solo = false;
-    if (xMax - ancho(false) < xMin) solo = true;
-    if (xMax - ancho(true) < xMin) return;
-    let x = xMax - ancho(solo);
-    for (const tp of tipos) x += chipTipo(ctx, tp, x, y, solo) + 2;
+    if (xMax - a.largo < xMin) solo = true;
+    if (xMax - a.corto < xMin) return;
+    const ancho = solo ? a.corto : a.largo;
+    const x = xMax - ancho;
+    if (!pegable(ctx, x, y)) {
+      let xx = x;
+      for (const tp of tipos) xx += chipTipo(ctx, tp, xx, y, solo) + 2;
+      return;
+    }
+    const clave = `${tipos.join('|')}|${solo ? 1 : 0}`;
+    let c = tirasChips.get(clave);
+    if (!c) {
+      c = document.createElement('canvas');
+      c.width = ancho;
+      c.height = ALTO_INSIGNIA;
+      const cx = c.getContext('2d')!;
+      let xx = 0;
+      for (const tp of tipos) xx += chipTipo(cx, tp, xx, 0, solo) + 2;
+      tirasChips.set(clave, c);
+    }
+    ctx.drawImage(c, x, y);
   }
 
   /** The brackets of the target choice and, for a damaging move, how it does on each rival (over its sprite's feet). */

@@ -563,11 +563,12 @@ export class EfectosMov {
     return this.fin;
   }
 
-  /** Avanza `dt` ms; true mientras haya algo en pantalla. */
-  paso(dt: number): boolean {
+  /** Avanza `dt` ms (`k`: el ritmo del combate, 2 = el doble de deprisa); true mientras haya algo en pantalla. */
+  paso(dt: number, k = 1): boolean {
     let n = this.n;
     if (!n) return false;
     if (dt > 50) dt = 50;
+    dt *= k;
     const pool = this.pool;
     let j = 0;
     for (let i = 0; i < n; i++) {
@@ -674,12 +675,12 @@ function generico(e: EfectosMov, tipo: Tipo, d: PuntoFx, a: PuntoFx[], estado: b
 
 const lluvia: Efecto = (e, _tipo, _d, a) => {
   for (const t of a) {
-    e.mk(memo('nube', hNube), t.x - 10, t.y - 44, t.x, t.y - 36, 0, 600, 0, 0, 0.3, 1, 0, 160);
+    e.mk(memo('nube', hNube), t.x - 10, t.y - 40, t.x, t.y - 33, 0, 600, 0, 0, 0.3, 1, 0, 160);
     const hl = unos('lenteja', hLenteja);
     for (let i = 0; i < 11; i++) {
       const x = t.x + (az() - 0.5) * 40;
       const y1 = t.y + 14 + az() * 14;
-      e.mk(hl[i & 1], x, t.y - 32, x + (az() - 0.5) * 6, y1, 70 + ((az() * 300) | 0), 300, 0, 0, 0.6, 2, 0, 100);
+      e.mk(hl[i & 1], x, t.y - 29, x + (az() - 0.5) * 6, y1, 70 + ((az() * 300) | 0), 300, 0, 0, 0.6, 2, 0, 100);
     }
   }
 };
@@ -812,9 +813,9 @@ const cancion: Efecto = (e, tipo, d, a) => {
   a.forEach((t, k) => {
     for (let j = 0; j < 3; j++) {
       const ox = (j - 1) * 6;
-      e.mk(notas[j][(j + k) & 1], d.x, d.y - 12, t.x + ox, t.y - 6, j * 90 + k * 15, 400, 0, 9, 1, 0, 0, 90);
+      e.mk(notas[j][(j + k) & 1], d.x, d.y - 12, t.x + ox, t.y - 6, j * 60 + k * 15, 340, 0, 9, 1, 0, 0, 90);
     }
-    golpe(e, tipo, t.x, t.y, 480, 0);
+    golpe(e, tipo, t.x, t.y, 380, 0);
   });
 };
 
@@ -859,8 +860,34 @@ const FX: Record<string, Efecto> = { lluvia, almendrazo, traca, fogonazo, petard
 /** Los movimientos con diseño propio (para la vista previa). */
 export const MOVS_CON_EFECTO: readonly string[] = Object.keys(FX);
 
-/** Hornea ya todos los sprites (por ejemplo, durante una pantalla de carga) para que el primer golpe no tenga que hacerlo. */
-export function precalentarEfectos(): void {
+/** Ms desde que sale el efecto hasta que «llega» al objetivo (cuando la pantalla de combate hace empezar el golpe y la barra). */
+const LLEGA: Record<string, number> = {
+  lluvia: 250,
+  almendrazo: 250,
+  traca: 150,
+  fogonazo: 240,
+  petardazo: 260,
+  chispazo: 100,
+  cierzo: 150,
+  chupitazo: 280,
+  garrafon: 320,
+  cancion: 340,
+  esporas: 260,
+  temblor: 80,
+  bocinazo: 200,
+};
+
+/** Cuándo llega el efecto de `mov` a su objetivo (ms desde `lanzar`); `conObjetivos` false: movimiento sobre uno mismo. */
+export function llegadaFx(mov: string, conObjetivos: boolean): number {
+  if (!conObjetivos) return 150;
+  return LLEGA[mov] ?? 130;
+}
+
+/**
+ * Las tareas que hornean los sprites de todos los efectos, una por una (un movimiento o un tipo cada vez), para repartirlas
+ * en ratos libres (`pantallas/precalentar.ts`): los lienzos son pequeños, pero juntos no caben en un solo fotograma.
+ */
+export function tareasPrecalentarEfectos(): (() => void)[] {
   const e = new EfectosMov();
   const d: PuntoFx = { x: 100, y: 100 };
   const a: PuntoFx[] = [
@@ -868,13 +895,24 @@ export function precalentarEfectos(): void {
     { x: 200, y: 100 },
     { x: 200, y: 160 },
   ];
+  const tareas: (() => void)[] = [];
   for (const m of Object.keys(FX)) {
-    e.lanzar(m, 'normal', d, a);
-    e.limpiar();
+    tareas.push(() => {
+      e.lanzar(m, 'normal', d, a);
+      e.limpiar();
+    });
   }
   for (const t of Object.keys(COLOR_TIPO) as Tipo[]) {
-    e.lanzar('zasca', t, d, a);
-    e.lanzar('_', t, d, []);
-    e.limpiar();
+    tareas.push(() => {
+      e.lanzar('zasca', t, d, a);
+      e.lanzar('_', t, d, []);
+      e.limpiar();
+    });
   }
+  return tareas;
+}
+
+/** Hornea ya todos los sprites (por ejemplo, durante una pantalla de carga) para que el primer golpe no tenga que hacerlo. */
+export function precalentarEfectos(): void {
+  for (const f of tareasPrecalentarEfectos()) f();
 }
