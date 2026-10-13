@@ -18,6 +18,10 @@ export function sobre<T>(base: Escena | null, crear: (cerrar: (v: T) => void) =>
     };
     const modal = crear(cerrar);
     envoltorio = {
+      // Static only when both layers are: a modal over a static screen (or over nothing) redraws only when something changes.
+      get estatica() {
+        return (base === null || base.estatica === true) && modal.estatica === true;
+      },
       dibujar(ctx, ahora) {
         base?.dibujar(ctx, ahora);
         // Anything under the modal must not react to taps.

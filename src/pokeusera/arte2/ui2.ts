@@ -32,6 +32,8 @@ export function r(ctx: CanvasRenderingContext2D, color: string, x: number, y: nu
 }
 
 const horneados = new Map<string, HTMLCanvasElement>();
+/** Most baked plates kept: the keys include sizes and names, so a long session (or a resized window) could pile them up. */
+const MAX_HORNEADOS = 300;
 
 /** Draws once into a small canvas (cached under `clave`) and returns it: panels and static plates are blitted afterwards. */
 export function hornear(clave: string, w: number, h: number, fn: (ctx: CanvasRenderingContext2D) => void): HTMLCanvasElement {
@@ -44,6 +46,14 @@ export function hornear(clave: string, w: number, h: number, fn: (ctx: CanvasRen
     cx.imageSmoothingEnabled = false;
     fn(cx);
     horneados.set(clave, c);
+    if (horneados.size > MAX_HORNEADOS) {
+      // The oldest quarter goes (insertion order); whoever still needs one bakes it again.
+      let n = MAX_HORNEADOS >> 2;
+      for (const k of horneados.keys()) {
+        if (n-- <= 0) break;
+        horneados.delete(k);
+      }
+    }
   }
   return c;
 }
@@ -89,9 +99,33 @@ export function panel(ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
   r(ctx, '#d6c08a', x + 3, y + h - 4, w - 6, 1);
 }
 
+/** Baked panels by size (w and h packed in a number), then accent colour, then its shade: no key string is built per draw. */
+const paneles = new Map<number, Map<string, Map<string, HTMLCanvasElement>>>();
+
 /** `panel` baked per size and colours, then blitted (its drop shadow takes 2 extra rows below). */
 export function panelCacheado(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, acento: string = ORO_UI, acentoOsc: string = ORO_UI_OSC): void {
-  const c = hornear(`panel|${w}|${h}|${acento}|${acentoOsc}`, w, h + 2, (cx) => panel(cx, 0, 0, w, h, acento, acentoOsc));
+  const kt = w * 4096 + h;
+  let porAcento = paneles.get(kt);
+  if (!porAcento) {
+    if (paneles.size >= 120) paneles.clear(); // sizes come from the screen heights and the texts: a handful
+    porAcento = new Map();
+    paneles.set(kt, porAcento);
+  }
+  let porOsc = porAcento.get(acento);
+  if (!porOsc) {
+    porOsc = new Map();
+    porAcento.set(acento, porOsc);
+  }
+  let c = porOsc.get(acentoOsc);
+  if (!c) {
+    c = document.createElement('canvas');
+    c.width = w;
+    c.height = h + 2;
+    const cx = c.getContext('2d')!;
+    cx.imageSmoothingEnabled = false;
+    panel(cx, 0, 0, w, h, acento, acentoOsc);
+    porOsc.set(acentoOsc, c);
+  }
   ctx.drawImage(c, x, y);
 }
 
@@ -102,9 +136,8 @@ function letra3(ctx: CanvasRenderingContext2D, g: string[], x: number, y: number
   });
 }
 
-/** HP bar with the «PS» tag. `w` is the total width; returns the width taken. Height is 9. */
-export function barraPS2(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, frac: number): void {
-  const f = Math.max(0, Math.min(1, frac));
+/** The «PS» tag and the empty track of an HP bar, `w` wide and 9 tall, drawn at (x, y). */
+function pistaPS(ctx: CanvasRenderingContext2D, x: number, y: number, w: number): void {
   // tag
   relleno(ctx, TINTA2, x, y, 13, 9);
   relleno(ctx, '#5a4660', x + 1, y + 1, 11, 7);
@@ -117,6 +150,31 @@ export function barraPS2(ctx: CanvasRenderingContext2D, x: number, y: number, w:
   relleno(ctx, TINTA2, bx, y, bw, 9);
   r(ctx, PS_PISTA, bx + 1, y + 1, bw - 2, 7);
   r(ctx, PS_PISTA_CLARA, bx + 1, y + 1, bw - 2, 1);
+}
+
+/** The tag and track baked once per width (about twenty fillRects each time otherwise, for every bar on screen). */
+const pistas = new Map<number, HTMLCanvasElement>();
+
+/** HP bar with the «PS» tag. `w` is the total width; returns the width taken. Height is 9. */
+export function barraPS2(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, frac: number): void {
+  const f = Math.max(0, Math.min(1, frac));
+  // The baked track is the same picture only when everything is opaque and on whole pixels (fillRect
+  // would blur an edge at a fractional position, and layers drawn at half alpha would show through).
+  if (ctx.globalAlpha === 1 && Number.isInteger(x) && Number.isInteger(y)) {
+    let c = pistas.get(w);
+    if (!c) {
+      c = document.createElement('canvas');
+      c.width = w;
+      c.height = 9;
+      const cx = c.getContext('2d')!;
+      cx.imageSmoothingEnabled = false;
+      pistaPS(cx, 0, 0, w);
+      pistas.set(w, c);
+    }
+    ctx.drawImage(c, x, y);
+  } else pistaPS(ctx, x, y, w);
+  const bx = x + 14;
+  const bw = w - 14;
   // fill
   const interior = bw - 4;
   let n = Math.round(interior * f);
@@ -135,8 +193,12 @@ export function barraPS2(ctx: CanvasRenderingContext2D, x: number, y: number, w:
   }
 }
 
-/** A small round pip (a jar still standing, or an empty slot). */
-export function pip(ctx: CanvasRenderingContext2D, x: number, y: number, vivo: boolean, color: string): void {
+/** True when a widget can be blitted from a baked picture with the very same result: opaque and on whole pixels (a fractional position blurs the edge of a fillRect; half alpha shows the layers through each other). */
+export function pegable(ctx: CanvasRenderingContext2D, x: number, y: number): boolean {
+  return ctx.globalAlpha === 1 && Number.isInteger(x) && Number.isInteger(y);
+}
+
+function pipDirecto(ctx: CanvasRenderingContext2D, x: number, y: number, vivo: boolean, color: string): void {
   relleno(ctx, TINTA2, x, y, 7, 7);
   if (vivo) {
     r(ctx, color, x + 1, y + 1, 5, 5);
@@ -146,6 +208,23 @@ export function pip(ctx: CanvasRenderingContext2D, x: number, y: number, vivo: b
   } else {
     r(ctx, '#8a7690', x + 1, y + 1, 5, 5);
   }
+}
+
+const pipsVivos = new Map<string, HTMLCanvasElement>();
+const pipsVacios = new Map<string, HTMLCanvasElement>();
+
+/** A small round pip (a jar still standing, or an empty slot). Four rows of them are on screen all through a battle: baked per colour. */
+export function pip(ctx: CanvasRenderingContext2D, x: number, y: number, vivo: boolean, color: string): void {
+  if (!pegable(ctx, x, y)) return pipDirecto(ctx, x, y, vivo, color);
+  const m = vivo ? pipsVivos : pipsVacios;
+  let c = m.get(color);
+  if (!c) {
+    c = document.createElement('canvas');
+    c.width = c.height = 7;
+    pipDirecto(c.getContext('2d')!, 0, 0, vivo, color);
+    m.set(color, c);
+  }
+  ctx.drawImage(c, x, y);
 }
 
 export interface DatosFicha {
@@ -315,16 +394,23 @@ ICONOS.online = generado(
 );
 
 /** The menu icons, baked once each. */
+const iconosHorneados = new Map<string, HTMLCanvasElement>();
 export function icono2(ctx: CanvasRenderingContext2D, nombre: keyof typeof ICONOS, x: number, y: number, alfa = 1): void {
-  const c = hornear(`icono|${nombre}`, 13, 13, (cx) => {
-    const ic = ICONOS[nombre];
-    ic.filas.forEach((fila, j) => {
-      for (let i = 0; i < fila.length; i++) {
-        const col = ic.leyenda[fila[i]];
-        if (col) r(cx, col, i, j, 1, 1);
-      }
-    });
-  });
+  const c =
+    iconosHorneados.get(nombre) ??
+    (() => {
+      const h = hornear(`icono|${nombre}`, 13, 13, (cx) => {
+        const ic = ICONOS[nombre];
+        ic.filas.forEach((fila, j) => {
+          for (let i = 0; i < fila.length; i++) {
+            const col = ic.leyenda[fila[i]];
+            if (col) r(cx, col, i, j, 1, 1);
+          }
+        });
+      });
+      iconosHorneados.set(nombre, h);
+      return h;
+    })();
   if (alfa < 1) {
     ctx.save();
     ctx.globalAlpha = alfa;

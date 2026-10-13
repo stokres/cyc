@@ -183,37 +183,75 @@ export const ALTO_CELDA = 11;
 export const LINEA = 12;
 const ESPACIO = 3;
 
-type Atlas = Map<string, HTMLCanvasElement>;
-const atlas = new Map<string, Atlas>();
+// ---------------------------------------------------------------------------------------------------------
+// Baked text. Every canvas costs the browser about 18 KB of bookkeeping on top of its pixels, and a session
+// used to create well over a thousand (one per glyph and colour, one per line): so the glyphs of a colour live
+// side by side in ONE sheet, and the baked lines of all colours are packed into a few shared pages. Drawing
+// is one drawImage of a sub-rectangle either way (smoothing is off, so it is the same pixels).
+// ---------------------------------------------------------------------------------------------------------
 
-function atlasDe(color: string, sombra: string | null): Atlas {
-  const clave = `${color}|${sombra ?? ''}`;
-  let a = atlas.get(clave);
-  if (!a) {
-    a = new Map();
-    atlas.set(clave, a);
+const bitmaps = new Map<string, Bitmap | null>();
+function bitmapDe(ch: string): Bitmap | null {
+  let b = bitmaps.get(ch);
+  if (b === undefined) {
+    b = bitmap(ch);
+    bitmaps.set(ch, b);
   }
-  return a;
+  return b;
 }
 
-function glifoCanvas(ch: string, color: string, sombra: string | null): HTMLCanvasElement | null {
-  const a = atlasDe(color, sombra);
-  const hit = a.get(ch);
-  if (hit) return hit;
-  const b = bitmap(ch);
-  if (!b) return null;
-  const cv = document.createElement('canvas');
-  cv.width = b.w + 1;
-  cv.height = ALTO_CELDA + 1;
-  const cx = cv.getContext('2d')!;
-  if (sombra) {
-    cx.fillStyle = sombra;
-    for (const [x, y] of b.px) cx.fillRect(x + 1, y + 1, 1, 1);
+/** Where each known character sits in a glyph sheet (its cell is the glyph's width + 1, like its own canvas used to be). */
+const ranuras = new Map<string, { x: number; w: number; i: number }>();
+let anchoHoja = 0;
+for (const ch of [...Object.keys(GLIFOS), ...Object.keys(ACENTUADAS)]) {
+  const w = (bitmap(ch)?.w ?? 0) + 1;
+  ranuras.set(ch, { x: anchoHoja, w, i: ranuras.size });
+  anchoHoja += w;
+}
+const INTERROGANTE = ranuras.get('?')!;
+
+interface Hoja {
+  cv: HTMLCanvasElement;
+  cx: CanvasRenderingContext2D;
+  /** Which slots are drawn already (lazily: a colour rarely uses every character). */
+  hechos: Uint8Array;
+}
+/** Glyph sheets by colour, then by shadow colour ('' for none): two lookups, no key string built per draw. */
+const hojas = new Map<string, Map<string, Hoja>>();
+
+function hojaDe(color: string, sombra: string | null): Hoja {
+  let porSombra = hojas.get(color);
+  if (!porSombra) {
+    porSombra = new Map();
+    hojas.set(color, porSombra);
   }
-  cx.fillStyle = color;
-  for (const [x, y] of b.px) cx.fillRect(x, y, 1, 1);
-  a.set(ch, cv);
-  return cv;
+  const k = sombra ?? '';
+  let h = porSombra.get(k);
+  if (!h) {
+    const cv = document.createElement('canvas');
+    cv.width = anchoHoja;
+    cv.height = ALTO_CELDA + 1;
+    h = { cv, cx: cv.getContext('2d')!, hechos: new Uint8Array(ranuras.size) };
+    porSombra.set(k, h);
+  }
+  return h;
+}
+
+/** The slot of `ch` in the sheet (the «?» one for a character the font does not have), drawn if it was not yet. */
+function ranura(h: Hoja, ch: string, color: string, sombra: string | null): { x: number; w: number } {
+  const r = ranuras.get(ch) ?? INTERROGANTE;
+  if (!h.hechos[r.i]) {
+    h.hechos[r.i] = 1;
+    const b = bitmapDe(ranuras.has(ch) ? ch : '?')!;
+    const cx = h.cx;
+    if (sombra) {
+      cx.fillStyle = sombra;
+      for (const [x, y] of b.px) cx.fillRect(r.x + x + 1, y + 1, 1, 1);
+    }
+    cx.fillStyle = color;
+    for (const [x, y] of b.px) cx.fillRect(r.x + x, y, 1, 1);
+  }
+  return r;
 }
 
 /** Advance of each character (glyph width + 1 gap), computed once: the bitmap is rebuilt otherwise. */
@@ -221,7 +259,7 @@ const avances = new Map<string, number>();
 function avance(ch: string): number {
   let a = avances.get(ch);
   if (a === undefined) {
-    a = ch === ' ' ? ESPACIO + 1 : (bitmap(ch) ?? bitmap('?')!).w + 1;
+    a = ch === ' ' ? ESPACIO + 1 : (bitmapDe(ch) ?? bitmapDe('?')!).w + 1;
     avances.set(ch, a);
   }
   return a;
@@ -234,60 +272,143 @@ export function anchoTexto2(texto: string): number {
   return Math.max(0, w - 1);
 }
 
-/**
- * Whole strings baked into one canvas each (least recently used out first), so that a line of text is one
- * drawImage instead of one per letter: on phones the per-letter draws were most of a frame's cost.
- */
-const MAX_LINEAS = 500;
-const lineas = new Map<string, { cv: HTMLCanvasElement; avance: number }>();
-function lineaCanvas(texto: string, color: string, sombra: string | null): { cv: HTMLCanvasElement; avance: number } {
-  const clave = `${color}|${sombra ?? ''}|${texto}`;
-  let l = lineas.get(clave);
-  if (l) {
-    // Refresh its place in the LRU order.
-    lineas.delete(clave);
-    lineas.set(clave, l);
-    return l;
-  }
-  let w = 0;
-  for (const ch of texto) w += avance(ch);
+/** A page of baked lines: all lines are one cell high, so they go in rows of that height. */
+const PAG_ANCHO = 256;
+const PAG_FILAS = 21;
+const MAX_PAGINAS = 10;
+interface Pagina {
+  cv: HTMLCanvasElement;
+  cx: CanvasRenderingContext2D;
+  /** Where the next line goes. */
+  x: number;
+  fila: number;
+  /** Tick of the last draw of any of its lines (the oldest page is the one recycled). */
+  uso: number;
+  lineas: { mapa: Map<string, Linea>; texto: string }[];
+}
+interface Linea {
+  pag: Pagina;
+  x: number;
+  y: number;
+  /** Width of the baked line (its advance plus one). */
+  w: number;
+  avance: number;
+}
+const paginas: Pagina[] = [];
+let abierta: Pagina | null = null;
+let reloj = 0;
+
+function paginaNueva(): Pagina {
   const cv = document.createElement('canvas');
-  cv.width = Math.max(1, w + 1);
-  cv.height = ALTO_CELDA + 1;
-  const cx = cv.getContext('2d')!;
+  cv.width = PAG_ANCHO;
+  cv.height = PAG_FILAS * (ALTO_CELDA + 1);
+  return { cv, cx: cv.getContext('2d')!, x: 0, fila: 0, uso: ++reloj, lineas: [] };
+}
+
+/** Finds room for a line `w` wide: in the open page, a fresh one, or the least recently used page wiped clean. */
+function sitio(w: number): { pag: Pagina; x: number; y: number } {
+  const alto = ALTO_CELDA + 1;
+  if (w > PAG_ANCHO) {
+    // Wider than a page (never on a 240 px screen): a canvas of its own, outside the pool.
+    const cv = document.createElement('canvas');
+    cv.width = w;
+    cv.height = alto;
+    return { pag: { cv, cx: cv.getContext('2d')!, x: 0, fila: 0, uso: 0, lineas: [] }, x: 0, y: 0 };
+  }
+  let p = abierta;
+  if (p && p.x + w > PAG_ANCHO) {
+    p.fila++;
+    p.x = 0;
+  }
+  if (!p || (p.fila + 1) * alto > p.cv.height) {
+    if (paginas.length < MAX_PAGINAS) {
+      p = paginaNueva();
+      paginas.push(p);
+    } else {
+      p = paginas.reduce((a, q) => (q !== abierta && q.uso < a.uso ? q : a), paginas.find((q) => q !== abierta)!);
+      for (const l of p.lineas) l.mapa.delete(l.texto);
+      p.lineas = [];
+      p.cx.clearRect(0, 0, p.cv.width, p.cv.height);
+      p.x = 0;
+      p.fila = 0;
+    }
+    abierta = p;
+  }
+  const r = { pag: p, x: p.x, y: p.fila * alto };
+  p.x += w + 1; // one empty column between neighbours
+  return r;
+}
+
+/** Baked lines by colour, then shadow, then text (three Map lookups, no key string built per draw). */
+const lineas = new Map<string, Map<string, Map<string, Linea>>>();
+
+/**
+ * Whole strings baked into a page, so that a line of text is one drawImage instead of one per letter: on phones
+ * the per-letter draws were most of a frame's cost. When the pages are all in use the least recently drawn one is
+ * wiped and its lines are baked again if they come back.
+ */
+function lineaCanvas(texto: string, color: string, sombra: string | null): Linea {
+  let porSombra = lineas.get(color);
+  if (!porSombra) {
+    porSombra = new Map();
+    lineas.set(color, porSombra);
+  }
+  const ks = sombra ?? '';
+  let porTexto = porSombra.get(ks);
+  if (!porTexto) {
+    porTexto = new Map();
+    porSombra.set(ks, porTexto);
+  }
+  const hit = porTexto.get(texto);
+  if (hit) {
+    hit.pag.uso = ++reloj;
+    return hit;
+  }
+  let adv = 0;
+  for (const ch of texto) adv += avance(ch);
+  const w = Math.max(1, adv + 1);
+  const hoja = hojaDe(color, sombra);
+  const lugar = sitio(w);
+  const alto = ALTO_CELDA + 1;
   let x = 0;
   for (const ch of texto) {
     if (ch !== ' ') {
-      const g = glifoCanvas(ch, color, sombra) ?? glifoCanvas('?', color, sombra)!;
-      cx.drawImage(g, x, 0);
+      const r = ranura(hoja, ch, color, sombra);
+      lugar.pag.cx.drawImage(hoja.cv, r.x, 0, r.w, alto, lugar.x + x, lugar.y, r.w, alto);
     }
     x += avance(ch);
   }
-  l = { cv, avance: x };
-  lineas.set(clave, l);
-  if (lineas.size > MAX_LINEAS) lineas.delete(lineas.keys().next().value!);
+  const l: Linea = { pag: lugar.pag, x: lugar.x, y: lugar.y, w, avance: x };
+  lugar.pag.uso = ++reloj;
+  if (paginas.includes(lugar.pag)) lugar.pag.lineas.push({ mapa: porTexto, texto }); // (a line wider than a page has its own canvas, outside the pool)
+  porTexto.set(texto, l);
   return l;
 }
 
 /** Draws a string with its capital line at `y`. Optional drop shadow colour. */
 export function dibujarTexto2(ctx: CanvasRenderingContext2D, texto: string, x: number, y: number, color: string, sombra: string | null = null): number {
   if (!texto) return 0;
-  // Numbers change every frame while a bar drains or a clock counts: letter by letter, not one canvas each.
+  const alto = ALTO_CELDA + 1;
+  // Numbers change every frame while a bar drains or a clock counts: letter by letter, not one baked line each.
   if (texto.length <= 9 && /^[0-9/%:+\-×. ]+$/.test(texto)) {
+    const hoja = hojaDe(color, sombra);
     let cx = Math.round(x);
     const cy = Math.round(y) - 2;
     for (const ch of texto) {
-      if (ch !== ' ') ctx.drawImage(glifoCanvas(ch, color, sombra) ?? glifoCanvas('?', color, sombra)!, cx, cy);
+      if (ch !== ' ') {
+        const r = ranura(hoja, ch, color, sombra);
+        ctx.drawImage(hoja.cv, r.x, 0, r.w, alto, cx, cy, r.w, alto);
+      }
       cx += avance(ch);
     }
     return cx - Math.round(x);
   }
   const l = lineaCanvas(texto, color, sombra);
-  ctx.drawImage(l.cv, Math.round(x), Math.round(y) - 2);
+  ctx.drawImage(l.pag.cv, l.x, l.y, l.w, alto, Math.round(x), Math.round(y) - 2, l.w, alto);
   return l.avance;
 }
 
-/** Draws the first `n` characters of a string (the typewriter): a clip of the whole line's canvas, so no canvas per step. */
+/** Draws the first `n` characters of a string (the typewriter): a clip of the whole baked line, so nothing is baked per step. */
 export function dibujarTextoParcial2(ctx: CanvasRenderingContext2D, texto: string, n: number, x: number, y: number, color: string, sombra: string | null = null): void {
   if (!texto || n <= 0) return;
   const l = lineaCanvas(texto, color, sombra);
@@ -297,19 +418,29 @@ export function dibujarTextoParcial2(ctx: CanvasRenderingContext2D, texto: strin
     if (i++ >= n) break;
     w += avance(ch);
   }
-  w = Math.min(w, l.cv.width);
-  if (w > 0) ctx.drawImage(l.cv, 0, 0, w, l.cv.height, Math.round(x), Math.round(y) - 2, w, l.cv.height);
+  w = Math.min(w, l.w);
+  if (w > 0) ctx.drawImage(l.pag.cv, l.x, l.y, w, ALTO_CELDA + 1, Math.round(x), Math.round(y) - 2, w, ALTO_CELDA + 1);
 }
 
-/** Word wrap by pixel width (remembered: screens wrap the same texts every frame). */
-const envueltos = new Map<string, string[]>();
+/** Word wrap by pixel width (remembered by width, then text: screens wrap the same texts every frame, and no key string is built). */
+const envueltos = new Map<number, Map<string, string[]>>();
+let nEnvueltos = 0;
 export function envolver2(texto: string, ancho: number): string[] {
-  const clave = `${ancho}|${texto}`;
-  const hecho = envueltos.get(clave);
+  let porTexto = envueltos.get(ancho);
+  if (!porTexto) {
+    porTexto = new Map();
+    envueltos.set(ancho, porTexto);
+  }
+  const hecho = porTexto.get(texto);
   if (hecho) return hecho;
   const out = envolverSinMemoria(texto, ancho);
-  if (envueltos.size > 800) envueltos.clear();
-  envueltos.set(clave, out);
+  if (++nEnvueltos > 800) {
+    envueltos.clear();
+    nEnvueltos = 1;
+    porTexto = new Map();
+    envueltos.set(ancho, porTexto);
+  }
+  porTexto.set(texto, out);
   return out;
 }
 

@@ -9,7 +9,7 @@ import { entrada } from '../entrada';
 import { pantalla, ANCHO, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
 import { dibujarFondoBar, plataformaCacheada } from './fondos';
-import { boton, centrado, colorEnt, colorEntOsc, envolver, nombreEnt, rect, reposo, t, texto2, TINTA2 } from './ui';
+import { Firma, boton, centrado, colorEnt, colorEntOsc, envolver, nombreEnt, rect, reposo, t, texto2, TINTA2 } from './ui';
 import { cargarAjustes } from './ajustes';
 
 export function pantallaEntrenador(): Promise<EntrenadorId | null> {
@@ -24,10 +24,17 @@ export function pantallaEntrenador(): Promise<EntrenadorId | null> {
       res(v);
     };
     sonido.musica('titulo');
+    // The draft's tune is fetched and decoded now, while the player chooses (it would otherwise start a second late).
+    sonido.precargar('draft');
     // Lines the longest perk description takes in the strip (so the layout does not jump between trainers).
     const LINEAS_MAX = Math.max(...ENTRENADORES.map((id) => envolver(t(`entrenador.${id}.perk_d`), ANCHO - 26).length));
+    // Only the four portraits breathe (two frames a second, out of step): redraw when one of them changes frame.
+    const firma = new Firma(ENTRENADORES.length);
     const e: Escena = {
-      paso: () => true,
+      paso: (_dt, ahora) => {
+        for (let i = 0; i < ENTRENADORES.length; i++) firma.v[i] = reposo(ahora, i * 170);
+        return firma.cambio();
+      },
       dibujar(ctx, ahora) {
         const H = p.alto;
         dibujarFondoBar(ctx, H, 0.3);

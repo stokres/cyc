@@ -7,19 +7,25 @@ export const IDS_USERITOS2: readonly string[] = ['draguserin', 'espumarro', 'ego
 /** Every drawing, including the extra rival used only by the battle mock. */
 export const TODOS_USERITOS2: readonly string[] = DIBUJOS2.map((d) => d.id);
 
-const cache = new Map<string, HTMLCanvasElement>();
+/** Baked sprites by id; index = 2 × back + frame. (An array per id: no key string is built on every draw.) */
+const cache = new Map<string, (HTMLCanvasElement | undefined)[]>();
 const colores = new Map<string, number>();
 
 function hornear(id: string, espalda: boolean, frame: number): HTMLCanvasElement {
-  const clave = `${id}:${espalda ? 'e' : 'f'}:${frame}`;
-  let c = cache.get(clave);
+  let v = cache.get(id);
+  if (!v) {
+    v = [];
+    cache.set(id, v);
+  }
+  const k = (espalda ? 2 : 0) + frame;
+  let c = v[k];
   if (!c) {
     const P = new Pintor(64, 64, espalda, frame);
     dibujo2(id).dibujar(P);
     P.suavizar();
     c = P.hornear();
-    cache.set(clave, c);
-    colores.set(clave, P.numColores);
+    v[k] = c;
+    colores.set(`${id}:${espalda ? 'e' : 'f'}:${frame}`, P.numColores);
   }
   return c;
 }

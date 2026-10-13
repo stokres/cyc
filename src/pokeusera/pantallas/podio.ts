@@ -10,7 +10,7 @@ import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
 import { mvp, pantallaEstadisticas } from './estadisticas';
 import { miniatura } from './fondos';
-import { boton, centrado, colorEnt, colorEntClaro, colorEntOsc, fondoPapel, ordinal, parpadea, rect, reposo, t, texto2 } from './ui';
+import { Firma, boton, centrado, colorEnt, colorEntClaro, colorEntOsc, fondoPapel, ordinal, parpadea, rect, reposo, t, texto2 } from './ui';
 
 export type SalidaPodio = 'otra' | 'menu';
 
@@ -50,8 +50,15 @@ export function pantallaPodio(estado: EstadoCombate, miSeat: number | null, sinB
     const orden = [porPuesto[1], porPuesto[0], porPuesto[2], porPuesto[3]].filter(Boolean);
     const alturas: Record<number, number> = { 1: 58, 2: 48, 3: 40, 4: 34 };
     const ganador = estado.ganador !== null ? estado.jugadores[estado.ganador] : porPuesto[0].q;
+    // What moves: the four trainers breathing, the winner's hop (whole pixels) and the winner's blinking star.
+    const firma = new Firma(orden.length + 2);
     const e: Escena = {
-      paso: () => true,
+      paso: (_dt, ahora) => {
+        for (let i = 0; i < orden.length; i++) firma.v[i] = reposo(ahora, i * 170);
+        firma.v[orden.length] = Math.round(Math.abs(Math.sin(ahora / 260)) * 4);
+        firma.v[orden.length + 1] = parpadea(ahora, 400) ? 1 : 0;
+        return firma.cambio();
+      },
       dibujar(ctx, ahora) {
         const H = p.alto;
         const extra = Math.max(0, H - 384);

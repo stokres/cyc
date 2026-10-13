@@ -58,6 +58,29 @@ function revisar(estado, ctx) {
 }
 
 // Invariants of the statistics the engine keeps (e.stats).
+// Acorralado: no text event any more; the hit carries `acorralado: true` when someone else had already hit that userito
+// this turn (a later hit by the same attacker, e.g. a multi-hit move, does not count). The lines about the result on a
+// target (critical, effectiveness, «n times»...) carry that target in `j` so an area move can play them all at once.
+let acorralados = 0;
+function revisarAcorralado(eventos, ctx) {
+  let atacante = -1;
+  const golpeadoPor = new Map();
+  for (const ev of eventos) {
+    if (ev.clave === 'combate.acorralado') falla(`${ctx}: combate.acorralado ya no es un evento de texto`);
+    if (ev.k === 'texto' && ['combate.critico', 'combate.muy_eficaz', 'combate.poco_eficaz', 'combate.veces'].includes(ev.clave) && ev.j === undefined) falla(`${ctx}: ${ev.clave} sin j`);
+    if (ev.k === 'usa') atacante = ev.j;
+    if (ev.k === 'sale') golpeadoPor.delete(ev.j);
+    if (ev.k === 'golpe' && !ev.fin && !ev.clave && atacante >= 0 && ev.j !== atacante) {
+      const antes = golpeadoPor.get(ev.j) ?? new Set();
+      const esperado = [...antes].some((a) => a !== atacante);
+      if (!!ev.acorralado !== esperado) falla(`${ctx}: golpe a ${ev.j} de ${atacante} con acorralado=${ev.acorralado} (esperado ${esperado})`);
+      if (ev.acorralado) acorralados++;
+      antes.add(atacante);
+      golpeadoPor.set(ev.j, antes);
+    } else if (ev.k === 'golpe' && ev.acorralado) falla(`${ctx}: acorralado en un golpe que no es de otro jugador`);
+  }
+}
+
 function revisarStats(e, turnos, todos) {
   const S = e.stats;
   const suma = (campo) => S.u.flat().reduce((n, u) => n + u[campo], 0);
@@ -104,6 +127,7 @@ function jugar(semilla, verbose) {
   );
   const inicial = JSON.stringify(e);
   if (verbose) console.log(`Semilla ${semilla}. Equipos:`, eq.map((l, i) => `${nombres[i]}: ${l.map((id) => M.ESPECIE[id].nombre).join(', ')}`).join(' | '));
+  acorralados = 0;
   const todos = [];
   const tipos = {};
   let turnos = 0;
@@ -121,6 +145,7 @@ function jugar(semilla, verbose) {
       if (ev.k === 'golpe' && (ev.ps < 0 || ev.dano < 0)) falla('golpe con valores negativos');
       todos.push({ turno: e.turno - 1, ev });
     }
+    revisarAcorralado(r.eventos, `turno ${e.turno - 1}`);
     turnos++;
     if (e.ganador === null && e.reemplazos.length) {
       const elegidos = Object.fromEntries(e.reemplazos.map((j) => [j, M.reemplazoBot(e, j)]));
@@ -142,7 +167,7 @@ function jugar(semilla, verbose) {
     if (e.jugadores.filter((q) => q.puesto === 1).length !== 1) falla('no hay exactamente un ganador');
     if (e.jugadores[e.ganador].puesto !== 1) falla('el ganador no tiene puesto 1');
   }
-  console.log(`Semilla ${semilla}: ${turnos} turnos, ganador ${e.ganador === null ? '-' : nombres[e.ganador]}, puestos ${e.jugadores.map((q, i) => `${nombres[i]}=${q.puesto}`).join(' ')}, eventos ${todos.length} ${JSON.stringify(tipos)}`);
+  console.log(`Semilla ${semilla}: ${turnos} turnos, ${acorralados} golpes acorralados, ganador ${e.ganador === null ? '-' : nombres[e.ganador]}, puestos ${e.jugadores.map((q, i) => `${nombres[i]}=${q.puesto}`).join(' ')}, eventos ${todos.length} ${JSON.stringify(tipos)}`);
   if (verbose) {
     console.log('--- primeros eventos (texto) ---');
     let n = 0;

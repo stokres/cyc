@@ -58,22 +58,29 @@ function hex2rgb(h: string): [number, number, number] {
 
 /** Distance (≈ Euclidean) from every member pixel to the nearest non-member, 1 on the edge ring. */
 function distancia(m: Mascara, x0: number, y0: number, w: number, h: number): Float32Array {
-  const d = new Float32Array(w * h);
+  // A zero border all round stands for «outside», so the neighbour reads need no bounds checks.
+  const W = w + 2;
+  const p = new Float32Array(W * (h + 2));
   const G = 1e6;
-  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) d[j * w + i] = m.tiene(x0 + i, y0 + j) ? G : 0;
-  const T = (i: number, j: number) => (i < 0 || j < 0 || i >= w || j >= h ? 0 : d[j * w + i]);
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) if (m.tiene(x0 + i, y0 + j)) p[(j + 1) * W + i + 1] = G;
   for (let j = 0; j < h; j++) {
     for (let i = 0; i < w; i++) {
-      if (!d[j * w + i]) continue;
-      d[j * w + i] = Math.min(T(i - 1, j) + 1, T(i, j - 1) + 1, T(i - 1, j - 1) + 1.414, T(i + 1, j - 1) + 1.414, d[j * w + i]);
+      const k = (j + 1) * W + i + 1;
+      const v = p[k];
+      if (!v) continue;
+      p[k] = Math.min(p[k - 1] + 1, p[k - W] + 1, p[k - W - 1] + 1.414, p[k - W + 1] + 1.414, v);
     }
   }
   for (let j = h - 1; j >= 0; j--) {
     for (let i = w - 1; i >= 0; i--) {
-      if (!d[j * w + i]) continue;
-      d[j * w + i] = Math.min(T(i + 1, j) + 1, T(i, j + 1) + 1, T(i + 1, j + 1) + 1.414, T(i - 1, j + 1) + 1.414, d[j * w + i]);
+      const k = (j + 1) * W + i + 1;
+      const v = p[k];
+      if (!v) continue;
+      p[k] = Math.min(p[k + 1] + 1, p[k + W] + 1, p[k + W + 1] + 1.414, p[k + W - 1] + 1.414, v);
     }
   }
+  const d = new Float32Array(w * h);
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) d[j * w + i] = p[(j + 1) * W + i + 1];
   return d;
 }
 
@@ -83,6 +90,8 @@ const V4: [number, number][] = [
   [0, 1],
   [0, -1],
 ];
+const V4X = [1, -1, 0, 0];
+const V4Y = [0, 0, 1, -1];
 
 export class Pintor {
   /** Palette index per pixel (0 = transparent). */
@@ -221,6 +230,23 @@ export class Pintor {
       y0 = bb.y0 - 1;
     const w = bb.x1 - bb.x0 + 3,
       h = bb.y1 - bb.y0 + 3;
+    // The members once as plain arrays, and as a bitmap over the box (+1 all round): the passes below look at
+    // them many times, and a Set lookup per neighbour was most of the time a sprite took to bake.
+    const nm = m.tamano;
+    const PX = new Int32Array(nm);
+    const PY = new Int32Array(nm);
+    const dentroM = new Uint8Array(w * h);
+    let q0 = 0;
+    m.each((x, y) => {
+      PX[q0] = x;
+      PY[q0++] = y;
+      dentroM[(y - y0) * w + x - x0] = 1;
+    });
+    const en = (x: number, y: number): boolean => {
+      const i = x - x0,
+        j = y - y0;
+      return i >= 0 && j >= 0 && i < w && j < h && dentroM[j * w + i] === 1;
+    };
     const D = distancia(m, x0, y0, w, h);
     const n = mat.r.length;
     const rad = o.rad ?? Math.max(2.5, Math.min(9, Math.min(bb.x1 - bb.x0, bb.y1 - bb.y0) / 2.4));
@@ -244,7 +270,9 @@ export class Pintor {
     const um = n >= 5 ? [-0.1, 0.22, 0.58, 0.9] : n === 4 ? [0.02, 0.4, 0.76] : [0.1, 0.62];
     const pasos = new Int8Array(w * h);
     const lumen = new Float32Array(w * h);
-    m.each((x, y) => {
+    for (let q = 0; q < nm; q++) {
+      const x = PX[q],
+        y = PY[q];
       const i = x - x0,
         j = y - y0;
       let lum: number;
@@ -257,78 +285,94 @@ export class Pintor {
         // The vertical edges still curl like a dome.
         const gx = (H(i + 1, j) - H(i - 1, j)) / 2;
         const gy = (H(i, j + 1) - H(i, j - 1)) / 2;
-        const l = Math.hypot(gx, gy, 1);
+        const l = Math.sqrt(gx * gx + gy * gy + 1);
         lum = lum * 0.55 + ((-gx * LUZ[0] - gy * LUZ[1] + LUZ[2]) / l) * 0.45;
       } else {
         const gx = (H(i + 1, j) - H(i - 1, j)) / 2;
         const gy = (H(i, j + 1) - H(i, j - 1)) / 2;
-        const l = Math.hypot(gx, gy, 1);
+        const l = Math.sqrt(gx * gx + gy * gy + 1);
         // n = (-gx, -gy, 1)/l and light L: lum = n·L.
         lum = (-gx * LUZ[0] - gy * LUZ[1] + LUZ[2]) / l;
       }
       lum += sesgo;
       lumen[j * w + i] = lum;
-    });
+    }
     // Broad gradient: lighter towards the light, darker away from it.
-    m.each((x, y) => {
-      const i = x - x0,
-        j = y - y0;
-      const dot = ((x + 0.5 - cx) * LUZ[0] + (y + 0.5 - cy) * LUZ[1]) / (ext * Math.hypot(LUZ[0], LUZ[1]));
-      lumen[j * w + i] -= grad * dot;
-    });
-    m.each((x, y) => {
-      const i = x - x0,
-        j = y - y0;
+    const hl = ext * Math.hypot(LUZ[0], LUZ[1]);
+    for (let q = 0; q < nm; q++) {
+      const x = PX[q],
+        y = PY[q];
+      const dot = ((x + 0.5 - cx) * LUZ[0] + (y + 0.5 - cy) * LUZ[1]) / hl;
+      lumen[(y - y0) * w + x - x0] -= grad * dot;
+    }
+    for (let q = 0; q < nm; q++) {
+      const k = (PY[q] - y0) * w + PX[q] - x0;
       if (o.paso !== undefined) {
-        pasos[j * w + i] = o.paso;
-        return;
+        pasos[k] = o.paso;
+        continue;
       }
-      const lum = lumen[j * w + i];
+      const lum = lumen[k];
       let p = 0;
       for (const u of um) if (lum > u) p++;
-      pasos[j * w + i] = p;
-    });
+      pasos[k] = p;
+    }
     // Tidy: a pixel whose four neighbours agree on another step takes it (no speckle).
     if (o.paso === undefined) {
       const copia = pasos.slice();
-      m.each((x, y) => {
-        const i = x - x0,
-          j = y - y0;
-        const vs = V4.map(([dx, dy]) => (m.tiene(x + dx, y + dy) ? copia[(j + dy) * w + i + dx] : -1));
-        const v = vs[0];
-        if (v >= 0 && vs.every((q) => q === v) && v !== copia[j * w + i]) pasos[j * w + i] = v;
-      });
+      for (let q = 0; q < nm; q++) {
+        const x = PX[q],
+          y = PY[q];
+        const k = (y - y0) * w + x - x0;
+        // The four neighbours (right, left, below, above), -1 when outside the mask.
+        const v = en(x + 1, y) ? copia[k + 1] : -1;
+        if (v < 0) continue;
+        if ((en(x - 1, y) ? copia[k - 1] : -1) !== v) continue;
+        if ((en(x, y + 1) ? copia[k + w] : -1) !== v) continue;
+        if ((en(x, y - 1) ? copia[k - w] : -1) !== v) continue;
+        if (v !== copia[k]) pasos[k] = v;
+      }
     }
     const borde = o.borde ?? true;
     const conRim = (o.rim ?? true) && !!mat.rim;
     // Outline first, so the fill never hides what the outline leaves inside.
     if (borde) {
-      m.each((x, y) => {
-        for (const [dx, dy] of V4) {
+      // Palette indices of the outline colours, registered the first time they are needed (as before).
+      let iOl = -1;
+      let iOl2 = -1;
+      const getOl = () => (iOl >= 0 ? iOl : (iOl = this.c(mat.ol)));
+      const getOl2 = () => (iOl2 >= 0 ? iOl2 : (iOl2 = this.c(mat.ol2 ?? mat.ol)));
+      for (let q = 0; q < nm; q++) {
+        const x = PX[q],
+          y = PY[q];
+        for (let v = 0; v < 4; v++) {
+          const dx = V4X[v],
+            dy = V4Y[v];
           const px = x + dx,
             py = y + dy;
-          if (m.tiene(px, py)) continue;
+          if (en(px, py)) continue;
           // The outline pixel sits at (px, py); its outward direction from the part is (dx, dy).
           const luz = dx * LUZ[0] + dy * LUZ[1] > 0;
           const claro = borde === 'suave' || luz;
           const ya = this.dentro(px, py) ? this.mid[py * this.w + px] : -9;
           if (ya === -9) continue;
-          const col = this.c(claro ? mat.ol2 ?? mat.ol : mat.ol);
+          const col = claro ? getOl2() : getOl();
           // A shaded-side outline wins over a lit-side one if both want the same pixel.
-          if (ya === -2 && this.g[py * this.w + px] === this.c(mat.ol) && claro) continue;
+          if (ya === -2 && this.g[py * this.w + px] === getOl() && claro) continue;
           this.g[py * this.w + px] = col;
           this.mid[py * this.w + px] = -2;
         }
-      });
+      }
     }
-    m.each((x, y) => {
-      const i = x - x0,
-        j = y - y0;
-      let p = Math.max(0, Math.min(n - 1, pasos[j * w + i]));
+    for (let q = 0; q < nm; q++) {
+      const x = PX[q],
+        y = PY[q];
+      const k = (y - y0) * w + x - x0;
+      let p = Math.max(0, Math.min(n - 1, pasos[k]));
       let col = mat.r[p];
-      if (conRim && D[j * w + i] <= 1.01 && o.paso === undefined) {
+      if (conRim && D[k] <= 1.01 && o.paso === undefined) {
         // Rim light: the first pixel row inside the shaded edge.
-        const sombra = V4.some(([dx, dy]) => !m.tiene(x + dx, y + dy) && dx * LUZ[0] + dy * LUZ[1] < -0.2);
+        let sombra = false;
+        for (let v = 0; v < 4 && !sombra; v++) sombra = !en(x + V4X[v], y + V4Y[v]) && V4X[v] * LUZ[0] + V4Y[v] * LUZ[1] < -0.2;
         if (sombra && p <= Math.max(1, n - 3)) {
           col = mat.rim!;
           p = 1;
@@ -337,7 +381,7 @@ export class Pintor {
       this.g[y * this.w + x] = this.c(col);
       this.mid[y * this.w + x] = mid;
       this.paso[y * this.w + x] = p;
-    });
+    }
     return this;
   }
 
@@ -411,9 +455,8 @@ export class Pintor {
       for (let x = 0; x < this.w; x++) {
         const i = y * this.w + x;
         if (this.mid[i] < 0) continue;
-        const ol = (dx: number, dy: number) => this.matEn(x + dx, y + dy) === -2 && this.get(x + dx, y + dy) !== 0 && this.esBorde(x + dx, y + dy);
-        const h = ol(1, 0) || ol(-1, 0);
-        const v = ol(0, 1) || ol(0, -1);
+        const h = this.esContorno(x + 1, y) || this.esContorno(x - 1, y);
+        const v = this.esContorno(x, y + 1) || this.esContorno(x, y - 1);
         if (h && v && this.paso[i] > 0) marcas.push(i);
       }
     }
@@ -424,6 +467,10 @@ export class Pintor {
       this.paso[i] = p;
     }
     return this;
+  }
+
+  private esContorno(x: number, y: number): boolean {
+    return this.matEn(x, y) === -2 && this.get(x, y) !== 0 && this.esBorde(x, y);
   }
 
   private bordes = new Set<number>();

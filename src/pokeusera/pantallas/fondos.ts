@@ -2,16 +2,16 @@
 // under the battle's text box and menus, and the half-size thumbnails of the useritos (32×32, made once
 // by averaging 2×2 blocks of the 64×64 art, so the little ones stay crisp and keep their colours).
 import { fondoBar, plataforma } from '../arte2/escena2';
-import { hornear } from '../arte2/ui2';
 import { spriteFrente2 } from '../arte2/sprites2';
 import { ANCHO } from '../pantalla';
 
 const barras = new Map<number, HTMLCanvasElement>();
 
-/** The Bar del Brío at the logical width and `alto`, optionally dimmed with a plum veil (menus, title). */
+/** The Bar del Brío at the logical width and `alto`, optionally dimmed with a plum veil (menus, title). Heights kept: the last three. */
 export function dibujarFondoBar(ctx: CanvasRenderingContext2D, alto: number, oscuro = 0) {
   let c = barras.get(alto);
   if (!c) {
+    if (barras.size >= 3) barras.delete(barras.keys().next().value!);
     c = fondoBar(ANCHO, alto);
     barras.set(alto, c);
   }
@@ -22,10 +22,18 @@ export function dibujarFondoBar(ctx: CanvasRenderingContext2D, alto: number, osc
   }
 }
 
+const bandejas = new Map<number, HTMLCanvasElement>();
+
 /** The tray under the field: a plum gradient with a gold line on top, from `y` to the bottom. */
 export function dibujarBandeja(ctx: CanvasRenderingContext2D, y: number, alto: number) {
   const h = alto - y;
-  const c = hornear(`bandeja|${h}`, ANCHO, h, (cx) => {
+  let c = bandejas.get(h);
+  if (!c) {
+    if (bandejas.size >= 6) bandejas.delete(bandejas.keys().next().value!);
+    c = document.createElement('canvas');
+    c.width = ANCHO;
+    c.height = h;
+    const cx = c.getContext('2d')!;
     const g = cx.createLinearGradient(0, 0, 0, h);
     g.addColorStop(0, '#5a4660');
     g.addColorStop(1, '#3b2a3f');
@@ -35,7 +43,8 @@ export function dibujarBandeja(ctx: CanvasRenderingContext2D, y: number, alto: n
     cx.fillRect(0, 0, ANCHO, 1);
     cx.fillStyle = '#8a6a8a';
     cx.fillRect(0, 1, ANCHO, 1);
-  });
+    bandejas.set(h, c);
+  }
   ctx.drawImage(c, 0, y);
 }
 

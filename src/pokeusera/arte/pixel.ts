@@ -5,7 +5,7 @@
 // Palette indices: 0 transparent, 1 outline (near-black), 2 white/highlight, 3 light, 4 main,
 // 5 shade (darker main), 6 and 7 free accent colours of the sprite.
 
-export const STRIDE = 256;
+export const STRIDE = 256; // the bit tricks in `each` assume this
 
 export class Mascara {
   readonly s = new Set<number>();
@@ -20,7 +20,8 @@ export class Mascara {
     return this.s.size;
   }
   each(f: (x: number, y: number) => void): void {
-    this.s.forEach((k) => f(k % STRIDE, Math.floor(k / STRIDE)));
+    // STRIDE is 256: a shift and a mask instead of a division per pixel (this is the sprites' hottest loop).
+    for (const k of this.s) f(k & 255, k >> 8);
   }
   caja(): { x0: number; y0: number; x1: number; y1: number } {
     let x0 = 99,

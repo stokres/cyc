@@ -7,9 +7,10 @@
 // so a guest can drive it from network messages exactly like the host does from Partida.
 import { ENTRENADORES, type Eleccion, type Estado, type EstadoCombate, type Evento, type Stat, type Tipo, type Userito } from '../tipos';
 import { COLOR_TIPO } from '../arte/paleta';
+import { hayTexto } from '../../juego/textos';
 import { ESPECIE, MOVS, DESESPERADA, eficacia } from '../datos';
 import { activo, eliminado, enGrada, movsDisponibles, necesitaObjetivo, puedeCambiar, rivalesEnPie, vivos } from '../motor/combate';
-import { anchoTexto2 } from '../arte2/fuente2';
+import { anchoTexto2, dibujarTexto2 } from '../arte2/fuente2';
 import { PS_TONOS, TINTA2, TINTA_SUAVE } from '../arte2/paleta2';
 import { spriteEspalda2, spriteFrente2 } from '../arte2/sprites2';
 import { barraPS2, bandaEntrenador, filaMenu, hornear, panel, panelCacheado, pip, relleno } from '../arte2/ui2';
@@ -23,6 +24,7 @@ import { cajaSprite, dibujarBandeja, dibujarFondoBar, miniatura, pieSprite, plat
 import { abrirGuia } from './guia';
 import { sobre } from './modal';
 import {
+  ALTO_CELDA,
   Animador,
   barraArriba,
   barraValor,
@@ -32,7 +34,6 @@ import {
   chipTipo,
   colorEnt,
   colorEntOsc,
-  conContorno,
   dormir,
   envolver,
   etiquetaEstado,
@@ -107,17 +108,19 @@ type Tema = { k: 'estado'; e: Estado | 'achispado' } | { k: 'stat'; s: 'ps' | 'a
 /** Height of the action banner under the text box. */
 const ALTO_CARTEL = 40;
 
-/** A number or tag floating over a userito. */
+/** A number or tag floating over a userito. The text (with its outline) is baked once when it is created: drawing it is one `drawImage`. */
 interface Flotante {
   j: number;
-  s: string;
-  color: string;
+  /** The baked label (1x; the numbers are drawn at 2x). */
+  img: HTMLCanvasElement;
   /** 'num': rises from the middle of the sprite; 'tag': a short label near the bottom. */
   tipo: 'num' | 'tag';
   /** Vertical slot so several tags do not overlap. */
   hueco: number;
   t0: number;
   dur: number;
+  /** A damage number of an Acorralado hit: the «1/2» badge goes under it. */
+  acorr: boolean;
 }
 
 /** The order of the actions of a turn, derived from its events. */
@@ -160,8 +163,41 @@ function chapaImg(): HTMLCanvasElement {
   return c;
 }
 
+/** The small red «1/2» badge that marks a hit halved by Acorralado, baked on first use (same look as its badge in the guide). */
+let chipAcorr: HTMLCanvasElement | null = null;
+function chipAcorralado(): HTMLCanvasElement {
+  if (chipAcorr) return chipAcorr;
+  const s = t('batalla.tag.acorralado');
+  const w = anchoTexto2(s) + 5;
+  chipAcorr = hornear(`acorralado|${s}`, w, 11, (cx) => {
+    relleno(cx, TINTA2, 0, 0, w, 11);
+    relleno(cx, '#d4382c', 1, 1, w - 2, 9);
+    rect(cx, 'rgba(255,255,255,0.4)', 2, 1, w - 4, 1);
+    texto2(cx, s, 3, 2, '#fff8e8', null);
+  });
+  return chipAcorr;
+}
+
+/** A label with a one-pixel dark outline, baked once per text and colour (the outline is 8 text draws: not per frame). */
+function rotuloFlotante(s: string, color: string): HTMLCanvasElement {
+  const w = anchoTexto2(s) + 2;
+  return hornear(`flota|${color}|${s}`, w, ALTO_CELDA + 3, (cx) => {
+    for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, 1], [-1, 1], [1, -1]]) dibujarTexto2(cx, s, 1 + dx, 3 + dy, TINTA2, null);
+    dibujarTexto2(cx, s, 1, 3, color, null);
+  });
+}
+
 /** Text lines that only comment on a hit that the screen already shows (tags, numbers). */
 const REACCIONES = new Set(['combate.critico', 'combate.muy_eficaz', 'combate.poco_eficaz', 'combate.veces']);
+
+/** Lines that tell what happened to ONE target of an area move; they travel with the hits of that move (see `grupoArea`). */
+const TEXTOS_DE_GRUPO = new Set([...REACCIONES, 'combate.no_afecta', 'combate.esconde_protege', 'combate.sin_efecto', 'combate.tope_sube', 'combate.tope_baja', 'combate.atrapa', 'combate.bostezo', 'combate.cizana', 'combate.venganza']);
+
+type EvGolpe = Extract<Evento, { k: 'golpe' }>;
+
+/** The sound of a hit: the more notable the better (critical, super effective, normal, weak). */
+const sonidoGolpe = (g: EvGolpe) => (g.critico ? 'critico' : g.ef > 1 ? 'golpeFuerte' : g.ef < 1 ? 'golpeFlojo' : 'golpe') as 'critico' | 'golpeFuerte' | 'golpeFlojo' | 'golpe';
+type EvEfecto = Extract<Evento, { k: 'estado' | 'nivel' }>;
 
 export class VistaCombate implements Escena {
   /** What is on screen (changes as the events play). */
@@ -380,8 +416,18 @@ export class VistaCombate implements Escena {
         this.ordenHasta = 0;
       }
     } else if (conOrden) this.orden = orden.lista.length ? orden : null;
+    // The targets of the area move being played (two or more): their results play all at once (`grupoArea`).
+    let area: number[] | null = null;
     for (let i = 0; i < eventos.length; i++) {
       const ev = eventos[i];
+      if (ev.k === 'usa') area = (ev.obj?.length ?? 0) >= 2 ? ev.obj! : null;
+      else if (area && this.deGrupo(ev, area)) {
+        let k = i + 1;
+        while (k < eventos.length && this.deGrupo(eventos[k], area)) k++;
+        await this.grupoArea(eventos.slice(i, k));
+        i = k - 1;
+        continue;
+      }
       // Pure text lines that follow each other (the same hit: critical, super effective...) share a box when they fit.
       if (ev.k === 'texto' && ev.clave) {
         this.entrarFin(ev);
@@ -402,7 +448,37 @@ export class VistaCombate implements Escena {
         await this.decir(linea, breve && ritmo().espera > 0 ? Math.round(ritmo().espera / 2) : undefined);
         continue;
       }
-      await this.evento(ev);
+      // The hits of a multi-hit move go quicker, one after the other (the last one drains the bar at the normal pace).
+      await this.evento(ev, ev.k === 'golpe' && this.sigueGolpe(eventos, i));
+    }
+  }
+
+  /** Whether the next hit event (skipping the lines that comment on this one) is another hit on the same userito. */
+  private sigueGolpe(eventos: Evento[], i: number): boolean {
+    const ev = eventos[i] as EvGolpe;
+    if (ev.fin) return false;
+    for (let k = i + 1; k < eventos.length; k++) {
+      const sig = eventos[k];
+      if (sig.k === 'texto' && sig.j === ev.j && REACCIONES.has(sig.clave ?? '')) continue;
+      return sig.k === 'golpe' && sig.j === ev.j && !sig.fin;
+    }
+    return false;
+  }
+
+  /** Whether `ev` is a result of the area move on one of its targets `area` (a hit, a miss, a status, a fall, or the line about one). */
+  private deGrupo(ev: Evento, area: number[]): boolean {
+    if (ev.fin) return false;
+    switch (ev.k) {
+      case 'golpe':
+      case 'falla':
+      case 'estado':
+      case 'nivel':
+      case 'cae':
+        return area.includes(ev.j);
+      case 'texto':
+        return ev.j !== undefined && area.includes(ev.j) && (TEXTOS_DE_GRUPO.has(ev.clave ?? '') || (ev.clave ?? '').startsWith('combate.perk.'));
+      default:
+        return false;
     }
   }
 
@@ -445,10 +521,12 @@ export class VistaCombate implements Escena {
     }
   }
 
-  /** Something floats over a userito for a moment. */
-  private flota(j: number, s: string, color: string, tipo: 'num' | 'tag') {
-    const hueco = this.flotantes.filter((f) => f.j === j && f.tipo === tipo && performance.now() - f.t0 < f.dur).length;
-    this.flotantes.push({ j, s, color, tipo, hueco, t0: performance.now(), dur: cfg.rapido ? 120 : ritmo().flota });
+  /** Something floats over a userito for a moment. `acorr`: a damage number that carries the «1/2» badge. */
+  private flota(j: number, s: string, color: string, tipo: 'num' | 'tag', acorr = false) {
+    const ahora = performance.now();
+    let hueco = 0;
+    for (const f of this.flotantes) if (f.j === j && f.tipo === tipo && ahora - f.t0 < f.dur) hueco++;
+    this.flotantes.push({ j, img: rotuloFlotante(s, color), tipo, hueco, t0: ahora, dur: cfg.rapido ? 120 : ritmo().flota, acorr });
   }
 
   /** What a pure text event adds on screen (a tag, the spotlight on a switch or a caña) before its line shows. */
@@ -481,37 +559,30 @@ export class VistaCombate implements Escena {
     if (this.orden) this.orden.actual = this.orden.lista.length;
   }
 
-  private async evento(ev: Evento) {
+  /** Plays one event. `corto`: a hit of a multi-hit move that is followed by another one (quicker flash and bar). */
+  private async evento(ev: Evento, corto = false) {
     const tareas: Promise<void>[] = [];
     const linea = ev.clave ? t(ev.clave, ev.vars) : null;
+    // «X used Y»: the hit comes right after it, so it does not wait as long as other lines.
+    let espera: number | undefined;
     this.entrarFin(ev);
     switch (ev.k) {
       case 'usa': {
         if (this.hubo) await dormir(ritmo().entre);
         this.hubo = true;
         this.ponerFoco(ev.j, ev.obj ?? [], ev.mov);
+        // (the move's visual effect starts here: actor `ev.j`, targets `ev.obj`)
         const m = MOVS[ev.mov];
         if (m) {
           if (m.pot !== null) sonido.efecto(['normal', 'tierra', 'aire', 'juerga', 'fantasma'].includes(m.tipo) ? 'cursor' : 'cambio');
         }
         tareas.push(this.embestida(ev.j, ev.obj ?? []));
+        if (ritmo().espera > 0) espera = Math.round(ritmo().espera * 0.45);
         break;
       }
-      case 'golpe': {
-        const u = this.userito(ev.j);
-        u.ps = ev.ps;
-        if (ev.fin) this.foco = { actor: -1, objetivos: [ev.j], t0: performance.now(), mov: null, destino: 'caras' };
-        if (ev.dano > 0) {
-          sonido.efecto(ev.critico ? 'critico' : ev.ef > 1 ? 'golpeFuerte' : ev.ef < 1 ? 'golpeFlojo' : 'golpe');
-          tareas.push(this.parpadea(ev.j));
-          this.flota(ev.j, `-${ev.dano}`, PS_ROJO, 'num');
-          if (ev.critico) this.flota(ev.j, t('batalla.tag.critico'), TAG_ORO, 'tag');
-          if (ev.ef > 1) this.flota(ev.j, t('batalla.tag.muy'), TAG_ORO, 'tag');
-          else if (ev.ef < 1 && ev.ef > 0) this.flota(ev.j, t('batalla.tag.poco'), TAG_GRIS, 'tag');
-        }
-        tareas.push(this.barra(ev.j, ev.ps));
+      case 'golpe':
+        tareas.push(...this.golpeVisual(ev, true, corto));
         break;
-      }
       case 'falla':
         sonido.efecto('falla');
         this.flota(ev.j, t(ev.clave === 'combate.esquiva' ? 'batalla.tag.esquiva' : 'batalla.tag.falla'), TAG_GRIS, 'tag');
@@ -525,18 +596,9 @@ export class VistaCombate implements Escena {
         tareas.push(this.barra(ev.j, ev.ps));
         break;
       }
-      case 'estado': {
-        const u = this.userito(ev.j);
-        if (ev.estado === null) {
-          if (ev.de === 'achispado') u.achispado = 0;
-          else u.estado = null;
-        } else {
-          if (ev.estado === 'achispado') u.achispado = Math.max(1, u.achispado);
-          else u.estado = ev.estado;
-          sonido.efecto('estado');
-        }
+      case 'estado':
+        this.aplicarEstado(ev, true);
         break;
-      }
       case 'nivel':
         sonido.efecto(ev.cambio > 0 ? 'sube' : 'baja');
         break;
@@ -569,8 +631,155 @@ export class VistaCombate implements Escena {
       case 'texto':
         break;
     }
-    if (linea) tareas.push(this.decir(linea));
+    if (linea) tareas.push(this.decir(linea, espera));
     await Promise.all(tareas);
+  }
+
+  /** What a hit shows: the HP drains, the sprite flashes, the number floats (with its tags and the Acorralado badge). Returns the animations. */
+  private golpeVisual(ev: EvGolpe, sonar: boolean, corto: boolean): Promise<void>[] {
+    const tareas: Promise<void>[] = [];
+    this.userito(ev.j).ps = ev.ps;
+    if (ev.fin) this.foco = { actor: -1, objetivos: [ev.j], t0: performance.now(), mov: null, destino: 'caras' };
+    if (ev.dano > 0) {
+      if (sonar) sonido.efecto(sonidoGolpe(ev));
+      tareas.push(this.parpadea(ev.j, corto));
+      this.flota(ev.j, `-${ev.dano}`, PS_ROJO, 'num', ev.acorralado);
+      if (ev.critico) this.flota(ev.j, t('batalla.tag.critico'), TAG_ORO, 'tag');
+      if (ev.ef > 1) this.flota(ev.j, t('batalla.tag.muy'), TAG_ORO, 'tag');
+      else if (ev.ef < 1 && ev.ef > 0) this.flota(ev.j, t('batalla.tag.poco'), TAG_GRIS, 'tag');
+    }
+    // The log says why the hit was halved (the badge on the number is the short form).
+    if (ev.acorralado) this.registrar(t('combate.acorralado', { quien: ESPECIE[this.userito(ev.j).especie].nombre }));
+    tareas.push(this.barra(ev.j, ev.ps, corto));
+    return tareas;
+  }
+
+  /** A status starts or ends (the state on screen only; the sound is the caller's when `sonar` is false). */
+  private aplicarEstado(ev: Extract<Evento, { k: 'estado' }>, sonar: boolean) {
+    const u = this.userito(ev.j);
+    if (ev.estado === null) {
+      if (ev.de === 'achispado') u.achispado = 0;
+      else u.estado = null;
+      return;
+    }
+    if (ev.estado === 'achispado') u.achispado = Math.max(1, u.achispado);
+    else u.estado = ev.estado;
+    if (sonar) sonido.efecto('estado');
+  }
+
+  /**
+   * The results of a move on several rivals (an area move) play AT ONCE, not one rival after another: all hits flash and
+   * drain together, the numbers and tags float together over each target (critical, effectiveness, misses, immunities),
+   * the falls happen together, and a status or stat change on several targets is one tag each and one line for all.
+   * The log (HISTORIAL) still gets one line per target. `evs`: the move's events after its «used», in order.
+   */
+  private async grupoArea(evs: Evento[]) {
+    const golpes = new Map<number, EvGolpe[]>();
+    const fallas: Extract<Evento, { k: 'falla' }>[] = [];
+    const avisos: Extract<Evento, { k: 'texto' }>[] = [];
+    const lineas: Extract<Evento, { k: 'texto' }>[] = [];
+    const caidas: Extract<Evento, { k: 'cae' }>[] = [];
+    const efectos: EvEfecto[] = [];
+    for (const ev of evs) {
+      switch (ev.k) {
+        case 'golpe': {
+          const l = golpes.get(ev.j);
+          if (l) l.push(ev);
+          else golpes.set(ev.j, [ev]);
+          break;
+        }
+        case 'falla':
+          fallas.push(ev);
+          break;
+        case 'cae':
+          caidas.push(ev);
+          break;
+        case 'estado':
+        case 'nivel':
+          efectos.push(ev);
+          break;
+        case 'texto':
+          if (!ev.clave) break;
+          if (REACCIONES.has(ev.clave)) this.registrar(t(ev.clave, ev.vars));
+          else if (ev.clave === 'combate.no_afecta' || ev.clave === 'combate.esconde_protege') avisos.push(ev);
+          else lineas.push(ev);
+          break;
+      }
+    }
+
+    // 1. Hits, misses and immunities, all together (a target hit several times: round by round).
+    for (const f of fallas) {
+      this.flota(f.j, t(f.clave === 'combate.esquiva' ? 'batalla.tag.esquiva' : 'batalla.tag.falla'), TAG_GRIS, 'tag');
+      if (f.clave) this.registrar(t(f.clave, f.vars));
+    }
+    for (const a of avisos) {
+      this.efectoTexto(a);
+      this.registrar(t(a.clave!, a.vars));
+    }
+    if (fallas.length) sonido.efecto('falla');
+    const listas = [...golpes.values()];
+    const rondas = Math.max(0, ...listas.map((l) => l.length));
+    for (let r = 0; r < rondas; r++) {
+      const ronda = listas.map((l) => l[r]).filter((g): g is EvGolpe => !!g);
+      const sonidos = ronda.filter((g) => g.dano > 0).map(sonidoGolpe);
+      const suena = (['critico', 'golpeFuerte', 'golpe', 'golpeFlojo'] as const).find((x) => sonidos.includes(x));
+      if (suena) sonido.efecto(suena);
+      await Promise.all(ronda.flatMap((g) => this.golpeVisual(g, false, r < rondas - 1)));
+    }
+    if (!rondas && (fallas.length || avisos.length)) await dormir(ritmo().entre * 2);
+
+    // 2. What the hits left to say about one target (a perk, a cap...).
+    for (const l of lineas) await this.decir(t(l.clave!, l.vars));
+
+    // 3. Everyone who fell, together.
+    if (caidas.length) {
+      sonido.efecto('cae');
+      const caen = caidas.map((c) => {
+        this.userito(c.j).ps = 0;
+        return this.cae(c.j);
+      });
+      const textos = (async () => {
+        for (const c of caidas) if (c.clave) await this.decir(t(c.clave, c.vars));
+      })();
+      await Promise.all([...caen, textos]);
+    }
+
+    // 4. Statuses and stat changes: a tag over each target and one line for all those that got the same.
+    if (efectos.length) await this.efectosJuntos(efectos);
+  }
+
+  /** Statuses and stat changes on several targets of one move, at once. */
+  private async efectosJuntos(efectos: EvEfecto[]) {
+    let sonada = false;
+    for (const e of efectos) {
+      if (e.k === 'estado') {
+        this.aplicarEstado(e, false);
+        if (e.estado !== null) this.flota(e.j, t(`batalla.tag.estado.${e.estado}`), TAG_ORO, 'tag');
+        if (!sonada && e.estado !== null) sonido.efecto('estado');
+        if (e.estado !== null) sonada = true;
+      } else {
+        const n = Math.abs(e.cambio);
+        this.flota(e.j, `${t(`ficha.stat.${e.stat}`)} ${e.cambio > 0 ? '+' : '-'}${n}`, e.cambio > 0 ? PS_VERDE : PS_ROJO, 'tag');
+        if (!sonada) sonido.efecto(e.cambio > 0 ? 'sube' : 'baja');
+        sonada = true;
+      }
+    }
+    // One line for each kind of change; if several targets got the same, one line names them all.
+    const porClave = new Map<string, EvEfecto[]>();
+    for (const e of efectos) {
+      if (!e.clave) continue;
+      const l = porClave.get(e.clave);
+      if (l) l.push(e);
+      else porClave.set(e.clave, [e]);
+    }
+    for (const [clave, lista] of porClave) {
+      const resumen = `combate.todos.${clave.slice('combate.'.length)}`;
+      if (lista.length > 1 && hayTexto(resumen)) {
+        const nombres = lista.map((e) => String(e.vars?.quien ?? ''));
+        const quienes = `${nombres.slice(0, -1).join(', ')} ${t('combate.todos.y')} ${nombres[nombres.length - 1]}`;
+        await this.decir(t(resumen, { quienes }));
+      } else for (const e of lista) await this.decir(t(clave, e.vars));
+    }
   }
 
   /** The attacker lunges towards its target(s): sideways (towards the other side of the field) and up or down to the target's row. */
@@ -591,15 +800,16 @@ export class VistaCombate implements Escena {
     });
   }
 
-  private parpadea(j: number): Promise<void> {
-    return this.anim.animar(480, (p) => (this.fx[j].parpadeo = p >= 1 ? 0 : 480 * (1 - p)));
+  private parpadea(j: number, corto = false): Promise<void> {
+    const ms = corto ? 240 : 480;
+    return this.anim.animar(ms, (p) => (this.fx[j].parpadeo = p >= 1 ? 0 : ms * (1 - p)));
   }
 
   /** The HP bar drains (or fills) over the time the speed setting says. */
-  private barra(j: number, ps: number): Promise<void> {
+  private barra(j: number, ps: number, corto = false): Promise<void> {
     const f = this.fx[j];
     const desde = f.ps;
-    return this.anim.animar(ritmo().barra, (p) => (f.ps = desde + (ps - desde) * p), true);
+    return this.anim.animar(corto ? Math.round(ritmo().barra * 0.4) : ritmo().barra, (p) => (f.ps = desde + (ps - desde) * p), true);
   }
 
   private async cae(j: number) {
@@ -1441,28 +1651,37 @@ export class VistaCombate implements Escena {
 
   private dibujarFlotantes(ctx: CanvasRenderingContext2D) {
     const ahora = performance.now();
-    this.flotantes = this.flotantes.filter((f) => ahora - f.t0 < f.dur);
+    // Drop the finished ones in place (no new array every frame).
+    let n = 0;
+    for (const f of this.flotantes) if (ahora - f.t0 < f.dur) this.flotantes[n++] = f;
+    this.flotantes.length = n;
+    if (!n) return;
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
     for (const f of this.flotantes) {
       const p = (ahora - f.t0) / f.dur;
       const sp = this.posSprite(f.j);
-      const alfa = p > 0.75 ? 1 - (p - 0.75) / 0.25 : 1;
-      ctx.save();
-      ctx.globalAlpha = Math.max(0, alfa);
+      ctx.globalAlpha = Math.max(0, p > 0.75 ? 1 - (p - 0.75) / 0.25 : 1);
+      const w = f.img.width - 2;
       if (f.tipo === 'num') {
-        const w = anchoTexto2(f.s) * 2;
+        const wn = w * 2;
         // A little jump up, then it floats.
         const sube = Math.round(Math.min(1, p * 4) * 14 + p * 6);
-        const x = Math.max(2, Math.min(ANCHO - w - 2, sp.x + Math.floor((LADO - w) / 2)));
+        const x = Math.max(2, Math.min(ANCHO - wn - 2, sp.x + Math.floor((LADO - wn) / 2)));
         const y = sp.y + 22 - sube;
-        textoGrande(ctx, f.s, x, y, f.color, 2, TINTA2);
+        // The label is baked with a 1 px margin (outline) at 1x and drawn at 2x.
+        ctx.drawImage(f.img, (Math.round(x / 2) - 1) * 2, (Math.round(y / 2) - 3) * 2, f.img.width * 2, f.img.height * 2);
+        if (f.acorr) {
+          const chip = chipAcorralado();
+          ctx.drawImage(chip, Math.round(x + (wn - chip.width) / 2), y + 17);
+        }
       } else {
-        const w = anchoTexto2(f.s);
         const x = Math.max(2, Math.min(ANCHO - w - 2, sp.x + Math.floor((LADO - w) / 2)));
         const y = sp.pies - 18 - f.hueco * 12;
-        conContorno(ctx, f.s, x, y, f.color);
+        ctx.drawImage(f.img, x - 1, y - 3);
       }
-      ctx.restore();
     }
+    ctx.restore();
   }
 
   // ------------------------------------------------------------------ rows

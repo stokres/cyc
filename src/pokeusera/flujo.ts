@@ -11,6 +11,7 @@ import { sonido } from './sonido';
 import { cargarAjustes, guardarAjustes, pantallaAjustes } from './pantallas/ajustes';
 import { VistaCombate } from './pantallas/combate';
 import { abrirGuia } from './pantallas/guia';
+import { abrirUseritopedia } from './pantallas/useritopedia';
 import { VistaDraft } from './pantallas/draft';
 import { pantallaEntrenador } from './pantallas/entrenador';
 import { pantallaMenu, type OpcionMenu } from './pantallas/menu';
@@ -114,6 +115,7 @@ export async function ejecutar(o: OpcionesFlujo): Promise<void> {
       ultima = m;
       if (m === 'ajustes') await pantallaAjustes();
       else if (m === 'guia') await abrirGuia(null);
+      else if (m === 'useritopedia') await abrirUseritopedia(null);
       else if (m === 'online') await enlaces.jugarOnline();
       else if (m === 'solo') {
         const yo = await pantallaEntrenador();

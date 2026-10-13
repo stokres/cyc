@@ -7,11 +7,14 @@
 //  - 'usa'    j = the user. Text «¡X usó Y!».
 //  - 'golpe'  j = the VICTIM of any HP loss (attacks, recoil, burn, trap, hangover, Hora de cerrar...).
 //             `dano` = HP really lost, `ps` = HP after. The attacker is the j of the last 'usa'.
+//             `acorralado` = the hit was halved because someone else had already hit this userito this turn.
 //  - 'cura'   j = who recovers (drain, caña, grada, Siesta). `ps` = HP after.
 //  - 'falla'  j = the one who dodged (a miss on a target), or the user when its own move fails.
 //  - 'estado' a status starts (estado = it) or ends (estado = null, `de` = which one).
 //  - 'nivel'  a stat stage changed (`cambio` = what really changed, never 0).
-//  - 'cae' / 'sale' / 'eliminado' / 'fin' as in tipos.ts. 'texto' = only a text line.
+//  - 'cae' / 'sale' / 'eliminado' / 'fin' as in tipos.ts. 'texto' = only a text line; the ones about what happens
+//    to a target of the move (critical, effectiveness, «n times», no effect, perks, caps...) carry that target in `j`,
+//    so the screen can play the results of an area move on all its targets at once.
 // Every event may carry `clave` + `vars` (quien = userito name, jugador = player name, mov, ...).
 import type { Eleccion, EstadoCombate, Estadisticas, EntrenadorId, Estado, Evento, Jugador, Movimiento, Stat, StatsUserito, Userito } from '../tipos';
 import { PERK_CANA_FRAN, PERK_PRECISION_PABLO, PERK_TARDE_CHUCHI, TIPOS_FISICOS } from '../tipos';
@@ -257,7 +260,7 @@ function soltarAtrapados(c: Ctx, j: number) {
 }
 
 /** Subtracts HP and emits the 'golpe' event. Fainting ('cae') is announced later by revisarCaida. */
-function danar(c: Ctx, t: number, dano: number, op: { ef?: number; critico?: boolean; clave?: string; vars?: Record<string, string | number>; de?: number; mov?: string } = {}): number {
+function danar(c: Ctx, t: number, dano: number, op: { ef?: number; critico?: boolean; clave?: string; vars?: Record<string, string | number>; de?: number; mov?: string; acorralado?: boolean } = {}): number {
   const u = act(c, t);
   const antes = u.ps;
   u.ps = Math.max(0, u.ps - dano);
@@ -290,7 +293,8 @@ function danar(c: Ctx, t: number, dano: number, op: { ef?: number; critico?: boo
       a.mo = t;
     }
   } else st(c, t).dp += real;
-  const ev: Evento = { k: 'golpe', j: t, dano: antes - u.ps, ps: u.ps, ef: op.ef ?? 1, critico: op.critico ?? false };
+  const ev: Extract<Evento, { k: 'golpe' }> = { k: 'golpe', j: t, dano: antes - u.ps, ps: u.ps, ef: op.ef ?? 1, critico: op.critico ?? false };
+  if (op.acorralado) ev.acorralado = true;
   if (op.clave) {
     ev.clave = op.clave;
     ev.vars = op.vars ?? varsDe(c, t);
@@ -339,7 +343,7 @@ function cambiarNivel(c: Ctx, t: number, stat: Stat, cambio: number, por?: numbe
   const nuevo = Math.max(-6, Math.min(6, antes + cambio));
   const real = nuevo - antes;
   if (real === 0) {
-    decir(c, cambio > 0 ? 'combate.tope_sube' : 'combate.tope_baja', varsDe(c, t));
+    decir(c, cambio > 0 ? 'combate.tope_sube' : 'combate.tope_baja', varsDe(c, t), t);
     return;
   }
   u.niveles[stat] = nuevo;
@@ -356,13 +360,13 @@ function ponerEstado(c: Ctx, t: number, est: Estado | 'achispado', silencio: boo
   if (u.ps <= 0) return false;
   if (est === 'achispado') {
     if (u.achispado > 0) {
-      if (!silencio) decir(c, 'combate.sin_efecto', varsDe(c, t));
+      if (!silencio) decir(c, 'combate.sin_efecto', varsDe(c, t), t);
       return false;
     }
     u.achispado = 2 + entero(c.e, 3);
   } else {
     if (u.estado) {
-      if (!silencio) decir(c, 'combate.sin_efecto', varsDe(c, t));
+      if (!silencio) decir(c, 'combate.sin_efecto', varsDe(c, t), t);
       return false;
     }
     u.estado = est;
@@ -436,10 +440,10 @@ function forzarCambio(c: Ctx, t: number) {
   const q = c.e.jugadores[t];
   const banco = vivos(q).filter((i) => i !== q.activo);
   if (!banco.length) {
-    decir(c, 'combate.sin_efecto', varsDe(c, t));
+    decir(c, 'combate.sin_efecto', varsDe(c, t), t);
     return;
   }
-  decir(c, 'combate.remolino', varsDe(c, t));
+  decir(c, 'combate.remolino', varsDe(c, t), t);
   sacar(c, t, elegir(c.e, banco));
   if (!c.actuo[t]) c.anulada[t] = true;
 }
@@ -457,20 +461,20 @@ function efectosSecundarios(c: Ctx, j: number, t: number, m: Movimiento, danino:
   if (ef.atrapa && v.vol.atrapado === 0) {
     v.vol.atrapado = 2 + entero(e, 4);
     v.vol.atrapadoPor = j;
-    decir(c, 'combate.atrapa', varsDe(c, t));
+    decir(c, 'combate.atrapa', varsDe(c, t), t);
   }
   if (ef.especial === 'bostezo') {
-    if (v.estado || v.vol.bostezo >= 0) decir(c, 'combate.sin_efecto', varsDe(c, t));
+    if (v.estado || v.vol.bostezo >= 0) decir(c, 'combate.sin_efecto', varsDe(c, t), t);
     else {
       v.vol.bostezo = 2;
-      decir(c, 'combate.bostezo', varsDe(c, t));
+      decir(c, 'combate.bostezo', varsDe(c, t), t);
     }
   }
   if (ef.especial === 'cizana') {
-    if (v.vol.cizana > 0) decir(c, 'combate.sin_efecto', varsDe(c, t));
+    if (v.vol.cizana > 0) decir(c, 'combate.sin_efecto', varsDe(c, t), t);
     else {
       v.vol.cizana = 2;
-      decir(c, 'combate.cizana', varsDe(c, t));
+      decir(c, 'combate.cizana', varsDe(c, t), t);
     }
   }
   if (ef.especial === 'remolino') forzarCambio(c, t);
@@ -573,7 +577,7 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
       }
       if (ef.especial === 'venganza' && c.agresoresIni[j].includes(t)) {
         pot *= 2;
-        decir(c, 'combate.venganza', varsDe(c, t));
+        decir(c, 'combate.venganza', varsDe(c, t), t);
       }
       if (ef.especial === 'cancion' && c.cancionAntes) {
         pot *= 2;
@@ -582,7 +586,6 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
       }
       if (pot > 0) {
         const acorralado = c.golpeado[t].some((a) => a !== j);
-        if (acorralado) decir(c, 'combate.acorralado', varsDe(c, t));
         const n = ef.golpes === 'multi' ? tiradaGolpes(e) : (ef.golpes ?? 1);
         let efi = 1;
         for (let h = 0; h < n && v.ps > 0; h++) {
@@ -590,14 +593,14 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
           const r = calcularDano(u, v, m, { pot, azar: 0.85 + azar(e) * 0.15, critico, todos: m.objetivo === 'todos', acorralado });
           efi = r.ef;
           const { dano, perk } = aplicarPerks(c, t, r.dano);
-          totalDano += danar(c, t, dano, { ef: r.ef, critico, de: j, mov: m.id });
+          totalDano += danar(c, t, dano, { ef: r.ef, critico, de: j, mov: m.id, acorralado });
           hechos++;
-          if (critico) decir(c, 'combate.critico', varsDe(c, t));
+          if (critico) decir(c, 'combate.critico', varsDe(c, t), t);
           if (perk) decir(c, `combate.perk.${perk}`, varsDe(c, t), t);
         }
-        if (efi > 1) decir(c, 'combate.muy_eficaz', varsDe(c, t));
-        else if (efi < 1) decir(c, 'combate.poco_eficaz', varsDe(c, t));
-        if (n > 1) decir(c, 'combate.veces', { n: hechos });
+        if (efi > 1) decir(c, 'combate.muy_eficaz', varsDe(c, t), t);
+        else if (efi < 1) decir(c, 'combate.poco_eficaz', varsDe(c, t), t);
+        if (n > 1) decir(c, 'combate.veces', { n: hechos }, t);
         if (hechos && !c.golpeado[t].includes(j)) c.golpeado[t].push(j);
         revisarCaida(c, t, j);
         v = act(c, t);

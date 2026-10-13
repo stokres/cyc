@@ -14,10 +14,25 @@ export interface Escena {
   dibujar(ctx: CanvasRenderingContext2D, t: number): void;
   /** Called every frame before drawing; return true while something moves (keeps redrawing every frame). */
   paso?(dt: number, t: number): boolean | void;
+  /** Nothing on this screen depends on the clock (no blinking, no breathing): skip the redraw every quarter second. */
+  estatica?: boolean;
   /** Keyboard / back. Return true if handled. */
   accion?(a: Accion): boolean | void;
   /** A finger (or the mouse) dragging over the canvas: movement since the last call (logical px) and the total since the touch began. `fin` on release. */
   arrastre?(dx: number, dy: number, total: { x: number; y: number }, fin: boolean): void;
+}
+
+/** `?medir`: counters for scripts/rendimiento-pokeusera.mjs, on `window.__medir` (nothing is measured otherwise). */
+export interface Medidas {
+  /** Frames of the loop that ran (60 fps cap included) and frames that actually drew. */
+  rafs: number;
+  dibujos: number;
+  /** Total and worst milliseconds of a drawn frame (`paso` + `dibujar`). */
+  ms: number;
+  max: number;
+  /** Times the scene was swapped (`poner`): the script waits on it after a key press. Never reset. */
+  cambios: number;
+  reiniciar(): void;
 }
 
 let instancia: Pantalla | null = null;
@@ -33,6 +48,7 @@ export class Pantalla {
   private ultimoFotograma = 0;
   private ultimoDibujo = 0;
   private marco: HTMLElement;
+  private med: Medidas | null = null;
   /** Called after the canvas is resized, before the redraw. */
   alCambiarTamano: (() => void) | null = null;
   /** Called at the start of every draw (the input clears its hit zones here). */
@@ -57,8 +73,29 @@ export class Pantalla {
     addEventListener('orientationchange', () => setTimeout(() => this.ajustar(), 100));
     document.addEventListener('contextmenu', (e) => e.preventDefault());
     document.addEventListener('gesturestart', (e) => e.preventDefault());
-    requestAnimationFrame((t) => this.bucle(t));
+    // Back from the background the browser may have dropped the canvas's contents: draw again.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') this.sucio = true;
+    });
+    if (new URLSearchParams(location.search).has('medir')) {
+      const m: Medidas = {
+        rafs: 0,
+        dibujos: 0,
+        ms: 0,
+        max: 0,
+        cambios: 0,
+        reiniciar: () => {
+          m.rafs = m.dibujos = m.ms = m.max = 0;
+        },
+      };
+      this.med = m;
+      (window as unknown as { __medir?: Medidas }).__medir = m;
+    }
+    requestAnimationFrame(this.vuelta);
   }
+
+  /** One closure for the whole life of the loop (a new one every frame is garbage the phone has to collect). */
+  private vuelta = (t: number) => this.bucle(t);
 
   /** Recomputes the logical height from the shape of the screen and the CSS size of the canvas. */
   private ajustar() {
@@ -79,6 +116,7 @@ export class Pantalla {
   }
 
   poner(e: Escena | null) {
+    if (this.med) this.med.cambios++;
     this.escena = e;
     this.sucio = true;
   }
@@ -89,19 +127,28 @@ export class Pantalla {
   }
 
   private bucle(ahora: number) {
-    requestAnimationFrame((t) => this.bucle(t));
+    requestAnimationFrame(this.vuelta);
     // 60 fps at most, even on a 120 Hz screen.
     if (ahora - this.ultimoFotograma < 15) return;
     const dt = Math.min(100, ahora - this.ultimoFotograma);
     this.ultimoFotograma = ahora;
     const e = this.escena;
     if (!e) return;
+    const m = this.med;
+    const t0 = m ? performance.now() : 0;
+    if (m) m.rafs++;
     const anima = e.paso?.(dt, ahora) === true;
-    if (!anima && !this.sucio && ahora - this.ultimoDibujo < 250) return;
+    if (!anima && !this.sucio && (e.estatica || ahora - this.ultimoDibujo < 250)) return;
     this.sucio = false;
     this.ultimoDibujo = ahora;
     this.antesDeDibujar?.();
     this.ctx.imageSmoothingEnabled = false;
     e.dibujar(this.ctx, ahora);
+    if (m) {
+      const d = performance.now() - t0;
+      m.dibujos++;
+      m.ms += d;
+      if (d > m.max) m.max = d;
+    }
   }
 }

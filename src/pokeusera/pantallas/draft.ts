@@ -73,6 +73,7 @@ export class VistaDraft implements Escena {
   private vaga = 0;
   /** Set by the flow: the player chose ABANDONAR in the pause box. */
   alAbandonar: (() => void) | null = null;
+  private precargado = false;
   private avisoTxt = '';
   private avisoHasta = 0;
 
@@ -89,6 +90,11 @@ export class VistaDraft implements Escena {
   /** The draft state changed. Plays the new picks one by one, then shows whose turn it is. */
   async alDraft(draft: EstadoDraft, turnoDe: number | null, plazoMs: number): Promise<void> {
     this.orden = draft.orden;
+    if (!this.precargado) {
+      // The battle's tune is decoded during the draft (a few seconds in, so as not to compete with the draft's own tune).
+      this.precargado = true;
+      setTimeout(() => sonido.precargar('combate'), 4000);
+    }
     for (let i = this.elegidos.length; i < draft.elegidos.length; i++) {
       const id = draft.elegidos[i];
       const k = ESPECIES.findIndex((s) => s.id === id);

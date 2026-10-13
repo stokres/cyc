@@ -185,29 +185,38 @@ export function fondoBar(ancho = 240, alto = 360): HTMLCanvasElement {
   const B = rgb('#cdc197');
   const G = rgb('#b7aa80');
   const FOG = rgb('#cdb98c');
-  const tid = (x: number, y: number): [number, number] => {
+  // The two checker colours with the speckle (-5) already applied.
+  const A5: [number, number, number] = [A[0] - 5, A[1] - 5, A[2] - 5];
+  const B5: [number, number, number] = [B[0] - 5, B[1] - 5, B[2] - 5];
+  // Tile of a pixel: column u (it depends on the row, through the perspective) and row n. The columns of a
+  // row are worked out once (index x + 1, so that x - 1 = -1 fits), and the previous row's are kept for the
+  // tile above: a pixel is an edge when its tile differs from the left or the upper neighbour's.
+  let u0 = new Int32Array(ancho + 1);
+  let u1 = new Int32Array(ancho + 1);
+  let nPrev = Math.floor(K / (138 - vy));
+  const d = img.data;
+  for (let x = -1; x < ancho; x++) u1[x + 1] = Math.floor((x + 0.5 - ancho / 2) / (fw * (138 - vy)));
+  for (let y = 139; y < alto; y++) {
+    [u0, u1] = [u1, u0]; // u0: row above, u1: this row
     const t = y - vy;
     const n = Math.floor(K / t);
-    const u = Math.floor((x + 0.5 - ancho / 2) / (fw * t));
-    return [u, n];
-  };
-  for (let y = 139; y < alto; y++) {
-    for (let x = 0; x < ancho; x++) {
-      const [u, n] = tid(x, y);
-      const [ul, nl] = tid(x - 1, y);
-      const [uu, nu] = tid(x, y - 1);
-      const borde = ul !== u || nl !== n || uu !== u || nu !== n;
-      let c = (u + n) & 1 ? A : B;
-      if (borde) c = G;
-      else if (hash(x >> 1, y >> 1) % 23 === 0) c = c.map((v) => v - 5) as [number, number, number];
-      // distance haze: far tiles melt into the wall tone
-      const f = Math.max(0, 1 - (y - 139) / 90) * 0.35;
-      const i = (y * ancho + x) * 4;
-      img.data[i] = c[0] + (FOG[0] - c[0]) * f;
-      img.data[i + 1] = c[1] + (FOG[1] - c[1]) * f;
-      img.data[i + 2] = c[2] + (FOG[2] - c[2]) * f;
-      img.data[i + 3] = 255;
+    const w = fw * t;
+    for (let x = -1; x < ancho; x++) u1[x + 1] = Math.floor((x + 0.5 - ancho / 2) / w);
+    // distance haze: far tiles melt into the wall tone
+    const f = Math.max(0, 1 - (y - 139) / 90) * 0.35;
+    let i = y * ancho * 4;
+    for (let x = 0; x < ancho; x++, i += 4) {
+      const u = u1[x + 1];
+      const par = (u + n) & 1;
+      let c = par ? A : B;
+      if (u1[x] !== u || u0[x + 1] !== u || nPrev !== n) c = G;
+      else if (hash(x >> 1, y >> 1) % 23 === 0) c = par ? A5 : B5;
+      d[i] = c[0] + (FOG[0] - c[0]) * f;
+      d[i + 1] = c[1] + (FOG[1] - c[1]) * f;
+      d[i + 2] = c[2] + (FOG[2] - c[2]) * f;
+      d[i + 3] = 255;
     }
+    nPrev = n;
   }
   cx.putImageData(img, 0, 0);
   // shadow of the counter on the floor

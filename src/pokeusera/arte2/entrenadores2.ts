@@ -371,20 +371,27 @@ const DIBUJOS: Record<EntrenadorId, (P: Pintor) => void> = { fran, pablo, chuchi
 /** First row of the 40×40 bust crop (head top minus a bit). */
 const RECORTE_Y: Record<EntrenadorId, number> = { fran: 5, pablo: 2, chuchi: 0, guille: 0 };
 
-const cache = new Map<string, HTMLCanvasElement>();
+const retratos = new Map<EntrenadorId, HTMLCanvasElement>();
+const iconos = new Map<EntrenadorId, HTMLCanvasElement>();
+const cuerpos = new Map<EntrenadorId, (HTMLCanvasElement | undefined)[]>();
 const colores = new Map<string, number>();
 
 /** Full-body front sprite, 56×80, idle frame 0 or 1. */
 export function entrenador2(id: EntrenadorId, frame = 0): HTMLCanvasElement {
-  const clave = `${id}:${frame}`;
-  let c = cache.get(clave);
+  // Looked up by id, then frame, so that no key string is built on every draw.
+  let v = cuerpos.get(id);
+  if (!v) {
+    v = [];
+    cuerpos.set(id, v);
+  }
+  let c = v[frame];
   if (!c) {
     const P = new Pintor(ANCHO_ENT2, ALTO_ENT2, false, frame);
     DIBUJOS[id](P);
     P.suavizar();
     c = P.hornear();
-    cache.set(clave, c);
-    colores.set(clave, P.numColores);
+    v[frame] = c;
+    colores.set(`${id}:${frame}`, P.numColores);
   }
   return c;
 }
@@ -397,8 +404,7 @@ export function coloresEntrenador2(id: EntrenadorId, frame = 0): number {
 
 /** Bust for panels and the podium, 40×40: head and shoulders of the same drawing. */
 export function retrato2(id: EntrenadorId): HTMLCanvasElement {
-  const clave = `${id}:retrato`;
-  let c = cache.get(clave);
+  let c = retratos.get(id);
   if (!c) {
     c = document.createElement('canvas');
     c.width = TAM_RETRATO2;
@@ -409,7 +415,7 @@ export function retrato2(id: EntrenadorId): HTMLCanvasElement {
     const fila = cx.getImageData(0, 38, 40, 1).data;
     cx.fillStyle = INK;
     for (let x = 0; x < 40; x++) if (fila[x * 4 + 3]) cx.fillRect(x, 39, 1, 1);
-    cache.set(clave, c);
+    retratos.set(id, c);
   }
   return c;
 }
@@ -505,15 +511,14 @@ const ICONOS: Record<EntrenadorId, { filas: string[]; ley: Record<string, string
 
 /** Face icon, 16×16. */
 export function icono2(id: EntrenadorId): HTMLCanvasElement {
-  const clave = `${id}:icono`;
-  let c = cache.get(clave);
+  let c = iconos.get(id);
   if (!c) {
     const P = new Pintor(16, 16);
     const { filas, ley } = ICONOS[id];
     if (filas.some((f) => f.length !== 16) || filas.length !== 16) console.warn('icono2', id, filas.map((f) => f.length).join());
     P.est(0, 0, filas, ley);
     c = P.hornear();
-    cache.set(clave, c);
+    iconos.set(id, c);
   }
   return c;
 }

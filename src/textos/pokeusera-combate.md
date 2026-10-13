@@ -231,3 +231,31 @@ mov.desesperada.desc = Sin PP. Te hieres un poco.
 // ---- ventajas de entrenador (motor/combate.ts: Chuchi «Llega tarde», Guille «Mañico»)
 combate.perk.chuchi = {quien} llegaba tarde: el golpe le pilla a medias.
 combate.perk.guille = ¡{quien} aguanta como un buen mañico!
+
+// ---- un movimiento a todos los rivales: una sola línea para todos los que lo sufren ({quienes}: «A, B y C»)
+combate.todos.y = y
+combate.todos.estado.dormido = ¡{quienes} se quedan roques!
+combate.todos.estado.paralizado = ¡{quienes} quedan paralizados!
+combate.todos.estado.quemado = ¡{quienes} se han quemado!
+combate.todos.estado.empachado = ¡{quienes} se han empachado!
+combate.todos.estado.achispado = ¡{quienes} van achispados!
+combate.todos.sube1.ata = ¡El ataque de {quienes} sube!
+combate.todos.sube2.ata = ¡El ataque de {quienes} sube mucho!
+combate.todos.baja1.ata = ¡El ataque de {quienes} baja!
+combate.todos.baja2.ata = ¡El ataque de {quienes} baja mucho!
+combate.todos.sube1.def = ¡La defensa de {quienes} sube!
+combate.todos.sube2.def = ¡La defensa de {quienes} sube mucho!
+combate.todos.baja1.def = ¡La defensa de {quienes} baja!
+combate.todos.baja2.def = ¡La defensa de {quienes} baja mucho!
+combate.todos.sube1.vel = ¡La velocidad de {quienes} sube!
+combate.todos.sube2.vel = ¡La velocidad de {quienes} sube mucho!
+combate.todos.baja1.vel = ¡La velocidad de {quienes} baja!
+combate.todos.baja2.vel = ¡La velocidad de {quienes} baja mucho!
+combate.todos.sube1.esp = ¡El especial de {quienes} sube!
+combate.todos.sube2.esp = ¡El especial de {quienes} sube mucho!
+combate.todos.baja1.esp = ¡El especial de {quienes} baja!
+combate.todos.baja2.esp = ¡El especial de {quienes} baja mucho!
+combate.todos.sube1.prec = ¡La precisión de {quienes} sube!
+combate.todos.sube2.prec = ¡La precisión de {quienes} sube mucho!
+combate.todos.baja1.prec = ¡La precisión de {quienes} baja!
+combate.todos.baja2.prec = ¡La precisión de {quienes} baja mucho!

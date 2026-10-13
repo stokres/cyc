@@ -224,11 +224,13 @@ export type Evento = {
   /** Set on everything that happens after the last action of the turn (burns, Hora de cerrar, eliminations): no spotlight on an actor. */
   fin?: true;
 } & (
-  /** `j`: the player the line is about (the target of «no afecta», who retires or drinks a caña...), when the screen can use it. */
+  /** `j`: the player the line is about (the target of «no afecta», who retires or drinks a caña, the target of a critical hit or a status...), when the screen can use it:
+   *  the lines of an area move are told apart by target with it. */
   | { k: 'texto'; j?: number }
   /** `obj`: the players the move was aimed at (after redirections), `[]` for moves on itself. */
   | { k: 'usa'; j: number; mov: string; obj?: number[] }
-  | { k: 'golpe'; j: number; dano: number; ps: number; ef: number; critico: boolean }
+  /** `acorralado`: this hit was halved because another player had already hit the same userito this turn (Acorralado); the screen marks it with a symbol next to the damage. */
+  | { k: 'golpe'; j: number; dano: number; ps: number; ef: number; critico: boolean; acorralado?: true }
   | { k: 'falla'; j: number }
   | { k: 'cura'; j: number; ps: number }
   /** `estado: null` = a status ended; `de` says which (always set by the engine in that case). */

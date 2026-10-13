@@ -5,7 +5,7 @@ import { texto } from '../../juego/textos';
 import { ALTO_CELDA, anchoTexto2, dibujarTexto2, envolver2 } from '../arte2/fuente2';
 import { icono2 as caraEntrenador } from '../arte2/entrenadores2';
 import { JUGADORES2, ORO_UI, ORO_UI_OSC, PAPEL_ALTO, SOMBRA_TEXTO, TINTA2, TINTA_SUAVE } from '../arte2/paleta2';
-import { BANDAS, cursor2, hornear, panelCacheado, relleno } from '../arte2/ui2';
+import { BANDAS, cursor2, hornear, panelCacheado, pegable, relleno } from '../arte2/ui2';
 import { COLOR_TIPO, NOMBRE_TIPO } from '../arte/paleta';
 import { ANCHO } from '../pantalla';
 
@@ -50,7 +50,16 @@ export function dormir(ms: number): Promise<void> {
   return new Promise((res) => setTimeout(res, cfg.rapido ? Math.min(ms, 20) : ms));
 }
 
-export const t = texto;
+/** Texts without placeholders, as they come out of `texto` (which runs a regex over its string on every call; screens ask for dozens per frame). */
+const planos = new Map<string, string>();
+export function t(clave: string, vars?: Record<string, string | number>): string {
+  if (vars) return texto(clave, vars);
+  const p = planos.get(clave);
+  if (p !== undefined) return p;
+  const s = texto(clave);
+  if (!s.includes('{') && !s.startsWith('[')) planos.set(clave, s); // a missing key comes back as «[key]»: not remembered
+  return s;
+}
 
 /** A trainer's colour: always the same for the same friend (Fran red, Pablo blue, Chuchi green, Guille orange). */
 export const colorEnt = (id: EntrenadorId): string => JUGADORES2[Math.max(0, ENTRENADORES.indexOf(id))].base;
@@ -62,6 +71,31 @@ export const parpadea = (ahora: number, periodo = 500): boolean => Math.floor(ah
 
 /** Idle frame (0 or 1) of the sprites: about two a second; `desfase` keeps the useritos from breathing in step. */
 export const reposo = (ahora: number, desfase = 0): number => Math.floor((ahora + desfase) / 500) % 2;
+
+/**
+ * For a screen whose only motion is a few values derived from the clock (a blink phase, a breathing frame, a
+ * hop rounded to whole pixels): `paso` fills `v` with those values the way `dibujar` computes them and
+ * returns `cambio()`, so the screen redraws exactly when something would look different, not every frame.
+ */
+export class Firma {
+  readonly v: Int32Array;
+  private prev: Int32Array;
+  constructor(n: number) {
+    this.v = new Int32Array(n);
+    this.prev = new Int32Array(n).fill(0x7fffffff);
+  }
+  /** Whether `v` differs from the last time this was asked (and remembers it). */
+  cambio(): boolean {
+    let distinto = false;
+    for (let i = 0; i < this.v.length; i++) {
+      if (this.v[i] !== this.prev[i]) {
+        this.prev[i] = this.v[i];
+        distinto = true;
+      }
+    }
+    return distinto;
+  }
+}
 
 // ------------------------------------------------------------------ text
 
@@ -120,8 +154,7 @@ export const anchoOrdinal = (n: number): number => anchoTexto2(`${n}.º`);
 
 // ------------------------------------------------------------------ small widgets
 
-/** A player's tile: his colour with his face (16×16) in the middle; `lado` ≥ 14 (smaller than 18 crops the face's margin). */
-export function ficha(ctx: CanvasRenderingContext2D, ent: EntrenadorId, x: number, y: number, lado = 18) {
+function fichaDirecta(ctx: CanvasRenderingContext2D, ent: EntrenadorId, x: number, y: number, lado: number) {
   const osc = colorEntOsc(ent);
   relleno(ctx, TINTA2, x, y, lado, lado);
   relleno(ctx, colorEnt(ent), x + 1, y + 1, lado - 2, lado - 2);
@@ -132,6 +165,26 @@ export function ficha(ctx: CanvasRenderingContext2D, ent: EntrenadorId, x: numbe
     const c = Math.floor((16 - (lado - 2)) / 2);
     ctx.drawImage(cara, c, c, lado - 2, lado - 2, x + 1, y + 1, lado - 2, lado - 2);
   }
+}
+
+const fichas = new Map<number, Map<EntrenadorId, HTMLCanvasElement>>();
+
+/** A player's tile: his colour with his face (16×16) in the middle; `lado` ≥ 14 (smaller than 18 crops the face's margin). Baked per trainer and size. */
+export function ficha(ctx: CanvasRenderingContext2D, ent: EntrenadorId, x: number, y: number, lado = 18) {
+  if (!pegable(ctx, x, y)) return fichaDirecta(ctx, ent, x, y, lado);
+  let porEnt = fichas.get(lado);
+  if (!porEnt) {
+    porEnt = new Map();
+    fichas.set(lado, porEnt);
+  }
+  let c = porEnt.get(ent);
+  if (!c) {
+    c = document.createElement('canvas');
+    c.width = c.height = lado;
+    fichaDirecta(c.getContext('2d')!, ent, 0, 0, lado);
+    porEnt.set(ent, c);
+  }
+  ctx.drawImage(c, x, y);
 }
 
 /** A ◀ (dir −1) or ▶ (dir +1) arrow, 5×7. */
@@ -192,8 +245,7 @@ export const COLOR_ESTADO: Record<Estado | 'achispado', [string, string]> = {
   achispado: ['#a85cc4', '#fff6e0'],
 };
 
-/** A little status tag («DOR», «PAR»...). Returns its width. */
-export function etiquetaEstado(ctx: CanvasRenderingContext2D, e: Estado | 'achispado', x: number, y: number): number {
+function etiquetaDirecta(ctx: CanvasRenderingContext2D, e: Estado | 'achispado', x: number, y: number): number {
   const s = texto(`estado.${e}`);
   const w = anchoTexto2(s) + 6;
   const [bg, fg] = COLOR_ESTADO[e];
@@ -204,6 +256,24 @@ export function etiquetaEstado(ctx: CanvasRenderingContext2D, e: Estado | 'achis
   return w;
 }
 
+const etiquetas = new Map<string, HTMLCanvasElement>();
+
+/** A little status tag («DOR», «PAR»...), baked once per state. Returns its width. */
+export function etiquetaEstado(ctx: CanvasRenderingContext2D, e: Estado | 'achispado', x: number, y: number): number {
+  let c = etiquetas.get(e);
+  if (!c) {
+    const w = anchoTexto2(texto(`estado.${e}`)) + 6;
+    c = document.createElement('canvas');
+    c.width = w;
+    c.height = 11;
+    etiquetaDirecta(c.getContext('2d')!, e, 0, 0);
+    etiquetas.set(e, c);
+  }
+  if (pegable(ctx, x, y)) ctx.drawImage(c, x, y);
+  else etiquetaDirecta(ctx, e, x, y);
+  return c.width;
+}
+
 function luminoso(hex: string): boolean {
   const n = parseInt(hex.slice(1), 16);
   return 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255) > 150;
@@ -212,30 +282,36 @@ function luminoso(hex: string): boolean {
 /** Height of a type badge. */
 export const ALTO_INSIGNIA = 11;
 
-/** Small coloured badge with the type name (or `rotulo`: e.g. a move's name on its type's colour). Returns its width. */
-export function insignaTipo(ctx: CanvasRenderingContext2D, tipo: Tipo, x: number, y: number, fijo = 0, rotulo?: string): number {
-  const nombre = rotulo ?? NOMBRE_TIPO[tipo].toUpperCase();
-  const w = fijo || anchoTexto2(nombre) + 7;
+function insigniaDirecta(ctx: CanvasRenderingContext2D, tipo: Tipo, x: number, y: number, w: number, nombre: string) {
   const c = COLOR_TIPO[tipo];
   relleno(ctx, TINTA2, x, y, w, ALTO_INSIGNIA);
   relleno(ctx, c, x + 1, y + 1, w - 2, ALTO_INSIGNIA - 2);
   rect(ctx, 'rgba(255,255,255,0.35)', x + 2, y + 1, w - 4, 1);
   rect(ctx, 'rgba(0,0,0,0.2)', x + 2, y + ALTO_INSIGNIA - 2, w - 4, 1);
   dibujarTexto2(ctx, nombre, x + Math.floor((w - anchoTexto2(nombre)) / 2), y + 2, luminoso(c) ? TINTA2 : '#fff8e8', null);
+}
+
+/** Badge (type name, or a short name on the type's colour), baked per type, width and name. */
+function insignia(ctx: CanvasRenderingContext2D, tipo: Tipo, x: number, y: number, w: number, nombre: string) {
+  if (!pegable(ctx, x, y)) return insigniaDirecta(ctx, tipo, x, y, w, nombre);
+  const c = hornear(`insignia|${tipo}|${w}|${nombre}`, w, ALTO_INSIGNIA, (cx) => insigniaDirecta(cx, tipo, 0, 0, w, nombre));
+  ctx.drawImage(c, x, y);
+}
+
+/** Small coloured badge with the type name (or `rotulo`: e.g. a move's name on its type's colour). Returns its width. */
+export function insignaTipo(ctx: CanvasRenderingContext2D, tipo: Tipo, x: number, y: number, fijo = 0, rotulo?: string): number {
+  const nombre = rotulo ?? NOMBRE_TIPO[tipo].toUpperCase();
+  const w = fijo || anchoTexto2(nombre) + 7;
+  insignia(ctx, tipo, x, y, w, nombre);
   return w;
 }
 
 /** The type's compact chip: its short name (3 letters) on the type's colour. `solo`: a small square with only the initial. Returns its width. */
 export function chipTipo(ctx: CanvasRenderingContext2D, tipo: Tipo, x: number, y: number, solo = false): number {
-  const c = COLOR_TIPO[tipo];
-  const abrev = texto(`tipo.abrev.${tipo}`);
+  const abrev = t(`tipo.abrev.${tipo}`);
   const nombre = solo ? abrev.charAt(0) : abrev;
   const w = solo ? 9 : anchoTexto2(nombre) + 7;
-  relleno(ctx, TINTA2, x, y, w, ALTO_INSIGNIA);
-  relleno(ctx, c, x + 1, y + 1, w - 2, ALTO_INSIGNIA - 2);
-  rect(ctx, 'rgba(255,255,255,0.35)', x + 2, y + 1, w - 4, 1);
-  rect(ctx, 'rgba(0,0,0,0.2)', x + 2, y + ALTO_INSIGNIA - 2, w - 4, 1);
-  dibujarTexto2(ctx, nombre, x + Math.floor((w - anchoTexto2(nombre)) / 2), y + 2, luminoso(c) ? TINTA2 : '#fff8e8', null);
+  insignia(ctx, tipo, x, y, w, nombre);
   return w;
 }
 
@@ -263,9 +339,18 @@ export function oscurecer(ctx: CanvasRenderingContext2D, alto: number, alfa = 0.
   ctx.fillRect(0, 0, ANCHO, alto);
 }
 
+/** Baked plain backgrounds by screen height: the last three at most (a window being resized would otherwise pile up 130 of them). */
+const papeles = new Map<number, HTMLCanvasElement>();
+
 /** A baked plain background for the screens that have no scene behind them (draft, podium, statistics, lobby). */
 export function fondoPapel(ctx: CanvasRenderingContext2D, alto: number) {
-  const c = hornear(`papel|${alto}`, ANCHO, alto, (cx) => {
+  let c = papeles.get(alto);
+  if (!c) {
+    if (papeles.size >= 3) papeles.delete(papeles.keys().next().value!);
+    c = document.createElement('canvas');
+    c.width = ANCHO;
+    c.height = alto;
+    const cx = c.getContext('2d')!;
     rect(cx, '#d9c9a0', 0, 0, ANCHO, alto);
     for (let y = 0; y < alto; y += 16) {
       for (let x = (y / 16) % 2 ? 0 : 16; x < ANCHO; x += 32) rect(cx, '#d2c096', x, y, 16, 16);
@@ -278,7 +363,8 @@ export function fondoPapel(ctx: CanvasRenderingContext2D, alto: number) {
     g.addColorStop(1, 'rgba(90,70,96,0.28)');
     cx.fillStyle = g;
     cx.fillRect(0, 0, ANCHO, alto);
-  });
+    papeles.set(alto, c);
+  }
   ctx.drawImage(c, 0, 0);
 }
 

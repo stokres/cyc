@@ -15,7 +15,11 @@ interface Pendiente {
 
 export class CajaTexto {
   private lineas: string[] = [];
+  /** Characters of each line (counted once per text, not every frame). */
+  private largos: number[] = [];
   private total = 0;
+  /** How many characters the last drawn frame showed: the typing only asks for a redraw when it grows. */
+  private mostrado = -1;
   private escrito = 0;
   /** Blink phase of the «more» arrow last drawn (see `paso`). */
   private faseFlecha = -1;
@@ -54,8 +58,10 @@ export class CajaTexto {
 
   private poner(s: string) {
     this.lineas = envolver2(s, this.anchoLinea);
-    this.total = this.lineas.reduce((n, l) => n + Array.from(l).length, 0);
+    this.largos = this.lineas.map((l) => Array.from(l).length);
+    this.total = this.largos.reduce((n, k) => n + k, 0);
     this.escrito = 0;
+    this.mostrado = -1;
   }
 
   private siguiente() {
@@ -109,7 +115,12 @@ export class CajaTexto {
       if (this.escrito >= this.total) {
         this.fase = 'espera';
         if (this.espera === 0) this.terminar();
+        return true;
       }
+      // At 30-40 characters a second, most frames show the same letters as the one before: draw only a new one.
+      const n = Math.floor(this.escrito);
+      if (n === this.mostrado) return false;
+      this.mostrado = n;
       return true;
     }
     if (this.fase === 'espera') {
@@ -137,7 +148,7 @@ export class CajaTexto {
     const y0 = alta ? y + 14 : y + 3 + Math.floor((h - 8 - bloque) / 2) + 1;
     this.lineas.forEach((l, i) => {
       if (resto <= 0) return;
-      const n = Array.from(l).length;
+      const n = this.largos[i];
       dibujarTextoParcial2(ctx, l, Math.min(n, resto), x + 11, y0 + i * paso, TINTA2, SOMBRA_TEXTO);
       resto -= n;
     });

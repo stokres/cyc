@@ -9,6 +9,7 @@ import { entrada } from './entrada';
 import { ejecutar } from './flujo';
 import { Pantalla } from './pantalla';
 import { aplicarAjustes } from './pantallas/ajustes';
+import { precalentar } from './pantallas/precalentar';
 import { cfg } from './pantallas/ui';
 
 cargarTextos(raw, rawCombate);
@@ -31,6 +32,9 @@ const q = new URLSearchParams(location.search);
 const pj = q.get('pj') as EntrenadorId | null;
 const semilla = q.get('semilla');
 cfg.rapido = q.has('auto') || q.has('rapido');
+
+// The art of the next screens is baked in the background while the first one is on (see pantallas/precalentar.ts).
+precalentar();
 
 void ejecutar({
   combate: q.has('combate'),

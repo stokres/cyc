@@ -9,7 +9,7 @@ import { sonido } from '../sonido';
 import { panelCacheado } from '../arte2/ui2';
 import { anchoTexto2 } from '../arte2/fuente2';
 import { dibujarBandeja, dibujarFondoBar, pieSprite, plataformaCacheada } from './fondos';
-import { centrado, parpadea, reposo, t, texto2 } from './ui';
+import { Firma, centrado, parpadea, reposo, t, texto2 } from './ui';
 
 /** Draws the logo centred at the top. Returns the y where it ends. */
 export function dibujarLogo(ctx: CanvasRenderingContext2D, y: number): number {
@@ -32,8 +32,25 @@ export function pantallaTitulo(): Promise<void> {
       res();
     };
     sonido.musica('titulo');
+    // What moves here: the parade's scroll (whole pixels), each userito's hop (whole pixels) and breathing frame,
+    // and the blinking prompt. `paso` computes them like `dibujar` does and asks for a redraw only when one changes.
+    const SEP = 80;
+    const firma = new Firma(3 + 2 * 5);
     const e: Escena = {
-      paso: () => true,
+      paso: (_dt, ahora) => {
+        const desp = ahora * 0.016;
+        const base = Math.floor(desp / SEP);
+        const v = firma.v;
+        v[0] = base;
+        v[1] = Math.round(8 - (desp % SEP));
+        v[2] = parpadea(ahora, 600) ? 1 : 0;
+        for (let k = -1; k < 4; k++) {
+          const idx = (base + k + desfase) % ids.length;
+          v[3 + 2 * (k + 1)] = Math.round(-Math.abs(Math.sin(ahora / 230 + idx)) * 5);
+          v[4 + 2 * (k + 1)] = reposo(ahora, idx * 190);
+        }
+        return firma.cambio();
+      },
       dibujar(ctx, ahora) {
         const H = p.alto;
         dibujarFondoBar(ctx, H, 0.12);

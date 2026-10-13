@@ -10,9 +10,9 @@ import { iconoGuia } from './guia';
 import { dibujarLogo } from './titulo';
 import { mover, t } from './ui';
 
-export type OpcionMenu = 'solo' | 'online' | 'guia' | 'ajustes' | 'titulo';
-const OPCIONES: OpcionMenu[] = ['solo', 'online', 'guia', 'ajustes'];
-const ICONOS: Record<string, string> = { solo: 'luchar', online: 'online', ajustes: 'ajustes' };
+export type OpcionMenu = 'solo' | 'online' | 'useritopedia' | 'guia' | 'ajustes' | 'titulo';
+const OPCIONES: OpcionMenu[] = ['solo', 'online', 'useritopedia', 'guia', 'ajustes'];
+const ICONOS: Record<string, string> = { solo: 'luchar', online: 'online', useritopedia: 'userito', ajustes: 'ajustes' };
 
 export function pantallaMenu(inicial: OpcionMenu = 'solo'): Promise<OpcionMenu> {
   return new Promise((res) => {
@@ -27,6 +27,7 @@ export function pantallaMenu(inicial: OpcionMenu = 'solo'): Promise<OpcionMenu> 
     };
     sonido.musica('titulo');
     const e: Escena = {
+      estatica: true,
       dibujar(ctx) {
         const H = p.alto;
         dibujarFondoBar(ctx, H, 0.12);

@@ -15,6 +15,9 @@
   .hoja { background: #f1ecdc; color: #2c2236; padding: 14px; display: inline-block; font: 600 14px/1.2 system-ui, sans-serif; }
   .hoja .cab { display: grid; gap: 8px; margin-bottom: 6px; text-align: center; }
   .hoja .cab span { padding: 4px 0; background: #3b2a3f; color: #f6e6b4; border-radius: 4px; }
+  .rejilla { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 8px; }
+  .rejilla figure { margin: 0; }
+  .rejilla figcaption { font: 600 12px system-ui, sans-serif; padding: 2px 0; }
   .nota { font: 500 12px system-ui, sans-serif; opacity: .8; }
 </style>
 </head>
@@ -22,6 +25,7 @@
 <div id="detalle-w" class="hoja"><div id="detalle-cab" class="cab"></div><canvas id="detalle"></canvas><div class="nota" id="detalle-nota"></div></div>
 <div id="fuente-w" class="hoja"><canvas id="fuente"></canvas></div>
 <div id="entrenadores-w" class="hoja" style="display:none"><canvas id="entrenadores"></canvas></div>
+<div id="efectos-w" style="display:none"><div id="efectos-nota" class="nota"></div><div id="efectos-grid" class="rejilla"></div><canvas id="hoja-efectos"></canvas></div>
 <script type="module" src="./pokeusera-v2.ts"></script>
 </body>
 </html>
