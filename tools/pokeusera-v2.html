@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PokéUsera · gráficos v2</title>
+<style>
+  body { margin: 0; padding: 12px; background: #2b2b33; color: #ddd; font: 13px system-ui, sans-serif; }
+  h2 { margin: 18px 0 6px; font-size: 14px; font-weight: 600; }
+  canvas, img { display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+  .fila { display: flex; gap: 24px; align-items: flex-start; }
+  .col { display: flex; flex-direction: column; gap: 6px; }
+  .col b { font-size: 15px; letter-spacing: .04em; color: #3b2a3f; }
+  .hoja { background: #f1ecdc; color: #2c2236; padding: 14px; display: inline-block; font: 600 14px/1.2 system-ui, sans-serif; }
+  .hoja .cab { display: grid; gap: 8px; margin-bottom: 6px; text-align: center; }
+  .hoja .cab span { padding: 4px 0; background: #3b2a3f; color: #f6e6b4; border-radius: 4px; }
+  .nota { font: 500 12px system-ui, sans-serif; opacity: .8; }
+</style>
+</head>
+<body>
+<div id="detalle-w" class="hoja"><div id="detalle-cab" class="cab"></div><canvas id="detalle"></canvas><div class="nota" id="detalle-nota"></div></div>
+<div id="antes-w" class="hoja"><div id="antes-cab" class="cab"></div><canvas id="antes"></canvas></div>
+<div id="fuente-w" class="hoja"><canvas id="fuente"></canvas></div>
+<div id="combate-w" class="hoja"><div class="fila"><div class="col"><b>AHORA · 160 px, 32×32</b><img id="actual" alt="combate actual"></div><div class="col"><b>PROPUESTA · 240 px, 64×64</b><canvas id="nuevo"></canvas></div></div></div>
+<script type="module" src="./pokeusera-v2.ts"></script>
+</body>
+</html>
