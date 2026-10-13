@@ -22,9 +22,12 @@ Juego aparte de batallas de useritos a cuatro, al estilo de los juegos de monstr
 - **Vertical, en el móvil.** Lógica de 240 px de ancho (el de la Game Boy Advance); el alto sale de la proporción de la pantalla: `alto = clamp(round(240 × alto / ancho), 384, 520)`. El lienzo se ajusta al ancho con escala no entera, sin suavizar (`image-rendering: pixelated`).
 - **Aspecto Game Boy Advance** (muestra aprobada): letra proporcional de píxeles propia (`arte2/fuente2.ts`, mayúsculas de 7 px, con tildes, ñ, º, ¡ y ¿), paneles crema con borde oscuro y reborde dorado, cursor ▶, barras de PS verde/amarilla/roja con etiqueta «PS», fichas con la inicial y el color del entrenador. Los useritos son de 64×64 con rampas de 3-5 tonos y dos fotogramas de reposo (a ~2 fps, de frente y de espaldas); los entrenadores, de 56×80 con dos fotogramas; retratos de 40×40 e iconos de 16×16; el logo, de 220×90. Las miniaturas del draft son de 32×32 (reducción 2×2 del sprite de 64).
 - **Reparto del alto en el combate** (`pantallas/combate.ts`, función `geom`): la separación entre filas va de 50 a 76 px según el alto; los pies del sprite quedan 62 px por debajo del inicio de la fila; debajo va la bandeja con el cuadro de texto y el panel del menú pegado al borde inferior. Por debajo de 430 px de alto, el cuadro de texto es de dos líneas (modo compacto). El mismo criterio (hueco que sobra repartido entre filas, alturas mínimas) sirve en el draft, el podio y las estadísticas.
-- **Combate a cuatro en vertical:** los tres rivales en filas arriba (ficha a la izquierda: nombre, N50, barra de PS y color del entrenador; sprite de frente a la derecha) y el tuyo abajo (sprite de espaldas a la izquierda, ficha con PS en números a la derecha, sobre su plataforma). Debajo, el cuadro de texto y los menús (el mismo hueco para los dos). En móviles altos, la altura que sobra se reparte entre las filas.
+- **Combate a cuatro en vertical:** los tres rivales en filas arriba (ficha a la izquierda: nombre, sus tipos como fichitas de color con 3 letras —cuadrados con la inicial si el nombre es largo—, barra de PS y color del entrenador; sprite de frente a la derecha; el N50 se quitó porque todos son de nivel 50) y el tuyo abajo (sprite de espaldas a la izquierda, ficha con PS en números a la derecha, sobre su plataforma). Debajo, el cuadro de texto y los menús (el mismo hueco para los dos). En móviles altos, la altura que sobra se reparte entre las filas.
 - **Seguir lo que pasa** (pedido por Jesús tras la beta: «demasiado rápidas y caóticas»), todo en `pantallas/combate.ts`:
-  - **Foco en cada acción:** desde el `usa` hasta el siguiente `usa` (o el fin del turno) se atenúan las filas que no intervienen, la del que actúa lleva marco de su color, las de los objetivos marco parpadeante, una línea con flecha baja por el borde derecho del que ataca a cada objetivo y en la fila del objetivo sale «cara A ▶ cara B». En «todos», se iluminan los tres. Los efectos del final del turno (quemaduras, Hora de cerrar) solo marcan a quien los sufre.
+  - **Cartel y foco en cada acción** (rehecho tras el aviso de Jesús: «los recuadros y las flechas… no son nada claros»; ya no hay rectángulos por fila, ni línea con puntas por el borde, ni «cara ▶ cara» pegada a las fichas): desde el `usa` hasta el siguiente `usa` (o el fin del turno) sale **un cartel** bajo el cuadro de texto (`cartel()`, encima del registro, que se encoge): a la izquierda la ficha del entrenador que ataca y el nombre de su userito, una flecha gruesa de su color, a la derecha las caras de los objetivos (o «TODOS» en los movimientos a todos, o «ÉL MISMO»), y debajo, centrado, el movimiento en una insignia del color de su tipo. Sobre el campo: las filas que no intervienen se atenúan un poco, la plataforma del que actúa se ilumina con el color de su entrenador, el atacante embiste hacia sus objetivos (de lado y hacia su fila) y cada objetivo lleva **esquinas parpadeantes** pegadas a su sprite (`cajaSprite` en `fondos.ts` mide el dibujo) en el color del que ataca. Un cambio o una caña solo atenúan y marcan al que actúa (sin cartel). Los efectos del final del turno (quemaduras, Hora de cerrar) solo marcan con esquinas claras a quien los sufre, sin cartel.
+  - **Ficha al tocar** (pedido por Jesús: «entender cómo funcionan las estadísticas… ver de qué tipo es cada uno… el significado de los estados»): tocar el panel o el sprite de un userito (mientras eliges —acción, movimientos, equipo, grada— o esperas a los demás; no mientras salen los textos ni al elegir objetivo, donde el toque elige) abre una caja (`abrirFicha`, sobre `sobre`) con su sprite, nombre, entrenador y jarras, tipos, PS (números en el tuyo, porcentaje en los rivales), estado, cambios de estadística (ATA −1, VEL +2…), las cinco estadísticas base con barras y, si es un rival, «tus movimientos contra él» con ×2 / ×1/2 / ×1 / NO AFECTA / SIN DAÑO (de `eficacia`). Abajo, un recuadro explica lo que toques: un estado (`ayuda.estado.*`), una estadística (`ayuda.stat.*`) o los tipos (`ayuda.tipos`); tocar la etiqueta de estado del panel abre la ficha ya con esa explicación. El «?» de la barra de arriba abre la GUÍA del juego (`guia.ts`) encima del combate, y el cuadro de texto del menú de acción recuerda «Toca a un userito para ver su ficha». Si dos estados no caben junto al nombre, las jarras dejan sitio a las etiquetas (las jarras siguen en la ficha).
+  - **Eficacia al elegir:** al elegir objetivo, cada rival que se puede elegir lleva esquinas (la elegida parpadea) y, si el movimiento hace daño, una etiqueta sobre su sprite: «MUY EFICAZ ×2» (verde), «POCO EFICAZ ×1/2» (naranja) o «NO LE AFECTA» (gris); nada si es ×1. En la lista de movimientos, cada uno lleva su tipo en una fichita y, a la derecha, un cuadradito por rival en juego, del color de su entrenador y de arriba abajo como en pantalla: flecha arriba = pega el doble, abajo = la mitad, X = no le afecta, liso = normal; los movimientos sin daño no los llevan.
+  - **VOLVER:** los menús de movimientos y de equipo acaban en una fila grande «VOLVER» que vuelve al menú de acción sin enviar nada (además del enlace de la barra de arriba y de Escape/X). No sale en el reemplazo forzoso tras un K.O. Para dar sitio, el panel de un menú puede crecer hacia arriba sobre el cuadro de texto, que se queda al menos con dos líneas.
   - **Números flotantes** sobre el sprite: `-34` en rojo, `+20` en verde, y etiquetas de ~1 s (`MUY EFICAZ!`, `POCO EFICAZ`, `CRITICO!`, `NO AFECTA`, `ESCONDIDO`, `FALLA`, `ESQUIVA`).
   - **ORDEN DEL TURNO:** al empezar la reproducción de cada turno, una tira con quién actúa y en qué orden (cara del jugador, sprite y nombre del userito) durante ~1,5 s; después queda como fichas pequeñas en la barra de arriba, con la del que actúa enmarcada y las hechas pálidas. Sale del orden de los `usa` (y de los cambios y cañas) del turno.
   - **Ritmo** (ajuste «VELOCIDAD DEL COMBATE: LENTA / NORMAL / RÁPIDA», en AJUSTES y en la pausa ≡; se guarda en `localStorage` `pokeusera.v1`, por defecto NORMAL): NORMAL escribe a 30 letras por segundo y pasa sola a los 1,6 s; LENTA a 24 y solo con un toque (como el original); RÁPIDA es el ritmo de la primera versión (42 letras por segundo, 0,65 s). Cambian también las pausas entre acciones, la duración de las animaciones, el drenaje de las barras (0,8 s en NORMAL) y lo que duran los números flotantes. Un toque en cualquier parte del campo termina la línea o pasa a la siguiente. Las líneas de texto seguidas de un mismo golpe («¡Golpe crítico!» + «¡Muy eficaz!») comparten cuadro si caben en tres líneas. `?auto` / `?rapido` y el invitado que va con retraso ignoran el ajuste y van rápido.
@@ -34,13 +37,32 @@ Juego aparte de batallas de useritos a cuatro, al estilo de los juegos de monstr
 
 ### Flujo
 
-Título («Toca para empezar») → menú: **Jugar solo** (tú y tres de la máquina) / **Jugar online** (sala con contraseña) / Ajustes (música, efectos, velocidad del combate) → elegir entrenador (Fran, Pablo, Chuchi, Guille) → **draft en serpiente** → **combate** → **podio** (1.º a 4.º, con la duración de la batalla y el MVP) → **estadísticas** (opcional) → volver a jugar.
+Título («Toca para empezar») → menú: **Jugar solo** (tú y tres de la máquina) / **Jugar online** (sala con contraseña) / **Guía** / Ajustes (música, efectos, velocidad del combate) → elegir entrenador (Fran, Pablo, Chuchi, Guille; cada uno con su ventaja, ver «Ventajas de entrenador») → **draft en serpiente** → **combate** → **podio** (1.º a 4.º, con la duración de la batalla y el MVP) → **estadísticas** (opcional) → volver a jugar.
 
 ### Estadísticas del final
 
 El motor las lleva en `estado.stats` (tipo `Estadisticas` en `tipos.ts`) mientras resuelve los turnos, así que viajan con el estado y los invitados las ven iguales (llegan en el mensaje `fin`). Por userito (`StatsUserito`, claves cortas): daño hecho `dh` / recibido de otros `dr` / propio y de la barra `dp` (quemaduras, retroceso, Hora de cerrar…), curado `cu`, derribos `ko`, caídas `cae`, golpes dados `gol` / recibidos `rg`, fallos `fal`, esquivas `esq`, críticos dados/recibidos `cri`/`crr`, muy eficaces `sup`/`sur`, poco eficaces `pob`/`por`, estados puestos `est`, cambios de nivel a otros / a sí mismo `nvo`/`nvy`, cambios `cam`, caña `cana`, PP gastados `pp`, mejor golpe (`mx` valor, `mm` movimiento, `mo` jugador golpeado), usos de cada movimiento `mv` (4 + «A la desesperada»), turnos en campo `tf`, daño con Venganza `dv`. Además `dm[a][b]` (daño de a a b), `km[a][b]` (derribos de a a b) y `gr[j]` (cañas y abucheos desde la grada). Invariantes (los comprueba `scripts/pokeusera-motor.mjs`): Σ`dh` = Σ`dr` = Σ`dm`; Σ`ko` = Σ`km`; por userito `psMax − ps = dr + dp − cu`.
 
 Pantalla (`pantallas/estadisticas.ts`, desde el botón ESTADÍSTICAS del podio, también para invitados; ◀ ▶, deslizar o flechas del teclado para cambiar de página, VOLVER para salir): **RESUMEN** (diez medidas con barras de los cuatro), **USERITOS** (los tres de cada jugador: daño, derribos, turnos, movimiento favorito, mejor golpe), **DUELOS** (matriz «quién pegó a quién» con color de calor y derribos, némesis y víctima favorita) y **PREMIOS** (hasta ocho: MVP, Saco de boxeo, Matagigantes, Rey de la caña, Gafe, Francotirador, El veleta, Superviviente, Rencoroso; los textos, en `pokeusera.md`).
+
+### Música
+
+Ocho piezas originales de estilo Game Boy (2 pulsos, onda de 16 pasos y ruido), compuestas en `tools/musica/pokeusera.py` (`python3 pokeusera.py <nombre>`), MP3 a 24 kHz, 96 kbps, mono, todas al mismo volumen (RMS −17,5 dB). Título, draft, final y victoria (esta una sola vez, sin bucle) tienen una; **el combate tiene cuatro** (pedido por Jesús: «siempre la misma aturulla la cabeza»), que se turnan:
+
+| Pista | Archivo | Tono y tempo | Idea |
+|---|---|---|---|
+| `combate` (la de siempre) | `pokeusera-combate.mp3` | Re menor, 156 | Riff con arpegios rápidos y puente martilleante. |
+| Rock | `pokeusera-combate-rock.mp3` | Do menor, 144 (53 s) | Rock de furgoneta: riff con acordes sincopados 3+3+4+3+3 sobre un bajo arpegiado en semicorcheas; estribillo en Mi bemol mayor. |
+| Verbena | `pokeusera-combate-verbena.mp3` | La menor / La mayor, 132 con swing (58 s) | Pasodoble de verbena para la pelea del Bar del Brío: bajo de «pum-pa», acordes a contratiempo, cadencia andaluza, trompeta en terceras en La mayor y redobles de caja. |
+| Electro | `pokeusera-combate-electro.mp3` | Fa sostenido menor, 130 (59 s) | Tensa y sincopada: pulso fino del 12,5 % en un riff 3+3+2 con segunda menor y tritono, bajo corto y bombo a juego, puente de notas repetidas que sube cromáticamente. |
+
+`sonido.musica('combate')` no cambia para quien llama: cada **combate nuevo** (el primer `'combate'` tras cualquier otra pieza, p. ej. título, draft o victoria) elige una de las cuatro al azar, distinta de la del combate anterior (se recuerda en memoria, no en `localStorage`). Volver a pedir `'combate'` durante el mismo combate, también después de `'final'`, deja la misma pieza; `'final'` suena igual en todos. Cada archivo se descarga solo cuando le toca (carga perezosa, como el resto). Todas cierran el bucle sin clic (tres rondas idénticas, se queda la central con 0,5 s de margen: `exportar_bucle`).
+
+### Guía para el jugador
+
+Pedido por Jesús tras la beta («entender cómo funcionan las estadísticas… una tabla de apoyo con qué ataca mejor a qué… el significado de los estados… un juego más fácil de seguir»). `pantallas/guia.ts` exporta `abrirGuia(base, pagina?)`, hecha sobre `sobre` (`modal.ts`), así que se abre encima de cualquier pantalla y la devuelve al cerrarse: **GUÍA** en el menú principal (entre JUGAR ONLINE y AJUSTES, con su icono «?» dibujado en `guia.ts`), **GUÍA** en la caja de pausa del combate (`menuPausa`; en online la batalla sigue por debajo) y el «?» de la ficha del draft. Cinco páginas (◀ ▶, deslizar, flechas, pestañas; arrastrar para bajar si no cabe; VOLVER): **JUEGO** (draft, turno simultáneo, orden, último en pie), **DATOS** (PS/ATA/DEF/ESP/VEL con los textos `ayuda.stat.*` y la escala de niveles −6…+6), **TIPOS** (la tabla 11×11 sacada de `eficacia` de `datos.ts`, atacante en filas y defensor en columnas, casillas verdes ×2, naranjas ×½ y oscuras ×0; tocar un tipo o una casilla enmarca su fila y columna y lista «Pega fuerte a / Pega poco a / No afecta a / Le pegan fuerte»), **ESTADOS** (las cinco etiquetas DOR/PAR/QUE/EMP/ACH con `ayuda.estado.*`) y **BAR** (Acorralado, Venganza, Hora de cerrar, Desde la grada, la caña y, debajo, las ventajas de los cuatro entrenadores). `pagina` acepta `como`, `stats` (o `estadisticas`), `tipos`, `estados` y `reglas`. Los textos están en `pokeusera.md` (`guia.*`).
+
+Cambios del **draft** (ficha de un userito, `tarjeta` en `draft.ts`): la cuenta atrás ya no desaparece al abrir la ficha, que tapaba la barra de arriba; ahora un cuadro grande arriba a la derecha muestra los segundos (rojo y parpadeando en los últimos 5) y debajo de quién es el turno («¡Tu turno!» o «Elige Pablo»). Bajo la descripción salen los tipos del userito como insignias (`Le pega fuerte a`, `Le pegan fuerte` con «×4» si es doble debilidad y, si los hay, `No le afectan`), calculados con `eficacia`; si la pantalla es baja se quita antes la descripción que las insignias. Las filas de estadísticas y el «?» abren la guía en la página DATOS. De paso, `sobre` ya no devuelve la pantalla anterior si el juego ya había cambiado de pantalla mientras estaba abierto (el draft acabó, salió el podio).
 
 ### Online
 
@@ -112,7 +134,7 @@ Todos ven los 20 useritos a la vez y se eligen por turnos, sin repetir: 1-2-3-4,
 
 ### Cada turno
 
-1. **Todos eligen a la vez y en secreto**, con 30 segundos de tiempo: **atacar** (un movimiento y, si es a un solo rival, **a quién**), **cambiar** de userito o usar la **caña** (una por batalla: cura la mitad de los PS).
+1. **Todos eligen a la vez y en secreto**, con 30 segundos de tiempo: **atacar** (un movimiento y, si es a un solo rival, **a quién**), **cambiar** de userito o usar la **caña** (una por batalla: cura la mitad de los PS; a Fran, el 60 %).
 2. Se resuelve en este orden: cambios y caña, después «Esconderse» y «Susto», y luego los ataques del más rápido al más lento (empate: a suertes).
 3. Si se acaba el tiempo, tu userito usa un movimiento al azar contra un rival al azar.
 
@@ -128,6 +150,19 @@ Todos ven los 20 useritos a la vez y se eligen por turnos, sin repetir: 1-2-3-4,
 - **Venganza.** Algunos movimientos pegan el doble a quien te hizo daño en el turno anterior. Quien abusa, lo paga.
 - **Hora de cerrar.** A partir del turno 30 sale Vero y pone las sillas encima de las mesas: al final de cada turno todos los useritos pierden 1/8 de sus PS, y cada cuatro turnos más, otro 1/8. Así ninguna batalla se eterniza.
 
+### Ventajas de entrenador
+
+Pedidas y decididas por Jesús el 13 de octubre de 2026: cada entrenador trae una ventaja suave, que se aplica a todo el que lo elija (también la máquina y los asientos online; si dos jugadores pudieran compartir entrenador, los dos la tienen). Viven solo en el motor (`motor/combate.ts`, constantes `PERK_*` en `tipos.ts`): el anfitrión las aplica y los invitados ven el resultado en los eventos de siempre, así que el formato online no cambia.
+
+| Entrenador | Ventaja | Qué hace |
+|---|---|---|
+| **Fran** | ¡Otra caña! | Su caña cura el 60 % de los PS máximos en vez del 50 %. |
+| **Pablo** | Labia | Sus movimientos de estado (los de potencia «—», `pot === null`) tienen +10 puntos de precisión, con tope de 100; los que nunca fallan no cambian. |
+| **Chuchi** | Llega tarde | El primer golpe que recibe cada uno de sus useritos de un ataque de otro jugador hace un 20 % menos (una vez por userito y batalla; se aplica después del resto de multiplicadores, con mínimo 1). Sale «{userito} llegaba tarde: el golpe le pilla a medias.» |
+| **Guille** | Mañico | Una vez por userito y batalla, si un golpe de otro jugador lo dejaría a 0 estando con la vida llena, aguanta con 1 PS. Sale «¡{userito} aguanta como un buen mañico!» |
+
+Detalles: lo gastado se apunta en `Userito.perk` (`tarde`, `manico`), fuera de `vol`, así que no se pierde al cambiar de userito: cada userito tiene el suyo. Cuentan los golpes de ataque de otros (cada golpe de un movimiento múltiple va por separado; el primero gasta la ventaja de Chuchi); no cuentan quemaduras, retroceso, golpes a sí mismo ni Hora de cerrar. Los textos de aviso, en `pokeusera-combate.md` (`combate.perk.chuchi` y `combate.perk.guille`); nombre y descripción de cada ventaja, en `pokeusera.md` (`entrenador.<id>.perk` y `.perk_d`). La pantalla de elegir entrenador muestra el nombre bajo cada nombre y la descripción del seleccionado (un toque selecciona, otro toque o ELEGIR confirma), y la guía las explica en la pestaña BAR. Las máquinas no las tienen en cuenta al decidir. `scripts/pokeusera-motor.mjs` comprueba cada una con casos deterministas.
+
 ### Quién gana
 
 - Te eliminan cuando caen tus tres useritos. **Gana el último en pie**, y el resto queda en el orden en que cayó (2.º, 3.º, 4.º).
@@ -140,7 +175,7 @@ Todos ven los 20 useritos a la vez y se eligen por turnos, sin repetir: 1-2-3-4,
 - **Físicos y especiales según el tipo:** Normal, Tierra, Aire, Juerga y Fantasma son físicos (usan Ataque y Defensa); Fuego, Planta, Rayo, Alcohol, Chanza y Grasa son especiales (usan Especial).
 - **Mismo tipo que el userito:** el movimiento pega un 50 % más.
 - **Críticos:** cuanto más rápido es el userito, más críticos (doble de daño).
-- **PP** por movimiento, como en el original (los fuertes tienen pocos).
+- **PP** por movimiento, como en el original pero más justos para que cuenten en un solo combate (13-oct): los gordos 3, los fuertes 5, los normales 8 y los flojos 10.
 - **Subidas y bajadas de estadísticas** por niveles, de −6 a +6; se pierden al cambiar de userito.
 - **Estados** (uno a la vez, salvo Achispado, que se suma):
   - **Dormido:** no actúa durante 1-3 turnos.
@@ -211,64 +246,64 @@ Potencia, precisión y PP. «Uno» es un rival a elegir; «todos», los tres riv
 
 | Movimiento | Tipo | Pot. | Prec. | PP | Objetivo | Efecto |
 |---|---|---|---|---|---|---|
-| Barrigazo | Normal | 85 | 100 | 15 | uno | 30 %: paraliza |
-| Trompazo | Normal | 120 | 90 | 5 | uno | El que lo usa recibe 1/4 del daño que hace |
-| Galope | Normal | 80 | 100 | 15 | uno | — |
-| Lametazo | Normal | 30 | 100 | 30 | uno | 30 %: paraliza |
-| Dar la chapa | Normal | 80 | 100 | 15 | uno | 20 %: baja 1 nivel la Velocidad |
-| Te pillo en la barra | Normal | 25 | 90 | 15 | uno | Lo atrapa 2-5 turnos: no puede cambiar y pierde 1/16 de PS por turno |
-| Bocinazo | Normal | — | 100 | 15 | todos | Baja 1 nivel el Ataque de los rivales |
-| Turra | Normal | — | 90 | 10 | todos | Se les quitan las ganas: baja 1 nivel el Ataque y el Especial |
-| Bostezo | Normal | — | 100 | 10 | uno | Se queda dormido al final del turno siguiente |
-| Cara de pena | Normal | — | 100 | 20 | uno | Nadie puede pegarle a esa carita: baja 2 niveles el Ataque |
-| Esconderse | Normal | — | — | 10 | yo | Nadie puede tocarle este turno; si lo repite seguido, la mitad de las veces falla |
-| Siesta | Normal | — | — | 10 | yo | Duerme 2 turnos y recupera todos los PS y estados |
-| Traca | Fuego | 70 | 100 | 10 | todos | 10 %: quema |
-| Fogonazo | Fuego | 90 | 100 | 15 | uno | 10 %: quema |
-| Petardazo | Fuego | 110 | 85 | 5 | uno | 30 %: quema |
-| Raíces | Planta | 60 | 100 | 15 | uno | Recupera la mitad del daño que hace |
-| Almendrazo | Planta | 85 | 100 | 15 | uno | — |
-| Lluvia de lentejas | Planta | 25 | 90 | 20 | uno | Pega de 2 a 5 veces |
-| Esporas | Planta | — | 75 | 15 | uno | Lo duerme |
-| Temblor | Tierra | 80 | 100 | 10 | todos | No afecta a los de tipo Aire |
-| Adoquín | Tierra | 100 | 85 | 10 | uno | — |
-| Caparazón | Tierra | — | — | 20 | yo | Sube 2 niveles la Defensa |
-| Cierzo | Aire | 70 | 95 | 10 | todos | Baja 1 nivel la Velocidad de los rivales |
-| Planeo | Aire | 80 | 100 | 15 | uno | — |
-| Remolino | Aire | — | 100 | 15 | uno | Le obliga a cambiar a otro userito al azar |
-| Chispazo | Rayo | 90 | 100 | 15 | uno | 10 %: paraliza |
-| Distorsión | Rayo | 60 | 100 | 10 | todos | 10 %: achispa |
-| Solo de teclado | Rayo | 130 | 90 | 5 | uno | Al turno siguiente no puede hacer nada (recarga) |
-| Premio gordo | Rayo | ? | 100 | 10 | uno | Tirada de tragaperras: potencia 0, 40, 80 o 150 |
-| Chupitazo | Alcohol | 80 | 100 | 15 | uno | 20 %: achispa |
-| Ronda | Alcohol | 65 | 100 | 10 | todos | Ronda para todos. 10 %: achispa |
-| Garrafón | Alcohol | 110 | 85 | 5 | uno | 30 %: achispa |
-| ¡Una más! | Alcohol | — | 100 | 10 | todos | «Aquí no se va nadie»: los rivales no pueden cambiar el turno siguiente y baja 1 nivel su Velocidad |
-| Dolor de cabeza | Alcohol | — | 90 | 15 | uno | Lo achispa |
-| Rumba | Juerga | 20 | 90 | 20 | uno | Pega de 2 a 5 veces |
-| Taconeo | Juerga | 85 | 100 | 15 | uno | 20 %: retrocede (pierde el turno si aún no ha actuado) |
-| Conga | Juerga | 70 | 100 | 10 | todos | — |
-| Pogo | Juerga | 75 | 95 | 10 | todos | 20 %: retroceden |
-| Coz doble | Juerga | 45 | 100 | 15 | uno | Pega dos veces (una por cabeza) |
-| Chulería | Juerga | 80 | 100 | 15 | uno | — |
-| Compás | Juerga | — | — | 20 | yo | Sube 2 niveles el Ataque |
-| ¡Camioneees y caravanaaas! | Juerga | 90 | 100 | 5 | todos | Si alguien la cantó el turno anterior, pega el doble |
-| Zasca | Chanza | 100 | 90 | 10 | uno | — |
-| Vacile | Chanza | 80 | 100 | 15 | uno | 20 %: baja 1 nivel el Especial |
-| A dos voces | Chanza | 65 | 100 | 10 | todos | — |
-| Monada | Chanza | — | 100 | 15 | todos | Nadie quiere pegarle: baja 1 nivel el Ataque de los rivales |
-| Cizaña | Chanza | — | 90 | 10 | uno | Durante 2 turnos, sus ataques a un rival van a un rival al azar |
-| Sí, y… | Chanza | — | — | 15 | — | Copia el último movimiento que se haya usado en la batalla, de quien sea |
-| Fritanga | Grasa | 90 | 100 | 15 | uno | 20 %: quema (salta el aceite) |
-| Pringue | Grasa | 65 | 100 | 10 | todos | 20 %: resbalan y baja 1 nivel su Velocidad |
-| Tropezón | Grasa | 70 | 100 | 15 | uno | 30 %: lo empacha |
-| Indigestión | Grasa | — | 90 | 10 | uno | Lo empacha |
-| Rebozado | Grasa | — | — | 20 | yo | Sube 2 niveles la Defensa |
-| Susto | Fantasma | 40 | 100 | 30 | uno | Ataca antes que nadie (solo van antes los cambios y Esconderse) |
-| Eco | Fantasma | 40 | 100 | 20 | uno | Pega dos veces |
-| Venganza | Fantasma | 50 | 100 | 10 | uno | Doble de potencia contra quien le hizo daño el turno anterior |
-| Flipada | Fantasma | — | — | 10 | yo | Sube 1 nivel el Ataque, el Especial y la Velocidad; baja 1 nivel la Defensa |
-| Selfie | Fantasma | — | 70 | 15 | todos | Flash en la cara: baja 1 nivel la precisión de los rivales |
+| Barrigazo | Normal | 85 | 100 | 8 | uno | 30 %: paraliza |
+| Trompazo | Normal | 120 | 90 | 3 | uno | El que lo usa recibe 1/4 del daño que hace |
+| Galope | Normal | 80 | 100 | 8 | uno | — |
+| Lametazo | Normal | 30 | 100 | 10 | uno | 30 %: paraliza |
+| Dar la chapa | Normal | 80 | 100 | 8 | uno | 20 %: baja 1 nivel la Velocidad |
+| Te pillo en la barra | Normal | 25 | 90 | 8 | uno | Lo atrapa 2-5 turnos: no puede cambiar y pierde 1/16 de PS por turno |
+| Bocinazo | Normal | — | 100 | 8 | todos | Baja 1 nivel el Ataque de los rivales |
+| Turra | Normal | — | 90 | 5 | todos | Se les quitan las ganas: baja 1 nivel el Ataque y el Especial |
+| Bostezo | Normal | — | 100 | 5 | uno | Se queda dormido al final del turno siguiente |
+| Cara de pena | Normal | — | 100 | 10 | uno | Nadie puede pegarle a esa carita: baja 2 niveles el Ataque |
+| Esconderse | Normal | — | — | 5 | yo | Nadie puede tocarle este turno; si lo repite seguido, la mitad de las veces falla |
+| Siesta | Normal | — | — | 5 | yo | Duerme 2 turnos y recupera todos los PS y estados |
+| Traca | Fuego | 70 | 100 | 5 | todos | 10 %: quema |
+| Fogonazo | Fuego | 90 | 100 | 8 | uno | 10 %: quema |
+| Petardazo | Fuego | 110 | 85 | 3 | uno | 30 %: quema |
+| Raíces | Planta | 60 | 100 | 8 | uno | Recupera la mitad del daño que hace |
+| Almendrazo | Planta | 85 | 100 | 8 | uno | — |
+| Lluvia de lentejas | Planta | 25 | 90 | 10 | uno | Pega de 2 a 5 veces |
+| Esporas | Planta | — | 75 | 8 | uno | Lo duerme |
+| Temblor | Tierra | 80 | 100 | 5 | todos | No afecta a los de tipo Aire |
+| Adoquín | Tierra | 100 | 85 | 5 | uno | — |
+| Caparazón | Tierra | — | — | 10 | yo | Sube 2 niveles la Defensa |
+| Cierzo | Aire | 70 | 95 | 5 | todos | Baja 1 nivel la Velocidad de los rivales |
+| Planeo | Aire | 80 | 100 | 8 | uno | — |
+| Remolino | Aire | — | 100 | 8 | uno | Le obliga a cambiar a otro userito al azar |
+| Chispazo | Rayo | 90 | 100 | 8 | uno | 10 %: paraliza |
+| Distorsión | Rayo | 60 | 100 | 5 | todos | 10 %: achispa |
+| Solo de teclado | Rayo | 130 | 90 | 3 | uno | Al turno siguiente no puede hacer nada (recarga) |
+| Premio gordo | Rayo | ? | 100 | 5 | uno | Tirada de tragaperras: potencia 0, 40, 80 o 150 |
+| Chupitazo | Alcohol | 80 | 100 | 8 | uno | 20 %: achispa |
+| Ronda | Alcohol | 65 | 100 | 5 | todos | Ronda para todos. 10 %: achispa |
+| Garrafón | Alcohol | 110 | 85 | 3 | uno | 30 %: achispa |
+| ¡Una más! | Alcohol | — | 100 | 5 | todos | «Aquí no se va nadie»: los rivales no pueden cambiar el turno siguiente y baja 1 nivel su Velocidad |
+| Dolor de cabeza | Alcohol | — | 90 | 8 | uno | Lo achispa |
+| Rumba | Juerga | 20 | 90 | 10 | uno | Pega de 2 a 5 veces |
+| Taconeo | Juerga | 85 | 100 | 8 | uno | 20 %: retrocede (pierde el turno si aún no ha actuado) |
+| Conga | Juerga | 70 | 100 | 5 | todos | — |
+| Pogo | Juerga | 75 | 95 | 5 | todos | 20 %: retroceden |
+| Coz doble | Juerga | 45 | 100 | 8 | uno | Pega dos veces (una por cabeza) |
+| Chulería | Juerga | 80 | 100 | 8 | uno | — |
+| Compás | Juerga | — | — | 10 | yo | Sube 2 niveles el Ataque |
+| ¡Camioneees y caravanaaas! | Juerga | 90 | 100 | 3 | todos | Si alguien la cantó el turno anterior, pega el doble |
+| Zasca | Chanza | 100 | 90 | 5 | uno | — |
+| Vacile | Chanza | 80 | 100 | 8 | uno | 20 %: baja 1 nivel el Especial |
+| A dos voces | Chanza | 65 | 100 | 5 | todos | — |
+| Monada | Chanza | — | 100 | 8 | todos | Nadie quiere pegarle: baja 1 nivel el Ataque de los rivales |
+| Cizaña | Chanza | — | 90 | 5 | uno | Durante 2 turnos, sus ataques a un rival van a un rival al azar |
+| Sí, y… | Chanza | — | — | 8 | — | Copia el último movimiento que se haya usado en la batalla, de quien sea |
+| Fritanga | Grasa | 90 | 100 | 8 | uno | 20 %: quema (salta el aceite) |
+| Pringue | Grasa | 65 | 100 | 5 | todos | 20 %: resbalan y baja 1 nivel su Velocidad |
+| Tropezón | Grasa | 70 | 100 | 8 | uno | 30 %: lo empacha |
+| Indigestión | Grasa | — | 90 | 5 | uno | Lo empacha |
+| Rebozado | Grasa | — | — | 10 | yo | Sube 2 niveles la Defensa |
+| Susto | Fantasma | 40 | 100 | 10 | uno | Ataca antes que nadie (solo van antes los cambios y Esconderse) |
+| Eco | Fantasma | 40 | 100 | 10 | uno | Pega dos veces |
+| Venganza | Fantasma | 50 | 100 | 5 | uno | Doble de potencia contra quien le hizo daño el turno anterior |
+| Flipada | Fantasma | — | — | 5 | yo | Sube 1 nivel el Ataque, el Especial y la Velocidad; baja 1 nivel la Defensa |
+| Selfie | Fantasma | — | 70 | 8 | todos | Flash en la cara: baja 1 nivel la precisión de los rivales |
 
 ---
 

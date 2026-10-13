@@ -9,6 +9,7 @@ import { entrada, type Accion } from '../entrada';
 import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
 import { dibujarFondoBar } from './fondos';
+import { abrirGuia } from './guia';
 import { sobre } from './modal';
 import { VELOCIDADES, boton, centrado, cfg, flecha, mover, oscurecer, realce, rect, t, texto2, type Velocidad } from './ui';
 
@@ -178,15 +179,21 @@ export function pantallaAjustes(): Promise<void> {
   });
 }
 
-/** The pause box of the battle: volumes, battle speed, ABANDONAR (with a «sure?» step), VOLVER. */
+/** The pause box of the battle: volumes, battle speed, GUÍA (opens over the battle), ABANDONAR (with a «sure?» step), SEGUIR. */
 export function menuPausa(base: Escena | null): Promise<'seguir' | 'abandonar'> {
   return sobre<'seguir' | 'abandonar'>(base, (cerrar) => {
-    let sel = 4;
+    let sel = 5;
     let seguro = false;
     let selSeguro = 1;
     const seguir = () => {
       sonido.efecto('atras');
       cerrar('seguir');
+    };
+    const guia = () => {
+      sel = 3;
+      sonido.efecto('aceptar');
+      // Over this very box (it and the battle under it keep running); closing the guide brings the box back.
+      void abrirGuia(pantalla().escena);
     };
     return {
       dibujar(ctx) {
@@ -194,7 +201,7 @@ export function menuPausa(base: Escena | null): Promise<'seguir' | 'abandonar'> 
         const w = ANCHO - 12;
         oscurecer(ctx, pantalla().alto);
         if (!seguro) {
-          const h = 236;
+          const h = 274;
           const y = Math.max(20, Math.round((pantalla().alto - h) / 2));
           panelCacheado(ctx, x, y, w, h);
           texto2(ctx, t('pausa.titulo'), x + 14, y + 12, TINTA_SUAVE);
@@ -204,14 +211,16 @@ export function menuPausa(base: Escena | null): Promise<'seguir' | 'abandonar'> 
           entrada.zona(x, y + 26, 80, 32, () => (sel = 0));
           entrada.zona(x, y + 58, 80, 32, () => (sel = 1));
           entrada.zona(x, y + 90, w, 18, () => (sel = 2));
-          boton(ctx, x + 14, y + 148, w - 28, 30, t('pausa.abandonar'), sel === 3);
-          entrada.zona(x + 14, y + 148, w - 28, 30, () => {
-            sel = 3;
+          boton(ctx, x + 14, y + 148, w - 28, 30, t('menu.guia'), sel === 3);
+          entrada.zona(x + 14, y + 148, w - 28, 30, guia);
+          boton(ctx, x + 14, y + 190, w - 28, 30, t('pausa.abandonar'), sel === 4);
+          entrada.zona(x + 14, y + 190, w - 28, 30, () => {
+            sel = 4;
             seguro = true;
             selSeguro = 1;
           });
-          boton(ctx, x + 14, y + 190, w - 28, 30, t('pausa.seguir'), sel === 4);
-          entrada.zona(x + 14, y + 190, w - 28, 30, seguir);
+          boton(ctx, x + 14, y + 232, w - 28, 30, t('pausa.seguir'), sel === 5);
+          entrada.zona(x + 14, y + 232, w - 28, 30, seguir);
         } else {
           const h = 96;
           const y = Math.round((pantalla().alto - h) / 2);
@@ -236,16 +245,17 @@ export function menuPausa(base: Escena | null): Promise<'seguir' | 'abandonar'> 
         }
         if (a === 'atras') seguir();
         else if (a === 'arriba' || a === 'abajo') {
-          sel = mover(sel, 5, a);
+          sel = mover(sel, 6, a);
           sonido.efecto('cursor');
         } else if (a === 'izq' || a === 'der') {
           if (sel < 2) ajustarCanal(sel === 0 ? 'musica' : 'efectos', a);
           else if (sel === 2) ajustarVelocidad(a);
         } else if (a === 'aceptar') {
-          if (sel === 3) {
+          if (sel === 3) guia();
+          else if (sel === 4) {
             seguro = true;
             selSeguro = 1;
-          } else if (sel === 4) seguir();
+          } else if (sel === 5) seguir();
         }
         return true;
       },

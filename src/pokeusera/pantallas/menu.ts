@@ -1,14 +1,17 @@
-// PokéUsera · main menu: JUGAR SOLO / JUGAR ONLINE / AJUSTES.
+// PokéUsera · main menu: JUGAR SOLO / JUGAR ONLINE / GUÍA / AJUSTES.
 import { filaMenu, panelCacheado } from '../arte2/ui2';
 import { entrada } from '../entrada';
 import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
+import { SOMBRA_TEXTO, TINTA2 } from '../arte2/paleta2';
+import { dibujarTexto2 } from '../arte2/fuente2';
 import { dibujarFondoBar } from './fondos';
+import { iconoGuia } from './guia';
 import { dibujarLogo } from './titulo';
 import { mover, t } from './ui';
 
-export type OpcionMenu = 'solo' | 'online' | 'ajustes' | 'titulo';
-const OPCIONES: OpcionMenu[] = ['solo', 'online', 'ajustes'];
+export type OpcionMenu = 'solo' | 'online' | 'guia' | 'ajustes' | 'titulo';
+const OPCIONES: OpcionMenu[] = ['solo', 'online', 'guia', 'ajustes'];
 const ICONOS: Record<string, string> = { solo: 'luchar', online: 'online', ajustes: 'ajustes' };
 
 export function pantallaMenu(inicial: OpcionMenu = 'solo'): Promise<OpcionMenu> {
@@ -36,7 +39,12 @@ export function pantallaMenu(inicial: OpcionMenu = 'solo'): Promise<OpcionMenu> 
         panelCacheado(ctx, x, y, w, h);
         OPCIONES.forEach((o, i) => {
           const yy = y + 8 + i * fila;
-          filaMenu(ctx, x + 6, yy, w - 12, fila, t(`menu.${o}`), ICONOS[o], i === sel);
+          if (o === 'guia') {
+            // The «?» icon is drawn by the guide itself (the menu's icon set has no such one).
+            filaMenu(ctx, x + 6, yy, w - 12, fila, '', null, i === sel);
+            iconoGuia(ctx, x + 6 + 17, yy + Math.floor((fila - 6 - 13) / 2));
+            dibujarTexto2(ctx, t('menu.guia'), x + 6 + 37, yy + Math.floor((fila - 6 - 7) / 2) + 1, TINTA2, i === sel ? '#f0c860' : SOMBRA_TEXTO);
+          } else filaMenu(ctx, x + 6, yy, w - 12, fila, t(`menu.${o}`), ICONOS[o], i === sel);
           entrada.zona(x + 4, yy, w - 8, fila, () => {
             sel = i;
             elegir(o);

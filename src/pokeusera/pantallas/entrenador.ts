@@ -1,5 +1,5 @@
 // PokéUsera · trainer pick: the four friends in a 2×2 grid (full-body portraits breathing at two frames a
-// second); tap one.
+// second). Tap one to select it (its perk is explained in the strip below), tap it again or ELEGIR to pick it.
 import { ENTRENADORES, type EntrenadorId } from '../tipos';
 import { ANCHO_ENT2, entrenador2, icono2 } from '../arte2/entrenadores2';
 import { anchoTexto2 } from '../arte2/fuente2';
@@ -9,7 +9,7 @@ import { entrada } from '../entrada';
 import { pantalla, ANCHO, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
 import { dibujarFondoBar, plataformaCacheada } from './fondos';
-import { boton, centrado, colorEnt, colorEntOsc, nombreEnt, rect, reposo, t, texto2 } from './ui';
+import { boton, centrado, colorEnt, colorEntOsc, envolver, nombreEnt, rect, reposo, t, texto2, TINTA2 } from './ui';
 import { cargarAjustes } from './ajustes';
 
 export function pantallaEntrenador(): Promise<EntrenadorId | null> {
@@ -24,6 +24,8 @@ export function pantallaEntrenador(): Promise<EntrenadorId | null> {
       res(v);
     };
     sonido.musica('titulo');
+    // Lines the longest perk description takes in the strip (so the layout does not jump between trainers).
+    const LINEAS_MAX = Math.max(...ENTRENADORES.map((id) => envolver(t(`entrenador.${id}.perk_d`), ANCHO - 26).length));
     const e: Escena = {
       paso: () => true,
       dibujar(ctx, ahora) {
@@ -34,9 +36,16 @@ export function pantallaEntrenador(): Promise<EntrenadorId | null> {
         panelCacheado(ctx, Math.floor((ANCHO - tw) / 2), 8, tw, 26);
         centrado(ctx, tit, 18);
         const cw = 112;
-        const ch = Math.min(130, Math.floor((H - 96) / 2) - 6);
-        const hueco = Math.max(8, Math.min(22, Math.floor((H - 40 - 40 - 2 * ch) / 3)));
-        const y0 = 40 + Math.max(hueco, Math.floor((H - 40 - 44 - 2 * ch - hueco) / 2));
+        // Bottom block: the perk strip (stable height: the longest description) and the buttons.
+        const lin = envolver(t(`entrenador.${ENTRENADORES[sel]}.perk_d`), ANCHO - 26);
+        const ph = 12 + 12 * LINEAS_MAX + 6;
+        const bloque = ph + 6 + 26 + 8;
+        const gridH = H - 40 - bloque - 4;
+        const hueco = gridH > 300 ? 12 : 8;
+        const ch = Math.max(124, Math.min(146, Math.floor((gridH - hueco) / 2)));
+        // Everything stacked (grid, strip, buttons) and centred in the space under the title.
+        const total = 2 * ch + hueco + 8 + ph + 8 + 26;
+        const y0 = 40 + Math.max(0, Math.floor((H - 40 - 6 - total) / 2));
         ENTRENADORES.forEach((id, i) => {
           const x = i % 2 === 0 ? 5 : 123;
           const y = y0 + Math.floor(i / 2) * (ch + hueco);
@@ -54,16 +63,28 @@ export function pantallaEntrenador(): Promise<EntrenadorId | null> {
           const nombre = nombreEnt(id);
           const nw = anchoTexto2(nombre) + 20;
           const nx = x + Math.floor((cw - nw) / 2);
-          ctx.drawImage(icono2(id), nx, y + ch - 28);
-          texto2(ctx, nombre, nx + 20, y + ch - 24);
+          ctx.drawImage(icono2(id), nx, y + ch - 33);
+          texto2(ctx, nombre, nx + 20, y + ch - 29);
+          const perk = t(`entrenador.${id}.perk`);
+          texto2(ctx, perk, x + Math.floor((cw - anchoTexto2(perk)) / 2), y + ch - 14, colorEntOsc(id), null);
           entrada.zona(x, y, cw, ch, () => {
-            sel = i;
-            fin(id);
+            if (sel === i) fin(id);
+            else {
+              sel = i;
+              sonido.efecto('cursor');
+            }
           });
         });
-        const yv = Math.min(H - 36, y0 + 2 * (ch + hueco) - 2);
-        boton(ctx, Math.floor((ANCHO - 100) / 2), yv, 100, 26, t('entrenador.volver'), false);
-        entrada.zona(Math.floor((ANCHO - 100) / 2), yv, 100, 26, () => fin(null));
+        // The selected trainer's perk, one line of text under the grid.
+        const yp = y0 + 2 * ch + hueco + 8;
+        panelCacheado(ctx, 8, yp, ANCHO - 16, ph, colorEnt(ENTRENADORES[sel]), colorEntOsc(ENTRENADORES[sel]));
+        lin.forEach((l, k) => texto2(ctx, l, 13, yp + 9 + k * 12, TINTA2, null));
+        const yv = yp + ph + 8;
+        const bw = 106;
+        boton(ctx, 8, yv, bw, 26, t('entrenador.elegir'), true);
+        entrada.zona(8, yv, bw, 26, () => fin(ENTRENADORES[sel]));
+        boton(ctx, ANCHO - 8 - bw, yv, bw, 26, t('entrenador.volver'), false);
+        entrada.zona(ANCHO - 8 - bw, yv, bw, 26, () => fin(null));
       },
       accion(a) {
         if (a === 'atras') fin(null);

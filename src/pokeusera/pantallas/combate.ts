@@ -5,8 +5,9 @@
 //   pedirEleccion(j, estado, ms) / pedirReemplazo(j, estado, ms)   the local player decides (promises)
 //   alTurno(eventos, estado) / alReemplazo(eventos, estado)       play the events, then adopt `estado`
 // so a guest can drive it from network messages exactly like the host does from Partida.
-import { ENTRENADORES, type Eleccion, type EstadoCombate, type Evento, type Userito } from '../tipos';
-import { ESPECIE, MOVS, DESESPERADA } from '../datos';
+import { ENTRENADORES, type Eleccion, type Estado, type EstadoCombate, type Evento, type Stat, type Tipo, type Userito } from '../tipos';
+import { COLOR_TIPO } from '../arte/paleta';
+import { ESPECIE, MOVS, DESESPERADA, eficacia } from '../datos';
 import { activo, eliminado, enGrada, movsDisponibles, necesitaObjetivo, puedeCambiar, rivalesEnPie, vivos } from '../motor/combate';
 import { anchoTexto2 } from '../arte2/fuente2';
 import { PS_TONOS, TINTA2, TINTA_SUAVE } from '../arte2/paleta2';
@@ -18,20 +19,26 @@ import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
 import { CajaTexto } from './caja';
 import { menuPausa } from './ajustes';
-import { dibujarBandeja, dibujarFondoBar, miniatura, pieSprite, plataformaCacheada } from './fondos';
+import { cajaSprite, dibujarBandeja, dibujarFondoBar, miniatura, pieSprite, plataformaCacheada } from './fondos';
+import { abrirGuia } from './guia';
 import { sobre } from './modal';
 import {
   Animador,
   barraArriba,
+  barraValor,
+  boton,
   cfg,
   chipTiempo,
+  chipTipo,
   colorEnt,
+  colorEntOsc,
   conContorno,
   dormir,
   envolver,
   etiquetaEstado,
   ficha,
   flecha,
+  flechaV,
   insignaTipo,
   menuIcono,
   mover,
@@ -63,6 +70,8 @@ interface Fx {
   parpadeo: number;
   /** Horizontal offset of the lunge (px). */
   salto: number;
+  /** Vertical offset of the lunge (px, towards the target's row). */
+  saltoY: number;
   /** 0..1: sliding down into the ground. */
   caida: number;
   /** 0..1: rising out of the cap (1 = fully there). */
@@ -76,13 +85,27 @@ interface Fx {
 /** Side of the userito sprites. */
 const LADO = 64;
 
-/** The action being played: who acts (−1 = nobody: end-of-turn effects) and who it is aimed at. Everything else is dimmed. */
+/**
+ * The action being played: who acts (−1 = nobody: end-of-turn effects) and who it is aimed at. The rows that do not
+ * take part are dimmed, the actor's mat glows in his colour, each target wears pulsing corner brackets. With a move
+ * (`mov`) the action banner shows under the text box; a switch or a caña has no banner.
+ */
 interface Foco {
   actor: number;
   objetivos: number[];
   /** performance.now() when it began (fade in, pulse). */
   t0: number;
+  /** The move being used (null: a switch, a caña, an end-of-turn effect). */
+  mov: string | null;
+  /** The banner's target part: faces, «TODOS» or «ÉL MISMO». */
+  destino: 'caras' | 'todos' | 'yo';
 }
+
+/** Which card the info box opens on a status or stat. */
+type Tema = { k: 'estado'; e: Estado | 'achispado' } | { k: 'stat'; s: 'ps' | 'ata' | 'def' | 'esp' | 'vel' | 'prec' } | { k: 'tipos' } | null;
+
+/** Height of the action banner under the text box. */
+const ALTO_CARTEL = 40;
 
 /** A number or tag floating over a userito. */
 interface Flotante {
@@ -109,7 +132,7 @@ interface GrupoHistorial {
   lineas: string[];
 }
 
-const nuevoFx = (): Fx => ({ ps: 0, oculto: false, parpadeo: 0, salto: 0, caida: 0, alza: 1, chapa: -1, velo: 0 });
+const nuevoFx = (): Fx => ({ ps: 0, oculto: false, parpadeo: 0, salto: 0, saltoY: 0, caida: 0, alza: 1, chapa: -1, velo: 0 });
 
 // The bottle cap (20×20), baked once.
 let capsula: HTMLCanvasElement | null = null;
@@ -301,6 +324,7 @@ export class VistaCombate implements Escena {
       f.oculto = u.ps <= 0;
       f.parpadeo = 0;
       f.salto = 0;
+      f.saltoY = 0;
       f.caida = 0;
       f.alza = 1;
       f.chapa = -1;
@@ -401,8 +425,14 @@ export class VistaCombate implements Escena {
 
   // ---- the spotlight
 
-  private ponerFoco(actor: number, objetivos: number[]) {
-    this.foco = { actor, objetivos, t0: performance.now() };
+  private ponerFoco(actor: number, objetivos: number[], mov: string | null = null) {
+    let destino: Foco['destino'] = 'caras';
+    if (mov) {
+      const fuera = objetivos.filter((j) => j !== actor);
+      if (!fuera.length) destino = 'yo';
+      else if (MOVS[mov]?.objetivo === 'todos' || fuera.length > 1) destino = 'todos';
+    }
+    this.foco = { actor, objetivos, t0: performance.now(), mov, destino };
     if (this.orden && actor >= 0) {
       // The action being played is the next one in the list that belongs to this player.
       let i = this.orden.actual + 1;
@@ -455,18 +485,18 @@ export class VistaCombate implements Escena {
       case 'usa': {
         if (this.hubo) await dormir(ritmo().entre);
         this.hubo = true;
-        this.ponerFoco(ev.j, ev.obj ?? []);
+        this.ponerFoco(ev.j, ev.obj ?? [], ev.mov);
         const m = MOVS[ev.mov];
         if (m) {
           if (m.pot !== null) sonido.efecto(['normal', 'tierra', 'aire', 'juerga', 'fantasma'].includes(m.tipo) ? 'cursor' : 'cambio');
         }
-        tareas.push(this.embestida(ev.j));
+        tareas.push(this.embestida(ev.j, ev.obj ?? []));
         break;
       }
       case 'golpe': {
         const u = this.userito(ev.j);
         u.ps = ev.ps;
-        if (ev.fin) this.foco = { actor: -1, objetivos: [ev.j], t0: performance.now() };
+        if (ev.fin) this.foco = { actor: -1, objetivos: [ev.j], t0: performance.now(), mov: null, destino: 'caras' };
         if (ev.dano > 0) {
           sonido.efecto(ev.critico ? 'critico' : ev.ef > 1 ? 'golpeFuerte' : ev.ef < 1 ? 'golpeFlojo' : 'golpe');
           tareas.push(this.parpadea(ev.j));
@@ -539,9 +569,22 @@ export class VistaCombate implements Escena {
     await Promise.all(tareas);
   }
 
-  private embestida(j: number): Promise<void> {
+  /** The attacker lunges towards its target(s): sideways (towards the other side of the field) and up or down to the target's row. */
+  private embestida(j: number, objetivos: number[]): Promise<void> {
     const dir = j === this.yo ? 1 : -1;
-    return this.anim.animar(300, (p) => (this.fx[j].salto = dir * Math.round(Math.sin(p * Math.PI) * 9)));
+    const fuera = objetivos.filter((o) => o !== j);
+    // Vertical: towards the mean row of its targets (none: a little hop up).
+    let dy = -5;
+    if (fuera.length) {
+      const media = fuera.reduce((a, o) => a + this.yFila(o), 0) / fuera.length;
+      dy = Math.sign(media - this.yFila(j)) * 9;
+    }
+    const f = this.fx[j];
+    return this.anim.animar(340, (p) => {
+      const seno = Math.sin(p * Math.PI);
+      f.salto = fuera.length ? dir * Math.round(seno * 7) : 0;
+      f.saltoY = Math.round(seno * dy);
+    });
   }
 
   private parpadea(j: number): Promise<void> {
@@ -597,9 +640,11 @@ export class VistaCombate implements Escena {
       case 'equipo':
         if (this.reemplazo) return false;
         this.modo = 'accion';
+        this.sel = 1;
         break;
       case 'gradaObj':
         this.modo = 'grada';
+        this.sel = 0;
         break;
       default:
         return false;
@@ -610,6 +655,11 @@ export class VistaCombate implements Escena {
 
   private get puedeVolver(): boolean {
     return this.modo === 'movs' || this.modo === 'objetivo' || this.modo === 'gradaObj' || (this.modo === 'equipo' && !this.reemplazo);
+  }
+
+  /** The cards (tap a panel, a sprite or a status) are open to the player while he chooses or waits; not while picking a target (the tap picks) or while the text runs (the tap moves it on). */
+  private get infoPosible(): boolean {
+    return this.modo === 'accion' || this.modo === 'movs' || this.modo === 'equipo' || this.modo === 'grada' || this.modo === 'espera';
   }
 
   private get eligiendo(): boolean {
@@ -712,19 +762,28 @@ export class VistaCombate implements Escena {
         } else if (a === 'aceptar') this.accionPrincipal(this.sel);
         return true;
       case 'movs': {
+        // The last row is VOLVER.
         const n = movsDisponibles(this.real, this.yo).some(Boolean) ? 4 : 1;
         if (a === 'arriba' || a === 'abajo') {
-          this.selMov = mover(this.selMov, n, a);
+          this.selMov = mover(this.selMov, n + 1, a);
           sonido.efecto('cursor');
-        } else if (a === 'aceptar') this.elegirMovimiento(this.selMov);
+        } else if (a === 'aceptar') {
+          if (this.selMov >= n) this.accion('atras');
+          else this.elegirMovimiento(this.selMov);
+        }
         return true;
       }
       case 'equipo': {
+        // Unless it is the forced replacement, the last row is VOLVER.
         const n = this.real.jugadores[this.yo].equipo.length;
+        const filas = n + (this.reemplazo ? 0 : 1);
         if (a === 'arriba' || a === 'abajo') {
-          this.sel = mover(this.sel, n, a);
+          this.sel = mover(this.sel, filas, a);
           sonido.efecto('cursor');
-        } else if (a === 'aceptar') this.elegirEquipo(this.sel);
+        } else if (a === 'aceptar') {
+          if (this.sel >= n) this.accion('atras');
+          else this.elegirEquipo(this.sel);
+        }
         return true;
       }
       case 'objetivo':
@@ -841,6 +900,7 @@ export class VistaCombate implements Escena {
     riv.forEach((j) => this.fila(ctx, j, ahora));
     this.fila(ctx, this.yo, ahora);
     this.dibujarFoco(ctx, ahora);
+    this.dibujarEleccionObjetivo(ctx, ahora);
     this.dibujarOrdenGrande(ctx, G);
     this.dibujarFlotantes(ctx);
     // Bottom area.
@@ -863,8 +923,17 @@ export class VistaCombate implements Escena {
     rect(ctx, '#d6c08a', hx + 2, 13, hw - 4, 1);
     texto2(ctx, hs, hx + 5, 6, TINTA2, null);
     entrada.zona(hx - 2, 0, hw + 4, G.hud, () => void this.abrirHistorial());
+    // «?»: the game's guide (types, stats, statuses) over the battle.
+    const qs = t('cartel.ayuda');
+    const qx = hx + hw + 4;
+    const qw = anchoTexto2(qs) + 9;
+    relleno(ctx, TINTA2, qx, 2, qw, 14);
+    relleno(ctx, '#fbe19a', qx + 1, 3, qw - 2, 12);
+    rect(ctx, '#d6a53a', qx + 2, 13, qw - 4, 1);
+    texto2(ctx, qs, qx + 4, 6, TINTA2, null);
+    entrada.zona(qx - 2, 0, qw + 4, G.hud, () => void abrirGuia(this));
     if (this.puedeVolver) {
-      const vx = hx + hw + 8;
+      const vx = qx + qw + 8;
       flecha(ctx, vx, 5, -1, TINTA2);
       texto2(ctx, t('batalla.volver'), vx + 9, 6);
       entrada.zona(vx - 3, 0, 56, 19, () => this.accion('atras'));
@@ -1001,76 +1070,333 @@ export class VistaCombate implements Escena {
     });
   }
 
+  // ------------------------------------------------------------------ the userito's card and the help box
+
+  /** The explanation shown at the bottom of the card for a topic (a status, a stat, the types). */
+  private textoTema(tm: Tema): string {
+    if (!tm) return t('ficha.toca');
+    if (tm.k === 'estado') return t(`ayuda.estado.${tm.e}`);
+    if (tm.k === 'tipos') return t('ayuda.tipos');
+    return tm.s === 'prec' ? t('ficha.prec_ayuda') : t(`ayuda.stat.${tm.s}`);
+  }
+
+  /**
+   * The card of player j's userito: sprite, name, trainer, types, HP, status (tap it for what it means), stat stages,
+   * the five base stats (tap one) and, for a rival, how each of MY active userito's moves would do on it.
+   */
+  private abrirFicha(j: number, tema0: Tema = null): Promise<void> {
+    sonido.efecto('aceptar');
+    const q = this.disp.jugadores[j];
+    const u = activo(this.disp, j);
+    const sp = ESPECIE[u.especie];
+    const mio = j === this.yo;
+    const mi = activo(this.real, this.yo);
+    const contra = !mio && !eliminado(this.real, this.yo) && mi.ps > 0;
+    let tema: Tema = tema0 ?? (u.estado ? { k: 'estado', e: u.estado } : u.achispado > 0 ? { k: 'estado', e: 'achispado' } : null);
+    return sobre<void>(this, (cerrar) => {
+      let scroll = 0;
+      let maxScroll = 0;
+      let alto = 0;
+      const cierra = () => {
+        sonido.efecto('atras');
+        cerrar();
+      };
+      const elige = (tm: Tema) => {
+        tema = tm;
+        sonido.efecto('cursor');
+      };
+      const mismo = (a: Tema, b: Tema) => !!a && !!b && JSON.stringify(a) === JSON.stringify(b);
+      return {
+        dibujar: (ctx, ahora) => {
+          const H = pantalla().alto;
+          const x = 6;
+          const y = 16;
+          const w = ANCHO - 12;
+          const h = H - y - 8;
+          oscurecer(ctx, H);
+          entrada.zona(0, 0, ANCHO, H, cierra);
+          entrada.zona(x, y, w, h, () => undefined);
+          panelCacheado(ctx, x, y, w, h);
+          const x0 = x + 10;
+          const wi = w - 20;
+          // Fixed at the bottom: CERRAR and the explanation of the topic being looked at.
+          const bh = 22;
+          const yb = y + h - 8 - bh;
+          const lineasT = envolver(this.textoTema(tema), wi - 10);
+          const hT = Math.max(2, lineasT.length) * 12 + 8;
+          const yT = yb - 4 - hT;
+          relleno(ctx, TINTA2, x0, yT, wi, hT);
+          relleno(ctx, '#fdf6e2', x0 + 1, yT + 1, wi - 2, hT - 2);
+          lineasT.forEach((l, i) => texto2(ctx, l, x0 + 5, yT + 5 + i * 12, TINTA2, null));
+          boton(ctx, x0, yb, wi, bh, t('ficha.cerrar'), true);
+          entrada.zona(x0, yb, wi, bh, cierra);
+          // The scrolling part.
+          const top = y + 8;
+          const bottom = yT - 4;
+          const zonaC = (zx: number, zy: number, zw: number, zh: number, fn: () => void) => {
+            const y1 = Math.max(top, zy);
+            const y2 = Math.min(bottom, zy + zh);
+            if (y2 > y1) entrada.zona(zx, y1, zw, y2 - y1, fn);
+          };
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(x + 3, top, w - 6, bottom - top);
+          ctx.clip();
+          let cy = top - scroll;
+          // Sprite on its mat, and the identity at its right.
+          const mat = plataformaCacheada(30, 7);
+          ctx.drawImage(mat, x0 + 32 - Math.floor(mat.width / 2), cy + 2 + 49);
+          ctx.drawImage(spriteFrente2(u.especie, reposo(ahora)), x0, cy + 2);
+          const x1 = x0 + 70;
+          const nw = wi - 70;
+          if (anchoTexto2(sp.nombre) * 2 <= nw) textoGrande(ctx, sp.nombre, x1, cy + 3, TINTA2, 2);
+          else texto2(ctx, recortar(sp.nombre, nw), x1, cy + 5);
+          ficha(ctx, q.entrenador, x1, cy + 21, 14);
+          texto2(ctx, recortar(q.nombre.toUpperCase(), nw - 18 - 30), x1 + 18, cy + 25, colorEntOsc(q.entrenador));
+          const asiento = Math.max(0, ENTRENADORES.indexOf(q.entrenador));
+          const nVivos = q.equipo.filter((e) => e.ps > 0).length;
+          for (let i = 0; i < 3; i++) pip(ctx, x1 + nw - 27 + i * 9, cy + 23, i < nVivos, JUGADORES2[asiento].base);
+          let bx = x1;
+          for (const tp of sp.tipos) bx += insignaTipo(ctx, tp, bx, cy + 40) + 3;
+          zonaC(x1, cy + 38, nw, 15, () => elige({ k: 'tipos' }));
+          barraPS2(ctx, x1, cy + 55, nw, u.ps / u.psMax);
+          zonaC(x1, cy + 53, nw, 13, () => elige({ k: 'stat', s: 'ps' }));
+          const nums = mio ? `${u.ps}/${u.psMax}` : `${Math.ceil((u.ps / u.psMax) * 100)}%`;
+          if (u.ps > 0) texto2(ctx, nums, x1 + nw - anchoTexto2(nums), cy + 66, TINTA_SUAVE, null);
+          else texto2(ctx, t('ficha.cae'), x1, cy + 66, TINTA_SUAVE, null);
+          cy += 78;
+          // Status.
+          texto2(ctx, t('ficha.estado'), x0, cy + 3, TINTA_SUAVE, null);
+          let ex = x0 + 52;
+          const estados: (Estado | 'achispado')[] = [];
+          if (u.estado) estados.push(u.estado);
+          if (u.achispado > 0) estados.push('achispado');
+          if (!estados.length) texto2(ctx, t('ficha.sin_estado'), ex, cy + 3, TINTA2, null);
+          for (const e of estados) {
+            const ew = etiquetaEstado(ctx, e, ex, cy + 1);
+            if (mismo(tema, { k: 'estado', e })) rect(ctx, TINTA2, ex, cy + 13, ew, 2);
+            zonaC(ex - 2, cy - 2, ew + 4, 17, () => elige({ k: 'estado', e }));
+            ex += ew + 4;
+          }
+          cy += 18;
+          // Stat stages.
+          const cambios = (['ata', 'def', 'esp', 'vel', 'prec'] as Stat[]).filter((s) => u.niveles[s] !== 0);
+          if (cambios.length) {
+            texto2(ctx, t('ficha.niveles'), x0, cy + 3, TINTA_SUAVE, null);
+            let cx = x0 + 52;
+            for (const s of cambios) {
+              const n = u.niveles[s];
+              const rot = `${t(`ficha.stat.${s}`)} ${n > 0 ? '+' : ''}${n}`;
+              const rw = anchoTexto2(rot) + 8;
+              relleno(ctx, TINTA2, cx, cy + 1, rw, 11);
+              relleno(ctx, n > 0 ? '#3f9e45' : '#d4503c', cx + 1, cy + 2, rw - 2, 9);
+              texto2(ctx, rot, cx + 4, cy + 3, '#fff8e8', null);
+              zonaC(cx - 1, cy - 1, rw + 2, 15, () => elige({ k: 'stat', s }));
+              cx += rw + 3;
+            }
+            cy += 18;
+          }
+          // The five base stats.
+          rect(ctx, '#d6c08a', x0, cy + 2, wi, 1);
+          texto2(ctx, t('ficha.stats'), x0, cy + 7, TINTA_SUAVE, null);
+          cy += 19;
+          for (const s of ['ps', 'ata', 'def', 'esp', 'vel'] as const) {
+            const sel = mismo(tema, { k: 'stat', s });
+            if (sel) flecha(ctx, x0 - 1, cy, 1, TINTA2);
+            texto2(ctx, t(`ficha.stat.${s}`), x0 + 7, cy, sel ? TINTA2 : TINTA_SUAVE, null);
+            barraValor(ctx, x0 + 36, cy, wi - 74, Math.min(sp.base[s], 150) / 150, COLOR_TIPO[sp.tipos[0]]);
+            texto2(ctx, String(sp.base[s]), x0 + wi - 30, cy, TINTA2, null);
+            zonaC(x0, cy - 3, wi, 13, () => elige({ k: 'stat', s }));
+            cy += 13;
+          }
+          cy += 4;
+          // For a rival: what each of my moves does to it.
+          if (contra) {
+            rect(ctx, '#d6c08a', x0, cy + 2, wi, 1);
+            texto2(ctx, t('ficha.contra'), x0, cy + 7, TINTA_SUAVE, null);
+            cy += 19;
+            for (const id of ESPECIE[mi.especie].movs) {
+              const m = MOVS[id];
+              chipTipo(ctx, m.tipo, x0, cy - 2);
+              const ef = m.pot === null ? null : eficacia(m.tipo, sp.tipos);
+              let rw = 0;
+              if (ef === null) {
+                const s = t('ficha.sin_dano');
+                rw = anchoTexto2(s);
+                texto2(ctx, s, x0 + wi - rw, cy, '#a898a8', null);
+              } else {
+                const r = this.rotuloEficacia(ef, true);
+                rw = anchoTexto2(r.s) + 8;
+                relleno(ctx, TINTA2, x0 + wi - rw, cy - 2, rw, 11);
+                relleno(ctx, r.bg, x0 + wi - rw + 1, cy - 1, rw - 2, 9);
+                texto2(ctx, r.s, x0 + wi - rw + 4, cy, r.fg, null);
+              }
+              texto2(ctx, recortar(m.nombre, wi - 30 - rw - 4), x0 + 28, cy, TINTA2, null);
+              cy += 14;
+            }
+          }
+          ctx.restore();
+          alto = cy + scroll - top + 2;
+          maxScroll = Math.max(0, alto - (bottom - top));
+          scroll = Math.max(0, Math.min(maxScroll, scroll));
+          if (maxScroll > 0) {
+            const vis = bottom - top;
+            const bh2 = Math.max(10, Math.round((vis * vis) / alto));
+            const by = top + Math.round(((vis - bh2) * scroll) / maxScroll);
+            rect(ctx, '#d6c08a', x + w - 7, top, 3, vis);
+            rect(ctx, TINTA2, x + w - 7, by, 3, bh2);
+          }
+        },
+        accion: (a) => {
+          if (a === 'arriba') scroll -= 24;
+          else if (a === 'abajo') scroll += 24;
+          else cierra();
+          scroll = Math.max(0, Math.min(maxScroll, scroll));
+        },
+        arrastre: (_dx, dy) => {
+          scroll = Math.max(0, Math.min(maxScroll, scroll - dy));
+        },
+      };
+    });
+  }
+
   // ------------------------------------------------------------------ the spotlight
+
+  /** Pixel ellipse outline of `grosor` px (the glow around a mat), no anti-aliasing. */
+  private anilloMat(ctx: CanvasRenderingContext2D, cx: number, cy: number, rx: number, ry: number, color: string) {
+    for (let dy = -ry; dy <= ry; dy++) {
+      const ancho = Math.round(rx * Math.sqrt(1 - (dy / ry) ** 2));
+      const borde = Math.abs(dy) >= ry - 1 ? ancho : Math.max(2, Math.round(ancho - rx * Math.sqrt(1 - ((Math.abs(dy) + 1.5) / ry) ** 2)));
+      const y = cy + dy;
+      if (Math.abs(dy) >= ry - 1) rect(ctx, color, cx - ancho, y, ancho * 2, 1);
+      else {
+        rect(ctx, color, cx - ancho, y, borde, 1);
+        rect(ctx, color, cx + ancho - borde, y, borde, 1);
+      }
+    }
+  }
+
+  /** Where the beer mat of j's sprite sits (centre and radii), for the actor's glow. */
+  private matDe(j: number) {
+    const mia = j === this.yo;
+    const { pies } = this.posSprite(j);
+    const mat = mia ? plataformaCacheada(42, 10) : plataformaCacheada(30, 7);
+    const cx = mia ? 52 : 190;
+    return { cx, cy: pies - 3 - (mia ? 14 : 10) + Math.floor(mat.height / 2) - 3, rx: Math.floor(mat.width / 2) - 2, ry: Math.floor(mat.height / 2) - 4 };
+  }
+
+  /** The box (screen px) a userito's sprite really fills, with the lunge offset. */
+  private cajaDe(j: number) {
+    const u = activo(this.disp, j);
+    const base = j === this.yo ? spriteEspalda2(u.especie, 0) : spriteFrente2(u.especie, 0);
+    const c = cajaSprite(base);
+    const { x, y } = this.posSprite(j);
+    const dy = this.fx[j]?.saltoY ?? 0;
+    return { x0: x + c.x0, y0: y + c.y0 + dy, x1: x + c.x1, y1: y + c.y1 + dy };
+  }
+
+  /** Pulsing corner brackets hugging a target's sprite: `color` with a dark edge so they read on any background. */
+  private marcaObjetivo(ctx: CanvasRenderingContext2D, j: number, color: string, ahora: number, pulsa = true) {
+    const fase = pulsa ? Math.floor(ahora / 140) % 2 : 0;
+    const brazo = 8;
+    const c = this.cajaDe(j);
+    const x0 = c.x0 - 4 - fase;
+    const x1 = c.x1 + 4 + fase;
+    const y0 = c.y0 - 4 - fase;
+    const y1 = c.y1 + 4 + fase;
+    const esquina = (cx: number, cy: number, dx: 1 | -1, dy: 1 | -1) => {
+      const hx = dx > 0 ? cx : cx - brazo + 1;
+      const vy = dy > 0 ? cy : cy - brazo + 1;
+      const gx = dx > 0 ? cx : cx - 1;
+      const gy = dy > 0 ? cy : cy - 1;
+      rect(ctx, TINTA2, hx - 1, gy - 1, brazo + 2, 4);
+      rect(ctx, TINTA2, gx - 1, vy - 1, 4, brazo + 2);
+      rect(ctx, color, hx, gy, brazo, 2);
+      rect(ctx, color, gx, vy, 2, brazo);
+    };
+    esquina(x0, y0, 1, 1);
+    esquina(x1 - 1, y0, -1, 1);
+    esquina(x0, y1 - 1, 1, -1);
+    esquina(x1 - 1, y1 - 1, -1, -1);
+  }
 
   private dibujarFoco(ctx: CanvasRenderingContext2D, ahora: number) {
     const f = this.foco;
     if (!f) return;
     const a = Math.min(1, (performance.now() - f.t0) / 180);
-    const obj = f.objetivos.filter((j) => j !== f.actor);
     const colorActor = f.actor >= 0 ? colorEnt(this.disp.jugadores[f.actor].entrenador) : null;
-    const filas = this.disp.jugadores.map((_, j) => j);
     // Dim the rows that have nothing to do with it.
-    for (const j of filas) {
+    for (let j = 0; j < this.disp.jugadores.length; j++) {
       if (j === f.actor || f.objetivos.includes(j)) continue;
       const { y, h } = this.filaDe(j);
-      velo(ctx, 0, y, ANCHO, h, '#f0e2c0', 0.58 * a);
+      velo(ctx, 0, y, ANCHO, h, '#f0e2c0', 0.42 * a);
     }
-    const marcoFila = (j: number, color: string, gruesor: number) => {
-      const { y, h } = this.filaDe(j);
-      rect(ctx, color, 0, y, ANCHO, gruesor);
-      rect(ctx, color, 0, y + h - gruesor, ANCHO, gruesor);
-      rect(ctx, color, 0, y, gruesor, h);
-      rect(ctx, color, ANCHO - gruesor, y, gruesor, h);
-    };
-    // The actor: his colour, steady. The targets: pulsing.
-    if (f.actor >= 0 && colorActor) marcoFila(f.actor, colorActor, 2);
-    const pulso = Math.sin(ahora / 110) > 0;
-    for (const j of obj) {
-      const c = colorActor ?? colorEnt(this.disp.jugadores[j].entrenador);
-      marcoFila(j, pulso ? c : TINTA2, 2);
+    // The actor: its mat glows in its trainer's colour.
+    if (f.actor >= 0 && colorActor && !this.fx[f.actor].oculto) {
+      const m = this.matDe(f.actor);
+      this.anilloMat(ctx, m.cx, m.cy + 1, m.rx + 1, m.ry + 1, TINTA2);
+      this.anilloMat(ctx, m.cx, m.cy, m.rx, m.ry, colorActor);
     }
-    // The pointer: a line down the right edge from the actor to each target, with arrowheads, and «A ▶ B» on the target.
-    if (f.actor >= 0 && colorActor && obj.length) {
-      const mitad = (j: number) => {
-        const { y, h } = this.filaDe(j);
-        return y + Math.floor(h / 2);
-      };
-      const x = ANCHO - 8;
-      const y0 = mitad(f.actor);
-      const ys = obj.map(mitad);
-      const desde = Math.min(y0, ...ys);
-      const hasta = Math.max(y0, ...ys);
-      rect(ctx, TINTA2, x - 1, desde - 1, 5, hasta - desde + 2);
-      rect(ctx, colorActor, x, desde, 3, hasta - desde);
-      // Marching dashes.
-      const fase = Math.floor(ahora / 90) % 6;
-      for (let yy = desde + fase; yy < hasta; yy += 6) rect(ctx, '#fdf6e4', x + 1, yy, 1, 3);
-      for (const yt of ys) {
-        const abajo = yt > y0;
-        for (let k = 0; k < 5; k++) {
-          const w = 11 - k * 2;
-          const yy = abajo ? yt - 2 - k : yt + 2 + k - 1;
-          rect(ctx, TINTA2, x + 1 - Math.floor(w / 2) - 1, yy, w + 2, 1);
-          rect(ctx, colorActor, x + 1 - Math.floor(w / 2), yy, w, 1);
-        }
-      }
-      for (const j of obj) this.insigniaAB(ctx, f.actor, j);
+    // The targets: pulsing brackets in the actor's colour (end-of-turn effects: cream).
+    for (const j of f.objetivos) {
+      if (this.fx[j].oculto && this.fx[j].caida === 0) continue;
+      this.marcaObjetivo(ctx, j, colorActor ?? '#fdf6e4', ahora);
     }
   }
 
-  /** «A ▶ B» in the corner of the target's row: the attacker's face, an arrow, the target's face. */
-  private insigniaAB(ctx: CanvasRenderingContext2D, a: number, b: number) {
-    const { y, h } = this.filaDe(b);
-    const lado = 18;
-    const w = lado * 2 + 12;
-    const x = 8;
-    const yy = y + h - lado - 3;
-    relleno(ctx, TINTA2, x - 2, yy - 2, w + 4, lado + 4);
-    relleno(ctx, '#fdf6e4', x - 1, yy - 1, w + 2, lado + 2);
-    ficha(ctx, this.disp.jugadores[a].entrenador, x, yy, lado);
-    flecha(ctx, x + lado + 3, yy + 5, 1, colorEnt(this.disp.jugadores[a].entrenador));
-    ficha(ctx, this.disp.jugadores[b].entrenador, x + lado + 12, yy, lado);
+  // ---- the action banner
+
+  /** A thick arrow (→) of `ancho` px in `color` with a dark edge, 11 px tall. */
+  private flechaCartel(ctx: CanvasRenderingContext2D, x: number, y: number, ancho: number, color: string) {
+    const cabeza = 6;
+    const cuerpo = Math.max(2, ancho - cabeza);
+    rect(ctx, TINTA2, x - 1, y + 3, cuerpo + 2, 5);
+    for (let i = 0; i < cabeza; i++) rect(ctx, TINTA2, x + cuerpo + i, y + i - 1, 1, 13 - 2 * i);
+    rect(ctx, TINTA2, x + cuerpo + cabeza, y + cabeza - 1, 1, 1);
+    rect(ctx, color, x, y + 4, cuerpo + 1, 3);
+    for (let i = 0; i < cabeza; i++) rect(ctx, color, x + cuerpo + i, y + i, 1, 11 - 2 * i);
+  }
+
+  /** «Who ▶ who, with which move», one strip under the text box (see `zonaInferior`): face and name of the attacker, an arrow, the targets; the move on a badge of its type. */
+  private cartel(ctx: CanvasRenderingContext2D, x: number, y: number, w: number) {
+    const f = this.foco;
+    if (!f || !f.mov || f.actor < 0) return;
+    const m = MOVS[f.mov];
+    if (!m) return;
+    const jug = this.disp.jugadores[f.actor];
+    const col = colorEnt(jug.entrenador);
+    const quien = ESPECIE[this.userito(f.actor).especie].nombre;
+    panelCacheado(ctx, x, y, w, ALTO_CARTEL);
+    // Row 1: the attacker's tile and the userito's name ... arrow ... the targets.
+    const y1 = y + 5;
+    ficha(ctx, jug.entrenador, x + 7, y1, 18);
+    const nombre = recortar(quien, 70);
+    texto2(ctx, nombre, x + 29, y1 + 6);
+    // Targets, right-aligned.
+    const xFin = x + w - 8;
+    let xT = xFin;
+    if (f.destino === 'caras') {
+      const caras = f.objetivos.filter((j) => j !== f.actor);
+      xT = xFin - caras.length * 20 + 2;
+      caras.forEach((j, i) => ficha(ctx, this.disp.jugadores[j].entrenador, xT + i * 20, y1, 18));
+    } else {
+      const s = t(f.destino === 'todos' ? 'cartel.todos' : 'cartel.el_mismo');
+      const cw = anchoTexto2(s) + 10;
+      xT = xFin - cw;
+      relleno(ctx, TINTA2, xT, y1 + 2, cw, 14);
+      relleno(ctx, f.destino === 'todos' ? '#e0a83a' : '#8fc77a', xT + 1, y1 + 3, cw - 2, 12);
+      rect(ctx, 'rgba(255,255,255,0.4)', xT + 2, y1 + 3, cw - 4, 1);
+      texto2(ctx, s, xT + 5, y1 + 6, TINTA2, null);
+    }
+    // The arrow fills the gap between the name and the targets.
+    const xA = x + 29 + anchoTexto2(nombre) + 6;
+    const largo = xT - 6 - xA;
+    if (largo >= 8) this.flechaCartel(ctx, xA, y1 + 3, Math.min(largo, 60), col);
+    // Row 2: the move on a badge of its type's colour.
+    const y2 = y + ALTO_CARTEL - 4 - 11 - 2;
+    const rotulo = recortar(m.nombre.toUpperCase(), w - 36);
+    const bw = anchoTexto2(rotulo) + 14;
+    insignaTipo(ctx, m.tipo, x + Math.floor((w - bw) / 2), y2, bw, rotulo);
   }
 
   // ---- the big «ORDEN DEL TURNO» strip
@@ -1150,7 +1476,6 @@ export class VistaCombate implements Escena {
     const mia = j === this.yo;
     const f = this.fx[j];
     const u = activo(this.disp, j);
-    const col = colorEnt(q.entrenador);
     const asiento = Math.max(0, ENTRENADORES.indexOf(q.entrenador));
     const top = this.yFila(j);
     const { x: sx, y: sy, pies } = this.posSprite(j);
@@ -1167,10 +1492,15 @@ export class VistaCombate implements Escena {
     ctx.drawImage(this.placa(asiento, q.nombre, mia), px, py);
     const sp = ESPECIE[u.especie];
     texto2(ctx, sp.nombre, px + 18, py + 7);
-    const nv = t('batalla.nivel');
-    const nx = px + w - 8 - anchoTexto2(nv);
-    if (px + 18 + anchoTexto2(sp.nombre) < nx - 4) texto2(ctx, nv, nx, py + 7, TINTA_SUAVE);
+    // The types, as chips at the right of the name (little squares of colour when the name is long).
+    this.chipsTipos(ctx, sp.tipos, px + 18 + anchoTexto2(sp.nombre) + 5, px + w - 8, py + 5);
     barraPS2(ctx, px + 17, py + 18, w - 17 - 9, f.ps / u.psMax);
+    // Tap the panel or the sprite for the userito's card (not while a target is being picked or a text is running).
+    const info = this.infoPosible && !f.oculto && !q.puesto;
+    if (info) {
+      entrada.zona(sx + 4, sy + 6, LADO - 8, LADO - 8, () => void this.abrirFicha(j));
+      entrada.zona(px, py, w, h, () => void this.abrirFicha(j));
+    }
     // Pips: the jars still standing.
     const vivos = q.equipo.filter((e) => e.ps > 0).length;
     // Status tags: next to the trainer's name.
@@ -1181,13 +1511,19 @@ export class VistaCombate implements Escena {
       texto2(ctx, nums, px + w - 8 - anchoTexto2(nums), py + 30);
       for (let i = 0; i < 3; i++) pip(ctx, px + 18 + i * 9, py + 40, i < vivos, JUGADORES2[asiento].base);
       ex = px + 18 + 3 * 9 + 6;
-      if (u.estado) ex += etiquetaEstado(ctx, u.estado, ex, py + 39) + 2;
-      if (u.achispado > 0) etiquetaEstado(ctx, 'achispado', ex, py + 39);
+      if (u.estado) ex += this.etiqueta(ctx, j, u.estado, ex, py + 39, info) + 2;
+      if (u.achispado > 0) this.etiqueta(ctx, j, 'achispado', ex, py + 39, info);
     } else {
-      for (let i = 0; i < 3; i++) pip(ctx, px + w - 8 - 3 * 9 + i * 9 + 1, py + 29, i < vivos, JUGADORES2[asiento].base);
-      const lim = px + w - 8 - 27 - 3;
-      if (u.estado && ex + anchoTexto2(t(`estado.${u.estado}`)) + 6 < lim) ex += etiquetaEstado(ctx, u.estado, ex, ey - 1) + 2;
-      if (u.achispado > 0 && ex + anchoTexto2(t('estado.achispado')) + 6 < lim) etiquetaEstado(ctx, 'achispado', ex, ey - 1);
+      // The tags go after the trainer's name; the jars (pips) sit at the right, and give way when two tags do not fit beside them.
+      const tags = [u.estado, u.achispado > 0 ? ('achispado' as const) : null].filter((e): e is Estado | 'achispado' => !!e);
+      const anchoTags = tags.reduce((acc, e) => acc + anchoTexto2(t(`estado.${e}`)) + 8, 0);
+      const conPips = ex + anchoTags <= px + w - 8 - 27 - 1;
+      if (conPips) for (let i = 0; i < 3; i++) pip(ctx, px + w - 8 - 3 * 9 + i * 9 + 1, py + 29, i < vivos, JUGADORES2[asiento].base);
+      const lim = conPips ? px + w - 8 - 27 - 1 : px + w - 6;
+      for (const e of tags) {
+        const tw = anchoTexto2(t(`estado.${e}`)) + 6;
+        if (ex + tw <= lim) ex += this.etiqueta(ctx, j, e, ex, ey - 1, info) + 2;
+      }
     }
     // Eliminated: greyed with the place.
     const filaR = this.filaDe(j);
@@ -1202,22 +1538,76 @@ export class VistaCombate implements Escena {
         ctx.restore();
       }
     }
-    // Target selection: the rival rows light up.
-    const objetivo = (this.modo === 'objetivo' || this.modo === 'gradaObj') && this.objetivosPosibles.includes(j);
-    if (objetivo) {
-      const marcado = this.objetivosPosibles[this.sel] === j;
-      const c = parpadea(ahora, marcado ? 260 : 600) || !marcado ? col : TINTA2;
-      const { y, h: hr } = filaR;
-      rect(ctx, c, 0, y, ANCHO, 3);
-      rect(ctx, c, 0, y + hr - 3, ANCHO, 3);
-      rect(ctx, c, 0, y, 3, hr);
-      rect(ctx, c, ANCHO - 3, y, 3, hr);
-      entrada.zona(0, y, ANCHO, hr, () => {
+    // Target selection: the whole row is the tap zone (the brackets and the effectiveness tag come after all the rows).
+    if ((this.modo === 'objetivo' || this.modo === 'gradaObj') && this.objetivosPosibles.includes(j)) {
+      entrada.zona(0, filaR.y, ANCHO, filaR.h, () => {
         this.sel = this.objetivosPosibles.indexOf(j);
         this.elegirObjetivo(j);
       });
     }
-    void h;
+  }
+
+  /** A status tag that opens its explanation when tapped (when the info is available). Returns its width. */
+  private etiqueta(ctx: CanvasRenderingContext2D, j: number, e: Estado | 'achispado', x: number, y: number, tocable: boolean): number {
+    const w = etiquetaEstado(ctx, e, x, y);
+    if (tocable) entrada.zona(x - 2, y - 3, w + 4, 17, () => void this.abrirFicha(j, { k: 'estado', e }));
+    return w;
+  }
+
+  /** The type chips of a userito, right-aligned to `xMax`: short names, or bare colour squares when there is no room. */
+  private chipsTipos(ctx: CanvasRenderingContext2D, tipos: readonly Tipo[], xMin: number, xMax: number, y: number) {
+    const ancho = (solo: boolean) => tipos.reduce((a, tp) => a + (solo ? 9 : anchoTexto2(t(`tipo.abrev.${tp}`)) + 7), 0) + (tipos.length - 1) * 2;
+    let solo = false;
+    if (xMax - ancho(false) < xMin) solo = true;
+    if (xMax - ancho(true) < xMin) return;
+    let x = xMax - ancho(solo);
+    for (const tp of tipos) x += chipTipo(ctx, tp, x, y, solo) + 2;
+  }
+
+  /** The brackets of the target choice and, for a damaging move, how it does on each rival (over its sprite's feet). */
+  private dibujarEleccionObjetivo(ctx: CanvasRenderingContext2D, ahora: number) {
+    if (this.modo !== 'objetivo' && this.modo !== 'gradaObj') return;
+    const m = this.modo === 'objetivo' ? MOVS[this.idMovElegido()] : null;
+    this.objetivosPosibles.forEach((j, i) => {
+      const marcado = this.objetivosPosibles[this.sel] === j;
+      const col = colorEnt(this.disp.jugadores[j].entrenador);
+      this.marcaObjetivo(ctx, j, marcado && !parpadea(ahora, 260) ? '#fff8e8' : col, ahora, marcado);
+      void i;
+      if (!m) return;
+      const ef = this.eficaciaContra(m.id, j);
+      if (ef === null || ef === 1) return;
+      const { s, bg, fg } = this.rotuloEficacia(ef);
+      const w = anchoTexto2(s) + 8;
+      const c = this.cajaDe(j);
+      const xx = Math.min(ANCHO - w - 2, Math.max(2, Math.floor((c.x0 + c.x1 - w) / 2)));
+      const yy = c.y1 - 15;
+      relleno(ctx, TINTA2, xx, yy, w, 13);
+      relleno(ctx, bg, xx + 1, yy + 1, w - 2, 11);
+      rect(ctx, 'rgba(255,255,255,0.35)', xx + 2, yy + 1, w - 4, 1);
+      texto2(ctx, s, xx + 4, yy + 3, fg, null);
+    });
+  }
+
+  /** The id of the move chosen for the target step. */
+  private idMovElegido(): string {
+    const u = activo(this.real, this.yo);
+    return movsDisponibles(this.real, this.yo).some(Boolean) ? ESPECIE[u.especie].movs[this.movElegido] : DESESPERADA;
+  }
+
+  /** How much the move does on player j's active userito: null for a move that does no damage. */
+  private eficaciaContra(id: string, j: number): number | null {
+    const m = MOVS[id];
+    if (!m || m.pot === null) return null;
+    return eficacia(m.tipo, ESPECIE[activo(this.real, j).especie].tipos);
+  }
+
+  /** The words and colours of an effectiveness (×2, ×1/2, ×0...). */
+  private rotuloEficacia(ef: number, corto = false): { s: string; bg: string; fg: string } {
+    const n = (x: number) => (x >= 1 ? String(x) : `1/${Math.round(1 / x)}`);
+    if (ef === 0) return { s: t(corto ? 'cartel.ef.corto_nada' : 'cartel.ef.nada'), bg: '#9a8aa0', fg: '#fff8e8' };
+    if (ef > 1) return { s: t(corto ? 'cartel.mult' : 'cartel.ef.mas', { n: n(ef) }), bg: '#3f9e45', fg: '#fff8e8' };
+    if (ef < 1) return { s: t(corto ? 'cartel.mult' : 'cartel.ef.menos', { n: n(ef) }), bg: '#e8862a', fg: TINTA2 };
+    return { s: t('cartel.mult', { n: '1' }), bg: '#d6c08a', fg: TINTA2 };
   }
 
   private sprite(ctx: CanvasRenderingContext2D, j: number, x: number, y: number, pies: number, mia: boolean, ahora: number) {
@@ -1259,7 +1649,7 @@ export class VistaCombate implements Escena {
       return;
     }
     void mia;
-    ctx.drawImage(img, dx, y);
+    ctx.drawImage(img, dx, y + f.saltoY);
   }
 
   // ------------------------------------------------------------------ bottom area
@@ -1296,8 +1686,16 @@ export class VistaCombate implements Escena {
 
   /** What came before: the latest lines of the log (not the one being written) under the text box. */
   private registro(ctx: CanvasRenderingContext2D, G: ReturnType<VistaCombate['geom']>) {
-    const h = G.menuH;
-    panelCacheado(ctx, 4, G.yMenu, ANCHO - 8, h);
+    let yR = G.yMenu;
+    let h = G.menuH;
+    // The action banner takes the top of this area while a move is being played; the log gets what is left.
+    if (this.foco?.mov) {
+      this.cartel(ctx, 4, yR, ANCHO - 8);
+      yR += ALTO_CARTEL + 3;
+      h -= ALTO_CARTEL + 3;
+    }
+    if (h < 40) return;
+    panelCacheado(ctx, 4, yR, ANCHO - 8, h);
     const todas: string[] = [];
     this.historial.forEach((g, gi) => {
       g.lineas.forEach((l, li) => {
@@ -1310,14 +1708,19 @@ export class VistaCombate implements Escena {
     const ult = todas.slice(-n);
     ult.forEach((l, i) => {
       const edad = ult.length - 1 - i;
-      texto2(ctx, l, 14, G.yMenu + 9 + (n - ult.length + i) * 12, edad === 0 ? TINTA2 : edad === 1 ? TINTA_SUAVE : '#a898a8', null);
+      texto2(ctx, l, 14, yR + 9 + (n - ult.length + i) * 12, edad === 0 ? TINTA2 : edad === 1 ? TINTA_SUAVE : '#a898a8', null);
     });
   }
 
-  /** The tray's geometry for a menu of `n` rows: the panel sits at the bottom and the text box takes what is left above it. */
-  private bandeja(G: ReturnType<VistaCombate['geom']>, n: number) {
-    const rowH = Math.min(31, Math.floor((G.menuH - 8) / n));
-    const hP = rowH * n + 8;
+  /**
+   * The tray's geometry for a menu of `n` rows (plus the big VOLVER row when `volver`): the panel sits at the bottom
+   * and may grow up over the text box, which keeps at least two lines.
+   */
+  private bandeja(G: ReturnType<VistaCombate['geom']>, n: number, volver = false) {
+    const filas = n + (volver ? 1 : 0);
+    const libre = G.H - 4 - (G.yBox + 30 + 4);
+    const rowH = Math.min(31, Math.floor((libre - 8) / filas));
+    const hP = rowH * filas + 8;
     const yP = G.H - 4 - hP;
     return { rowH, yP, hP, boxH: yP - 4 - G.yBox };
   }
@@ -1325,18 +1728,37 @@ export class VistaCombate implements Escena {
   /** A fixed (non-typewriter) text in the box slot. */
   private cajaFija(ctx: CanvasRenderingContext2D, G: ReturnType<VistaCombate['geom']>, boxH: number, s: string) {
     panelCacheado(ctx, 4, G.yBox, ANCHO - 8, boxH);
-    const ls = envolver(s, 206).slice(0, 3);
+    const maxL = Math.max(1, Math.floor((boxH - 8 - 9) / 13) + 1);
+    const ls = envolver(s, 206).slice(0, maxL);
     const bloque = (ls.length - 1) * 13 + 9;
     const y0 = G.yBox + 3 + Math.floor((boxH - 8 - bloque) / 2) + 1;
     ls.forEach((l, i) => texto2(ctx, l, 15, y0 + i * 13));
   }
 
   /** The menu panel of `n` rows with its text box above: returns the rows' geometry. */
-  private panelMenu(ctx: CanvasRenderingContext2D, G: ReturnType<VistaCombate['geom']>, n: number, texto: string) {
-    const B = this.bandeja(G, n);
+  private panelMenu(ctx: CanvasRenderingContext2D, G: ReturnType<VistaCombate['geom']>, n: number, texto: string, volver = false) {
+    const B = this.bandeja(G, n, volver);
     this.cajaFija(ctx, G, B.boxH, texto);
     panelCacheado(ctx, 4, B.yP, ANCHO - 8, B.hP);
     return { rowH: B.rowH, y: B.yP + 4 };
+  }
+
+  /** The big VOLVER row at the bottom of a menu (`y` is its top): back to the action menu without sending anything. */
+  private filaVolver(ctx: CanvasRenderingContext2D, y: number, rowH: number, sel: boolean) {
+    const alto = rowH - 6;
+    if (sel) realce(ctx, 10, y, ANCHO - 20, alto);
+    else {
+      relleno(ctx, TINTA2, 10, y, ANCHO - 20, alto);
+      relleno(ctx, '#e4d3a6', 11, y + 1, ANCHO - 22, alto - 2);
+      rect(ctx, '#f6ead0', 13, y + 1, ANCHO - 26, 1);
+    }
+    const s = t('batalla.volver');
+    const tw = anchoTexto2(s) + 9 + 5;
+    const x = Math.floor((ANCHO - tw) / 2) + (sel ? 4 : 0);
+    const ty = y + Math.floor((alto - 7) / 2) + 1;
+    flecha(ctx, x, y + Math.floor((alto - 7) / 2), -1, TINTA2);
+    texto2(ctx, s, x + 9, ty, TINTA2, sel ? '#f0c860' : SOMBRA_TEXTO);
+    this.fil(8, y - 1, ANCHO - 16, alto + 3, () => this.accion('atras'));
   }
 
   private menuVolver(ctx: CanvasRenderingContext2D, G: ReturnType<VistaCombate['geom']>) {
@@ -1352,7 +1774,7 @@ export class VistaCombate implements Escena {
   private menuAccion(ctx: CanvasRenderingContext2D, G: ReturnType<VistaCombate['geom']>) {
     const q = this.real.jugadores[this.yo];
     const u = activo(this.real, this.yo);
-    const { rowH, y: y0 } = this.panelMenu(ctx, G, 3, t('batalla.que_hara', { quien: ESPECIE[u.especie].nombre }));
+    const { rowH, y: y0 } = this.panelMenu(ctx, G, 3, `${t('batalla.que_hara', { quien: ESPECIE[u.especie].nombre })} ${t('ficha.toca_userito')}`);
     const ok = [true, puedeCambiar(this.real, this.yo), q.cana];
     const iconos = ['luchar', 'userito', 'cana'] as const;
     ['luchar', 'userito', 'cana'].forEach((k, i) => {
@@ -1371,8 +1793,9 @@ export class VistaCombate implements Escena {
     const libres = movsDisponibles(this.real, this.yo);
     const desesperada = !libres.some(Boolean);
     const ids = desesperada ? [DESESPERADA] : sp.movs;
-    if (this.selMov >= ids.length) this.selMov = 0;
-    const { rowH, y: y0 } = this.panelMenu(ctx, G, ids.length, t(`mov.${ids[this.selMov]}.desc`));
+    if (this.selMov > ids.length) this.selMov = 0;
+    const { rowH, y: y0 } = this.panelMenu(ctx, G, ids.length, t(`mov.${ids[Math.min(this.selMov, ids.length - 1)]}.desc`), true);
+    const rivs = rivalesEnPie(this.real, this.yo);
     ids.forEach((id, i) => {
       const m = MOVS[id];
       const y = y0 + i * rowH;
@@ -1382,16 +1805,24 @@ export class VistaCombate implements Escena {
       const activa = this.selMov === i;
       if (activa) realce(ctx, 10, y, ANCHO - 20, alto);
       const ty = y + Math.floor((alto - 7) / 2) + 1;
-      // The type badge, the name and the PP.
+      // The type chip, the name, how it does on each rival and the PP.
       ctx.save();
       if (sinPP) ctx.globalAlpha = 0.45;
-      insignaTipo(ctx, m.tipo, 28, y + Math.floor((alto - 11) / 2), 62);
+      chipTipo(ctx, m.tipo, 24, y + Math.floor((alto - 11) / 2));
       ctx.restore();
-      texto2(ctx, m.nombre, 98, ty, sinPP ? '#a898a8' : TINTA2, activa ? '#f0c860' : sinPP ? null : SOMBRA_TEXTO);
+      let xFin = ANCHO - 20;
       if (pp !== null) {
         const s = `${pp}/${m.pp}`;
-        texto2(ctx, s, ANCHO - 20 - anchoTexto2(s), ty, sinPP ? '#d4382c' : TINTA_SUAVE, null);
+        texto2(ctx, s, xFin - anchoTexto2(s), ty, sinPP ? '#d4382c' : TINTA_SUAVE, null);
+        xFin -= anchoTexto2(s) + 6;
       }
+      if (m.pot !== null && !sinPP) {
+        // One marker per rival in play, in its trainer's colour: up = hits double, down = half, X = nothing, empty = normal.
+        xFin -= rivs.length * 11 - 2;
+        rivs.forEach((j, k) => this.marcaEficacia(ctx, xFin + k * 11, y + Math.floor((alto - 9) / 2), j, this.eficaciaContra(id, j) ?? 1));
+        xFin -= 4;
+      }
+      texto2(ctx, recortar(m.nombre, xFin - 52), 52, ty, sinPP ? '#a898a8' : TINTA2, activa ? '#f0c860' : sinPP ? null : SOMBRA_TEXTO);
       this.fil(8, y, ANCHO - 16, rowH, () => {
         if (this.selMov === i) this.elegirMovimiento(i);
         else {
@@ -1400,11 +1831,31 @@ export class VistaCombate implements Escena {
         }
       });
     });
+    this.filaVolver(ctx, y0 + ids.length * rowH, rowH, this.selMov >= ids.length);
+  }
+
+  /** A 9×9 marker of a rival (its trainer's colour) with how a move does on it: ▲ double or more, ▼ half or less, X nothing; plain = normal. */
+  private marcaEficacia(ctx: CanvasRenderingContext2D, x: number, y: number, j: number, ef: number) {
+    const ent = this.disp.jugadores[j].entrenador;
+    relleno(ctx, TINTA2, x, y, 9, 9);
+    relleno(ctx, colorEnt(ent), x + 1, y + 1, 7, 7);
+    if (ef === 1) {
+      rect(ctx, 'rgba(255,248,232,0.55)', x + 1, y + 1, 7, 7);
+      return;
+    }
+    const blanco = '#fff8e8';
+    if (ef > 1) flechaV(ctx, x + 1, y + 3, -1, blanco);
+    else if (ef === 0) {
+      for (let k = 0; k < 5; k++) {
+        rect(ctx, blanco, x + 2 + k, y + 2 + k, 1, 1);
+        rect(ctx, blanco, x + 6 - k, y + 2 + k, 1, 1);
+      }
+    } else flechaV(ctx, x + 1, y + 2, 1, blanco);
   }
 
   private menuEquipo(ctx: CanvasRenderingContext2D, G: ReturnType<VistaCombate['geom']>) {
     const q = this.real.jugadores[this.yo];
-    const { rowH, y: y0 } = this.panelMenu(ctx, G, q.equipo.length, t(this.reemplazo ? 'batalla.quien_sale' : 'batalla.equipo'));
+    const { rowH, y: y0 } = this.panelMenu(ctx, G, q.equipo.length, t(this.reemplazo ? 'batalla.quien_sale' : 'batalla.equipo'), !this.reemplazo);
     q.equipo.forEach((u, i) => {
       const y = y0 + i * rowH;
       const alto = rowH - 6;
@@ -1437,6 +1888,7 @@ export class VistaCombate implements Escena {
         this.elegirEquipo(i);
       });
     });
+    if (!this.reemplazo) this.filaVolver(ctx, y0 + q.equipo.length * rowH, rowH, this.sel >= q.equipo.length);
   }
 
   private menuGrada(ctx: CanvasRenderingContext2D, G: ReturnType<VistaCombate['geom']>) {

@@ -10,12 +10,14 @@ export function sobre<T>(base: Escena | null, crear: (cerrar: (v: T) => void) =>
   return new Promise((res) => {
     const p = pantalla();
     const anterior = p.escena;
+    let envoltorio: Escena | null = null;
     const cerrar = (v: T) => {
-      p.poner(anterior);
+      // If the game moved on to another screen meanwhile (the draft ended, the podium came up), don't bring the old one back.
+      if (p.escena === envoltorio) p.poner(anterior);
       res(v);
     };
     const modal = crear(cerrar);
-    p.poner({
+    envoltorio = {
       dibujar(ctx, ahora) {
         base?.dibujar(ctx, ahora);
         // Anything under the modal must not react to taps.
@@ -34,7 +36,8 @@ export function sobre<T>(base: Escena | null, crear: (cerrar: (v: T) => void) =>
       arrastre(dx, dy, total, fin) {
         modal.arrastre?.(dx, dy, total, fin);
       },
-    });
+    };
+    p.poner(envoltorio);
   });
 }
 

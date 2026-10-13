@@ -1,4 +1,4 @@
-// Sound of PokéUsera: the five tunes (src/sonido/pokeusera-*.mp3, made by tools/musica/pokeusera.py)
+// Sound of PokéUsera: the eight tunes (src/sonido/pokeusera-*.mp3, made by tools/musica/pokeusera.py)
 // and the effects and cries, which are synthesised live in the style of the first Game Boy games:
 // pulse waves with pitch sweeps and arpeggios, and noise from the console's 15-bit shift register.
 // Self-contained (it does not use src/core/audio.ts) and silent, never throwing, if there is no audio.
@@ -7,16 +7,24 @@
 // to call it on every tap). Music asked for before that starts then.
 //
 //   sonido.musica('combate')     cross-fades into the track (0.3 s); null fades out. Loops, except 'victoria'.
+//                                'combate' is four tunes: each new battle takes another one than the last, at random,
+//                                and asking again during the same battle (also after 'final') keeps the same one.
 //   sonido.efecto('golpeFuerte') one of EFECTOS, 0.6 s at most.
 //   sonido.grito('aceitun')      the cry of a userito, always the same for the same id.
 //   sonido.setVolumen('musica', 0.5), sonido.getVolumen('efectos')   0–1, as the settings menu has them.
 import urlTitulo from '../sonido/pokeusera-titulo.mp3?url';
 import urlDraft from '../sonido/pokeusera-draft.mp3?url';
 import urlCombate from '../sonido/pokeusera-combate.mp3?url';
+import urlCombateRock from '../sonido/pokeusera-combate-rock.mp3?url';
+import urlCombateVerbena from '../sonido/pokeusera-combate-verbena.mp3?url';
+import urlCombateElectro from '../sonido/pokeusera-combate-electro.mp3?url';
 import urlFinal from '../sonido/pokeusera-final.mp3?url';
 import urlVictoria from '../sonido/pokeusera-victoria.mp3?url';
 
 export type Musica = 'titulo' | 'draft' | 'combate' | 'final' | 'victoria';
+/** The files behind `Musica`: 'combate' is one of these four (see `elegirCombate`). */
+type Pista = Musica | 'combateRock' | 'combateVerbena' | 'combateElectro';
+const COMBATES: readonly Pista[] = ['combate', 'combateRock', 'combateVerbena', 'combateElectro'];
 export const EFECTOS = [
   'cursor', 'aceptar', 'atras', 'golpe', 'golpeFuerte', 'golpeFlojo', 'critico', 'falla', 'cae', 'sube', 'baja', 'cura',
   'estado', 'cambio', 'tic', 'turno', 'elegido', 'eliminado',
@@ -34,10 +42,13 @@ export const ESPECIES = [
  * the loop (what comes just before and after it), so it joins without a click on any phone. 'victoria'
  * plays once, from the start.
  */
-const PISTAS: Record<Musica, { url: string; inicio: number; fin: number | null }> = {
+const PISTAS: Record<Pista, { url: string; inicio: number; fin: number | null }> = {
   titulo: { url: urlTitulo, inicio: 0.5, fin: 46.214286 },
   draft: { url: urlDraft, inicio: 0.5, fin: 35.411202 },
   combate: { url: urlCombate, inicio: 0.5, fin: 49.726304 },
+  combateRock: { url: urlCombateRock, inicio: 0.5, fin: 53.836236 },
+  combateVerbena: { url: urlCombateVerbena, inicio: 0.5, fin: 58.677596 },
+  combateElectro: { url: urlCombateElectro, inicio: 0.5, fin: 59.571565 },
   final: { url: urlFinal, inicio: 0.5, fin: 33.98898 },
   victoria: { url: urlVictoria, inicio: 0, fin: null },
 };
@@ -83,7 +94,7 @@ interface Soplo {
 }
 
 interface Sonando {
-  nombre: Musica;
+  nombre: Pista;
   src: AudioBufferSourceNode;
   g: GainNode;
   acabo: boolean;
@@ -99,11 +110,16 @@ export class Sonido {
   private volumen: Record<Canal, number> = { musica: 0.7, efectos: 1 };
   private escuchado = false;
 
-  private deseada: Musica | null = null;
+  private deseada: Pista | null = null;
+  /** A battle is on: 'combate' (and 'final') have been asked for since the last other tune. */
+  private enBatalla = false;
+  /** The battle tune of this battle (or, between battles, of the last one) and the one chosen ahead for the next. */
+  private combateElegido: Pista | null = null;
+  private combateProximo: Pista | null = null;
   private pedido = 0;
   private actual: Sonando | null = null;
-  private cargas = new Map<Musica, Promise<AudioBuffer | null>>();
-  private usos = new Map<Musica, number>();
+  private cargas = new Map<Pista, Promise<AudioBuffer | null>>();
+  private usos = new Map<Pista, number>();
   private reloj = 0;
   private ultimo = new Map<string, number>();
 
@@ -188,20 +204,50 @@ export class Sonido {
 
   /** The track that is playing (or loading, or waiting for the first tap), null for silence. */
   get musicaActual(): Musica | null {
-    return this.deseada;
+    const d = this.deseada;
+    return d !== null && COMBATES.includes(d) ? 'combate' : (d as Musica | null);
   }
 
   // --- Music ----------------------------------------------------------------------------------
 
-  /** Cross-fades into this track (null: fades out). Asking again for the one that plays does nothing. */
+  /**
+   * Cross-fades into this track (null: fades out). Asking again for the one that plays does nothing.
+   * 'combate' plays one of four battle tunes: a new battle (the first 'combate' after any other tune)
+   * takes one at random that is not the last battle's; asking for 'combate' again during the battle, or
+   * after 'final', stays on the tune of that battle.
+   */
   musica(nombre: Musica | null) {
-    this.deseada = nombre;
+    let pista: Pista | null = nombre;
+    if (nombre === 'combate') {
+      if (!this.enBatalla || this.combateElegido === null) {
+        this.combateElegido = this.combateProximo ?? this.elegirCombate();
+        this.combateProximo = null;
+      }
+      this.enBatalla = true;
+      pista = this.combateElegido;
+    } else if (nombre !== 'final' && nombre !== null) {
+      this.enBatalla = false; // the battle is over (null, a silence, is no such thing: a pause must not change the tune)
+    }
+    this.deseada = pista;
     if (this.ac) this.aplicarMusica();
   }
 
-  /** Fetches and decodes a track ahead of time, so that it starts at once when asked for. */
+  /** A battle tune at random, never the one of the last battle (when there is another). */
+  private elegirCombate(): Pista {
+    const otras = COMBATES.filter((p) => p !== this.combateElegido);
+    return otras[Math.floor(Math.random() * otras.length)];
+  }
+
+  /** Fetches and decodes a track ahead of time, so that it starts at once when asked for. ('combate': the tune the next battle will have.) */
   precargar(nombre: Musica) {
-    if (this.ac) void this.cargar(nombre);
+    if (!this.ac) return;
+    let pista: Pista = nombre;
+    if (nombre === 'combate') {
+      if (this.enBatalla && this.combateElegido) return; // the battle in course already has its tune
+      this.combateProximo ??= this.elegirCombate();
+      pista = this.combateProximo;
+    }
+    void this.cargar(pista);
   }
 
   private aplicarMusica() {
@@ -227,7 +273,7 @@ export class Sonido {
     }
   }
 
-  private cargar(nombre: Musica) {
+  private cargar(nombre: Pista) {
     const ac = this.ac;
     if (!ac) return Promise.resolve(null);
     let carga = this.cargas.get(nombre);
@@ -249,7 +295,7 @@ export class Sonido {
   /** Makes room for one more: forgets the least recently used decoded tracks that are not the one playing, down to MAX_DECODIFICADAS - 1. */
   private recortar() {
     while (this.cargas.size >= MAX_DECODIFICADAS) {
-      let viejo: Musica | null = null;
+      let viejo: Pista | null = null;
       for (const id of this.cargas.keys()) {
         if (id === this.actual?.nombre || id === this.deseada) continue;
         if (viejo === null || (this.usos.get(id) ?? 0) < (this.usos.get(viejo) ?? 0)) viejo = id;
@@ -260,7 +306,7 @@ export class Sonido {
     }
   }
 
-  private empezar(nombre: Musica, buf: AudioBuffer) {
+  private empezar(nombre: Pista, buf: AudioBuffer) {
     const ac = this.ac;
     const bus = this.bus;
     if (!ac || !bus) return;

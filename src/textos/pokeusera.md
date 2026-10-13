@@ -20,6 +20,7 @@ titulo.credito = PARA FRAN - PABLO - CHUCHI - GUILLE
 menu.solo = JUGAR SOLO
 menu.online = JUGAR ONLINE
 menu.ajustes = AJUSTES
+menu.guia = GUÍA
 
 // ---- online (contraseña y sala)
 online.titulo = JUGAR ONLINE
@@ -77,6 +78,17 @@ entrenador.chuchi = Chuchi
 entrenador.guille = Guille
 entrenador.titulo = ¿QUIÉN ERES?
 entrenador.volver = VOLVER
+
+// ventajas de entrenador (una por cada uno; el motor las aplica, ver docs/POKEUSERA.md)
+entrenador.fran.perk = ¡Otra caña!
+entrenador.fran.perk_d = Su caña cura el 60 % de los PS, no la mitad.
+entrenador.pablo.perk = Labia
+entrenador.pablo.perk_d = Sus movimientos de estado fallan menos: +10 de precisión.
+entrenador.chuchi.perk = Llega tarde
+entrenador.chuchi.perk_d = El primer golpe que recibe cada userito le hace un 20 % menos.
+entrenador.guille.perk = Mañico
+entrenador.guille.perk_d = Una vez por userito, aguanta con 1 PS un golpe mortal a vida llena.
+entrenador.elegir = ELEGIR
 
 // ---- draft
 draft.titulo = DRAFT
@@ -183,3 +195,82 @@ premio.superviviente.n = SUPERVIVIENTE
 premio.superviviente.d = Su userito no se rindió
 premio.rencoroso.n = RENCOROSO
 premio.rencoroso.d = Daño de Venganza. Lo apunta todo
+
+// ---- ayuda (la usan la GUÍA, la ficha de estado del combate y la del draft)
+ayuda.estado.dormido = Dormido: no hace nada durante 1 a 3 turnos.
+ayuda.estado.paralizado = Paralizado: 1 de cada 4 turnos no actúa y su Velocidad baja a la cuarta parte.
+ayuda.estado.quemado = Quemado: pierde 1/16 de sus PS cada turno y su Ataque baja a la mitad.
+ayuda.estado.empachado = Empachado: pierde 1/8 de sus PS cada turno hasta que se cure o caiga.
+ayuda.estado.achispado = Achispado: de 2 a 4 turnos. Al atacar, 1 de cada 3 veces se pega a sí mismo y 1 de cada 3 le da a otro rival al azar.
+ayuda.stat.ps = PS: su vida. Si llega a 0, cae y sale el siguiente de tu equipo.
+ayuda.stat.ata = ATA (Ataque): fuerza de los golpes de tipo Normal, Tierra, Aire, Juerga y Fantasma.
+ayuda.stat.def = DEF (Defensa): aguanta mejor esos mismos golpes.
+ayuda.stat.esp = ESP (Especial): fuerza y aguante con Fuego, Planta, Rayo, Alcohol, Chanza y Grasa.
+ayuda.stat.vel = VEL (Velocidad): el más rápido ataca antes en cada turno.
+ayuda.tipos = Cada userito tiene uno o dos tipos, y cada movimiento, uno. Un golpe de tipo fuerte contra el rival hace el doble; uno flojo, la mitad; y algunos no le afectan. Si el movimiento es de su mismo tipo, pega 1,5 veces más.
+
+// ---- guía (menú, pausa y draft: pantallas/guia.ts)
+guia.volver = VOLVER
+guia.tab.como = JUEGO
+guia.tab.stats = DATOS
+guia.tab.tipos = TIPOS
+guia.tab.estados = ESTADOS
+guia.tab.reglas = BAR
+guia.h.como = CÓMO SE JUEGA
+guia.h.stats = ESTADÍSTICAS
+guia.h.tipos = TABLA DE TIPOS
+guia.h.estados = ESTADOS
+guia.h.reglas = REGLAS DEL BAR
+guia.h.perks = VENTAJAS DE ENTRENADOR
+
+guia.como.1.t = EL DRAFT
+guia.como.1.d = Antes de pelear os turnáis para elegir useritos, sin repetir (1-2-3-4, 4-3-2-1, 1-2-3-4). Cada uno se lleva tres. Tienes 20 segundos por elección.
+guia.como.2.t = TODOS A LA VEZ
+guia.como.2.d = Cada turno los cuatro elegís a la vez y en secreto: atacar (un movimiento y, si es a un rival, a quién), cambiar de userito o usar la caña (una vez por batalla). Tienes 30 segundos; si no eliges, tu userito pega con un movimiento al azar a un rival al azar.
+guia.como.3.t = EL MÁS RÁPIDO, PRIMERO
+guia.como.3.d = Primero van los cambios y la caña, y luego los ataques, de más a menos Velocidad. Si hay empate, a suertes.
+guia.como.4.t = EL ÚLTIMO EN PIE
+guia.como.4.d = Cuando cae tu userito sale el siguiente. Si caen los tres, quedas eliminado y tu puesto es el orden en que caes. Gana el último que se queda en pie.
+guia.como.5.t = EL TRUCO
+guia.como.5.d = Mira las pestañas TIPOS y ESTADOS: saber quién pega fuerte a quién gana más batallas que la suerte.
+
+guia.stats.niveles.t = SUBIR Y BAJAR
+guia.stats.niveles.d = Algunos movimientos suben o bajan una estadística (menos los PS) entre -6 y +6 niveles. Con +2 se dobla; con -2 se queda a la mitad. Todo se pierde al cambiar de userito.
+guia.stats.reparto = Todos los useritos suman lo mismo en total: el que destaca en algo, flojea en otra cosa.
+
+guia.tipos.ejes = Fila: quien ataca. Columna: quien defiende.
+guia.tipos.toca = Toca un tipo (o una casilla) para ver sus puntos fuertes y flojos.
+guia.tipos.l.x2 = DOBLE
+guia.tipos.l.x05 = LA MITAD
+guia.tipos.l.x0 = NADA
+guia.tipos.fuerte = Pega fuerte a
+guia.tipos.flojo = Pega poco a
+guia.tipos.nada = No afecta a
+guia.tipos.recibe = Le pegan fuerte
+guia.tipos.ninguno = Ninguno
+guia.tipos.par = {a} contra {d}: {r}
+guia.tipos.r.2 = doble de daño
+guia.tipos.r.1 = daño normal
+guia.tipos.r.05 = la mitad de daño
+guia.tipos.r.0 = no le afecta
+guia.tipos.t = CÓMO FUNCIONA
+
+guia.estados.nota = Solo puede haber un estado a la vez (Achispado se suma a los demás). Se ven junto al nombre del userito, con su etiqueta. La Siesta los cura todos.
+
+guia.reglas.acorralado.t = ACORRALADO
+guia.reglas.acorralado.d = Si varios le pegan a un mismo userito en un turno, el segundo golpe y los siguientes hacen la mitad. Ir en manada sale menos a cuenta.
+guia.reglas.venganza.t = VENGANZA
+guia.reglas.venganza.d = Algunos movimientos, como Venganza, pegan el doble a quien te hizo daño el turno anterior. Aquí todo se apunta.
+guia.reglas.cierre.t = HORA DE CERRAR
+guia.reglas.cierre.d = Desde el turno 30 sale Vero y pone las sillas encima de las mesas: al acabar cada turno todos pierden 1/8 de sus PS, y cada cuatro turnos, 1/8 más. Nadie se eterniza.
+guia.reglas.grada.t = DESDE LA GRADA
+guia.reglas.grada.d = Si te eliminan no te quedas mirando: cada tres turnos puedes invitar a una caña a un userito en pie (le cura 1/10 de sus PS) o abuchearle (baja su precisión). Para ayudar a un amigo o para fastidiar a un enemigo.
+guia.reglas.cana.t = LA CAÑA
+guia.reglas.cana.d = Una por batalla y jugador: en vez de atacar, tu userito se bebe una caña y recupera la mitad de sus PS (Fran, un 60 %). Va antes que los ataques, así que siempre llega a tiempo.
+guia.perks.nota = Cada entrenador trae una ventaja pequeña. Vale para todos, también para la máquina.
+
+// ---- ficha del draft: tipos del userito
+draft.pega = Le pega fuerte a
+draft.pegan = Le pegan fuerte
+draft.inmune = No le afectan
+draft.x4 = ×4

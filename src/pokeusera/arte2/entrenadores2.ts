@@ -67,6 +67,8 @@ function fran(P: Pintor): void {
   P.forma(par2(rr(14, 50, 14, 14, 3)), F_SHORT, { rad: 6 });
   P.llenar(par2(rc(20, 61, 8, 1)), F_SHORT.r[0]);
   P.pxs(F_SHORT.r[0], [17, 56], [18, 57], [18, 58], [37, 56], [36, 57]);
+  P.llenar(par2(rc(27, 58, 1, 6)), INK);
+  P.llenar(par2(rc(26, 59, 1, 5)), F_SHORT.r[0]);
 
   // Wide teal t-shirt over a round belly.
   const torso = un(rr(13, Y(32), 30, 12, 6), el(28, Y(47), 15, 9.4));
@@ -150,6 +152,10 @@ function pablo(P: Pintor): void {
   }
   P.llenar(par2(rc(19, Y(30), 1, 22)), INK);
   motas(P, rc(15, Y(30), 26, 23), P_CHAQ.r[2], 5, 0, P_CHAQ);
+  // Sherpa hem and two slanted pockets.
+  P.llenar(rc(16, Y(52), 24, 1), P_CHAQ.r[2]);
+  P.llenar(par2(rc(16, Y(51), 4, 1)), P_LANA.r[0]);
+  P.pxs(P_CHAQ.r[2], [17, Y(46)], [18, Y(47)], [19, Y(47)], [38, Y(46)], [37, Y(47)], [36, Y(47)]);
   // Sleeves with wool cuffs, hands.
   P.forma(par2(trazo([[14.5, Y(35)], [11.6, Y(47)]], 4.6, 4.2)), P_CHAQ, { rad: 4 });
   motas(P, par2(rc(8, Y(31), 10, 17)), P_CHAQ.r[2], 5, 2, P_CHAQ);
@@ -283,25 +289,27 @@ function guille(P: Pintor): void {
   P.llenar(par2(rc(18, 77, 8, 1)), INK);
   P.llenar(par2(rc(18, 74, 3, 1)), G_ZAP.r[2]);
   P.pxs(BLANCO, [22, 73], [33, 73]);
-  // Athletic arms: bare and strong, the shirt sleeve stops at the biceps.
+  // Athletic arms: bare, a little thicker than Pablo's; the shirt sleeve stops above the biceps.
   for (const lado of [1, -1] as const) {
     const X = (x: number): number => (lado === 1 ? x : 55 - x);
     const T = (m: Mascara): Mascara => (lado === 1 ? m : esp2(m));
-    P.forma(T(trazo([[10.2, Y(34)], [9.4, Y(47)]], 4.9, 3.6)), G_PIEL, { modo: 'cil', eje: X(10), semi: 4.9 });
-    P.px(X(7), Y(43), G_PIEL.r[0]);
-    P.pxs(G_PIEL.r[2], [X(9), Y(40)], [X(9), Y(41)]);
-    mano(P, X(9.4), Y(50.5), G_PIEL, lado);
+    P.forma(T(trazo([[12.8, Y(34)], [11.8, Y(47)]], 3.9, 3.3)), G_PIEL, { modo: 'cil', eje: X(12.4), semi: 3.9 });
+    P.px(X(9), Y(43), G_PIEL.r[0]);
+    P.pxs(G_PIEL.r[2], [X(11), Y(40)], [X(11), Y(41)]);
+    mano(P, X(11.8), Y(50.5), G_PIEL, lado);
   }
-  // Hawaiian shirt: V-shaped torso, mustard with red hibiscus and green leaves.
-  const camisa = poli([[15, Y(25)], [41, Y(25)], [44, Y(28)], [43, Y(35)], [41, Y(53)], [15, Y(53)], [13, Y(35)], [12, Y(28)]]);
-  P.forma(camisa, G_CAMI, { rad: 8, grad: 0.3 });
-  P.forma(par2(poli([[11, Y(26)], [18, Y(26)], [17, Y(36)], [8.5, Y(35)], [8.5, Y(31)]])), G_CAMI, { rad: 4, grad: 0.2 });
-  P.llenar(par2(rc(9, Y(35), 8, 1)), G_CAMI.r[0]);
-  P.llenar(rc(16, Y(52), 24, 1), G_CAMI.r[0]);
-  // Open collar: a V of chest between two lapels.
-  P.forma(poli([[21, Y(24)], [35, Y(24)], [28, Y(38)]]), G_PIEL, { rad: 3, borde: false, sesgo: -0.1 });
-  P.pxs(G_PIEL.r[0], [26, Y(30)], [27, Y(33)], [28, Y(35)], [29, Y(33)]);
-  P.forma(par2(poli([[18, Y(25)], [24, Y(25)], [26, Y(35)], [25, Y(37)], [19, Y(31)]])), G_CAMI, { rad: 3, grad: 0.2 });
+  // Hawaiian shirt: a straight torso, mustard with red hibiscus and green leaves, short sleeves on the shoulders.
+  const camisa = poli([[17, Y(26)], [39, Y(26)], [41, Y(30)], [40, Y(53)], [16, Y(53)], [15, Y(30)]]);
+  P.forma(camisa, G_CAMI, { rad: 7, grad: 0.3 });
+  P.llenar(rc(17, Y(52), 22, 1), G_CAMI.r[0]);
+  P.forma(par2(el(13.8, Y(32), 4.2, 5.2)), G_CAMI, { rad: 4, grad: 0.25 });
+  P.llenar(par2(rc(10, Y(36), 9, 1)), G_CAMI.r[0]);
+  // Neck, then an open camp collar: two flat leaves lying on the chest with a small V between them.
+  P.forma(rc(24, Y(20), 8, 7), G_PIEL, { rad: 3, borde: false, sesgo: -0.3 });
+  P.forma(poli([[23, Y(24)], [33, Y(24)], [28, Y(33.5)]]), G_PIEL, { rad: 3, sesgo: -0.1 });
+  P.pxs(G_PIEL.r[0], [27, Y(30)], [28, Y(31)], [27, Y(28)]);
+  P.forma(par2(poli([[18.5, Y(26)], [23.4, Y(24.5)], [27, Y(33)], [24.5, Y(35.5)], [20.5, Y(31)]])), G_CAMI, { rad: 3, grad: 0.15 });
+  P.pxs(G_CAMI.r[2], [21, Y(27)], [22, Y(27)], [22, Y(28)], [23, Y(29)], [34, Y(26)], [33, Y(27)]);
   // Flowers and leaves.
   const flor = (x: number, y: number) => {
     P.est(x, y, ['.rr..', 'rrrrr', 'rrcrr', '.rrrr', '..rr.'], { r: HIB, c: G_CAMI.r[2] });
@@ -311,22 +319,20 @@ function guille(P: Pintor): void {
   const hojas = (x: number, y: number, e = false) => {
     P.est(x, y, ['..gg', '.ggg', 'ggg.', 'gd..'], { g: HOJA, d: INK }, e);
   };
-  hojas(13, Y(40));
-  hojas(37, Y(32), true);
-  hojas(16, Y(47));
-  hojas(37, Y(46), true);
-  hojas(30, Y(40));
-  hojas(17, Y(31));
-  flor(21, Y(40));
-  flor(34, Y(37));
-  flor(22, Y(46));
-  flor(32, Y(46));
-  flor(14, Y(33));
-  flor(38, Y(41));
-  // Neck and head: strong jaw, ears, stubble.
-  P.forma(rc(24, Y(21), 8, 5), G_PIEL, { rad: 3, borde: false, sesgo: -0.3 });
+  hojas(17, Y(40));
+  hojas(34, Y(31), true);
+  hojas(35, Y(41), true);
+  hojas(25, Y(41));
+  hojas(18, Y(47));
+  flor(19, Y(36));
+  flor(33, Y(36));
+  flor(22, Y(44));
+  flor(31, Y(45));
+  flor(11, Y(30));
+  flor(38, Y(30));
+  // Head: strong but tapered jaw, ears, stubble.
   P.forma(par2(el(15.5, Y(14), 2.2, 3)), G_PIEL, { rad: 2 });
-  const cabeza = un(el(28, Y(12.5), 12.4, 11), poli([[16, Y(14)], [40, Y(14)], [38.5, Y(21)], [35, Y(25)], [21, Y(25)], [17.5, Y(21)]]));
+  const cabeza = un(el(28, Y(12.5), 12.2, 11), poli([[17.5, Y(15)], [38.5, Y(15)], [36.8, Y(20.5)], [33.5, Y(24.5)], [22.5, Y(24.5)], [19.2, Y(20.5)]]));
   P.forma(cabeza, G_PIEL, { rad: 7, grad: 0.2 });
   // Stubble: a shaded jaw line with scattered dark dots.
   const jaw = inter(cabeza, rc(0, Y(17), 56, 12));
@@ -337,10 +343,10 @@ function guille(P: Pintor): void {
   motas(P, sombra, G_PELO.r[1], 3, 1, G_PIEL);
   motas(P, inter(jaw, el(28, Y(21), 6.5, 3.5)), G_PELO.r[1], 4, 2, G_PIEL);
   // Dark longish hair: swept quiff, side locks down to the jaw.
-  const casco = inter(el(28, Y(9.5), 14.6, 10.2), rc(0, 0, 56, Y(7)));
+  const casco = inter(el(28, Y(9.5), 13.4, 10.2), rc(0, 0, 56, Y(7)));
   const tupe = un(el(31, Y(3.8), 10.5, 4), el(37, Y(5), 5, 4.5));
   const flequillo = poli([[17, Y(6)], [39, Y(6)], [40, Y(9)], [34, Y(7.5)], [31, Y(9.5)], [27, Y(7.5)], [22, Y(9)], [18, Y(8.5)]]);
-  const mechones = par2(un(rc(14, Y(7), 2, 7), poli([[14, Y(13)], [16, Y(13)], [16, Y(17)], [14.5, Y(16)]])));
+  const mechones = par2(rc(15, Y(7), 2, 6));
   const pelo = un(casco, tupe, flequillo, mechones);
   P.forma(pelo, G_PELO, { rad: 4.5, grad: 0.35 });
   motas(P, pelo, G_PELO.r[2], 6, 0, G_PELO);
@@ -408,89 +414,91 @@ export function retrato2(id: EntrenadorId): HTMLCanvasElement {
   return c;
 }
 
+// 16×16 face icons, hand-pixelled: ink outline, 3-tone skin lit from the top-left, one shirt strip.
+const I_PIEL = (p: Mat): Record<string, string> => ({ l: p.r[2], s: p.r[1], d: p.r[0], D: p.ol });
 const ICONOS: Record<EntrenadorId, { filas: string[]; ley: Record<string, string> }> = {
   fran: {
-    ley: { o: INK, M: F_PELO.r[1], n: F_PELO.r[2], m: F_PELO.r[0], s: F_PIEL.r[1], S: F_PIEL.r[0], h: F_PIEL.r[2], k: INK, w: BLANCO, t: F_CAMI.r[1], T: F_CAMI.r[2], g: GRIS },
-    filas: [
-      '................',
-      '.....oooooo.....',
-      '...ooMMnnMMoo...',
-      '..oMMMMMMMMMMo..',
-      '..oMMgMMMMMMMo..',
-      '.oMMkkMMMMkkMMo.',
-      '.oMsksssssskssMo',
-      '.oMsksshhsskssMo',
-      '.oMMsssSSsssMMo.',
-      '..oMMMsssMMMMo..',
-      '..oMMMwwwMMMMo..',
-      '..oMMMMkkMMMMo..',
-      '...oMMMMMMMMo...',
-      '....ooMMMMoo....',
-      '..ttoooooooott..',
-      '.TttttttttttttT.',
-    ],
-  },
-  pablo: {
-    ley: { o: INK, M: P_PELO.r[1], n: P_PELO.r[2], m: P_PELO.r[0], s: P_PIEL.r[1], S: P_PIEL.r[0], h: P_PIEL.r[2], k: INK, w: BLANCO, g: ORO_HOP, c: '#f1e6cc', j: P_CHAQ.r[1], J: P_CHAQ.r[2] },
-    filas: [
-      '...o..o.o..o....',
-      '..oMo.oMoMoMo...',
-      '.oMnMoMMnMMMMo..',
-      '.oMMMMMMMMMMMo..',
-      '.omMmMMMMMmMMo..',
-      '.oMMkkMMMMkkMMo.',
-      '.osssksssssksso.',
-      'ogsssksssssksso.',
-      'g.osssssSSsssso.',
-      '..oMMsssssMMMo..',
-      '..oMMMMwwMMMo...',
-      '...oMMMMMMMMo...',
-      '....ooMMMMoo....',
-      '..ccooooooocc...',
-      '.ccccjjwwjjcc...',
-      '.jjjjjjwwjjjj...',
-    ],
-  },
-  chuchi: {
-    ley: { o: INK, M: C_BARBA.r[1], n: C_BARBA.r[2], m: C_BARBA.r[0], s: C_PIEL.r[1], S: C_PIEL.r[0], h: C_PIEL.r[2], k: INK, w: BLANCO, b: C_GAFA, r: C_SUDA.r[1], R: C_SUDA.r[2], d: C_SUDA.r[0] },
-    filas: [
-      '................',
-      '.....oooooo.....',
-      '...ooshwwsssoo..',
-      '..oshwwsssssSso.',
-      '..osshsssssssso.',
-      '..osssssssssSso.',
-      '.obbbbbbbbbbbbo.',
-      '.obwksbbbwksbo..',
-      '.obsksbssbsksbo.',
-      '.obbbbbssbbbbbo.',
-      '..oMMsssssMMMo..',
-      '..oMMMkkMMMMo...',
-      '...oMMMMMMMo....',
-      '....ooMMMMoo....',
-      '..rrdoooooodrr..',
-      '.rrrrrrrrrrrrr..',
-    ],
-  },
-  guille: {
-    ley: { o: INK, M: G_PELO.r[1], n: G_PELO.r[2], m: G_PELO.r[0], s: G_PIEL.r[1], S: G_PIEL.r[0], h: G_PIEL.r[2], k: INK, w: BLANCO, y: G_CAMI.r[1], Y: G_CAMI.r[2], d: G_CAMI.r[0], r: HIB, e: G_PIEL.ol },
+    ley: { o: INK, m: F_PELO.r[0], h: '#4a3744', H: '#75596a', ...I_PIEL(F_PIEL), w: BLANCO, g: GRIS, T: F_CAMI.r[2], t: F_CAMI.r[1], u: F_CAMI.r[0] },
     filas: [
       '................',
       '....oooooooo....',
-      '..oonnnMMMMMoo..',
-      '.oMMMnMMMMMMMMo.',
-      '.oMMMMMMMMMMMMo.',
-      '.oMMmmmssmmmMMo.',
-      '.oMskssssssksso.',
-      '.oMsksssssskssMo',
-      '..osssssSSssso..',
-      '..osSssssssSso..',
-      '..osSsseeeesSso.',
-      '...osSSSSSSso...',
-      '....oossssoo....',
-      '..yyyyossoyyyy..',
-      '.yYyyyydssdyyyyy',
-      '.yyyryyyodoyyyr.',
+      '..ooHhHhhHhhoo..',
+      '.ohHhhHhhhHhhho.',
+      '.ohhmmhmmmhmhho.',
+      '.ohhsmmssmmshho.',
+      '.olhsossssoshdo.',
+      '.oshlossssodhso.',
+      '.ohmmssddssmmho.',
+      '.ommhmmmmhmmmmo.',
+      '.ommmmwwwwmmhmo.',
+      '.ommhmmddmmmmmo.',
+      '..ommmmmmmmmmo..',
+      '...ooommmmooo...',
+      '..oTTtttttttuo..',
+      '.oTTttttttttuuo.',
+    ],
+  },
+  pablo: {
+    ley: { o: INK, m: P_PELO.r[0], h: P_PELO.r[1], H: P_PELO.r[2], ...I_PIEL(P_PIEL), w: BLANCO, G: ORO_HOP, c: '#f1e6cc', g: GRIS, j: P_CHAQ.r[1], J: P_CHAQ.r[2] },
+    filas: [
+      '...o...o....o...',
+      '..oHo.oHHo.oHo..',
+      '.ohHhoohHhooHho.',
+      '.ohHhhhhhhhhhho.',
+      '.ohhhmmmmmmhhho.',
+      '.ohhsmmssmmshho.',
+      '.ohhsossssoshho.',
+      '.ohhlossssodhho.',
+      'Gohmmssddssmmho.',
+      'Gohmmmmmmmmmmho.',
+      '.Gohmmmddmmmho..',
+      '..ohmmmmmmmmho..',
+      '...oommmmmmoo...',
+      '..ocgcccccgcco..',
+      '.ojJcwwwwwwcjjo.',
+      '.ojjjjjwwjjjjjo.',
+    ],
+  },
+  chuchi: {
+    ley: { o: INK, m: C_BARBA.r[0], h: C_BARBA.r[1], H: C_BARBA.r[2], ...I_PIEL(C_PIEL), w: BLANCO, b: C_GAFA, R: C_SUDA.r[2], r: C_SUDA.r[1], u: C_SUDA.r[0] },
+    filas: [
+      '................',
+      '....oooooooo....',
+      '...olwwlsssso...',
+      '..olwlssssssso..',
+      '..olssssssssdo..',
+      '..osssssssssdo..',
+      '.obbbbbbbbbbbbo.',
+      '.obwosbbbwosbbo.',
+      '.obsosbddbsosbo.',
+      '.obbbbbddbbbbbo.',
+      '..ohhssddsshho..',
+      '..ohhhhmmhhhho..',
+      '...ohhhhhhhho...',
+      '....ooHhhhoo....',
+      '..oRRrrrrrrruo..',
+      '.oRRrrrrrrrruuo.',
+    ],
+  },
+  guille: {
+    ley: { o: INK, m: G_PELO.r[0], h: G_PELO.r[1], H: G_PELO.r[2], ...I_PIEL(G_PIEL), w: BLANCO, Y: G_CAMI.r[2], y: G_CAMI.r[1], a: G_CAMI.r[0], r: HIB },
+    filas: [
+      '................',
+      '....oooooooo....',
+      '..ooHHhhhhhhoo..',
+      '.ohHhhhhhhhhhho.',
+      '.ohhhmmmmmmhhho.',
+      '.ohhmmmssmmmhho.',
+      '.ohhsossssoshho.',
+      '.ohhlossssodhho.',
+      '..ossssddssssdo.',
+      '..osdsmmmmsdso..',
+      '..osddsDDsddso..',
+      '...oddsssdddo...',
+      '....ooddddoo....',
+      '..oYYyoddoyyyo..',
+      '.oYyyyyoddoyyyo.',
+      '.oyyryyyooyyyro.',
     ],
   },
 };

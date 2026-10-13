@@ -2,7 +2,7 @@
 // the 20 useritos and the detail card. It draws only from what it is told (`alDraft`: the draft
 // state, whose turn and for how long), so a guest can feed it from network messages too.
 import type { EntrenadorId, EstadoDraft, Tipo } from '../tipos';
-import { ESPECIE, ESPECIES, MOVS } from '../datos';
+import { ESPECIE, ESPECIES, MOVS, TIPOS, eficacia } from '../datos';
 import { icono2 } from '../arte2/entrenadores2';
 import { anchoTexto2 } from '../arte2/fuente2';
 import { ORO_UI, ORO_UI_OSC, PAPEL_ALTO, TINTA2, TINTA_SUAVE } from '../arte2/paleta2';
@@ -13,6 +13,7 @@ import { entrada, type Accion } from '../entrada';
 import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
 import { menuPausa } from './ajustes';
+import { abrirGuia, atacantesFuertes, defensoresCon, hileraTipos } from './guia';
 import { miniatura, plataformaCacheada } from './fondos';
 import {
   Animador,
@@ -30,6 +31,7 @@ import {
   oscurecer,
   recortar,
   parpadea,
+  textoGrande,
   rect,
   reposo,
   t,
@@ -212,6 +214,12 @@ export class VistaDraft implements Escena {
     [this.hx, this.hy] = this.celda(k);
     sonido.efecto('cursor');
     return true;
+  }
+
+  /** The guide over the card, on the statistics page (the countdown keeps running underneath). */
+  private abrirGuiaStats() {
+    sonido.efecto('aceptar');
+    void abrirGuia(this, 'stats');
   }
 
   private async pausar() {
@@ -432,24 +440,59 @@ export class VistaDraft implements Escena {
     const X = 4;
     const W = ANCHO - 8;
     panelCacheado(ctx, X, 4, W, H - 8);
-    texto2(ctx, sp.nombre, X + 12, 17);
-    const num = `#${String(k + 1).padStart(2, '0')}`;
-    texto2(ctx, num, X + W - 12 - anchoTexto2(num), 17, TINTA_SUAVE);
+    texto2(ctx, sp.nombre, X + 12, 15);
+    const num = `Nº${String(k + 1).padStart(2, '0')}`;
+    const hayTurno = this.turnoDe !== null && !this.apelear;
+    texto2(ctx, num, X + 12 + anchoTexto2(sp.nombre) + 8, 15, TINTA_SUAVE);
     let bx = X + 12;
     for (const tp of sp.tipos) bx += insignaTipo(ctx, tp, bx, 31) + 4;
-    // Sprite on a beer mat (breathing), with the stats on the right.
+    // The countdown stays on the card (the card hides the top bar): a big chip at the top right, red and
+    // blinking in the last five seconds, and under it whose turn it is.
+    if (hayTurno) {
+      const seg = Math.max(0, Math.ceil((this.fin - Date.now()) / 1000));
+      const rojo = seg <= 5;
+      const s = String(seg);
+      const cw = Math.max(34, anchoTexto2(s) * 2 + 16);
+      const cx = X + W - 10 - cw;
+      const fuerte = rojo && parpadea(ahora, 400);
+      relleno(ctx, TINTA2, cx, 8, cw, 20);
+      relleno(ctx, rojo ? (fuerte ? '#e03a2c' : '#9c1c1c') : '#5a4660', cx + 1, 9, cw - 2, 18);
+      rect(ctx, 'rgba(255,255,255,0.25)', cx + 2, 9, cw - 4, 1);
+      textoGrande(ctx, s, cx + Math.floor((cw - anchoTexto2(s) * 2) / 2), 12, rojo ? '#fff0e0' : '#fdf0c0', 2);
+      const q = this.plazas[this.turnoDe!];
+      const mio = this.turnoDe === this.miSeat;
+      const txt = mio ? t('draft.tuturno') : t('draft.elige', { nombre: q.nombre });
+      const tw = anchoTexto2(txt);
+      const xr = X + W - 10;
+      if (bx + 4 + tw + 20 < xr) {
+        ctx.drawImage(icono2(q.entrenador), xr - tw - 20, 29, 16, 16);
+        texto2(ctx, txt, xr - tw, 34, mio ? colorEnt(q.entrenador) : TINTA2);
+      }
+    }
+    // Sprite on a beer mat (breathing), with the stats on the right (tap them for the guide).
     const ys = 48;
     const mat = plataformaCacheada(30, 7);
     ctx.drawImage(mat, X + 8 + Math.floor((72 - mat.width) / 2), ys + 62 - 13);
     ctx.drawImage(spriteFrente2(id, reposo(ahora)), X + 12, ys);
+    const xs = X + 88;
     STATS.forEach((st, i) => {
-      const x = X + 92;
       const y = ys + 6 + i * 13;
-      texto2(ctx, st.nombre, x, y, TINTA_SUAVE);
+      texto2(ctx, st.nombre, xs, y, TINTA_SUAVE);
       const v = sp.base[st.clave];
-      barraValor(ctx, x + 24, y, 70, Math.min(v, 150) / 150, COLOR_TIPO[sp.tipos[0]]);
-      texto2(ctx, String(v), x + 100, y);
+      barraValor(ctx, xs + 24, y, 70, Math.min(v, 150) / 150, COLOR_TIPO[sp.tipos[0]]);
+      texto2(ctx, String(v), xs + 100, y);
+      entrada.zona(xs - 2, y - 3, 118, 13, () => this.abrirGuiaStats());
     });
+    {
+      // A small «?» at the end of the first row: «what do these mean?».
+      const qx = X + W - 12 - 13;
+      const qy = ys + 2;
+      relleno(ctx, TINTA2, qx, qy, 13, 13);
+      relleno(ctx, '#e8c25a', qx + 1, qy + 1, 11, 11);
+      rect(ctx, '#fff3c8', qx + 2, qy + 1, 9, 1);
+      texto2(ctx, '?', qx + 4, qy + 3, TINTA2, null);
+      entrada.zona(qx - 4, qy - 4, 21, 21, () => this.abrirGuiaStats());
+    }
     // Moves, each with its one-line description.
     let ym = ys + 78;
     for (const mid of sp.movs) {
@@ -463,16 +506,46 @@ export class VistaDraft implements Escena {
       dm.forEach((l, i) => texto2(ctx, l, X + 24, ym + 13 + i * 12, TINTA_SUAVE, null));
       ym += 17 + dm.length * 12;
     }
-    // Description.
+    // Type matchups of this userito (from its types, via the engine's chart), then the description if there is still room.
+    const yb = H - 4 - 38;
+    const cw = W - 24;
+    const pega = [...new Set(sp.tipos.flatMap((a) => defensoresCon(a, 2)))];
+    const pegan = atacantesFuertes(sp.tipos);
+    const inmune = TIPOS.filter((a) => eficacia(a, sp.tipos) === 0);
+    const grupos: [string, readonly Tipo[], boolean][] = [
+      [t('draft.pega'), pega, false],
+      [t('draft.pegan'), pegan, true],
+    ];
+    if (inmune.length) grupos.push([t('draft.inmune'), inmune, false]);
+    const x4 = (tp: Tipo) => (eficacia(tp, sp.tipos) >= 4 ? t('draft.x4') : '');
+    const altoGrupos = (gs: typeof grupos) => gs.reduce((a, [, l, d]) => a + 12 + hileraTipos(null, l, 0, 0, cw, d ? x4 : undefined) + 3, 0);
     const desc = envolver(t(`userito.${id}.desc`), W - 28);
+    const altoDesc = 8 + desc.length * 12;
+    let gs = grupos;
+    let conDesc = ym + 4 + altoDesc + 4 + altoGrupos(gs) <= yb - 2;
+    if (!conDesc && ym + 4 + altoGrupos(gs) > yb - 2 && gs.length > 2) gs = gs.slice(0, 2);
+    if (!conDesc && ym + 4 + altoGrupos(gs) > yb - 2) gs = [];
     let yd = ym + 4;
-    rect(ctx, '#d6c08a', X + 12, yd - 4, W - 24, 1);
-    for (const l of desc) {
-      texto2(ctx, l, X + 12, yd + 4);
-      yd += 12;
+    if (conDesc || (gs.length === 0 && yd + altoDesc <= yb)) {
+      rect(ctx, '#d6c08a', X + 12, yd - 4, W - 24, 1);
+      for (const l of desc) {
+        texto2(ctx, l, X + 12, yd + 4);
+        yd += 12;
+      }
+      yd += 6;
+      conDesc = true;
+    }
+    if (gs.length) {
+      let yy = yd + (conDesc ? 4 : 0);
+      rect(ctx, '#d6c08a', X + 12, yy - 4, W - 24, 1);
+      yy += 2;
+      for (const [lab, l, d] of gs) {
+        texto2(ctx, lab, X + 12, yy, TINTA_SUAVE, null);
+        yy += 12;
+        yy += hileraTipos(ctx, l, X + 12, yy, cw, d ? x4 : undefined) + 3;
+      }
     }
     // Buttons.
-    const yb = H - 4 - 38;
     const mio = this.miTurno;
     const bw = 100;
     boton(ctx, X + 10, yb, bw, 28, t('draft.elegir'), mio && this.foco === 0, mio);

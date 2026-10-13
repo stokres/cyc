@@ -224,6 +224,110 @@ if (simArg) {
   process.exit(0);
 }
 
+// ---- trainer perks (Fran caña 60 %, Pablo +10 accuracy on status moves, Chuchi first hit −20 %, Guille survives a KO from full HP).
+// A few deterministic cases; the perks consume no random numbers, so the same seed with another trainer gives the same rolls.
+function revisarPerks() {
+  const eq = (ents, esp = [['tocinon', 'turito', 'cierzon'], ['turito', 'tocinon', 'cierzon']]) =>
+    ents.map((entrenador, i) => ({ entrenador, nombre: entrenador, bot: false, especies: esp[i] ?? esp[1] }));
+  const cana = { tipo: 'cana' };
+  const ataca = (mov, objetivo = 1) => ({ tipo: 'atacar', mov, objetivo });
+  const perksEn = (r) => r.eventos.filter((ev) => ev.clave?.startsWith('combate.perk.'));
+  const invariante = (e, ctx) =>
+    e.jugadores.forEach((q, j) => q.equipo.forEach((u, i) => {
+      const s = e.stats.u[j][i];
+      if (u.psMax - u.ps !== s.dr + s.dp - s.cu) falla(`perk ${ctx}: PS de ${u.especie} != dr+dp-cu`);
+    }));
+
+  // Fran: caña heals floor(60 %); the others floor(50 %).
+  for (const [ent, pct] of [['fran', 60], ['pablo', 50], ['chuchi', 50], ['guille', 50]]) {
+    const e = M.crearCombate(eq([ent, 'pablo' === ent ? 'fran' : 'pablo']), 3);
+    e.jugadores[0].equipo[0].ps = 1;
+    const r = M.resolverTurno(e, [cana, cana]);
+    const cura = r.eventos.find((ev) => ev.k === 'cura' && ev.j === 0);
+    const esperado = 1 + Math.floor((e.jugadores[0].equipo[0].psMax * pct) / 100);
+    if (cura?.ps !== esperado) falla(`perk caña de ${ent}: PS ${cura?.ps}, esperaba ${esperado}`);
+  }
+
+  // Pablo: Esporas (75) hits more with Labia (85); never fewer, and a damaging move (Garrafón 85) is untouched.
+  const resultado = (ent, esp, mov, semilla) => {
+    const e = M.crearCombate(eq([ent, 'guille'], [esp, ['turito', 'tocinon', 'cierzon']]), semilla);
+    const r = M.resolverTurno(e, [ataca(mov), cana]);
+    return r.eventos.some((ev) => (ev.k === 'estado' || ev.k === 'golpe') && ev.j === 1 && !ev.fin) ? 1 : 0;
+  };
+  let ganaPablo = 0;
+  let peorPablo = 0;
+  let difDano = 0;
+  for (let semilla = 1; semilla <= 300; semilla++) {
+    const a = resultado('pablo', ['criaturitah', 'turito', 'cierzon'], 0, semilla);
+    const b = resultado('fran', ['criaturitah', 'turito', 'cierzon'], 0, semilla);
+    if (a > b) ganaPablo++;
+    if (a < b) peorPablo++;
+    if (resultado('pablo', ['chupitochu', 'turito', 'cierzon'], 2, semilla) !== resultado('fran', ['chupitochu', 'turito', 'cierzon'], 2, semilla)) difDano++;
+  }
+  if (!ganaPablo) falla('perk Pablo: nunca acierta más que otro entrenador con Esporas');
+  if (peorPablo) falla(`perk Pablo: acierta menos que otro entrenador en ${peorPablo} semillas`);
+  if (difDano) falla(`perk Pablo: Garrafón (con daño) cambia en ${difDano} semillas`);
+
+  // Chuchi: the first hit his userito receives does floor(80 %) (min 1) of what another trainer's would; later hits, the same.
+  const golpe = (ent, turnos = 2) => {
+    let e = M.crearCombate(eq(['pablo', ent]), 11);
+    const danos = [];
+    const log = [];
+    for (let k = 0; k < turnos; k++) {
+      const r = M.resolverTurno(e, [ataca(0), cana]);
+      e = r.estado;
+      danos.push(r.eventos.filter((ev) => ev.k === 'golpe' && ev.j === 1 && !ev.clave).reduce((n, ev) => n + ev.dano, 0));
+      log.push(...perksEn(r));
+    }
+    return { danos, log, e };
+  };
+  const ch = golpe('chuchi');
+  const ot = golpe('guille');
+  const ref = golpe('fran');
+  if (ch.danos[0] !== Math.max(1, Math.floor((ref.danos[0] * 80) / 100))) falla(`perk Chuchi: primer golpe ${ch.danos[0]} != 80 % de ${ref.danos[0]}`);
+  if (ch.danos[1] !== ref.danos[1]) falla(`perk Chuchi: el segundo golpe cambia (${ch.danos[1]} vs ${ref.danos[1]})`);
+  if (ch.log.length !== 1 || ch.log[0].clave !== 'combate.perk.chuchi' || ch.log[0].j !== 1 || !ch.log[0].vars?.quien) falla('perk Chuchi: debía avisar una sola vez');
+  if (ref.log.length !== 0) falla('perk Chuchi: lo ha activado otro entrenador');
+  if (ot.log.some((ev) => ev.clave === 'combate.perk.chuchi')) falla('perk Chuchi: lo ha activado Guille');
+  invariante(ch.e, 'Chuchi');
+  // It belongs to the userito, not to the slot: it survives switching out, and the one that comes in has its own.
+  {
+    let e = M.crearCombate(eq(['pablo', 'chuchi']), 11);
+    e = M.resolverTurno(e, [ataca(0), cana]).estado;
+    const r2 = M.resolverTurno(e, [ataca(0), { tipo: 'cambiar', a: 1 }]);
+    const [u0, u1] = r2.estado.jugadores[1].equipo;
+    if (!u0.perk?.tarde) falla('perk Chuchi: el userito que sale pierde la marca');
+    if (!u1.perk?.tarde || perksEn(r2).length !== 1) falla('perk Chuchi: el que entra no tiene su primer golpe reducido');
+  }
+
+  // Guille: from full HP a lethal hit leaves 1 HP, once per userito; not from less than full HP.
+  const mañico = (ent, ps, psMax, eleccion = cana) => {
+    let e = M.crearCombate(eq(['pablo', ent]), 5);
+    const u = e.jugadores[1].equipo[0];
+    u.psMax = psMax;
+    u.ps = ps;
+    const r1 = M.resolverTurno(e, [ataca(0), eleccion]);
+    const ps1 = r1.estado.jugadores[1].equipo[0].ps;
+    const r2 = M.resolverTurno(r1.estado, [ataca(0), eleccion]);
+    return { r1, r2, ps1, ps2: r2.estado.jugadores[1].equipo[0].ps };
+  };
+  {
+    const g = mañico('guille', 5, 5);
+    if (g.ps1 !== 1) falla(`perk Guille: aguanta con ${g.ps1} PS, esperaba 1`);
+    const av = perksEn(g.r1);
+    if (av.length !== 1 || av[0].clave !== 'combate.perk.guille' || av[0].j !== 1) falla('perk Guille: aviso mal');
+    if (g.r1.eventos.some((ev) => ev.k === 'cae' && ev.j === 1)) falla('perk Guille: cae aunque aguanta');
+    if (g.ps2 !== 0 || perksEn(g.r2).length) falla('perk Guille: se usa dos veces');
+    invariante(g.r1.estado, 'Guille 1');
+    invariante(g.r2.estado, 'Guille 2');
+    const no = mañico('guille', 4, 5, ataca(0, 0)); // not at full HP (it attacks instead of drinking the caña)
+    if (no.ps1 !== 0 || perksEn(no.r1).length) falla(`perk Guille: aguanta sin estar a tope (${no.ps1}, ${no.r1.eventos.map((ev) => ev.k + ':' + (ev.dano ?? ev.clave ?? '')).join(' ')})`);
+    const otro = mañico('fran', 5, 5);
+    if (otro.ps1 !== 0 || perksEn(otro.r1).length) falla('perk Guille: lo tiene otro entrenador');
+  }
+}
+revisarPerks();
+
 const semillas = process.argv.slice(2).map(Number).filter((n) => Number.isFinite(n)).slice(0, 5);
 if (!semillas.length) semillas.push(1);
 semillas.forEach((s, i) => {

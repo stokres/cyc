@@ -127,3 +127,26 @@ export function pieSprite(cv: HTMLCanvasElement): number {
   }
   return p;
 }
+
+/** The box of opaque pixels of a sprite (x0, y0 inclusive, x1, y1 exclusive), computed once: what the target brackets hug. */
+const cajas = new Map<HTMLCanvasElement, { x0: number; y0: number; x1: number; y1: number }>();
+export function cajaSprite(cv: HTMLCanvasElement): { x0: number; y0: number; x1: number; y1: number } {
+  let c = cajas.get(cv);
+  if (!c) {
+    const d = leer(cv);
+    c = { x0: cv.width, y0: cv.height, x1: 0, y1: 0 };
+    for (let y = 0; y < cv.height; y++) {
+      for (let x = 0; x < cv.width; x++) {
+        if (d[(y * cv.width + x) * 4 + 3] > 40) {
+          c.x0 = Math.min(c.x0, x);
+          c.y0 = Math.min(c.y0, y);
+          c.x1 = Math.max(c.x1, x + 1);
+          c.y1 = Math.max(c.y1, y + 1);
+        }
+      }
+    }
+    if (c.x1 <= c.x0) c = { x0: 0, y0: 0, x1: cv.width, y1: cv.height };
+    cajas.set(cv, c);
+  }
+  return c;
+}

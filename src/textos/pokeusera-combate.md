@@ -23,6 +23,45 @@ tipo.chanza = Chanza
 tipo.grasa = Grasa
 tipo.fantasma = Fantasma
 
+tipo.abrev.normal = NOR
+tipo.abrev.fuego = FUE
+tipo.abrev.planta = PLA
+tipo.abrev.tierra = TIE
+tipo.abrev.aire = AIR
+tipo.abrev.rayo = RAY
+tipo.abrev.alcohol = ALC
+tipo.abrev.juerga = JUE
+tipo.abrev.chanza = CHA
+tipo.abrev.grasa = GRA
+tipo.abrev.fantasma = FAN
+
+// ---- guía del combate: cartel de la acción, eficacia y ficha del userito
+cartel.todos = TODOS
+cartel.el_mismo = ÉL MISMO
+cartel.mult = ×{n}
+cartel.ef.mas = MUY EFICAZ ×{n}
+cartel.ef.menos = POCO EFICAZ ×{n}
+cartel.ef.nada = NO LE AFECTA
+cartel.ef.corto_nada = NO AFECTA
+cartel.ayuda = ?
+ficha.sin_dano = SIN DAÑO
+ficha.toca_userito = Toca a un userito para ver su ficha.
+ficha.contra = TUS MOVIMIENTOS CONTRA ÉL
+ficha.stats = ESTADÍSTICAS BASE
+ficha.estado = ESTADO
+ficha.sin_estado = Sin estado.
+ficha.niveles = CAMBIOS
+ficha.toca = Toca un estado o una estadística para ver qué significa.
+ficha.cerrar = CERRAR
+ficha.cae = Fuera de combate.
+ficha.stat.ps = PS
+ficha.stat.ata = ATA
+ficha.stat.def = DEF
+ficha.stat.esp = ESP
+ficha.stat.vel = VEL
+ficha.stat.prec = PRE
+ficha.prec_ayuda = PRE (Precisión): la probabilidad de acertar el golpe.
+
 // ---- mensajes del combate
 combate.usa = ¡{quien} usó {mov}!
 combate.muy_eficaz = ¡Muy eficaz contra {quien}!
@@ -188,3 +227,7 @@ mov.venganza.desc = Doble contra quien te pegó.
 mov.flipada.desc = Sube Ata, Esp y Vel. Baja Def.
 mov.selfie.desc = Baja la precisión de los rivales.
 mov.desesperada.desc = Sin PP. Te hieres un poco.
+
+// ---- ventajas de entrenador (motor/combate.ts: Chuchi «Llega tarde», Guille «Mañico»)
+combate.perk.chuchi = {quien} llegaba tarde: el golpe le pilla a medias.
+combate.perk.guille = ¡{quien} aguanta como un buen mañico!

@@ -14,7 +14,7 @@
 //  - 'cae' / 'sale' / 'eliminado' / 'fin' as in tipos.ts. 'texto' = only a text line.
 // Every event may carry `clave` + `vars` (quien = userito name, jugador = player name, mov, ...).
 import type { Eleccion, EstadoCombate, Estadisticas, EntrenadorId, Estado, Evento, Jugador, Movimiento, Stat, StatsUserito, Userito } from '../tipos';
-import { TIPOS_FISICOS } from '../tipos';
+import { PERK_CANA_FRAN, PERK_PRECISION_PABLO, PERK_TARDE_CHUCHI, TIPOS_FISICOS } from '../tipos';
 import { DESESPERADA, EFECTOS, ESPECIE, MOVS, eficacia } from '../datos';
 import { azar, elegir, entero, probar, type ConSemilla } from './azar';
 
@@ -476,6 +476,26 @@ function efectosSecundarios(c: Ctx, j: number, t: number, m: Movimiento, danino:
   if (ef.especial === 'remolino') forzarCambio(c, t);
 }
 
+/** Trainer perks that change a hit from another player on player `t`'s active userito (`dano` is
+ *  already final: after type, spread, Acorralado, random and critical). Chuchi «Llega tarde»: the
+ *  first such hit each of his useritos receives does 20 % less (min 1). Guille «Mañico»: once per
+ *  userito, a hit that would KO it from full HP leaves it at 1 HP. Each is spent once per battle. */
+function aplicarPerks(c: Ctx, t: number, dano: number): { dano: number; perk: 'chuchi' | 'guille' | null } {
+  const v = act(c, t);
+  const ent = c.e.jugadores[t].entrenador;
+  let perk: 'chuchi' | 'guille' | null = null;
+  if (ent === 'chuchi' && !v.perk?.tarde) {
+    v.perk = { ...v.perk, tarde: true };
+    dano = Math.max(1, Math.floor((dano * PERK_TARDE_CHUCHI) / 100));
+    perk = 'chuchi';
+  } else if (ent === 'guille' && !v.perk?.manico && v.ps === v.psMax && dano >= v.ps) {
+    v.perk = { ...v.perk, manico: true };
+    dano = v.ps - 1;
+    perk = 'guille';
+  }
+  return { dano, perk };
+}
+
 /** Runs move `m` for player `j` (already paid, announced and not skipped). */
 function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undefined, redirigir: boolean, evUsa: Extract<Evento, { k: 'usa' }>) {
   const e = c.e;
@@ -533,7 +553,9 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
       continue;
     }
     if (m.prec !== null) {
-      const p = m.prec * multNivel(u.niveles.prec);
+      // Pablo «Labia»: his status moves (pot null) get +10 accuracy points, capped at 100.
+      const base = e.jugadores[j].entrenador === 'pablo' && m.pot === null ? Math.min(100, m.prec + PERK_PRECISION_PABLO) : m.prec;
+      const p = base * multNivel(u.niveles.prec);
       if (p < 100 && azar(e) * 100 >= p) {
         st(c, j).fal++;
         st(c, t).esq++;
@@ -567,9 +589,11 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
           const critico = azar(e) * 512 < ESPECIE[u.especie].base.vel;
           const r = calcularDano(u, v, m, { pot, azar: 0.85 + azar(e) * 0.15, critico, todos: m.objetivo === 'todos', acorralado });
           efi = r.ef;
-          totalDano += danar(c, t, r.dano, { ef: r.ef, critico, de: j, mov: m.id });
+          const { dano, perk } = aplicarPerks(c, t, r.dano);
+          totalDano += danar(c, t, dano, { ef: r.ef, critico, de: j, mov: m.id });
           hechos++;
           if (critico) decir(c, 'combate.critico', varsDe(c, t));
+          if (perk) decir(c, `combate.perk.${perk}`, varsDe(c, t), t);
         }
         if (efi > 1) decir(c, 'combate.muy_eficaz', varsDe(c, t));
         else if (efi < 1) decir(c, 'combate.poco_eficaz', varsDe(c, t));
@@ -711,7 +735,7 @@ function ejecutarPrevia(c: Ctx, a: Exclude<Accion, { tipo: 'atacar' }>) {
     q.cana = false;
     st(c, j).cana++;
     decir(c, 'combate.cana', varsDe(c, j), j);
-    curar(c, j, Math.floor(u.psMax / 2));
+    curar(c, j, Math.floor((u.psMax * (q.entrenador === 'fran' ? PERK_CANA_FRAN : 50)) / 100));
   } else {
     const t = a.objetivo;
     if (activo(e, t).ps <= 0) return;

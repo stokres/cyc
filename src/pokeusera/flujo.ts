@@ -1,4 +1,4 @@
-// PokéUsera · the flow of the game: title → menu → (settings | solo | online) → trainer → draft →
+// PokéUsera · the flow of the game: title → menu → (guide | settings | solo | online) → trainer → draft →
 // battle → podium. Solo play is a `Partida` (partida.ts) whose hooks are answered by the screens
 // in pantallas/; online play (red/online.ts) runs the same `Partida` on the host and, for guests,
 // drives the same screens (VistaDraft, VistaCombate, pantallaPodio) from network messages.
@@ -10,6 +10,7 @@ import { pantalla } from './pantalla';
 import { sonido } from './sonido';
 import { cargarAjustes, guardarAjustes, pantallaAjustes } from './pantallas/ajustes';
 import { VistaCombate } from './pantallas/combate';
+import { abrirGuia } from './pantallas/guia';
 import { VistaDraft } from './pantallas/draft';
 import { pantallaEntrenador } from './pantallas/entrenador';
 import { pantallaMenu, type OpcionMenu } from './pantallas/menu';
@@ -112,6 +113,7 @@ export async function ejecutar(o: OpcionesFlujo): Promise<void> {
       if (m === 'titulo') break;
       ultima = m;
       if (m === 'ajustes') await pantallaAjustes();
+      else if (m === 'guia') await abrirGuia(null);
       else if (m === 'online') await enlaces.jugarOnline();
       else if (m === 'solo') {
         const yo = await pantallaEntrenador();

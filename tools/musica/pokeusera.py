@@ -1,4 +1,4 @@
-# Music of «PokéUsera · Edición Jarra»: five original Game Boy style tunes (docs/POKEUSERA.md).
+# Music of «PokéUsera · Edición Jarra»: eight original Game Boy style tunes (docs/POKEUSERA.md).
 # Four channels, as on the console: two pulse waves (LEAD and SEG: duty 12.5 / 25 / 50 %), one
 # 16-step wave channel for the bass (the stepped triangle) and one LFSR noise channel for the
 # drums. No reverb, no echo, no pan (everything mono and centred), a small late vibrato on the
@@ -7,7 +7,11 @@
 #
 #   python3 pokeusera.py titulo      title / menu theme, G major, 126 bpm, loop     -> src/sonido/pokeusera-titulo.mp3
 #   python3 pokeusera.py draft       team picking, C major with a swing, 110 bpm, loop
-#   python3 pokeusera.py combate     the battle, D minor, 156 bpm, loop (heard the most)
+#   python3 pokeusera.py combate     the battle, D minor, 156 bpm, loop (heard the most; the other three battle tunes
+#                                    below take turns with it: sonido.ts picks one at random for every battle)
+#   python3 pokeusera.py combate-rock     battle 2: C minor, 144 bpm, rock with a fast arpeggio bass, loop
+#   python3 pokeusera.py combate-verbena  battle 3: A minor / A major, 132 bpm, swung «pasodoble de verbena», loop
+#   python3 pokeusera.py combate-electro  battle 4: F sharp minor, 130 bpm, tense, syncopated, electronic, loop
 #   python3 pokeusera.py final       the last two standing, E minor, 172 bpm, loop
 #   python3 pokeusera.py victoria    podium fanfare, C major, 140 bpm, once (not a loop)
 #   python3 pokeusera.py todas       all of them (`bucle` after a name is accepted and changes nothing)
@@ -397,6 +401,197 @@ def final():
     return C, ronda, 24 * L, bpm
 
 
+# --- Combate 2: «Furgo a toda leche» ------------------------------------------------------------
+
+def combate_rock():
+    """Battle tune 2. C minor, 144 bpm, 32 bars: a driving rock. The riff over a sixteenth-note
+    arpeggio bass (A), the riff higher with octave jumps (A2), a chorus in the relative E flat
+    major (B) and a hammering bridge that ends in a chromatic run (C)."""
+    bpm = tempo(144)
+    C = Cancion(bpm)
+    c = canales(C, vol_lead=-5, vol_seg=-1, vol_bajo=-1, vol_rui=-13, duty_lead=0.25)
+    CH_A = ['Cm', 'Cm', 'Ab', 'Bb', 'Cm', 'Cm', 'Fm', 'G']
+    CH_A2 = ['Cm', 'Cm', 'Ab', 'Eb', 'Bb', 'Bb', 'Fm', 'G']
+    CH_B = ['Eb', 'Bb', 'Cm', 'Ab', 'Eb', 'Bb', 'Ab', 'G']
+    CH_C = ['Fm', 'Fm', 'Cm', 'Cm', 'Ab', 'G', 'Fm', 'G']
+    A = frase('G5:3 G5:1 C6:3 Bb5:1 G5:2 Eb5:2 G5:4 | Eb5:3 Eb5:1 G5:3 F5:1 Eb5:2 C5:2 Eb5:4 | Eb6:3 C6:1 Ab5:3 C6:1 Eb6:4 -:4 | D6:3 Bb5:1 F5:3 Bb5:1 D6:2 F6:2 D6:4 |'
+              'G5:3 G5:1 C6:3 Bb5:1 G5:2 Eb6:2 G6:4 | Eb6:3 D6:1 C6:3 Bb5:1 G5:2 Bb5:2 C6:4 | Ab5:3 C6:1 F6:3 Eb6:1 C6:2 Ab5:2 C6:4 | D6:2 B5:2 G5:2 B5:2 D6:2 F6:2 G6:4')
+    A2 = frase('C6:2 -:2 C6:2 Eb6:2 G6:4 Eb6:2 C6:2 | Bb5:2 -:2 Bb5:2 C6:2 Eb6:4 C6:4 | Ab5:2 -:2 Ab5:2 C6:2 Eb6:4 Ab6:4 | G6:4 Eb6:4 Bb5:4 G5:4 |'
+               'F6:2 -:2 F6:2 D6:2 Bb5:4 D6:4 | F6:4 D6:4 F6:4 Bb6:4 | Ab6:3 F6:1 C6:3 Ab5:1 C6:4 F6:4 | G5:1 B5:1 D6:1 G6:1 B6:4 G6:2 D6:2 B5:2 G5:2')
+    B = frase('G5:4 Bb5:4 Eb6:8 | F6:4 D6:4 Bb5:8 | C6:4 Eb6:4 G6:8 | Eb6:4 C6:4 Ab5:6 C6:2 |'
+              'Bb5:4 Eb6:4 G6:6 Eb6:2 | F6:4 D6:4 Bb5:4 D6:4 | Ab5:2 C6:2 Eb6:2 Ab6:2 Eb6:4 C6:4 | D6:4 B5:4 G5:4 B5:2 D6:2')
+    CC = frase('C6:2 -:2 C6:2 -:2 F6:2 -:2 Ab6:2 -:2 | Ab6:2 -:2 Ab6:2 -:2 G6:2 -:2 F6:2 -:2 | G5:2 -:2 G5:2 -:2 C6:2 -:2 Eb6:2 -:2 | Eb6:2 -:2 Eb6:2 -:2 D6:2 -:2 C6:2 -:2 |'
+               'Eb6:2 -:2 Eb6:2 -:2 C6:2 -:2 Ab5:2 -:2 | D6:2 -:2 D6:2 -:2 B5:2 -:2 G5:2 -:2 | C6:2 -:2 F6:2 -:2 Ab6:2 -:2 C7:2 -:2 | G5:1 Ab5:1 A5:1 Bb5:1 B5:1 C6:1 C#6:1 D6:1 Eb6:1 E6:1 F6:1 F#6:1 G6:4')
+    for nombre, notas, ch in (('A', A, CH_A), ('A2', A2, CH_A2), ('B', B, CH_B), ('C', CC, CH_C)):
+        revisa(f'rock {nombre}', notas, [[a] for a in ch])
+
+    def ronda(t):
+        # A: the riff, syncopated power chords (3+3+4+3+3), the arpeggio bass running in sixteenths.
+        tocar(c['lead'], t, A, 102)
+        sacudida(c['seg'], t, CH_A, 'x--x--x---x--x--', desde='G3', vel=76, caida=0.7)
+        bajo(c['bajo'], t, CH_A, ['0585058505850585'] * 7 + ['0.0.0.0.0.0.0.0.'], vel=96, caida=0.85)
+        bateria(c['rui'], t, 'X.....x...x.....', '....X.......X...', 'x.x.x.x.x.x.x.x.', compases=7)
+        bateria(c['rui'], t + 7 * L, 'X.....x...x.....', '....X.......X.xx', 'x.x.x.x.x.x.x.x.')
+        t += 8 * L
+        # A2: the tune jumps octaves, chip chords on the off-beats, the bass turns to root-fifth-third-octave.
+        tocar(c['lead'], t, A2, 104)
+        sacudida(c['seg'], t, CH_A2, 'x-x-x-x-x-x-x--x', desde='G3', vel=74, caida=0.6)
+        bajo(c['bajo'], t, CH_A2, ['0538053805380538'] * 7 + ['0.0.0.0.0.0.0.0.'], vel=98, caida=0.85)
+        bateria(c['rui'], t, 'X.....x...x...x.', '....X.......X...', 'xoxoxoxoxoxoxoxo', compases=7)
+        bateria(c['rui'], t + 7 * L, 'X.....x...x...x.', '....X...X.x.xxxx', 'xoxoxoxoxoxoxoxo')
+        c['rui'].golpe(t, 'gb_crash', 100)
+        t += 8 * L
+        # B: the chorus in E flat, long notes on the 50 % twin, fast broken chords, a bouncing bass.
+        tocar(c['lead2'], t, B, 100)
+        arpegio(c['seg'], t, CH_B, patron=(0, 1, 2, 1, 0, 1, 2, 3), desde='Eb4', vel=70, dur=0.2)
+        bajo(c['bajo'], t, CH_B, ['0080008000800080'] * 7 + ['0.0.0.0.0.0.8.8.'], vel=98)
+        bateria(c['rui'], t, 'X.....x.X.....x.', '....X.......X...', 'x.x.x.x.x.x.x.x.', abierto='..x...x...x...x.', compases=7)
+        bateria(c['rui'], t + 7 * L, 'X.....x.X.....x.', '....X...X...xxxx', 'x.x.x.x.x.x.x.x.')
+        c['rui'].golpe(t, 'gb_crash', 100)
+        t += 8 * L
+        # C: hammering quavers climbing, a snare roll after the chromatic run.
+        tocar(c['lead'], t, CC, 104)
+        sacudida(c['seg'], t, CH_C[:6], 'x.x.x.x.x.x.x.x.', desde='G3', vel=76, caida=0.55)
+        sacudida(c['seg'], t + 6 * L, CH_C[6:], ['x.x.x.x.x.x.x.x.', 'x---------------'], desde='G3', vel=76, caida=0.55)
+        bajo(c['bajo'], t, CH_C, ['0.0.0.0.0.0.0.0.'] * 6 + ['0.0.8.0.0.0.8.0.', '0.0.0.0.0.0.0.0.'], vel=100)
+        bateria(c['rui'], t, 'X.X.X.X.X.X.X.X.', '....x.......x...', 'o.o.o.o.o.o.o.o.', compases=3)
+        bateria(c['rui'], t + 3 * L, 'X.X.X.X.X.X.X.X.', '....x.......xxxx', 'o.o.o.o.o.o.o.o.')
+        bateria(c['rui'], t + 4 * L, 'X.X.X.X.X.X.X.X.', '....x.......x...', 'o.o.o.o.o.o.o.o.', compases=2)
+        bateria(c['rui'], t + 6 * L, 'X.X.X.X.X.X.X.X.', '....X.......X...', 'xoxoxoxoxoxoxoxo')
+        redoble(c['rui'], t + 7 * L, 40, 118)
+        return t + 8 * L
+
+    return C, ronda, 32 * L, bpm
+
+
+# --- Combate 3: «Riña en el Bar del Brío» -------------------------------------------------------
+
+def combate_verbena():
+    """Battle tune 3. A minor and A major, 132 bpm with a swing, 32 bars: a pasodoble de verbena for a
+    bar brawl. Oom-pah bass and off-beat chord stabs. The tune walks down the Andalusian cadence
+    (A), turns to A major with a brass-like twin in thirds (B), a fanfare of quick runs (C) and A again
+    with a second voice (A'). Snare rolls at the end of every eight bars, like a band marching in."""
+    bpm = tempo(132)
+    C = Cancion(bpm, swing=0.58)
+    c = canales(C, vol_lead=-5, vol_seg=-1, vol_bajo=-1, vol_rui=-13, duty_lead=0.25)
+    MENOR = escala('A', 'menor')
+    MAYOR = escala('A', 'mayor')
+    CH_A = ['Am', 'G', 'F', 'E7', 'Am', 'G', 'F', 'E7']
+    CH_B = ['A', 'D', 'A', 'E7', 'A', 'D', 'E7', 'A']
+    CH_C = ['Dm', 'Am', 'Dm', 'E7', 'Dm', 'Am', 'E7', 'E7']
+    A = frase('A5:3 -:1 A5:1 B5:1 C6:2 B5:2 A5:2 E5:4 | G5:3 -:1 G5:1 A5:1 B5:2 A5:2 G5:2 D5:4 | F5:3 -:1 F5:1 G5:1 A5:2 G5:2 F5:2 C5:4 | E5:2 G#5:2 B5:2 E6:2 D6:2 B5:2 G#5:4 |'
+              'C6:3 -:1 C6:1 D6:1 E6:2 D6:2 C6:2 A5:4 | B5:3 -:1 B5:1 C6:1 D6:2 B5:2 D6:2 G5:4 | A5:2 C6:2 F6:4 D6:2 E6:2 C6:4 | B5:1 C6:1 B5:1 G#5:1 E5:4 -:2 E5:2 G#5:2 B5:2')
+    B = frase('E6:2 C#6:2 A5:4 C#6:2 E6:2 A6:4 | F#6:2 D6:2 A5:4 D6:2 F#6:2 A6:4 | E6:3 -:1 E6:1 F#6:1 E6:2 C#6:2 A5:2 C#6:4 | B5:2 D6:2 E6:4 G#5:2 B5:2 E6:4 |'
+              'A6:3 -:1 A6:1 G#6:1 A6:2 E6:2 C#6:2 E6:4 | D6:3 -:1 D6:1 E6:1 F#6:2 E6:2 D6:2 A5:4 | G#5:2 B5:2 D6:2 E6:2 G#6:2 E6:2 D6:2 B5:2 | A5:2 C#6:2 E6:2 A6:2 A6:8')
+    CC = frase('D6:2 F6:2 A6:4 F6:2 D6:2 A5:4 | C6:2 E6:2 A6:4 E6:2 C6:2 A5:4 | D6:1 E6:1 F6:1 E6:1 D6:4 F6:1 G6:1 A6:1 G6:1 F6:4 | E6:1 B5:1 G#5:1 B5:1 E6:4 G#6:4 B6:4 |'
+               'A5:3 -:1 D6:2 F6:2 A6:4 F6:4 | E6:3 -:1 A5:2 C6:2 E6:4 A6:4 | G#6:2 E6:2 B5:2 G#5:2 E5:2 G#5:2 B5:2 E6:2 | B5:1 C6:1 B5:1 G#5:1 B5:1 D6:1 B5:1 G#5:1 E5:8')
+    for nombre, notas, ch in (('A', A, CH_A), ('B', B, CH_B), ('C', CC, CH_C)):
+        revisa(f'verbena {nombre}', notas, [[a] for a in ch])
+
+    def pasodoble(P, t0, acordes, vel=96):
+        """Oom-pah bass: root on the beats 1 and 3, fifth on 2 and 4, each a short quaver."""
+        bajo(P, t0, acordes, '0-..5-..0-..5-..', vel=vel, caida=0.9)
+
+    def ronda(t):
+        # A: the tune over the Andalusian cadence, oom-pah bass, stabs on the off-beat quavers.
+        tocar(c['lead'], t, A, 102)
+        sacudida(c['seg'], t, CH_A, '..x...x...x...x.', desde='A3', vel=78, caida=0.6)
+        pasodoble(c['bajo'], t, CH_A)
+        bateria(c['rui'], t, 'X.......x.......', '....x..o....x..o', 'x.x.x.x.x.x.x.x.', compases=7)
+        bateria(c['rui'], t + 7 * L, 'X.......x.......', '....x..o....xxxx', 'x.x.x.x.x.x.x.x.')
+        c['rui'].golpe(t, 'gb_crash', 92)
+        t += 8 * L
+        # B: A major, the 50 % twin like a trumpet with a second voice in thirds, a walking bass.
+        tocar(c['lead2'], t, B, 100)
+        segunda_voz(c['seg'], t, B, CH_B, MAYOR, vel=84)
+        pasodoble(c['bajo'], t, CH_B, vel=98)
+        bateria(c['rui'], t, 'X.......x.......', '....x.x.....x.x.', 'x.x.x.x.x.x.x.x.', compases=7)
+        bateria(c['rui'], t + 7 * L, 'X.......x.......', '....x.x.....xxxx', 'x.x.x.x.x.x.x.x.')
+        c['rui'].golpe(t, 'gb_crash', 96)
+        t += 8 * L
+        # C: the fanfare, quick runs on the 25 % lead, bass quavers, a march of snares.
+        tocar(c['lead'], t, CC, 104)
+        arpegio(c['seg'], t, CH_C, patron=(0, 1, 2, 1), desde='D4', vel=70, dur=0.2)
+        bajo(c['bajo'], t, CH_C, '0.0.5.5.0.0.5.5.', vel=98, caida=0.9)
+        bateria(c['rui'], t, 'X.......X.......', '..x.x.x.x.x.x.x.', 'x.x.x.x.x.x.x.x.', compases=7)
+        bateria(c['rui'], t + 7 * L, 'X.......X.......', '..x.x.x.x.x.xxxx', 'x.x.x.x.x.x.x.x.')
+        t += 8 * L
+        # A': the tune again with a second voice, hats on every sixteenth, a roll back to the top.
+        tocar(c['lead'], t, A, 104)
+        segunda_voz(c['seg'], t, A, CH_A, MENOR, vel=82)
+        pasodoble(c['bajo'], t, CH_A, vel=100)
+        bateria(c['rui'], t, 'X.......x.x.....', '....x..o....x..o', 'xoxoxoxoxoxoxoxo', compases=7)
+        bateria(c['rui'], t + 7 * L, 'X.......x.......', '....x..x....x...', 'xoxoxoxoxoxo....')
+        redoble(c['rui'], t + 7 * L + 3, 60, 118, 4)
+        c['rui'].golpe(t, 'gb_crash', 96)
+        return t + 8 * L
+
+    return C, ronda, 32 * L, bpm
+
+
+# --- Combate 4: «Cortocircuito» -------------------------------------------------------------------
+
+def combate_electro():
+    """Battle tune 4. F sharp minor, 130 bpm, 32 bars: tense and electronic. A thin 12.5 % lead
+    on a 3+3+2 syncopated riff with a flat second and a tritone (A), a floating middle in A major
+    that ends on a dominant (B), the riff again with a harmony and sixteenth hats (A'), and a
+    crawling bridge of repeated notes that climbs chromatically back to the top (C)."""
+    bpm = tempo(130)
+    C = Cancion(bpm)
+    c = canales(C, vol_lead=-5, vol_seg=-1, vol_bajo=-1, vol_rui=-13, duty_lead=0.125)
+    MENOR = escala('F#', 'menor')
+    CH_A = ['F#m', 'F#m', 'G', 'F#m', 'F#m', 'F#m', 'G', 'C']
+    CH_B = ['A', 'E', 'F#m', 'D', 'A', 'E', 'D', 'C#7']
+    CH_C = ['F#m', 'F#m', 'G', 'G', 'Bm', 'C', 'C#7', 'C#7']
+    A = frase('F#5:3 A5:3 C#6:2 F#6:3 E6:3 C#6:2 | F#5:3 A5:3 C#6:2 E6:3 D6:3 C#6:2 | G5:3 B5:3 D6:2 G6:3 F#6:3 D6:2 | A5:3 C#6:3 F#6:2 E6:3 C#6:3 A5:2 |'
+              'F#6:3 -:3 F#6:2 A6:3 -:3 F#6:2 | E6:3 -:3 E6:2 C#6:3 -:3 A5:2 | D6:3 G6:3 D6:2 B5:3 D6:3 G5:2 | E6:3 G6:3 C7:2 G6:3 E6:3 C6:2')
+    B = frase('E6:3 C#6:3 A5:2 C#6:4 E6:4 | B5:3 E6:3 G#6:2 E6:8 | A5:3 C#6:3 F#6:2 C#6:4 A5:4 | D6:3 F#6:3 A6:2 F#6:8 |'
+              'C#6:3 E6:3 A6:2 B6:3 E6:3 C#6:2 | B5:3 E6:3 G#6:2 B6:8 | A6:3 F#6:3 D6:2 A5:3 D6:3 F#6:2 | G#6:2 F6:2 C#6:2 B5:2 G#5:8')
+    CC = frase('F#6:1 F#6:1 -:1 F#6:1 -:2 F#6:1 F#6:1 -:1 F#6:1 -:2 F#6:2 A6:2 | E6:1 E6:1 -:1 E6:1 -:2 E6:1 E6:1 -:1 E6:1 -:2 C#6:2 E6:2 |'
+               'G6:1 G6:1 -:1 G6:1 -:2 G6:1 G6:1 -:1 G6:1 -:2 B6:2 D7:2 | F#6:1 F#6:1 -:1 F#6:1 -:2 F#6:1 F#6:1 -:1 F#6:1 -:2 D6:2 B5:2 |'
+               'D6:2 F#6:2 B6:4 A6:2 F#6:2 D6:4 | C6:2 E6:2 G6:4 E6:2 C6:2 G5:4 | C#6:2 F6:2 G#6:4 B6:2 G#6:2 F6:4 | C#6:1 D6:1 D#6:1 E6:1 F6:1 F#6:1 G6:1 G#6:1 A6:1 A#6:1 B6:1 C7:1 C#7:4')
+    for nombre, notas, ch in (('A', A, CH_A), ('B', B, CH_B), ('C', CC, CH_C)):
+        revisa(f'electro {nombre}', notas, [[a] for a in ch])
+
+    def ronda(t):
+        # A: the syncopated riff, gated chip stabs on the same 3+3+2, a 3+3+2 bass, a kick to match.
+        tocar(c['lead'], t, A, 102)
+        sacudida(c['seg'], t, CH_A, 'x..x..x.x..x..x.', desde='F#3', vel=74, caida=0.45)
+        bajo(c['bajo'], t, CH_A, ['0..0..0.0..0..8.'] * 7 + ['0.0.0.0.0.0.0.0.'], vel=98, caida=0.8)
+        bateria(c['rui'], t, 'X..x..x.X..x..x.', '....x.......x...', 'x.x.x.x.x.x.x.x.', compases=7)
+        bateria(c['rui'], t + 7 * L, 'X..x..x.X..x..x.', '....x.......xxxx', 'x.x.x.x.x.x.x.x.')
+        t += 8 * L
+        # B: floating long notes on the 50 % twin, sixteenth broken chords, an off-beat bass, open hats.
+        tocar(c['lead2'], t, B, 100)
+        arpegio(c['seg'], t, CH_B, patron=(0, 1, 2, 3, 2, 1), desde='A3', vel=70, dur=0.2)
+        bajo(c['bajo'], t, CH_B, ['0-0-0-5-0-0-8-5-'] * 7 + ['0.0.0.0.0.0.5.5.'], vel=96, caida=0.8)
+        bateria(c['rui'], t, 'X.......X.......', '....x.......x...', 'x.x.x.x.x.x.x.x.', abierto='..x...x...x...x.', compases=7)
+        bateria(c['rui'], t + 7 * L, 'X.......X.......', '....x...x...xxxx', 'x.x.x.x.x.x.x.x.')
+        c['rui'].golpe(t, 'gb_crash', 92)
+        t += 8 * L
+        # A': the riff again with a harmony under it and busier drums.
+        tocar(c['lead'], t, A, 104)
+        segunda_voz(c['seg'], t, A, CH_A, MENOR, vel=82)
+        bajo(c['bajo'], t, CH_A, ['0008000800080008'] * 7 + ['0.0.0.0.0.0.0.0.'], vel=100, caida=0.75)
+        bateria(c['rui'], t, 'X..x..x.X..x..x.', '....X.......X..x', 'xoxoxoxoxoxoxoxo', compases=7)
+        bateria(c['rui'], t + 7 * L, 'X..x..x.X..x..x.', '....X...X...xxxx', 'xoxoxoxoxoxoxoxo')
+        c['rui'].golpe(t, 'gb_crash', 100)
+        t += 8 * L
+        # C: crawling repeated notes climbing, one chromatic run and a roll to the riff.
+        tocar(c['lead'], t, CC, 104)
+        sacudida(c['seg'], t, CH_C[:6], 'x.x.x.x.x.x.x.x.', desde='F#3', vel=74, caida=0.5)
+        sacudida(c['seg'], t + 6 * L, CH_C[6:], ['x.x.x.x.x.x.x.x.', 'x---------------'], desde='F#3', vel=74, caida=0.5)
+        bajo(c['bajo'], t, CH_C, ['0.0.0.0.0.0.0.0.'] * 6 + ['0.0.8.0.0.0.8.0.', '0.0.0.0.0.0.0.0.'], vel=100)
+        bateria(c['rui'], t, 'X...X...X...X...', '....x.......x...', 'o.o.o.o.o.o.o.o.', compases=3)
+        bateria(c['rui'], t + 3 * L, 'X...X...X...X...', '....x.......xxxx', 'o.o.o.o.o.o.o.o.')
+        bateria(c['rui'], t + 4 * L, 'X...X...X...X...', '....x.......x...', 'xoxoxoxoxoxoxoxo', compases=2)
+        bateria(c['rui'], t + 6 * L, 'X...X...X...X...', '....X.......X...', 'xoxoxoxoxoxoxoxo')
+        redoble(c['rui'], t + 7 * L, 40, 118)
+        return t + 8 * L
+
+    return C, ronda, 32 * L, bpm
+
+
 # --- Victoria: «Subid al podio» --------------------------------------------------------------
 
 def victoria():
@@ -423,7 +618,8 @@ def victoria():
 
 # --- Output -------------------------------------------------------------------------------
 
-PISTAS = {'titulo': titulo, 'draft': draft, 'combate': combate, 'final': final}
+PISTAS = {'titulo': titulo, 'draft': draft, 'combate': combate, 'combate-rock': combate_rock, 'combate-verbena': combate_verbena,
+          'combate-electro': combate_electro, 'final': final}
 
 
 def salir_bucle(nombre):

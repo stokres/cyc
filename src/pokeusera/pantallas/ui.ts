@@ -212,11 +212,25 @@ function luminoso(hex: string): boolean {
 /** Height of a type badge. */
 export const ALTO_INSIGNIA = 11;
 
-/** Small coloured badge with the type name. Returns its width. */
-export function insignaTipo(ctx: CanvasRenderingContext2D, tipo: Tipo, x: number, y: number, fijo = 0): number {
-  const nombre = NOMBRE_TIPO[tipo].toUpperCase();
+/** Small coloured badge with the type name (or `rotulo`: e.g. a move's name on its type's colour). Returns its width. */
+export function insignaTipo(ctx: CanvasRenderingContext2D, tipo: Tipo, x: number, y: number, fijo = 0, rotulo?: string): number {
+  const nombre = rotulo ?? NOMBRE_TIPO[tipo].toUpperCase();
   const w = fijo || anchoTexto2(nombre) + 7;
   const c = COLOR_TIPO[tipo];
+  relleno(ctx, TINTA2, x, y, w, ALTO_INSIGNIA);
+  relleno(ctx, c, x + 1, y + 1, w - 2, ALTO_INSIGNIA - 2);
+  rect(ctx, 'rgba(255,255,255,0.35)', x + 2, y + 1, w - 4, 1);
+  rect(ctx, 'rgba(0,0,0,0.2)', x + 2, y + ALTO_INSIGNIA - 2, w - 4, 1);
+  dibujarTexto2(ctx, nombre, x + Math.floor((w - anchoTexto2(nombre)) / 2), y + 2, luminoso(c) ? TINTA2 : '#fff8e8', null);
+  return w;
+}
+
+/** The type's compact chip: its short name (3 letters) on the type's colour. `solo`: a small square with only the initial. Returns its width. */
+export function chipTipo(ctx: CanvasRenderingContext2D, tipo: Tipo, x: number, y: number, solo = false): number {
+  const c = COLOR_TIPO[tipo];
+  const abrev = texto(`tipo.abrev.${tipo}`);
+  const nombre = solo ? abrev.charAt(0) : abrev;
+  const w = solo ? 9 : anchoTexto2(nombre) + 7;
   relleno(ctx, TINTA2, x, y, w, ALTO_INSIGNIA);
   relleno(ctx, c, x + 1, y + 1, w - 2, ALTO_INSIGNIA - 2);
   rect(ctx, 'rgba(255,255,255,0.35)', x + 2, y + 1, w - 4, 1);

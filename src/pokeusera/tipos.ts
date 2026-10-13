@@ -14,6 +14,12 @@ export type Estado = 'dormido' | 'paralizado' | 'quemado' | 'empachado';
 export type EntrenadorId = 'fran' | 'pablo' | 'chuchi' | 'guille';
 export const ENTRENADORES: readonly EntrenadorId[] = ['fran', 'pablo', 'chuchi', 'guille'];
 
+/** One mild perk per trainer (docs/POKEUSERA.md, «Ventajas de entrenador»); the engine applies it by `Jugador.entrenador`. */
+export const PERK_CANA_FRAN = 60; // Fran: his caña heals 60 % of max HP instead of 50 %
+export const PERK_PRECISION_PABLO = 10; // Pablo: status moves +10 accuracy points
+export const PERK_TARDE_CHUCHI = 80; // Chuchi: first hit each userito receives does 20 % less (80 % of the damage)
+// Guille: once per userito, a hit from full HP that would KO leaves it at 1 HP.
+
 export interface Base {
   ps: number;
   ata: number;
@@ -70,6 +76,9 @@ export interface Userito {
   achispado: number;
   /** Stat stages, −6..+6. Reset on switching out. */
   niveles: Record<Stat, number>;
+  /** Trainer perks already used by this userito in this battle (Chuchi «Llega tarde», Guille «Mañico»).
+   *  Not in `vol`: they must survive switching out. Absent until used. */
+  perk?: { tarde?: true; manico?: true };
   /** Volatile effects, reset on switching out. */
   vol: {
     /** Turns trapped by «Te pillo en la barra» (and who trapped it). */
