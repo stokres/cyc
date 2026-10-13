@@ -563,7 +563,7 @@ function resacon(P: Pintor): void {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Evoscar · a compact brown horse with two big chibi heads side by side: a woman and a man, party couple.
+// Evoscar · a compact brown horse with two big chibi heads side by side: a woman and a man, a bored, bickering couple.
 // ---------------------------------------------------------------------------------------------
 const CABALLO: Mat = { r: ['#5a2e16', '#8e5428', '#b87a40', '#dca468'], ol: '#2a140a', ol2: '#5a2e16', rim: '#e8b078' };
 const MELENA: Mat = { r: ['#3a1c10', '#5a2e16', '#8e5428'], ol: '#2a140a', ol2: '#3a1c10' };
@@ -596,6 +596,8 @@ function evoscar(P: Pintor): void {
   P.forma(un(rr(11, 49, 8, 11, 3), rr(45, 49, 8, 11, 3)), CABALLO, { rad: 3.4, grad: 0.3, sesgo: -0.35 });
   P.forma(un(rr(22, 49, 8, 12, 3), rr(34, 49, 8, 12, 3)), CABALLO, { rad: 3.4, grad: 0.3 });
   for (const x of [11, 45, 22, 34]) {
+    // A white sock above each hoof.
+    P.llenar(rc(x + 1, x === 22 || x === 34 ? 56 : 55, 6, 3), BLANCO_E);
     P.llenar(rc(x, x === 22 || x === 34 ? 59 : 58, 8, 2), NEGRO_E);
     P.llenar(rc(x + 1, x === 22 || x === 34 ? 59 : 58, 3, 1), '#5a2e16');
   }
@@ -603,6 +605,9 @@ function evoscar(P: Pintor): void {
   const barril = un(el(32, 45, 19.5, 10.5), poli([[17, 45], [28, 28], [36, 28], [47, 45]]), el(xm + 1, 36, 6.5, 10), el(xh - 1, 36, 6.5, 10));
   P.sombra(barril, 0, 1, 1);
   P.forma(barril, CABALLO, { rad: 8, grad: 0.4 });
+  // Haunches: a curved crease on each side of the barrel.
+  P.llenarSobre(cur(bez3([14, 44], [14, 50], [18, 54], [24, 54], 10), 1), '#5a2e16', CABALLO);
+  P.llenarSobre(cur(bez3([50, 44], [50, 50], [46, 54], [40, 54], 10), 1), '#5a2e16', CABALLO);
   P.dorso(() => {
     P.tono(el(32, 40, 14, 3), CABALLO, 1);
     P.llenarSobre(cur([[32, 38], [32, 46]], 1), '#5a2e16', CABALLO);
@@ -620,6 +625,7 @@ function evoscar(P: Pintor): void {
   };
 
   // ---- The woman (left head): horse ears, long golden hair with locks on the outside, face, fringe.
+  // A grumpy couple: half-lidded eyes glaring sideways at each other, brows down, flat mouths.
   oreja(xm - 9, 12 + dL, xm - 12, 2 + dL);
   oreja(xm + 7.5, 9 + dL, xm + 9.5, 0 + dL);
   const caboM = un(el(xm, 18 + dL, 11.6, 11.4), trazo([[xm - 9.5, 22 + dL], [xm - 12, 31 + dL], [xm - 11, 40 + dL]], 4.2, 3.4), trazo([[xm + 9.5, 23 + dL], [xm + 11, 30 + dL], [xm + 9.5, 37 + dL]], 2.8, 2.2));
@@ -631,20 +637,22 @@ function evoscar(P: Pintor): void {
     const fq = men(el(xm, 18 + dL, 11.6, 11.4), el(xm + 2.5, 28.5 + dL, 10.8, 10.8));
     P.forma(fq, RUBIA, { rad: 4, grad: 0.4 });
     P.llenarSobre(cur([[xm - 8, 16 + dL], [xm - 2, 11 + dL], [xm + 6, 12 + dL]], 1), '#f6c048', RUBIA);
-    // Eyes with lashes, brows, rosy cheeks, a wide open smile.
+    // Heavy-lidded eyes glaring right (at him); the lid is a skin-coloured band over the top; on the
+    // second beat she shuts them for a long-suffering blink.
     for (const cx of [xm - 4, xm + 4.5]) {
-      P.llenar(el(cx, 25 + dL, 2.2, 3), NEGRO_E);
-      P.px(Math.round(cx) - 1, 23 + dL, BLANCO_E);
+      if (f) {
+        P.llenar(cur([[cx - 2.5, 25 + dL], [cx + 2.5, 25 + dL]], 1), NEGRO_E);
+      } else {
+        P.llenar(el(cx, 25.5 + dL, 2.7, 3), NEGRO_E);
+        P.llenar(rc(Math.round(cx) - 3, 22 + dL, 7, 2), CARNE.r[1]);
+        P.llenar(rc(Math.round(cx) - 3, 24 + dL, 7, 1), NEGRO_E);
+        P.pxs(BLANCO_E, [Math.round(cx) + 1, 26 + dL], [Math.round(cx) + 1, 27 + dL]);
+      }
     }
-    P.pxs(NEGRO_E, [xm - 7, 22 + dL], [xm - 8, 21 + dL], [xm + 8, 22 + dL], [xm + 9, 21 + dL]);
-    P.llenar(cur([[xm - 7, 20 + dL], [xm - 4, 19 + dL], [xm - 2, 20 + dL]], 1), '#8e5428');
-    P.llenar(cur([[xm + 3, 20 + dL], [xm + 6, 19 + dL], [xm + 8, 20 + dL]], 1), '#8e5428');
-    P.llenar(rc(xm - 8, 29 + dL, 3, 2), ROSA_E);
-    P.llenar(rc(xm + 6, 29 + dL, 3, 2), ROSA_E);
-    const boca = inter(el(xm, 29 + dL, 4.8, 4), rc(xm - 7, 29 + dL, 14, 6));
-    P.llenar(boca, NEGRO_E);
-    P.llenar(rc(xm - 4, 29 + dL, 8, 1), BLANCO_E);
-    P.llenar(inter(el(xm, 32.6 + dL, 2.6, 1.6), boca), ROSA_E);
+    P.llenar(cur([[xm - 8, 20 + dL], [xm - 5, 21 + dL], [xm - 2, 22 + dL]], 1), '#8e5428');
+    P.llenar(cur([[xm + 3, 22 + dL], [xm + 6, 21 + dL], [xm + 9, 20 + dL]], 1), '#8e5428');
+    // Flat, pursed mouth with a downturn at each corner.
+    P.llenar(cur([[xm - 3, 32 + dL], [xm - 1, 30 + dL], [xm + 2, 30 + dL], [xm + 4, 32 + dL]], 1), NEGRO_E);
   });
   P.dorso(() => {
     // Back of her head: the long hair parted down the middle, a lock over each shoulder.
@@ -654,54 +662,52 @@ function evoscar(P: Pintor): void {
     P.llenarSobre(el(xm - 4, 14 + dL, 3, 2), '#f6c048', RUBIA);
   });
 
-  // ---- The man (right head): horse ears, short dark hair with a quiff, beard, big grin.
+  // ---- The man (right head): horse ears, SHORT hair: a thin receding crescent in front, a bald
+  // crown ringed by cropped hair behind; a stubbly beard and a permanent scowl.
   oreja(xh + 9, 12 + dR, xh + 12, 2 + dR);
   oreja(xh - 7.5, 9 + dR, xh - 9.5, 0 + dR);
   const caraH = el(xh, 24 + dR, 10.2, 10.8);
-  const caboH = un(el(xh, 19 + dR, 11.4, 11), el(xh + 3, 9.5 + dR, 6, 3.4));
   P.dorso(() => {
     P.forma(caraH, CARNE, { rad: 7, sesgo: -0.15 });
-    P.forma(un(caboH, rc(xh - 9, 22 + dR, 18, 5)), MELENA, { rad: 5, grad: 0.4 });
-    P.llenarSobre(cur([[xh - 6, 28 + dR], [xh, 31 + dR], [xh + 6, 28 + dR]], 1), '#8e5428', MELENA);
+    // Cropped hair on the back and sides of the skull (short back and sides), the crown left bald.
+    const nuca = inter(el(xh, 23 + dR, 10.4, 10.2), rc(xh - 12, 0, 25, 28 + dR));
+    const coronilla = el(xh, 16.5 + dR, 5.4, 3.4);
+    P.forma(men(nuca, coronilla), MELENA, { rad: 2.6, grad: 0.4 });
     P.forma(un(el(xh - 10, 27 + dR, 2.4, 3), el(xh + 10, 27 + dR, 2.4, 3)), CARNE, { rad: 2, paso: 1 });
+    // A fold of skin on the thick neck.
+    P.llenarSobre(cur([[xh - 6, 32 + dR], [xh, 34 + dR], [xh + 6, 32 + dR]], 1), '#d87c52', CARNE);
   });
   P.cara(() => {
     P.forma(caraH, CARNE, { rad: 7, grad: 0.35, sesgo: -0.15 });
-    // Beard around the jaw.
+    // Stubbly beard around the jaw.
     const barba = men(inter(caraH, rc(xh - 12, 22 + dR, 25, 17)), el(xh, 20 + dR, 10.6, 8.2));
     P.llenar(barba, '#5a2e16');
     barba.each((x, y) => {
       if ((x * 3 + y * 5) % 7 === 0) P.px(x, y, '#8e5428');
       else if ((x + y * 2) % 9 === 0) P.px(x, y, '#3a1c10');
     });
-    // Short hair: the cap minus a face-shaped bite, with a quiff on top.
-    const pelo = men(caboH, el(xh, 29.5 + dR, 10.8, 11));
-    P.forma(pelo, MELENA, { rad: 4, grad: 0.4 });
-    P.llenarSobre(cur([[xh - 7, 15 + dR], [xh, 11 + dR], [xh + 6, 14 + dR]], 1), '#8e5428', MELENA);
+    // Short hair: only a thin receding crescent over the top of the forehead, plus sideburns.
+    const pelo = un(
+      men(el(xh, 23.4 + dR, 10.8, 11.4), el(xh, 26.6 + dR, 10.8, 12.6)),
+      inter(men(el(xh, 24 + dR, 10.9, 11.4), el(xh, 24 + dR, 8.6, 10.2)), rc(xh - 12, 16 + dR, 25, 8)),
+    );
+    P.forma(pelo, MELENA, { rad: 2.2, grad: 0.4 });
+    // Heavy-lidded glare to the left (at her), thick brows pulled down towards the nose.
     for (const cx of [xh - 4.5, xh + 4.5]) {
-      P.llenar(el(cx, 25 + dR, 2.2, 3), NEGRO_E);
-      P.px(Math.round(cx) - 1, 23 + dR, BLANCO_E);
+      P.llenar(el(cx, 25.5 + dR, 2.7, 3), NEGRO_E);
+      P.llenar(rc(Math.round(cx) - 3, 22 + dR, 7, 2), CARNE.r[1]);
+      P.llenar(rc(Math.round(cx) - 3, 24 + dR, 7, 1), NEGRO_E);
+      P.pxs(BLANCO_E, [Math.round(cx) - 1, 26 + dR], [Math.round(cx) - 1, 27 + dR]);
     }
-    P.llenar(cur([[xh - 8, 22 + dR], [xh - 5, 20 + dR], [xh - 2, 21 + dR]], 1), '#3a1c10');
-    P.llenar(cur([[xh + 2, 21 + dR], [xh + 5, 20 + dR], [xh + 8, 22 + dR]], 1), '#3a1c10');
-    P.llenar(rc(xh - 9, 26 + dR, 3, 2), ROSA_E);
-    P.llenar(rc(xh + 6, 26 + dR, 3, 2), ROSA_E);
-    // Moustache over a wide grin.
-    P.llenar(cur([[xh - 6, 29 + dR], [xh - 3, 28 + dR], [xh, 29 + dR], [xh + 3, 28 + dR], [xh + 6, 29 + dR]], 1), '#3a1c10');
-    const bocaH = inter(el(xh, 30.5 + dR, 5.6, 4.2), rc(xh - 8, 30 + dR, 16, 6));
-    P.llenar(bocaH, NEGRO_E);
-    P.llenar(rc(xh - 5, 30 + dR, 10, 2), BLANCO_E);
-    P.llenar(inter(el(xh, 34.2 + dR, 2.8, 1.7), bocaH), ROSA_E);
+    P.llenar(cur([[xh - 8, 20 + dR], [xh - 5, 21 + dR], [xh - 2, 23 + dR]], 1), '#3a1c10');
+    P.llenar(cur([[xh + 2, 23 + dR], [xh + 5, 21 + dR], [xh + 8, 20 + dR]], 1), '#3a1c10');
+    P.llenar(rc(xh - 8, 22 + dR, 4, 1), '#3a1c10');
+    P.llenar(rc(xh + 4, 22 + dR, 4, 1), '#3a1c10');
+    // Drooping moustache over a downturned mouth.
+    P.llenar(cur([[xh - 7, 31 + dR], [xh - 4, 28 + dR], [xh, 29 + dR], [xh + 4, 28 + dR], [xh + 7, 31 + dR]], 1), '#3a1c10');
+    P.llenar(cur([[xh - 3, 32 + dR], [xh, 31 + dR], [xh + 3, 32 + dR]], 1), NEGRO_E);
   });
 
-  // Party confetti.
-  const co = ['#f6c048', ROSA_E, '#ffd8b0'];
-  const conf: [number, number][] = [[3, 8], [59, 22], [60, 36], [3, 24], [2, 44 - cola], [57, 6]];
-  conf.forEach(([x, y], i) => {
-    const o = f ? (i % 2 ? -1 : 1) : 0;
-    P.px(x, y + o, co[i % 3]);
-    P.px(x + 1, y + o + 1, co[(i + 1) % 3]);
-  });
   void E;
   void par;
 }

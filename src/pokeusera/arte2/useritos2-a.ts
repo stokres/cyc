@@ -467,18 +467,15 @@ function tocinon(P: Pintor): void {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Roscochoco · a chocolate-glazed Christmas ring cake with candied fruit, greasy and queasy.
+// Roscochoco · a Christmas ring cake («roscón») under one chocolate glaze, queasy from the grease.
+// Deliberately plain (Jesús, 13 Oct 2026: «un diseño más sencillo, menos colorines»): 8 colours in all —
+// outline, three chocolate tones, two dough tones, cream and a single red (cherries and tongue).
 // ---------------------------------------------------------------------------------------------
-const CHOCO: Mat = { r: ['#3a1a10', '#5e2c1a', '#86462a', '#b06a40', '#d99668'], ol: '#1e0a06', ol2: '#5e2c1a', rim: '#86462a' };
-const MASA: Mat = { r: ['#b8702c', '#e8a040', '#e8a040'], ol: '#1e0a06', ol2: '#b8702c' };
+const TINTA_R = '#26100a';
+const CHOCO: Mat = { r: ['#4a2214', '#6e3620', '#94502e'], ol: TINTA_R, ol2: '#4a2214', rim: '#6e3620' };
+const MASA: Mat = { r: ['#c47a30', '#e8a850', '#e8a850'], ol: TINTA_R, ol2: '#c47a30' };
 const CEREZA = '#d82a38';
-const CEREZA_O = '#8a1424';
-const VERDE = '#58b83c';
-const VERDE_O = '#2e7a28';
-const NARANJA = '#e8a040';
-const NARANJA_O = '#b8702c';
-const AZUCAR = '#fff0dc';
-const NEGRO_R = '#1e0a06';
+const CREMA_R = '#fff0dc';
 
 function roscochoco(P: Pintor): void {
   const f = P.f;
@@ -488,102 +485,58 @@ function roscochoco(P: Pintor): void {
   const exterior = el(32, cy, 28.5, 25 - sq * 0.5);
   const agujero = el(32, 25.5 + sq * 0.5, 9.4, 5.6);
   const anillo = men(exterior, agujero);
-  // The dough underneath (it shows below the glaze), then the chocolate glaze with its drips.
+  // The dough underneath (it shows below the glaze), then one chocolate glaze with a few drips.
   P.sombra(anillo, 0, 1, 1);
   P.forma(anillo, MASA, { rad: 8, grad: 0.4 });
-  const gotas = un(rr(10, 50 + sq, 6, 8, 2), rr(19, 52 + sq, 5, 5, 2), rr(27, 53 + sq, 6, 6 + sq, 2), rr(38, 52 + sq, 6, 8, 3), rr(48, 49 + sq, 6, 6, 2));
-  const glaseado = men(un(inter(anillo, rc(0, 0, 64, 53 + sq)), inter(anillo, gotas)), agujero);
+  const gotas = un(rr(11, 50 + sq, 6, 8, 2), rr(27, 53 + sq, 7, 6 + sq, 2), rr(43, 51 + sq, 6, 7, 3));
+  // The glaze stops short of the outer edge, so a rim of dough shows all round and the drips run over it.
+  const cubierta = el(32, cy - 1.4, 24.8, 21.6 - sq * 0.5);
+  const glaseado = men(inter(anillo, un(cubierta, gotas)), agujero);
   P.forma(glaseado, CHOCO, { rad: 11, grad: 0.5 });
   // The hole: a dark inner wall, lit a little on its lower lip.
   P.llenar(agujero, CHOCO.r[0]);
-  P.llenar(inter(agujero, rc(0, 0, 64, 25 + sq)), CHOCO.r[1]);
-  P.llenar(cur(bez3([24, 27 + sq], [28, 32 + sq], [36, 32 + sq], [40, 27 + sq], 10), 1), CHOCO.r[3]);
-  // Greasy shine: long glints on the glaze.
-  P.llenar(cur(bez3([8, 32], [9, 22], [15, 14], [23, 11], 12), 1), AZUCAR);
-  P.llenar(cur(bez3([11, 35], [10.5, 30], [11, 26], [12.5, 22], 8), 1), CHOCO.r[4]);
-  P.llenar(cur([[46, 15], [51, 19]], 1), CHOCO.r[4]);
-  P.px(52, 21, AZUCAR);
-  // Candied fruit: cherries, green angelica and orange slices; the arrangement differs from behind.
+  P.llenar(cur(bez3([24, 27 + sq], [28, 32 + sq], [36, 32 + sq], [40, 27 + sq], 10), 1), CHOCO.r[2]);
+  // One long glint on the glaze.
+  P.llenar(cur(bez3([8, 32], [9, 22], [15, 14], [23, 11], 12), 1), CREMA_R);
+  // Toppings: just a few cherries and a pinch of pearl sugar (a different spread from behind).
   const cereza = (x: number, y: number) => {
-    P.sombra(el(x, y, 3.6, 3.4), 1, 1, 1);
-    P.forma(el(x, y, 3.6, 3.4), { r: [CEREZA_O, CEREZA, CEREZA], ol: NEGRO_R }, { rad: 2.4, paso: 1 });
-    P.px(x, y - 1, CEREZA_O);
-    P.px(x + 1, y + 1, CEREZA_O);
-    P.px(x - 1, y - 1, AZUCAR);
-    P.px(x - 1, y - 2, AZUCAR);
-  };
-  const verde = (x: number, y: number, t: number) => {
-    const m = t ? poli([[x - 4, y + 1], [x - 1, y - 2], [x + 4, y - 1], [x + 2, y + 2], [x - 2, y + 3]]) : poli([[x - 4, y - 1], [x - 1, y + 2], [x + 4, y + 1], [x + 2, y - 2], [x - 2, y - 3]]);
+    const m = el(x, y, 3.6, 3.4);
     P.sombra(m, 1, 1, 1);
-    P.forma(m, { r: [VERDE_O, VERDE, VERDE], ol: NEGRO_R }, { rad: 2, paso: 1 });
-    P.px(x - 1, y + (t ? -1 : 0), AZUCAR);
-    P.px(x, y + (t ? -1 : 0), AZUCAR);
-    P.llenar(cur([[x - 2, y + (t ? 1 : 0)], [x + 2, y + (t ? 0 : 0)]], 1), VERDE_O);
+    P.forma(m, { r: [CEREZA, CEREZA, CEREZA], ol: TINTA_R }, { rad: 2.4, paso: 1 });
+    P.px(x - 1, y - 1, CREMA_R);
   };
-  const naranja = (x: number, y: number) => {
-    const m = el(x, y, 4.4, 3.4);
-    P.sombra(m, 1, 1, 1);
-    P.forma(m, { r: [NARANJA_O, NARANJA, NARANJA], ol: NEGRO_R }, { rad: 2.4, paso: 1 });
-    P.llenar(cur([[x - 3, y], [x + 3, y]], 1), NARANJA_O);
-    P.px(x, y - 1, AZUCAR);
-    P.px(x, y + 1, AZUCAR);
-    P.px(x - 2, y - 1, AZUCAR);
-  };
+  const azucar: [number, number][] = E
+    ? [[16, 20], [49, 20], [12, 36], [52, 36], [24, 44], [40, 44]]
+    : [[17, 18], [47, 18], [54, 30], [13, 28]];
   if (!E) {
-    cereza(14, 24);
-    verde(22, 15, 0);
-    naranja(41, 13);
-    cereza(51, 22);
-    verde(55, 33, 1);
-    naranja(9, 36);
-    cereza(32, 13);
+    cereza(15, 22);
+    cereza(32, 12);
+    cereza(50, 22);
   } else {
-    cereza(13, 33);
-    verde(21, 18, 1);
-    naranja(32, 13);
-    cereza(45, 16);
-    verde(52, 29, 0);
-    naranja(20, 41);
-    cereza(46, 42);
-    verde(33, 39, 1);
-    naranja(8, 41);
-    cereza(55, 40);
-    verde(33, 47, 0);
+    cereza(14, 32);
+    cereza(32, 12);
+    cereza(50, 30);
+    cereza(32, 44);
   }
-  // Sugar crystals, scattered (they twinkle between frames).
-  const azucar: [number, number][] = [[12, 18], [28, 18], [36, 18], [47, 24], [20, 26], [45, 32], [53, 28], [19, 33], [10, 27], [57, 40], [6, 40], [29, 12], [37, 12]];
-  azucar.forEach(([x, y], i) => P.px(x, y, (i + f) % 3 === 0 ? AZUCAR : CHOCO.r[4]));
+  azucar.forEach(([x, y], i) => P.px(x, y, (i + f) % 3 === 0 ? CREMA_R : CHOCO.r[2]));
   P.cara(() => {
     const y = sq;
-    // Queasy face: heavy-lidded eyes looking down, big green cheeks, a wobbly mouth, a sweat drop.
+    // Queasy face: heavy-lidded eyes looking down, a wobbly mouth with the tongue lolling.
     for (const cx of [22, 42]) {
       const dir = cx < 32 ? 1 : -1;
       const ojo = el(cx, 40 + y, 4.8, 3.8);
-      P.llenar(ojo, AZUCAR);
-      P.aro(ojo, NEGRO_R);
-      P.llenar(el(cx + dir, 41.4 + y, 1.9, 2), NEGRO_R);
-      P.px(cx + (dir > 0 ? 0 : -2), 40.5 + y, AZUCAR);
-      P.llenar(inter(ojo, rc(cx - 6, 36 + y, 12, 3)), CHOCO.r[2]);
-      P.llenar(cur([[cx - 5 * dir, 37 + y - (dir > 0 ? 1 : 0)], [cx + 5 * dir, 38.5 + y - (dir > 0 ? 0 : 1)]], 1), NEGRO_R);
+      P.llenar(ojo, CREMA_R);
+      P.aro(ojo, TINTA_R);
+      P.llenar(el(cx + dir, 41.4 + y, 1.9, 2), TINTA_R);
+      P.px(cx + (dir > 0 ? 0 : -2), 40.5 + y, CREMA_R);
+      P.llenar(inter(ojo, rc(cx - 6, 36 + y, 12, 3)), CHOCO.r[1]);
+      P.llenar(cur([[cx - 5 * dir, 37 + y - (dir > 0 ? 1 : 0)], [cx + 5 * dir, 38.5 + y - (dir > 0 ? 0 : 1)]], 1), TINTA_R);
     }
-    // Green, sickly cheeks.
-    for (const cx of [14.5, 49.5]) {
-      const mejilla = el(cx, 46 + y, 5.4, 3.8);
-      P.llenar(mejilla, VERDE);
-      mejilla.each((x, yy) => {
-        if (!mejilla.tiene(x, yy + 1)) P.px(x, yy, VERDE_O);
-      });
-      P.px(cx - 2, 44 + y, AZUCAR);
-      P.px(cx - 3, 45 + y, AZUCAR);
-    }
-    // Wobbly mouth with the tongue lolling.
-    P.llenar(cur([[25, 47 + y], [28, 49 + y], [31, 46 + y], [34, 49 + y], [37, 46 + y], [40, 48 + y]], 1), CHOCO.r[4]);
-    P.llenar(cur([[25, 46 + y], [28, 48 + y], [31, 45 + y], [34, 48 + y], [37, 45 + y], [40, 47 + y]], 1), NEGRO_R);
-    P.llenar(inter(el(35, 50 + y, 3, 2.6), rc(28, 49 + y, 14, 6)), CEREZA);
-    P.px(35, 49 + y, CEREZA_O);
-    P.px(35, 50 + y, CEREZA_O);
-    // Sweat drop on the brow.
-    P.forma(poli([[55.5, 25 + y], [57.5, 29 + y], [55.5, 31.5 + y], [53.5, 29 + y]]), { r: [AZUCAR, AZUCAR, AZUCAR], ol: NEGRO_R }, { modo: 'plano', paso: 1 });
+    const boca = inter(el(32, 47 + y, 6.4, 3.6), rc(24, 47 + y, 16, 6));
+    P.llenar(boca, TINTA_R);
+    P.llenar(cur([[26, 47 + y], [29, 45.5 + y], [32, 47 + y], [35, 45.5 + y], [38, 47 + y]], 1), TINTA_R);
+    P.llenar(inter(el(34, 50.5 + y, 3.4, 2.6), boca), CEREZA);
+    P.llenar(cur([[27, 46 + y], [37, 46 + y]], 1), CREMA_R);
   });
 }
 
