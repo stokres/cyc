@@ -756,7 +756,7 @@ const chispazo: Efecto = (e, _tipo, d, a) => {
   for (const t of a) {
     e.mk(hc, d.x, d.y - 4, d.x, d.y - 4, 0, 120, 0, 0, 1, 0, 40);
     e.mk(hr, t.x, t.y - 37, t.x, t.y - 37, 100, 300, 0, 0, 1, 0, 50, 90);
-    golpe(e, 'rayo', t.x, t.y + 4, 100, 0);
+    golpe(e, 'chispa', t.x, t.y + 4, 100, 0);
     for (let i = 0; i < 6; i++) {
       const ang = (i / 6) * 6.283 + az();
       e.mk(hs[i & 1], t.x, t.y + 6, t.x + Math.cos(ang) * entre(14, 28), t.y + 6 + Math.sin(ang) * entre(8, 18), 110, 260, -6, 0, 1, 1, 0, 90);

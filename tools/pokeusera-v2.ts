@@ -299,7 +299,7 @@ if (vista === 'efectos') {
     const fx = new EfectosMov();
     const lanza = (): void => {
       fx.lanzar('traca', 'fuego', YO, RIVALES);
-      fx.lanzar('adoquin', 'tierra', YO, RIVALES);
+      fx.lanzar('adoquin', 'bronca', YO, RIVALES);
     };
     const medir = (vaciar: boolean): Record<string, number> => {
       const ts: number[] = [];

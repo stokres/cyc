@@ -201,7 +201,7 @@ Detalles: lo gastado se apunta en `Userito.perk` (`tarde`, `manico`), fuera de `
 ### Como en el original
 
 - **Cinco estadísticas:** PS, Ataque, Defensa, Velocidad y Especial (una sola para atacar y defender con movimientos especiales).
-- **Físicos y especiales según el tipo:** Normal, Tierra, Aire, Juerga y Fantasma son físicos (usan Ataque y Defensa); Fuego, Planta, Rayo, Alcohol, Chanza y Grasa son especiales (usan Especial).
+- **Físicos y especiales según el tipo:** Normal, Bronca, Aire, Juerga y Fantasma son físicos (usan Ataque y Defensa); Fuego, Droga, Chispa, Alcohol, Chanza y Grasa son especiales (usan Especial).
 - **Mismo tipo que el userito:** el movimiento pega un 50 % más.
 - **Críticos:** cuanto más rápido es el userito, más críticos (doble de daño).
 - **PP** por movimiento, como en el original pero más justos para que cuenten en un solo combate (13-oct): los gordos 3, los fuertes 5, los normales 8 y los flojos 10.
@@ -215,20 +215,20 @@ Detalles: lo gastado se apunta en `Userito.perk` (`tarde`, `manico`), fuera de `
 
 ### Tabla de tipos
 
-Once tipos. Doble de daño (×2), la mitad (×½) o nada (×0). Si un userito tiene dos tipos, se multiplican.
+Once tipos. Doble de daño (×2), la mitad (×½) o nada (×0). Si un userito tiene dos tipos, se multiplican. Nombres decididos por Jesús (13-oct-2026): Droga (antes Planta), Chispa (antes Rayo) y Bronca (antes Tierra); en el código los ids son `droga`, `chispa` y `bronca`, y las etiquetas de tres letras son DRO, CHI y BRO (CHI se distingue de CHA por el color: amarillo frente a turquesa).
 
 | Ataque de tipo | ×2 contra | ×½ contra | ×0 contra | La lógica |
 |---|---|---|---|---|
-| **Normal** | — | Tierra | Fantasma | A un fantasma no le toca nadie normal |
-| **Fuego** | Planta, Alcohol | Fuego, Tierra, Grasa | — | El alcohol arde; lo frito ya está frito |
-| **Planta** | Tierra, Grasa | Fuego, Planta, Alcohol | — | La verdura compensa la grasa |
-| **Tierra** | Fuego, Rayo | Planta | Aire | — |
-| **Aire** | Fuego, Juerga | Rayo, Tierra | — | El viento apaga la vela y el cierzo vacía las terrazas |
-| **Rayo** | Aire, Alcohol | Rayo, Planta | Tierra | Electricidad y líquidos, mala idea |
-| **Alcohol** | Grasa, Planta | Alcohol, Fuego | — | El alcohol disuelve la grasa |
-| **Juerga** | Normal, Tierra | Grasa | — | La gente normal no aguanta una juerga |
+| **Normal** | — | Bronca | Fantasma | A un fantasma no le toca nadie normal |
+| **Fuego** | Droga, Alcohol | Fuego, Bronca, Grasa | — | El alcohol arde; lo frito ya está frito |
+| **Droga** | Bronca, Grasa | Fuego, Droga, Alcohol | — | La verdura compensa la grasa |
+| **Bronca** | Fuego, Chispa | Droga | Aire | — |
+| **Aire** | Fuego, Juerga | Chispa, Bronca | — | El viento apaga la vela y el cierzo vacía las terrazas |
+| **Chispa** | Aire, Alcohol | Chispa, Droga | Bronca | Electricidad y líquidos, mala idea |
+| **Alcohol** | Grasa, Droga | Alcohol, Fuego | — | El alcohol disuelve la grasa |
+| **Juerga** | Normal, Bronca | Grasa | — | La gente normal no aguanta una juerga |
 | **Chanza** | Juerga, Fantasma | Chanza | — | Una buena chanza corta el rollo y desinfla al flipado |
-| **Grasa** | Alcohol, Juerga | Fuego, Planta | — | Hay que comer antes de beber, y después de un atracón no hay juerga |
+| **Grasa** | Alcohol, Juerga | Fuego, Droga | — | Hay que comer antes de beber, y después de un atracón no hay juerga |
 | **Fantasma** | Chanza, Fantasma | — | Normal | El que va de fantasma te deja la gracia fría |
 
 ---
@@ -241,26 +241,26 @@ Todos suman lo mismo en estadísticas (420), para que no haya ninguno roto de sa
 |---|---|---|---|---|---|---|---|---|
 | 1 | **Draguserín**: el dragón del parque de Usera | Fuego / Aire | 75 | 80 | 70 | 95 | 100 | Traca, Petardazo, Planeo, Esconderse |
 | 2 | **Goudazard**: palito frito de gouda rebozado | Grasa / Fuego | 85 | 70 | 90 | 65 | 110 | Fritanga, Fogonazo, Pringue, Rebozado |
-| 3 | **Aceitún**: perrita negra con forma de aceituna (por Aceituna) | Planta / Grasa | 70 | 85 | 70 | 110 | 85 | Raíces, Pringue, Lametazo, Cara de pena |
+| 3 | **Aceitún**: perrita negra con forma de aceituna (por Aceituna) | Droga / Grasa | 70 | 85 | 70 | 110 | 85 | Raíces, Pringue, Lametazo, Cara de pena |
 | 4 | **Cierzón**: remolino mañico que no para quieto | Aire | 70 | 90 | 65 | 120 | 75 | Cierzo, Planeo, Remolino, Venganza |
-| 5 | **Turroncho**: bloque de turrón blando con almendras | Tierra / Planta | 100 | 80 | 125 | 35 | 80 | Almendrazo, Adoquín, Caparazón, Siesta |
+| 5 | **Turroncho**: bloque de turrón blando con almendras | Bronca / Droga | 100 | 80 | 125 | 35 | 80 | Almendrazo, Adoquín, Caparazón, Siesta |
 | 6 | **Tocinón**: cerdo enorme y tranquilo, 152 kilos de userito | Normal / Grasa | 150 | 95 | 80 | 30 | 65 | Barrigazo, Pringue, Temblor, Siesta |
 | 7 | **Roscochoco**: dulce navideño de chocolate, muy indigesto | Grasa / Juerga | 105 | 75 | 90 | 50 | 100 | Indigestión, Fritanga, Conga, Rebozado |
 | 8 | **Espumarro**: jarra de cerveza a la que nunca se le baja la espuma | Alcohol / Normal | 95 | 70 | 80 | 75 | 100 | Ronda, Garrafón, ¡Una más!, Barrigazo |
 | 9 | **Cajonazo**: cajón flamenco con brazos y mucho compás | Juerga | 85 | 105 | 90 | 80 | 60 | Rumba, Taconeo, Temblor, Compás |
-| 10 | **Lentejasur**: lenteja sucia que aparece cuando menos te lo esperas | Planta / Fantasma | 60 | 65 | 60 | 120 | 115 | Lluvia de lentejas, Tropezón, Susto, Esporas |
-| 11 | **Tragaperras**: la máquina del rincón del bar, que se ríe de ti | Rayo / Chanza | 85 | 60 | 95 | 65 | 115 | Premio gordo, Chispazo, Zasca, Cizaña |
+| 10 | **Lentejasur**: lenteja sucia que aparece cuando menos te lo esperas | Droga / Fantasma | 60 | 65 | 60 | 120 | 115 | Lluvia de lentejas, Tropezón, Susto, Esporas |
+| 11 | **Tragaperras**: la máquina del rincón del bar, que se ríe de ti | Chispa / Chanza | 85 | 60 | 95 | 65 | 115 | Premio gordo, Chispazo, Zasca, Cizaña |
 | 12 | **Turito**: el userito que aburre y cansa | Normal | 115 | 70 | 110 | 45 | 80 | Dar la chapa, Te pillo en la barra, Turra, Bostezo |
 | 13 | **Resacón**: nube gris que aparece a la mañana siguiente | Alcohol / Fantasma | 80 | 90 | 75 | 85 | 90 | Dolor de cabeza, Chupitazo, Venganza, Siesta |
 | 14 | **Evoscar**: dos cabezas, una de mujer y otra de hombre, con cuerpo de caballo | Juerga / Chanza | 85 | 90 | 75 | 90 | 80 | Coz doble, Galope, A dos voces, Sí, y… |
 | 15 | **Chupitochu**: chupito muy fuerte y ardiente | Alcohol / Fuego | 60 | 55 | 60 | 120 | 125 | Chupitazo, Fogonazo, Garrafón, Esconderse |
-| 16 | **Caravaner**: una caravana | Tierra / Juerga | 110 | 90 | 115 | 30 | 75 | ¡Camioneees y caravanaaas!, Temblor, Caparazón, Siesta |
-| 17 | **Camioner**: un camión | Normal / Tierra | 100 | 125 | 100 | 50 | 45 | Trompazo, Adoquín, Bocinazo, ¡Camioneees y caravanaaas! |
-| 18 | **Criaturitah**: pequeña criaturita del bosque | Planta / Chanza | 80 | 60 | 80 | 100 | 100 | Esporas, Raíces, Vacile, Monada |
+| 16 | **Caravaner**: una caravana | Bronca / Juerga | 110 | 90 | 115 | 30 | 75 | ¡Camioneees y caravanaaas!, Temblor, Caparazón, Siesta |
+| 17 | **Camioner**: un camión | Normal / Bronca | 100 | 125 | 100 | 50 | 45 | Trompazo, Adoquín, Bocinazo, ¡Camioneees y caravanaaas! |
+| 18 | **Criaturitah**: pequeña criaturita del bosque | Droga / Chanza | 80 | 60 | 80 | 100 | 100 | Esporas, Raíces, Vacile, Monada |
 | 19 | **Ego-Ego**: fantasma muy flipado | Fantasma | 70 | 105 | 65 | 110 | 70 | Eco, Chulería, Flipada, Selfie |
-| 20 | **Kbronero**: teclado heavy | Rayo / Juerga | 80 | 90 | 70 | 85 | 95 | Solo de teclado, Distorsión, Pogo, Compás |
+| 20 | **Kbronero**: teclado heavy | Chispa / Juerga | 80 | 90 | 70 | 85 | 95 | Solo de teclado, Distorsión, Pogo, Compás |
 
-Reparto por tipos (contando los dobles): Normal 4, Fuego 3, Planta 4, Tierra 3, Aire 2, Rayo 2, Alcohol 3, Juerga 5, Chanza 3, Grasa 4, Fantasma 3.
+Reparto por tipos (contando los dobles): Normal 4, Fuego 3, Droga 4, Bronca 3, Aire 2, Chispa 2, Alcohol 3, Juerga 5, Chanza 3, Grasa 4, Fantasma 3.
 
 Cosas a tener en cuenta del equilibrio:
 
@@ -290,20 +290,20 @@ Potencia, precisión y PP. «Uno» es un rival a elegir; «todos», los tres riv
 | Traca | Fuego | 70 | 100 | 5 | todos | 10 %: quema |
 | Fogonazo | Fuego | 90 | 100 | 8 | uno | 10 %: quema |
 | Petardazo | Fuego | 110 | 85 | 3 | uno | 30 %: quema |
-| Raíces | Planta | 60 | 100 | 8 | uno | Recupera la mitad del daño que hace |
-| Almendrazo | Planta | 85 | 100 | 8 | uno | — |
-| Lluvia de lentejas | Planta | 25 | 90 | 10 | uno | Pega de 2 a 5 veces |
-| Esporas | Planta | — | 75 | 8 | uno | Lo duerme |
-| Temblor | Tierra | 80 | 100 | 5 | todos | No afecta a los de tipo Aire |
-| Adoquín | Tierra | 100 | 85 | 5 | uno | — |
-| Caparazón | Tierra | — | — | 10 | yo | Sube 2 niveles la Defensa |
+| Raíces | Droga | 60 | 100 | 8 | uno | Recupera la mitad del daño que hace |
+| Almendrazo | Droga | 85 | 100 | 8 | uno | — |
+| Lluvia de lentejas | Droga | 25 | 90 | 10 | uno | Pega de 2 a 5 veces |
+| Esporas | Droga | — | 75 | 8 | uno | Lo duerme |
+| Temblor | Bronca | 80 | 100 | 5 | todos | No afecta a los de tipo Aire |
+| Adoquín | Bronca | 100 | 85 | 5 | uno | — |
+| Caparazón | Bronca | — | — | 10 | yo | Sube 2 niveles la Defensa |
 | Cierzo | Aire | 70 | 95 | 5 | todos | Baja 1 nivel la Velocidad de los rivales |
 | Planeo | Aire | 80 | 100 | 8 | uno | — |
 | Remolino | Aire | — | 100 | 8 | uno | Le obliga a cambiar a otro userito al azar |
-| Chispazo | Rayo | 90 | 100 | 8 | uno | 10 %: paraliza |
-| Distorsión | Rayo | 60 | 100 | 5 | todos | 10 %: achispa |
-| Solo de teclado | Rayo | 130 | 90 | 3 | uno | Al turno siguiente no puede hacer nada (recarga) |
-| Premio gordo | Rayo | ? | 100 | 5 | uno | Tirada de tragaperras: potencia 0, 40, 80 o 150 |
+| Chispazo | Chispa | 90 | 100 | 8 | uno | 10 %: paraliza |
+| Distorsión | Chispa | 60 | 100 | 5 | todos | 10 %: achispa |
+| Solo de teclado | Chispa | 130 | 90 | 3 | uno | Al turno siguiente no puede hacer nada (recarga) |
+| Premio gordo | Chispa | ? | 100 | 5 | uno | Tirada de tragaperras: potencia 0, 40, 80 o 150 |
 | Chupitazo | Alcohol | 80 | 100 | 8 | uno | 20 %: achispa |
 | Ronda | Alcohol | 65 | 100 | 5 | todos | Ronda para todos. 10 %: achispa |
 | Garrafón | Alcohol | 110 | 85 | 3 | uno | 30 %: achispa |

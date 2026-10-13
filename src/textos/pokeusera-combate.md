@@ -13,10 +13,10 @@ La letra es de píxeles y la pantalla es estrecha (unos 40 caracteres por línea
 // ---- tipos
 tipo.normal = Normal
 tipo.fuego = Fuego
-tipo.planta = Planta
-tipo.tierra = Tierra
+tipo.droga = Droga
+tipo.bronca = Bronca
 tipo.aire = Aire
-tipo.rayo = Rayo
+tipo.chispa = Chispa
 tipo.alcohol = Alcohol
 tipo.juerga = Juerga
 tipo.chanza = Chanza
@@ -25,10 +25,10 @@ tipo.fantasma = Fantasma
 
 tipo.abrev.normal = NOR
 tipo.abrev.fuego = FUE
-tipo.abrev.planta = PLA
-tipo.abrev.tierra = TIE
+tipo.abrev.droga = DRO
+tipo.abrev.bronca = BRO
 tipo.abrev.aire = AIR
-tipo.abrev.rayo = RAY
+tipo.abrev.chispa = CHI
 tipo.abrev.alcohol = ALC
 tipo.abrev.juerga = JUE
 tipo.abrev.chanza = CHA

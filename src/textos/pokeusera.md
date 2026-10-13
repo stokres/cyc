@@ -210,9 +210,9 @@ ayuda.estado.quemado = Quemado: pierde 1/16 de sus PS cada turno y su Ataque baj
 ayuda.estado.empachado = Empachado: pierde 1/8 de sus PS cada turno hasta que se cure o caiga.
 ayuda.estado.achispado = Achispado: de 2 a 4 turnos. Al atacar, 1 de cada 3 veces se pega a sí mismo y 1 de cada 3 le da a otro rival al azar.
 ayuda.stat.ps = PS: su vida. Si llega a 0, cae y sale el siguiente de tu equipo.
-ayuda.stat.ata = ATA (Ataque): fuerza de los golpes de tipo Normal, Tierra, Aire, Juerga y Fantasma.
+ayuda.stat.ata = ATA (Ataque): fuerza de los golpes de tipo Normal, Bronca, Aire, Juerga y Fantasma.
 ayuda.stat.def = DEF (Defensa): aguanta mejor esos mismos golpes.
-ayuda.stat.esp = ESP (Especial): fuerza y aguante con Fuego, Planta, Rayo, Alcohol, Chanza y Grasa.
+ayuda.stat.esp = ESP (Especial): fuerza y aguante con Fuego, Droga, Chispa, Alcohol, Chanza y Grasa.
 ayuda.stat.vel = VEL (Velocidad): el más rápido ataca antes en cada turno.
 ayuda.tipos = Cada userito tiene uno o dos tipos, y cada movimiento, uno. Un golpe de tipo fuerte contra el rival hace el doble; uno flojo, la mitad; y algunos no le afectan. Si el movimiento es de su mismo tipo, pega 1,5 veces más.
 

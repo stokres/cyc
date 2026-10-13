@@ -3,10 +3,10 @@
 // The engine is pure: no DOM, no timers, no Math.random (it uses the seeded RNG in its state),
 // so the host's browser can run it and send the result to everybody.
 
-export type Tipo = 'normal' | 'fuego' | 'planta' | 'tierra' | 'aire' | 'rayo' | 'alcohol' | 'juerga' | 'chanza' | 'grasa' | 'fantasma';
+export type Tipo = 'normal' | 'fuego' | 'droga' | 'bronca' | 'aire' | 'chispa' | 'alcohol' | 'juerga' | 'chanza' | 'grasa' | 'fantasma';
 
 /** Physical types use Ataque/Defensa; the rest use Especial (like the first Game Boy games). */
-export const TIPOS_FISICOS: readonly Tipo[] = ['normal', 'tierra', 'aire', 'juerga', 'fantasma'];
+export const TIPOS_FISICOS: readonly Tipo[] = ['normal', 'bronca', 'aire', 'juerga', 'fantasma'];
 
 /** Main status: one at a time. «Achispado» (confusion) is separate and can stack with it. */
 export type Estado = 'dormido' | 'paralizado' | 'quemado' | 'empachado';
