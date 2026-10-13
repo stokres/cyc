@@ -10,7 +10,7 @@
 //                                'combate' is four tunes: each new battle takes another one than the last, at random,
 //                                and asking again during the same battle (also after 'final') keeps the same one.
 //   sonido.efecto('golpeFuerte') one of EFECTOS, 0.6 s at most.
-//   sonido.grito('aceitun')      the cry of a userito, always the same for the same id.
+//   sonido.grito('aceituna')     the cry of a userito, always the same for the same id.
 //   sonido.setVolumen('musica', 0.5), sonido.getVolumen('efectos')   0–1, as the settings menu has them.
 import urlTitulo from '../sonido/pokeusera-titulo.mp3?url';
 import urlDraft from '../sonido/pokeusera-draft.mp3?url';
@@ -31,10 +31,11 @@ export const EFECTOS = [
 ] as const;
 export type Efecto = (typeof EFECTOS)[number];
 export type Canal = 'musica' | 'efectos';
-/** The 20 useritos that have a cry of their own (any other id gets one from its hash too). */
+/** The 24 useritos that have a cry of their own (any other id gets one from its hash too). */
 export const ESPECIES = [
-  'draguserin', 'goudazard', 'aceitun', 'cierzon', 'turroncho', 'tocinon', 'roscochoco', 'espumarro', 'cajonazo', 'lentejasur',
+  'draguserin', 'goudazard', 'aceituna', 'cierzon', 'turroncho', 'tocinon', 'roscochoco', 'espumarro', 'cajonazo', 'lentejasur',
   'tragaperras', 'turito', 'resacon', 'evoscar', 'chupitochu', 'caravaner', 'camioner', 'criaturitah', 'ego-ego', 'kbronero',
+  'cubatillo', 'p', 'jesuspelo', 'pantaloneto',
 ] as const;
 
 /**
@@ -530,7 +531,7 @@ export class Sonido {
   /**
    * The cry of a userito, 0.4–0.8 s: one to three syllables of a pulse (or two) and a little noise, the
    * pitch stepping once a frame along a contour (falling, rising, arched, dipping or wobbling), with
-   * vibrato. Everything comes from a hash of the id, so it is always the same cry and the 20 differ.
+   * vibrato. Everything comes from a hash of the id, so it is always the same cry and they differ.
    */
   grito(especieId: string) {
     const ac = this.ac;
@@ -546,9 +547,9 @@ export class Sonido {
   private cantar(ac: AudioContext, fx: GainNode, id: string) {
     const r = azar(hash(id));
     const idx = (ESPECIES as readonly string[]).indexOf(id);
-    // The 20 known ids take 20 different slots in pitch (7 is coprime with 20, so they shuffle); the rest, a random one.
-    const ranura = idx >= 0 ? (idx * 7) % 20 : Math.floor(r() * 20);
-    const f0 = 140 * 2 ** (((ranura + r() * 0.8) / 20) * 2.5);
+    // The 24 known ids take 24 different slots in pitch (7 is coprime with 24, so they shuffle); the rest, a random one.
+    const ranura = idx >= 0 ? (idx * 7) % 24 : Math.floor(r() * 24);
+    const f0 = 140 * 2 ** (((ranura + r() * 0.8) / 24) * 2.5);
     const total = 0.42 + r() * 0.36;
     const silabas = 1 + Math.floor(r() * 3);
     const forma = Math.floor(r() * 5);

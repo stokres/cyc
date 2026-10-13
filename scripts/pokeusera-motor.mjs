@@ -2,6 +2,7 @@
 // plays ONE battle of 4 bots (random draft, fixed seed), checking invariants as it goes.
 // Usage: node scripts/pokeusera-motor.mjs [seed] [seed...]   (default seed 1; keep it to a few runs)
 //        node scripts/pokeusera-motor.mjs --sim=200   (balance: N bot battles with different seeds; turns, hits per fall)
+//        node scripts/pokeusera-motor.mjs --especies=400   (balance per userito: N bot battles with RANDOM drafts; win rate and average place of each userito)
 import { build } from 'esbuild';
 import { readFileSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -34,8 +35,8 @@ for (const l of readFileSync(join(raiz, 'src/textos/pokeusera-combate.md'), 'utf
 const decir = (ev) => (ev.clave ? textos.get(ev.clave)?.replace(/\{(\w+)\}/g, (_, k) => String(ev.vars?.[k] ?? `{${k}}`)) : null);
 
 const fallos = [];
-// Data: 20 useritos with valid moves; every userito, move and type has its text.
-if (M.ESPECIES.length !== 20) console.error('FALLO: no hay 20 useritos');
+// Data: 24 useritos with valid moves; every userito, move and type has its text.
+if (M.ESPECIES.length !== 24) console.error('FALLO: no hay 24 useritos');
 for (const sp of M.ESPECIES) {
   if (!textos.has(`userito.${sp.id}.desc`)) console.error('FALLO: falta userito.' + sp.id + '.desc');
   for (const mv of sp.movs) if (!M.MOVS[mv]) console.error('FALLO: movimiento desconocido', sp.id, mv);
@@ -183,6 +184,54 @@ function jugar(semilla, verbose) {
   }
   // Determinism: the same seed gives the same battle.
   return JSON.stringify(e) + inicial.length;
+}
+
+// ---- balance per userito: `--especies=N` plays N bot battles whose drafts are RANDOM (each pick is any free userito), so a
+// userito's results do not depend on how well the bot drafts it. For every userito: appearances (a team of 3 counts once each),
+// win rate (the team won) and average place (1 = winner, 4 = first out). With four players the average win rate is 25 %.
+const espArg = process.argv.find((a) => a.startsWith('--especies'));
+if (espArg) {
+  const N = Number(espArg.split('=')[1]) || 400;
+  const res = Object.fromEntries(M.ESPECIES.map((sp) => [sp.id, { n: 0, gana: 0, puesto: 0 }]));
+  let sinAcabar = 0;
+  for (let s = 1; s <= N; s++) {
+    const rnd = M.crearRnd(s * 15485863 + 11);
+    let d = M.crearDraft(4, s % 4);
+    while (M.turnoDraft(d) !== null) {
+      const libres = M.disponibles(d);
+      d = M.elegir(d, libres[Math.floor(rnd() * libres.length)]);
+    }
+    const eq = M.equipos(d, 4);
+    let e = M.crearCombate(
+      eq.map((especies, i) => ({ entrenador: ['fran', 'pablo', 'chuchi', 'guille'][i], nombre: 'J' + i, bot: true, especies })),
+      s,
+    );
+    let turnos = 0;
+    while (e.ganador === null && turnos < 200) {
+      const r = M.resolverTurno(e, e.jugadores.map((_, j) => M.eleccionBot(e, j, rnd)));
+      e = r.estado;
+      turnos++;
+      if (e.ganador === null && e.reemplazos.length) e = M.reemplazar(e, Object.fromEntries(e.reemplazos.map((j) => [j, M.reemplazoBot(e, j)]))).estado;
+    }
+    if (e.ganador === null) {
+      sinAcabar++;
+      continue;
+    }
+    e.jugadores.forEach((q, j) => {
+      for (const id of eq[j]) {
+        res[id].n++;
+        res[id].puesto += q.puesto;
+        if (q.puesto === 1) res[id].gana++;
+      }
+    });
+  }
+  const filas = M.ESPECIES.map((sp, i) => ({ Nº: i + 1, id: sp.id, tipos: sp.tipos.join('/'), n: res[sp.id].n, victoria: res[sp.id].gana / res[sp.id].n, puesto: res[sp.id].puesto / res[sp.id].n }));
+  const total = filas.reduce((a, f) => a + f.victoria, 0) / filas.length;
+  console.log(`Balance por userito: ${N} batallas de 4 bots con drafts al azar (sin acabar: ${sinAcabar}). Victoria media ${(total * 100).toFixed(1)} %`);
+  console.log('Nº  userito       tipos               apar.  victoria  x media  puesto medio');
+  for (const f of [...filas].sort((a, b) => b.victoria - a.victoria))
+    console.log(`${String(f.Nº).padStart(2)}  ${f.id.padEnd(12)}  ${f.tipos.padEnd(18)}  ${String(f.n).padStart(5)}  ${(f.victoria * 100).toFixed(1).padStart(7)} %  ${(f.victoria / total).toFixed(2).padStart(6)}  ${f.puesto.toFixed(2).padStart(10)}`);
+  process.exit(0);
 }
 
 // ---- balance simulation: `--sim=N` plays N bot battles and prints the length and the hits per fall.
@@ -352,6 +401,19 @@ function revisarPerks() {
   }
 }
 revisarPerks();
+
+// ---- batch 4 moves: Tubo perfecto (+1 Vel to the user after a hit), P de Pesao (−1 Vel to the target, always), Bajarse los pantalones.
+{
+  const cana = { tipo: 'cana' };
+  const nivel = (esp, mov, j) => {
+    const e = M.crearCombate([{ entrenador: 'fran', nombre: 'A', bot: false, especies: [esp, 'turito', 'cierzon'] }, { entrenador: 'pablo', nombre: 'B', bot: false, especies: ['tocinon', 'turito', 'cierzon'] }], 9);
+    const r = M.resolverTurno(e, [{ tipo: 'atacar', mov, objetivo: 1 }, cana]);
+    return r.eventos.filter((ev) => ev.k === 'nivel' && ev.j === j).map((ev) => `${ev.stat}${ev.cambio > 0 ? '+' : ''}${ev.cambio}`).join(',');
+  };
+  if (nivel('jesuspelo', 0, 0) !== 'vel+1') falla(`Tubo perfecto: niveles del usuario ${nivel('jesuspelo', 0, 0)}`);
+  if (nivel('p', 0, 1) !== 'vel-1') falla(`P de Pesao: niveles del rival ${nivel('p', 0, 1)}`);
+  if (nivel('pantaloneto', 0, 0) !== 'ata+2,vel+2,def-2') falla(`Bajarse los pantalones: ${nivel('pantaloneto', 0, 0)}`);
+}
 
 const semillas = process.argv.slice(2).map(Number).filter((n) => Number.isFinite(n)).slice(0, 5);
 if (!semillas.length) semillas.push(1);

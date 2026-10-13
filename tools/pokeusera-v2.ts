@@ -66,7 +66,7 @@ function pie(cv: HTMLCanvasElement): number {
   return p;
 }
 
-const NOMBRES: Record<string, string> = { draguserin: 'Draguserín', espumarro: 'Espumarro', 'ego-ego': 'Ego-Ego', aceitun: 'Aceitún' };
+const NOMBRES: Record<string, string> = { draguserin: 'Draguserín', espumarro: 'Espumarro', 'ego-ego': 'Ego-Ego', aceituna: 'Aceituna' };
 const IDS = SOLO ? SOLO.split(',') : [...IDS_USERITOS2];
 
 // ---------------------------------------------------------------------------------------------
@@ -168,7 +168,7 @@ if (vista === 'efectos') {
     cx.imageSmoothingEnabled = false;
     cx.drawImage(fondoBar(SW, SH), 0, 0);
     const pl = plataforma(28, 7);
-    const rivales = ['tocinon', 'aceitun', 'ego-ego'];
+    const rivales = ['tocinon', 'aceituna', 'ego-ego'];
     RIVALES.forEach((p, i) => {
       cx.drawImage(pl, p.x - pl.width / 2, p.y + 18);
       cx.drawImage(spriteFrente2(rivales[i], 0), p.x - 32, p.y - 32);
@@ -180,7 +180,7 @@ if (vista === 'efectos') {
     const o = MOVS[mov]?.objetivo;
     return o === 'yo' ? [] : o === 'todos' ? RIVALES : [RIVALES[1]];
   };
-  const tipoDe = (mov: string) => MOVS[mov]?.tipo ?? 'normal';
+  const tipoDe = (mov: string) => MOVS[mov]?.tipo ?? 'mindundi';
 
   /** Pause between loops (ms). */
   const PAUSA = 450;
@@ -298,7 +298,7 @@ if (vista === 'efectos') {
     cx.imageSmoothingEnabled = false;
     const fx = new EfectosMov();
     const lanza = (): void => {
-      fx.lanzar('traca', 'fuego', YO, RIVALES);
+      fx.lanzar('traca', 'petardo', YO, RIVALES);
       fx.lanzar('adoquin', 'bronca', YO, RIVALES);
     };
     const medir = (vaciar: boolean): Record<string, number> => {
@@ -321,7 +321,7 @@ if (vista === 'efectos') {
     // The first launches bake the sprites (lazily): measure that apart.
     const t0 = performance.now();
     lanza();
-    fx.lanzar('fogonazo', 'fuego', YO, [RIVALES[1]]);
+    fx.lanzar('fogonazo', 'petardo', YO, [RIVALES[1]]);
     fx.lanzar('cancion', 'juerga', YO, RIVALES);
     const horneado = performance.now() - t0;
     fx.limpiar();

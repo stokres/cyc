@@ -1,6 +1,6 @@
-// PokéUsera · the USERITOPEDIA: the encyclopedia of the 20 useritos. It opens over whatever is on screen (or over
+// PokéUsera · the USERITOPEDIA: the encyclopedia of the 24 useritos. It opens over whatever is on screen (or over
 // nothing) like the guide and gives it back when closed. Two views:
-//   LISTA   – the 20 useritos in their numeric order (Nº01…Nº20): number, thumbnail, name, type chips and best stat.
+//   LISTA   – the 24 useritos in their numeric order (Nº01…Nº24): number, thumbnail, name, type chips and best stat.
 //             Drag to scroll (with inertia), ↑↓ to move, Enter/tap to open one, VOLVER to leave.
 //   FICHA   – one userito: big front sprite and small back sprite (both with their 2-frame idle), Nº, name, types,
 //             description, the five base stats (tap one for its explanation), the four moves (type, power, accuracy,
@@ -39,7 +39,7 @@ const STATS: readonly ClaveStat[] = ['ps', 'ata', 'def', 'vel', 'esp'];
 
 const numero = (i: number): string => t('useritopedia.num', { n: String(i + 1).padStart(2, '0') });
 
-/** Position (1 = best) of each userito in each base stat, among the 20 (ties share the place). Computed once. */
+/** Position (1 = best) of each userito in each base stat, among the 24 (ties share the place). Computed once. */
 let rangos: Record<ClaveStat, number[]> | null = null;
 function rangoDe(k: ClaveStat, i: number): number {
   if (!rangos) {

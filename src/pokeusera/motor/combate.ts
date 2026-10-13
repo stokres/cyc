@@ -540,6 +540,7 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
   let totalDano = 0;
   let algunoVivo = false;
   let cancionDicha = false;
+  let acerto = false;
 
   for (const t of objetivos) {
     let v = act(c, t);
@@ -608,8 +609,14 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
     }
     if (v.ps > 0) algunoVivo = true;
     // Damaging moves need to have hit; status moves only the accuracy roll.
-    if (!danina || hechos > 0) efectosSecundarios(c, j, t, m, danina);
+    if (!danina || hechos > 0) {
+      acerto = true;
+      efectosSecundarios(c, j, t, m, danina);
+    }
   }
+
+  // Self stage changes of a move that hits others (e.g. «Tubo perfecto»): once, if it reached anybody, even if the target fell.
+  if (acerto && u.ps > 0) for (const n of ef.nivel ?? []) if (n.a === 'yo' && (n.prob === undefined || probar(e, n.prob))) cambiarNivel(c, j, n.stat, n.cambio, j);
 
   if (totalDano > 0 && u.ps > 0) {
     if (ef.drena) curar(c, j, Math.max(1, Math.floor(totalDano / 2)), 'combate.drena');

@@ -59,6 +59,7 @@ function valorMovimiento(e: EstadoCombate, j: number, idx: number, rivales: numb
     if (ef.recarga) valor *= 0.6;
     if (ef.rebote) valor *= 0.9;
     if (ef.drena) valor *= 1 + (1 - hp) * 0.3;
+    if (ef.nivel?.some((n) => n.a === 'yo' && n.cambio > 0)) valor *= 1.08;
     return { valor, objetivo: mejor.objetivo };
   }
 

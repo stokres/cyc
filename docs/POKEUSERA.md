@@ -142,7 +142,7 @@ Lo que se nota: en el ritmo que ve el jugador el combate dibuja menos de la mita
 - **Orden:** cambios y caña; Esconderse; Susto; el resto de más a menos Velocidad (empates a suertes).
 - **Objetivo caído a mitad de turno:** el golpe va a otro rival en pie al azar.
 - **Achispado:** al atacar, 1/3 se pega a sí mismo (potencia 40, físico, sin tipo), 1/3 su ataque «uno» va a otro rival al azar, 1/3 normal.
-- **Sin PP en ningún movimiento:** usa «A la desesperada» (Normal, 50, sin fallo, recibe 1/4 del daño).
+- **Sin PP en ningún movimiento:** usa «A la desesperada» (Mindundi, 50, sin fallo, recibe 1/4 del daño).
 - **Reemplazo:** al final del turno, quien tiene el userito caído elige cuál sale (15 s; si no, el primero vivo). Si ya no le quedan, queda eliminado con el puesto que toque.
 - **Hora de cerrar:** desde el turno 30 (antes, el 25), al final de cada turno todos pierden 1/8 de sus PS máximos, y cada 4 turnos más sube otro 1/8 (1/8 en los turnos 30-33, 2/8 en los 34-37, 3/8 en los 38-41…). Sin esa subida, una Siesta cada tres turnos sostenía una pelea para siempre con tantos PS.
 - **Fin:** cuando queda uno. Si los últimos caen a la vez, gana quien tenía más PS (en %) al empezar el turno.
@@ -159,7 +159,7 @@ Lo que se nota: en el ritmo que ve el jugador el combate dibuja menos de la mita
 
 ### Elegir equipo: el draft en serpiente
 
-Todos ven los 20 useritos a la vez y se eligen por turnos, sin repetir: 1-2-3-4, 4-3-2-1, 1-2-3-4. 20 segundos por elección; si se acaba el tiempo, la máquina elige por ti. Así cada uno tiene useritos distintos, y ya hay pique antes de pelear.
+Todos ven los 24 useritos a la vez y se eligen por turnos, sin repetir: 1-2-3-4, 4-3-2-1, 1-2-3-4. 20 segundos por elección; si se acaba el tiempo, la máquina elige por ti. Así cada uno tiene useritos distintos, y ya hay pique antes de pelear. Con 24 useritos y 12 elegidos, la mitad se queda fuera en cada partida. La rejilla del draft es de 6 columnas × 4 filas (casillas de 40 × 44-54 px lógicos, de 65 × 71 px CSS o más en un móvil de 390 px).
 
 ### Cada turno
 
@@ -201,7 +201,7 @@ Detalles: lo gastado se apunta en `Userito.perk` (`tarde`, `manico`), fuera de `
 ### Como en el original
 
 - **Cinco estadísticas:** PS, Ataque, Defensa, Velocidad y Especial (una sola para atacar y defender con movimientos especiales).
-- **Físicos y especiales según el tipo:** Normal, Bronca, Aire, Juerga y Fantasma son físicos (usan Ataque y Defensa); Fuego, Droga, Chispa, Alcohol, Chanza y Grasa son especiales (usan Especial).
+- **Físicos y especiales según el tipo:** Mindundi, Bronca, Ventolera, Juerga y Fantasma son físicos (usan Ataque y Defensa); Petardo, Droga, Chispa, Alcohol, Chanza y Grasa son especiales (usan Especial).
 - **Mismo tipo que el userito:** el movimiento pega un 50 % más.
 - **Críticos:** cuanto más rápido es el userito, más críticos (doble de daño).
 - **PP** por movimiento, como en el original pero más justos para que cuenten en un solo combate (13-oct): los gordos 3, los fuertes 5, los normales 8 y los flojos 10.
@@ -215,58 +215,64 @@ Detalles: lo gastado se apunta en `Userito.perk` (`tarde`, `manico`), fuera de `
 
 ### Tabla de tipos
 
-Once tipos. Doble de daño (×2), la mitad (×½) o nada (×0). Si un userito tiene dos tipos, se multiplican. Nombres decididos por Jesús (13-oct-2026): Droga (antes Planta), Chispa (antes Rayo) y Bronca (antes Tierra); en el código los ids son `droga`, `chispa` y `bronca`, y las etiquetas de tres letras son DRO, CHI y BRO (CHI se distingue de CHA por el color: amarillo frente a turquesa).
+Once tipos. Doble de daño (×2), la mitad (×½) o nada (×0). Si un userito tiene dos tipos, se multiplican. Nombres decididos por Jesús (13-oct-2026): Droga (antes Planta), Chispa (antes Rayo), Bronca (antes Tierra), Mindundi (antes Normal), Petardo (antes Fuego) y Ventolera (antes Aire; propuso «Corriente» y él eligió «Ventolera»). En el código los ids son `droga`, `chispa`, `bronca`, `mindundi`, `petardo` y `ventolera`, y las etiquetas de tres letras son DRO, CHI, BRO, MIN, PET y VEN (CHI se distingue de CHA por el color: amarillo frente a turquesa). La tabla de eficacias no cambia, solo los nombres.
 
 | Ataque de tipo | ×2 contra | ×½ contra | ×0 contra | La lógica |
 |---|---|---|---|---|
-| **Normal** | — | Bronca | Fantasma | A un fantasma no le toca nadie normal |
-| **Fuego** | Droga, Alcohol | Fuego, Bronca, Grasa | — | El alcohol arde; lo frito ya está frito |
-| **Droga** | Bronca, Grasa | Fuego, Droga, Alcohol | — | La verdura compensa la grasa |
-| **Bronca** | Fuego, Chispa | Droga | Aire | — |
-| **Aire** | Fuego, Juerga | Chispa, Bronca | — | El viento apaga la vela y el cierzo vacía las terrazas |
-| **Chispa** | Aire, Alcohol | Chispa, Droga | Bronca | Electricidad y líquidos, mala idea |
-| **Alcohol** | Grasa, Droga | Alcohol, Fuego | — | El alcohol disuelve la grasa |
-| **Juerga** | Normal, Bronca | Grasa | — | La gente normal no aguanta una juerga |
+| **Mindundi** | — | Bronca | Fantasma | A un fantasma no le toca nadie del montón |
+| **Petardo** | Droga, Alcohol | Petardo, Bronca, Grasa | — | El alcohol arde; lo frito ya está frito |
+| **Droga** | Bronca, Grasa | Petardo, Droga, Alcohol | — | La verdura compensa la grasa |
+| **Bronca** | Petardo, Chispa | Droga | Ventolera | — |
+| **Ventolera** | Petardo, Juerga | Chispa, Bronca | — | El viento apaga la vela y el cierzo vacía las terrazas |
+| **Chispa** | Ventolera, Alcohol | Chispa, Droga | Bronca | Electricidad y líquidos, mala idea |
+| **Alcohol** | Grasa, Droga | Alcohol, Petardo | — | El alcohol disuelve la grasa |
+| **Juerga** | Mindundi, Bronca | Grasa | — | La gente del montón no aguanta una juerga |
 | **Chanza** | Juerga, Fantasma | Chanza | — | Una buena chanza corta el rollo y desinfla al flipado |
-| **Grasa** | Alcohol, Juerga | Fuego, Droga | — | Hay que comer antes de beber, y después de un atracón no hay juerga |
-| **Fantasma** | Chanza, Fantasma | — | Normal | El que va de fantasma te deja la gracia fría |
+| **Grasa** | Alcohol, Juerga | Petardo, Droga | — | Hay que comer antes de beber, y después de un atracón no hay juerga |
+| **Fantasma** | Chanza, Fantasma | — | Mindundi | El que va de fantasma te deja la gracia fría |
 
 ---
 
-## 3. Los 20 useritos (validados)
+## 3. Los 24 useritos (validados)
 
 Todos suman lo mismo en estadísticas (420), para que no haya ninguno roto de salida: cada uno destaca en algo y flojea en otra cosa. Las cifras se ajustarán al probar. La columna PS es la base: en combate el PS es `round(base × 2) + 80` (ver «Precisiones del motor»).
 
 | # | Userito | Tipo | PS | Ata | Def | Vel | Esp | Movimientos |
 |---|---|---|---|---|---|---|---|---|
-| 1 | **Draguserín**: el dragón del parque de Usera | Fuego / Aire | 75 | 80 | 70 | 95 | 100 | Traca, Petardazo, Planeo, Esconderse |
-| 2 | **Goudazard**: palito frito de gouda rebozado | Grasa / Fuego | 85 | 70 | 90 | 65 | 110 | Fritanga, Fogonazo, Pringue, Rebozado |
-| 3 | **Aceitún**: perrita negra con forma de aceituna (por Aceituna) | Droga / Grasa | 70 | 85 | 70 | 110 | 85 | Raíces, Pringue, Lametazo, Cara de pena |
-| 4 | **Cierzón**: remolino mañico que no para quieto | Aire | 70 | 90 | 65 | 120 | 75 | Cierzo, Planeo, Remolino, Venganza |
-| 5 | **Turroncho**: bloque de turrón blando con almendras | Bronca / Droga | 100 | 80 | 125 | 35 | 80 | Almendrazo, Adoquín, Caparazón, Siesta |
-| 6 | **Tocinón**: cerdo enorme y tranquilo, 152 kilos de userito | Normal / Grasa | 150 | 95 | 80 | 30 | 65 | Barrigazo, Pringue, Temblor, Siesta |
+| 1 | **Draguserín**: el dragón del parque de Usera | Petardo / Ventolera | 75 | 80 | 70 | 95 | 100 | Traca, Petardazo, Planeo, Esconderse |
+| 2 | **Goudazard**: palito frito de gouda rebozado | Grasa / Petardo | 85 | 70 | 90 | 65 | 110 | De Goudamadre, Fogonazo, Pringue, Rebozado |
+| 3 | **Aceituna**: la perrita negra de Fran, pequeña y muy dulce (antes Aceitún) | Mindundi / Chanza | 70 | 85 | 70 | 110 | 85 | Lametazo, Cara de pena, Vacile, Dar la chapa |
+| 4 | **Cierzón**: remolino mañico que no para quieto | Ventolera | 70 | 90 | 65 | 120 | 75 | Cierzo, Planeo, Remolino, Venganza |
+| 5 | **Turroncho**: bloque de turrón blando con almendras | Bronca / Droga | 95 | 80 | 120 | 35 | 90 | Almendrazo, Adoquín, Caparazón, Siesta |
+| 6 | **Tocinón**: cerdo enorme y tranquilo, 152 kilos de userito | Mindundi / Grasa | 140 | 95 | 80 | 30 | 75 | Barrigazo, Pringue, Temblor, Siesta |
 | 7 | **Roscochoco**: dulce navideño de chocolate, muy indigesto | Grasa / Juerga | 105 | 75 | 90 | 50 | 100 | Indigestión, Fritanga, Conga, Rebozado |
-| 8 | **Espumarro**: jarra de cerveza a la que nunca se le baja la espuma | Alcohol / Normal | 95 | 70 | 80 | 75 | 100 | Ronda, Garrafón, ¡Una más!, Barrigazo |
+| 8 | **Espumarro**: jarra de cerveza a la que nunca se le baja la espuma | Alcohol / Mindundi | 95 | 70 | 80 | 75 | 100 | Ronda, Garrafón, ¡Una más!, Barrigazo |
 | 9 | **Cajonazo**: cajón flamenco con brazos y mucho compás | Juerga | 85 | 105 | 90 | 80 | 60 | Rumba, Taconeo, Temblor, Compás |
 | 10 | **Lentejasur**: lenteja sucia que aparece cuando menos te lo esperas | Droga / Fantasma | 60 | 65 | 60 | 120 | 115 | Lluvia de lentejas, Tropezón, Susto, Esporas |
 | 11 | **Tragaperras**: la máquina del rincón del bar, que se ríe de ti | Chispa / Chanza | 85 | 60 | 95 | 65 | 115 | Premio gordo, Chispazo, Zasca, Cizaña |
-| 12 | **Turito**: el userito que aburre y cansa | Normal | 115 | 70 | 110 | 45 | 80 | Dar la chapa, Te pillo en la barra, Turra, Bostezo |
+| 12 | **Turito**: el userito que aburre y cansa | Mindundi | 115 | 70 | 110 | 45 | 80 | Dar la chapa, Te pillo en la barra, Turra, Bostezo |
 | 13 | **Resacón**: nube gris que aparece a la mañana siguiente | Alcohol / Fantasma | 80 | 90 | 75 | 85 | 90 | Dolor de cabeza, Chupitazo, Venganza, Siesta |
-| 14 | **Evoscar**: dos cabezas, una de mujer y otra de hombre, con cuerpo de caballo | Juerga / Chanza | 85 | 90 | 75 | 90 | 80 | Coz doble, Galope, A dos voces, Sí, y… |
-| 15 | **Chupitochu**: chupito muy fuerte y ardiente | Alcohol / Fuego | 60 | 55 | 60 | 120 | 125 | Chupitazo, Fogonazo, Garrafón, Esconderse |
-| 16 | **Caravaner**: una caravana | Bronca / Juerga | 110 | 90 | 115 | 30 | 75 | ¡Camioneees y caravanaaas!, Temblor, Caparazón, Siesta |
-| 17 | **Camioner**: un camión | Normal / Bronca | 100 | 125 | 100 | 50 | 45 | Trompazo, Adoquín, Bocinazo, ¡Camioneees y caravanaaas! |
+| 14 | **Evoscar**: dos cabezas, una de mujer y otra de hombre (pelo corto), con cuerpo de caballo; una pareja aburrida que se pasa el día discutiendo | Mindundi / Bronca | 90 | 95 | 80 | 85 | 70 | Coz doble, Galope, A dos voces, Sí, y… |
+| 15 | **Chupitochu**: chupito muy fuerte y ardiente | Alcohol / Petardo | 60 | 55 | 60 | 120 | 125 | Chupitazo, Fogonazo, Garrafón, Esconderse |
+| 16 | **Caravaner**: una caravana | Bronca / Juerga | 100 | 90 | 105 | 35 | 90 | ¡Camioneees y caravanaaas!, Temblor, Caparazón, Siesta |
+| 17 | **Camioner**: un camión | Mindundi / Bronca | 100 | 125 | 100 | 50 | 45 | Trompazo, Adoquín, Bocinazo, ¡Camioneees y caravanaaas! |
 | 18 | **Criaturitah**: pequeña criaturita del bosque | Droga / Chanza | 80 | 60 | 80 | 100 | 100 | Esporas, Raíces, Vacile, Monada |
-| 19 | **Ego-Ego**: fantasma muy flipado | Fantasma | 70 | 105 | 65 | 110 | 70 | Eco, Chulería, Flipada, Selfie |
+| 19 | **Ego-Ego**: fantasma muy flipado | Fantasma | 75 | 100 | 70 | 105 | 70 | Eco, Chulería, Flipada, Selfie |
 | 20 | **Kbronero**: teclado heavy | Chispa / Juerga | 80 | 90 | 70 | 85 | 95 | Solo de teclado, Distorsión, Pogo, Compás |
+| 21 | **Cubatillo**: un cubata (ron con cola) con hielos y pajita, con burbujas que chisporrotean | Alcohol / Chispa | 75 | 55 | 70 | 105 | 115 | Burbujeo, Ronda, Chispazo, ¡Una más! |
+| 22 | **P**: una P mayúscula gordita con ojos y patitas, muy pesada | Mindundi / Chanza | 95 | 90 | 100 | 60 | 75 | P de Pesao, Dar la chapa, Zasca, Cara de pena |
+| 23 | **JesúsPelo**: surfero de pelo blanco con su tabla, muy tranquilo | Droga / Ventolera | 80 | 85 | 65 | 110 | 80 | Tubo perfecto, Esporas, Raíces, Planeo |
+| 24 | **Pantaloneto**: unos pantalones escapados del tendedero que van solos | Mindundi / Ventolera | 80 | 105 | 70 | 110 | 55 | Bajarse los pantalones, Cierzo, Dar la chapa, Coz doble |
 
-Reparto por tipos (contando los dobles): Normal 4, Fuego 3, Droga 4, Bronca 3, Aire 2, Chispa 2, Alcohol 3, Juerga 5, Chanza 3, Grasa 4, Fantasma 3.
+Reparto por tipos (contando los dobles): Mindundi 8, Petardo 3, Droga 4, Bronca 4, Ventolera 4, Chispa 3, Alcohol 4, Juerga 4, Chanza 4, Grasa 3, Fantasma 3.
 
 Cosas a tener en cuenta del equilibrio:
 
 - **Turito** solo es débil a Juerga y no le afecta lo Fantasma: aguanta mucho, pega poco y aburre al rival con Turra y Bostezo.
-- **Ego-Ego** pega muy fuerte, pero lo Normal no le toca y él no toca a los Normales, así que lleva Chulería (Juerga) para ellos. Es débil a Chanza: no soporta que se rían de él.
-- **Aceitún** tiene una debilidad doble a Alcohol (×4): a la perrita, ni una gota.
+- **Ego-Ego** pega muy fuerte, pero lo Mindundi no le toca y él no toca a los Mindundi, así que lleva Chulería (Juerga) para ellos. Es débil a Chanza: no soporta que se rían de él.
+- **Aceituna** (13-oct, antes Aceitún, Droga / Grasa) es ahora la perrita negra de Fran, la que él llama «su novia»: Mindundi / Chanza, con los mismos números y los movimientos Lametazo, Cara de pena, Vacile y Dar la chapa. Solo le pega fuerte Juerga (×2) y nada de Fantasma la toca (lo Mindundi no se deja asustar).
+- **Cubatillo, P, JesúsPelo y Pantaloneto** (13-oct, tanda 4): sumaban 420 como los demás y se escogieron para reforzar los tipos con menos useritos (Ventolera y Chispa tenían 2 cada uno). Sus ids son `cubatillo`, `p`, `jesuspelo` y `pantaloneto` y van al final de `ESPECIES`, así que los Nº 1-20 no cambian.
+- **Equilibrio de la tanda 4** (`node scripts/pokeusera-motor.mjs --especies=8000`: batallas de cuatro máquinas con drafts al azar; muestra la tasa de victoria, 25 % de media, y el puesto medio de cada userito; con 8000 el ruido baja a unas centésimas, con 400 era de ±0,15). Con los 24 recién metidos salía de ×0,65 (Aceituna, Evoscar, Pantaloneto) a ×1,68 (Turroncho, Tocinón, Caravaner): en un todos contra todos las máquinas de aguante lentas ganan porque nadie las ataca (los bots, y la gente, van a por quien pueden tumbar) y la Velocidad vale poco. Retoques, todos con 420 de suma: los tanques cambian aguante por Velocidad, los flojos ganan aguante y pierden Velocidad (19 useritos tocados, ver `datos.ts`), Caparazón sube la Defensa 1 nivel en vez de 2 y tiene 5 PP, y A dos voces pasa de 65 a 75. Resultado: de ×0,75 (Pantaloneto, Cajonazo) a ×1,35 (Caravaner, Turroncho). El resto de la diferencia es estructural (la Velocidad apenas cuenta) y queda para ajustar a mano si Jesús lo nota jugando.
 - **Camioner y Caravaner** comparten el movimiento de la canción; si uno la canta justo después del otro, pega el doble (ver la tabla).
 
 ### Los movimientos
@@ -275,32 +281,35 @@ Potencia, precisión y PP. «Uno» es un rival a elegir; «todos», los tres riv
 
 | Movimiento | Tipo | Pot. | Prec. | PP | Objetivo | Efecto |
 |---|---|---|---|---|---|---|
-| Barrigazo | Normal | 85 | 100 | 8 | uno | 30 %: paraliza |
-| Trompazo | Normal | 120 | 90 | 3 | uno | El que lo usa recibe 1/4 del daño que hace |
-| Galope | Normal | 80 | 100 | 8 | uno | — |
-| Lametazo | Normal | 30 | 100 | 10 | uno | 30 %: paraliza |
-| Dar la chapa | Normal | 80 | 100 | 8 | uno | 20 %: baja 1 nivel la Velocidad |
-| Te pillo en la barra | Normal | 25 | 90 | 8 | uno | Lo atrapa 2-5 turnos: no puede cambiar y pierde 1/16 de PS por turno |
-| Bocinazo | Normal | — | 100 | 8 | todos | Baja 1 nivel el Ataque de los rivales |
-| Turra | Normal | — | 90 | 5 | todos | Se les quitan las ganas: baja 1 nivel el Ataque y el Especial |
-| Bostezo | Normal | — | 100 | 5 | uno | Se queda dormido al final del turno siguiente |
-| Cara de pena | Normal | — | 100 | 10 | uno | Nadie puede pegarle a esa carita: baja 2 niveles el Ataque |
-| Esconderse | Normal | — | — | 5 | yo | Nadie puede tocarle este turno; si lo repite seguido, la mitad de las veces falla |
-| Siesta | Normal | — | — | 5 | yo | Duerme 2 turnos y recupera todos los PS y estados |
-| Traca | Fuego | 70 | 100 | 5 | todos | 10 %: quema |
-| Fogonazo | Fuego | 90 | 100 | 8 | uno | 10 %: quema |
-| Petardazo | Fuego | 110 | 85 | 3 | uno | 30 %: quema |
+| Barrigazo | Mindundi | 85 | 100 | 8 | uno | 30 %: paraliza |
+| Trompazo | Mindundi | 120 | 90 | 3 | uno | El que lo usa recibe 1/4 del daño que hace |
+| Galope | Mindundi | 80 | 100 | 8 | uno | — |
+| Lametazo | Mindundi | 30 | 100 | 10 | uno | 30 %: paraliza |
+| Dar la chapa | Mindundi | 80 | 100 | 8 | uno | 20 %: baja 1 nivel la Velocidad |
+| Te pillo en la barra | Mindundi | 25 | 90 | 8 | uno | Lo atrapa 2-5 turnos: no puede cambiar y pierde 1/16 de PS por turno |
+| Bocinazo | Mindundi | — | 100 | 8 | todos | Baja 1 nivel el Ataque de los rivales |
+| Turra | Mindundi | — | 90 | 5 | todos | Se les quitan las ganas: baja 1 nivel el Ataque y el Especial |
+| Bostezo | Mindundi | — | 100 | 5 | uno | Se queda dormido al final del turno siguiente |
+| Cara de pena | Mindundi | — | 100 | 10 | uno | Nadie puede pegarle a esa carita: baja 2 niveles el Ataque |
+| Esconderse | Mindundi | — | — | 5 | yo | Nadie puede tocarle este turno; si lo repite seguido, la mitad de las veces falla |
+| Siesta | Mindundi | — | — | 5 | yo | Duerme 2 turnos y recupera todos los PS y estados |
+| Bajarse los pantalones | Mindundi | — | — | 5 | yo | Sube 2 niveles el Ataque y la Velocidad y baja 2 la Defensa |
+| Traca | Petardo | 70 | 100 | 5 | todos | 10 %: quema |
+| Fogonazo | Petardo | 90 | 100 | 8 | uno | 10 %: quema |
+| Petardazo | Petardo | 110 | 85 | 3 | uno | 30 %: quema |
 | Raíces | Droga | 60 | 100 | 8 | uno | Recupera la mitad del daño que hace |
 | Almendrazo | Droga | 85 | 100 | 8 | uno | — |
 | Lluvia de lentejas | Droga | 25 | 90 | 10 | uno | Pega de 2 a 5 veces |
 | Esporas | Droga | — | 75 | 8 | uno | Lo duerme |
-| Temblor | Bronca | 80 | 100 | 5 | todos | No afecta a los de tipo Aire |
+| Temblor | Bronca | 80 | 100 | 5 | todos | No afecta a los de tipo Ventolera |
 | Adoquín | Bronca | 100 | 85 | 5 | uno | — |
 | Caparazón | Bronca | — | — | 10 | yo | Sube 2 niveles la Defensa |
-| Cierzo | Aire | 70 | 95 | 5 | todos | Baja 1 nivel la Velocidad de los rivales |
-| Planeo | Aire | 80 | 100 | 8 | uno | — |
-| Remolino | Aire | — | 100 | 8 | uno | Le obliga a cambiar a otro userito al azar |
+| Cierzo | Ventolera | 70 | 95 | 5 | todos | Baja 1 nivel la Velocidad de los rivales |
+| Planeo | Ventolera | 80 | 100 | 8 | uno | — |
+| Tubo perfecto | Ventolera | 90 | 95 | 5 | uno | Sube 1 nivel la Velocidad del que lo usa (una vez, si acierta a alguien) |
+| Remolino | Ventolera | — | 100 | 8 | uno | Le obliga a cambiar a otro userito al azar |
 | Chispazo | Chispa | 90 | 100 | 8 | uno | 10 %: paraliza |
+| Burbujeo | Chispa | 65 | 100 | 5 | todos | 10 %: paraliza |
 | Distorsión | Chispa | 60 | 100 | 5 | todos | 10 %: achispa |
 | Solo de teclado | Chispa | 130 | 90 | 3 | uno | Al turno siguiente no puede hacer nada (recarga) |
 | Premio gordo | Chispa | ? | 100 | 5 | uno | Tirada de tragaperras: potencia 0, 40, 80 o 150 |
@@ -319,11 +328,13 @@ Potencia, precisión y PP. «Uno» es un rival a elegir; «todos», los tres riv
 | ¡Camioneees y caravanaaas! | Juerga | 90 | 100 | 3 | todos | Si alguien la cantó el turno anterior, pega el doble |
 | Zasca | Chanza | 100 | 90 | 5 | uno | — |
 | Vacile | Chanza | 80 | 100 | 8 | uno | 20 %: baja 1 nivel el Especial |
-| A dos voces | Chanza | 65 | 100 | 5 | todos | — |
+| P de Pesao | Chanza | 60 | 100 | 8 | uno | Siempre baja 1 nivel la Velocidad del rival |
+| A dos voces | Bronca | 75 | 100 | 5 | todos | — (antes Chanza, 65: ahora son una pareja que discute) |
 | Monada | Chanza | — | 100 | 8 | todos | Nadie quiere pegarle: baja 1 nivel el Ataque de los rivales |
 | Cizaña | Chanza | — | 90 | 5 | uno | Durante 2 turnos, sus ataques a un rival van a un rival al azar |
 | Sí, y… | Chanza | — | — | 8 | — | Copia el último movimiento que se haya usado en la batalla, de quien sea |
 | Fritanga | Grasa | 90 | 100 | 8 | uno | 20 %: quema (salta el aceite) |
+| De Goudamadre | Grasa | 95 | 100 | 5 | uno | 20 %: quema. Sustituye a Fritanga en Goudazard (Roscochoco conserva Fritanga) |
 | Pringue | Grasa | 65 | 100 | 5 | todos | 20 %: resbalan y baja 1 nivel su Velocidad |
 | Tropezón | Grasa | 70 | 100 | 8 | uno | 30 %: lo empacha |
 | Indigestión | Grasa | — | 90 | 5 | uno | Lo empacha |
@@ -341,6 +352,6 @@ Potencia, precisión y PP. «Uno» es un rival a elegir; «todos», los tres riv
 
 Pedido por Jesús («una useritopedia con todos los detalles de todos los useritos: su número, su tipo, su descripción, etcétera»). `pantallas/useritopedia.ts` exporta `abrirUseritopedia(base, id?)`, hecha sobre `sobre` (`modal.ts`) como la guía: se abre encima de cualquier pantalla (o de nada, con `base` null) y la devuelve al cerrarse. Con `id` abre directamente la ficha de ese userito y VOLVER cierra; sin él abre la **LISTA**. Todavía no tiene entrada en el menú (la añade quien edite `menu.ts` / `flujo.ts`: `await abrirUseritopedia(escena)`).
 
-- **Lista:** los 20 en el orden de `ESPECIES` (Nº01…Nº20, el mismo número de la ficha del draft), cada fila con número, miniatura 32×32, nombre, tipos y su mejor estadística (`ESP 100`). Se arrastra con inercia, flechas ↑↓ para moverse, Enter o toque para abrir, VOLVER.
-- **Ficha:** una sola página que se desliza hacia abajo: nombre y Nº; el sprite de frente a 2× y el de espaldas, ambos con su reposo de dos fotogramas (a ~2 por segundo), y los tipos; la descripción (`userito.<id>.desc`); las cinco estadísticas base con barras (tocar una abre su `ayuda.stat.*`), el total (todos suman 420) y en qué estadística destaca y con qué puesto de 20; los cuatro movimientos con tipo, potencia, precisión, PP, objetivo (a uno / a todos / a sí mismo), categoría (físico / especial / estado, según `TIPOS_FISICOS`), prioridad y `mov.<id>.desc`; y «Le pega fuerte a / Le pegan fuerte (×4) / No le afectan», calculado con `eficacia` como en la ficha del draft (reutiliza `hileraTipos`, `defensoresCon` y `atacantesFuertes` de `guia.ts`). ◀ ▶ (arriba, abajo, flechas del teclado o deslizar de lado) pasan al anterior o siguiente con un deslizamiento de 160 ms y su grito (`sonido.grito`, que también suena al abrir y al tocar el sprite grande); VOLVER vuelve a la lista.
+- **Lista:** los 24 en el orden de `ESPECIES` (Nº01…Nº24, el mismo número de la ficha del draft), cada fila con número, miniatura 32×32, nombre, tipos y su mejor estadística (`ESP 100`). Se arrastra con inercia, flechas ↑↓ para moverse, Enter o toque para abrir, VOLVER.
+- **Ficha:** una sola página que se desliza hacia abajo: nombre y Nº; el sprite de frente a 2× y el de espaldas, ambos con su reposo de dos fotogramas (a ~2 por segundo), y los tipos; la descripción (`userito.<id>.desc`); las cinco estadísticas base con barras (tocar una abre su `ayuda.stat.*`), el total (todos suman 420) y en qué estadística destaca y con qué puesto de 24; los cuatro movimientos con tipo, potencia, precisión, PP, objetivo (a uno / a todos / a sí mismo), categoría (físico / especial / estado, según `TIPOS_FISICOS`), prioridad y `mov.<id>.desc`; y «Le pega fuerte a / Le pegan fuerte (×4) / No le afectan», calculado con `eficacia` como en la ficha del draft (reutiliza `hileraTipos`, `defensoresCon` y `atacantesFuertes` de `guia.ts`). ◀ ▶ (arriba, abajo, flechas del teclado o deslizar de lado) pasan al anterior o siguiente con un deslizamiento de 160 ms y su grito (`sonido.grito`, que también suena al abrir y al tocar el sprite grande); VOLVER vuelve a la lista.
 - **Rendimiento:** la pantalla es `estatica` (y `sobre` ahora propaga ese dato: un modal estático sobre nada o sobre otra pantalla estática no se repinta cada 250 ms). `paso` devuelve true solo mientras hay inercia, durante el deslizamiento entre useritos y en el instante en que cambia el fotograma de reposo. Cada fila de la lista y cada ficha (un lienzo alto con todo menos los dos sprites y la burbuja de explicación) se hornean una vez; en reposo se hornea una pieza por fotograma (filas, luego las fichas de las filas visibles; o los sprites y la ficha de los vecinos de la abierta), así que abrir una ficha o pasar con ◀ ▶ no se nota. Un fotograma son unas pocas llamadas a `drawImage`; el texto va por la caché de `fuente2`. Medido con la CPU 4× más lenta, 390×844: la lista en reposo no repinta nada; la ficha en reposo, 2 repintados por segundo de ~1,2-1,7 ms; arrastrando o deslizando, ~1,3 ms de media por fotograma (máx. 5 ms). Vista previa: `tools/pokeusera-v2.html?vista=useritopedia` (`&id=camioner` abre una ficha; `&medir=1` da `window.__medir`). Textos: `useritopedia.*` en `pokeusera.md`.

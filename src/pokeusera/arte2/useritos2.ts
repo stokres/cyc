@@ -4,6 +4,7 @@
 import { LOTE_A } from './useritos2-a';
 import { LOTE_B } from './useritos2-b';
 import { LOTE_C } from './useritos2-c';
+import { LOTE_D } from './useritos2-d';
 import { Pintor, Mascara, bez3, cur, el, espejo, mover, par, poli, rc, rr, trazo, un, men, inter, lin, type Mat } from './pintor';
 
 export interface Dibujo2 {
@@ -397,64 +398,13 @@ function espumarro(P: Pintor): void {
 }
 
 
-// ---------------------------------------------------------------------------------------------
-// Aceitún · extra rival for the mock only (not part of the three-sample set): olive-shaped puppy.
-// ---------------------------------------------------------------------------------------------
-const OLIVA: Mat = { r: ['#1c1428', '#352a48', '#52476e', '#8478a8'], ol: '#0a0610', ol2: '#1c1428', rim: '#9a8ac8' };
-const HOJA: Mat = { r: ['#2f7a2a', '#4cae3a', '#8ad65c'], ol: '#123a12', ol2: '#2f7a2a' };
-const HOCICO: Mat = { r: ['#6a5e88', '#9a8eb8', '#c8bee0'], ol: '#0a0610', ol2: '#52476e' };
-
-function aceitun(P: Pintor): void {
-  const f = P.f;
-  const E = P.espalda;
-  const by = f ? 1 : 0;
-  // Tail wagging.
-  P.forma(trazo([[46, 50], [54, 44 - f * 3], [55, 38 - f * 4]], 3.4, 1.8), OLIVA, { rad: 2 });
-  // Floppy ears.
-  const oreja = el(14, 34 + by, 5.4, 11);
-  P.forma(oreja, OLIVA, { rad: 4 });
-  P.forma(el(50, 34 + by, 5.4, 11), OLIVA, { rad: 4 });
-  // Paws and the olive body.
-  P.forma(un(el(23, 58, 6, 3), el(41, 58, 6, 3)), HOCICO, { rad: 2.5 });
-  const cuerpo = el(32, 36 + by, 18.5, 22 - by * 0.5);
-  P.forma(cuerpo, OLIVA, { rad: 11, grad: 0.5 });
-  P.cara(() => {
-    // Muzzle, nose, tongue, big shiny eyes.
-    P.forma(el(32, 42 + by, 9, 6.4), HOCICO, { rad: 5 });
-    P.forma(el(32, 38.5 + by, 3.2, 2.2), OLIVA, { rad: 1.5, paso: 1 });
-    P.px(31, 37 + by, '#ffffff');
-    P.llenar(inter(el(32, 45 + by, 5, 3.4), rc(20, 45 + by, 24, 6)), '#2a0c18');
-    P.llenar(inter(el(32, 47 + by, 3.2, 2.6), rc(20, 46 + by, 24, 6)), '#f0507a');
-    P.llenar(cur([[32, 41 + by], [32, 44 + by]], 1), '#2a0c18');
-    for (const cx of [23.5, 40.5]) {
-      P.forma(el(cx, 29 + by, 4.6, 5.2), { r: ['#0a0610', '#0a0610', '#241a38'], ol: '#0a0610' }, { modo: 'plano', paso: 1 });
-      P.px(Math.round(cx) - 2, 27 + by, '#ffffff');
-      P.px(Math.round(cx) - 1, 27 + by, '#ffffff');
-      P.px(Math.round(cx) - 2, 28 + by, '#ffffff');
-      P.px(Math.round(cx) + 1, 32 + by, '#8478a8');
-    }
-    P.llenar(cur([[18, 23 + by], [22, 22 + by]], 1), '#0a0610');
-    P.llenar(rc(17, 36 + by, 3, 2), '#e8708a');
-    P.llenar(rc(44, 36 + by, 3, 2), '#e8708a');
-  });
-  P.dorso(() => {
-    P.tono(el(32, 24, 10, 4), OLIVA, 1);
-  });
-  // The olive's stalk and leaf.
-  P.forma(trazo([[32, 15 + by], [34, 10 + by], [38, 7 + by]], 1.8, 1.4), OLIVA, { rad: 1.5, paso: 1 });
-  P.forma(poli([[37, 9 + by], [44, 3 + by], [52, 5 + by], [46, 11 + by]]), HOJA, { rad: 2.5 });
-  P.llenar(cur([[39, 8 + by], [49, 6 + by]], 1), '#2f7a2a');
-  void E;
-}
-
 export const DIBUJOS2: Dibujo2[] = [
   { id: 'draguserin', nombre: 'Draguserín', dibujar: draguserin },
   { id: 'espumarro', nombre: 'Espumarro', dibujar: espumarro },
   { id: 'ego-ego', nombre: 'Ego-Ego', dibujar: egoEgo },
-  { id: 'aceitun', nombre: 'Aceitún', dibujar: aceitun },
 ];
 // The other useritos, drawn in batches; a batch may redraw one above (the later one wins).
-for (const d of [...LOTE_A, ...LOTE_B, ...LOTE_C]) {
+for (const d of [...LOTE_A, ...LOTE_B, ...LOTE_C, ...LOTE_D]) {
   const i = DIBUJOS2.findIndex((x) => x.id === d.id);
   if (i >= 0) DIBUJOS2[i] = d;
   else DIBUJOS2.push(d);

@@ -1,16 +1,16 @@
-// PokéUsera · Edición Jarra: all the data of docs/POKEUSERA.md (type chart, the 20 useritos,
+// PokéUsera · Edición Jarra: all the data of docs/POKEUSERA.md (type chart, the 24 useritos,
 // the move table and the engine-side effect of each move). Names are data; every sentence the
 // game says lives in src/textos/pokeusera-combate.md.
 import type { Especie, Estado, Movimiento, Stat, Tipo } from './tipos';
 
-export const TIPOS: readonly Tipo[] = ['normal', 'fuego', 'droga', 'bronca', 'aire', 'chispa', 'alcohol', 'juerga', 'chanza', 'grasa', 'fantasma'];
+export const TIPOS: readonly Tipo[] = ['mindundi', 'petardo', 'droga', 'bronca', 'ventolera', 'chispa', 'alcohol', 'juerga', 'chanza', 'grasa', 'fantasma'];
 
 export const TIPO_NOMBRE: Record<Tipo, string> = {
-  normal: 'Normal',
-  fuego: 'Fuego',
+  mindundi: 'Mindundi',
+  petardo: 'Petardo',
   droga: 'Droga',
   bronca: 'Bronca',
-  aire: 'Aire',
+  ventolera: 'Ventolera',
   chispa: 'Chispa',
   alcohol: 'Alcohol',
   juerga: 'Juerga',
@@ -22,17 +22,17 @@ export const TIPO_NOMBRE: Record<Tipo, string> = {
 // ---------------------------------------------------------------- type chart
 
 const TABLA: Record<Tipo, { x2?: Tipo[]; x05?: Tipo[]; x0?: Tipo[] }> = {
-  normal: { x05: ['bronca'], x0: ['fantasma'] },
-  fuego: { x2: ['droga', 'alcohol'], x05: ['fuego', 'bronca', 'grasa'] },
-  droga: { x2: ['bronca', 'grasa'], x05: ['fuego', 'droga', 'alcohol'] },
-  bronca: { x2: ['fuego', 'chispa'], x05: ['droga'], x0: ['aire'] },
-  aire: { x2: ['fuego', 'juerga'], x05: ['chispa', 'bronca'] },
-  chispa: { x2: ['aire', 'alcohol'], x05: ['chispa', 'droga'], x0: ['bronca'] },
-  alcohol: { x2: ['grasa', 'droga'], x05: ['alcohol', 'fuego'] },
-  juerga: { x2: ['normal', 'bronca'], x05: ['grasa'] },
+  mindundi: { x05: ['bronca'], x0: ['fantasma'] },
+  petardo: { x2: ['droga', 'alcohol'], x05: ['petardo', 'bronca', 'grasa'] },
+  droga: { x2: ['bronca', 'grasa'], x05: ['petardo', 'droga', 'alcohol'] },
+  bronca: { x2: ['petardo', 'chispa'], x05: ['droga'], x0: ['ventolera'] },
+  ventolera: { x2: ['petardo', 'juerga'], x05: ['chispa', 'bronca'] },
+  chispa: { x2: ['ventolera', 'alcohol'], x05: ['chispa', 'droga'], x0: ['bronca'] },
+  alcohol: { x2: ['grasa', 'droga'], x05: ['alcohol', 'petardo'] },
+  juerga: { x2: ['mindundi', 'bronca'], x05: ['grasa'] },
   chanza: { x2: ['juerga', 'fantasma'], x05: ['chanza'] },
-  grasa: { x2: ['alcohol', 'juerga'], x05: ['fuego', 'droga'] },
-  fantasma: { x2: ['chanza', 'fantasma'], x0: ['normal'] },
+  grasa: { x2: ['alcohol', 'juerga'], x05: ['petardo', 'droga'] },
+  fantasma: { x2: ['chanza', 'fantasma'], x0: ['mindundi'] },
 };
 
 /** Effectiveness of an attack type against a (one or two types) defender: 0, 0.25, 0.5, 1, 2, 4. */
@@ -48,6 +48,9 @@ export function eficacia(tipoAtaque: Tipo, defensa: readonly Tipo[]): number {
 }
 
 // ---------------------------------------------------------------- useritos
+// Balance of batch 4 (13-oct, `node scripts/pokeusera-motor.mjs --especies=8000`, docs/POKEUSERA.md §3): stats shuffled
+// keeping 420 in 19 useritos (the slow tanks give bulk for speed; the weak ones get bulk back), Caparazón +1 DEF and 5 PP,
+// «A dos voces» 65 → 75. Win rate went from ×0.65–×1.68 of the average to ×0.75–×1.35.
 
 const e = (id: string, nombre: string, tipos: Especie['tipos'], ps: number, ata: number, def: number, vel: number, esp: number, movs: Especie['movs']): Especie => ({
   id,
@@ -58,26 +61,31 @@ const e = (id: string, nombre: string, tipos: Especie['tipos'], ps: number, ata:
 });
 
 export const ESPECIES: Especie[] = [
-  e('draguserin', 'Draguserín', ['fuego', 'aire'], 75, 80, 70, 95, 100, ['traca', 'petardazo', 'planeo', 'esconderse']),
-  e('goudazard', 'Goudazard', ['grasa', 'fuego'], 85, 70, 90, 65, 110, ['fritanga', 'fogonazo', 'pringue', 'rebozado']),
-  e('aceitun', 'Aceitún', ['droga', 'grasa'], 70, 85, 70, 110, 85, ['raices', 'pringue', 'lametazo', 'cara_de_pena']),
-  e('cierzon', 'Cierzón', ['aire'], 70, 90, 65, 120, 75, ['cierzo', 'planeo', 'remolino', 'venganza']),
-  e('turroncho', 'Turroncho', ['bronca', 'droga'], 100, 80, 125, 35, 80, ['almendrazo', 'adoquin', 'caparazon', 'siesta']),
-  e('tocinon', 'Tocinón', ['normal', 'grasa'], 150, 95, 80, 30, 65, ['barrigazo', 'pringue', 'temblor', 'siesta']),
-  e('roscochoco', 'Roscochoco', ['grasa', 'juerga'], 105, 75, 90, 50, 100, ['indigestion', 'fritanga', 'conga', 'rebozado']),
-  e('espumarro', 'Espumarro', ['alcohol', 'normal'], 95, 70, 80, 75, 100, ['ronda', 'garrafon', 'unamas', 'barrigazo']),
-  e('cajonazo', 'Cajonazo', ['juerga'], 85, 105, 90, 80, 60, ['rumba', 'taconeo', 'temblor', 'compas']),
-  e('lentejasur', 'Lentejasur', ['droga', 'fantasma'], 60, 65, 60, 120, 115, ['lluvia', 'tropezon', 'susto', 'esporas']),
-  e('tragaperras', 'Tragaperras', ['chispa', 'chanza'], 85, 60, 95, 65, 115, ['premio', 'chispazo', 'zasca', 'cizana']),
-  e('turito', 'Turito', ['normal'], 115, 70, 110, 45, 80, ['chapa', 'pillo', 'turra', 'bostezo']),
-  e('resacon', 'Resacón', ['alcohol', 'fantasma'], 80, 90, 75, 85, 90, ['dolor', 'chupitazo', 'venganza', 'siesta']),
-  e('evoscar', 'Evoscar', ['juerga', 'chanza'], 85, 90, 75, 90, 80, ['coz', 'galope', 'dosvoces', 'siy']),
-  e('chupitochu', 'Chupitochu', ['alcohol', 'fuego'], 60, 55, 60, 120, 125, ['chupitazo', 'fogonazo', 'garrafon', 'esconderse']),
-  e('caravaner', 'Caravaner', ['bronca', 'juerga'], 110, 90, 115, 30, 75, ['cancion', 'temblor', 'caparazon', 'siesta']),
-  e('camioner', 'Camioner', ['normal', 'bronca'], 100, 125, 100, 50, 45, ['trompazo', 'adoquin', 'bocinazo', 'cancion']),
+  e('draguserin', 'Draguserín', ['petardo', 'ventolera'], 75, 80, 70, 95, 100, ['traca', 'petardazo', 'planeo', 'esconderse']),
+  e('goudazard', 'Goudazard', ['grasa', 'petardo'], 75, 70, 85, 90, 100, ['goudamadre', 'fogonazo', 'pringue', 'rebozado']),
+  e('aceituna', 'Aceituna', ['mindundi', 'chanza'], 90, 100, 90, 75, 65, ['lametazo', 'cara_de_pena', 'vacile', 'chapa']),
+  e('cierzon', 'Cierzón', ['ventolera'], 75, 95, 70, 105, 75, ['cierzo', 'planeo', 'remolino', 'venganza']),
+  e('turroncho', 'Turroncho', ['bronca', 'droga'], 85, 80, 95, 70, 90, ['almendrazo', 'adoquin', 'caparazon', 'siesta']),
+  e('tocinon', 'Tocinón', ['mindundi', 'grasa'], 105, 95, 70, 75, 75, ['barrigazo', 'pringue', 'temblor', 'siesta']),
+  e('roscochoco', 'Roscochoco', ['grasa', 'juerga'], 100, 75, 85, 60, 100, ['indigestion', 'fritanga', 'conga', 'rebozado']),
+  e('espumarro', 'Espumarro', ['alcohol', 'mindundi'], 95, 70, 80, 75, 100, ['ronda', 'garrafon', 'unamas', 'barrigazo']),
+  e('cajonazo', 'Cajonazo', ['juerga'], 100, 115, 100, 50, 55, ['rumba', 'taconeo', 'temblor', 'compas']),
+  e('lentejasur', 'Lentejasur', ['droga', 'fantasma'], 70, 65, 70, 100, 115, ['lluvia', 'tropezon', 'susto', 'esporas']),
+  e('tragaperras', 'Tragaperras', ['chispa', 'chanza'], 75, 60, 80, 90, 115, ['premio', 'chispazo', 'zasca', 'cizana']),
+  e('turito', 'Turito', ['mindundi'], 105, 70, 95, 70, 80, ['chapa', 'pillo', 'turra', 'bostezo']),
+  e('resacon', 'Resacón', ['alcohol', 'fantasma'], 85, 90, 80, 75, 90, ['dolor', 'chupitazo', 'venganza', 'siesta']),
+  e('evoscar', 'Evoscar', ['mindundi', 'bronca'], 100, 105, 95, 55, 65, ['coz', 'galope', 'dosvoces', 'siy']),
+  e('chupitochu', 'Chupitochu', ['alcohol', 'petardo'], 75, 55, 75, 90, 125, ['chupitazo', 'fogonazo', 'garrafon', 'esconderse']),
+  e('caravaner', 'Caravaner', ['bronca', 'juerga'], 85, 85, 75, 85, 90, ['cancion', 'temblor', 'caparazon', 'siesta']),
+  e('camioner', 'Camioner', ['mindundi', 'bronca'], 105, 125, 100, 35, 55, ['trompazo', 'adoquin', 'bocinazo', 'cancion']),
   e('criaturitah', 'Criaturitah', ['droga', 'chanza'], 80, 60, 80, 100, 100, ['esporas', 'raices', 'vacile', 'monada']),
-  e('ego-ego', 'Ego-Ego', ['fantasma'], 70, 105, 65, 110, 70, ['eco', 'chuleria', 'flipada', 'selfie']),
+  e('ego-ego', 'Ego-Ego', ['fantasma'], 80, 100, 75, 95, 70, ['eco', 'chuleria', 'flipada', 'selfie']),
   e('kbronero', 'Kbronero', ['chispa', 'juerga'], 80, 90, 70, 85, 95, ['solo', 'distorsion', 'pogo', 'compas']),
+  // Batch 4 (13-oct): the four new ones go at the end, so the Nº of the others does not change.
+  e('cubatillo', 'Cubatillo', ['alcohol', 'chispa'], 70, 55, 70, 115, 110, ['burbujeo', 'ronda', 'chispazo', 'unamas']),
+  e('p', 'P', ['mindundi', 'chanza'], 95, 90, 100, 60, 75, ['pesao', 'chapa', 'zasca', 'cara_de_pena']),
+  e('jesuspelo', 'JesúsPelo', ['droga', 'ventolera'], 85, 90, 75, 95, 75, ['tubo', 'esporas', 'raices', 'planeo']),
+  e('pantaloneto', 'Pantaloneto', ['mindundi', 'ventolera'], 95, 120, 90, 75, 40, ['pantalones', 'cierzo', 'chapa', 'coz']),
 ];
 
 export const ESPECIE: Record<string, Especie> = Object.fromEntries(ESPECIES.map((s) => [s.id, s]));
@@ -91,32 +99,35 @@ const m = (id: string, nombre: string, tipo: Tipo, pot: number | null, prec: num
 };
 
 const LISTA_MOVS: Movimiento[] = [
-  m('barrigazo', 'Barrigazo', 'normal', 85, 100, 8, 'uno'),
-  m('trompazo', 'Trompazo', 'normal', 120, 90, 3, 'uno'),
-  m('galope', 'Galope', 'normal', 80, 100, 8, 'uno'),
-  m('lametazo', 'Lametazo', 'normal', 30, 100, 10, 'uno'),
-  m('chapa', 'Dar la chapa', 'normal', 80, 100, 8, 'uno'),
-  m('pillo', 'Te pillo en la barra', 'normal', 25, 90, 8, 'uno'),
-  m('bocinazo', 'Bocinazo', 'normal', null, 100, 8, 'todos'),
-  m('turra', 'Turra', 'normal', null, 90, 5, 'todos'),
-  m('bostezo', 'Bostezo', 'normal', null, 100, 5, 'uno'),
-  m('cara_de_pena', 'Cara de pena', 'normal', null, 100, 10, 'uno'),
-  m('esconderse', 'Esconderse', 'normal', null, null, 5, 'yo', 2),
-  m('siesta', 'Siesta', 'normal', null, null, 5, 'yo'),
-  m('traca', 'Traca', 'fuego', 70, 100, 5, 'todos'),
-  m('fogonazo', 'Fogonazo', 'fuego', 90, 100, 8, 'uno'),
-  m('petardazo', 'Petardazo', 'fuego', 110, 85, 3, 'uno'),
+  m('barrigazo', 'Barrigazo', 'mindundi', 85, 100, 8, 'uno'),
+  m('trompazo', 'Trompazo', 'mindundi', 120, 90, 3, 'uno'),
+  m('galope', 'Galope', 'mindundi', 80, 100, 8, 'uno'),
+  m('lametazo', 'Lametazo', 'mindundi', 30, 100, 10, 'uno'),
+  m('chapa', 'Dar la chapa', 'mindundi', 80, 100, 8, 'uno'),
+  m('pillo', 'Te pillo en la barra', 'mindundi', 25, 90, 8, 'uno'),
+  m('bocinazo', 'Bocinazo', 'mindundi', null, 100, 8, 'todos'),
+  m('turra', 'Turra', 'mindundi', null, 90, 5, 'todos'),
+  m('bostezo', 'Bostezo', 'mindundi', null, 100, 5, 'uno'),
+  m('cara_de_pena', 'Cara de pena', 'mindundi', null, 100, 10, 'uno'),
+  m('esconderse', 'Esconderse', 'mindundi', null, null, 5, 'yo', 2),
+  m('siesta', 'Siesta', 'mindundi', null, null, 5, 'yo'),
+  m('pantalones', 'Bajarse los pantalones', 'mindundi', null, null, 5, 'yo'),
+  m('traca', 'Traca', 'petardo', 70, 100, 5, 'todos'),
+  m('fogonazo', 'Fogonazo', 'petardo', 90, 100, 8, 'uno'),
+  m('petardazo', 'Petardazo', 'petardo', 110, 85, 3, 'uno'),
   m('raices', 'Raíces', 'droga', 60, 100, 8, 'uno'),
   m('almendrazo', 'Almendrazo', 'droga', 85, 100, 8, 'uno'),
   m('lluvia', 'Lluvia de lentejas', 'droga', 25, 90, 10, 'uno'),
   m('esporas', 'Esporas', 'droga', null, 75, 8, 'uno'),
   m('temblor', 'Temblor', 'bronca', 80, 100, 5, 'todos'),
   m('adoquin', 'Adoquín', 'bronca', 100, 85, 5, 'uno'),
-  m('caparazon', 'Caparazón', 'bronca', null, null, 10, 'yo'),
-  m('cierzo', 'Cierzo', 'aire', 70, 95, 5, 'todos'),
-  m('planeo', 'Planeo', 'aire', 80, 100, 8, 'uno'),
-  m('remolino', 'Remolino', 'aire', null, 100, 8, 'uno'),
+  m('caparazon', 'Caparazón', 'bronca', null, null, 5, 'yo'),
+  m('cierzo', 'Cierzo', 'ventolera', 70, 95, 5, 'todos'),
+  m('planeo', 'Planeo', 'ventolera', 80, 100, 8, 'uno'),
+  m('tubo', 'Tubo perfecto', 'ventolera', 90, 95, 5, 'uno'),
+  m('remolino', 'Remolino', 'ventolera', null, 100, 8, 'uno'),
   m('chispazo', 'Chispazo', 'chispa', 90, 100, 8, 'uno'),
+  m('burbujeo', 'Burbujeo', 'chispa', 65, 100, 5, 'todos'),
   m('distorsion', 'Distorsión', 'chispa', 60, 100, 5, 'todos'),
   m('solo', 'Solo de teclado', 'chispa', 130, 90, 3, 'uno'),
   m('premio', 'Premio gordo', 'chispa', null, 100, 5, 'uno'),
@@ -135,12 +146,14 @@ const LISTA_MOVS: Movimiento[] = [
   m('cancion', '¡Camioneees y caravanaaas!', 'juerga', 90, 100, 3, 'todos'),
   m('zasca', 'Zasca', 'chanza', 100, 90, 5, 'uno'),
   m('vacile', 'Vacile', 'chanza', 80, 100, 8, 'uno'),
-  m('dosvoces', 'A dos voces', 'chanza', 65, 100, 5, 'todos'),
+  m('pesao', 'P de Pesao', 'chanza', 60, 100, 8, 'uno'),
+  m('dosvoces', 'A dos voces', 'bronca', 75, 100, 5, 'todos'),
   m('monada', 'Monada', 'chanza', null, 100, 8, 'todos'),
   m('cizana', 'Cizaña', 'chanza', null, 90, 5, 'uno'),
   // «Sí, y…» has no fixed target: the engine treats it as «yo» and borrows the copied move's target kind.
   m('siy', 'Sí, y…', 'chanza', null, null, 8, 'yo'),
   m('fritanga', 'Fritanga', 'grasa', 90, 100, 8, 'uno'),
+  m('goudamadre', 'De Goudamadre', 'grasa', 95, 100, 5, 'uno'),
   m('pringue', 'Pringue', 'grasa', 65, 100, 5, 'todos'),
   m('tropezon', 'Tropezón', 'grasa', 70, 100, 8, 'uno'),
   m('indigestion', 'Indigestión', 'grasa', null, 90, 5, 'uno'),
@@ -150,8 +163,8 @@ const LISTA_MOVS: Movimiento[] = [
   m('venganza', 'Venganza', 'fantasma', 50, 100, 5, 'uno'),
   m('flipada', 'Flipada', 'fantasma', null, null, 5, 'yo'),
   m('selfie', 'Selfie', 'fantasma', null, 70, 8, 'todos'),
-  // Used when no move has PP left (Normal, 50, never misses, recoil 1/4).
-  m('desesperada', 'A la desesperada', 'normal', 50, null, 1, 'uno'),
+  // Used when no move has PP left (Mindundi, 50, never misses, recoil 1/4).
+  m('desesperada', 'A la desesperada', 'mindundi', 50, null, 1, 'uno'),
 ];
 
 export const MOVS: Record<string, Movimiento> = Object.fromEntries(LISTA_MOVS.map((x) => [x.id, x]));
@@ -207,10 +220,11 @@ export const EFECTOS: Record<string, Efecto> = {
   raices: { drena: true },
   lluvia: { golpes: 'multi' },
   esporas: { estado: { estado: 'dormido', prob: 100 } },
-  caparazon: { nivel: [{ a: 'yo', stat: 'def', cambio: 2 }] },
+  caparazon: { nivel: [{ a: 'yo', stat: 'def', cambio: 1 }] },
   cierzo: { nivel: [{ a: 'objetivo', stat: 'vel', cambio: -1 }] },
   remolino: { especial: 'remolino' },
   chispazo: { estado: { estado: 'paralizado', prob: 10 } },
+  burbujeo: { estado: { estado: 'paralizado', prob: 10 } },
   distorsion: { estado: { estado: 'achispado', prob: 10 } },
   solo: { recarga: true },
   premio: { especial: 'premio' },
@@ -230,6 +244,17 @@ export const EFECTOS: Record<string, Efecto> = {
   cizana: { especial: 'cizana' },
   siy: { especial: 'siy' },
   fritanga: { estado: { estado: 'quemado', prob: 20 } },
+  goudamadre: { estado: { estado: 'quemado', prob: 20 } },
+  pesao: { nivel: [{ a: 'objetivo', stat: 'vel', cambio: -1 }] },
+  // Self stage changes after a damaging hit (motor/combate.ts: `acerto`).
+  tubo: { nivel: [{ a: 'yo', stat: 'vel', cambio: 1 }] },
+  pantalones: {
+    nivel: [
+      { a: 'yo', stat: 'ata', cambio: 2 },
+      { a: 'yo', stat: 'vel', cambio: 2 },
+      { a: 'yo', stat: 'def', cambio: -2 },
+    ],
+  },
   pringue: { nivel: [{ a: 'objetivo', stat: 'vel', cambio: -1, prob: 20 }] },
   tropezon: { estado: { estado: 'empachado', prob: 30 } },
   indigestion: { estado: { estado: 'empachado', prob: 100 } },

@@ -1,5 +1,5 @@
 // PokéUsera · the draft (snake order): who is choosing, every player's picks so far, the grid of
-// the 20 useritos and the detail card. It draws only from what it is told (`alDraft`: the draft
+// the 24 useritos and the detail card. It draws only from what it is told (`alDraft`: the draft
 // state, whose turn and for how long), so a guest can feed it from network messages too.
 import type { EntrenadorId, EstadoDraft, Tipo } from '../tipos';
 import { ESPECIE, ESPECIES, MOVS, TIPOS, eficacia } from '../datos';
@@ -43,8 +43,10 @@ export interface PlazaDraft {
   nombre: string;
 }
 
-const COLS = 5;
-const CELDA_W = 48;
+/** The grid: 6 columns × 4 rows for the 24 useritos (a 32×32 thumbnail per 40×44–54 cell, ≥ 65×71 CSS px on a 390 px phone). */
+const COLS = 6;
+const CELDA_W = ANCHO / COLS;
+const MINI_X = Math.floor((CELDA_W - 32) / 2);
 const STATS: { clave: 'ps' | 'ata' | 'def' | 'vel' | 'esp'; nombre: string }[] = [
   { clave: 'ps', nombre: 'PS' },
   { clave: 'ata', nombre: 'ATA' },
@@ -415,13 +417,13 @@ export class VistaDraft implements Escena {
       if (d >= 0) {
         ctx.save();
         ctx.globalAlpha = 0.3;
-        ctx.drawImage(miniatura(sp.id), x + 8, sy);
+        ctx.drawImage(miniatura(sp.id), x + MINI_X, sy);
         ctx.restore();
         const col = colorEnt(this.plazas[d].entrenador);
         rect(ctx, col, x + 6, y + L.cellH - 5, CELDA_W - 12, 3);
-        ctx.drawImage(icono2(this.plazas[d].entrenador), x + 16, sy + 8);
+        ctx.drawImage(icono2(this.plazas[d].entrenador), x + Math.floor((CELDA_W - 16) / 2), sy + 8);
       } else {
-        ctx.drawImage(miniatura(sp.id), x + 8, sy);
+        ctx.drawImage(miniatura(sp.id), x + MINI_X, sy);
         entrada.zona(x, y, CELDA_W, L.cellH, () => {
           this.sel = k;
           [this.hx, this.hy] = this.celda(k);

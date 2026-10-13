@@ -898,7 +898,7 @@ export function tareasPrecalentarEfectos(): (() => void)[] {
   const tareas: (() => void)[] = [];
   for (const m of Object.keys(FX)) {
     tareas.push(() => {
-      e.lanzar(m, 'normal', d, a);
+      e.lanzar(m, 'mindundi', d, a);
       e.limpiar();
     });
   }

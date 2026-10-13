@@ -27,11 +27,11 @@ export function colorPS(frac: number): string {
 
 /** Colour of each type badge. */
 export const COLOR_TIPO: Record<Tipo, string> = {
-  normal: '#aaa08a',
-  fuego: '#e8562a',
+  mindundi: '#aaa08a',
+  petardo: '#e8562a',
   droga: '#4fb34a',
   bronca: '#b98c4c',
-  aire: '#7eaee6',
+  ventolera: '#7eaee6',
   chispa: '#eec31c',
   alcohol: '#a85cc4',
   juerga: '#ee6aa4',
@@ -42,11 +42,11 @@ export const COLOR_TIPO: Record<Tipo, string> = {
 
 /** Display names of the types (data, not prose). */
 export const NOMBRE_TIPO: Record<Tipo, string> = {
-  normal: 'Normal',
-  fuego: 'Fuego',
+  mindundi: 'Mindundi',
+  petardo: 'Petardo',
   droga: 'Droga',
   bronca: 'Bronca',
-  aire: 'Aire',
+  ventolera: 'Ventolera',
   chispa: 'Chispa',
   alcohol: 'Alcohol',
   juerga: 'Juerga',

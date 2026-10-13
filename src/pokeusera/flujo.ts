@@ -49,7 +49,7 @@ export async function jugarSolo(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combat
   const vc = new VistaCombate(miSeat);
   let equipos: string[][] | undefined;
   if (o.combate) {
-    // A random team of three each, from the 20.
+    // A random team of three each, from all of them.
     const rnd = crearRnd(o.semilla ?? Math.floor(Math.random() * 2 ** 31));
     const ids = ESPECIES.map((s) => s.id);
     for (let i = ids.length - 1; i > 0; i--) {

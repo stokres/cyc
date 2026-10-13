@@ -1,5 +1,5 @@
 // PokéUsera · Edición Jarra (arte v2): batch a of the 64×64 useritos (same conventions as useritos2.ts).
-// Goudazard, Aceitún, Cierzón, Turroncho, Tocinón and Roscochoco.
+// Goudazard, Cierzón, Turroncho, Tocinón and Roscochoco.
 import type { Dibujo2 } from './useritos2';
 import { Pintor, Mascara, bez3, cur, el, espejo, inter, men, mover, par, poli, rc, rr, trazo, un, type Mat } from './pintor';
 
@@ -106,98 +106,6 @@ function goudazard(P: Pintor): void {
       P.px(x + 1, y + sq, REBOZO.r[3]);
     }
   });
-}
-
-// ---------------------------------------------------------------------------------------------
-// Aceitún · a little black puppy shaped like a glossy black olive, with a leaf on her head.
-// ---------------------------------------------------------------------------------------------
-const OLIVA: Mat = { r: ['#120c1e', '#241a38', '#3a2e56', '#5a4c80', '#8a7cb4'], ol: '#06030b', ol2: '#241a38', rim: '#5a4c80' };
-const HOCICO: Mat = { r: ['#5a4c80', '#8a7cb4', '#b8acdc'], ol: '#241a38', ol2: '#3a2e56' };
-const HOJA: Mat = { r: ['#1f5a22', '#3f9a34', '#8ad65c'], ol: '#0e2e10', ol2: '#1f5a22' };
-const BRILLO = '#f4f0ff';
-const NEGRO = '#06030b';
-const LENGUA = '#f0507a';
-
-function aceitun(P: Pintor): void {
-  const f = P.f;
-  const E = P.espalda;
-  const sq = f; // frame 1: she settles a pixel (breathing) and the tail swings the other way
-  const cy = 36 + sq * 0.5;
-  const ry = 22 - sq;
-  // Tail: a happy little stub that wags (it goes up on the far side from behind).
-  if (!E) P.forma(trazo([[44, 52], [52 + f * 1.5, 47], [54 + f * 2.5, 40 - f]], 3.6, 1.8), OLIVA, { rad: 2.2 });
-  // Legs and paws (tiny, stubby).
-  P.forma(un(rr(20, 53, 9, 7, 3), rr(35, 53, 9, 7, 3)), OLIVA, { rad: 3 });
-  // The olive body: an egg-shaped oval, a little narrower at the top.
-  const cuerpo = un(el(32, cy + 2, 18, ry - 2), el(32, cy - 5, 14, ry - 5));
-  P.sombra(cuerpo, 1, 1, 1);
-  P.forma(cuerpo, OLIVA, { rad: 12, grad: 0.4, sesgo: -0.02 });
-  // Glossy olive highlight: a long curved streak and a spark, so she reads as an olive.
-  const brillo = trazo(bez3([17.5, 36 + sq], [16.5, 26], [21, 19], [28, 16.5], 14), 1.6, 0.7);
-  P.llenar(brillo, OLIVA.r[3]);
-  P.llenar(trazo(bez3([18.5, 34 + sq], [18, 26.5], [21.5, 21], [26.5, 18.5], 12), 0.9, 0.5), BRILLO);
-  P.px(31, 15 + sq * 0, OLIVA.r[3]);
-  P.px(32, 15, OLIVA.r[3]);
-  P.px(19, 40 + sq, BRILLO);
-  P.px(19, 41 + sq, OLIVA.r[3]);
-  // Soft bounce light on the lower right.
-  P.tono(el(44, 50, 6, 4), OLIVA, 1);
-  P.cara(() => {
-    const y = sq;
-    // Muzzle, glossy nose, a happy open mouth with tongue.
-    P.forma(el(32, 43 + y, 8.6, 6), HOCICO, { rad: 4, grad: 0.3, borde: false, sesgo: 0.2 });
-    P.forma(el(32, 39 + y, 3.6, 2.5), OLIVA, { modo: 'plano', paso: 0 });
-    P.px(31, 38 + y, BRILLO);
-    P.px(32, 38 + y, OLIVA.r[4]);
-    P.llenar(cur([[32, 41 + y], [32, 43 + y]], 1), NEGRO);
-    P.llenar(cur([[27, 43 + y], [29, 45 + y], [32, 44 + y], [35, 45 + y], [37, 43 + y]], 1), NEGRO);
-    P.llenar(inter(el(32, 46 + y, 3.4, 3.2), rc(20, 46 + y, 24, 6)), LENGUA);
-    P.llenar(cur([[32, 46 + y], [32, 48 + y]], 1), '#b02c58');
-    // Big wet puppy eyes with a rim of reflected light and two glints.
-    for (const cx of [23.5, 40.5]) {
-      const dir = cx < 32 ? 1 : -1;
-      const ojo = el(cx, 31 + y, 5, 5.6);
-      P.llenar(ojo, NEGRO);
-      P.llenar(inter(ojo, el(cx + dir * 0.4, 34.4 + y, 3.4, 2.6)), OLIVA.r[2]);
-      P.llenar(rc(Math.round(cx) - 3 + (dir > 0 ? 0 : 1), 28 + y, 2, 2), BRILLO);
-      P.px(Math.round(cx) - 3 + (dir > 0 ? 0 : 1) + 2 * dir, 30 + y, OLIVA.r[4]);
-      P.px(Math.round(cx) + 2 * dir, 34 + y, BRILLO);
-      // Small pale eyebrow dots, raised in the middle for the begging look.
-      P.llenar(cur([[Math.round(cx) - 2, 24 + y - (dir > 0 ? 1 : 0)], [Math.round(cx) + 1, 23 + y - (dir > 0 ? 0 : 1)]], 1), OLIVA.r[3]);
-    }
-    P.llenar(rc(15, 36 + y, 3, 2), '#e8708a');
-    P.llenar(rc(46, 36 + y, 3, 2), '#e8708a');
-  });
-  P.dorso(() => {
-    // From behind: a little patch of lighter fur on the nape and the glossy highlight on the shoulder.
-    P.tono(el(32, 28, 9, 6), OLIVA, 1);
-    P.px(23, 25, OLIVA.r[4]);
-    P.px(24, 24, OLIVA.r[4]);
-    P.px(40, 30, OLIVA.r[1]);
-  });
-  // Floppy ears hang down over the sides of the head and swing between frames.
-  const sw = f ? 1 : 0;
-  const oreja = un(trazo([[19.5, 19], [13.5 - sw, 25], [11 - sw, 33], [10 - sw * 1.5, 38 + sw]], 3.6, 4.4), el(10 - sw * 1.5, 38.5 + sw, 4.4, 4.4));
-  P.sombra(oreja, 1, 1, 1);
-  P.forma(par(oreja), OLIVA, { rad: 4, sesgo: -0.1 });
-  P.tono(par(rc(7, 27, 3, 11)), OLIVA, 1);
-  // From behind the tail rises over her rump.
-  if (E) {
-    P.forma(trazo([[38, 55], [48, 54], [53 + f, 47], [53 + f * 2, 40 - f * 2]], 3.8, 1.8), OLIVA, { rad: 2.2, sesgo: 0.2 });
-  }
-  // The little paws in front.
-  P.forma(un(el(24.5, 58, 5.4, 2.8), el(39.5, 58, 5.4, 2.8)), OLIVA, { rad: 2.4 });
-  for (const x of [22, 25, 38, 41]) P.px(x, 59, OLIVA.r[1]);
-  // The olive stalk and leaves.
-  const hoja = poli([[35, 13 + sq], [38, 7 + sq], [45, 3 + sq - f], [53, 3 + sq - f], [51, 9 + sq - f], [44, 13 + sq], [38, 15 + sq]]);
-  P.forma(trazo([[33, 17 + sq], [34, 14 + sq]], 1.6, 1.4), HOJA, { modo: 'plano', paso: 0 });
-  P.forma(hoja, HOJA, { rad: 3 });
-  P.llenar(cur(bez3([37, 12 + sq], [42, 9 + sq - f], [47, 6 + sq - f], [51, 4 + sq - f], 10), 1), HOJA.r[0]);
-  P.px(44, 8 + sq - f, HOJA.r[2]);
-  const hoja2 = poli([[31, 14 + sq], [27, 9 + sq], [21, 8 + sq], [24, 14 + sq], [29, 16 + sq]]);
-  P.forma(hoja2, HOJA, { rad: 2.4 });
-  P.llenar(cur([[29, 14 + sq], [24, 10 + sq]], 1), HOJA.r[0]);
-  void E;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -542,7 +450,6 @@ function roscochoco(P: Pintor): void {
 
 export const LOTE_A: Dibujo2[] = [
   { id: 'goudazard', nombre: 'Goudazard', dibujar: goudazard },
-  { id: 'aceitun', nombre: 'Aceitún', dibujar: aceitun },
   { id: 'cierzon', nombre: 'Cierzón', dibujar: cierzon },
   { id: 'turroncho', nombre: 'Turroncho', dibujar: turroncho },
   { id: 'tocinon', nombre: 'Tocinón', dibujar: tocinon },

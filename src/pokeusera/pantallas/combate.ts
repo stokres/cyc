@@ -775,7 +775,7 @@ export class VistaCombate implements Escena {
         this.ponerFoco(ev.j, ev.obj ?? [], ev.mov);
         const m = MOVS[ev.mov];
         if (m) {
-          if (m.pot !== null) sonido.efecto(['normal', 'bronca', 'aire', 'juerga', 'fantasma'].includes(m.tipo) ? 'cursor' : 'cambio');
+          if (m.pot !== null) sonido.efecto(['mindundi', 'bronca', 'ventolera', 'juerga', 'fantasma'].includes(m.tipo) ? 'cursor' : 'cambio');
         }
         if (ritmo().espera > 0) espera = Math.round(ritmo().espera * 0.45);
         // The move's visual effect flies in the last part of the pause after the line, so that it lands as the hit begins (see `decirYLanzar`).
