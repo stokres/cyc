@@ -3,7 +3,7 @@
 // tap moves on; it also moves on by itself after a short pause so the battle flows.
 import { envolver2 } from '../arte2/fuente2';
 import { SOMBRA_TEXTO, TINTA2 } from '../arte2/paleta2';
-import { dibujarTexto2 } from '../arte2/fuente2';
+import { dibujarTextoParcial2 } from '../arte2/fuente2';
 import { flecha2, panelCacheado } from '../arte2/ui2';
 import { cfg, parpadea, ritmo } from './ui';
 
@@ -17,6 +17,8 @@ export class CajaTexto {
   private lineas: string[] = [];
   private total = 0;
   private escrito = 0;
+  /** Blink phase of the «more» arrow last drawn (see `paso`). */
+  private faseFlecha = -1;
   private fase: 'vacia' | 'escribe' | 'espera' = 'vacia';
   private espera = 0;
   private res: (() => void) | null = null;
@@ -115,7 +117,13 @@ export class CajaTexto {
         this.espera -= dt * (cfg.rapido ? 10 : 1);
         if (this.espera <= 0) this.terminar();
       }
-      return true;
+      // Waiting only moves the blinking arrow: redraw when it blinks, not every frame.
+      const fase = Math.floor(performance.now() / 350) % 2;
+      if (fase !== this.faseFlecha) {
+        this.faseFlecha = fase;
+        return true;
+      }
+      return false;
     }
     return false;
   }
@@ -129,10 +137,9 @@ export class CajaTexto {
     const y0 = alta ? y + 14 : y + 3 + Math.floor((h - 8 - bloque) / 2) + 1;
     this.lineas.forEach((l, i) => {
       if (resto <= 0) return;
-      const chars = Array.from(l);
-      const parte = chars.slice(0, resto).join('');
-      resto -= chars.length;
-      dibujarTexto2(ctx, parte, x + 11, y0 + i * paso, TINTA2, SOMBRA_TEXTO);
+      const n = Array.from(l).length;
+      dibujarTextoParcial2(ctx, l, Math.min(n, resto), x + 11, y0 + i * paso, TINTA2, SOMBRA_TEXTO);
+      resto -= n;
     });
     if (this.fase === 'espera' && parpadea(ahora, 350)) flecha2(ctx, x + w - 17, y + h - 12);
   }

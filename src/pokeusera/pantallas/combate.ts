@@ -185,6 +185,10 @@ export class VistaCombate implements Escena {
   /** The battle log by turn (HISTORIAL), with the lines already wrapped for the box. */
   private historial: GrupoHistorial[] = [];
   private versionHistorial = 0;
+  /** What the clock chip last showed (see `paso`). */
+  private marcaReloj = -1;
+  /** The last wrapped lines of the log for the box under the text (see `registro`). */
+  private registroCache: { clave: string; todas: string[] } | null = null;
   /** The replacements phase is playing: a 'sale' event gets the spotlight. */
   private enReemplazo = false;
   /** An action has already been played in this turn (a pause goes between actions). */
@@ -834,7 +838,12 @@ export class VistaCombate implements Escena {
         this.modo = 'espera';
         this.caja.fijar(t('batalla.tiempo'));
       }
-      mueve = true;
+      // Redraw only when the clock shows something new (the second, or its blink in the last five).
+      const marca = seg * 2 + (seg <= 5 ? Math.floor(performance.now() / 400) % 2 : 0);
+      if (marca !== this.marcaReloj) {
+        this.marcaReloj = marca;
+        mueve = true;
+      }
     }
     return mueve;
   }
@@ -1696,14 +1705,20 @@ export class VistaCombate implements Escena {
     }
     if (h < 40) return;
     panelCacheado(ctx, 4, yR, ANCHO - 8, h);
-    const todas: string[] = [];
-    this.historial.forEach((g, gi) => {
-      g.lineas.forEach((l, li) => {
-        const esUltima = gi === this.historial.length - 1 && li === g.lineas.length - 1;
-        if (esUltima && this.caja.ocupada) return;
-        for (const w of envolver(l, 206)) todas.push(w);
+    // Wrapped once per change of the log (it grows all battle long: re-wrapping it every frame got slower and slower).
+    const clave = `${this.versionHistorial}|${this.caja.ocupada ? 1 : 0}`;
+    if (this.registroCache?.clave !== clave) {
+      const todas: string[] = [];
+      this.historial.forEach((g, gi) => {
+        g.lineas.forEach((l, li) => {
+          const esUltima = gi === this.historial.length - 1 && li === g.lineas.length - 1;
+          if (esUltima && this.caja.ocupada) return;
+          for (const w of envolver(l, 206)) todas.push(w);
+        });
       });
-    });
+      this.registroCache = { clave, todas: todas.slice(-12) };
+    }
+    const todas = this.registroCache.todas;
     const n = Math.max(0, Math.floor((h - 14) / 12));
     const ult = todas.slice(-n);
     ult.forEach((l, i) => {

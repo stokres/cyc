@@ -64,6 +64,8 @@ export class VistaDraft implements Escena {
   private hx = -1;
   private hy = -1;
   private detalle: string | null = null;
+  /** What the clock last showed (see `paso`). */
+  private marcaReloj = -1;
   private foco = 0;
   private resolverPick: ((id: string) => void) | null = null;
   private apelear = false;
@@ -245,10 +247,16 @@ export class VistaDraft implements Escena {
           if (libres.length) {
             this.sel = libres[Math.floor(Math.random() * libres.length)];
             [this.hx, this.hy] = this.celda(this.sel);
+            mueve = true;
           }
         }
       }
-      mueve = true;
+      // Redraw for the clock and the turn's blink only when they show something new, not every frame.
+      const marca = seg * 2 + (Math.floor(performance.now() / 400) % 2);
+      if (marca !== this.marcaReloj) {
+        this.marcaReloj = marca;
+        mueve = true;
+      }
     }
     // The card's sprite breathes: a redraw twice a second is enough (the screen also redraws every quarter second).
     return mueve || Date.now() < this.avisoHasta;

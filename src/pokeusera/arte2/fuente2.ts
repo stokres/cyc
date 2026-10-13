@@ -216,38 +216,104 @@ function glifoCanvas(ch: string, color: string, sombra: string | null): HTMLCanv
   return cv;
 }
 
+/** Advance of each character (glyph width + 1 gap), computed once: the bitmap is rebuilt otherwise. */
+const avances = new Map<string, number>();
+function avance(ch: string): number {
+  let a = avances.get(ch);
+  if (a === undefined) {
+    a = ch === ' ' ? ESPACIO + 1 : (bitmap(ch) ?? bitmap('?')!).w + 1;
+    avances.set(ch, a);
+  }
+  return a;
+}
+
 /** Width in pixels of a string (gap between letters included, no trailing gap). */
 export function anchoTexto2(texto: string): number {
   let w = 0;
-  for (const ch of texto) {
-    if (ch === ' ') {
-      w += ESPACIO + 1;
-      continue;
-    }
-    const b = bitmap(ch) ?? bitmap('?')!;
-    w += b.w + 1;
-  }
+  for (const ch of texto) w += avance(ch);
   return Math.max(0, w - 1);
+}
+
+/**
+ * Whole strings baked into one canvas each (least recently used out first), so that a line of text is one
+ * drawImage instead of one per letter: on phones the per-letter draws were most of a frame's cost.
+ */
+const MAX_LINEAS = 500;
+const lineas = new Map<string, { cv: HTMLCanvasElement; avance: number }>();
+function lineaCanvas(texto: string, color: string, sombra: string | null): { cv: HTMLCanvasElement; avance: number } {
+  const clave = `${color}|${sombra ?? ''}|${texto}`;
+  let l = lineas.get(clave);
+  if (l) {
+    // Refresh its place in the LRU order.
+    lineas.delete(clave);
+    lineas.set(clave, l);
+    return l;
+  }
+  let w = 0;
+  for (const ch of texto) w += avance(ch);
+  const cv = document.createElement('canvas');
+  cv.width = Math.max(1, w + 1);
+  cv.height = ALTO_CELDA + 1;
+  const cx = cv.getContext('2d')!;
+  let x = 0;
+  for (const ch of texto) {
+    if (ch !== ' ') {
+      const g = glifoCanvas(ch, color, sombra) ?? glifoCanvas('?', color, sombra)!;
+      cx.drawImage(g, x, 0);
+    }
+    x += avance(ch);
+  }
+  l = { cv, avance: x };
+  lineas.set(clave, l);
+  if (lineas.size > MAX_LINEAS) lineas.delete(lineas.keys().next().value!);
+  return l;
 }
 
 /** Draws a string with its capital line at `y`. Optional drop shadow colour. */
 export function dibujarTexto2(ctx: CanvasRenderingContext2D, texto: string, x: number, y: number, color: string, sombra: string | null = null): number {
-  let cx = Math.round(x);
-  const cy = Math.round(y) - 2;
-  for (const ch of texto) {
-    if (ch === ' ') {
-      cx += ESPACIO + 1;
-      continue;
+  if (!texto) return 0;
+  // Numbers change every frame while a bar drains or a clock counts: letter by letter, not one canvas each.
+  if (texto.length <= 9 && /^[0-9/%:+\-×. ]+$/.test(texto)) {
+    let cx = Math.round(x);
+    const cy = Math.round(y) - 2;
+    for (const ch of texto) {
+      if (ch !== ' ') ctx.drawImage(glifoCanvas(ch, color, sombra) ?? glifoCanvas('?', color, sombra)!, cx, cy);
+      cx += avance(ch);
     }
-    const g = glifoCanvas(ch, color, sombra) ?? glifoCanvas('?', color, sombra)!;
-    ctx.drawImage(g, cx, cy);
-    cx += g.width; // glyph width + 1 gap (the canvas carries one extra column for the shadow)
+    return cx - Math.round(x);
   }
-  return cx - Math.round(x);
+  const l = lineaCanvas(texto, color, sombra);
+  ctx.drawImage(l.cv, Math.round(x), Math.round(y) - 2);
+  return l.avance;
 }
 
-/** Word wrap by pixel width. */
+/** Draws the first `n` characters of a string (the typewriter): a clip of the whole line's canvas, so no canvas per step. */
+export function dibujarTextoParcial2(ctx: CanvasRenderingContext2D, texto: string, n: number, x: number, y: number, color: string, sombra: string | null = null): void {
+  if (!texto || n <= 0) return;
+  const l = lineaCanvas(texto, color, sombra);
+  let w = 0;
+  let i = 0;
+  for (const ch of texto) {
+    if (i++ >= n) break;
+    w += avance(ch);
+  }
+  w = Math.min(w, l.cv.width);
+  if (w > 0) ctx.drawImage(l.cv, 0, 0, w, l.cv.height, Math.round(x), Math.round(y) - 2, w, l.cv.height);
+}
+
+/** Word wrap by pixel width (remembered: screens wrap the same texts every frame). */
+const envueltos = new Map<string, string[]>();
 export function envolver2(texto: string, ancho: number): string[] {
+  const clave = `${ancho}|${texto}`;
+  const hecho = envueltos.get(clave);
+  if (hecho) return hecho;
+  const out = envolverSinMemoria(texto, ancho);
+  if (envueltos.size > 800) envueltos.clear();
+  envueltos.set(clave, out);
+  return out;
+}
+
+function envolverSinMemoria(texto: string, ancho: number): string[] {
   const out: string[] = [];
   let linea = '';
   for (const palabra of texto.split(' ')) {
