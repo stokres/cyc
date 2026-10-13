@@ -1,12 +1,12 @@
-// PokéUsera · the canvas. Logical width 160 (a Game Boy's), height 256–346 from the screen's shape;
+// PokéUsera · the canvas. Logical width 240 (a Game Boy Advance's), height 384–520 from the screen's shape;
 // the canvas is drawn at that size with smoothing off and CSS-scaled to fit (pixelated). One
 // requestAnimationFrame loop, capped at 60 fps, that only draws when something changed, something
 // is animating, or a quarter of a second has passed (blinking cursors). docs/ESTILO.md, T5.
 import type { Accion } from './entrada';
 
-export const ANCHO = 160;
-export const ALTO_MIN = 256;
-export const ALTO_MAX = 346;
+export const ANCHO = 240;
+export const ALTO_MIN = 384;
+export const ALTO_MAX = 520;
 
 /** A screen of the game. Everything it needs to draw must come from its own state (it can be fed by the host or by network messages). */
 export interface Escena {

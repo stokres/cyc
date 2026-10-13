@@ -2,14 +2,15 @@
 // the settings screen, and the pause box of the battle (volumes + abandon).
 import type { EntrenadorId } from '../tipos';
 import { ENTRENADORES } from '../tipos';
-import { anchoTexto, dibujarMini, dibujarTexto } from '../arte/fuente';
-import { marco } from '../arte/marcos';
-import { CLARO, FONDO, NEGRO, OSCURO, PAPEL } from '../arte/paleta';
+import { anchoTexto2 } from '../arte2/fuente2';
+import { PAPEL_ALTO, SOMBRA_TEXTO, TINTA2, TINTA_SUAVE } from '../arte2/paleta2';
+import { panelCacheado, relleno } from '../arte2/ui2';
 import { entrada, type Accion } from '../entrada';
 import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
+import { dibujarFondoBar } from './fondos';
 import { sobre } from './modal';
-import { VELOCIDADES, boton, centrado, cfg, flecha, mover, rect, t, type Velocidad } from './ui';
+import { VELOCIDADES, boton, centrado, cfg, flecha, mover, oscurecer, realce, rect, t, texto2, type Velocidad } from './ui';
 
 const CLAVE = 'pokeusera.v1';
 
@@ -66,23 +67,24 @@ function cambiarVelocidad(v: Velocidad) {
   sonido.efecto('cursor');
 }
 
-/** The battle speed row: the label (tiny font) and «◀ NORMAL ▶» (LENTA / NORMAL / RÁPIDA). Height 24. */
+/** The battle speed row: the label and «◀ NORMAL ▶» (LENTA / NORMAL / RÁPIDA). Height 44. */
 export function filaVelocidad(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, sel: boolean) {
-  dibujarMini(ctx, t('ajustes.velocidad'), x + 7, y + 1, NEGRO);
-  if (sel) flecha(ctx, x, y - 1, 1);
+  if (sel) realce(ctx, x, y, w, 44);
+  texto2(ctx, t('ajustes.velocidad'), x + 18, y + 6, TINTA2, sel ? '#f0c860' : SOMBRA_TEXTO);
   const i = VELOCIDADES.indexOf(cfg.velocidad);
   const valor = t(`velocidad.${cfg.velocidad}`);
-  const yy = y + 11;
+  const yy = y + 21;
   const cx = x + Math.floor(w / 2);
-  rect(ctx, NEGRO, cx - 33, yy - 1, 66, 12);
-  rect(ctx, PAPEL, cx - 32, yy, 64, 10);
-  dibujarTexto(ctx, valor, cx - Math.floor(anchoTexto(valor) / 2), yy + 1, NEGRO);
-  flecha(ctx, cx - 47, yy + 2, -1, i > 0 ? NEGRO : CLARO);
-  flecha(ctx, cx + 43, yy + 2, 1, i < VELOCIDADES.length - 1 ? NEGRO : CLARO);
-  entrada.zona(cx - 56, yy - 4, 22, 18, () => cambiarVelocidad(VELOCIDADES[Math.max(0, i - 1)]));
-  entrada.zona(cx + 34, yy - 4, 22, 18, () => cambiarVelocidad(VELOCIDADES[Math.min(VELOCIDADES.length - 1, i + 1)]));
+  relleno(ctx, TINTA2, cx - 36, yy - 1, 72, 17);
+  relleno(ctx, PAPEL_ALTO, cx - 35, yy, 70, 15);
+  rect(ctx, '#d6c08a', cx - 33, yy + 13, 66, 1);
+  texto2(ctx, valor, cx - Math.floor(anchoTexto2(valor) / 2), yy + 4, TINTA2, null);
+  flecha(ctx, cx - 54, yy + 4, -1, i > 0 ? TINTA2 : '#a898a8');
+  flecha(ctx, cx + 49, yy + 4, 1, i < VELOCIDADES.length - 1 ? TINTA2 : '#a898a8');
+  entrada.zona(cx - 76, yy - 4, 36, 26, () => cambiarVelocidad(VELOCIDADES[Math.max(0, i - 1)]));
+  entrada.zona(cx + 40, yy - 4, 36, 26, () => cambiarVelocidad(VELOCIDADES[Math.min(VELOCIDADES.length - 1, i + 1)]));
   // Tapping the value goes round.
-  entrada.zona(cx - 33, yy - 4, 66, 18, () => cambiarVelocidad(VELOCIDADES[(i + 1) % VELOCIDADES.length]));
+  entrada.zona(cx - 37, yy - 4, 74, 26, () => cambiarVelocidad(VELOCIDADES[(i + 1) % VELOCIDADES.length]));
 }
 
 export function ajustarVelocidad(a: Accion) {
@@ -102,20 +104,26 @@ function cambiar(c: Canal, nuevo: number) {
   sonido.efecto(c === 'efectos' ? 'aceptar' : 'cursor');
 }
 
-/** One volume row: label, ◀, ten segments, ▶. Registers its tap zones. */
-export function filaVolumen(ctx: CanvasRenderingContext2D, x: number, y: number, canal: Canal, sel: boolean) {
+/** One volume row (height 30): label, ◀, ten segments, ▶. Registers its tap zones. */
+export function filaVolumen(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, canal: Canal, sel: boolean) {
   const v = nivel(canal);
-  dibujarTexto(ctx, t(`ajustes.${canal}`), x + 7, y + 5, NEGRO);
-  if (sel) flecha(ctx, x, y + 4, 1);
-  const bx = x + 72;
-  flecha(ctx, bx - 8, y + 4, -1, v > 0 ? NEGRO : CLARO);
+  if (sel) realce(ctx, x, y, w, 30);
+  texto2(ctx, t(`ajustes.${canal}`), x + 18, y + 11, TINTA2, sel ? '#f0c860' : SOMBRA_TEXTO);
+  const bx = x + w - 6 - 5 - 4 - 110 - 5 - 4;
+  flecha(ctx, bx, y + 11, -1, v > 0 ? TINTA2 : '#a898a8');
   for (let i = 0; i < 10; i++) {
-    rect(ctx, i < v ? NEGRO : CLARO, bx + i * 6, y + 3, 5, 9);
-    entrada.zona(bx + i * 6, y - 2, 6, 18, () => cambiar(canal, i + 1));
+    const sx = bx + 10 + i * 11;
+    relleno(ctx, TINTA2, sx, y + 7, 10, 16);
+    rect(ctx, i < v ? '#e0a83a' : '#8a7690', sx + 1, y + 8, 8, 14);
+    if (i < v) {
+      rect(ctx, '#fff0a0', sx + 1, y + 8, 8, 2);
+      rect(ctx, '#a8741c', sx + 1, y + 20, 8, 2);
+    }
+    entrada.zona(sx, y, 11, 30, () => cambiar(canal, i + 1));
   }
-  flecha(ctx, bx + 62, y + 4, 1, v < 10 ? NEGRO : CLARO);
-  entrada.zona(bx - 14, y - 2, 14, 18, () => cambiar(canal, v - 1));
-  entrada.zona(bx + 60, y - 2, 14, 18, () => cambiar(canal, v + 1));
+  flecha(ctx, bx + 10 + 110 + 3, y + 11, 1, v < 10 ? TINTA2 : '#a898a8');
+  entrada.zona(bx - 6, y, 16, 30, () => cambiar(canal, v - 1));
+  entrada.zona(bx + 10 + 110, y, 18, 30, () => cambiar(canal, v + 1));
 }
 
 export function ajustarCanal(canal: Canal, a: Accion) {
@@ -134,18 +142,25 @@ export function pantallaAjustes(): Promise<void> {
     };
     const e: Escena = {
       dibujar(ctx) {
-        rect(ctx, FONDO, 0, 0, ANCHO, p.alto);
-        centrado(ctx, t('ajustes.titulo'), 20, NEGRO, { escala: 2, sombra: CLARO });
-        const y0 = 64;
-        marco(ctx, 5, y0 - 12, ANCHO - 10, 104);
-        filaVolumen(ctx, 8, y0, 'musica', sel === 0);
-        filaVolumen(ctx, 8, y0 + 24, 'efectos', sel === 1);
-        filaVelocidad(ctx, 10, y0 + 52, ANCHO - 20, sel === 2);
-        entrada.zona(8, y0 - 2, 70, 18, () => (sel = 0));
-        entrada.zona(8, y0 + 22, 70, 18, () => (sel = 1));
-        const yb = p.alto - 40;
-        boton(ctx, Math.floor((ANCHO - 80) / 2), yb, 80, 22, t('ajustes.volver'), sel === 3);
-        entrada.zona(Math.floor((ANCHO - 80) / 2), yb, 80, 22, salir);
+        const H = p.alto;
+        dibujarFondoBar(ctx, H, 0.3);
+        const tit = t('ajustes.titulo');
+        const tw = anchoTexto2(tit) + 40;
+        panelCacheado(ctx, Math.floor((ANCHO - tw) / 2), 22, tw, 26);
+        centrado(ctx, tit, 32);
+        const y0 = 70 + Math.round((H - 384) * 0.1);
+        const x = 8;
+        const w = ANCHO - 16;
+        panelCacheado(ctx, x, y0, w, 138);
+        filaVolumen(ctx, x + 6, y0 + 10, w - 12, 'musica', sel === 0);
+        filaVolumen(ctx, x + 6, y0 + 44, w - 12, 'efectos', sel === 1);
+        filaVelocidad(ctx, x + 6, y0 + 78, w - 12, sel === 2);
+        entrada.zona(x, y0 + 8, 80, 34, () => (sel = 0));
+        entrada.zona(x, y0 + 42, 80, 34, () => (sel = 1));
+        entrada.zona(x, y0 + 76, w, 18, () => (sel = 2));
+        const yb = Math.min(H - 44, y0 + 138 + 24);
+        boton(ctx, Math.floor((ANCHO - 100) / 2), yb, 100, 28, t('ajustes.volver'), sel === 3);
+        entrada.zona(Math.floor((ANCHO - 100) / 2), yb, 100, 28, salir);
       },
       accion(a) {
         if (a === 'atras') salir();
@@ -175,35 +190,38 @@ export function menuPausa(base: Escena | null): Promise<'seguir' | 'abandonar'> 
     };
     return {
       dibujar(ctx) {
-        const x = 4;
-        const w = ANCHO - 8;
+        const x = 6;
+        const w = ANCHO - 12;
+        oscurecer(ctx, pantalla().alto);
         if (!seguro) {
-          const h = 148;
+          const h = 236;
           const y = Math.max(20, Math.round((pantalla().alto - h) / 2));
-          marco(ctx, x, y, w, h);
-          dibujarTexto(ctx, t('pausa.titulo'), x + 12, y + 8, OSCURO);
-          filaVolumen(ctx, x + 2, y + 24, 'musica', sel === 0);
-          filaVolumen(ctx, x + 2, y + 44, 'efectos', sel === 1);
-          filaVelocidad(ctx, x + 4, y + 68, w - 8, sel === 2);
-          entrada.zona(x + 2, y + 22, 70, 18, () => (sel = 0));
-          entrada.zona(x + 2, y + 42, 70, 18, () => (sel = 1));
-          boton(ctx, x + 8, y + 98, w - 16, 20, t('pausa.abandonar'), sel === 3);
-          entrada.zona(x + 8, y + 98, w - 16, 20, () => {
+          panelCacheado(ctx, x, y, w, h);
+          texto2(ctx, t('pausa.titulo'), x + 14, y + 12, TINTA_SUAVE);
+          filaVolumen(ctx, x + 6, y + 28, w - 12, 'musica', sel === 0);
+          filaVolumen(ctx, x + 6, y + 60, w - 12, 'efectos', sel === 1);
+          filaVelocidad(ctx, x + 6, y + 92, w - 12, sel === 2);
+          entrada.zona(x, y + 26, 80, 32, () => (sel = 0));
+          entrada.zona(x, y + 58, 80, 32, () => (sel = 1));
+          entrada.zona(x, y + 90, w, 18, () => (sel = 2));
+          boton(ctx, x + 14, y + 148, w - 28, 30, t('pausa.abandonar'), sel === 3);
+          entrada.zona(x + 14, y + 148, w - 28, 30, () => {
             sel = 3;
             seguro = true;
             selSeguro = 1;
           });
-          boton(ctx, x + 8, y + 122, w - 16, 20, t('pausa.seguir'), sel === 4);
-          entrada.zona(x + 8, y + 122, w - 16, 20, seguir);
+          boton(ctx, x + 14, y + 190, w - 28, 30, t('pausa.seguir'), sel === 4);
+          entrada.zona(x + 14, y + 190, w - 28, 30, seguir);
         } else {
-          const y = Math.round((pantalla().alto - 76) / 2);
-          marco(ctx, x, y, w, 76);
-          centrado(ctx, t('pausa.seguro'), y + 12, NEGRO);
-          const bw = 56;
-          boton(ctx, x + 10, y + 36, bw, 24, t('pausa.si'), selSeguro === 0);
-          boton(ctx, x + w - 10 - bw, y + 36, bw, 24, t('pausa.no'), selSeguro === 1);
-          entrada.zona(x + 10, y + 36, bw, 24, () => cerrar('abandonar'));
-          entrada.zona(x + w - 10 - bw, y + 36, bw, 24, () => (seguro = false));
+          const h = 96;
+          const y = Math.round((pantalla().alto - h) / 2);
+          panelCacheado(ctx, x, y, w, h);
+          centrado(ctx, t('pausa.seguro'), y + 16);
+          const bw = 80;
+          boton(ctx, x + 18, y + 46, bw, 30, t('pausa.si'), selSeguro === 0);
+          boton(ctx, x + w - 18 - bw, y + 46, bw, 30, t('pausa.no'), selSeguro === 1);
+          entrada.zona(x + 18, y + 46, bw, 30, () => cerrar('abandonar'));
+          entrada.zona(x + w - 18 - bw, y + 46, bw, 30, () => (seguro = false));
         }
       },
       accion(a) {

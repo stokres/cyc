@@ -18,21 +18,38 @@ import {
   tonosPS,
 } from './paleta2';
 
-function mezclar(a: string, b: string, t: number): string {
+export function mezclar(a: string, b: string, t: number): string {
   const A = parseInt(a.slice(1), 16),
     B = parseInt(b.slice(1), 16);
   const c = [16, 8, 0].map((s) => Math.round(((A >> s) & 255) + (((B >> s) & 255) - ((A >> s) & 255)) * t));
   return `#${c.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
 }
-const BANDAS = [0.25, 0.5, 0.75, 0.9].map((t) => mezclar(PAPEL_BAJO, PAPEL_ALTO, t));
+export const BANDAS = [0.25, 0.5, 0.75, 0.9].map((t) => mezclar(PAPEL_BAJO, PAPEL_ALTO, t));
 
-function r(ctx: CanvasRenderingContext2D, color: string, x: number, y: number, w: number, h: number): void {
+export function r(ctx: CanvasRenderingContext2D, color: string, x: number, y: number, w: number, h: number): void {
   ctx.fillStyle = color;
   ctx.fillRect(x, y, w, h);
 }
 
+const horneados = new Map<string, HTMLCanvasElement>();
+
+/** Draws once into a small canvas (cached under `clave`) and returns it: panels and static plates are blitted afterwards. */
+export function hornear(clave: string, w: number, h: number, fn: (ctx: CanvasRenderingContext2D) => void): HTMLCanvasElement {
+  let c = horneados.get(clave);
+  if (!c) {
+    c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    const cx = c.getContext('2d')!;
+    cx.imageSmoothingEnabled = false;
+    fn(cx);
+    horneados.set(clave, c);
+  }
+  return c;
+}
+
 /** A one-pixel ring with its corners cut diagonally (radius 2). */
-function anillo(ctx: CanvasRenderingContext2D, color: string, x: number, y: number, w: number, h: number): void {
+export function anillo(ctx: CanvasRenderingContext2D, color: string, x: number, y: number, w: number, h: number): void {
   r(ctx, color, x + 2, y, w - 4, 1);
   r(ctx, color, x + 2, y + h - 1, w - 4, 1);
   r(ctx, color, x, y + 2, 1, h - 4);
@@ -44,7 +61,7 @@ function anillo(ctx: CanvasRenderingContext2D, color: string, x: number, y: numb
 }
 
 /** Filled body of a rounded shape (same corner cut as `anillo`). */
-function relleno(ctx: CanvasRenderingContext2D, color: string, x: number, y: number, w: number, h: number): void {
+export function relleno(ctx: CanvasRenderingContext2D, color: string, x: number, y: number, w: number, h: number): void {
   r(ctx, color, x + 1, y, w - 2, h);
   r(ctx, color, x, y + 1, w, h - 2);
 }
@@ -70,6 +87,12 @@ export function panel(ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
   r(ctx, '#ffffff', x + 3, y + 2, w - 8, 1);
   r(ctx, '#ffffff', x + 2, y + 3, 1, Math.max(1, h - 10));
   r(ctx, '#d6c08a', x + 3, y + h - 4, w - 6, 1);
+}
+
+/** `panel` baked per size and colours, then blitted (its drop shadow takes 2 extra rows below). */
+export function panelCacheado(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, acento: string = ORO_UI, acentoOsc: string = ORO_UI_OSC): void {
+  const c = hornear(`panel|${w}|${h}|${acento}|${acentoOsc}`, w, h + 2, (cx) => panel(cx, 0, 0, w, h, acento, acentoOsc));
+  ctx.drawImage(c, x, y);
 }
 
 const P3 = { P: ['XXX', 'X.X', 'XXX', 'X..', 'X..'], S: ['.XX', 'X..', '.X.', '..X', 'XX.'] };
@@ -113,7 +136,7 @@ export function barraPS2(ctx: CanvasRenderingContext2D, x: number, y: number, w:
 }
 
 /** A small round pip (a jar still standing, or an empty slot). */
-function pip(ctx: CanvasRenderingContext2D, x: number, y: number, vivo: boolean, color: string): void {
+export function pip(ctx: CanvasRenderingContext2D, x: number, y: number, vivo: boolean, color: string): void {
   relleno(ctx, TINTA2, x, y, 7, 7);
   if (vivo) {
     r(ctx, color, x + 1, y + 1, 5, 5);
@@ -139,7 +162,7 @@ export interface DatosFicha {
 }
 
 /** The coloured trainer band on the left of a panel (vertical gradient, initial on top). */
-function bandaEntrenador(ctx: CanvasRenderingContext2D, x: number, y: number, h: number, asiento: number, inicial: string): void {
+export function bandaEntrenador(ctx: CanvasRenderingContext2D, x: number, y: number, h: number, asiento: number, inicial: string): void {
   const c = JUGADORES2[asiento];
   r(ctx, c.oscuro, x, y, 9, h);
   r(ctx, c.base, x, y, 8, h - 1);
@@ -255,27 +278,74 @@ const ICONOS: Record<string, { leyenda: Record<string, string>; filas: string[] 
   },
 };
 
-export function icono2(ctx: CanvasRenderingContext2D, nombre: keyof typeof ICONOS, x: number, y: number): void {
-  const ic = ICONOS[nombre];
-  ic.filas.forEach((fila, j) => {
-    for (let i = 0; i < fila.length; i++) {
-      const c = ic.leyenda[fila[i]];
-      if (c) r(ctx, c, x + i, y + j, 1, 1);
+/** A 13×13 icon generated from a distance rule, so no hand-drawn rows are needed: a gear and a globe. */
+function generado(f: (dx: number, dy: number, ang: number, d: number) => string, leyenda: Record<string, string>): { leyenda: Record<string, string>; filas: string[] } {
+  const filas: string[] = [];
+  for (let j = 0; j < 13; j++) {
+    let fila = '';
+    for (let i = 0; i < 13; i++) {
+      const dx = i - 6,
+        dy = j - 6;
+      fila += f(dx, dy, Math.atan2(dy, dx), Math.hypot(dx, dy));
     }
+    filas.push(fila);
+  }
+  return { leyenda, filas };
+}
+ICONOS.ajustes = generado(
+  (_dx, _dy, ang, d) => {
+    const diente = Math.cos(ang * 8) > 0.15;
+    const R = diente ? 6.6 : 5.4;
+    if (d > R) return '.';
+    if (d < 2.4) return d < 1.6 ? '.' : 'k';
+    if (d > R - 1) return 'k';
+    return _dx + _dy < -1 ? 'g' : 'G';
+  },
+  { k: TINTA2, g: '#e8c25a', G: '#b08428', w: '#fff6c8' },
+);
+ICONOS.online = generado(
+  (dx, dy, _ang, d) => {
+    if (d > 6.2) return '.';
+    if (d > 5.2) return 'k';
+    // meridians and parallels
+    if (dy === 0 || Math.abs(dy) === 3 || dx === 0 || (Math.abs(dx) > 2 && Math.abs(dx) < 4 && Math.abs(dy) < 4 && Math.abs(dx) + Math.abs(dy) === 5)) return 'l';
+    return dx + dy < -1 ? 'b' : 'B';
+  },
+  { k: TINTA2, b: '#6ec0e8', B: '#3a86c4', l: '#e8f6ff' },
+);
+
+/** The menu icons, baked once each. */
+export function icono2(ctx: CanvasRenderingContext2D, nombre: keyof typeof ICONOS, x: number, y: number, alfa = 1): void {
+  const c = hornear(`icono|${nombre}`, 13, 13, (cx) => {
+    const ic = ICONOS[nombre];
+    ic.filas.forEach((fila, j) => {
+      for (let i = 0; i < fila.length; i++) {
+        const col = ic.leyenda[fila[i]];
+        if (col) r(cx, col, i, j, 1, 1);
+      }
+    });
   });
+  if (alfa < 1) {
+    ctx.save();
+    ctx.globalAlpha = alfa;
+    ctx.drawImage(c, x, y);
+    ctx.restore();
+  } else ctx.drawImage(c, x, y);
 }
 
-/** One touch-sized menu row (27 px tall at 1×: 44 CSS px at ×1.625). */
-export function filaMenu(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, texto: string, icono: keyof typeof ICONOS, activa: boolean): void {
+/** One touch-sized menu row of height `alto` (31 in the approved mock: 50 CSS px at ×1.625). */
+export function filaMenu(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, alto: number, texto: string, icono: keyof typeof ICONOS | null, activa: boolean, habilitada = true): void {
+  const h = alto - 6;
+  const yt = y + Math.floor((alto - 6 - 7) / 2) + 1;
   if (activa) {
-    relleno(ctx, ORO_UI_OSC, x, y, w, 25);
-    relleno(ctx, '#fbe19a', x + 1, y + 1, w - 2, 23);
+    relleno(ctx, ORO_UI_OSC, x, y, w, h);
+    relleno(ctx, '#fbe19a', x + 1, y + 1, w - 2, h - 2);
     r(ctx, '#fff3c8', x + 3, y + 1, w - 6, 1);
-    r(ctx, '#f0c860', x + 2, y + 21, w - 4, 3);
-    cursor2(ctx, x + 6, y + 9);
+    r(ctx, '#f0c860', x + 2, y + h - 4, w - 4, 3);
+    cursor2(ctx, x + 6, y + Math.floor((h - 7) / 2));
   }
-  icono2(ctx, icono, x + 17, y + 6);
-  dibujarTexto2(ctx, texto, x + 37, y + 9, TINTA2, activa ? '#f0c860' : SOMBRA_TEXTO);
+  if (icono) icono2(ctx, icono, x + 17, y + Math.floor((h - 13) / 2), habilitada ? 1 : 0.4);
+  dibujarTexto2(ctx, texto, x + (icono ? 37 : 18), yt, habilitada ? TINTA2 : '#a898a8', activa ? '#f0c860' : habilitada ? SOMBRA_TEXTO : null);
 }
 
 /** Top bar: menu button on the left, TURNO n, and a timer chip on the right. */

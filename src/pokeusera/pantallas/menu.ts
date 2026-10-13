@@ -1,17 +1,15 @@
 // PokéUsera · main menu: JUGAR SOLO / JUGAR ONLINE / AJUSTES.
-import { marco } from '../arte/marcos';
-import { dibujarTexto } from '../arte/fuente';
-import { NEGRO } from '../arte/paleta';
-import { logo } from '../arte/sprites';
-import { cursor } from '../arte/marcos';
+import { filaMenu, panelCacheado } from '../arte2/ui2';
 import { entrada } from '../entrada';
-import { pantalla, type Escena } from '../pantalla';
+import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
-import { fondoCampo } from './titulo';
+import { dibujarFondoBar } from './fondos';
+import { dibujarLogo } from './titulo';
 import { mover, t } from './ui';
 
 export type OpcionMenu = 'solo' | 'online' | 'ajustes' | 'titulo';
 const OPCIONES: OpcionMenu[] = ['solo', 'online', 'ajustes'];
+const ICONOS: Record<string, string> = { solo: 'luchar', online: 'online', ajustes: 'ajustes' };
 
 export function pantallaMenu(inicial: OpcionMenu = 'solo'): Promise<OpcionMenu> {
   return new Promise((res) => {
@@ -28,18 +26,18 @@ export function pantallaMenu(inicial: OpcionMenu = 'solo'): Promise<OpcionMenu> 
     const e: Escena = {
       dibujar(ctx) {
         const H = p.alto;
-        fondoCampo(ctx, H, Math.round(H * 0.42));
-        ctx.drawImage(logo(), 0, Math.round(H * 0.06));
-        const w = 140;
-        const x = 10;
-        const fila = 24;
-        const y = Math.round(H * 0.40);
-        marco(ctx, x, y, w, fila * OPCIONES.length + 12);
+        dibujarFondoBar(ctx, H, 0.12);
+        dibujarLogo(ctx, 18 + Math.round((H - 384) * 0.08));
+        const w = 200;
+        const x = Math.floor((ANCHO - w) / 2);
+        const fila = 34;
+        const h = fila * OPCIONES.length + 14;
+        const y = Math.round(H * 0.5) + Math.round((H - 384) * 0.05);
+        panelCacheado(ctx, x, y, w, h);
         OPCIONES.forEach((o, i) => {
-          const yy = y + 6 + i * fila;
-          dibujarTexto(ctx, t(`menu.${o}`), x + 26, yy + 8, NEGRO);
-          if (i === sel) cursor(ctx, x + 12, yy + 8);
-          entrada.zona(x + 2, yy, w - 4, fila, () => {
+          const yy = y + 8 + i * fila;
+          filaMenu(ctx, x + 6, yy, w - 12, fila, t(`menu.${o}`), ICONOS[o], i === sel);
+          entrada.zona(x + 4, yy, w - 8, fila, () => {
             sel = i;
             elegir(o);
           });

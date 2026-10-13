@@ -1,9 +1,10 @@
 // PokéUsera · the typewriter text box of the battle (and of short messages): paper box with the
 // double frame, ~40 characters a second, ▼ while it waits, a tap finishes the line and a second
 // tap moves on; it also moves on by itself after a short pause so the battle flows.
-import { dibujarTexto, envolver } from '../arte/fuente';
-import { flechaSigue, marco } from '../arte/marcos';
-import { NEGRO } from '../arte/paleta';
+import { envolver2 } from '../arte2/fuente2';
+import { SOMBRA_TEXTO, TINTA2 } from '../arte2/paleta2';
+import { dibujarTexto2 } from '../arte2/fuente2';
+import { flecha2, panelCacheado } from '../arte2/ui2';
 import { cfg, parpadea, ritmo } from './ui';
 
 interface Pendiente {
@@ -20,8 +21,8 @@ export class CajaTexto {
   private espera = 0;
   private res: (() => void) | null = null;
   private cola: Pendiente[] = [];
-  /** Characters per line available in the box. */
-  constructor(private anchoLinea = 17) {}
+  /** Pixels per line available in the box. */
+  constructor(private anchoLinea = 210) {}
 
   /** Shows `s` typing out; resolves when it has been read (tap, or `esperaMs` after it is written; 0 = right after typing, −1 = only on tap;
    *  by default what the speed setting says). */
@@ -50,7 +51,7 @@ export class CajaTexto {
   }
 
   private poner(s: string) {
-    this.lineas = envolver(s, this.anchoLinea * 8);
+    this.lineas = envolver2(s, this.anchoLinea);
     this.total = this.lineas.reduce((n, l) => n + Array.from(l).length, 0);
     this.escrito = 0;
   }
@@ -74,7 +75,7 @@ export class CajaTexto {
 
   /** Whether `s` fits in `maxLineas` lines of the box. */
   cabe(s: string, maxLineas: number): boolean {
-    return envolver(s, this.anchoLinea * 8).length <= maxLineas;
+    return envolver2(s, this.anchoLinea).length <= maxLineas;
   }
 
   /** True while the box is showing something that waits for a tap or a pause. */
@@ -120,17 +121,19 @@ export class CajaTexto {
   }
 
   dibujar(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, ahora: number, conMarco = true) {
-    if (conMarco) marco(ctx, x, y, w, h);
+    if (conMarco) panelCacheado(ctx, x, y, w, h);
     let resto = Math.floor(this.escrito);
-    const paso = h >= 52 ? 12 : 11;
-    const y0 = y + (h >= 52 ? 9 : 8);
+    const alta = h > 70;
+    const paso = alta ? 14 : 13;
+    const bloque = Math.max(0, this.lineas.length - 1) * paso + 9;
+    const y0 = alta ? y + 14 : y + 3 + Math.floor((h - 8 - bloque) / 2) + 1;
     this.lineas.forEach((l, i) => {
       if (resto <= 0) return;
       const chars = Array.from(l);
       const parte = chars.slice(0, resto).join('');
       resto -= chars.length;
-      dibujarTexto(ctx, parte, x + 8, y0 + i * paso, NEGRO);
+      dibujarTexto2(ctx, parte, x + 11, y0 + i * paso, TINTA2, SOMBRA_TEXTO);
     });
-    if (this.fase === 'espera' && parpadea(ahora, 350)) flechaSigue(ctx, x + w - 14, y + h - 9);
+    if (this.fase === 'espera' && parpadea(ahora, 350)) flecha2(ctx, x + w - 17, y + h - 12);
   }
 }

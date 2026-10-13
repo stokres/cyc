@@ -1,10 +1,10 @@
 // PokéUsera · modal layer: draws a box over the screen that was showing (which keeps animating
 // underneath), takes all taps and keys, and gives the screen back when it closes.
-import { anchoTexto, dibujarTexto } from '../arte/fuente';
-import { marco } from '../arte/marcos';
-import { NEGRO } from '../arte/paleta';
+import { anchoTexto2 } from '../arte2/fuente2';
+import { panelCacheado } from '../arte2/ui2';
 import { entrada } from '../entrada';
 import { ANCHO, pantalla, type Escena } from '../pantalla';
+import { oscurecer, texto2 } from './ui';
 
 export function sobre<T>(base: Escena | null, crear: (cerrar: (v: T) => void) => Escena): Promise<T> {
   return new Promise((res) => {
@@ -42,12 +42,11 @@ export function sobre<T>(base: Escena | null, crear: (cerrar: (v: T) => void) =>
 export function mensaje(base: Escena | null, lineas: string[]): Promise<void> {
   return sobre<void>(base, (cerrar) => ({
     dibujar(ctx) {
-      const h = 14 + lineas.length * 12 + 10;
+      const h = 24 + lineas.length * 14 + 8;
       const y = Math.round((pantalla().alto - h) / 2);
-      ctx.fillStyle = 'rgba(34,26,20,0.55)';
-      ctx.fillRect(0, 0, ANCHO, pantalla().alto);
-      marco(ctx, 8, y, ANCHO - 16, h);
-      lineas.forEach((l, i) => dibujarTexto(ctx, l, Math.floor((ANCHO - anchoTexto(l)) / 2), y + 12 + i * 12, NEGRO));
+      oscurecer(ctx, pantalla().alto);
+      panelCacheado(ctx, 12, y, ANCHO - 24, h);
+      lineas.forEach((l, i) => texto2(ctx, l, Math.floor((ANCHO - anchoTexto2(l)) / 2), y + 15 + i * 14));
       entrada.zona(0, 0, ANCHO, pantalla().alto, () => cerrar());
     },
     accion() {

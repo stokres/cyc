@@ -1,31 +1,29 @@
-// PokéUsera · title screen: logo, a slow parade of userito front sprites, «TOCA PARA EMPEZAR».
-import { dibujarMini } from '../arte/fuente';
-import { CLARO, FONDO, NEGRO, OSCURO, SUELO } from '../arte/paleta';
-import { IDS_USERITOS, logo, spriteFrente } from '../arte/sprites';
-import { anchoMini } from '../arte/fuente';
+// PokéUsera · title screen: logo, a slow parade of userito front sprites (64×64, breathing two frames a
+// second) over the Bar del Brío, «TOCA PARA EMPEZAR».
+import { logo2 } from '../arte2/logo2';
+import { spriteFrente2 } from '../arte2/sprites2';
+import { ESPECIES } from '../datos';
 import { entrada } from '../entrada';
 import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
-import { centrado, parpadea, rect, t } from './ui';
+import { panelCacheado } from '../arte2/ui2';
+import { anchoTexto2 } from '../arte2/fuente2';
+import { dibujarBandeja, dibujarFondoBar, pieSprite, plataformaCacheada } from './fondos';
+import { centrado, parpadea, reposo, t, texto2 } from './ui';
 
-export function fondoCampo(ctx: CanvasRenderingContext2D, alto: number, yTierra: number) {
-  rect(ctx, FONDO, 0, 0, ANCHO, alto);
-  rect(ctx, SUELO, 0, yTierra, ANCHO, alto - yTierra);
-  rect(ctx, '#a3b878', 0, yTierra, ANCHO, 2);
-  // A few tufts of grass, always the same.
-  for (let i = 0; i < 14; i++) {
-    const x = (i * 37 + 11) % 156;
-    const y = yTierra + 8 + ((i * 53) % Math.max(8, alto - yTierra - 12));
-    rect(ctx, '#a3b878', x, y, 3, 1);
-    rect(ctx, '#a3b878', x + 1, y - 1, 1, 1);
-  }
+/** Draws the logo centred at the top. Returns the y where it ends. */
+export function dibujarLogo(ctx: CanvasRenderingContext2D, y: number): number {
+  const lg = logo2();
+  ctx.drawImage(lg, Math.floor((ANCHO - lg.width) / 2), y);
+  return y + lg.height;
 }
 
 export function pantallaTitulo(): Promise<void> {
   return new Promise((res) => {
     const p = pantalla();
     // The parade starts at a random place so it is not always the same face first.
-    const desfase = Math.floor(Math.random() * IDS_USERITOS.length);
+    const ids = ESPECIES.map((s) => s.id);
+    const desfase = Math.floor(Math.random() * ids.length);
     let listo = false;
     const seguir = () => {
       if (listo) return;
@@ -38,27 +36,34 @@ export function pantallaTitulo(): Promise<void> {
       paso: () => true,
       dibujar(ctx, ahora) {
         const H = p.alto;
-        const yTierra = Math.round(H * 0.56);
-        fondoCampo(ctx, H, yTierra);
-        const lg = logo();
-        const yLogo = Math.round(H * 0.13);
-        ctx.drawImage(lg, 0, yLogo);
-        // Parade: sprites walk from right to left on the ground line, hopping.
+        dibujarFondoBar(ctx, H, 0.12);
+        dibujarLogo(ctx, 18 + Math.round((H - 384) * 0.08));
+        // Parade: the useritos walk from right to left on beer mats, hopping a little.
+        const yPies = Math.round(H * 0.6);
         const desp = ahora * 0.016;
-        const sep = 52;
+        const sep = 80;
         const base = Math.floor(desp / sep);
         const fase = desp % sep;
-        for (let k = -1; k < 5; k++) {
-          const idx = (base + k + desfase) % IDS_USERITOS.length;
-          const xx = Math.round(k * sep - fase + 4);
-          const salto = Math.abs(Math.sin(ahora / 230 + idx)) * 4;
-          const yy = Math.round(yTierra + 22 - 32 - salto);
-          rect(ctx, '#a3b878', xx + 6, yTierra + 21, 20, 2);
-          ctx.drawImage(spriteFrente(IDS_USERITOS[idx]), xx, yy);
+        const mat = plataformaCacheada(26, 5);
+        for (let k = -1; k < 4; k++) {
+          const idx = (base + k + desfase) % ids.length;
+          const xx = Math.round(k * sep - fase + 8);
+          const salto = Math.abs(Math.sin(ahora / 230 + idx)) * 5;
+          const sp = spriteFrente2(ids[idx], reposo(ahora, idx * 190));
+          ctx.drawImage(mat, xx + 32 - Math.floor(mat.width / 2), yPies - 13);
+          ctx.drawImage(sp, xx, Math.round(yPies - pieSprite(sp) - 2 - salto));
         }
-        if (parpadea(ahora, 600)) centrado(ctx, t('titulo.toca'), Math.round(H * 0.77), NEGRO, { sombra: CLARO });
+        if (parpadea(ahora, 600)) {
+          const s = t('titulo.toca');
+          const w = anchoTexto2(s) + 36;
+          const x = Math.floor((ANCHO - w) / 2);
+          const y = Math.round(H * 0.74);
+          panelCacheado(ctx, x, y, w, 28);
+          centrado(ctx, s, y + 11);
+        }
         const cred = t('titulo.credito');
-        dibujarMini(ctx, cred, 80 - Math.floor(anchoMini(cred) / 2), H - 12, OSCURO);
+        dibujarBandeja(ctx, H - 22, H);
+        texto2(ctx, cred, Math.floor((ANCHO - anchoTexto2(cred)) / 2), H - 15, '#f0e2b8', null);
         entrada.zona(0, 0, ANCHO, H, seguir);
       },
       accion(a) {

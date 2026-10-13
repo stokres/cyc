@@ -3,16 +3,16 @@
 // then the room (who is in, pick your trainer, the host starts). Both resolve with what the flow
 // needs; the connection stays open for the game (see online.ts).
 import { ENTRENADORES, type EntrenadorId } from '../tipos';
-import { anchoMini, dibujarMini, dibujarTexto, envolver } from '../arte/fuente';
-import { marco } from '../arte/marcos';
-import { CLARO, FONDO, NEGRO, OSCURO, PAPEL } from '../arte/paleta';
-import { icono } from '../arte/sprites';
+import { icono2, retrato2 } from '../arte2/entrenadores2';
+import { anchoTexto2 } from '../arte2/fuente2';
+import { PAPEL_ALTO, TINTA2, TINTA_SUAVE } from '../arte2/paleta2';
+import { panelCacheado, relleno } from '../arte2/ui2';
 import { entrada, type Accion } from '../entrada';
 import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
+import { dibujarFondoBar } from '../pantallas/fondos';
 import { mensaje } from '../pantallas/modal';
-import { fondoCampo } from '../pantallas/titulo';
-import { boton, centrado, colorEnt, nombreEnt, rect, t, velo } from '../pantallas/ui';
+import { barraArriba, boton, centrado, colorEnt, envolver, fondoPapel, nombreEnt, rect, t, texto2, velo } from '../pantallas/ui';
 import { Conexion } from './conexion';
 
 const CLAVE_GUARDADA = 'pokeusera.clave';
@@ -50,7 +50,7 @@ class Campo {
     el.setAttribute('spellcheck', 'false');
     el.setAttribute('enterkeyhint', 'go');
     el.setAttribute('aria-label', t('online.clave'));
-    el.style.cssText = `position:fixed;z-index:20;box-sizing:border-box;margin:0;padding:0 6px;border:2px solid ${NEGRO};border-radius:0;background:${PAPEL};color:${NEGRO};font-family:ui-monospace,Menlo,Consolas,"Courier New",monospace;font-weight:700;letter-spacing:1px;outline:none;box-shadow:inset 0 0 0 2px ${OSCURO};user-select:text;-webkit-user-select:text;touch-action:manipulation;caret-color:${NEGRO};`;
+    el.style.cssText = `position:fixed;z-index:20;box-sizing:border-box;margin:0;padding:0 6px;border:3px solid ${TINTA2};border-radius:4px;background:${PAPEL_ALTO};color:${TINTA2};font-family:ui-monospace,Menlo,Consolas,"Courier New",monospace;font-weight:700;letter-spacing:1px;outline:none;box-shadow:inset 0 0 0 2px #e0a83a;user-select:text;-webkit-user-select:text;touch-action:manipulation;caret-color:${TINTA2};`;
     document.body.appendChild(el);
     this.el = el;
   }
@@ -68,7 +68,7 @@ class Campo {
     st.width = `${w * s}px`;
     st.height = `${h * s}px`;
     // 16 px or more, so phones do not zoom in when the field gets the focus.
-    st.fontSize = `${Math.max(16, Math.round(7 * s))}px`;
+    st.fontSize = `${Math.max(16, Math.round(10 * s))}px`;
   }
 
   mostrar(v: boolean) {
@@ -119,7 +119,7 @@ export function pantallaClave(): Promise<Conexion | null> {
         ocupado = false;
         sonido.efecto('atras');
         campo.mostrar(false);
-        await mensaje(p.escena, envolver(t(`online.error.${r.motivo === 'en-partida' ? 'enpartida' : r.motivo}`), 128));
+        await mensaje(p.escena, envolver(t(`online.error.${r.motivo === 'en-partida' ? 'enpartida' : r.motivo}`), 190));
         if (!hecho) campo.mostrar(true);
         return;
       }
@@ -139,20 +139,23 @@ export function pantallaClave(): Promise<Conexion | null> {
     const e: Escena = {
       dibujar(ctx, ahora) {
         const H = p.alto;
-        fondoCampo(ctx, H, Math.round(H * 0.3));
-        centrado(ctx, t('online.titulo'), 10, NEGRO, { sombra: CLARO });
-        const y0 = 28;
-        marco(ctx, 8, y0, 144, 118);
-        dibujarTexto(ctx, t('online.clave'), 18, y0 + 10, NEGRO);
-        campo.colocar(16, y0 + 22, 128, 22);
+        dibujarFondoBar(ctx, H, 0.35);
+        const tit = t('online.titulo');
+        const tw = anchoTexto2(tit) + 40;
+        panelCacheado(ctx, Math.floor((ANCHO - tw) / 2), 22, tw, 26);
+        centrado(ctx, tit, 32);
+        const y0 = 64 + Math.round((H - 384) * 0.1);
+        panelCacheado(ctx, 8, y0, ANCHO - 16, 176);
+        texto2(ctx, t('online.clave'), 22, y0 + 15, TINTA2);
+        campo.colocar(20, y0 + 30, ANCHO - 40, 30);
         if (ocupado) {
           const s = t('online.conectando');
-          if (Math.floor(ahora / 400) % 3 !== 2) dibujarTexto(ctx, s, 80 - Math.floor((s.length * 8) / 2), y0 + 52, OSCURO);
+          if (Math.floor(ahora / 400) % 3 !== 2) texto2(ctx, s, Math.floor((ANCHO - anchoTexto2(s)) / 2), y0 + 70, TINTA_SUAVE);
         }
-        boton(ctx, 16, y0 + 62, 128, 22, t('online.entrar'), false, !ocupado);
-        entrada.zona(16, y0 + 62, 128, 22, () => void entrar());
-        boton(ctx, 16, y0 + 88, 128, 22, t('online.volver'), false);
-        entrada.zona(16, y0 + 88, 128, 22, volver);
+        boton(ctx, 20, y0 + 88, ANCHO - 40, 30, t('online.entrar'), false, !ocupado);
+        entrada.zona(20, y0 + 88, ANCHO - 40, 30, () => void entrar());
+        boton(ctx, 20, y0 + 128, ANCHO - 40, 30, t('online.volver'), false);
+        entrada.zona(20, y0 + 128, ANCHO - 40, 30, volver);
       },
       paso: () => ocupado,
       accion(a: Accion) {
@@ -183,12 +186,12 @@ interface Control {
 }
 
 function pastilla(ctx: CanvasRenderingContext2D, s: string, xFin: number, y: number, fondo: string, texto: string): number {
-  const w = anchoMini(s) + 5;
+  const w = anchoTexto2(s) + 8;
   const x = xFin - w;
-  rect(ctx, NEGRO, x + 1, y, w - 2, 9);
-  rect(ctx, NEGRO, x, y + 1, w, 7);
-  rect(ctx, fondo, x + 1, y + 1, w - 2, 7);
-  dibujarMini(ctx, s, x + 3, y + 2, texto);
+  relleno(ctx, TINTA2, x, y, w, 12);
+  relleno(ctx, fondo, x + 1, y + 1, w - 2, 10);
+  rect(ctx, 'rgba(255,255,255,0.3)', x + 2, y + 1, w - 4, 1);
+  texto2(ctx, s, x + 4, y + 3, texto, null);
   return w;
 }
 
@@ -201,7 +204,7 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
   return new Promise((res) => {
     const p = pantalla();
     sonido.musica('titulo');
-    let relleno = ultimoRelleno;
+    let relleno_ = ultimoRelleno;
     let sel = 0;
     let teclado = false;
     let hecho = false;
@@ -218,8 +221,8 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
     offs.push(con.on('sala', () => p.redibujar()));
     offs.push(
       con.on('empezar', () => {
-        ultimoRelleno = relleno;
-        fin({ r: 'empezar', relleno });
+        ultimoRelleno = relleno_;
+        fin({ r: 'empezar', relleno: relleno_ });
       }),
     );
     offs.push(con.on('cerrada', () => fin({ r: 'cerrada' })));
@@ -228,7 +231,7 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
     const miPj = (): EntrenadorId | null => con.jugadores.find((j) => j.id === con.id)?.pj ?? null;
     const conPj = () => con.jugadores.filter((j) => j.pj !== null).length;
     /** The host can start with a trainer of his own and at least two seats (counting the machine's). */
-    const puedeEmpezar = () => con.anfitrion && miPj() !== null && (relleno || conPj() >= 2);
+    const puedeEmpezar = () => con.anfitrion && miPj() !== null && (relleno_ || conPj() >= 2);
 
     const salir = () => {
       sonido.efecto('atras');
@@ -245,7 +248,7 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
       con.enviar({ tipo: 'elegir', pj: miPj() === id ? null : id });
     };
     const alternar = () => {
-      relleno = !relleno;
+      relleno_ = !relleno_;
       sonido.efecto('cursor');
     };
     const empezar = () => {
@@ -262,106 +265,101 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
     const e: Escena = {
       dibujar(ctx, ahora) {
         const H = p.alto;
-        const extra = Math.max(0, H - 256);
-        rect(ctx, FONDO, 0, 0, ANCHO, H);
+        const extra = Math.max(0, H - 384);
+        fondoPapel(ctx, H);
         ctl = [];
         // Header.
-        rect(ctx, PAPEL, 0, 0, ANCHO, 16);
-        rect(ctx, NEGRO, 0, 16, ANCHO, 1);
-        dibujarTexto(ctx, t('sala.titulo'), 6, 4, NEGRO);
+        barraArriba(ctx);
+        texto2(ctx, t('sala.titulo'), 8, 6);
         const cuenta = `${con.jugadores.length}/4`;
-        dibujarTexto(ctx, cuenta, 154 - cuenta.length * 8, 4, NEGRO);
+        texto2(ctx, cuenta, ANCHO - 8 - anchoTexto2(cuenta), 6);
 
         // Who is in.
-        const hf = 17 + Math.min(4, Math.floor(extra / 20));
+        const hf = 26 + Math.min(4, Math.floor(extra / 30));
         const lista = [...con.jugadores].sort((a, b) => a.id - b.id);
         for (let i = 0; i < 4; i++) {
-          const y = 20 + i * hf;
+          const y = 23 + i * (hf + 2);
           const j = lista[i];
-          rect(ctx, j ? NEGRO : CLARO, 4, y, 152, hf - 2);
-          rect(ctx, j ? PAPEL : FONDO, 5, y + 1, 150, hf - 4);
-          const ty = y + Math.floor((hf - 2 - 7) / 2);
+          relleno(ctx, j ? TINTA2 : '#8a7690', 4, y, ANCHO - 8, hf);
+          relleno(ctx, j ? PAPEL_ALTO : '#c9bb98', 5, y + 1, ANCHO - 10, hf - 2);
+          const ty = y + Math.floor((hf - 7) / 2) + 1;
           if (!j) {
-            dibujarTexto(ctx, t('sala.libre'), 22, ty, CLARO);
+            texto2(ctx, t('sala.libre'), 30, ty, '#a898a8', null);
             continue;
           }
-          const col = j.pj ? colorEnt(j.pj) : CLARO;
-          rect(ctx, col, 5, y + 1, 3, hf - 4);
+          const col = j.pj ? colorEnt(j.pj) : '#a898a8';
+          rect(ctx, col, 5, y + 1, 4, hf - 2);
           if (j.pj) {
-            ctx.drawImage(icono(j.pj), 11, y + Math.floor((hf - 2 - 8) / 2));
-            dibujarTexto(ctx, nombreEnt(j.pj), 22, ty, NEGRO);
-          } else dibujarTexto(ctx, t('sala.eligiendo'), 22, ty, CLARO);
-          let xf = 152;
-          const py = y + Math.floor((hf - 2 - 9) / 2);
-          if (j.anfitrion) xf -= pastilla(ctx, t('sala.anfitrion'), xf, py, NEGRO, PAPEL) + 2;
-          if (j.id === con.id) pastilla(ctx, t('sala.tu'), xf, py, j.pj ? colorEnt(j.pj) : OSCURO, PAPEL);
+            ctx.drawImage(icono2(j.pj), 12, y + Math.floor((hf - 16) / 2));
+            texto2(ctx, nombreEnt(j.pj), 34, ty);
+          } else texto2(ctx, t('sala.eligiendo'), 34, ty, '#a898a8', null);
+          let xf = ANCHO - 10;
+          const py = y + Math.floor((hf - 12) / 2);
+          if (j.anfitrion) xf -= pastilla(ctx, t('sala.anfitrion'), xf, py, TINTA2, '#fdf0c0') + 3;
+          if (j.id === con.id) pastilla(ctx, t('sala.tu'), xf, py, j.pj ? colorEnt(j.pj) : TINTA_SUAVE, '#ffffff');
         }
 
         // Pick your trainer: 2×2.
-        let y = 20 + 4 * hf + 3;
-        dibujarMini(ctx, t('sala.elige'), 80 - Math.floor(anchoMini(t('sala.elige')) / 2), y, OSCURO);
-        y += 9;
+        let y = 23 + 4 * (hf + 2) + 3;
+        texto2(ctx, t('sala.elige'), Math.floor((ANCHO - anchoTexto2(t('sala.elige'))) / 2), y + 2, TINTA2, '#f0e6c8');
+        y += 15;
         const mio = miPj();
-        const ch = 30 + Math.min(6, Math.floor(extra / 12));
+        const ch = 50 + Math.min(8, Math.floor(extra / 16));
         ENTRENADORES.forEach((id, i) => {
-          const x = 3 + (i % 2) * 78;
-          const yy = y + Math.floor(i / 2) * (ch + 3);
+          const x = 4 + (i % 2) * 118;
+          const yy = y + Math.floor(i / 2) * (ch + 4);
           const dueno = con.jugadores.find((j) => j.pj === id);
           const mia = mio === id;
           const ajena = !!dueno && !mia;
           const col = colorEnt(id);
-          marco(ctx, x, yy, 76, ch);
-          rect(ctx, col, x + 3, yy + 4, 1, ch - 8);
-          ctx.drawImage(icono(id), 0, 0, 8, 8, x + 5, yy + Math.floor((ch - 16) / 2), 16, 16);
-          dibujarTexto(ctx, nombreEnt(id), x + 23, yy + Math.floor(ch / 2) - 8, NEGRO);
-          const estado = mia ? t('sala.tuyo') : ajena ? t('sala.ocupado') : t('sala.libre');
-          dibujarMini(ctx, estado, x + 23, yy + Math.floor(ch / 2) + 3, mia ? col : OSCURO);
-          if (ajena) velo(ctx, x + 1, yy + 1, 74, ch - 2, PAPEL, 0.6);
           if (mia) {
-            rect(ctx, col, x - 2, yy - 2, 80, 2);
-            rect(ctx, col, x - 2, yy + ch, 80, 2);
-            rect(ctx, col, x - 2, yy, 2, ch);
-            rect(ctx, col, x + 76, yy, 2, ch);
+            rect(ctx, col, x - 2, yy - 2, 116 + 4, ch + 4);
           }
+          panelCacheado(ctx, x, yy, 116, ch, col);
+          ctx.drawImage(retrato2(id), x + 6, yy + Math.floor((ch - 40) / 2));
+          texto2(ctx, nombreEnt(id), x + 52, yy + Math.floor(ch / 2) - 10, TINTA2);
+          const estado = mia ? t('sala.tuyo') : ajena ? t('sala.ocupado') : t('sala.libre');
+          texto2(ctx, estado, x + 52, yy + Math.floor(ch / 2) + 4, mia ? col : TINTA_SUAVE, null);
+          if (ajena) velo(ctx, x + 2, yy + 2, 112, ch - 4, '#f0e2c0', 0.62);
           const k = ctl.length;
-          ctl.push({ x, y: yy, w: 76, h: ch, fn: () => ((sel = k), elegir(id)) });
+          ctl.push({ x, y: yy, w: 116, h: ch, fn: () => ((sel = k), elegir(id)) });
         });
-        y += 2 * (ch + 3);
+        y += 2 * (ch + 4);
 
         // Host: fill with machines?
         if (con.anfitrion) {
-          marco(ctx, 4, y, 152, 22);
-          dibujarMini(ctx, t('sala.rellenar'), 12, y + 8, NEGRO);
-          const v = t(relleno ? 'sala.si' : 'sala.no');
-          dibujarTexto(ctx, v, 148 - v.length * 8, y + 7, relleno ? colorEnt('chuchi') : OSCURO);
+          panelCacheado(ctx, 4, y, ANCHO - 8, 28);
+          texto2(ctx, t('sala.rellenar'), 14, y + 11);
+          const v = t(relleno_ ? 'sala.si' : 'sala.no');
+          texto2(ctx, v, ANCHO - 14 - anchoTexto2(v), y + 11, relleno_ ? colorEnt('chuchi') : TINTA_SUAVE);
           const k = ctl.length;
-          ctl.push({ x: 4, y, w: 152, h: 22, fn: () => ((sel = k), alternar()) });
-          y += 25;
+          ctl.push({ x: 4, y, w: ANCHO - 8, h: 28, fn: () => ((sel = k), alternar()) });
+          y += 32;
         }
 
         // Hint and buttons.
-        const yb = H - 28;
+        const yb = H - 36;
         const pista = con.anfitrion ? t(puedeEmpezar() ? 'sala.pista.listo' : mio ? 'sala.pista.faltan' : 'sala.pista.elige') : mio ? t('sala.esperando') : t('sala.pista.elige');
-        const lp = envolver(pista, 148);
-        lp.forEach((l, i) => centrado(ctx, l, Math.min(yb - 4 - lp.length * 10, y + 4) + i * 10, OSCURO));
+        const lp = envolver(pista, 200);
+        lp.forEach((l, i) => centrado(ctx, l, Math.min(yb - 6 - lp.length * 12, y + 4) + i * 12, TINTA_SUAVE, { sombra: null }));
         if (con.anfitrion) {
-          boton(ctx, 10, yb, 66, 22, t('sala.empezar'), false, puedeEmpezar());
-          boton(ctx, 84, yb, 66, 22, t('sala.salir'), false);
+          boton(ctx, 10, yb, 108, 28, t('sala.empezar'), false, puedeEmpezar());
+          boton(ctx, 122, yb, 108, 28, t('sala.salir'), false);
           const k = ctl.length;
-          ctl.push({ x: 10, y: yb, w: 66, h: 22, fn: () => ((sel = k), empezar()) });
-          ctl.push({ x: 84, y: yb, w: 66, h: 22, fn: salir });
+          ctl.push({ x: 10, y: yb, w: 108, h: 28, fn: () => ((sel = k), empezar()) });
+          ctl.push({ x: 122, y: yb, w: 108, h: 28, fn: salir });
         } else {
-          boton(ctx, 47, yb, 66, 22, t('sala.salir'), false);
-          ctl.push({ x: 47, y: yb, w: 66, h: 22, fn: salir });
+          boton(ctx, 66, yb, 108, 28, t('sala.salir'), false);
+          ctl.push({ x: 66, y: yb, w: 108, h: 28, fn: salir });
         }
         for (const c of ctl) entrada.zona(c.x, c.y, c.w, c.h, () => !empezando && c.fn());
         if (teclado && ctl[sel]) {
           const c = ctl[sel];
-          const col = parpadeo(ahora) ? NEGRO : OSCURO;
-          rect(ctx, col, c.x - 1, c.y - 1, c.w + 2, 1);
-          rect(ctx, col, c.x - 1, c.y + c.h, c.w + 2, 1);
-          rect(ctx, col, c.x - 1, c.y, 1, c.h);
-          rect(ctx, col, c.x + c.w, c.y, 1, c.h);
+          const col = parpadeo(ahora) ? TINTA2 : '#e0a83a';
+          rect(ctx, col, c.x - 2, c.y - 2, c.w + 4, 2);
+          rect(ctx, col, c.x - 2, c.y + c.h, c.w + 4, 2);
+          rect(ctx, col, c.x - 2, c.y, 2, c.h);
+          rect(ctx, col, c.x + c.w, c.y, 2, c.h);
         }
       },
       paso: () => teclado,

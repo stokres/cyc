@@ -1,14 +1,15 @@
-// PokéUsera · trainer pick: the four friends in a 2×2 grid; tap one.
+// PokéUsera · trainer pick: the four friends in a 2×2 grid (full-body portraits breathing at two frames a
+// second); tap one.
 import { ENTRENADORES, type EntrenadorId } from '../tipos';
-import { dibujarTexto } from '../arte/fuente';
-import { marco } from '../arte/marcos';
-import { CLARO, NEGRO } from '../arte/paleta';
-import { entrenador, icono } from '../arte/sprites';
+import { ANCHO_ENT2, entrenador2, icono2 } from '../arte2/entrenadores2';
+import { anchoTexto2 } from '../arte2/fuente2';
+import { ORO_UI } from '../arte2/paleta2';
+import { panelCacheado } from '../arte2/ui2';
 import { entrada } from '../entrada';
-import { pantalla, type Escena } from '../pantalla';
+import { pantalla, ANCHO, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
-import { fondoCampo } from './titulo';
-import { boton, colorEnt, centrado, dibujaEscalado, nombreEnt, rect, t } from './ui';
+import { dibujarFondoBar, plataformaCacheada } from './fondos';
+import { boton, centrado, colorEnt, colorEntOsc, nombreEnt, rect, reposo, t, texto2 } from './ui';
 import { cargarAjustes } from './ajustes';
 
 export function pantallaEntrenador(): Promise<EntrenadorId | null> {
@@ -24,38 +25,45 @@ export function pantallaEntrenador(): Promise<EntrenadorId | null> {
     };
     sonido.musica('titulo');
     const e: Escena = {
-      dibujar(ctx) {
+      paso: () => true,
+      dibujar(ctx, ahora) {
         const H = p.alto;
-        fondoCampo(ctx, H, Math.round(H * 0.3));
-        centrado(ctx, t('entrenador.titulo'), 8, NEGRO, { sombra: CLARO });
-        const cw = 72;
-        const ch = H < 280 ? 99 : 104;
-        const dy = H < 280 ? 6 : 9;
-        const hueco = Math.max(4, Math.min(14, Math.floor((H - 22 - 2 * ch - 28) / 2)));
-        const y0 = 22 + Math.floor(hueco / 2);
+        dibujarFondoBar(ctx, H, 0.3);
+        const tit = t('entrenador.titulo');
+        const tw = anchoTexto2(tit) + 40;
+        panelCacheado(ctx, Math.floor((ANCHO - tw) / 2), 8, tw, 26);
+        centrado(ctx, tit, 18);
+        const cw = 112;
+        const ch = Math.min(130, Math.floor((H - 96) / 2) - 6);
+        const hueco = Math.max(8, Math.min(22, Math.floor((H - 40 - 40 - 2 * ch) / 3)));
+        const y0 = 40 + Math.max(hueco, Math.floor((H - 40 - 44 - 2 * ch - hueco) / 2));
         ENTRENADORES.forEach((id, i) => {
-          const x = i % 2 === 0 ? 6 : 82;
+          const x = i % 2 === 0 ? 5 : 123;
           const y = y0 + Math.floor(i / 2) * (ch + hueco);
-          marco(ctx, x, y, cw, ch);
           const col = colorEnt(id);
-          rect(ctx, col, x + 4, y + 4, cw - 8, 3);
-          dibujaEscalado(ctx, entrenador(id), x + 4, y + dy, 64, 80);
-          ctx.drawImage(icono(id), x + 8, y + dy + 83);
-          dibujarTexto(ctx, nombreEnt(id), x + 20, y + dy + 83, NEGRO);
-          if (i === sel) {
-            rect(ctx, col, x - 2, y - 2, cw + 4, 2);
-            rect(ctx, col, x - 2, y + ch, cw + 4, 2);
-            rect(ctx, col, x - 2, y, 2, ch);
-            rect(ctx, col, x + cw, y, 2, ch);
+          const dentro = i === sel;
+          if (dentro) {
+            rect(ctx, ORO_UI, x - 3, y - 3, cw + 6, ch + 6);
+            rect(ctx, '#3b2a3f', x - 2, y - 2, cw + 4, ch + 4);
           }
+          panelCacheado(ctx, x, y, cw, ch, col, colorEntOsc(id));
+          const foot = y + 12 + 80 - 4;
+          const mat = plataformaCacheada(24, 5);
+          ctx.drawImage(mat, x + Math.floor((cw - mat.width) / 2), foot - 13);
+          ctx.drawImage(entrenador2(id, reposo(ahora, i * 170)), x + Math.floor((cw - ANCHO_ENT2) / 2), y + 12);
+          const nombre = nombreEnt(id);
+          const nw = anchoTexto2(nombre) + 20;
+          const nx = x + Math.floor((cw - nw) / 2);
+          ctx.drawImage(icono2(id), nx, y + ch - 28);
+          texto2(ctx, nombre, nx + 20, y + ch - 24);
           entrada.zona(x, y, cw, ch, () => {
             sel = i;
             fin(id);
           });
         });
-        const yv = Math.min(H - 24, y0 + 2 * (ch + hueco) - hueco + 5);
-        boton(ctx, 50, yv, 60, 20, t('entrenador.volver'), false);
-        entrada.zona(50, yv, 60, 20, () => fin(null));
+        const yv = Math.min(H - 36, y0 + 2 * (ch + hueco) - 2);
+        boton(ctx, Math.floor((ANCHO - 100) / 2), yv, 100, 26, t('entrenador.volver'), false);
+        entrada.zona(Math.floor((ANCHO - 100) / 2), yv, 100, 26, () => fin(null));
       },
       accion(a) {
         if (a === 'atras') fin(null);

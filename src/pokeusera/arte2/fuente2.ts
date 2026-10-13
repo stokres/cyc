@@ -106,6 +106,7 @@ const OTROS: Record<string, Glifo> = {
   '*': { fila0: 3, filas: ['X.X', '.X.', 'X.X'] },
   '«': { fila0: 5, filas: ['..X.X', '.X.X.', 'X.X..', '.X.X.', '..X.X'] },
   '»': { fila0: 5, filas: ['X.X..', '.X.X.', '..X.X', '.X.X.', 'X.X..'] },
+  'º': { fila0: 2, filas: ['XXX', 'X.X', 'XXX'] },
   '€': C('..XXX', '.X...', 'XXXX.', '.X...', 'XXXX.', '.X...', '..XXX'),
 };
 

@@ -1,17 +1,30 @@
 // PokéUsera · the podium: the four trainers on their steps with the useritos they used, and
 // OTRA (same trainer, new draft) / MENÚ.
 import type { EstadoCombate } from '../tipos';
-import { anchoMini, dibujarMini, dibujarTexto } from '../arte/fuente';
-import { boton } from './ui';
-import { CLARO, FONDO, NEGRO, OSCURO, PAPEL } from '../arte/paleta';
-import { entrenador, icono, spriteFrente } from '../arte/sprites';
+import { ANCHO_ENT2, ALTO_ENT2, entrenador2 } from '../arte2/entrenadores2';
+import { anchoTexto2 } from '../arte2/fuente2';
+import { TINTA2 } from '../arte2/paleta2';
+import { panelCacheado, relleno } from '../arte2/ui2';
 import { entrada } from '../entrada';
 import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
 import { mvp, pantallaEstadisticas } from './estadisticas';
-import { centrado, colorEnt, dibujaEscalado, ordinal, parpadea, rect, t } from './ui';
+import { miniatura } from './fondos';
+import { boton, centrado, colorEnt, colorEntClaro, colorEntOsc, fondoPapel, ordinal, parpadea, rect, reposo, t, texto2 } from './ui';
 
 export type SalidaPodio = 'otra' | 'menu';
+
+const ESTRELLA = ['....X....', '....X....', '...XXX...', 'XXXXXXXXX', '.XXXXXXX.', '..XXXXX..', '.XXX.XXX.', '.XX...XX.', 'X.......X'];
+
+function estrella(ctx: CanvasRenderingContext2D, x: number, y: number) {
+  ESTRELLA.forEach((f, j) => {
+    for (let i = 0; i < f.length; i++) {
+      if (f[i] !== 'X') continue;
+      rect(ctx, '#7a4e0c', x + i - 1 + (i === 0 ? 1 : 0), y + j, 1, 1);
+      rect(ctx, '#ffd84a', x + i, y + j, 1, 1);
+    }
+  });
+}
 
 /** `sinBotones`: no OTRA / MENÚ (smoke tests; ESTADÍSTICAS stays). `soloMenu`: only MENÚ and ESTADÍSTICAS (online guests: the host decides on another game). */
 export function pantallaPodio(estado: EstadoCombate, miSeat: number | null, sinBotones = false, soloMenu = false): Promise<SalidaPodio> {
@@ -35,81 +48,94 @@ export function pantallaPodio(estado: EstadoCombate, miSeat: number | null, sinB
     const porPuesto = estado.jugadores.map((q, j) => ({ q, j })).sort((a, b) => (a.q.puesto || 9) - (b.q.puesto || 9));
     // Left to right on the podium: 2nd, 1st, 3rd, 4th (as many as there are).
     const orden = [porPuesto[1], porPuesto[0], porPuesto[2], porPuesto[3]].filter(Boolean);
-    const alturas: Record<number, number> = { 1: 56, 2: 44, 3: 32, 4: 22 };
+    const alturas: Record<number, number> = { 1: 58, 2: 48, 3: 40, 4: 34 };
     const ganador = estado.ganador !== null ? estado.jugadores[estado.ganador] : porPuesto[0].q;
     const e: Escena = {
       paso: () => true,
       dibujar(ctx, ahora) {
         const H = p.alto;
-        rect(ctx, FONDO, 0, 0, ANCHO, H);
-        centrado(ctx, t('podio.gana', { nombre: ganador.nombre }), 8, NEGRO, { sombra: CLARO });
+        const extra = Math.max(0, H - 384);
+        fondoPapel(ctx, H);
+        const tit = t('podio.gana', { nombre: ganador.nombre });
+        const tw = anchoTexto2(tit) + 40;
+        panelCacheado(ctx, Math.floor((ANCHO - tw) / 2), 6, tw, 26);
+        centrado(ctx, tit, 16);
         const n = orden.length;
         const cw = Math.floor(ANCHO / n);
-        const extra = Math.max(0, H - 256);
-        const yB = 24 + 40 + 58 + Math.floor(extra * 0.2);
+        // Vertical rhythm: title, trainers on their steps, the teams, the battle in a line, the buttons; equal gaps.
+        const hc = 36 + Math.min(10, Math.floor(extra / 12));
+        const hEq = 2 * hc + 2;
+        const g = Math.max(4, Math.floor((H - 6 - 26 - 144 - hEq - 30 - 62 - 6) / 4));
+        const yB = 6 + 26 + g + 144;
+        const yEq = yB + g;
+        const yl = yEq + hEq + g;
+        const ys = yl + 30 + g;
+        const yb = ys + 30;
         orden.forEach(({ q, j }, i) => {
           const cx = i * cw + Math.floor(cw / 2);
-          const alto = alturas[q.puesto] ?? 20;
+          const alto = alturas[q.puesto] ?? 24;
           const col = colorEnt(q.entrenador);
           const yTop = yB - alto;
+          const x0 = cx - Math.floor(cw / 2) + 1;
+          // Trainer on the step (the winner hops a little).
+          const salto = q.puesto === 1 ? Math.round(Math.abs(Math.sin(ahora / 260)) * 4) : 0;
+          const yCab = yTop - ALTO_ENT2 + 2 - salto;
+          ctx.drawImage(entrenador2(q.entrenador, reposo(ahora, i * 170)), cx - Math.floor(ANCHO_ENT2 / 2), yCab);
           // Step.
-          rect(ctx, NEGRO, cx - Math.floor(cw / 2) + 1, yTop - 1, cw - 2, alto + 1);
-          rect(ctx, col, cx - Math.floor(cw / 2) + 2, yTop, cw - 4, alto);
-          rect(ctx, 'rgba(255,255,255,0.3)', cx - Math.floor(cw / 2) + 2, yTop, cw - 4, 1);
-          ordinal(ctx, q.puesto, cx - 7, yTop + 4, PAPEL);
-          const nm = q.nombre.toUpperCase();
-          dibujarMini(ctx, nm, cx - Math.floor(anchoMini(nm) / 2), yTop + 15, PAPEL);
-          // Trainer on the step.
-          dibujaEscalado(ctx, entrenador(q.entrenador), cx - 16, yTop - 41, 32, 40);
-          if (q.puesto === 1 && parpadea(ahora, 400)) dibujarTexto(ctx, '★', cx + 8, yTop - 49, '#e6a800');
-          if (j === miSeat) rect(ctx, NEGRO, cx - 3, yTop - 44, 6, 2);
+          relleno(ctx, TINTA2, x0, yTop - 1, cw - 2, alto + 1);
+          rect(ctx, colorEntOsc(q.entrenador), x0 + 1, yTop, cw - 4, alto);
+          rect(ctx, col, x0 + 1, yTop, cw - 5, alto - 1);
+          rect(ctx, colorEntClaro(q.entrenador), x0 + 1, yTop, cw - 5, 2);
+          const o = `${q.puesto}.º`;
+          texto2(ctx, o, cx - Math.floor(anchoTexto2(o) / 2) - 1, yTop + 6, '#ffffff', colorEntOsc(q.entrenador));
+          if (alto >= 34) {
+            const nm = q.nombre;
+            texto2(ctx, nm, cx - Math.floor(anchoTexto2(nm) / 2) - 1, yTop + 20, '#ffffff', colorEntOsc(q.entrenador));
+          }
+          if (q.puesto === 1 && parpadea(ahora, 400)) estrella(ctx, cx - 4, yCab - 10);
+          if (j === miSeat) {
+            // «you»: a little ▼ over the head.
+            for (let k = 0; k < 4; k++) rect(ctx, TINTA2, cx - 3 + k, yCab - (q.puesto === 1 ? 24 : 10) + k, 7 - 2 * k, 1);
+          }
         });
-        // Bottom up: the buttons, the battle in a line, and the teams in the room that is left.
-        const yb = H - 26;
-        const ys = yb - 23;
-        const yl = ys - 15;
-        // The teams, best first.
-        const sitio = yl - (yB + 6);
-        const paso = Math.max(15, Math.min(26, Math.floor(sitio / porPuesto.length)));
-        let y = yB + 6 + Math.floor((sitio - paso * porPuesto.length) / 2);
-        for (const { q } of porPuesto) {
+        porPuesto.forEach(({ q }, i) => {
+          const x = 1 + (i % 2) * 119;
+          const y = yEq + Math.floor(i / 2) * (hc + 2);
           const col = colorEnt(q.entrenador);
-          const lado = Math.min(16, paso - 1);
-          rect(ctx, col, 4, y, 2, paso - 1);
-          ordinal(ctx, q.puesto || 1, 12, y + Math.floor((paso - 9) / 2), NEGRO);
-          ctx.drawImage(icono(q.entrenador), 34, y + Math.floor((paso - 9) / 2));
+          relleno(ctx, TINTA2, x, y, 119, hc);
+          relleno(ctx, '#f4e8c8', x + 1, y + 1, 117, hc - 2);
+          rect(ctx, col, x + 2, y + hc - 4, 115, 2);
+          ordinal(ctx, q.puesto || 1, x + 3, y + Math.floor((hc - 7) / 2) - 1, TINTA2);
           q.equipo.forEach((u, k) => {
             const caido = u.ps <= 0;
             ctx.save();
-            if (caido) ctx.globalAlpha = 0.45;
-            dibujaEscalado(ctx, spriteFrente(u.especie), 52 + k * 22, y + Math.floor((paso - 1 - lado) / 2), lado, lado);
+            if (caido) ctx.globalAlpha = 0.4;
+            ctx.drawImage(miniatura(u.especie), x + 21 + k * 32, y + Math.floor((hc - 4 - 32) / 2) + 1);
             ctx.restore();
           });
-          dibujarMini(ctx, q.nombre.toUpperCase(), ANCHO - 42, y + Math.floor((paso - 6) / 2), OSCURO);
-          y += paso;
-        }
+        });
         // The battle in a line: how long it lasted and who hit hardest.
-        centrado(ctx, t('podio.turnos', { n: Math.max(1, estado.turno - 1) }), yl - 1, NEGRO);
+        centrado(ctx, t('podio.turnos', { n: Math.max(1, estado.turno - 1) }), yl + 2);
         const m = mvp(estado);
         const linea = m ? t('podio.mvp', { nombre: estado.jugadores[m.j].nombre, n: m.dano }) : t('podio.sin_mvp');
-        dibujarMini(ctx, linea.toUpperCase(), Math.floor((ANCHO - anchoMini(linea)) / 2), yl + 9, OSCURO);
+        centrado(ctx, linea, yl + 16, TINTA2);
         // Buttons.
-        const bw = 118;
+        const bw = 180;
         const bx = Math.floor((ANCHO - bw) / 2);
-        boton(ctx, bx, ys, bw, 20, t('podio.stats'), sel === 0);
-        entrada.zona(bx, ys, bw, 20, () => void estadisticas());
+        boton(ctx, bx, ys, bw, 26, t('podio.stats'), sel === 0);
+        entrada.zona(bx, ys, bw, 26, () => void estadisticas());
         if (!sinBotones) {
           if (soloMenu) {
-            boton(ctx, Math.floor((ANCHO - 66) / 2), yb, 66, 22, t('podio.menu'), sel === 2);
-            entrada.zona(Math.floor((ANCHO - 66) / 2), yb, 66, 22, () => fin('menu'));
+            boton(ctx, Math.floor((ANCHO - 100) / 2), yb, 100, 28, t('podio.menu'), sel === 2);
+            entrada.zona(Math.floor((ANCHO - 100) / 2), yb, 100, 28, () => fin('menu'));
           } else {
-            const w2 = 66;
-            const gap = 8;
+            const w2 = 100;
+            const gap = 10;
             const x1 = Math.floor((ANCHO - 2 * w2 - gap) / 2);
-            boton(ctx, x1, yb, w2, 22, t('podio.otra'), sel === 1);
-            boton(ctx, x1 + w2 + gap, yb, w2, 22, t('podio.menu'), sel === 2);
-            entrada.zona(x1, yb, w2, 22, () => fin('otra'));
-            entrada.zona(x1 + w2 + gap, yb, w2, 22, () => fin('menu'));
+            boton(ctx, x1, yb, w2, 28, t('podio.otra'), sel === 1);
+            boton(ctx, x1 + w2 + gap, yb, w2, 28, t('podio.menu'), sel === 2);
+            entrada.zona(x1, yb, w2, 28, () => fin('otra'));
+            entrada.zona(x1 + w2 + gap, yb, w2, 28, () => fin('menu'));
           }
         }
       },

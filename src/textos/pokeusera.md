@@ -7,7 +7,7 @@ Todo lo que se lee en los menús de PokéUsera está aquí. Mismo formato que ca
   clave = texto                un texto suelto
   {n}                          el juego lo cambia por un valor
 
-La letra es de píxeles y la pantalla estrecha (unos 18 caracteres por línea): textos cortos.
+La letra es de píxeles y la pantalla es estrecha (unos 40 caracteres por línea; en las cajas de menú, algo menos): textos cortos.
 Los mensajes del combate y las descripciones de useritos y movimientos están en pokeusera-combate.md.
 -->
 
@@ -94,9 +94,9 @@ batalla.turno = TURNO {n}
 batalla.volver = VOLVER
 batalla.historial = HISTORIAL
 batalla.orden = ORDEN DEL TURNO
-batalla.tag.muy = MUY EFICAZ!
+batalla.tag.muy = ¡MUY EFICAZ!
 batalla.tag.poco = POCO EFICAZ
-batalla.tag.critico = CRITICO!
+batalla.tag.critico = ¡CRÍTICO!
 batalla.tag.noafecta = NO AFECTA
 batalla.tag.escondido = ESCONDIDO
 batalla.tag.falla = FALLA
@@ -131,7 +131,7 @@ podio.turnos = {n} TURNOS
 podio.mvp = MVP: {nombre} con {n} de daño
 podio.sin_mvp = Nadie le pegó a nadie.
 
-// ---- estadísticas (la letra pequeña no tiene comas, tildes ni ¡¿: frases cortas)
+// ---- estadísticas (frases cortas: caben unos 40 caracteres por línea)
 stats.volver = VOLVER
 stats.nada = Sin datos.
 stats.tab.resumen = RESUMEN
@@ -142,10 +142,10 @@ stats.m.dh = DAÑO HECHO
 stats.m.dr = DAÑO RECIBIDO
 stats.m.cu = CURADO
 stats.m.ko = DERRIBOS
-stats.m.cae = USERITOS CAIDOS
+stats.m.cae = USERITOS CAÍDOS
 stats.m.gol = GOLPES DADOS
 stats.m.fal = FALLOS
-stats.m.cri = CRITICOS
+stats.m.cri = CRÍTICOS
 stats.m.sup = MUY EFICACES
 stats.m.esq = ESQUIVAS
 stats.u.hecho = HECHO
@@ -155,31 +155,31 @@ stats.u.turnos = TURNOS
 stats.u.curado = CURADO
 stats.u.golpes = GOLPES
 stats.u.fav = FAVORITO: {mov} X{n}
-stats.u.sin = NO LLEGO A ATACAR
+stats.u.sin = NO LLEGÓ A ATACAR
 stats.u.max = MEJOR GOLPE: {n} CON {mov}
 stats.u.caido = K.O.
 stats.duelos.ayuda = LA FILA PEGA A LA COLUMNA
-stats.duelos.nemesis = NEMESIS
-stats.duelos.victima = VICTIMA FAVORITA
+stats.duelos.nemesis = NÉMESIS
+stats.duelos.victima = VÍCTIMA FAVORITA
 stats.duelos.ko = {n} KO
 stats.duelos.nadie = -
 
-// ---- premios: nombre (letra normal) y una línea de letra pequeña (sin comas ni tildes)
+// ---- premios: nombre y una línea de broma
 premio.mvp.n = MVP
 premio.mvp.d = Pega como una mula de Usera
 premio.saco.n = SACO DE BOXEO
 premio.saco.d = Se comió todos los palos
 premio.matagigantes.n = MATAGIGANTES
-premio.matagigantes.d = Mas useritos al suelo
+premio.matagigantes.d = Más useritos al suelo
 premio.cana.n = REY DE LA CAÑA
 premio.cana.d = Se curó con espuma
 premio.gafe.n = GAFE
 premio.gafe.d = Falla más que una feria
 premio.francotirador.n = FRANCOTIRADOR
-premio.francotirador.d = Mas golpes criticos
+premio.francotirador.d = Más golpes críticos
 premio.cambia.n = EL VELETA
 premio.cambia.d = Cambia cada dos por tres
 premio.superviviente.n = SUPERVIVIENTE
 premio.superviviente.d = Su userito no se rindió
 premio.rencoroso.n = RENCOROSO
-premio.rencoroso.d = Daño de Venganza. Lo apunta
+premio.rencoroso.d = Daño de Venganza. Lo apunta todo

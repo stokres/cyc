@@ -1,6 +1,6 @@
 # PokéUsera · Edición Jarra
 
-Juego aparte de batallas de useritos a cuatro, al estilo de los primeros juegos de monstruos de Game Boy, pero todo original (criaturas, nombres, sprites, música). Pedido por Jesús el 12 de octubre de 2026; nombre, reglas, tipos y useritos validados por él ese día. Rama `claude/batallas-a-cuatro-4c2aj0`; no toca el capítulo 1 ni el Pang.
+Juego aparte de batallas de useritos a cuatro, al estilo de los juegos de monstruos de Game Boy Advance, pero todo original (criaturas, nombres, sprites, música). Pedido por Jesús el 12 de octubre de 2026; nombre, reglas, tipos y useritos validados por él ese día. Rama `claude/batallas-a-cuatro-4c2aj0`; no toca el capítulo 1 ni el Pang.
 
 ## 1. Cómo está hecho
 
@@ -10,7 +10,8 @@ Juego aparte de batallas de useritos a cuatro, al estilo de los primeros juegos 
 | Tipos compartidos (el contrato) | `src/pokeusera/tipos.ts` |
 | Datos: tipos, useritos y movimientos | `src/pokeusera/datos.ts` |
 | Motor de combate (puro, sin DOM, azar con semilla) | `src/pokeusera/motor/` (`combate.ts`, `draft.ts`, `bot.ts`, `azar.ts`) |
-| Arte: paleta, letra de píxeles, sprites, marcos | `src/pokeusera/arte/` |
+| Arte (aspecto Game Boy Advance): paleta, letra, sprites 64×64, entrenadores, logo, marcos | `src/pokeusera/arte2/` (`paleta2`, `fuente2`, `sprites2`, `entrenadores2`, `logo2`, `escena2`, `ui2`); `arte/pixel.ts` (el pintor de píxeles) y `arte/paleta.ts` (colores y nombres de tipo) |
+| Vista previa del arte (solo desarrollo) | `tools/pokeusera-v2.html` (`?vista=detalle`, `fuente`, `entrenadores`) y `tools/pokeusera-v2-export.mjs` |
 | Sonido: música y efectos | `src/pokeusera/sonido.ts`, MP3 en `src/sonido/pokeusera-*.mp3`, generados con `tools/musica/pokeusera.py` |
 | Pantallas y flujo | `src/pokeusera/pantallas/` |
 | Online | `src/pokeusera/red/`, servidor `scripts/servir-pokeusera.mjs` + `scripts/sala-pokeusera.mjs` |
@@ -18,9 +19,10 @@ Juego aparte de batallas de useritos a cuatro, al estilo de los primeros juegos 
 
 ### Pantalla
 
-- **Vertical, en el móvil.** Lógica de 160 px de ancho (el de la Game Boy); el alto sale de la proporción de la pantalla, entre 256 y 346 px. Se amplía sin suavizar (`image-rendering: pixelated`) para ocupar el ancho.
-- **Aspecto Game Boy Color:** letra de píxeles 8×8 propia (con tildes, ñ, ¡ y ¿), marcos de texto como los del original, cursor ▶, barras de PS verde/amarilla/roja. Cada userito tiene su paleta de 4 colores (como en la Game Boy Color); de frente a 32×32 y de espaldas (el propio) con píxeles dobles, como el original.
-- **Combate a cuatro en vertical:** los tres rivales en filas arriba (ficha a la izquierda: nombre, N50, barra de PS y color del entrenador; sprite de frente a la derecha) y el tuyo abajo (sprite de espaldas a la izquierda, ficha con PS en números a la derecha). Debajo, el cuadro de texto y los menús (el mismo hueco para los dos). En móviles altos, la altura que sobra se reparte entre las filas.
+- **Vertical, en el móvil.** Lógica de 240 px de ancho (el de la Game Boy Advance); el alto sale de la proporción de la pantalla: `alto = clamp(round(240 × alto / ancho), 384, 520)`. El lienzo se ajusta al ancho con escala no entera, sin suavizar (`image-rendering: pixelated`).
+- **Aspecto Game Boy Advance** (muestra aprobada): letra proporcional de píxeles propia (`arte2/fuente2.ts`, mayúsculas de 7 px, con tildes, ñ, º, ¡ y ¿), paneles crema con borde oscuro y reborde dorado, cursor ▶, barras de PS verde/amarilla/roja con etiqueta «PS», fichas con la inicial y el color del entrenador. Los useritos son de 64×64 con rampas de 3-5 tonos y dos fotogramas de reposo (a ~2 fps, de frente y de espaldas); los entrenadores, de 56×80 con dos fotogramas; retratos de 40×40 e iconos de 16×16; el logo, de 220×90. Las miniaturas del draft son de 32×32 (reducción 2×2 del sprite de 64).
+- **Reparto del alto en el combate** (`pantallas/combate.ts`, función `geom`): la separación entre filas va de 50 a 76 px según el alto; los pies del sprite quedan 62 px por debajo del inicio de la fila; debajo va la bandeja con el cuadro de texto y el panel del menú pegado al borde inferior. Por debajo de 430 px de alto, el cuadro de texto es de dos líneas (modo compacto). El mismo criterio (hueco que sobra repartido entre filas, alturas mínimas) sirve en el draft, el podio y las estadísticas.
+- **Combate a cuatro en vertical:** los tres rivales en filas arriba (ficha a la izquierda: nombre, N50, barra de PS y color del entrenador; sprite de frente a la derecha) y el tuyo abajo (sprite de espaldas a la izquierda, ficha con PS en números a la derecha, sobre su plataforma). Debajo, el cuadro de texto y los menús (el mismo hueco para los dos). En móviles altos, la altura que sobra se reparte entre las filas.
 - **Seguir lo que pasa** (pedido por Jesús tras la beta: «demasiado rápidas y caóticas»), todo en `pantallas/combate.ts`:
   - **Foco en cada acción:** desde el `usa` hasta el siguiente `usa` (o el fin del turno) se atenúan las filas que no intervienen, la del que actúa lleva marco de su color, las de los objetivos marco parpadeante, una línea con flecha baja por el borde derecho del que ataca a cada objetivo y en la fila del objetivo sale «cara A ▶ cara B». En «todos», se iluminan los tres. Los efectos del final del turno (quemaduras, Hora de cerrar) solo marcan a quien los sufre.
   - **Números flotantes** sobre el sprite: `-34` en rojo, `+20` en verde, y etiquetas de ~1 s (`MUY EFICAZ!`, `POCO EFICAZ`, `CRITICO!`, `NO AFECTA`, `ESCONDIDO`, `FALLA`, `ESQUIVA`).
@@ -28,7 +30,7 @@ Juego aparte de batallas de useritos a cuatro, al estilo de los primeros juegos 
   - **Ritmo** (ajuste «VELOCIDAD DEL COMBATE: LENTA / NORMAL / RÁPIDA», en AJUSTES y en la pausa ≡; se guarda en `localStorage` `pokeusera.v1`, por defecto NORMAL): NORMAL escribe a 30 letras por segundo y pasa sola a los 1,6 s; LENTA a 24 y solo con un toque (como el original); RÁPIDA es el ritmo de la primera versión (42 letras por segundo, 0,65 s). Cambian también las pausas entre acciones, la duración de las animaciones, el drenaje de las barras (0,8 s en NORMAL) y lo que duran los números flotantes. Un toque en cualquier parte del campo termina la línea o pasa a la siguiente. Las líneas de texto seguidas de un mismo golpe («¡Golpe crítico!» + «¡Muy eficaz!») comparten cuadro si caben en tres líneas. `?auto` / `?rapido` y el invitado que va con retraso ignoran el ajuste y van rápido.
   - **HISTORIAL:** botón pequeño en la barra de arriba; abre una caja con todo el combate hasta ahora por turnos («TURNO 3»), que se desliza con el dedo o las flechas; un toque fuera la cierra. El invitado la monta con los eventos que reproduce. (Sustituye al registro difuminado que había sobre el cuadro de texto.)
 - Todo se toca: zonas táctiles de al menos 44 px CSS. En el ordenador también con flechas, Enter/Z (aceptar) y Escape/X (atrás).
-- **Rendimiento** (`docs/ESTILO.md`, T5): lienzo pequeño, sprites horneados una vez en lienzos, nada de SVG, bucle con tope de 60 fps y se repinta solo cuando algo cambia.
+- **Rendimiento** (`docs/ESTILO.md`, T5): todo lo estático (paneles, placas, iconos, fondos por alto, bandeja, plataformas, miniaturas) se hornea una vez en lienzos (`hornear(clave, ancho, alto, fn)` en `arte2/ui2.ts`; `pantallas/fondos.ts`), los sprites van prehorneados, nada de SVG, las lecturas de píxeles pasan por un único lienzo de software (`willReadFrequently`), el bucle tiene tope de 60 fps, se repinta solo cuando algo cambia y, en reposo, cada 250 ms (suficiente para el reposo de los sprites).
 
 ### Flujo
 
@@ -44,7 +46,7 @@ Pantalla (`pantallas/estadisticas.ts`, desde el botón ESTADÍSTICAS del podio, 
 
 Como el Pang (`docs/PANG-ONLINE.md` en su rama): una sola sala por WebSocket en `/sala`, contraseña en la variable `POKEUSERA_CLAVE` del servidor (nunca en el repositorio). El primero que entra es el anfitrión: su navegador lleva el draft y el combate con el motor (`Partida`); los invitados mandan sus elecciones y pintan lo que llega. Al ser por turnos solo viajan elecciones y resultados. El servidor no sabe nada del juego: reparte mensajes.
 
-**Código** (`src/pokeusera/red/`): `conexion.ts` (el WebSocket), `sala.ts` (pantalla de contraseña y sala, en lienzo Game Boy; la contraseña se escribe en un `<input>` real colocado encima del lienzo y se recuerda en `localStorage` `pokeusera.clave`), `online.ts` (el hilo: contraseña → sala → partida → sala…), `anfitrion.ts`, `invitado.ts` y `mensajes.ts` (los tipos de los mensajes).
+**Código** (`src/pokeusera/red/`): `conexion.ts` (el WebSocket), `sala.ts` (pantalla de contraseña y sala, en el mismo lienzo; la contraseña se escribe en un `<input>` real colocado encima del lienzo y se recuerda en `localStorage` `pokeusera.clave`), `online.ts` (el hilo: contraseña → sala → partida → sala…), `anfitrion.ts`, `invitado.ts` y `mensajes.ts` (los tipos de los mensajes).
 
 **La sala.** Lista de quién está (icono, nombre, «ANFITRIÓN», «TÚ»), cada uno elige entrenador (los ya cogidos salen apagados; `elegir`) y el anfitrión ve «RELLENAR CON MÁQUINA: SÍ/NO» (por defecto SÍ) y EMPEZAR. Juegan solo los que han elegido entrenador (los demás miran). El anfitrión necesita entrenador propio; con SÍ se rellena hasta cuatro asientos con la máquina (con los entrenadores libres, por orden) y con NO se juega con los que hay (mínimo 2). Orden de asientos: id de la sala, y la máquina detrás.
 
@@ -100,7 +102,7 @@ Railway, desde esta rama: `npm run build` y `npm start` (`scripts/servir-pokeuse
 ### Lo básico
 
 - **De 2 a 4 jugadores, todos contra todos**, en la misma sala con contraseña que el Pang. Los sitios vacíos los ocupa la máquina (un rival fácil), así que dos amigos también pueden jugar una batalla a cuatro. También se puede jugar solo contra tres de la máquina.
-- **Cada jugador es uno de los cuatro amigos como entrenador** (Fran, Pablo, Chuchi o Guille, en sprite de Game Boy), y cada uno con su color.
+- **Cada jugador es uno de los cuatro amigos como entrenador** (Fran, Pablo, Chuchi o Guille, en sprite de Game Boy Advance), y cada uno con su color.
 - **Equipo de 3 useritos**, todos a nivel 50. Sin experiencia ni objetos que llevar: llegar, elegir y pegarse.
 - Una batalla dura unos **10-15 minutos** (de 16 a 24 turnos de media).
 
