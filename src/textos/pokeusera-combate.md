@@ -73,6 +73,7 @@ combate.tope_sube = ¡{quien} no puede subir más!
 combate.tope_baja = ¡{quien} no puede bajar más!
 combate.cierre = Vero empieza a recoger. ¡Hora de cerrar!
 combate.cierre_sigue = Vero sigue apilando sillas.
+combate.cierre_mas = ¡Vero apila sillas a toda prisa!
 combate.grada_cana = ¡{jugador} invita a {quien} a una caña desde la grada!
 combate.grada_abucheo = ¡{jugador} abuchea a {quien} desde la grada!
 combate.eliminado = ¡{jugador} se queda sin useritos! Puesto {puesto}.

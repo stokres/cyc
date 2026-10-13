@@ -6,18 +6,25 @@ import { boton } from './ui';
 import { CLARO, FONDO, NEGRO, OSCURO, PAPEL } from '../arte/paleta';
 import { entrenador, icono, spriteFrente } from '../arte/sprites';
 import { entrada } from '../entrada';
-import { pantalla, type Escena } from '../pantalla';
+import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
+import { mvp, pantallaEstadisticas } from './estadisticas';
 import { centrado, colorEnt, dibujaEscalado, ordinal, parpadea, rect, t } from './ui';
 
 export type SalidaPodio = 'otra' | 'menu';
 
-/** `sinBotones`: no buttons at all (smoke tests). `soloMenu`: only MENÚ (online guests: the host decides on another game). */
+/** `sinBotones`: no OTRA / MENÚ (smoke tests; ESTADÍSTICAS stays). `soloMenu`: only MENÚ and ESTADÍSTICAS (online guests: the host decides on another game). */
 export function pantallaPodio(estado: EstadoCombate, miSeat: number | null, sinBotones = false, soloMenu = false): Promise<SalidaPodio> {
   return new Promise((res) => {
     const p = pantalla();
-    let sel = 0;
+    // Buttons: 0 ESTADÍSTICAS, then OTRA (1) and MENÚ (2); a guest has no OTRA.
+    let sel = soloMenu ? 2 : 1;
     let hecho = false;
+    const estadisticas = async () => {
+      if (hecho) return;
+      sonido.efecto('aceptar');
+      await pantallaEstadisticas(estado, miSeat);
+    };
     const fin = (v: SalidaPodio) => {
       if (hecho) return;
       hecho = true;
@@ -34,11 +41,12 @@ export function pantallaPodio(estado: EstadoCombate, miSeat: number | null, sinB
       paso: () => true,
       dibujar(ctx, ahora) {
         const H = p.alto;
-        rect(ctx, FONDO, 0, 0, 160, H);
+        rect(ctx, FONDO, 0, 0, ANCHO, H);
         centrado(ctx, t('podio.gana', { nombre: ganador.nombre }), 8, NEGRO, { sombra: CLARO });
         const n = orden.length;
-        const cw = Math.floor(160 / n);
-        const yB = 24 + 40 + 58 + Math.floor(Math.max(0, H - 256) * 0.25);
+        const cw = Math.floor(ANCHO / n);
+        const extra = Math.max(0, H - 256);
+        const yB = 24 + 40 + 58 + Math.floor(extra * 0.2);
         orden.forEach(({ q, j }, i) => {
           const cx = i * cw + Math.floor(cw / 2);
           const alto = alturas[q.puesto] ?? 20;
@@ -56,46 +64,73 @@ export function pantallaPodio(estado: EstadoCombate, miSeat: number | null, sinB
           if (q.puesto === 1 && parpadea(ahora, 400)) dibujarTexto(ctx, '★', cx + 8, yTop - 49, '#e6a800');
           if (j === miSeat) rect(ctx, NEGRO, cx - 3, yTop - 44, 6, 2);
         });
+        // Bottom up: the buttons, the battle in a line, and the teams in the room that is left.
+        const yb = H - 26;
+        const ys = yb - 23;
+        const yl = ys - 15;
         // The teams, best first.
-        const paso = 20 + Math.floor(Math.max(0, H - 256) / 14);
-        let y = yB + 8 + Math.floor((paso - 20) / 2);
+        const sitio = yl - (yB + 6);
+        const paso = Math.max(15, Math.min(26, Math.floor(sitio / porPuesto.length)));
+        let y = yB + 6 + Math.floor((sitio - paso * porPuesto.length) / 2);
         for (const { q } of porPuesto) {
           const col = colorEnt(q.entrenador);
-          rect(ctx, col, 4, y, 2, 18);
-          ordinal(ctx, q.puesto || 1, 12, y + 5, NEGRO);
-          ctx.drawImage(icono(q.entrenador), 34, y + 5);
+          const lado = Math.min(16, paso - 1);
+          rect(ctx, col, 4, y, 2, paso - 1);
+          ordinal(ctx, q.puesto || 1, 12, y + Math.floor((paso - 9) / 2), NEGRO);
+          ctx.drawImage(icono(q.entrenador), 34, y + Math.floor((paso - 9) / 2));
           q.equipo.forEach((u, k) => {
             const caido = u.ps <= 0;
             ctx.save();
             if (caido) ctx.globalAlpha = 0.45;
-            dibujaEscalado(ctx, spriteFrente(u.especie), 52 + k * 22, y + 1, 16, 16);
+            dibujaEscalado(ctx, spriteFrente(u.especie), 52 + k * 22, y + Math.floor((paso - 1 - lado) / 2), lado, lado);
             ctx.restore();
           });
-          dibujarMini(ctx, q.nombre.toUpperCase(), 118, y + 7, OSCURO);
+          dibujarMini(ctx, q.nombre.toUpperCase(), ANCHO - 42, y + Math.floor((paso - 6) / 2), OSCURO);
           y += paso;
         }
+        // The battle in a line: how long it lasted and who hit hardest.
+        centrado(ctx, t('podio.turnos', { n: Math.max(1, estado.turno - 1) }), yl - 1, NEGRO);
+        const m = mvp(estado);
+        const linea = m ? t('podio.mvp', { nombre: estado.jugadores[m.j].nombre, n: m.dano }) : t('podio.sin_mvp');
+        dibujarMini(ctx, linea.toUpperCase(), Math.floor((ANCHO - anchoMini(linea)) / 2), yl + 9, OSCURO);
+        // Buttons.
+        const bw = 118;
+        const bx = Math.floor((ANCHO - bw) / 2);
+        boton(ctx, bx, ys, bw, 20, t('podio.stats'), sel === 0);
+        entrada.zona(bx, ys, bw, 20, () => void estadisticas());
         if (!sinBotones) {
-          const yb = H - 30;
           if (soloMenu) {
-            boton(ctx, 47, yb, 66, 22, t('podio.menu'), true);
-            entrada.zona(47, yb, 66, 22, () => fin('menu'));
+            boton(ctx, Math.floor((ANCHO - 66) / 2), yb, 66, 22, t('podio.menu'), sel === 2);
+            entrada.zona(Math.floor((ANCHO - 66) / 2), yb, 66, 22, () => fin('menu'));
           } else {
-            boton(ctx, 10, yb, 66, 22, t('podio.otra'), sel === 0);
-            boton(ctx, 84, yb, 66, 22, t('podio.menu'), sel === 1);
-            entrada.zona(10, yb, 66, 22, () => fin('otra'));
-            entrada.zona(84, yb, 66, 22, () => fin('menu'));
+            const w2 = 66;
+            const gap = 8;
+            const x1 = Math.floor((ANCHO - 2 * w2 - gap) / 2);
+            boton(ctx, x1, yb, w2, 22, t('podio.otra'), sel === 1);
+            boton(ctx, x1 + w2 + gap, yb, w2, 22, t('podio.menu'), sel === 2);
+            entrada.zona(x1, yb, w2, 22, () => fin('otra'));
+            entrada.zona(x1 + w2 + gap, yb, w2, 22, () => fin('menu'));
           }
         }
       },
       accion(a) {
-        if (sinBotones) return false;
-        if (soloMenu) {
-          if (a === 'aceptar' || a === 'atras') fin('menu');
-        } else if (a === 'izq' || a === 'der' || a === 'arriba' || a === 'abajo') {
-          sel = 1 - sel;
-          sonido.efecto('cursor');
-        } else if (a === 'aceptar') fin(sel === 0 ? 'otra' : 'menu');
-        else if (a === 'atras') fin('menu');
+        if (sinBotones) {
+          if (a === 'aceptar') void estadisticas();
+          return a === 'aceptar';
+        }
+        if (a === 'arriba') sel = 0;
+        else if (a === 'abajo') sel = soloMenu ? 2 : sel === 0 ? 1 : sel;
+        else if (a === 'izq' || a === 'der') {
+          if (!soloMenu && sel > 0) sel = sel === 1 ? 2 : 1;
+        } else if (a === 'aceptar') {
+          if (sel === 0) void estadisticas();
+          else fin(sel === 1 ? 'otra' : 'menu');
+          return true;
+        } else if (a === 'atras') {
+          fin('menu');
+          return true;
+        } else return false;
+        sonido.efecto('cursor');
         return true;
       },
     };

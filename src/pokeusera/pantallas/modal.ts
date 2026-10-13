@@ -4,7 +4,7 @@ import { anchoTexto, dibujarTexto } from '../arte/fuente';
 import { marco } from '../arte/marcos';
 import { NEGRO } from '../arte/paleta';
 import { entrada } from '../entrada';
-import { pantalla, type Escena } from '../pantalla';
+import { ANCHO, pantalla, type Escena } from '../pantalla';
 
 export function sobre<T>(base: Escena | null, crear: (cerrar: (v: T) => void) => Escena): Promise<T> {
   return new Promise((res) => {
@@ -19,7 +19,7 @@ export function sobre<T>(base: Escena | null, crear: (cerrar: (v: T) => void) =>
       dibujar(ctx, ahora) {
         base?.dibujar(ctx, ahora);
         // Anything under the modal must not react to taps.
-        entrada.zona(0, 0, 160, p.alto, () => undefined);
+        entrada.zona(0, 0, ANCHO, p.alto, () => undefined);
         modal.dibujar(ctx, ahora);
       },
       paso(dt, ahora) {
@@ -30,6 +30,9 @@ export function sobre<T>(base: Escena | null, crear: (cerrar: (v: T) => void) =>
       accion(a) {
         modal.accion?.(a);
         return true;
+      },
+      arrastre(dx, dy, total, fin) {
+        modal.arrastre?.(dx, dy, total, fin);
       },
     });
   });
@@ -42,10 +45,10 @@ export function mensaje(base: Escena | null, lineas: string[]): Promise<void> {
       const h = 14 + lineas.length * 12 + 10;
       const y = Math.round((pantalla().alto - h) / 2);
       ctx.fillStyle = 'rgba(34,26,20,0.55)';
-      ctx.fillRect(0, 0, 160, pantalla().alto);
-      marco(ctx, 8, y, 144, h);
-      lineas.forEach((l, i) => dibujarTexto(ctx, l, 80 - Math.floor(anchoTexto(l) / 2), y + 12 + i * 12, NEGRO));
-      entrada.zona(0, 0, 160, pantalla().alto, () => cerrar());
+      ctx.fillRect(0, 0, ANCHO, pantalla().alto);
+      marco(ctx, 8, y, ANCHO - 16, h);
+      lineas.forEach((l, i) => dibujarTexto(ctx, l, Math.floor((ANCHO - anchoTexto(l)) / 2), y + 12 + i * 12, NEGRO));
+      entrada.zona(0, 0, ANCHO, pantalla().alto, () => cerrar());
     },
     accion() {
       cerrar();

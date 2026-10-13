@@ -16,6 +16,8 @@ export interface Escena {
   paso?(dt: number, t: number): boolean | void;
   /** Keyboard / back. Return true if handled. */
   accion?(a: Accion): boolean | void;
+  /** A finger (or the mouse) dragging over the canvas: movement since the last call (logical px) and the total since the touch began. `fin` on release. */
+  arrastre?(dx: number, dy: number, total: { x: number; y: number }, fin: boolean): void;
 }
 
 let instancia: Pantalla | null = null;

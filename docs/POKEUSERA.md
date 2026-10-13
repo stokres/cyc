@@ -20,13 +20,25 @@ Juego aparte de batallas de useritos a cuatro, al estilo de los primeros juegos 
 
 - **Vertical, en el móvil.** Lógica de 160 px de ancho (el de la Game Boy); el alto sale de la proporción de la pantalla, entre 256 y 346 px. Se amplía sin suavizar (`image-rendering: pixelated`) para ocupar el ancho.
 - **Aspecto Game Boy Color:** letra de píxeles 8×8 propia (con tildes, ñ, ¡ y ¿), marcos de texto como los del original, cursor ▶, barras de PS verde/amarilla/roja. Cada userito tiene su paleta de 4 colores (como en la Game Boy Color); de frente a 32×32 y de espaldas (el propio) con píxeles dobles, como el original.
-- **Combate a cuatro en vertical:** los tres rivales en filas arriba (ficha a la izquierda: nombre, N50, barra de PS y color del entrenador; sprite de frente a la derecha) y el tuyo abajo (sprite de espaldas a la izquierda, ficha con PS en números a la derecha). Debajo, el cuadro de texto y los menús.
+- **Combate a cuatro en vertical:** los tres rivales en filas arriba (ficha a la izquierda: nombre, N50, barra de PS y color del entrenador; sprite de frente a la derecha) y el tuyo abajo (sprite de espaldas a la izquierda, ficha con PS en números a la derecha). Debajo, el cuadro de texto y los menús (el mismo hueco para los dos). En móviles altos, la altura que sobra se reparte entre las filas.
+- **Seguir lo que pasa** (pedido por Jesús tras la beta: «demasiado rápidas y caóticas»), todo en `pantallas/combate.ts`:
+  - **Foco en cada acción:** desde el `usa` hasta el siguiente `usa` (o el fin del turno) se atenúan las filas que no intervienen, la del que actúa lleva marco de su color, las de los objetivos marco parpadeante, una línea con flecha baja por el borde derecho del que ataca a cada objetivo y en la fila del objetivo sale «cara A ▶ cara B». En «todos», se iluminan los tres. Los efectos del final del turno (quemaduras, Hora de cerrar) solo marcan a quien los sufre.
+  - **Números flotantes** sobre el sprite: `-34` en rojo, `+20` en verde, y etiquetas de ~1 s (`MUY EFICAZ!`, `POCO EFICAZ`, `CRITICO!`, `NO AFECTA`, `ESCONDIDO`, `FALLA`, `ESQUIVA`).
+  - **ORDEN DEL TURNO:** al empezar la reproducción de cada turno, una tira con quién actúa y en qué orden (cara del jugador, sprite y nombre del userito) durante ~1,5 s; después queda como fichas pequeñas en la barra de arriba, con la del que actúa enmarcada y las hechas pálidas. Sale del orden de los `usa` (y de los cambios y cañas) del turno.
+  - **Ritmo** (ajuste «VELOCIDAD DEL COMBATE: LENTA / NORMAL / RÁPIDA», en AJUSTES y en la pausa ≡; se guarda en `localStorage` `pokeusera.v1`, por defecto NORMAL): NORMAL escribe a 30 letras por segundo y pasa sola a los 1,6 s; LENTA a 24 y solo con un toque (como el original); RÁPIDA es el ritmo de la primera versión (42 letras por segundo, 0,65 s). Cambian también las pausas entre acciones, la duración de las animaciones, el drenaje de las barras (0,8 s en NORMAL) y lo que duran los números flotantes. Un toque en cualquier parte del campo termina la línea o pasa a la siguiente. Las líneas de texto seguidas de un mismo golpe («¡Golpe crítico!» + «¡Muy eficaz!») comparten cuadro si caben en tres líneas. `?auto` / `?rapido` y el invitado que va con retraso ignoran el ajuste y van rápido.
+  - **HISTORIAL:** botón pequeño en la barra de arriba; abre una caja con todo el combate hasta ahora por turnos («TURNO 3»), que se desliza con el dedo o las flechas; un toque fuera la cierra. El invitado la monta con los eventos que reproduce. (Sustituye al registro difuminado que había sobre el cuadro de texto.)
 - Todo se toca: zonas táctiles de al menos 44 px CSS. En el ordenador también con flechas, Enter/Z (aceptar) y Escape/X (atrás).
 - **Rendimiento** (`docs/ESTILO.md`, T5): lienzo pequeño, sprites horneados una vez en lienzos, nada de SVG, bucle con tope de 60 fps y se repinta solo cuando algo cambia.
 
 ### Flujo
 
-Título («Toca para empezar») → menú: **Jugar solo** (tú y tres de la máquina) / **Jugar online** (sala con contraseña) / Ajustes (música, efectos) → elegir entrenador (Fran, Pablo, Chuchi, Guille) → **draft en serpiente** → **combate** → **podio** (1.º a 4.º) → volver a jugar.
+Título («Toca para empezar») → menú: **Jugar solo** (tú y tres de la máquina) / **Jugar online** (sala con contraseña) / Ajustes (música, efectos, velocidad del combate) → elegir entrenador (Fran, Pablo, Chuchi, Guille) → **draft en serpiente** → **combate** → **podio** (1.º a 4.º, con la duración de la batalla y el MVP) → **estadísticas** (opcional) → volver a jugar.
+
+### Estadísticas del final
+
+El motor las lleva en `estado.stats` (tipo `Estadisticas` en `tipos.ts`) mientras resuelve los turnos, así que viajan con el estado y los invitados las ven iguales (llegan en el mensaje `fin`). Por userito (`StatsUserito`, claves cortas): daño hecho `dh` / recibido de otros `dr` / propio y de la barra `dp` (quemaduras, retroceso, Hora de cerrar…), curado `cu`, derribos `ko`, caídas `cae`, golpes dados `gol` / recibidos `rg`, fallos `fal`, esquivas `esq`, críticos dados/recibidos `cri`/`crr`, muy eficaces `sup`/`sur`, poco eficaces `pob`/`por`, estados puestos `est`, cambios de nivel a otros / a sí mismo `nvo`/`nvy`, cambios `cam`, caña `cana`, PP gastados `pp`, mejor golpe (`mx` valor, `mm` movimiento, `mo` jugador golpeado), usos de cada movimiento `mv` (4 + «A la desesperada»), turnos en campo `tf`, daño con Venganza `dv`. Además `dm[a][b]` (daño de a a b), `km[a][b]` (derribos de a a b) y `gr[j]` (cañas y abucheos desde la grada). Invariantes (los comprueba `scripts/pokeusera-motor.mjs`): Σ`dh` = Σ`dr` = Σ`dm`; Σ`ko` = Σ`km`; por userito `psMax − ps = dr + dp − cu`.
+
+Pantalla (`pantallas/estadisticas.ts`, desde el botón ESTADÍSTICAS del podio, también para invitados; ◀ ▶, deslizar o flechas del teclado para cambiar de página, VOLVER para salir): **RESUMEN** (diez medidas con barras de los cuatro), **USERITOS** (los tres de cada jugador: daño, derribos, turnos, movimiento favorito, mejor golpe), **DUELOS** (matriz «quién pegó a quién» con color de calor y derribos, némesis y víctima favorita) y **PREMIOS** (hasta ocho: MVP, Saco de boxeo, Matagigantes, Rey de la caña, Gafe, Francotirador, El veleta, Superviviente, Rencoroso; los textos, en `pokeusera.md`).
 
 ### Online
 
@@ -41,25 +53,27 @@ Como el Pang (`docs/PANG-ONLINE.md` en su rama): una sola sala por WebSocket en 
 - Invitado → anfitrión (`a: 'anfitrion'`):
   - `{ k: 'pick', n, especie }`: `n` es el nº de picks ya hechos (`draft.elegidos.length`), para que una respuesta vieja no cuente para una pregunta nueva.
   - `{ k: 'eleccion', turno, eleccion }`: `turno` es el de `pide`; `eleccion` es una `Eleccion` o `null` (grada: nada).
-  - `{ k: 'reemplazoIdx', turno, idx }`: `turno` es `estado.turno` del mensaje `turno` que lo pidió; `idx` es el índice en `equipo`.
+  - `{ k: 'reemplazoIdx', turno, idx }`: `turno` es `estado.turno` del último estado que recibió; `idx` es el índice en `equipo`.
+  - `{ k: 'listo', g, n }`: «ya he reproducido» el `n`-ésimo mensaje `inicio` / `turno` / `reemplazo` de la partida `g` (el `id` de `asientos`).
 - Anfitrión → todos (`a: 'todos'`), en este orden dentro de cada partida:
-  - `{ k: 'asientos', asientos: [{ entrenador, nombre, bot }], seats: { [idSala]: asiento } }`: quien no sale en `seats` solo mira.
+  - `{ k: 'asientos', id, asientos: [{ entrenador, nombre, bot }], seats: { [idSala]: asiento } }`: quien no sale en `seats` solo mira; `id` identifica la partida (el invitado lo repite en `listo`).
   - `{ k: 'draft', draft, turnoDe, plazoMs }` (cada vez que cambia el draft; `turnoDe` es quien elige ahora, `null` = fin; eso ya es la petición del pick).
   - `{ k: 'inicio', estado }`.
   - `{ k: 'pide', turno, quienes, plazoMs }`: los de `quienes` eligen (también los eliminados cuando se abre la grada).
-  - `{ k: 'turno', turno, eventos, estado, reemplazan, rempMs }`: `reemplazan` son los asientos que ahora deben elegir quién sale (tienen `rempMs`).
-  - `{ k: 'reemplazo', eventos, estado }`, `{ k: 'fin', estado }`.
+  - `{ k: 'turno', turno, eventos, estado }`.
+  - `{ k: 'pideRemp', quienes, plazoMs }`: los asientos de `quienes` deben elegir quién sale (tras la caída); como `pide`, se manda cuando el anfitrión abre la pregunta y su plazo empieza entonces.
+  - `{ k: 'reemplazo', eventos, estado }`, `{ k: 'fin', estado }` (con las estadísticas dentro de `estado.stats`).
   - `{ k: 'salio', seat, nombre }`: un invitado se fue y la máquina juega por él (todos ven una línea de texto).
   - `{ k: 'otra' }`: el anfitrión eligió OTRA en el podio; sigue un `asientos` nuevo y otro draft.
 - Mensajes de la sala (los del servidor): `elegir`, `empezar` (a todos), `volver` (a todos: de vuelta a la sala; lo manda el anfitrión al elegir MENÚ en el podio), `salio` (al anfitrión), `cerrada` (se fue el anfitrión).
 
 **Reglas de la conexión.**
 
-- El anfitrión no espera a las animaciones de nadie: manda y sigue, y solo espera las respuestas (hasta el plazo + 1,2 s de gracia; después la `Partida` decide por el invitado: movimiento al azar, primer vivo, etc.). Una respuesta que llega antes de la pregunta se guarda para ella; las que llegan tarde se tiran.
-- Cada invitado procesa los mensajes en orden con una cola. Si se retrasa y hay más de 2 turnos en cola, los reproduce rápido hasta ponerse al día. Una pregunta que el anfitrión ya cerró (porque pasó el plazo y siguió con el siguiente mensaje) se descarta y no se manda. El plazo que ve el invitado es el del anfitrión menos lo que tardó en llegar y 0,6 s de margen.
+- **Ritmos distintos.** Cada uno reproduce el combate a su ritmo (su ajuste de velocidad). El anfitrión reproduce su propio turno y, al acabar, espera a que todos los invitados digan `listo` (hasta 20 s); solo entonces manda `pide` / `pideRemp`. El plazo de elección (30 s, 15 s para el reemplazo) empieza cuando se manda la pregunta, así que el ritmo del anfitrión no le quita tiempo a nadie. Un invitado que sigue atrasado cuando se abre la pregunta tiene 20 s más de gracia (además de los 1,2 s de siempre) y su cuenta atrás nunca baja de 20 s; después la `Partida` decide por él (movimiento al azar, primer vivo, etc.). Una respuesta que llega antes de la pregunta se guarda para ella; las que llegan tarde se tiran.
+- Cada invitado procesa los mensajes en orden con una cola. Si se retrasa y hay más de 2 turnos en cola, los reproduce rápido hasta ponerse al día (el ajuste de velocidad no cuenta entonces). Una pregunta que el anfitrión ya cerró (porque pasó el plazo y siguió con el siguiente mensaje) se descarta y no se manda. El plazo que ve el invitado es el del anfitrión menos 0,6 s de margen (y menos lo que el mensaje esperó en la cola, con el mínimo de 20 s).
 - El anfitrión valida lo que llega (forma del mensaje, objetivos dentro del rango); el motor corrige el resto.
 - Un invitado que se va (`salio`) pasa a ser máquina el resto de la partida y las preguntas que tenía pendientes las contesta la máquina al momento. Si se va el anfitrión, la sala se cierra para todos: «Se ha cerrado la sala» y al menú; igual si se pierde la conexión.
-- En el podio el invitado solo tiene MENÚ (sale de la sala). El anfitrión elige OTRA (mismo grupo, otro draft; los invitados vuelven al draft solos) o MENÚ (todos a la pantalla de la sala).
+- En el podio el invitado tiene ESTADÍSTICAS y MENÚ (sale de la sala). El anfitrión elige OTRA (mismo grupo, otro draft; los invitados vuelven al draft solos) o MENÚ (todos a la pantalla de la sala).
 - ABANDONAR en la pausa: el invitado sale de la sala; el anfitrión también, y eso la cierra para todos.
 - Para probar a mano: `?rapido` (solo animaciones rápidas; `?auto` es solo para la partida en solitario). Con `POKEUSERA_CLAVE=prueba PORT=8080 node scripts/servir-pokeusera.mjs` (tras `npm run build`) y dos pestañas se juega una sala completa; en la consola, `window.__pokeusera` da acceso a la partida del anfitrión o a la cola del invitado.
 
@@ -69,7 +83,7 @@ Railway, desde esta rama: `npm run build` y `npm start` (`scripts/servir-pokeuse
 
 ## Precisiones del motor
 
-- **Nivel 50.** PS = base + 60; Ataque, Defensa, Velocidad y Especial = base + 5.
+- **Nivel 50.** PS = `round(base × 2) + 80`; Ataque, Defensa, Velocidad y Especial = base + 5. (La beta usaba base + 60: las batallas duraban 9-18 turnos y un userito caía a veces de un solo golpe cuando varios iban a por él. Con el nuevo PS, simulando 200 batallas de cuatro máquinas, la mediana es de 18 turnos, el p10 13 y el p90 35, y un userito aguanta de media 5 golpes de ataque antes de caer: `node scripts/pokeusera-motor.mjs --sim=200`. El reparto de 420 entre estadísticas de cada especie no cambia, solo el PS que sale de él; el daño tampoco.)
 - **Daño** (como el original): `floor(floor(22 × Pot × A / D) / 50) + 2`, por 1,5 si es del mismo tipo, por la eficacia, por un azar de 0,85 a 1 y por 2 si es crítico (probabilidad Vel base / 512). Mínimo 1 si afecta. «A todos»: × 0,75. **Acorralado:** el segundo golpe y los siguientes que recibe un mismo userito en un turno, de otros jugadores, × 0,5.
 - **Niveles de estadística:** multiplicador (2 + n) / 2 si n ≥ 0, 2 / (2 − n) si n < 0. Precisión igual. Quemado: Ataque a la mitad; Paralizado: Velocidad a la cuarta parte.
 - **Orden:** cambios y caña; Esconderse; Susto; el resto de más a menos Velocidad (empates a suertes).
@@ -77,6 +91,7 @@ Railway, desde esta rama: `npm run build` y `npm start` (`scripts/servir-pokeuse
 - **Achispado:** al atacar, 1/3 se pega a sí mismo (potencia 40, físico, sin tipo), 1/3 su ataque «uno» va a otro rival al azar, 1/3 normal.
 - **Sin PP en ningún movimiento:** usa «A la desesperada» (Normal, 50, sin fallo, recibe 1/4 del daño).
 - **Reemplazo:** al final del turno, quien tiene el userito caído elige cuál sale (15 s; si no, el primero vivo). Si ya no le quedan, queda eliminado con el puesto que toque.
+- **Hora de cerrar:** desde el turno 30 (antes, el 25), al final de cada turno todos pierden 1/8 de sus PS máximos, y cada 4 turnos más sube otro 1/8 (1/8 en los turnos 30-33, 2/8 en los 34-37, 3/8 en los 38-41…). Sin esa subida, una Siesta cada tres turnos sostenía una pelea para siempre con tantos PS.
 - **Fin:** cuando queda uno. Si los últimos caen a la vez, gana quien tenía más PS (en %) al empezar el turno.
 - **Tiempos:** 30 s por turno, 20 s por elección en el draft. Al acabar el tiempo: movimiento al azar contra rival al azar (o lo que diga la máquina).
 
@@ -87,7 +102,7 @@ Railway, desde esta rama: `npm run build` y `npm start` (`scripts/servir-pokeuse
 - **De 2 a 4 jugadores, todos contra todos**, en la misma sala con contraseña que el Pang. Los sitios vacíos los ocupa la máquina (un rival fácil), así que dos amigos también pueden jugar una batalla a cuatro. También se puede jugar solo contra tres de la máquina.
 - **Cada jugador es uno de los cuatro amigos como entrenador** (Fran, Pablo, Chuchi o Guille, en sprite de Game Boy), y cada uno con su color.
 - **Equipo de 3 useritos**, todos a nivel 50. Sin experiencia ni objetos que llevar: llegar, elegir y pegarse.
-- Una batalla dura unos **10-15 minutos**.
+- Una batalla dura unos **10-15 minutos** (de 16 a 24 turnos de media).
 
 ### Elegir equipo: el draft en serpiente
 
@@ -109,7 +124,7 @@ Todos ven los 20 useritos a la vez y se eligen por turnos, sin repetir: 1-2-3-4,
 
 - **Acorralado.** Si en un mismo turno a un userito le pegan dos o más rivales, el segundo golpe y los siguientes le hacen la mitad. Se puede ir a por uno entre todos, pero sale menos a cuenta.
 - **Venganza.** Algunos movimientos pegan el doble a quien te hizo daño en el turno anterior. Quien abusa, lo paga.
-- **Hora de cerrar.** A partir del turno 25 sale Vero y pone las sillas encima de las mesas: al final de cada turno todos los useritos pierden 1/8 de sus PS. Así ninguna batalla se eterniza.
+- **Hora de cerrar.** A partir del turno 30 sale Vero y pone las sillas encima de las mesas: al final de cada turno todos los useritos pierden 1/8 de sus PS, y cada cuatro turnos más, otro 1/8. Así ninguna batalla se eterniza.
 
 ### Quién gana
 
@@ -154,7 +169,7 @@ Once tipos. Doble de daño (×2), la mitad (×½) o nada (×0). Si un userito ti
 
 ## 3. Los 20 useritos (validados)
 
-Todos suman lo mismo en estadísticas (420), para que no haya ninguno roto de salida: cada uno destaca en algo y flojea en otra cosa. Las cifras se ajustarán al probar.
+Todos suman lo mismo en estadísticas (420), para que no haya ninguno roto de salida: cada uno destaca en algo y flojea en otra cosa. Las cifras se ajustarán al probar. La columna PS es la base: en combate el PS es `round(base × 2) + 80` (ver «Precisiones del motor»).
 
 | # | Userito | Tipo | PS | Ata | Def | Vel | Esp | Movimientos |
 |---|---|---|---|---|---|---|---|---|

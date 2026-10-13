@@ -8,7 +8,7 @@ import { marco } from '../arte/marcos';
 import { CLARO, FONDO, NEGRO, OSCURO, PAPEL } from '../arte/paleta';
 import { icono } from '../arte/sprites';
 import { entrada, type Accion } from '../entrada';
-import { pantalla, type Escena } from '../pantalla';
+import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
 import { mensaje } from '../pantallas/modal';
 import { fondoCampo } from '../pantallas/titulo';
@@ -58,7 +58,7 @@ class Campo {
   /** Puts the field over the logical rectangle (x, y, w, h) of the canvas. */
   colocar(x: number, y: number, w: number, h: number) {
     const r = pantalla().canvas.getBoundingClientRect();
-    const s = r.width / 160;
+    const s = r.width / ANCHO;
     const clave = [r.left, r.top, r.width, x, y, w, h].join(',');
     if (clave === this.ultimo) return;
     this.ultimo = clave;
@@ -263,11 +263,11 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
       dibujar(ctx, ahora) {
         const H = p.alto;
         const extra = Math.max(0, H - 256);
-        rect(ctx, FONDO, 0, 0, 160, H);
+        rect(ctx, FONDO, 0, 0, ANCHO, H);
         ctl = [];
         // Header.
-        rect(ctx, PAPEL, 0, 0, 160, 16);
-        rect(ctx, NEGRO, 0, 16, 160, 1);
+        rect(ctx, PAPEL, 0, 0, ANCHO, 16);
+        rect(ctx, NEGRO, 0, 16, ANCHO, 1);
         dibujarTexto(ctx, t('sala.titulo'), 6, 4, NEGRO);
         const cuenta = `${con.jugadores.length}/4`;
         dibujarTexto(ctx, cuenta, 154 - cuenta.length * 8, 4, NEGRO);

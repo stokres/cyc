@@ -4,13 +4,11 @@
 import { dibujarTexto, envolver } from '../arte/fuente';
 import { flechaSigue, marco } from '../arte/marcos';
 import { NEGRO } from '../arte/paleta';
-import { cfg, parpadea } from './ui';
-
-const CPS = 42;
+import { cfg, parpadea, ritmo } from './ui';
 
 interface Pendiente {
   s: string;
-  espera: number;
+  espera: number | undefined;
   res: () => void;
 }
 
@@ -25,8 +23,9 @@ export class CajaTexto {
   /** Characters per line available in the box. */
   constructor(private anchoLinea = 17) {}
 
-  /** Shows `s` typing out; resolves when it has been read (tap, or `esperaMs` after it is written; 0 = right after typing, −1 = only on tap). */
-  decir(s: string, esperaMs = 650): Promise<void> {
+  /** Shows `s` typing out; resolves when it has been read (tap, or `esperaMs` after it is written; 0 = right after typing, −1 = only on tap;
+   *  by default what the speed setting says). */
+  decir(s: string, esperaMs?: number): Promise<void> {
     return new Promise((res) => {
       this.cola.push({ s, espera: esperaMs, res });
       if (this.fase === 'vacia') this.siguiente();
@@ -64,9 +63,18 @@ export class CajaTexto {
     }
     this.poner(p.s);
     this.res = p.res;
-    this.espera = p.espera;
+    this.espera = p.espera ?? ritmo().espera;
     this.fase = 'escribe';
-    if (cfg.rapido) this.escrito = this.total;
+    if (cfg.rapido) {
+      this.escrito = this.total;
+      // Fast mode never waits for a tap.
+      if (this.espera < 0) this.espera = 650;
+    }
+  }
+
+  /** Whether `s` fits in `maxLineas` lines of the box. */
+  cabe(s: string, maxLineas: number): boolean {
+    return envolver(s, this.anchoLinea * 8).length <= maxLineas;
   }
 
   /** True while the box is showing something that waits for a tap or a pause. */
@@ -94,7 +102,7 @@ export class CajaTexto {
   /** Advances the typing; returns true while it moves. */
   paso(dt: number): boolean {
     if (this.fase === 'escribe') {
-      this.escrito = Math.min(this.total, this.escrito + (dt * CPS) / 1000);
+      this.escrito = Math.min(this.total, this.escrito + (dt * ritmo().cps) / 1000);
       if (this.escrito >= this.total) {
         this.fase = 'espera';
         if (this.espera === 0) this.terminar();

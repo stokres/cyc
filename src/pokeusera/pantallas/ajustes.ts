@@ -2,24 +2,26 @@
 // the settings screen, and the pause box of the battle (volumes + abandon).
 import type { EntrenadorId } from '../tipos';
 import { ENTRENADORES } from '../tipos';
-import { dibujarTexto } from '../arte/fuente';
+import { anchoTexto, dibujarMini, dibujarTexto } from '../arte/fuente';
 import { marco } from '../arte/marcos';
-import { CLARO, FONDO, NEGRO, OSCURO } from '../arte/paleta';
+import { CLARO, FONDO, NEGRO, OSCURO, PAPEL } from '../arte/paleta';
 import { entrada, type Accion } from '../entrada';
-import { pantalla, type Escena } from '../pantalla';
+import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
 import { sobre } from './modal';
-import { boton, centrado, flecha, mover, rect, t } from './ui';
+import { VELOCIDADES, boton, centrado, cfg, flecha, mover, rect, t, type Velocidad } from './ui';
 
 const CLAVE = 'pokeusera.v1';
 
 export interface Guardado {
   musica: number;
   efectos: number;
+  /** Battle pacing (VELOCIDAD DEL COMBATE). */
+  velocidad: Velocidad;
   entrenador?: EntrenadorId;
 }
 
-const POR_DEFECTO: Guardado = { musica: 7, efectos: 10 };
+const POR_DEFECTO: Guardado = { musica: 7, efectos: 10, velocidad: 'normal' };
 
 export function cargarAjustes(): Guardado {
   try {
@@ -30,6 +32,7 @@ export function cargarAjustes(): Guardado {
       return {
         musica: n(o.musica, POR_DEFECTO.musica),
         efectos: n(o.efectos, POR_DEFECTO.efectos),
+        velocidad: VELOCIDADES.includes(o.velocidad as Velocidad) ? (o.velocidad as Velocidad) : POR_DEFECTO.velocidad,
         entrenador: ENTRENADORES.includes(o.entrenador as EntrenadorId) ? (o.entrenador as EntrenadorId) : undefined,
       };
     }
@@ -48,11 +51,44 @@ export function guardarAjustes(parcial: Partial<Guardado>) {
   }
 }
 
-/** Applies the saved volumes to the sound (call once at start). */
+/** Applies the saved volumes and battle speed (call once at start). */
 export function aplicarAjustes() {
   const g = cargarAjustes();
   sonido.setVolumen('musica', g.musica / 10);
   sonido.setVolumen('efectos', g.efectos / 10);
+  cfg.velocidad = g.velocidad;
+}
+
+function cambiarVelocidad(v: Velocidad) {
+  if (v === cfg.velocidad) return;
+  cfg.velocidad = v;
+  guardarAjustes({ velocidad: v });
+  sonido.efecto('cursor');
+}
+
+/** The battle speed row: the label (tiny font) and «◀ NORMAL ▶» (LENTA / NORMAL / RÁPIDA). Height 24. */
+export function filaVelocidad(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, sel: boolean) {
+  dibujarMini(ctx, t('ajustes.velocidad'), x + 7, y + 1, NEGRO);
+  if (sel) flecha(ctx, x, y - 1, 1);
+  const i = VELOCIDADES.indexOf(cfg.velocidad);
+  const valor = t(`velocidad.${cfg.velocidad}`);
+  const yy = y + 11;
+  const cx = x + Math.floor(w / 2);
+  rect(ctx, NEGRO, cx - 33, yy - 1, 66, 12);
+  rect(ctx, PAPEL, cx - 32, yy, 64, 10);
+  dibujarTexto(ctx, valor, cx - Math.floor(anchoTexto(valor) / 2), yy + 1, NEGRO);
+  flecha(ctx, cx - 47, yy + 2, -1, i > 0 ? NEGRO : CLARO);
+  flecha(ctx, cx + 43, yy + 2, 1, i < VELOCIDADES.length - 1 ? NEGRO : CLARO);
+  entrada.zona(cx - 56, yy - 4, 22, 18, () => cambiarVelocidad(VELOCIDADES[Math.max(0, i - 1)]));
+  entrada.zona(cx + 34, yy - 4, 22, 18, () => cambiarVelocidad(VELOCIDADES[Math.min(VELOCIDADES.length - 1, i + 1)]));
+  // Tapping the value goes round.
+  entrada.zona(cx - 33, yy - 4, 66, 18, () => cambiarVelocidad(VELOCIDADES[(i + 1) % VELOCIDADES.length]));
+}
+
+export function ajustarVelocidad(a: Accion) {
+  const i = VELOCIDADES.indexOf(cfg.velocidad);
+  if (a === 'izq') cambiarVelocidad(VELOCIDADES[Math.max(0, i - 1)]);
+  else if (a === 'der') cambiarVelocidad(VELOCIDADES[Math.min(VELOCIDADES.length - 1, i + 1)]);
 }
 
 type Canal = 'musica' | 'efectos';
@@ -98,26 +134,28 @@ export function pantallaAjustes(): Promise<void> {
     };
     const e: Escena = {
       dibujar(ctx) {
-        rect(ctx, FONDO, 0, 0, 160, p.alto);
+        rect(ctx, FONDO, 0, 0, ANCHO, p.alto);
         centrado(ctx, t('ajustes.titulo'), 20, NEGRO, { escala: 2, sombra: CLARO });
         const y0 = 64;
-        marco(ctx, 5, y0 - 12, 150, 78);
+        marco(ctx, 5, y0 - 12, ANCHO - 10, 104);
         filaVolumen(ctx, 8, y0, 'musica', sel === 0);
-        filaVolumen(ctx, 8, y0 + 26, 'efectos', sel === 1);
+        filaVolumen(ctx, 8, y0 + 24, 'efectos', sel === 1);
+        filaVelocidad(ctx, 10, y0 + 52, ANCHO - 20, sel === 2);
         entrada.zona(8, y0 - 2, 70, 18, () => (sel = 0));
-        entrada.zona(8, y0 + 24, 70, 18, () => (sel = 1));
+        entrada.zona(8, y0 + 22, 70, 18, () => (sel = 1));
         const yb = p.alto - 40;
-        boton(ctx, 40, yb, 80, 22, t('ajustes.volver'), sel === 2);
-        entrada.zona(40, yb, 80, 22, salir);
+        boton(ctx, Math.floor((ANCHO - 80) / 2), yb, 80, 22, t('ajustes.volver'), sel === 3);
+        entrada.zona(Math.floor((ANCHO - 80) / 2), yb, 80, 22, salir);
       },
       accion(a) {
         if (a === 'atras') salir();
         else if (a === 'arriba' || a === 'abajo') {
-          sel = mover(sel, 3, a);
+          sel = mover(sel, 4, a);
           sonido.efecto('cursor');
         } else if (a === 'izq' || a === 'der') {
           if (sel < 2) ajustarCanal(sel === 0 ? 'musica' : 'efectos', a);
-        } else if (a === 'aceptar' && sel === 2) salir();
+          else if (sel === 2) ajustarVelocidad(a);
+        } else if (a === 'aceptar' && sel === 3) salir();
         return true;
       },
     };
@@ -125,10 +163,10 @@ export function pantallaAjustes(): Promise<void> {
   });
 }
 
-/** The pause box of the battle: volumes, ABANDONAR (with a «sure?» step), VOLVER. */
+/** The pause box of the battle: volumes, battle speed, ABANDONAR (with a «sure?» step), VOLVER. */
 export function menuPausa(base: Escena | null): Promise<'seguir' | 'abandonar'> {
   return sobre<'seguir' | 'abandonar'>(base, (cerrar) => {
-    let sel = 3;
+    let sel = 4;
     let seguro = false;
     let selSeguro = 1;
     const seguir = () => {
@@ -138,25 +176,27 @@ export function menuPausa(base: Escena | null): Promise<'seguir' | 'abandonar'> 
     return {
       dibujar(ctx) {
         const x = 4;
-        const w = 152;
+        const w = ANCHO - 8;
         if (!seguro) {
-          const y = 72;
-          marco(ctx, x, y, w, 120);
+          const h = 148;
+          const y = Math.max(20, Math.round((pantalla().alto - h) / 2));
+          marco(ctx, x, y, w, h);
           dibujarTexto(ctx, t('pausa.titulo'), x + 12, y + 8, OSCURO);
           filaVolumen(ctx, x + 2, y + 24, 'musica', sel === 0);
-          filaVolumen(ctx, x + 2, y + 46, 'efectos', sel === 1);
+          filaVolumen(ctx, x + 2, y + 44, 'efectos', sel === 1);
+          filaVelocidad(ctx, x + 4, y + 68, w - 8, sel === 2);
           entrada.zona(x + 2, y + 22, 70, 18, () => (sel = 0));
-          entrada.zona(x + 2, y + 44, 70, 18, () => (sel = 1));
-          boton(ctx, x + 8, y + 70, w - 16, 20, t('pausa.abandonar'), sel === 2);
-          entrada.zona(x + 8, y + 70, w - 16, 20, () => {
-            sel = 2;
+          entrada.zona(x + 2, y + 42, 70, 18, () => (sel = 1));
+          boton(ctx, x + 8, y + 98, w - 16, 20, t('pausa.abandonar'), sel === 3);
+          entrada.zona(x + 8, y + 98, w - 16, 20, () => {
+            sel = 3;
             seguro = true;
             selSeguro = 1;
           });
-          boton(ctx, x + 8, y + 94, w - 16, 20, t('pausa.seguir'), sel === 3);
-          entrada.zona(x + 8, y + 94, w - 16, 20, seguir);
+          boton(ctx, x + 8, y + 122, w - 16, 20, t('pausa.seguir'), sel === 4);
+          entrada.zona(x + 8, y + 122, w - 16, 20, seguir);
         } else {
-          const y = 84;
+          const y = Math.round((pantalla().alto - 76) / 2);
           marco(ctx, x, y, w, 76);
           centrado(ctx, t('pausa.seguro'), y + 12, NEGRO);
           const bw = 56;
@@ -178,19 +218,19 @@ export function menuPausa(base: Escena | null): Promise<'seguir' | 'abandonar'> 
         }
         if (a === 'atras') seguir();
         else if (a === 'arriba' || a === 'abajo') {
-          sel = mover(sel, 4, a);
+          sel = mover(sel, 5, a);
           sonido.efecto('cursor');
         } else if (a === 'izq' || a === 'der') {
           if (sel < 2) ajustarCanal(sel === 0 ? 'musica' : 'efectos', a);
+          else if (sel === 2) ajustarVelocidad(a);
         } else if (a === 'aceptar') {
-          if (sel === 2) {
+          if (sel === 3) {
             seguro = true;
             selSeguro = 1;
-          } else if (sel === 3) seguir();
+          } else if (sel === 4) seguir();
         }
         return true;
       },
     };
   });
 }
-

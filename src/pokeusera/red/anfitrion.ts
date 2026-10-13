@@ -1,13 +1,14 @@
 // PokéUsera · online, the host's side. The host's browser runs the whole game (`Partida`): its own
 // seat is 'local' (the same screens as solo play), every guest's seat is 'remoto' (answered from
 // the network) and the empty seats are machines. Every hook of the Partida is also broadcast so
-// the guests can play the same thing on their screens. The host never waits for a guest's
-// animations: only for their answers, and only until the deadline the Partida enforces.
+// the guests can play the same thing on their screens. After each part of the battle the host
+// waits (at most ESPERA_LISTOS) for every guest to say «listo» (it finished playing it) before it
+// opens the next turn, so nobody is asked a question while still watching the last one; a guest
+// that is still late then gets extra time (GRACIA_TARDE) on top of the usual deadline.
 import { ENTRENADORES, type Eleccion, type EntrenadorId } from '../tipos';
 import { crearRnd } from '../motor/azar';
 import { eleccionBot, pickBot, reemplazoBot } from '../motor/bot';
-import { vivos } from '../motor/combate';
-import { Partida, PLAZO_REEMPLAZO, esCancelada, type Asiento, type Ganchos } from '../partida';
+import { Partida, esCancelada, type Asiento, type Ganchos } from '../partida';
 import { pantalla } from '../pantalla';
 import { sonido } from '../sonido';
 import { VistaCombate } from '../pantallas/combate';
@@ -61,6 +62,11 @@ class Buzon {
     }
   }
 }
+
+/** How long the host waits, after finishing its own animation, for the guests to finish theirs. */
+const ESPERA_LISTOS = 20000;
+/** Extra time for the answer of a guest that was not ready when the question opened. */
+const GRACIA_TARDE = 20000;
 
 const esEntero = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v);
 
@@ -153,6 +159,27 @@ async function unaPartida(
   /** The turn the guests were last asked about (the 'turno' message carries it). */
   let turnoPide = 0;
   let abandonada = false;
+  // «Listo» bookkeeping: how many parts of the battle have been sent, and how many each guest says it has played.
+  const idJuego = Math.floor(rnd() * 2 ** 30) + 1;
+  let enviados = 0;
+  const listos = new Map<number, number>();
+  let despertar: (() => void) | null = null;
+  const remotoAtrasado = (seat: number) => asientos[seat].tipo === 'remoto' && (listos.get(seat) ?? 0) < enviados;
+  /** Waits until every guest has played what was sent (or `ESPERA_LISTOS` passes, or they leave). */
+  const esperarListos = async () => {
+    const limite = Date.now() + ESPERA_LISTOS;
+    for (;;) {
+      const resta = limite - Date.now();
+      if (resta <= 0 || !asientos.some((_, s) => remotoAtrasado(s))) return;
+      await new Promise<void>((res) => {
+        const timer = setTimeout(res, resta);
+        despertar = () => {
+          clearTimeout(timer);
+          res();
+        };
+      });
+    }
+  };
 
   const vd = new VistaDraft(asientos, miSeat);
   const vc = new VistaCombate(miSeat);
@@ -175,24 +202,31 @@ async function unaPartida(
       }
       return vd.alDraft(draft, turnoDe, ms);
     },
-    alInicio: (estado) => {
+    graciaExtraMs: (j) => (remotoAtrasado(j) ? GRACIA_TARDE : 0),
+    alInicio: async (estado) => {
       fase = 'combate';
       enviar({ k: 'inicio', estado });
+      enviados++;
       p.poner(vc);
-      return vc.alInicio(estado);
+      await vc.alInicio(estado);
+      await esperarListos();
     },
     alPide: (estado, ms, quienes) => {
       turnoPide = estado.turno;
       enviar({ k: 'pide', turno: estado.turno, quienes, plazoMs: ms });
     },
-    alTurno: (eventos, estado) => {
-      const reemplazan = estado.ganador === null ? estado.reemplazos.filter((j) => vivos(estado.jugadores[j]).length > 0) : [];
-      enviar({ k: 'turno', turno: turnoPide, eventos, estado, reemplazan, rempMs: PLAZO_REEMPLAZO });
-      return vc.alTurno(eventos, estado);
+    alTurno: async (eventos, estado) => {
+      enviar({ k: 'turno', turno: turnoPide, eventos, estado });
+      enviados++;
+      await vc.alTurno(eventos, estado);
+      if (estado.ganador === null) await esperarListos();
     },
-    alReemplazo: (eventos, estado) => {
+    alPideReemplazo: (_estado, ms, quienes) => enviar({ k: 'pideRemp', quienes, plazoMs: ms }),
+    alReemplazo: async (eventos, estado) => {
       enviar({ k: 'reemplazo', eventos, estado });
-      return vc.alReemplazo(eventos, estado);
+      enviados++;
+      await vc.alReemplazo(eventos, estado);
+      await esperarListos();
     },
     alFin: (estado) => {
       enviar({ k: 'fin', estado });
@@ -212,7 +246,12 @@ async function unaPartida(
     if (seat < 0 || asientos[seat].tipo !== 'remoto') return;
     const d = m.datos as MsgInvitado | null;
     if (!d || typeof d !== 'object') return;
-    if (d.k === 'pick') {
+    if (d.k === 'listo') {
+      if (d.g === idJuego && esEntero(d.n) && d.n > (listos.get(seat) ?? 0)) {
+        listos.set(seat, d.n);
+        despertar?.();
+      }
+    } else if (d.k === 'pick') {
       if (typeof d.especie === 'string' && esEntero(d.n)) buzon.entregar(`pick:${seat}:${d.n}`, d.especie);
     } else if (d.k === 'eleccion') {
       const e = esEntero(d.turno) ? eleccionLimpia(d.eleccion, n) : undefined;
@@ -228,6 +267,7 @@ async function unaPartida(
     asientos[seat].tipo = 'bot';
     const nombre = asientos[seat].nombre;
     buzon.soltar(seat);
+    despertar?.();
     enviar({ k: 'salio', seat, nombre });
     const linea = t('online.salio', { nombre });
     if (fase === 'draft') vd.aviso(linea);
@@ -242,7 +282,7 @@ async function unaPartida(
   idDe.forEach((id, seat) => {
     if (id >= 0) seats[String(id)] = seat;
   });
-  enviar({ k: 'asientos', asientos: asientos.map((a) => ({ entrenador: a.entrenador, nombre: a.nombre, bot: a.tipo === 'bot' })), seats });
+  enviar({ k: 'asientos', id: idJuego, asientos: asientos.map((a) => ({ entrenador: a.entrenador, nombre: a.nombre, bot: a.tipo === 'bot' })), seats });
 
   try {
     const jugando = partida.jugar();

@@ -8,7 +8,7 @@ import { insignaTipo, marco } from '../arte/marcos';
 import { CLARO, COLOR_TIPO, FONDO, NEGRO, OSCURO, PAPEL, PS_ROJO } from '../arte/paleta';
 import { icono, spriteFrente } from '../arte/sprites';
 import { entrada, type Accion } from '../entrada';
-import { pantalla, type Escena } from '../pantalla';
+import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
 import { menuPausa } from './ajustes';
 import { Animador, boton, centrado, colorEnt, dibujaEscalado, dormir, menuIcono, parpadea, rect, t, velo } from './ui';
@@ -228,7 +228,7 @@ export class VistaDraft implements Escena {
   dibujar(ctx: CanvasRenderingContext2D, ahora: number) {
     const H = pantalla().alto;
     const L = this.layout(H);
-    rect(ctx, FONDO, 0, 0, 160, H);
+    rect(ctx, FONDO, 0, 0, ANCHO, H);
     if (this.hx < 0) [this.hx, this.hy] = this.celda(this.sel);
     this.barraSuperior(ctx, ahora);
     this.jugadores(ctx, L.yJug, L.hCelda, ahora);
@@ -249,8 +249,8 @@ export class VistaDraft implements Escena {
   }
 
   private barraSuperior(ctx: CanvasRenderingContext2D, ahora: number) {
-    rect(ctx, PAPEL, 0, 0, 160, 16);
-    rect(ctx, NEGRO, 0, 16, 160, 1);
+    rect(ctx, PAPEL, 0, 0, ANCHO, 16);
+    rect(ctx, NEGRO, 0, 16, ANCHO, 1);
     menuIcono(ctx, 4, 4);
     entrada.zona(0, 0, 20, 18, () => void this.pausar());
     if (this.turnoDe === null) {
@@ -371,8 +371,8 @@ export class VistaDraft implements Escena {
     const k = ESPECIES.findIndex((s) => s.id === id);
     const extra = Math.max(0, Math.min(1, (H - 256) / 90));
     const g = Math.round(extra * 8);
-    velo(ctx, 0, 0, 160, H, NEGRO, 0.5);
-    entrada.zona(0, 0, 160, H, () => undefined);
+    velo(ctx, 0, 0, ANCHO, H, NEGRO, 0.5);
+    entrada.zona(0, 0, ANCHO, H, () => undefined);
     marco(ctx, 2, 2, 156, H - 4);
     dibujarTexto(ctx, sp.nombre, 9, 9, NEGRO);
     const num = `#${String(k + 1).padStart(2, '0')}`;

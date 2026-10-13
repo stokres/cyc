@@ -4,14 +4,14 @@ import { CLARO, FONDO, NEGRO, OSCURO, SUELO } from '../arte/paleta';
 import { IDS_USERITOS, logo, spriteFrente } from '../arte/sprites';
 import { anchoMini } from '../arte/fuente';
 import { entrada } from '../entrada';
-import { pantalla, type Escena } from '../pantalla';
+import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
 import { centrado, parpadea, rect, t } from './ui';
 
 export function fondoCampo(ctx: CanvasRenderingContext2D, alto: number, yTierra: number) {
-  rect(ctx, FONDO, 0, 0, 160, alto);
-  rect(ctx, SUELO, 0, yTierra, 160, alto - yTierra);
-  rect(ctx, '#a3b878', 0, yTierra, 160, 2);
+  rect(ctx, FONDO, 0, 0, ANCHO, alto);
+  rect(ctx, SUELO, 0, yTierra, ANCHO, alto - yTierra);
+  rect(ctx, '#a3b878', 0, yTierra, ANCHO, 2);
   // A few tufts of grass, always the same.
   for (let i = 0; i < 14; i++) {
     const x = (i * 37 + 11) % 156;
@@ -59,7 +59,7 @@ export function pantallaTitulo(): Promise<void> {
         if (parpadea(ahora, 600)) centrado(ctx, t('titulo.toca'), Math.round(H * 0.77), NEGRO, { sombra: CLARO });
         const cred = t('titulo.credito');
         dibujarMini(ctx, cred, 80 - Math.floor(anchoMini(cred) / 2), H - 12, OSCURO);
-        entrada.zona(0, 0, 160, H, seguir);
+        entrada.zona(0, 0, ANCHO, H, seguir);
       },
       accion(a) {
         if (a === 'aceptar') seguir();

@@ -30,12 +30,16 @@ export interface Decisor {
 export interface Ganchos extends Decisor {
   /** Decisor for 'remoto' seats (the online host plugs the network here). Without it the machine plays for them. */
   remoto?: Decisor;
+  /** Extra milliseconds the host waits for a 'remoto' seat's answer (a guest that is still playing the last turn when the question opens). */
+  graciaExtraMs?(j: number): number;
   /** The draft state changed (also once at the start): `turnoDe` picks next (null = draft over) and has `plazoMs`. */
   alDraft(draft: EstadoDraft, turnoDe: number | null, plazoMs: number): void | Promise<void>;
   /** The battle begins with these teams. */
   alInicio(estado: EstadoCombate): void | Promise<void>;
-  /** The host is about to ask these players for their choice of `estado.turno` (for the network: «pide»). */
+  /** The host is about to ask these players for their choice of `estado.turno` (for the network: «pide»). Their deadline starts right after this call. */
   alPide?(estado: EstadoCombate, plazoMs: number, quienes: number[]): void;
+  /** The host is about to ask these players which userito comes in after a fall (for the network: «pideRemp»). Their deadline starts right after this call. */
+  alPideReemplazo?(estado: EstadoCombate, plazoMs: number, quienes: number[]): void;
   /** A turn was resolved: the view plays `eventos`, then `estado` is the new truth. The host waits for its own animation. */
   alTurno(eventos: Evento[], estado: EstadoCombate): void | Promise<void>;
   /** Replacements came in after a fall. */
@@ -128,7 +132,7 @@ export class Partida {
   }
 
   private gracia(j: number) {
-    return this.asientos[j].tipo === 'remoto' ? GRACIA_REMOTO : 0;
+    return this.asientos[j].tipo === 'remoto' ? GRACIA_REMOTO + (this.ganchos.graciaExtraMs?.(j) ?? 0) : 0;
   }
 
   /** Runs the whole game and returns the final state. */
@@ -169,6 +173,7 @@ export class Partida {
       const pendientes = estado.reemplazos.filter((j) => vivos(estado.jugadores[j]).length > 0);
       if (pendientes.length) {
         const snap2 = estado;
+        this.ganchos.alPideReemplazo?.(snap2, plazoRemp, pendientes);
         const elegidos: Record<number, number> = {};
         await Promise.all(
           pendientes.map(async (j) => {

@@ -2,7 +2,8 @@
 // screens as in solo play (VistaDraft, VistaCombate, the podium), one after another through a
 // serial queue, and the guest only sends back what its player chose. A guest that falls behind
 // catches up with fast animations, and a question that the host already settled (it ran out of
-// time and moved on) is dropped instead of being sent.
+// time and moved on) is dropped instead of being sent. After playing each part of the battle the
+// guest tells the host «listo»; its own countdown for a choice starts when it is ready to choose.
 import type { EstadoCombate } from '../tipos';
 import { pantalla } from '../pantalla';
 import { sonido } from '../sonido';
@@ -15,6 +16,8 @@ import type { FinOnline, MsgAnfitrion, MsgInvitado } from './mensajes';
 
 /** Time taken off the host's clock so the answer arrives before it. */
 const MARGEN_MS = 600;
+/** A guest is never given less than this to choose a move, however late it plays the turn (the host adds time for a late guest). */
+const MIN_ELECCION_MS = 20000;
 /** Turns waiting in the queue from which the guest plays fast to catch up. */
 const TURNOS_ATRASO = 2;
 
@@ -53,6 +56,13 @@ export function jugarInvitado(con: Conexion): Promise<FinOnline> {
     let fase: 'draft' | 'combate' | 'podio' = 'draft';
     let podioVivo = false;
     let ultimoEstado: EstadoCombate | null = null;
+    /** The game the host announced (echoed in `listo`) and how many parts of its battle this guest has played. */
+    let idJuego = 0;
+    let jugados = 0;
+    const listo = () => {
+      jugados++;
+      if (miSeat !== null) enviar({ k: 'listo', g: idJuego, n: jugados });
+    };
 
     // The queue.
     const cola: Recibido[] = [];
@@ -71,6 +81,8 @@ export function jugarInvitado(con: Conexion): Promise<FinOnline> {
     const procesar = async ({ msg, idx, cuando }: Recibido) => {
       if (msg.k === 'asientos') {
         miSeat = msg.seats[String(con.id)] ?? null;
+        idJuego = msg.id;
+        jugados = 0;
         vd = new VistaDraft(msg.asientos, miSeat);
         vc = new VistaCombate(miSeat);
         vd.alAbandonar = vc.alAbandonar = abandonar;
@@ -107,10 +119,13 @@ export function jugarInvitado(con: Conexion): Promise<FinOnline> {
           p.poner(vc);
           ultimoEstado = msg.estado;
           await vc.alInicio(msg.estado);
+          listo();
           return;
         case 'pide': {
           if (miSeat === null || !msg.quienes.includes(miSeat) || !ultimoEstado || caducada(idx)) return;
-          const resta = Math.max(1500, msg.plazoMs - (Date.now() - cuando) - MARGEN_MS);
+          // The countdown is the host's minus what the message waited in the queue, but never under MIN_ELECCION_MS.
+          const tope = Math.max(1500, msg.plazoMs - MARGEN_MS);
+          const resta = Math.min(tope, Math.max(Math.min(MIN_ELECCION_MS, tope), tope - (Date.now() - cuando)));
           void vc.pedirEleccion(miSeat, ultimoEstado, resta).then((eleccion) => {
             if (!muerto && !caducada(idx)) enviar({ k: 'eleccion', turno: msg.turno, eleccion });
           });
@@ -119,17 +134,21 @@ export function jugarInvitado(con: Conexion): Promise<FinOnline> {
         case 'turno': {
           await vc.alTurno(msg.eventos, msg.estado);
           ultimoEstado = msg.estado;
-          if (miSeat !== null && msg.reemplazan.includes(miSeat) && !caducada(idx)) {
-            const turno = msg.estado.turno;
-            void vc.pedirReemplazo(miSeat, msg.estado, Math.max(1500, msg.rempMs - MARGEN_MS)).then((i) => {
-              if (!muerto && !caducada(idx)) enviar({ k: 'reemplazoIdx', turno, idx: i });
-            });
-          }
+          if (msg.estado.ganador === null) listo();
+          return;
+        }
+        case 'pideRemp': {
+          if (miSeat === null || !msg.quienes.includes(miSeat) || !ultimoEstado || caducada(idx)) return;
+          const turno = ultimoEstado.turno;
+          void vc.pedirReemplazo(miSeat, ultimoEstado, Math.max(1500, msg.plazoMs - MARGEN_MS)).then((i) => {
+            if (!muerto && !caducada(idx)) enviar({ k: 'reemplazoIdx', turno, idx: i });
+          });
           return;
         }
         case 'reemplazo':
           await vc.alReemplazo(msg.eventos, msg.estado);
           ultimoEstado = msg.estado;
+          listo();
           return;
         case 'fin': {
           await vc.alFin(msg.estado);

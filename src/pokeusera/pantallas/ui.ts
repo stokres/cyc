@@ -5,9 +5,42 @@ import { texto } from '../../juego/textos';
 import { anchoMini, anchoTexto, dibujarMini, dibujarTexto } from '../arte/fuente';
 import { COLOR_JUGADOR, CLARO, NEGRO, PAPEL } from '../arte/paleta';
 import { marco } from '../arte/marcos';
+import { icono } from '../arte/sprites';
+import { ANCHO } from '../pantalla';
 
-/** Global switches (set from the URL in main.ts). */
-export const cfg = { rapido: false };
+/** Battle pacing the player chooses in AJUSTES / the pause box (saved in localStorage 'pokeusera.v1'). */
+export type Velocidad = 'lenta' | 'normal' | 'rapida';
+export const VELOCIDADES: readonly Velocidad[] = ['lenta', 'normal', 'rapida'];
+
+/** Global switches. `rapido`: fast animations only (?auto, ?rapido, and an online guest catching up). `velocidad`: the saved setting. */
+export const cfg: { rapido: boolean; velocidad: Velocidad } = { rapido: false, velocidad: 'normal' };
+
+export interface Ritmo {
+  /** Typewriter speed (characters per second). */
+  cps: number;
+  /** Pause after a line is written before the next one comes by itself (ms); −1 = only on a tap. */
+  espera: number;
+  /** Multiplier of the animations' length (lunges, blinks, falls...). */
+  anim: number;
+  /** Milliseconds the HP bars take to drain. */
+  barra: number;
+  /** Pause between two players' actions (ms). */
+  entre: number;
+  /** How long the «ORDEN DEL TURNO» strip stays (ms). */
+  orden: number;
+  /** How long a floating number or tag stays (ms). */
+  flota: number;
+}
+
+const RITMOS: Record<Velocidad, Ritmo> = {
+  lenta: { cps: 24, espera: -1, anim: 1.8, barra: 1100, entre: 900, orden: 2200, flota: 1500 },
+  normal: { cps: 34, espera: 1250, anim: 1.3, barra: 750, entre: 400, orden: 1300, flota: 1000 },
+  // About the pace of the first version.
+  rapida: { cps: 42, espera: 650, anim: 1, barra: 500, entre: 150, orden: 900, flota: 800 },
+};
+
+/** The pacing of the chosen speed. */
+export const ritmo = (): Ritmo => RITMOS[cfg.velocidad];
 
 /** Waits `ms` (much shorter in the fast smoke-test mode). */
 export function dormir(ms: number): Promise<void> {
@@ -22,10 +55,10 @@ export const nombreEnt = (id: EntrenadorId): string => texto(`entrenador.${id}`)
 
 export const parpadea = (ahora: number, periodo = 500): boolean => Math.floor(ahora / periodo) % 2 === 0;
 
-/** Text centred on x (default: the middle of the 160-px screen). */
+/** Text centred on x (default: the middle of the screen). */
 export function centrado(ctx: CanvasRenderingContext2D, s: string, y: number, color: string, opts: { x?: number; escala?: number; sombra?: string } = {}) {
   const e = opts.escala ?? 1;
-  const x = (opts.x ?? 80) - Math.floor(anchoTexto(s, e) / 2);
+  const x = (opts.x ?? Math.floor(ANCHO / 2)) - Math.floor(anchoTexto(s, e) / 2);
   dibujarTexto(ctx, s, x, y, color, { escala: e, sombra: opts.sombra });
 }
 
@@ -40,6 +73,14 @@ export function derecha(ctx: CanvasRenderingContext2D, s: string, xFin: number, 
 export function rect(ctx: CanvasRenderingContext2D, color: string, x: number, y: number, w: number, h: number) {
   ctx.fillStyle = color;
   ctx.fillRect(x, y, w, h);
+}
+
+/** A player's tile: his colour with his face (8×8, or doubled from 16 px up) in the middle. */
+export function ficha(ctx: CanvasRenderingContext2D, ent: EntrenadorId, x: number, y: number, lado: number) {
+  rect(ctx, NEGRO, x, y, lado, lado);
+  rect(ctx, colorEnt(ent), x + 1, y + 1, lado - 2, lado - 2);
+  if (lado >= 16) ctx.drawImage(icono(ent), 0, 0, 8, 8, x + Math.floor((lado - 16) / 2), y + Math.floor((lado - 16) / 2), 16, 16);
+  else ctx.drawImage(icono(ent), x + Math.floor((lado - 8) / 2), y + Math.floor((lado - 8) / 2));
 }
 
 /** A ◀ (dir −1) or ▶ (dir +1) arrow, 5×7. */
@@ -116,8 +157,12 @@ export function velo(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
 export class Animador {
   private lista: { dur: number; t: number; fn: (p: number) => void; fin: () => void }[] = [];
 
-  animar(ms: number, fn: (p: number) => void): Promise<void> {
-    const dur = cfg.rapido ? ms * 0.1 : ms;
+  /** `factor`: multiplies every duration (the battle passes its speed setting). */
+  constructor(private factor?: () => number) {}
+
+  /** `fijo`: `ms` is the final length (the factor does not apply). */
+  animar(ms: number, fn: (p: number) => void, fijo = false): Promise<void> {
+    const dur = cfg.rapido ? ms * 0.1 : fijo ? ms : ms * (this.factor?.() ?? 1);
     return new Promise((res) => {
       if (dur <= 0) {
         fn(1);

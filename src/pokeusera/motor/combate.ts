@@ -13,13 +13,23 @@
 //  - 'nivel'  a stat stage changed (`cambio` = what really changed, never 0).
 //  - 'cae' / 'sale' / 'eliminado' / 'fin' as in tipos.ts. 'texto' = only a text line.
 // Every event may carry `clave` + `vars` (quien = userito name, jugador = player name, mov, ...).
-import type { Eleccion, EstadoCombate, EntrenadorId, Estado, Evento, Jugador, Movimiento, Stat, Userito } from '../tipos';
+import type { Eleccion, EstadoCombate, Estadisticas, EntrenadorId, Estado, Evento, Jugador, Movimiento, Stat, StatsUserito, Userito } from '../tipos';
 import { TIPOS_FISICOS } from '../tipos';
 import { DESESPERADA, EFECTOS, ESPECIE, MOVS, eficacia } from '../datos';
 import { azar, elegir, entero, probar, type ConSemilla } from './azar';
 
 /** Turn from which Vero closes the bar (1/8 of max HP at the end of every turn). */
-export const TURNO_CIERRE = 25;
+export const TURNO_CIERRE = 30;
+/** From the closing turn, the loss grows by another 1/8 every this many turns (so Siesta cannot stall forever). */
+export const TURNOS_ESCALADA = 4;
+
+/** Eighths of max HP everybody loses at the end of turn `turno` (0 before «Hora de cerrar»). */
+export const octavosCierre = (turno: number): number => (turno < TURNO_CIERRE ? 0 : 1 + Math.floor((turno - TURNO_CIERRE) / TURNOS_ESCALADA));
+
+/** HP at level 50: round(base × PS_MULT) + PS_SUMA (the other stats are base + 5). Sturdier than the
+ *  originals' base + 60 so that a battle of four lasts ~16–24 turns instead of 9–18 (scripts/pokeusera-motor.mjs --sim=200). */
+export const PS_MULT = 2;
+export const PS_SUMA = 80;
 
 // ------------------------------------------------------------------ construction
 
@@ -29,7 +39,7 @@ const vol0 = (): Userito['vol'] => ({ atrapado: 0, atrapadoPor: -1, cizana: 0, b
 function crearUserito(especie: string): Userito {
   const sp = ESPECIE[especie];
   if (!sp) throw new Error(`Especie desconocida: ${especie}`);
-  const ps = sp.base.ps + 60;
+  const ps = Math.round(sp.base.ps * PS_MULT) + PS_SUMA;
   return {
     especie,
     ps,
@@ -47,26 +57,39 @@ function crearUserito(especie: string): Userito {
   };
 }
 
+export const statsUserito0 = (): StatsUserito => ({
+  dh: 0, dr: 0, dp: 0, cu: 0, ko: 0, cae: 0, gol: 0, rg: 0, fal: 0, esq: 0, cri: 0, crr: 0, sup: 0, sur: 0, pob: 0, por: 0,
+  est: 0, nvo: 0, nvy: 0, cam: 0, cana: 0, pp: 0, mx: 0, mm: '', mo: -1, mv: [0, 0, 0, 0, 0], tf: 0, dv: 0,
+});
+
+function crearStats(jugadores: Jugador[]): Estadisticas {
+  const n = jugadores.length;
+  const matriz = () => jugadores.map(() => new Array<number>(n).fill(0));
+  return { u: jugadores.map((q) => q.equipo.map(statsUserito0)), dm: matriz(), km: matriz(), gr: jugadores.map((): [number, number] => [0, 0]) };
+}
+
 export function crearCombate(equipos: { entrenador: EntrenadorId; nombre: string; bot: boolean; especies: string[] }[], semilla: number): EstadoCombate {
   if (equipos.length < 2 || equipos.length > 4) throw new Error('Una batalla es de 2 a 4 jugadores');
+  const jugadores: Jugador[] = equipos.map((q, idx) => ({
+    idx,
+    entrenador: q.entrenador,
+    nombre: q.nombre,
+    equipo: q.especies.slice(0, 3).map(crearUserito),
+    activo: 0,
+    cana: true,
+    bot: q.bot,
+    puesto: 0,
+  }));
   return {
     turno: 1,
-    jugadores: equipos.map((q, idx) => ({
-      idx,
-      entrenador: q.entrenador,
-      nombre: q.nombre,
-      equipo: q.especies.slice(0, 3).map(crearUserito),
-      activo: 0,
-      cana: true,
-      bot: q.bot,
-      puesto: 0,
-    })),
+    jugadores,
     semilla: semilla | 0,
     ultimoMov: null,
     cancionAntes: false,
     agresores: equipos.map(() => []),
     reemplazos: [],
     ganador: null,
+    stats: crearStats(jugadores),
   };
 }
 
@@ -207,11 +230,13 @@ type Accion =
   | { tipo: 'atacar'; j: number; mov: number; objetivo?: number };
 
 const act = (c: Ctx, j: number): Userito => activo(c.e, j);
+/** The statistics of player j's userito on the field. */
+const st = (c: Ctx, j: number): StatsUserito => c.e.stats.u[j][c.e.jugadores[j].activo];
 const nom = (u: Userito): string => ESPECIE[u.especie].nombre;
 const varsDe = (c: Ctx, j: number, extra: Record<string, string | number> = {}) => ({ quien: nom(act(c, j)), jugador: c.e.jugadores[j].nombre, ...extra });
 
-function decir(c: Ctx, clave: string, vars?: Record<string, string | number>) {
-  c.ev.push({ k: 'texto', clave, vars });
+function decir(c: Ctx, clave: string, vars?: Record<string, string | number>, j?: number) {
+  c.ev.push(j === undefined ? { k: 'texto', clave, vars } : { k: 'texto', clave, vars, j });
 }
 
 function reiniciar(u: Userito) {
@@ -232,17 +257,46 @@ function soltarAtrapados(c: Ctx, j: number) {
 }
 
 /** Subtracts HP and emits the 'golpe' event. Fainting ('cae') is announced later by revisarCaida. */
-function danar(c: Ctx, t: number, dano: number, op: { ef?: number; critico?: boolean; clave?: string; vars?: Record<string, string | number> } = {}): number {
+function danar(c: Ctx, t: number, dano: number, op: { ef?: number; critico?: boolean; clave?: string; vars?: Record<string, string | number>; de?: number; mov?: string } = {}): number {
   const u = act(c, t);
   const antes = u.ps;
   u.ps = Math.max(0, u.ps - dano);
+  const real = antes - u.ps;
+  // Statistics: an attack from another player, or damage the userito brought on itself / the bar.
+  if (op.de !== undefined && op.de !== t) {
+    const a = st(c, op.de);
+    const v = st(c, t);
+    const ef = op.ef ?? 1;
+    a.dh += real;
+    a.gol++;
+    v.dr += real;
+    v.rg++;
+    c.e.stats.dm[op.de][t] += real;
+    if (op.critico) {
+      a.cri++;
+      v.crr++;
+    }
+    if (ef > 1) {
+      a.sup++;
+      v.sur++;
+    } else if (ef < 1) {
+      a.pob++;
+      v.por++;
+    }
+    if (op.mov === 'venganza') a.dv += real;
+    if (real > a.mx) {
+      a.mx = real;
+      a.mm = op.mov ?? '';
+      a.mo = t;
+    }
+  } else st(c, t).dp += real;
   const ev: Evento = { k: 'golpe', j: t, dano: antes - u.ps, ps: u.ps, ef: op.ef ?? 1, critico: op.critico ?? false };
   if (op.clave) {
     ev.clave = op.clave;
     ev.vars = op.vars ?? varsDe(c, t);
   }
   c.ev.push(ev);
-  return antes - u.ps;
+  return real;
 }
 
 function curar(c: Ctx, j: number, cantidad: number, clave?: string): number {
@@ -250,6 +304,7 @@ function curar(c: Ctx, j: number, cantidad: number, clave?: string): number {
   const antes = u.ps;
   u.ps = Math.min(u.psMax, u.ps + cantidad);
   if (u.ps === antes) return 0;
+  st(c, j).cu += u.ps - antes;
   const ev: Evento = { k: 'cura', j, ps: u.ps };
   if (clave) {
     ev.clave = clave;
@@ -259,10 +314,16 @@ function curar(c: Ctx, j: number, cantidad: number, clave?: string): number {
   return u.ps - antes;
 }
 
-function revisarCaida(c: Ctx, j: number) {
+/** `por`: the player whose attack just hit it (gets the KO). */
+function revisarCaida(c: Ctx, j: number, por?: number) {
   const u = act(c, j);
   if (u.ps > 0 || c.cayo[j]) return;
   c.cayo[j] = true;
+  st(c, j).cae++;
+  if (por !== undefined && por !== j) {
+    st(c, por).ko++;
+    c.e.stats.km[por][j]++;
+  }
   u.estado = null;
   u.sueno = 0;
   reiniciar(u);
@@ -270,7 +331,8 @@ function revisarCaida(c: Ctx, j: number) {
   c.ev.push({ k: 'cae', j, clave: 'combate.cae', vars: varsDe(c, j) });
 }
 
-function cambiarNivel(c: Ctx, t: number, stat: Stat, cambio: number) {
+/** `por`: the player who causes the change (counts as a change on itself or on others). */
+function cambiarNivel(c: Ctx, t: number, stat: Stat, cambio: number, por?: number) {
   const u = act(c, t);
   if (u.ps <= 0) return;
   const antes = u.niveles[stat];
@@ -281,11 +343,15 @@ function cambiarNivel(c: Ctx, t: number, stat: Stat, cambio: number) {
     return;
   }
   u.niveles[stat] = nuevo;
+  if (por !== undefined) {
+    if (por === t) st(c, t).nvy++;
+    else st(c, por).nvo++;
+  }
   c.ev.push({ k: 'nivel', j: t, stat, cambio: real, clave: `combate.${real > 0 ? 'sube' : 'baja'}${Math.min(2, Math.abs(real))}.${stat}`, vars: varsDe(c, t) });
 }
 
 /** Tries to start a status. Returns whether it worked. `silencio`: no «no tuvo efecto» line when it fails. */
-function ponerEstado(c: Ctx, t: number, est: Estado | 'achispado', silencio: boolean): boolean {
+function ponerEstado(c: Ctx, t: number, est: Estado | 'achispado', silencio: boolean, por?: number): boolean {
   const u = act(c, t);
   if (u.ps <= 0) return false;
   if (est === 'achispado') {
@@ -302,6 +368,7 @@ function ponerEstado(c: Ctx, t: number, est: Estado | 'achispado', silencio: boo
     u.estado = est;
     if (est === 'dormido') u.sueno = 1 + entero(c.e, 3);
   }
+  if (por !== undefined && por !== t) st(c, por).est++;
   c.ev.push({ k: 'estado', j: t, estado: est, clave: `combate.estado.${est}`, vars: varsDe(c, t) });
   return true;
 }
@@ -332,6 +399,7 @@ function tiradaGolpes(e: EstadoCombate): number {
 }
 
 function fallaUsuario(c: Ctx, j: number, clave = 'combate.falla') {
+  st(c, j).fal++;
   c.ev.push({ k: 'falla', j, clave, vars: varsDe(c, j) });
 }
 
@@ -361,7 +429,7 @@ function efectosPropios(c: Ctx, j: number, m: Movimiento) {
     curar(c, j, u.psMax);
     return;
   }
-  for (const n of ef.nivel ?? []) if (n.a === 'yo') cambiarNivel(c, j, n.stat, n.cambio);
+  for (const n of ef.nivel ?? []) if (n.a === 'yo') cambiarNivel(c, j, n.stat, n.cambio, j);
 }
 
 function forzarCambio(c: Ctx, t: number) {
@@ -382,8 +450,8 @@ function efectosSecundarios(c: Ctx, j: number, t: number, m: Movimiento, danino:
   const ef = EFECTOS[m.id] ?? {};
   const v = act(c, t);
   if (v.ps <= 0) return;
-  if (ef.estado && (!danino || probar(e, ef.estado.prob))) ponerEstado(c, t, ef.estado.estado, danino);
-  for (const n of ef.nivel ?? []) if (n.a === 'objetivo' && act(c, t).ps > 0 && (n.prob === undefined || probar(e, n.prob))) cambiarNivel(c, t, n.stat, n.cambio);
+  if (ef.estado && (!danino || probar(e, ef.estado.prob))) ponerEstado(c, t, ef.estado.estado, danino, j);
+  for (const n of ef.nivel ?? []) if (n.a === 'objetivo' && act(c, t).ps > 0 && (n.prob === undefined || probar(e, n.prob))) cambiarNivel(c, t, n.stat, n.cambio, j);
   if (ef.retrocede && !c.actuo[t] && probar(e, ef.retrocede)) c.retrocede[t] = true;
   if (ef.bloqueaCambio) v.vol.sinCambio = true;
   if (ef.atrapa && v.vol.atrapado === 0) {
@@ -409,7 +477,7 @@ function efectosSecundarios(c: Ctx, j: number, t: number, m: Movimiento, danino:
 }
 
 /** Runs move `m` for player `j` (already paid, announced and not skipped). */
-function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undefined, redirigir: boolean) {
+function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undefined, redirigir: boolean, evUsa: Extract<Evento, { k: 'usa' }>) {
   const e = c.e;
   const u = act(c, j);
   const ef = EFECTOS[m.id] ?? {};
@@ -438,6 +506,7 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
     }
     objetivos = t >= 0 ? [t] : [];
   }
+  evUsa.obj = [...objetivos];
   if (!objetivos.length) {
     fallaUsuario(c, j);
     return;
@@ -452,16 +521,22 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
     let v = act(c, t);
     if (v.ps <= 0) continue;
     if (v.vol.escondido) {
-      decir(c, 'combate.esconde_protege', varsDe(c, t));
+      st(c, j).fal++;
+      st(c, t).esq++;
+      decir(c, 'combate.esconde_protege', varsDe(c, t), t);
       continue;
     }
     if (danina && eficacia(m.tipo, ESPECIE[v.especie].tipos) === 0) {
-      decir(c, 'combate.no_afecta', varsDe(c, t));
+      st(c, j).fal++;
+      st(c, t).esq++;
+      decir(c, 'combate.no_afecta', varsDe(c, t), t);
       continue;
     }
     if (m.prec !== null) {
       const p = m.prec * multNivel(u.niveles.prec);
       if (p < 100 && azar(e) * 100 >= p) {
+        st(c, j).fal++;
+        st(c, t).esq++;
         c.ev.push({ k: 'falla', j: t, clave: 'combate.esquiva', vars: varsDe(c, t) });
         continue;
       }
@@ -492,7 +567,7 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
           const critico = azar(e) * 512 < ESPECIE[u.especie].base.vel;
           const r = calcularDano(u, v, m, { pot, azar: 0.85 + azar(e) * 0.15, critico, todos: m.objetivo === 'todos', acorralado });
           efi = r.ef;
-          totalDano += danar(c, t, r.dano, { ef: r.ef, critico });
+          totalDano += danar(c, t, r.dano, { ef: r.ef, critico, de: j, mov: m.id });
           hechos++;
           if (critico) decir(c, 'combate.critico', varsDe(c, t));
         }
@@ -500,7 +575,7 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
         else if (efi < 1) decir(c, 'combate.poco_eficaz', varsDe(c, t));
         if (n > 1) decir(c, 'combate.veces', { n: hechos });
         if (hechos && !c.golpeado[t].includes(j)) c.golpeado[t].push(j);
-        revisarCaida(c, t);
+        revisarCaida(c, t, j);
         v = act(c, t);
       }
     }
@@ -574,13 +649,17 @@ function actuar(c: Ctx, a: Extract<Accion, { tipo: 'atacar' }>) {
   if (!disp.length) {
     decir(c, 'combate.sin_pp', varsDe(c, j));
     m = MOVS[DESESPERADA];
+    st(c, j).mv[4]++;
   } else {
     let idx = a.mov;
     if (!(u.pp[idx] > 0)) idx = elegir(e, disp);
     u.pp[idx]--;
+    st(c, j).pp++;
+    st(c, j).mv[idx]++;
     m = MOVS[ids[idx]];
   }
-  c.ev.push({ k: 'usa', j, mov: m.id, clave: 'combate.usa', vars: varsDe(c, j, { mov: m.nombre.replace(/^¡(.*)!$/, '$1') }) });
+  const evUsa: Extract<Evento, { k: 'usa' }> = { k: 'usa', j, mov: m.id, obj: [], clave: 'combate.usa', vars: varsDe(c, j, { mov: m.nombre.replace(/^¡(.*)!$/, '$1') }) };
+  c.ev.push(evUsa);
 
   let efectivo = m;
   if (m.id === 'siy') {
@@ -595,7 +674,7 @@ function actuar(c: Ctx, a: Extract<Accion, { tipo: 'atacar' }>) {
   } else e.ultimoMov = m.id;
   if (efectivo.id === 'cancion') c.cancionAhora = true;
 
-  usarMovimiento(c, j, efectivo, a.objetivo, redirigir);
+  usarMovimiento(c, j, efectivo, a.objetivo, redirigir, evUsa);
   cierre();
 }
 
@@ -623,23 +702,27 @@ function ejecutarPrevia(c: Ctx, a: Exclude<Accion, { tipo: 'atacar' }>) {
   c.actuo[j] = true;
   if (a.tipo === 'cambiar') {
     if (act(c, j).ps <= 0) return;
-    decir(c, 'combate.retira', varsDe(c, j));
+    decir(c, 'combate.retira', varsDe(c, j), j);
+    st(c, j).cam++;
     sacar(c, j, a.a);
   } else if (a.tipo === 'cana') {
     const u = act(c, j);
     if (!q.cana || u.ps <= 0) return;
     q.cana = false;
-    decir(c, 'combate.cana', varsDe(c, j));
+    st(c, j).cana++;
+    decir(c, 'combate.cana', varsDe(c, j), j);
     curar(c, j, Math.floor(u.psMax / 2));
   } else {
     const t = a.objetivo;
     if (activo(e, t).ps <= 0) return;
     const v = act(c, t);
     if (a.accion === 'cana') {
-      decir(c, 'combate.grada_cana', { jugador: q.nombre, quien: nom(v) });
+      decir(c, 'combate.grada_cana', { jugador: q.nombre, quien: nom(v) }, t);
+      e.stats.gr[j][0]++;
       curar(c, t, Math.max(1, Math.floor(v.psMax / 10)));
     } else {
-      decir(c, 'combate.grada_abucheo', { jugador: q.nombre, quien: nom(v) });
+      decir(c, 'combate.grada_abucheo', { jugador: q.nombre, quien: nom(v) }, t);
+      e.stats.gr[j][1]++;
       cambiarNivel(c, t, 'prec', -1);
     }
   }
@@ -676,11 +759,12 @@ function finDeTurno(c: Ctx) {
     }
   }
 
-  if (e.turno >= TURNO_CIERRE) {
-    decir(c, e.turno === TURNO_CIERRE ? 'combate.cierre' : 'combate.cierre_sigue');
+  const octavos = octavosCierre(e.turno);
+  if (octavos > 0) {
+    decir(c, e.turno === TURNO_CIERRE ? 'combate.cierre' : (e.turno - TURNO_CIERRE) % TURNOS_ESCALADA === 0 ? 'combate.cierre_mas' : 'combate.cierre_sigue');
     for (let j = 0; j < n; j++) {
       if (!sigue(j)) continue;
-      danar(c, j, Math.max(1, Math.floor(act(c, j).psMax / 8)));
+      danar(c, j, Math.max(1, Math.floor((act(c, j).psMax * octavos) / 8)));
       revisarCaida(c, j);
     }
   }
@@ -755,6 +839,8 @@ export function resolverTurno(estado: EstadoCombate, elecciones: (Eleccion | nul
   if (e.ganador !== null) return { estado: e, eventos: [] };
   if (e.reemplazos.length) c.ev.push(...reemplazarEn(c, {}));
   const n = e.jugadores.length;
+  // Turns on the field: the userito that starts the turn out, for everybody still playing.
+  const alInicio = e.jugadores.map((q, j) => (eliminado(e, j) ? -1 : q.activo));
 
   // 1. Validate what everyone chose (before the start-of-turn flags are consumed).
   const acciones: Accion[] = [];
@@ -789,8 +875,13 @@ export function resolverTurno(estado: EstadoCombate, elecciones: (Eleccion | nul
   for (const a of porPrio) if (a.tipo === 'atacar') actuar(c, a);
 
   // 4. End of turn.
+  const iFin = c.ev.length;
   finDeTurno(c);
   cerrarEliminaciones(c);
+  for (let i = iFin; i < c.ev.length; i++) c.ev[i].fin = true;
+  alInicio.forEach((idx, j) => {
+    if (idx >= 0) e.stats.u[j][idx].tf++;
+  });
   e.turno++;
   return { estado: e, eventos: c.ev };
 }

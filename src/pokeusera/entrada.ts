@@ -15,6 +15,9 @@ interface Zona {
   fn: () => void;
 }
 
+/** Logical px a touch must travel to stop being a tap and become a drag. */
+const DISTANCIA_ARRASTRE = 5;
+
 const TECLAS: Record<string, Accion> = {
   ArrowUp: 'arriba',
   ArrowDown: 'abajo',
@@ -34,6 +37,11 @@ class Entrada {
   private zonas: Zona[] = [];
   private pantalla!: Pantalla;
   private bajada: Zona | null = null;
+  /** Where the current touch began and where it was last seen (logical px); null when nothing is pressed. */
+  private origen: { x: number; y: number } | null = null;
+  private ultimo = { x: 0, y: 0 };
+  /** The touch moved far enough to be a drag, not a tap. */
+  private arrastrando = false;
   private yaTocado = false;
   /** Runs once, on the very first tap or key (fullscreen request, audio unlock). */
   primerToque: (() => void) | null = null;
@@ -46,6 +54,24 @@ class Entrada {
       e.preventDefault();
       const p = this.punto(e);
       this.bajada = this.buscar(p.x, p.y);
+      this.origen = p;
+      this.ultimo = p;
+      this.arrastrando = false;
+      try {
+        cv.setPointerCapture(e.pointerId);
+      } catch {
+        /* not supported */
+      }
+    });
+    cv.addEventListener('pointermove', (e) => {
+      if (!this.origen) return;
+      const p = this.punto(e);
+      const total = { x: p.x - this.origen.x, y: p.y - this.origen.y };
+      if (!this.arrastrando && Math.hypot(total.x, total.y) < DISTANCIA_ARRASTRE) return;
+      this.arrastrando = true;
+      this.pantalla.escena?.arrastre?.(p.x - this.ultimo.x, p.y - this.ultimo.y, total, false);
+      this.ultimo = p;
+      this.pantalla.redibujar();
     });
     cv.addEventListener('pointerup', (e) => {
       e.preventDefault();
@@ -54,10 +80,19 @@ class Entrada {
       const z = this.buscar(p.x, p.y);
       const b = this.bajada;
       this.bajada = null;
-      if (z && b && z.x === b.x && z.y === b.y && z.w === b.w && z.h === b.h) z.fn();
+      const o = this.origen;
+      this.origen = null;
+      if (this.arrastrando && o) {
+        this.arrastrando = false;
+        this.pantalla.escena?.arrastre?.(0, 0, { x: p.x - o.x, y: p.y - o.y }, true);
+      } else if (z && b && z.x === b.x && z.y === b.y && z.w === b.w && z.h === b.h) z.fn();
       this.pantalla.redibujar();
     });
-    cv.addEventListener('pointercancel', () => (this.bajada = null));
+    cv.addEventListener('pointercancel', () => {
+      this.bajada = null;
+      this.origen = null;
+      this.arrastrando = false;
+    });
     addEventListener('keydown', (e) => {
       const a = TECLAS[e.key];
       if (!a || e.ctrlKey || e.metaKey || e.altKey) return;
