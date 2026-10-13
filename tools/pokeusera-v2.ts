@@ -11,6 +11,10 @@ import { ALTO2, ANCHO2 } from '../src/pokeusera/arte2/paleta2';
 import { IDS_USERITOS2, coloresSprite2, spriteEspalda2, spriteFrente2 } from '../src/pokeusera/arte2/sprites2';
 import { barraSuperior, cajaTexto2, fichaPropia, fichaRival, filaMenu, panel } from '../src/pokeusera/arte2/ui2';
 
+import { ANCHO_ENT2, ALTO_ENT2, coloresEntrenador2, entrenador2, icono2, retrato2 } from '../src/pokeusera/arte2/entrenadores2';
+import { logo2 } from '../src/pokeusera/arte2/logo2';
+import type { EntrenadorId } from '../src/pokeusera/tipos';
+
 const params = new URLSearchParams(location.search);
 const vista = params.get('vista') ?? 'todo';
 const ZOOM = Number(params.get('z') ?? 3);
@@ -185,5 +189,43 @@ if (vista === 'todo' || vista === 'combate') {
   ];
   panel(ctx, 4, my, 232, 104);
   etiquetas.forEach(([t, ic], i) => filaMenu(ctx, 10, my + 6 + i * 31, 220, t, ic, i === 0));
+  document.body.dataset.listo = '1';
+}
+
+// ---------------------------------------------------------------------------------------------
+// Trainers sheet (?vista=entrenadores): 4 trainers (two idle frames), icons, portraits and the logo.
+// ---------------------------------------------------------------------------------------------
+if (vista === 'entrenadores') {
+  document.getElementById('entrenadores-w')!.style.display = 'inline-block';
+  const ids: EntrenadorId[] = ['fran', 'pablo', 'chuchi', 'guille'];
+  const CW = 64,
+    CH = 88;
+  const ancho = Math.max(CW * 4, 240);
+  const alto = CH * 2 + 30 + 52 + 100;
+  const ctx = lienzo('entrenadores', ancho, alto, ZOOM);
+  ctx.fillStyle = '#e9dfc6';
+  ctx.fillRect(0, 0, ancho, alto);
+  ids.forEach((id, i) => {
+    for (let f = 0; f < 2; f++) {
+      ctx.fillStyle = (i + f) % 2 ? '#e2d7ba' : '#ddd1b2';
+      ctx.fillRect(i * CW, f * CH, CW, CH);
+      ctx.drawImage(entrenador2(id, f), i * CW + 4, f * CH + 4);
+    }
+    console.log(id, 'colores', coloresEntrenador2(id, 0), coloresEntrenador2(id, 1));
+    // icons ×1 and portraits on a dark panel
+    ctx.fillStyle = '#3b2a3f';
+    ctx.fillRect(i * CW, CH * 2, CW, 30);
+    ctx.drawImage(icono2(id), i * CW + 8, CH * 2 + 7);
+    ctx.fillStyle = '#e9dfc6';
+    ctx.fillRect(i * CW + 28, CH * 2 + 7, 20, 18);
+    ctx.drawImage(icono2(id), i * CW + 30, CH * 2 + 8);
+    ctx.fillStyle = '#6e5a70';
+    ctx.fillRect(i * CW, CH * 2 + 30, CW, 52);
+    ctx.drawImage(retrato2(id), i * CW + 12, CH * 2 + 36);
+  });
+  const lg = logo2();
+  ctx.fillStyle = '#3d7a4a';
+  ctx.fillRect(0, CH * 2 + 82, ancho, 100 - 0);
+  ctx.drawImage(lg, (ancho - lg.width) / 2, CH * 2 + 87);
   document.body.dataset.listo = '1';
 }
