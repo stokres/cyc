@@ -30,11 +30,38 @@ Título («Toca para empezar») → menú: **Jugar solo** (tú y tres de la máq
 
 ### Online
 
-Como el Pang (`docs/PANG-ONLINE.md` en su rama): una sola sala por WebSocket en `/sala`, contraseña en la variable `POKEUSERA_CLAVE` del servidor (nunca en el repositorio). El primero que entra es el anfitrión: su navegador lleva el draft y el combate con el motor; los invitados mandan sus elecciones y pintan lo que llega. Al ser por turnos solo viajan elecciones y resultados:
+Como el Pang (`docs/PANG-ONLINE.md` en su rama): una sola sala por WebSocket en `/sala`, contraseña en la variable `POKEUSERA_CLAVE` del servidor (nunca en el repositorio). El primero que entra es el anfitrión: su navegador lleva el draft y el combate con el motor (`Partida`); los invitados mandan sus elecciones y pintan lo que llega. Al ser por turnos solo viajan elecciones y resultados. El servidor no sabe nada del juego: reparte mensajes.
 
-- Invitado → anfitrión (`juego`, `a: 'anfitrion'`): `{ k: 'pick', especie }`, `{ k: 'eleccion', turno, eleccion }`, `{ k: 'reemplazo', idx }`.
-- Anfitrión → todos (`juego`, `a: 'todos'`): `{ k: 'draft', estado, plazo }`, `{ k: 'inicio', estado }`, `{ k: 'turno', eventos, estado }`, `{ k: 'pide', turno, plazo }` (abre la elección) y `{ k: 'fin', puestos }`.
-- Los asientos libres los ocupa la máquina (la lleva el anfitrión). Si un invitado se va, la máquina sigue por él.
+**Código** (`src/pokeusera/red/`): `conexion.ts` (el WebSocket), `sala.ts` (pantalla de contraseña y sala, en lienzo Game Boy; la contraseña se escribe en un `<input>` real colocado encima del lienzo y se recuerda en `localStorage` `pokeusera.clave`), `online.ts` (el hilo: contraseña → sala → partida → sala…), `anfitrion.ts`, `invitado.ts` y `mensajes.ts` (los tipos de los mensajes).
+
+**La sala.** Lista de quién está (icono, nombre, «ANFITRIÓN», «TÚ»), cada uno elige entrenador (los ya cogidos salen apagados; `elegir`) y el anfitrión ve «RELLENAR CON MÁQUINA: SÍ/NO» (por defecto SÍ) y EMPEZAR. Juegan solo los que han elegido entrenador (los demás miran). El anfitrión necesita entrenador propio; con SÍ se rellena hasta cuatro asientos con la máquina (con los entrenadores libres, por orden) y con NO se juega con los que hay (mínimo 2). Orden de asientos: id de la sala, y la máquina detrás.
+
+**Mensajes de juego**, dentro de `juego` (los viejos nombres de este documento ya no valen):
+
+- Invitado → anfitrión (`a: 'anfitrion'`):
+  - `{ k: 'pick', n, especie }`: `n` es el nº de picks ya hechos (`draft.elegidos.length`), para que una respuesta vieja no cuente para una pregunta nueva.
+  - `{ k: 'eleccion', turno, eleccion }`: `turno` es el de `pide`; `eleccion` es una `Eleccion` o `null` (grada: nada).
+  - `{ k: 'reemplazoIdx', turno, idx }`: `turno` es `estado.turno` del mensaje `turno` que lo pidió; `idx` es el índice en `equipo`.
+- Anfitrión → todos (`a: 'todos'`), en este orden dentro de cada partida:
+  - `{ k: 'asientos', asientos: [{ entrenador, nombre, bot }], seats: { [idSala]: asiento } }`: quien no sale en `seats` solo mira.
+  - `{ k: 'draft', draft, turnoDe, plazoMs }` (cada vez que cambia el draft; `turnoDe` es quien elige ahora, `null` = fin; eso ya es la petición del pick).
+  - `{ k: 'inicio', estado }`.
+  - `{ k: 'pide', turno, quienes, plazoMs }`: los de `quienes` eligen (también los eliminados cuando se abre la grada).
+  - `{ k: 'turno', turno, eventos, estado, reemplazan, rempMs }`: `reemplazan` son los asientos que ahora deben elegir quién sale (tienen `rempMs`).
+  - `{ k: 'reemplazo', eventos, estado }`, `{ k: 'fin', estado }`.
+  - `{ k: 'salio', seat, nombre }`: un invitado se fue y la máquina juega por él (todos ven una línea de texto).
+  - `{ k: 'otra' }`: el anfitrión eligió OTRA en el podio; sigue un `asientos` nuevo y otro draft.
+- Mensajes de la sala (los del servidor): `elegir`, `empezar` (a todos), `volver` (a todos: de vuelta a la sala; lo manda el anfitrión al elegir MENÚ en el podio), `salio` (al anfitrión), `cerrada` (se fue el anfitrión).
+
+**Reglas de la conexión.**
+
+- El anfitrión no espera a las animaciones de nadie: manda y sigue, y solo espera las respuestas (hasta el plazo + 1,2 s de gracia; después la `Partida` decide por el invitado: movimiento al azar, primer vivo, etc.). Una respuesta que llega antes de la pregunta se guarda para ella; las que llegan tarde se tiran.
+- Cada invitado procesa los mensajes en orden con una cola. Si se retrasa y hay más de 2 turnos en cola, los reproduce rápido hasta ponerse al día. Una pregunta que el anfitrión ya cerró (porque pasó el plazo y siguió con el siguiente mensaje) se descarta y no se manda. El plazo que ve el invitado es el del anfitrión menos lo que tardó en llegar y 0,6 s de margen.
+- El anfitrión valida lo que llega (forma del mensaje, objetivos dentro del rango); el motor corrige el resto.
+- Un invitado que se va (`salio`) pasa a ser máquina el resto de la partida y las preguntas que tenía pendientes las contesta la máquina al momento. Si se va el anfitrión, la sala se cierra para todos: «Se ha cerrado la sala» y al menú; igual si se pierde la conexión.
+- En el podio el invitado solo tiene MENÚ (sale de la sala). El anfitrión elige OTRA (mismo grupo, otro draft; los invitados vuelven al draft solos) o MENÚ (todos a la pantalla de la sala).
+- ABANDONAR en la pausa: el invitado sale de la sala; el anfitrión también, y eso la cierra para todos.
+- Para probar a mano: `?rapido` (solo animaciones rápidas; `?auto` es solo para la partida en solitario). Con `POKEUSERA_CLAVE=prueba PORT=8080 node scripts/servir-pokeusera.mjs` (tras `npm run build`) y dos pestañas se juega una sala completa; en la consola, `window.__pokeusera` da acceso a la partida del anfitrión o a la cola del invitado.
 
 ### Publicación
 

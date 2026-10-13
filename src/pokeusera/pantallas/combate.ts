@@ -169,6 +169,12 @@ export class VistaCombate implements Escena {
     this.adoptar(estado);
   }
 
+  /** A line from outside the battle (online: someone left): queued in the text box. */
+  aviso(s: string) {
+    void this.caja.decir(s, 1400);
+    pantalla().redibujar();
+  }
+
   async alFin(estado: EstadoCombate): Promise<void> {
     this.cerrarMenus();
     this.adoptar(estado);
@@ -616,7 +622,9 @@ export class VistaCombate implements Escena {
     ctx.drawImage(icono(q.entrenador), px + 4, py + 4);
     const sp = ESPECIE[u.especie];
     dibujarTexto(ctx, sp.nombre, tx, py + 4, NEGRO);
-    dibujarMini(ctx, t('batalla.nivel'), px + pw - 5 - anchoMini(t('batalla.nivel')), py + 6, OSCURO);
+    const nx = px + pw - 5 - anchoMini(t('batalla.nivel'));
+    // Long names (Criaturitah, Tragaperras…) would run into the level: it goes then.
+    if (tx + anchoTexto(sp.nombre) < nx - 1) dibujarMini(ctx, t('batalla.nivel'), nx, py + 6, OSCURO);
     barraPS(ctx, tx, py + 14, 56, f.ps / u.psMax);
     // Status tags to the right of the bar.
     let ex = tx + 59;

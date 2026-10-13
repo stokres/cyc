@@ -1,7 +1,7 @@
 // PokéUsera · the flow of the game: title → menu → (settings | solo | online) → trainer → draft →
 // battle → podium. Solo play is a `Partida` (partida.ts) whose hooks are answered by the screens
-// in pantallas/; the online worker plugs in through `enlaces.jugarOnline` and, for guests, drives
-// the same screens (VistaDraft, VistaCombate, pantallaPodio) from network messages.
+// in pantallas/; online play (red/online.ts) runs the same `Partida` on the host and, for guests,
+// drives the same screens (VistaDraft, VistaCombate, pantallaPodio) from network messages.
 import { ENTRENADORES, type EntrenadorId } from './tipos';
 import { ESPECIES } from './datos';
 import { crearRnd } from './motor/azar';
@@ -13,17 +13,15 @@ import { VistaCombate } from './pantallas/combate';
 import { VistaDraft } from './pantallas/draft';
 import { pantallaEntrenador } from './pantallas/entrenador';
 import { pantallaMenu, type OpcionMenu } from './pantallas/menu';
-import { mensaje } from './pantallas/modal';
 import { pantallaPodio, type SalidaPodio } from './pantallas/podio';
 import { pantallaTitulo } from './pantallas/titulo';
-import { nombreEnt, t } from './pantallas/ui';
+import { nombreEnt } from './pantallas/ui';
+import { jugarOnline } from './red/online';
 
 /** Entry points other parts of the game replace. */
 export const enlaces = {
-  /** «JUGAR ONLINE» in the menu. The online worker replaces this with the lobby; it returns when the player is back at the menu. */
-  jugarOnline: async (): Promise<void> => {
-    await mensaje(pantalla().escena, [t('online.pronto1'), t('online.pronto2')]);
-  },
+  /** «JUGAR ONLINE» in the menu: password, room, game (src/pokeusera/red/); it returns when the player is back at the menu. */
+  jugarOnline,
 };
 
 export interface OpcionesFlujo {

@@ -12,7 +12,8 @@ import { centrado, colorEnt, dibujaEscalado, ordinal, parpadea, rect, t } from '
 
 export type SalidaPodio = 'otra' | 'menu';
 
-export function pantallaPodio(estado: EstadoCombate, miSeat: number | null, sinBotones = false): Promise<SalidaPodio> {
+/** `sinBotones`: no buttons at all (smoke tests). `soloMenu`: only MENÚ (online guests: the host decides on another game). */
+export function pantallaPodio(estado: EstadoCombate, miSeat: number | null, sinBotones = false, soloMenu = false): Promise<SalidaPodio> {
   return new Promise((res) => {
     const p = pantalla();
     let sel = 0;
@@ -75,15 +76,22 @@ export function pantallaPodio(estado: EstadoCombate, miSeat: number | null, sinB
         }
         if (!sinBotones) {
           const yb = H - 30;
-          boton(ctx, 10, yb, 66, 22, t('podio.otra'), sel === 0);
-          boton(ctx, 84, yb, 66, 22, t('podio.menu'), sel === 1);
-          entrada.zona(10, yb, 66, 22, () => fin('otra'));
-          entrada.zona(84, yb, 66, 22, () => fin('menu'));
+          if (soloMenu) {
+            boton(ctx, 47, yb, 66, 22, t('podio.menu'), true);
+            entrada.zona(47, yb, 66, 22, () => fin('menu'));
+          } else {
+            boton(ctx, 10, yb, 66, 22, t('podio.otra'), sel === 0);
+            boton(ctx, 84, yb, 66, 22, t('podio.menu'), sel === 1);
+            entrada.zona(10, yb, 66, 22, () => fin('otra'));
+            entrada.zona(84, yb, 66, 22, () => fin('menu'));
+          }
         }
       },
       accion(a) {
         if (sinBotones) return false;
-        if (a === 'izq' || a === 'der' || a === 'arriba' || a === 'abajo') {
+        if (soloMenu) {
+          if (a === 'aceptar' || a === 'atras') fin('menu');
+        } else if (a === 'izq' || a === 'der' || a === 'arriba' || a === 'abajo') {
           sel = 1 - sel;
           sonido.efecto('cursor');
         } else if (a === 'aceptar') fin(sel === 0 ? 'otra' : 'menu');

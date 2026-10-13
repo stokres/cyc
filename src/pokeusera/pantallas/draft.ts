@@ -45,6 +45,8 @@ export class VistaDraft implements Escena {
   private vaga = 0;
   /** Set by the flow: the player chose ABANDONAR in the pause box. */
   alAbandonar: (() => void) | null = null;
+  private avisoTxt = '';
+  private avisoHasta = 0;
 
   /** `miSeat`: the seat of this screen's player (null when only watching). */
   constructor(
@@ -90,6 +92,13 @@ export class VistaDraft implements Escena {
       sonido.efecto('turno');
       await dormir(1500);
     }
+  }
+
+  /** A line from outside the draft (online: someone left), shown in a box for a few seconds. */
+  aviso(s: string) {
+    this.avisoTxt = s;
+    this.avisoHasta = Date.now() + 3500;
+    pantalla().redibujar();
   }
 
   /** The local player's pick: resolves with the species id when they confirm it on the card. */
@@ -211,7 +220,7 @@ export class VistaDraft implements Escena {
       }
       mueve = true;
     }
-    return mueve;
+    return mueve || Date.now() < this.avisoHasta;
   }
 
   // ------------------------------------------------------------------ drawing
@@ -229,6 +238,13 @@ export class VistaDraft implements Escena {
     if (this.apelear) {
       marco(ctx, 20, Math.round(H / 2) - 20, 120, 40);
       centrado(ctx, t('draft.apelear'), Math.round(H / 2) - 4, NEGRO);
+    }
+    if (Date.now() < this.avisoHasta) {
+      const ls = envolver(this.avisoTxt, 128);
+      const h = 14 + ls.length * 10;
+      const y = Math.round(H / 2 - h / 2);
+      marco(ctx, 8, y, 144, h);
+      ls.forEach((l, i) => centrado(ctx, l, y + 8 + i * 10, NEGRO));
     }
   }
 

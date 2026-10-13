@@ -21,8 +21,36 @@ menu.solo = JUGAR SOLO
 menu.online = JUGAR ONLINE
 menu.ajustes = AJUSTES
 
-online.pronto1 = JUGAR ONLINE
-online.pronto2 = ¡Muy pronto!
+// ---- online (contraseña y sala)
+online.titulo = JUGAR ONLINE
+online.clave = CONTRASEÑA
+online.entrar = ENTRAR
+online.volver = VOLVER
+online.conectando = Conectando...
+online.error.clave = Contraseña incorrecta.
+online.error.llena = La sala está llena.
+online.error.enpartida = Ya hay una partida en marcha.
+online.error.red = No hay conexión con la sala.
+online.cerrada = Se ha cerrado la sala.
+online.salio = {nombre} se ha ido. Sigue la máquina.
+
+sala.titulo = SALA
+sala.anfitrion = ANFITRIÓN
+sala.tu = TÚ
+sala.libre = LIBRE
+sala.eligiendo = ELIGIENDO
+sala.elige = ELIGE TU ENTRENADOR
+sala.tuyo = TUYO
+sala.ocupado = OCUPADO
+sala.rellenar = RELLENAR CON MÁQUINA
+sala.si = SÍ
+sala.no = NO
+sala.empezar = EMPEZAR
+sala.salir = SALIR
+sala.esperando = Esperando al anfitrión...
+sala.pista.elige = Elige tu entrenador.
+sala.pista.faltan = Faltan jugadores.
+sala.pista.listo = Todo listo.
 
 // ---- ajustes y pausa
 ajustes.titulo = AJUSTES
