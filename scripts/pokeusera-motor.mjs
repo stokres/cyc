@@ -63,23 +63,56 @@ function revisar(estado, ctx) {
 // this turn (a later hit by the same attacker, e.g. a multi-hit move, does not count). The lines about the result on a
 // target (critical, effectiveness, «n times»...) carry that target in `j` so an area move can play them all at once.
 let acorralados = 0;
-function revisarAcorralado(eventos, ctx) {
+function revisarAcorralado(eventos, ctx, sucesos = []) {
+  // «Pelea en la barra»: against the player it names nobody is «acorralado».
+  const peleaJ = sucesos.find((x) => x.id === 'pelea')?.j;
   let atacante = -1;
+  let movimiento = '';
   const golpeadoPor = new Map();
   for (const ev of eventos) {
     if (ev.clave === 'combate.acorralado') falla(`${ctx}: combate.acorralado ya no es un evento de texto`);
     if (ev.k === 'texto' && ['combate.critico', 'combate.muy_eficaz', 'combate.poco_eficaz', 'combate.veces'].includes(ev.clave) && ev.j === undefined) falla(`${ctx}: ${ev.clave} sin j`);
-    if (ev.k === 'usa') atacante = ev.j;
+    if (ev.k === 'usa') {
+      atacante = ev.j;
+      movimiento = ev.mov;
+    }
     if (ev.k === 'sale') golpeadoPor.delete(ev.j);
+    // A tipsy userito hitting itself: the next hit event is its own (no 'usa' before it), not one from the last attacker.
+    if (ev.clave === 'combate.achispado_golpe') {
+      atacante = ev.vars ? -2 : atacante;
+      continue;
+    }
+    if (atacante === -2 && ev.k === 'golpe') {
+      atacante = -1;
+      continue;
+    }
     if (ev.k === 'golpe' && !ev.fin && !ev.clave && atacante >= 0 && ev.j !== atacante) {
       const antes = golpeadoPor.get(ev.j) ?? new Set();
-      const esperado = [...antes].some((a) => a !== atacante);
-      if (!!ev.acorralado !== esperado) falla(`${ctx}: golpe a ${ev.j} de ${atacante} con acorralado=${ev.acorralado} (esperado ${esperado})`);
+      // Devolvérsela returns a fixed amount: it is never halved, but it counts for the hits that come after it.
+      const esperado = [...antes].some((a) => a !== atacante) && peleaJ !== ev.j && movimiento !== 'devolver';
+      if (!!ev.acorralado !== esperado) falla(`${ctx}: golpe a ${ev.j} de ${atacante} (${movimiento}) con acorralado=${ev.acorralado} (esperado ${esperado}; sucesos ${JSON.stringify(sucesos)})`);
       if (ev.acorralado) acorralados++;
       antes.add(atacante);
       golpeadoPor.set(ev.j, antes);
     } else if (ev.k === 'golpe' && ev.acorralado) falla(`${ctx}: acorralado en un golpe que no es de otro jugador`);
   }
+}
+
+// Sucesos del bar (docs/POKEUSERA.md): one at the start of turns 5, 10, 15, 20 and 25 (told in the events of the turn before, flagged `fin`),
+// never repeated in a battle, only those of the place, none from turn 30.
+function revisarSucesos(eventos, e, vistos) {
+  for (const ev of eventos) {
+    if (ev.k !== 'suceso') continue;
+    if (![5, 10, 15, 20, 25].includes(e.turno)) falla(`suceso ${ev.id} en el turno ${e.turno}`);
+    if (!ev.fin) falla(`suceso ${ev.id} sin fin`);
+    if (vistos.includes(ev.id)) falla(`suceso repetido: ${ev.id}`);
+    vistos.push(ev.id);
+    if (!M.sucesosDe(e.escenario).includes(ev.id)) falla(`suceso ${ev.id} fuera de su escenario (${e.escenario})`);
+    if (ev.turnos !== M.SUCESOS[ev.id].dura) falla(`suceso ${ev.id}: turnos ${ev.turnos}`);
+    if (!textos.has(`suceso.${ev.id}.nombre`) || !textos.has(`suceso.${ev.id}.desc`)) falla(`suceso ${ev.id}: faltan textos`);
+  }
+  if (e.sucesos.some((x) => x.turnos < 1 || x.turnos > 2)) falla(`sucesos con turnos raros: ${JSON.stringify(e.sucesos)}`);
+  if (e.turno >= 27 && e.sucesos.length) falla(`quedan sucesos en el turno ${e.turno}`);
 }
 
 function revisarStats(e, turnos, todos) {
@@ -129,15 +162,18 @@ function jugar(semilla, verbose) {
   const inicial = JSON.stringify(e);
   if (verbose) console.log(`Semilla ${semilla}. Equipos:`, eq.map((l, i) => `${nombres[i]}: ${l.map((id) => M.ESPECIE[id].nombre).join(', ')}`).join(' | '));
   acorralados = 0;
+  const vistos = [];
   const todos = [];
   const tipos = {};
   let turnos = 0;
   while (e.ganador === null && turnos < 200) {
     const elecciones = e.jugadores.map((_, j) => M.eleccionBot(e, j, rnd));
     const antes = JSON.stringify(e);
+    const sucesosPrevios = e.sucesos;
     const r = M.resolverTurno(e, elecciones);
     if (JSON.stringify(e) !== antes) falla(`turno ${e.turno}: resolverTurno muta su entrada`);
     e = r.estado;
+    revisarSucesos(r.eventos, e, vistos);
     revisar(e, `turno ${e.turno - 1}`);
     for (const ev of r.eventos) {
       tipos[ev.k] = (tipos[ev.k] ?? 0) + 1;
@@ -146,7 +182,7 @@ function jugar(semilla, verbose) {
       if (ev.k === 'golpe' && (ev.ps < 0 || ev.dano < 0)) falla('golpe con valores negativos');
       todos.push({ turno: e.turno - 1, ev });
     }
-    revisarAcorralado(r.eventos, `turno ${e.turno - 1}`);
+    revisarAcorralado(r.eventos, `turno ${e.turno - 1}`, sucesosPrevios);
     turnos++;
     if (e.ganador === null && e.reemplazos.length) {
       const elegidos = Object.fromEntries(e.reemplazos.map((j) => [j, M.reemplazoBot(e, j)]));
@@ -414,6 +450,443 @@ revisarPerks();
   if (nivel('p', 0, 1) !== 'vel-1') falla(`P de Pesao: niveles del rival ${nivel('p', 0, 1)}`);
   if (nivel('pantaloneto', 0, 0) !== 'ata+2,vel+2,def-2') falla(`Bajarse los pantalones: ${nivel('pantaloneto', 0, 0)}`);
 }
+
+// ---- tanda 6: prioridad y protección (¡Me cuelo!, Rebufo, Colleja, ¡Que pague otro!, Aguantar el tipo, Devolvérsela) y sucesos del bar.
+// Deterministic cases (fixed teams, seeds and choices); the statistical ones (50 % fail, accuracy, achispar) use a few hundred seeds.
+function revisarTanda6() {
+  const ENTS = ['fran', 'pablo', 'chuchi', 'guille'];
+  // Teams of the given first userito (+ two fillers), trainers without a perk that bends hits (Fran, Pablo) unless `ents` says otherwise.
+  const equipo = (primeros, ents = ['fran', 'pablo', 'fran', 'pablo']) => primeros.map((p, i) => ({ entrenador: ents[i], nombre: ents[i] + i, bot: false, especies: [p, 'turito', 'tocinon'] }));
+  const ataca = (mov, objetivo) => ({ tipo: 'atacar', mov, objetivo });
+  const idx = (esp, mov) => M.ESPECIE[esp].movs.indexOf(mov);
+  const usas = (r) => r.eventos.filter((ev) => ev.k === 'usa');
+  const orden = (r) => usas(r).map((ev) => ev.j);
+  const golpes = (r, j) => r.eventos.filter((ev) => ev.k === 'golpe' && ev.j === j && !ev.fin && !ev.clave);
+  const dano = (r, j) => golpes(r, j).reduce((n, ev) => n + ev.dano, 0);
+  const activos = (e) => e.jugadores.map((q) => q.equipo[q.activo]);
+
+  // --- Data: the six moves exist with their priority and the nine owners.
+  const prio = { mecuelo: 1, rebufo: 1, colleja: 1, susto: 1, quepague: 2, aguantar: 2, esconderse: 2, devolver: -1 };
+  for (const [id, p] of Object.entries(prio)) if ((M.MOVS[id]?.prioridad ?? 0) !== p) falla(`prioridad de ${id}: ${M.MOVS[id]?.prioridad}, esperaba ${p}`);
+  for (const [esp, mov] of [['aceituna', 'mecuelo'], ['pantaloneto', 'mecuelo'], ['cierzon', 'rebufo'], ['criaturitah', 'colleja'], ['p', 'quepague'], ['ego-ego', 'quepague'], ['cajonazo', 'aguantar'], ['resacon', 'aguantar'], ['evoscar', 'devolver']])
+    if (!M.ESPECIE[esp].movs.includes(mov)) falla(`${esp} no lleva ${mov}`);
+  for (const mv of ['mecuelo', 'rebufo', 'colleja']) if (M.MOVS[mv].pot !== 40 || M.MOVS[mv].prec !== 100 || M.MOVS[mv].pp !== 10) falla(`${mv}: 40/100/10`);
+  for (const mv of ['quepague', 'aguantar', 'devolver']) if (M.MOVS[mv].pp !== 5) falla(`${mv}: 5 PP`);
+
+  // --- Order: priority first, speed inside a bracket; −1 goes after everybody.
+  {
+    const dos = (a, b) => M.crearCombate(equipo([a, b]), 5);
+    const o = (a, ma, b, mb) => orden(M.resolverTurno(dos(a, b), [ataca(idx(a, ma), 1), ataca(idx(b, mb), 0)]));
+    if (o('aceituna', 'mecuelo', 'cierzon', 'planeo').join() !== '0,1') falla('¡Me cuelo! no va el primero contra uno más rápido');
+    if (o('aceituna', 'lametazo', 'cierzon', 'planeo').join() !== '1,0') falla('sin prioridad debería ir primero el más rápido');
+    if (o('cierzon', 'rebufo', 'cubatillo', 'burbujeo').join() !== '0,1') falla('Rebufo no va el primero');
+    if (o('criaturitah', 'colleja', 'cierzon', 'planeo').join() !== '0,1') falla('Colleja no va la primera');
+    if (o('lentejasur', 'susto', 'aceituna', 'mecuelo').join() !== '0,1') falla('Susto y ¡Me cuelo! (+1) se ordenan por velocidad');
+    if (o('aceituna', 'mecuelo', 'lentejasur', 'susto').join() !== '1,0') falla('Susto (más rápido) debe ir antes que ¡Me cuelo! (+1 los dos)');
+    if (o('aceituna', 'mecuelo', 'cajonazo', 'aguantar').join() !== '1,0') falla('una protección (+2) va antes que un rápido (+1)');
+    if (o('evoscar', 'coz', 'camioner', 'trompazo').join() !== '0,1') falla('Evoscar con Coz doble debería ir antes que Camioner');
+    if (o('evoscar', 'devolver', 'camioner', 'trompazo').join() !== '1,0') falla('Devolvérsela (−1) debe ir la última, incluso detrás del más lento');
+  }
+
+  // --- ¡Que pague otro!: single-target blows aimed at the user go to a third userito (not the user, not the attacker); «todos» still hit; with two players it fails.
+  {
+    for (let semilla = 1; semilla <= 40; semilla++) {
+      const e = M.crearCombate(equipo(['p', 'tocinon', 'cajonazo']), semilla);
+      const r = M.resolverTurno(e, [ataca(2), ataca(0, 0), ataca(3)]);
+      const u1 = usas(r).find((ev) => ev.j === 1);
+      if (u1?.obj?.join() !== '2') falla(`¡Que pague otro! (3 jugadores, semilla ${semilla}): el golpe va a ${u1?.obj}`);
+      if (r.estado.jugadores[0].equipo[0].ps !== e.jugadores[0].equipo[0].ps) falla('¡Que pague otro!: aun así le dieron');
+      if (r.estado.agresores[0].length) falla('¡Que pague otro!: cuenta golpes que no le dieron (Acorralado/Venganza)');
+      if (!r.eventos.some((ev) => ev.clave === 'combate.quepague_desvia')) falla('¡Que pague otro!: falta el aviso del desvío');
+    }
+    const destinos = new Set();
+    for (let semilla = 1; semilla <= 60; semilla++) {
+      const e = M.crearCombate(equipo(['ego-ego', 'tocinon', 'tocinon', 'cajonazo']), semilla);
+      const r = M.resolverTurno(e, [ataca(3), ataca(0, 0), ataca(0, 0), ataca(3)]);
+      for (const ev of usas(r)) {
+        if (ev.j !== 1 && ev.j !== 2) continue;
+        if (ev.obj.length !== 1 || ev.obj[0] === 0 || ev.obj[0] === ev.j) falla(`¡Que pague otro! (4 jugadores): ${ev.j} pega a ${ev.obj}`);
+        destinos.add(`${ev.j}>${ev.obj[0]}`);
+      }
+    }
+    if (destinos.size < 3) falla(`¡Que pague otro!: el desvío no es al azar (${[...destinos]})`);
+    const e = M.crearCombate(equipo(['p', 'tocinon', 'cajonazo']), 3);
+    const todos = M.resolverTurno(e, [ataca(2), ataca(2), ataca(3)]); // Temblor (todos) del Tocinón: sí le da
+    if (!dano(todos, 0)) falla('¡Que pague otro! no debe parar los ataques a todos');
+    const dos = M.resolverTurno(M.crearCombate(equipo(['p', 'tocinon']), 3), [ataca(2), ataca(0, 0)]);
+    if (!dos.eventos.some((ev) => ev.k === 'falla' && ev.j === 0) || !dano(dos, 0)) falla('¡Que pague otro! con dos jugadores debe fallar y dejar pasar el golpe');
+    if (usas(dos).find((ev) => ev.j === 0)?.obj.length) falla('¡Que pague otro! fallido con objetivos');
+  }
+
+  // --- Aguantar el tipo: no hit leaves the userito under 1 HP this turn (and it is a normal userito the turn after).
+  {
+    for (let semilla = 1; semilla <= 30; semilla++) {
+      const e = M.crearCombate(equipo(['cajonazo', 'tocinon']), semilla);
+      e.jugadores[0].equipo[0].ps = 6;
+      const r = M.resolverTurno(e, [ataca(2), ataca(0, 0)]);
+      if (activos(r.estado)[0].ps !== 1 || r.eventos.some((ev) => ev.k === 'cae' && ev.j === 0)) falla(`Aguantar el tipo (semilla ${semilla}): PS ${activos(r.estado)[0].ps}`);
+      if (!r.eventos.some((ev) => ev.clave === 'combate.aguanta' && ev.j === 0)) falla('Aguantar el tipo: falta el aviso');
+      if (r.estado.jugadores[0].equipo[0].vol.aguanta) falla('Aguantar el tipo sigue activo el turno siguiente');
+      const sig = M.resolverTurno(r.estado, [ataca(0), ataca(0, 0)]);
+      if (activos(sig.estado)[0].ps !== 0) falla('Aguantar el tipo protege más de un turno');
+    }
+    // Several blows in the same turn (3 players), and a userito that is already on 1 HP.
+    const e = M.crearCombate(equipo(['cajonazo', 'tocinon', 'camioner']), 4);
+    e.jugadores[0].equipo[0].ps = 1;
+    const r = M.resolverTurno(e, [ataca(2), ataca(0, 0), ataca(0, 0)]);
+    if (activos(r.estado)[0].ps !== 1) falla('Aguantar el tipo con 1 PS y dos golpes');
+    // Without it, the same blows do take it down.
+    const sin = M.resolverTurno(e, [ataca(3), ataca(0, 0), ataca(0, 0)]);
+    if (activos(sin.estado)[0].ps !== 0) falla('control: sin Aguantar el tipo debería caer');
+  }
+
+  // --- Devolvérsela: 1.5 × the damage taken this turn to whoever hit last; fails if nobody did.
+  {
+    const e = M.crearCombate(equipo(['evoscar', 'tocinon']), 8);
+    const r = M.resolverTurno(e, [ataca(1), ataca(0, 0)]);
+    const recibido = dano(r, 0);
+    const devuelto = dano(r, 1);
+    if (!recibido || devuelto !== Math.floor(recibido * 1.5)) falla(`Devolvérsela: recibió ${recibido}, devolvió ${devuelto}`);
+    if (usas(r).find((ev) => ev.j === 0)?.obj?.join() !== '1') falla('Devolvérsela: el objetivo no es quien le pegó');
+    if (orden(r).join() !== '1,0') falla('Devolvérsela no va la última');
+    revisarStatsSimple(r.estado, 'Devolvérsela'); // no PS edited by hand in this one
+    // Nobody hits it: fails.
+    const nadie = M.resolverTurno(M.crearCombate(equipo(['evoscar', 'cajonazo']), 8), [ataca(1), ataca(3)]);
+    if (!nadie.eventos.some((ev) => ev.k === 'falla' && ev.j === 0) || dano(nadie, 1)) falla('Devolvérsela sin que nadie le pegue debe fallar');
+    // Two attackers: the one that hit last gets 1.5 × the total.
+    const e3 = M.crearCombate(equipo(['evoscar', 'tocinon', 'camioner']), 8);
+    const r3 = M.resolverTurno(e3, [ataca(1), ataca(0, 0), ataca(0, 0)]);
+    const ultimo = [...r3.eventos].reverse().find((ev) => ev.k === 'usa' && ev.j !== 0 && r3.eventos.indexOf(ev) < r3.eventos.findIndex((x) => x.k === 'usa' && x.j === 0)).j;
+    if (dano(r3, ultimo) < Math.floor(dano(r3, 0) * 1.5)) falla(`Devolvérsela con dos atacantes: ${dano(r3, ultimo)} < 1,5 × ${dano(r3, 0)}`);
+    if (usas(r3).find((ev) => ev.j === 0)?.obj?.join() !== String(ultimo)) falla('Devolvérsela: no va a por el último que le pegó');
+    // The one that hit it fell in the meantime (Trompazo's recoil): nothing to return.
+    const fuerte = M.crearCombate(equipo(['evoscar', 'camioner']), 8);
+    fuerte.jugadores[1].equipo[0].ps = 1;
+    const mata = M.resolverTurno(fuerte, [ataca(1), ataca(0, 0)]);
+    if (!mata.eventos.some((ev) => ev.k === 'cae' && ev.j === 1) || !mata.eventos.some((ev) => ev.k === 'falla' && ev.j === 0)) falla('Devolvérsela: el que le pegó ya no está en pie y no falla');
+  }
+
+  // --- Protections chain: a protection that worked last turn fails half of the times; a failure breaks the chain.
+  {
+    let uno = 0;
+    let dosFalla = 0;
+    let tras = 0;
+    let trasFalla = 0;
+    const N = 300;
+    for (let semilla = 1; semilla <= N; semilla++) {
+      let e = M.crearCombate(equipo(['cajonazo', 'cajonazo']), semilla);
+      const sigue = [];
+      for (let turno = 0; turno < 3; turno++) {
+        const r = M.resolverTurno(e, [ataca(2), ataca(3)]);
+        sigue.push(r.eventos.some((ev) => ev.clave === 'combate.proteccion_falla'));
+        e = r.estado;
+      }
+      if (sigue[0]) uno++;
+      if (sigue[1]) dosFalla++;
+      if (sigue[1]) {
+        tras++;
+        if (sigue[2]) trasFalla++;
+      }
+    }
+    if (uno) falla('la primera protección falla');
+    if (dosFalla < N * 0.38 || dosFalla > N * 0.62) falla(`la segunda protección seguida falla ${dosFalla}/${N} (esperaba ~50 %)`);
+    if (trasFalla) falla('tras un fallo la siguiente protección debería salir siempre');
+    // Esconderse keeps its own line.
+    let hay = false;
+    for (let semilla = 1; semilla <= 40 && !hay; semilla++) {
+      let e = M.crearCombate(equipo(['draguserin', 'cajonazo']), semilla);
+      for (let turno = 0; turno < 2; turno++) {
+        const r = M.resolverTurno(e, [ataca(3), ataca(3)]);
+        if (r.eventos.some((ev) => ev.clave === 'combate.esconde_falla')) hay = true;
+        e = r.estado;
+      }
+    }
+    if (!hay) falla('Esconderse seguido no llega a fallar nunca con su aviso');
+  }
+
+  // --- Escenario: given or drawn from the seed; it travels in the state (JSON, like the online 'inicio' message).
+  {
+    const vistos = new Set();
+    for (let semilla = 1; semilla <= 80; semilla++) {
+      const a = M.crearCombate(equipo(['p', 'turito']), semilla);
+      const b = M.crearCombate(equipo(['p', 'turito']), semilla);
+      if (a.escenario !== b.escenario) falla('el escenario sorteado no es determinista');
+      if (!['brio', 'terraza', 'rural', 'juan'].includes(a.escenario)) falla(`escenario raro: ${a.escenario}`);
+      vistos.add(a.escenario);
+      if (JSON.parse(JSON.stringify(a)).escenario !== a.escenario) falla('el escenario no sobrevive a JSON');
+    }
+    if (vistos.size !== 4) falla(`el sorteo del escenario no sale en los cuatro (${[...vistos]})`);
+    if (M.crearCombate(equipo(['p', 'turito']), 1, 'juan').escenario !== 'juan') falla('crearCombate ignora el escenario pedido');
+    // The draw does not touch the battle's own random stream.
+    if (M.crearCombate(equipo(['p', 'turito']), 7).semilla !== M.crearCombate(equipo(['p', 'turito']), 7, 'rural').semilla) falla('el escenario consume la semilla');
+  }
+
+  // --- Sucesos: every one, forced by hunting a seed whose draw gives it (turn 4 → 5).
+  const PASIVO = { cajonazo: 3, kbronero: 3, draguserin: 3, pantaloneto: 0, p: 2 };
+  const pasivas = (e) => e.jugadores.map((q, j) => (PASIVO[q.equipo[q.activo].especie] !== undefined ? ataca(PASIVO[q.equipo[q.activo].especie]) : { tipo: 'cana' }));
+  const forzar = (id, escenario, primeros, prep) => {
+    for (let semilla = 1; semilla <= 4000; semilla++) {
+      const e0 = M.crearCombate(equipo(primeros), semilla, escenario);
+      prep?.(e0);
+      e0.turno = 4;
+      const r = M.resolverTurno(e0, pasivas(e0));
+      if (r.eventos.some((ev) => ev.k === 'suceso' && ev.id === id)) return { e0, r, semilla };
+    }
+    falla(`suceso ${id}: ninguna semilla lo saca`);
+    return null;
+  };
+  // A target that no blow can knock out, so that damages can be compared.
+  const blindar = (e, j) => {
+    const u = e.jugadores[j].equipo[e.jugadores[j].activo];
+    u.ps = u.psMax = 5000;
+  };
+  const mitad = (e) => e.jugadores.forEach((q) => q.equipo.forEach((u) => (u.ps = Math.floor(u.psMax / 2))));
+  const octavo = (u) => Math.max(1, Math.floor(u.psMax / 8));
+  const sinEstadoPrevio = (f) => (f ? f.r.estado : null);
+
+  {
+    const f = forzar('ronda', 'brio', ['cajonazo', 'kbronero', 'draguserin', 'cajonazo'], mitad);
+    if (f) {
+      activos(f.r.estado).forEach((u, j) => {
+        const ini = activos(f.e0)[j];
+        if (u.ps !== ini.ps + octavo(ini)) falla(`ronda gratis: ${u.ps} != ${ini.ps} + 1/8`);
+      });
+      const ev = f.r.eventos.find((x) => x.k === 'suceso');
+      if (!ev.fin || ev.turnos !== 0 || f.r.estado.sucesos.length) falla('ronda gratis: es instantánea y de fin de turno');
+      if (f.r.estado.sucesosVistos.join() !== 'ronda') falla('ronda gratis: no se apunta como vista');
+    }
+  }
+  {
+    const f = forzar('cumple', 'brio', ['cajonazo', 'kbronero', 'draguserin', 'cajonazo'], (e) => {
+      e.jugadores[2].equipo[0].ps = Math.floor(e.jugadores[2].equipo[0].psMax * 0.3);
+    });
+    if (f) {
+      const antes = activos(f.e0)[2];
+      const u = activos(f.r.estado)[2];
+      if (u.ps !== antes.ps + Math.floor(antes.psMax / 4) || u.niveles.ata !== 1) falla(`cumple: PS ${u.ps} (antes ${antes.ps}), ata ${u.niveles.ata}`);
+      if (f.r.eventos.find((x) => x.k === 'suceso').vars.quien !== M.ESPECIE.draguserin.nombre) falla('cumple: la frase no nombra al cumpleañero');
+      activos(f.r.estado).forEach((v, j) => j !== 2 && v.ps !== activos(f.e0)[j].ps && falla('cumple: cura a otro'));
+    }
+  }
+  {
+    const f = forzar('barre', 'brio', ['cajonazo', 'kbronero', 'draguserin', 'cajonazo']);
+    if (f) {
+      if (activos(f.r.estado).some((u) => Object.values(u.niveles).some((n) => n !== 0))) falla('Vero barre: quedan subidas o bajadas');
+      if (!activos(f.e0).some((u) => u.niveles.ata === 0)) falla('control de Vero barre');
+    }
+  }
+  {
+    const f = forzar('premio', 'brio', ['cajonazo', 'kbronero', 'draguserin', 'cajonazo'], (e) => {
+      e.jugadores[1].cana = false;
+    });
+    if (f) {
+      if (!f.r.estado.jugadores[1].cana || !f.r.eventos.some((x) => x.clave === 'suceso.premio.cana' && x.j === 1)) falla('la tragaperras no devuelve la caña gastada');
+      if (f.r.estado.jugadores.some((q, j) => j !== 1 && q.cana !== f.e0.jugadores[j].cana)) falla('la tragaperras toca la caña de otro');
+    }
+    const g = forzar('premio', 'brio', ['cajonazo', 'kbronero', 'draguserin', 'cajonazo'], mitad);
+    if (g) {
+      if (!g.r.eventos.some((x) => x.clave === 'suceso.premio.cura')) falla('la tragaperras sin cañas gastadas debe curar');
+      activos(g.r.estado).forEach((u, j) => {
+        // Players that used the caña this turn (pasivas() gives the caña to the species with no passive move) are not in this team.
+        if (u.ps !== activos(g.e0)[j].ps + octavo(u)) falla('la tragaperras no cura 1/8 a todos');
+      });
+    }
+  }
+  {
+    // Cierzo de golpe: −1 Vel to everybody and Ventolera ×1.5 for two turns.
+    const f = forzar('cierzo', 'terraza', ['cajonazo', 'kbronero', 'draguserin', 'cajonazo']);
+    if (f) {
+      if (activos(f.r.estado).some((u) => u.niveles.vel !== -1)) falla('Cierzo de golpe: no baja 1 la Velocidad a todos');
+      if (f.r.estado.sucesos.length !== 1 || f.r.estado.sucesos[0].turnos !== 2) falla('Cierzo de golpe dura 2 turnos');
+      const comp = (limpio) => {
+        const e = structuredClone(f.r.estado);
+        if (limpio) e.sucesos = [];
+        e.jugadores[0].equipo[0] = { ...e.jugadores[0].equipo[0], especie: 'cierzon', pp: [9, 9, 9, 9], niveles: { ata: 0, def: 0, vel: 0, esp: 0, prec: 0 } };
+        blindar(e, 1);
+        return M.resolverTurno(e, [ataca(1, 1), ...pasivas(e).slice(1)]);
+      };
+      const a = dano(comp(false), 1);
+      const b = dano(comp(true), 1);
+      if (!b || Math.abs(a - b * 1.5) > 2) falla(`Cierzo de golpe: Ventolera ${a} vs ${b} sin suceso (×1,5)`);
+      // Two turns: 2 → 1 → gone.
+      const t1 = M.resolverTurno(f.r.estado, pasivas(f.r.estado));
+      if (t1.estado.sucesos[0]?.turnos !== 1) falla('Cierzo de golpe: no le queda 1 turno');
+      const t2 = M.resolverTurno(t1.estado, pasivas(t1.estado));
+      if (t2.estado.sucesos.length) falla('Cierzo de golpe: no se acaba a los 2 turnos');
+    }
+    const g = forzar('rosas', 'terraza', ['cajonazo', 'kbronero', 'draguserin', 'cajonazo']);
+    if (g) {
+      const esp = activos(g.r.estado).map((u) => u.niveles.esp);
+      if (esp.filter((n) => n === 1).length !== 1 || esp.some((n) => n < 0 || n > 1)) falla(`rosas: niveles de Especial ${esp}`);
+      if (g.r.estado.sucesos.length) falla('rosas es instantáneo');
+    }
+  }
+  {
+    const f = forzar('desfile', 'rural', ['cajonazo', 'tocinon', 'draguserin', 'kbronero']);
+    if (f) {
+      const comp = (limpio, atacante, mov) => {
+        const e = structuredClone(f.r.estado);
+        if (limpio) e.sucesos = [];
+        blindar(e, 1);
+        return dano(M.resolverTurno(e, [ataca(idx('cajonazo', 'taconeo'), 1), ...pasivas(e).slice(1)]), 1);
+      };
+      const a = comp(false);
+      const b = comp(true);
+      if (!b || Math.abs(a - b * 1.5) > 2) falla(`Desfile Drag: Juerga ${a} vs ${b} sin suceso`);
+      // A move of another type is the same.
+      const e1 = structuredClone(f.r.estado);
+      const e2 = structuredClone(f.r.estado);
+      e2.sucesos = [];
+      const eleg = [{ tipo: 'cana' }, ataca(idx('tocinon', 'barrigazo'), 0), ...pasivas(e1).slice(2)];
+      if (dano(M.resolverTurno(e1, eleg), 0) !== dano(M.resolverTurno(e2, eleg), 0)) falla('Desfile Drag cambia un ataque Mindundi');
+    }
+    const g = forzar('peluca', 'rural', ['cajonazo', 'draguserin', 'kbronero', 'pantaloneto']);
+    if (g) {
+      const juerga = (u) => M.ESPECIE[u.especie].tipos.includes('juerga');
+      activos(g.r.estado).forEach((u) => {
+        if (u.niveles.prec !== (juerga(u) ? 0 : -1)) falla(`peluca descolocada: ${u.especie} precisión ${u.niveles.prec}`);
+      });
+    }
+  }
+  {
+    const f = forzar('comanda', 'juan', ['cajonazo', 'draguserin', 'p', 'kbronero'], mitad);
+    if (f) {
+      activos(f.r.estado).forEach((u, j) => {
+        const ini = activos(f.e0)[j];
+        const tipos = M.ESPECIE[u.especie].tipos;
+        const cura = tipos.includes('juerga') || tipos.includes('chanza') ? octavo(ini) : 0;
+        if (u.ps !== ini.ps + cura) falla(`¡Comanda!: ${u.especie} ${u.ps} != ${ini.ps} + ${cura}`);
+      });
+    }
+    // Chin chin: the two players with the least HP in total heal 1/8 at the end of each of two turns.
+    const g = forzar('chinchin', 'juan', ['cajonazo', 'kbronero', 'draguserin', 'cajonazo'], (e) => {
+      mitad(e);
+      e.jugadores[1].equipo.forEach((u) => (u.ps = 20));
+      e.jugadores[3].equipo.forEach((u) => (u.ps = 30));
+    });
+    if (g) {
+      if (g.r.estado.sucesos[0]?.id !== 'chinchin' || g.r.estado.sucesos[0].turnos !== 2) falla('Chin chin: debe durar 2 turnos');
+      const curas = (r) => r.eventos.filter((ev) => ev.clave === 'suceso.chinchin.cura').map((ev) => ev.j).sort().join();
+      const t1 = M.resolverTurno(g.r.estado, pasivas(g.r.estado));
+      const t2 = M.resolverTurno(t1.estado, pasivas(t1.estado));
+      const t3 = M.resolverTurno(t2.estado, pasivas(t2.estado));
+      if (curas(t1) !== '1,3' || curas(t2) !== '1,3' || curas(t3) !== '') falla(`Chin chin: curas ${curas(t1)} / ${curas(t2)} / ${curas(t3)}`);
+      if (activos(t1.estado)[1].ps !== activos(g.r.estado)[1].ps + octavo(activos(g.r.estado)[1])) falla('Chin chin: no cura 1/8');
+    }
+  }
+  {
+    // Se va la luz: −20 accuracy (100 → 80 %), except for Fantasma attackers.
+    const f = forzar('luz', 'brio', ['tocinon', 'cajonazo', 'ego-ego', 'cajonazo']);
+    if (f) {
+      const falla_ = (esp, mov, limpio) => {
+        let n = 0;
+        for (let s = 1; s <= 300; s++) {
+          const e = structuredClone(f.r.estado);
+          if (limpio) e.sucesos = [];
+          e.semilla = s;
+          e.jugadores[0].equipo[0] = { ...e.jugadores[0].equipo[0], especie: esp, pp: [9, 9, 9, 9] };
+          const r = M.resolverTurno(e, [ataca(idx(esp, mov), 1), ...pasivas(e).slice(1)]);
+          if (r.eventos.some((ev) => ev.clave === 'combate.esquiva')) n++;
+        }
+        return n;
+      };
+      const con = falla_('tocinon', 'barrigazo', false);
+      if (con < 300 * 0.1 || con > 300 * 0.32) falla(`Se va la luz: falla ${con}/300 (esperaba ~20 %)`);
+      if (falla_('tocinon', 'barrigazo', true) !== 0) falla('control de la luz: barrigazo sin suceso falla');
+      if (falla_('ego-ego', 'eco', false) !== 0) falla('Se va la luz afecta a un Fantasma');
+    }
+    // Happy hour: Alcohol ×1.5 and twice the chance to make tipsy.
+    const g = forzar('happy', 'brio', ['chupitochu', 'cajonazo', 'draguserin', 'kbronero']);
+    if (g) {
+      const probar = (limpio) => {
+        let ach = 0;
+        let d = 0;
+        for (let s = 1; s <= 400; s++) {
+          const e = structuredClone(g.r.estado);
+          if (limpio) e.sucesos = [];
+          e.semilla = s;
+          e.jugadores[0].equipo[0] = { ...e.jugadores[0].equipo[0], especie: 'chupitochu', pp: [9, 9, 9, 9] };
+          blindar(e, 1);
+          const r = M.resolverTurno(e, [ataca(0, 1), ...pasivas(e).slice(1)]);
+          if (r.eventos.some((ev) => ev.k === 'estado' && ev.estado === 'achispado' && ev.j === 1)) ach++;
+          if (s === 1) d = dano(r, 1);
+        }
+        return { ach, d };
+      };
+      const con = probar(false);
+      const sin = probar(true);
+      if (Math.abs(con.d - sin.d * 1.5) > 2) falla(`Happy hour: daño ${con.d} vs ${sin.d} (×1,5)`);
+      if (sin.ach < 400 * 0.12 || sin.ach > 400 * 0.28) falla(`control del achispar: ${sin.ach}/400 (~20 %)`);
+      if (con.ach < sin.ach * 1.6 || con.ach > sin.ach * 2.4) falla(`Happy hour: achispa ${con.ach}/400 contra ${sin.ach}/400 sin suceso (×2)`);
+    }
+    // Pelea en la barra: against the leader nobody is «acorralado»; Dale al karaoke: «todos» at 100 %.
+    const h = forzar('pelea', 'brio', ['tocinon', 'tocinon', 'tocinon', 'cajonazo']);
+    if (h) {
+      const lider = h.r.estado.sucesos[0].j;
+      const maximo = Math.max(...h.r.estado.jugadores.map((q) => q.equipo.reduce((s, u) => s + u.ps, 0)));
+      if (h.r.estado.jugadores[lider].equipo.reduce((s, u) => s + u.ps, 0) !== maximo) falla('Pelea en la barra: no es el de más vida');
+      const otros = [0, 1, 2, 3].filter((j) => j !== lider);
+      const elegir = (e) => e.jugadores.map((_q, j) => (j === otros[0] || j === otros[1] ? ataca(0, lider) : { tipo: 'cana' }));
+      const flags = (limpio) => {
+        const e = structuredClone(h.r.estado);
+        if (limpio) e.sucesos = [];
+        e.jugadores.forEach((q) => (q.equipo[q.activo] = { ...q.equipo[q.activo], especie: 'tocinon', pp: [9, 9, 9, 9] }));
+        return golpes(M.resolverTurno(e, elegir(e)), lider).map((ev) => !!ev.acorralado);
+      };
+      if (flags(false).some(Boolean)) falla('Pelea en la barra: hay un golpe acorralado contra el líder');
+      if (!flags(true).some(Boolean)) falla('control de la pelea: sin suceso el segundo golpe debe ir acorralado');
+    }
+    const k = forzar('karaoke', 'brio', ['draguserin', 'cajonazo', 'cajonazo', 'cajonazo']);
+    if (k) {
+      const comp = (limpio) => {
+        const e = structuredClone(k.r.estado);
+        if (limpio) e.sucesos = [];
+        blindar(e, 1);
+        const r = M.resolverTurno(e, [ataca(0), ...pasivas(e).slice(1)]);
+        return dano(r, 1);
+      };
+      const a = comp(false);
+      const b = comp(true);
+      if (!b || Math.abs(a - (b * 4) / 3) > 2) falla(`Dale al karaoke: Traca ${a} vs ${b} sin suceso (×4/3)`);
+    }
+  }
+
+  // --- A whole battle on each stage: the sucesos stay in their place and the invariants hold (the general `jugar` does the rest).
+  for (const esc of ['brio', 'terraza', 'rural', 'juan']) {
+    const lista = new Set();
+    for (let semilla = 1; semilla <= 12; semilla++) {
+      const rnd = M.crearRnd(semilla * 31 + 5);
+      let d = M.crearDraft(4, semilla % 4);
+      while (M.turnoDraft(d) !== null) d = M.elegir(d, M.pickBot(d, rnd));
+      let e = M.crearCombate(M.equipos(d, 4).map((especies, i) => ({ entrenador: ENTS[i], nombre: ENTS[i], bot: true, especies })), semilla, esc);
+      const vistos = [];
+      let turnos = 0;
+      while (e.ganador === null && turnos < 200) {
+        const r = M.resolverTurno(e, e.jugadores.map((_q, j) => M.eleccionBot(e, j, rnd)));
+        e = r.estado;
+        revisarSucesos(r.eventos, e, vistos);
+        revisar(e, `${esc} ${semilla}`);
+        turnos++;
+        if (e.ganador === null && e.reemplazos.length) e = M.reemplazar(e, Object.fromEntries(e.reemplazos.map((j) => [j, M.reemplazoBot(e, j)]))).estado;
+      }
+      vistos.forEach((id) => lista.add(id));
+      if (turnos >= 25 && vistos.length !== 5) falla(`${esc} ${semilla}: ${vistos.length} sucesos en ${turnos} turnos (esperaba 5)`);
+      revisarStatsSimple(e, `${esc} ${semilla}`);
+    }
+    const propios = M.sucesosDe(esc);
+    if (![...lista].every((id) => propios.includes(id))) falla(`${esc}: salió un suceso de otro escenario`);
+  }
+}
+// Conservation of HP in the statistics (psMax − ps = dr + dp − cu), the part of `revisarStats` that the heals of the sucesos touch.
+function revisarStatsSimple(e, ctx) {
+  e.jugadores.forEach((q, j) =>
+    q.equipo.forEach((u, i) => {
+      const s = e.stats.u[j][i];
+      if (u.psMax - u.ps !== s.dr + s.dp - s.cu) falla(`${ctx}: PS de ${u.especie} (${u.psMax - u.ps}) != dr+dp-cu (${s.dr + s.dp - s.cu})`);
+    }),
+  );
+}
+revisarTanda6();
 
 const semillas = process.argv.slice(2).map(Number).filter((n) => Number.isFinite(n)).slice(0, 5);
 if (!semillas.length) semillas.push(1);

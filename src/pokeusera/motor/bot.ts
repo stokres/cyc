@@ -4,12 +4,14 @@
 //    kills, weak targets and super-effective moves, adds noise so the bots do not all gang up on
 //    the same rival, uses the caña when low, now and then buffs/inflicts statuses, rarely switches
 //    out of a ×4 weakness, and acts from the grada when eliminated.
+//    Tanda 6: it protects itself (Esconderse, ¡Que pague otro!, Aguantar el tipo) when two or more rivals hit it last turn or it is low
+//    and threatened, uses the quick moves (+1) to finish off a rival, and Devolvérsela when it expects to be hit.
 //  - pickBot: picks in the draft by raw quality plus type variety.
 //  - reemplazoBot: who comes in after a fall.
 import type { Eleccion, EstadoCombate, EstadoDraft, Stat, Tipo, Userito } from '../tipos';
 import { TIPOS_FISICOS } from '../tipos';
 import { EFECTOS, ESPECIE, MOVS, eficacia } from '../datos';
-import { activo, calcularDano, enGrada, eliminado, multNivel, puedeCambiar, rivalesEnPie, vivos } from './combate';
+import { activo, calcularDano, enGrada, eliminado, hayDeSuceso, multNivel, multSuceso, puedeCambiar, rivalesEnPie, vivos } from './combate';
 import { disponibles, turnoDraft } from './draft';
 
 type Rnd = () => number;
@@ -26,7 +28,28 @@ interface Valor {
   objetivo?: number;
 }
 
-function valorMovimiento(e: EstadoCombate, j: number, idx: number, rivales: number[], peso: Record<number, number>, rnd: Rnd): Valor {
+/** How worried the machine is about the coming turn (`golpeado`: rivals that hit it last turn; `peligro`: a rival, or two together, could take it down). */
+interface Presion {
+  golpeado: number;
+  peligro: boolean;
+}
+
+function presion(e: EstadoCombate, j: number, rivales: number[]): Presion {
+  const u = activo(e, j);
+  const mejores = rivales.map((r) => {
+    const a = activo(e, r);
+    let top = 0;
+    for (const id of ESPECIE[a.especie].movs) {
+      const mv = MOVS[id];
+      if (mv.pot !== null) top = Math.max(top, calcularDano(a, u, mv, { todos: mv.objetivo === 'todos', mult: multSuceso(e, mv.tipo) }).dano);
+    }
+    return top;
+  });
+  const total = mejores.reduce((x, y) => x + y, 0);
+  return { golpeado: e.agresores[j].length, peligro: Math.max(0, ...mejores) >= u.ps || total / 2 >= u.ps };
+}
+
+function valorMovimiento(e: EstadoCombate, j: number, idx: number, rivales: number[], peso: Record<number, number>, rnd: Rnd, pres: Presion): Valor {
   const u = activo(e, j);
   const id = ESPECIE[u.especie].movs[idx];
   const m = MOVS[id];
@@ -46,10 +69,12 @@ function valorMovimiento(e: EstadoCombate, j: number, idx: number, rivales: numb
       let pot = pot0;
       if (ef.especial === 'venganza' && e.agresores[j].includes(r)) pot *= 2;
       if (ef.especial === 'cancion' && e.cancionAntes) pot *= 2;
-      const { dano } = calcularDano(u, v, m, { pot, todos: m.objetivo === 'todos' });
+      const { dano } = calcularDano(u, v, m, { pot, todos: m.objetivo === 'todos' && !hayDeSuceso(e, 'karaoke'), mult: multSuceso(e, m.tipo) });
       const total = dano * golpes;
       const frac = Math.min(1, total / v.ps);
       let val = acc * frac * (total >= v.ps ? 1.6 : 1) * (1 + (1 - v.ps / v.psMax) * 0.4);
+      // A quick move (+1) that can finish the rival off before it acts or escapes.
+      if ((m.prioridad ?? 0) > 0 && total >= v.ps) val *= 1.5;
       if (ef.estado && sinEstado(r)) val += (acc * ef.estado.prob) / 100 * 0.12;
       val *= peso[r];
       if (m.objetivo === 'todos') suma += val;
@@ -77,7 +102,19 @@ function valorMovimiento(e: EstadoCombate, j: number, idx: number, rivales: numb
   };
   switch (ef.especial) {
     case 'esconderse':
-      valor = u.vol.escondidoAntes ? 0 : 0.12 + (hp < 0.5 ? 0.25 : 0);
+    case 'quepague':
+    case 'aguantar': {
+      // Protections: worth it when it is being ganged up on, or low and threatened; a second one in a row fails half of the times.
+      const apuro = pres.golpeado >= 2 || (hp < 0.4 && pres.peligro) || (pres.golpeado >= 1 && hp < 0.25);
+      if (ef.especial === 'esconderse') valor = apuro ? 0.55 + (1 - hp) * 0.3 : 0.08;
+      else if (ef.especial === 'quepague') valor = rivales.length < 2 ? 0 : pres.golpeado >= 2 ? 0.8 : pres.golpeado === 1 && hp < 0.5 ? 0.45 : 0.05;
+      else valor = hp < 0.45 && pres.peligro ? 0.65 + (0.45 - hp) : apuro ? 0.4 : 0.04;
+      if (u.vol.protegidoAntes) valor *= 0.4;
+      break;
+    }
+    case 'devolver':
+      // It goes last and returns 1.5 times what it took: good when it expects to be hit (and to survive it).
+      valor = pres.golpeado >= 1 && hp > 0.35 ? 0.28 + 0.14 * Math.min(3, pres.golpeado) : 0.05;
       break;
     case 'siesta':
       valor = hp < 0.45 ? 0.5 + (0.45 - hp) : 0;
@@ -172,10 +209,11 @@ export function eleccionBot(estado: EstadoCombate, j: number, rnd: Rnd): Eleccio
   for (const r of rivales) peso[r] = 0.8 + rnd() * 0.4;
 
   const ids = ESPECIE[u.especie].movs;
+  const pres = presion(estado, j, rivales);
   let mejor: { idx: number; valor: number; objetivo?: number } | null = null;
   for (let i = 0; i < 4; i++) {
     if (u.pp[i] <= 0) continue;
-    const v = valorMovimiento(estado, j, i, rivales, peso, rnd);
+    const v = valorMovimiento(estado, j, i, rivales, peso, rnd, pres);
     const valor = v.valor * (0.85 + rnd() * 0.3);
     if (!mejor || valor > mejor.valor) mejor = { idx: i, valor, objetivo: v.objetivo };
   }

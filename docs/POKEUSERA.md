@@ -13,7 +13,7 @@ Juego aparte de batallas de useritos a cuatro, al estilo de los juegos de monstr
 | Arte (aspecto Game Boy Advance): paleta, letra, sprites 64×64, entrenadores, logo, marcos | `src/pokeusera/arte2/` (`paleta2`, `fuente2`, `sprites2`, `entrenadores2`, `logo2`, `escena2`, `ui2`); `arte/pixel.ts` (el pintor de píxeles) y `arte/paleta.ts` (colores y nombres de tipo) |
 | Vista previa del arte (solo desarrollo) | `tools/pokeusera-v2.html` (`?vista=detalle`, `fuente`, `entrenadores`) y `tools/pokeusera-v2-export.mjs` |
 | Sonido: música y efectos | `src/pokeusera/sonido.ts`, MP3 en `src/sonido/pokeusera-*.mp3`, generados con `tools/musica/pokeusera.py` |
-| Pantallas y flujo | `src/pokeusera/pantallas/` |
+| Pantallas y flujo | `src/pokeusera/pantallas/` (`pantallas/iconosMov.ts`: los iconos de prioridad, rápido / protección / lento) |
 | Online | `src/pokeusera/red/`, servidor `scripts/servir-pokeusera.mjs` + `scripts/sala-pokeusera.mjs` |
 | Textos | `src/textos/pokeusera.md` (interfaz) y `src/textos/pokeusera-combate.md` (mensajes del combate, descripciones de useritos y movimientos) |
 
@@ -49,7 +49,7 @@ Pantalla (`pantallas/estadisticas.ts`, desde el botón ESTADÍSTICAS del podio, 
 
 ### Música
 
-Ocho piezas originales de estilo Game Boy (2 pulsos, onda de 16 pasos y ruido), compuestas en `tools/musica/pokeusera.py` (`python3 pokeusera.py <nombre>`), MP3 a 24 kHz, 96 kbps, mono, todas al mismo volumen (RMS −17,5 dB). Título, draft, final y victoria (esta una sola vez, sin bucle) tienen una; **el combate tiene cuatro** (pedido por Jesús: «siempre la misma aturulla la cabeza»), que se turnan:
+Once piezas originales de estilo Game Boy (2 pulsos, onda de 16 pasos y ruido), compuestas en `tools/musica/pokeusera.py` (`python3 pokeusera.py <nombre>`), MP3 a 24 kHz, 96 kbps, mono, todas al mismo volumen (RMS −17,5 dB). Título, draft, final y victoria (esta una sola vez, sin bucle) tienen una; **el combate tiene cuatro** (pedido por Jesús: «siempre la misma aturulla la cabeza»), que se turnan:
 
 | Pista | Archivo | Tono y tempo | Idea |
 |---|---|---|---|
@@ -59,6 +59,16 @@ Ocho piezas originales de estilo Game Boy (2 pulsos, onda de 16 pasos y ruido), 
 | Electro | `pokeusera-combate-electro.mp3` | Fa sostenido menor, 130 (59 s) | Tensa y sincopada: pulso fino del 12,5 % en un riff 3+3+2 con segunda menor y tritono, bajo corto y bombo a juego, puente de notas repetidas que sube cromáticamente. |
 
 `sonido.musica('combate')` no cambia para quien llama: cada **combate nuevo** (el primer `'combate'` tras cualquier otra pieza, p. ej. título, draft o victoria) elige una de las cuatro al azar, distinta de la del combate anterior (se recuerda en memoria, no en `localStorage`). Volver a pedir `'combate'` durante el mismo combate, también después de `'final'`, deja la misma pieza; `'final'` suena igual en todos. Cada archivo se descarga solo cuando le toca (carga perezosa, como el resto). Todas cierran el bucle sin clic (tres rondas idénticas, se queda la central con 0,5 s de margen: `exportar_bucle`).
+
+**Tres músicas de escenario** (misma herramienta y sonido; `python3 pokeusera.py combate-terraza|combate-rural|combate-juan`), fuera de la rotación: cada escenario nuevo tiene la suya.
+
+| Pista | Archivo | Tono y tempo | Idea |
+|---|---|---|---|
+| `combateTerraza` | `pokeusera-combate-terraza.mp3` | Re menor / Fa mayor, 120 (56 s) | Rumba de terraza: rasgueo de guitarra en el pulso 3+3+2, palmas y cajón (bombo + palmas con el sonido `gb_palma`), bajo saltarín; tema alegre sobre la cadencia andaluza en Re, estribillo en Fa y remate con palmas rápidas. |
+| `combateRural` | `pokeusera-combate-rural.mp3` | Sol menor, 138 (56 s) | Techno para la fiesta drag: bombo a negras, hats abiertos a contratiempo, bajo rodante de onda, arpegios de semicorcheas; groove, tema eufórico, parón sin bombo con redoble de caja y «drop» con todo. |
+| `combateJuan` | `pokeusera-combate-juan.mp3` | Mi menor / Sol mayor, 130 (59 s) | Bachata: requinto con arpegios rápidos y tema propio, guitarra acompañante en corcheas, bajo sincopado, bombo en 1 y 3, bongó (`gb_bongo_hi/lo`) y güira (`gb_guira`); estribillo en Sol y puente de arpegios en semicorcheas. |
+
+**Elegir la música por escenario** (`sonido.ts`): `sonido.elegirCombate(escenario?: 'brio' | 'terraza' | 'rural' | 'juan')` fija la pieza del **próximo** combate: `'terraza'`, `'rural'` y `'juan'` dan la suya; `'brio'` o sin argumento, la rotación de las cuatro de siempre. Se llama antes de `precargar('combate')` (que entonces carga solo esa) y de `musica('combate')`; cuenta para un solo combate, así que quien no la llame sigue con la rotación. `musicaActual` sigue devolviendo `'combate'` con cualquiera de las siete.
 
 ### Guía para el jugador
 
@@ -84,7 +94,7 @@ Como el Pang (`docs/PANG-ONLINE.md` en su rama): una sola sala por WebSocket en 
 - Anfitrión → todos (`a: 'todos'`), en este orden dentro de cada partida:
   - `{ k: 'asientos', id, asientos: [{ entrenador, nombre, bot }], seats: { [idSala]: asiento } }`: quien no sale en `seats` solo mira; `id` identifica la partida (el invitado lo repite en `listo`).
   - `{ k: 'draft', draft, turnoDe, plazoMs }` (cada vez que cambia el draft; `turnoDe` es quien elige ahora, `null` = fin; eso ya es la petición del pick).
-  - `{ k: 'inicio', estado }`.
+  - `{ k: 'inicio', estado }` (el estado lleva `escenario`, `sucesos` y `sucesosVistos`: los invitados ven el mismo escenario y los sucesos llegan como eventos `suceso` dentro de `turno`/`reemplazo`).
   - `{ k: 'pide', turno, quienes, plazoMs }`: los de `quienes` eligen (también los eliminados cuando se abre la grada).
   - `{ k: 'turno', turno, eventos, estado }`.
   - `{ k: 'pideRemp', quienes, plazoMs }`: los asientos de `quienes` deben elegir quién sale (tras la caída); como `pide`, se manda cuando el anfitrión abre la pregunta y su plazo empieza entonces.
@@ -107,6 +117,8 @@ Como el Pang (`docs/PANG-ONLINE.md` en su rama): una sola sala por WebSocket en 
 
 Railway, desde esta rama: `npm run build` y `npm start` (`scripts/servir-pokeusera.mjs`, `/` abre el juego). Variable `POKEUSERA_CLAVE` para la sala.
 
+**App instalable (PWA), solo PokéUsera.** `public/pokeusera.webmanifest` (nombre «PokéUsera · Edición Jarra», `start_url` `./pokeusera.html`, pantalla completa y vertical, iconos `pokeusera-icono-{180,192,512}.png` hechos con `node scripts/iconos-pokeusera.mjs`) y el service worker `public/pokeusera-sw.js`, que solo se registra en producción (`src/pokeusera/aplicacion.ts`, desde `main.ts`; en `npm run dev` no existe). Tras `vite build`, el plugin `pokeuseraSw` de `vite.config.ts` reescribe en `dist/pokeusera-sw.js` la versión (hash del contenido) y la lista de archivos del juego (página, js, imágenes y los MP3 de PokéUsera, sacados del módulo de entrada; nada del capítulo 1). La primera vez se guardan todos en la caché `pokeusera-<versión>`: abre al instante y funcionan sin conexión «Jugar solo», la Useritopedia y la guía. `/sala` y lo demás nunca pasan por la caché; sin conexión, JUGAR ONLINE avisa. **Cómo se actualiza:** al subir una versión nueva (cualquier cambio del build), el navegador ve que `pokeusera-sw.js` ha cambiado (el servidor lo sirve sin caché), descarga todo por detrás y lo deja en espera; la próxima vez que se abre (o se vuelve al juego) el menú muestra «HAY VERSIÓN NUEVA, TOCA PARA ACTUALIZAR», que activa la nueva y recarga. Hasta entonces se sigue jugando con la anterior. **Instalar:** la fila «INSTALAR EN EL MÓVIL» del menú (solo si no está ya instalado) abre el aviso de Chrome en Android (`beforeinstallprompt`) y en iPhone enseña los dos pasos (Compartir, «Añadir a pantalla de inicio»); los textos están en `pokeusera.md` (`menu.instalar`, `menu.actualizar.*`, `pwa.*`). Para probar el build en local sin tocar `dist/`: `vite build --outDir /ruta` y `POKEUSERA_DIST=/ruta PORT=8091 node scripts/servir-pokeusera.mjs`.
+
 ### Rendimiento
 
 El rendimiento es crucial (Jesús, 13-oct-2026: el móvil iba «muuuy lento»). Reglas del dibujo, además de `docs/ESTILO.md` T5/T6:
@@ -117,6 +129,7 @@ El rendimiento es crucial (Jesús, 13-oct-2026: el móvil iba «muuuy lento»). 
 - **Memoria con tope:** las páginas de texto se reciclan (la menos usada), `hornear` olvida el cuarto más antiguo pasadas 300 placas y los fondos por altura de pantalla guardan solo los tres últimos.
 - **Los useritos y entrenadores se hornean en segundo plano** (`pantallas/precalentar.ts`, desde `main.ts`): uno cada vez, cuando el navegador está ocioso, mientras el jugador mira el título y el menú. Hornear un userito de 64×64 son unos 10 ms en un ordenador y decenas en un móvil lento; antes cada pantalla se paraba al estrenarlos (la rejilla del draft, el primer combate). La música del draft se precarga en la elección de entrenador y la del combate durante el draft (`sonido.precargar`).
 - **El combate** (pasada del 13-oct-2026, `combate.ts`): los doce useritos del combate se hornean antes de que salgan (`calentar`, repartido en fotogramas, por si el combate empieza antes de que acabe el segundo plano); el foco, los números flotantes y la tira del orden se repintan solo cuando cambia un valor (`firmaFoco`: el pulso cada 140 ms, el fundido del velo en 8 pasos, cada número a píxel entero, el parpadeo de reposo; solo se pide 60 fps mientras se mueve un sprite o vuela un efecto); el anillo de la plataforma del que actúa y las cuatro esquinas de la marca de objetivo van horneados por tamaño y color (un `drawImage` en vez de decenas de `fillRect`); el velo que atenúa las filas es un `rgba` hecho una vez (sin `save`/`globalAlpha`); `geom()` y `rivales()` se guardan (por alto de pantalla y por asiento) y `fila` no crea listas ni cadenas por fotograma (anchos de nombres, estados y chips guardados; `vivos` sin `filter`); los tres pips de cada fila y sus chips de tipo son una sola tira horneada; los rótulos flotantes tienen su caché propia (no pasan por `hornear`, que olvida lo más antiguo pasadas 300 placas); la melodía `final` se precarga cuando quedan tres jugadores y la fanfarria `victoria` cuando quedan dos.
+- **Sucesos y prioridad (tanda 6):** los tres iconos de prioridad (9×9), el cartel de cada suceso y la chapita de cada suceso y número de turnos se hornean una vez (`hornear`) y se pegan con un `drawImage`; el cartel y las chapitas entran en la `Firma` del combate (solo repinta cuando salen, cambian o se van), y el sorteo del suceso vive en el motor, sin coste de dibujo. Medido (CPU ×4, 390×844 @2,6): `combate-elige` 4,0 redibujos/s, 1,9-2,4 ms; `combate-juega` ~46/s, 2,8-4,3 ms, 83 `drawImage` por fotograma, dentro de presupuesto (el pico del arranque de `combate-juega` fluctúa: una pasada dio 175 ms por el horneado de fondo en frío justo tras arrancar Vite y las siguientes 13-30 ms).
 - **Nada de arte nuevo por fotograma.** Hornear es para el arranque o el segundo plano; en una escena que ya se está dibujando, una pieza nueva debe salir de la caché.
 
 **Cómo medirlo:** `node scripts/rendimiento-pokeusera.mjs [pantalla...]` contra `npm run dev` (puerto 5173; otro puerto, como primer número: `node scripts/rendimiento-pokeusera.mjs 5174 menu`). Carga cada pantalla en 390×844 con dpr 2,6 y la CPU frenada ×4 (CDP `Emulation.setCPUThrottlingRate`), y mide durante 4 s (`SEG=`): redibujos por segundo, ms por fotograma dibujado (contadores de `?medir`, en `pantalla.ts`), lo que ocupan los `requestAnimationFrame` del hilo, `drawImage` por fotograma, canvases creados en reposo y en total, tareas largas (>50 ms) y el peor fotograma del arranque. Falla (código 1) si una pantalla se pasa de su presupuesto (`PRESUPUESTOS`, al principio del script: las medidas del 13-oct-2026 con margen). Pantallas: `titulo`, `menu`, `entrenador`, `draft` (con `?draft`), `draft-flujo` (el draft como lo alcanza un jugador: el peor fotograma al entrar, con el horneado de fondo hecho solo durante 3 s), `combate-elige` (`?combate`), `combate-juega` (`?combate&auto`, diez veces más rápido de lo que ve una persona: casi siempre se mueve algo y lanza efectos), `combate-ritmo` (la misma batalla al ritmo NORMAL, el que ve el jugador; cambia `cfg` dentro de la página, solo con el servidor de desarrollo), `podio` y `estadisticas` (juega una partida rápida con `?auto`, unos 40 s), `useritopedia` (menú → USERITOPEDIA, la lista), `useritopedia-ficha` (una ficha abierta) y `guia`. Los lienzos que crea el horneado de fondo (`precalentar.ts`, marcado con `window.__precalentando`) no cuentan como lienzos de la pantalla. `VOLCAR=carpeta` guarda un PNG de cada pantalla (para comparar el aspecto antes y después de un cambio). Hay que ejecutarlo con cualquier cambio en el dibujo, una pantalla o un minijuego de PokéUsera, solo con las pantallas tocadas; una pantalla nueva se añade a `PANTALLAS` y a `PRESUPUESTOS`. Las cifras absolutas solo valen para comparar en la misma máquina.
@@ -139,9 +152,11 @@ Lo que se nota: en el ritmo que ve el jugador el combate dibuja menos de la mita
 - **Nivel 50.** PS = `round(base × 2) + 80`; Ataque, Defensa, Velocidad y Especial = base + 5. (La beta usaba base + 60: las batallas duraban 9-18 turnos y un userito caía a veces de un solo golpe cuando varios iban a por él. Con el nuevo PS, simulando 200 batallas de cuatro máquinas, la mediana es de 18 turnos, el p10 13 y el p90 35, y un userito aguanta de media 5 golpes de ataque antes de caer: `node scripts/pokeusera-motor.mjs --sim=200`. El reparto de 420 entre estadísticas de cada especie no cambia, solo el PS que sale de él; el daño tampoco.)
 - **Daño** (como el original): `floor(floor(22 × Pot × A / D) / 50) + 2`, por 1,5 si es del mismo tipo, por la eficacia, por un azar de 0,85 a 1 y por 2 si es crítico (probabilidad Vel base / 512). Mínimo 1 si afecta. «A todos»: × 0,75. **Acorralado:** el segundo golpe y los siguientes que recibe un mismo userito en un turno, de otros jugadores, × 0,5; el golpe sale marcado (`acorralado: true` en su evento `golpe`) y la pantalla le pone la chapita «1/2».
 - **Niveles de estadística:** multiplicador (2 + n) / 2 si n ≥ 0, 2 / (2 − n) si n < 0. Precisión igual. Quemado: Ataque a la mitad; Paralizado: Velocidad a la cuarta parte.
-- **Orden:** cambios y caña; Esconderse; Susto; el resto de más a menos Velocidad (empates a suertes).
+- **Orden:** cambios y caña; después los movimientos por **prioridad** (+2 protecciones, +1 rápidos, 0 casi todos, −1 Devolvérsela), de más a menos, y dentro de cada prioridad de más a menos Velocidad (empates a suertes). Internamente la clave es `prioridad × 100000 + velocidad`.
 - **Objetivo caído a mitad de turno:** el golpe va a otro rival en pie al azar.
 - **Achispado:** al atacar, 1/3 se pega a sí mismo (potencia 40, físico, sin tipo), 1/3 su ataque «uno» va a otro rival al azar, 1/3 normal.
+- **Protección (regla común, tanda 6):** Esconderse, ¡Que pague otro! y Aguantar el tipo comparten el aviso «`protegidoAntes`»: si el userito usó cualquier protección con éxito el turno anterior, la siguiente falla la mitad de las veces. Un golpe que no llega a dar (falla, o lo anula Esconderse o la desviación) no cuenta para el Acorralado de los siguientes: el «segundo golpe» es el segundo que de verdad le toca.
+- **Sucesos del bar:** el motor los sortea al final del turno 4, 9, 14, 19 y 24 (tras `turno++`), para que el cartel salga antes de elegir los turnos 5, 10, 15, 20 y 25. Ver «Sucesos del bar».
 - **Sin PP en ningún movimiento:** usa «A la desesperada» (Mindundi, 50, sin fallo, recibe 1/4 del daño).
 - **Reemplazo:** al final del turno, quien tiene el userito caído elige cuál sale (15 s; si no, el primero vivo). Si ya no le quedan, queda eliminado con el puesto que toque.
 - **Hora de cerrar:** desde el turno 30 (antes, el 25), al final de cada turno todos pierden 1/8 de sus PS máximos, y cada 4 turnos más sube otro 1/8 (1/8 en los turnos 30-33, 2/8 en los 34-37, 3/8 en los 38-41…). Sin esa subida, una Siesta cada tres turnos sostenía una pelea para siempre con tantos PS.
@@ -164,7 +179,7 @@ Todos ven los 24 useritos a la vez y se eligen por turnos, sin repetir: 1-2-3-4,
 ### Cada turno
 
 1. **Todos eligen a la vez y en secreto**, con 30 segundos de tiempo: **atacar** (un movimiento y, si es a un solo rival, **a quién**), **cambiar** de userito o usar la **caña** (una por batalla: cura la mitad de los PS; a Fran, el 60 %).
-2. Se resuelve en este orden: cambios y caña, después «Esconderse» y «Susto», y luego los ataques del más rápido al más lento (empate: a suertes).
+2. Se resuelve en este orden: cambios y caña, y luego los movimientos por prioridad (+2 protecciones, +1 rápidos, 0 el resto, −1 Devolvérsela) y, dentro de cada prioridad, del más rápido al más lento (empate: a suertes).
 3. Si se acaba el tiempo, tu userito usa un movimiento al azar contra un rival al azar.
 
 ### Elegir objetivo (lo nuevo de luchar a cuatro)
@@ -178,6 +193,41 @@ Todos ven los 24 useritos a la vez y se eligen por turnos, sin repetir: 1-2-3-4,
 - **Acorralado.** Si en un mismo turno a un userito le pegan dos o más rivales, el segundo golpe y los siguientes le hacen la mitad. Se puede ir a por uno entre todos, pero sale menos a cuenta. En pantalla, esos golpes llevan una chapita roja «1/2» junto al número de daño.
 - **Venganza.** Algunos movimientos pegan el doble a quien te hizo daño en el turno anterior. Quien abusa, lo paga.
 - **Hora de cerrar.** A partir del turno 30 sale Vero y pone las sillas encima de las mesas: al final de cada turno todos los useritos pierden 1/8 de sus PS, y cada cuatro turnos más, otro 1/8. Así ninguna batalla se eterniza.
+
+### Prioridad y protección (tanda 6, aprobada por Jesús el 14-oct-2026)
+
+Cada movimiento tiene una prioridad: **+2** protecciones, **+1** rápidos, **0** casi todos, **−1** lentos. Actúan antes los de prioridad más alta; dentro de la misma, el más rápido. En los botones de movimiento, en la ficha del draft y en la Useritopedia sale un iconito en píxel (`pantallas/iconosMov.ts`, 9×9, horneados una vez): rayo amarillo = rápido, escudo azul = protección, reloj de arena naranja = lento. Quien no tiene prioridad no lleva icono.
+
+- **Rápidos (+1), 40 de potencia, 100 de precisión, 10 PP:** Susto (Fantasma), **¡Me cuelo!** (Mindundi), **Rebufo** (Ventolera) y **Colleja** (Chanza). Pegan poco y sirven para rematar.
+- **Protecciones (+2), 5 PP:** Esconderse (nadie te toca), **¡Que pague otro!** (Chanza: los ataques a un solo rival que iban a por ti se desvían a otro userito en pie al azar, que no seas tú ni quien atacó; los ataques «a todos» sí te dan; si no hay a quién desviarlos, el movimiento falla) y **Aguantar el tipo** (Mindundi: este turno te pegan, pero ningún golpe te baja de 1 PS). Regla común: si usaste una protección con éxito el turno anterior, la siguiente falla la mitad de las veces. Los golpes que no te dan (los que fallan, los que anula Esconderse o los desviados) no cuentan para el Acorralado.
+- **Lento (−1):** **Devolvérsela** (Bronca, precisión 100, 5 PP, objetivo `'auto'`: el motor elige a quien le pegó el último este turno). Devuelve `floor(1,5 × daño recibido este turno)` de daño fijo (sin tipos ni Acorralado), y ese daño sí cuenta para el Acorralado de quien lo recibe después. Si nadie le pegó (o quien le pegó ya no está en pie), falla. Es lo que más castiga ir a por uno entre todos.
+- **Quién los lleva** (cambia un movimiento a 9 useritos, elegidos entre los más flojos de la simulación; ver la tabla de la sección 3): Aceituna y Pantaloneto ¡Me cuelo!; Cierzón Rebufo; Criaturitah Colleja; P y Ego-Ego ¡Que pague otro!; Cajonazo y Resacón Aguantar el tipo; Evoscar Devolvérsela.
+- **La máquina** (`motor/bot.ts`): se protege cuando la acorralan o le queda poca vida, usa los rápidos para rematar a quien está tocado (bonificación si el golpe tumba) y Devolvérsela cuando espera varios golpes. No simula las protecciones del rival al estimar el daño.
+
+### Sucesos del bar (tanda 6)
+
+En los turnos **5, 10, 15, 20 y 25**, antes de que elijáis, pasa algo en el bar: sale un cartel grande («SUCESO EN EL BAR», el nombre y cuánto dura) con una frase en la caja de texto. Un suceso no se repite en un combate; desde el turno 30 manda la Hora de cerrar y no hay más. Si dura varios turnos, queda una chapita bajo el campo (nombre y turnos que le quedan; un toque la explica cuando se puede elegir). Se sortean entre los generales y los del escenario. En online lo sortea el anfitrión con el resto del motor.
+
+| Suceso | Qué pasa | Dura |
+|---|---|---|
+| **¡Ronda gratis!** | Todos los useritos en combate curan 1/8 de sus PS | Al momento |
+| **Se va la luz** | Todos fallan más (−20 de precisión), menos los de tipo Fantasma | 2 turnos |
+| **Happy hour** | Los ataques de Alcohol pegan un 50 % más y achispan el doble de veces | 2 turnos |
+| **¡Es su cumple!** | Al userito con menos vida: cura 1/4 de sus PS y sube 1 su Ataque | Al momento |
+| **Pelea en la barra** | Contra el jugador con más vida en total no cuenta el Acorralado | 1 turno |
+| **Dale al karaoke** | Los ataques a todos pegan al 100 % en vez del 75 % | 1 turno |
+| **Vero barre** (solo Bar del Brío) | Se borran las subidas y bajadas de estadísticas de todos | Al momento |
+| **La tragaperras da premio** (solo Bar del Brío) | A un jugador al azar le devuelven la caña si ya la gastó; si nadie la gastó, curan 1/8 todos | Al momento |
+| **Cierzo de golpe** (Terraza) | Todos bajan 1 su Velocidad y los de Ventolera pegan un 50 % más | 2 turnos |
+| **Pasa el de las rosas** (Terraza) | Un userito al azar recibe una rosa y sube 1 su Especial | Al momento |
+| **Desfile Drag** (Casa Rural Drag Queen) | Juerga y Chanza pegan un 50 % más | 2 turnos |
+| **Peluca descolocada** (Casa Rural Drag Queen) | Todos bajan 1 su Precisión, menos los de Juerga | Al momento |
+| **¡Comanda!** (Bar Donde Juan) | Los useritos de Juerga y Chanza curan 1/8 | Al momento |
+| **Chin chin** (Bar Donde Juan) | Los 2 jugadores con menos vida total curan 1/8 a su userito activo al final de cada turno | 2 turnos |
+
+**Escenario.** `EscenarioId` = `'brio' | 'terraza' | 'rural' | 'juan'` (`ESCENARIOS` en `tipos.ts`). Cada combate lleva el suyo en `EstadoCombate.escenario`: lo da quien crea el combate (`crearCombate(equipos, semilla, escenario?)`) o, si no se da, sale de la semilla (`escenarioDeSemilla`, sin gastar el azar de la batalla). Solo cambia qué sucesos pueden salir (`sucesosDe(escenario)`, `SUCESOS[id].escenario`); no hay ambientes. Como todo el `EstadoCombate` viaja en el mensaje online `inicio`, el escenario llega solo a los invitados. Atajo de prueba (`?escenario=brio|terraza|rural|juan`): `?combate&escenario=juan` (`OpcionesPartida.escenario`, `OpcionesFlujo.escenario`). La elección por el jugador (pantalla de modo, sala online) y el fondo y la música de cada escenario son de otra tanda; el motor y la pantalla de combate ya aceptan cualquiera de los cuatro.
+
+**Interfaz del suceso** (estado y eventos, para quien toque las pantallas): `EstadoCombate.sucesos` lista los activos (`{ id, turnos, j? }`; `turnos` incluye el turno actual y baja 1 al final de cada turno) y `sucesosVistos` los ya salidos. Al sortear uno, el motor emite `{ k: 'suceso', id, turnos, clave: 'suceso.<id>.frase', vars, fin: true }`, seguido de los eventos corrientes de su efecto (`cura`, `nivel`, `texto`…). `scripts/pokeusera-motor.mjs` lo comprueba con casos deterministas (`revisarTanda6`, `revisarSucesos`: orden por prioridad, las tres protecciones y su 50 %, Devolvérsela, cada suceso contra el mismo estado sin él, no repetición, ninguno desde el turno 30, escenario por semilla y dado, y el Acorralado sin contar los golpes que no dan; «OK: sin fallos»). La pantalla de combate (`combate.ts`) reproduce el suceso y esos eventos juntos: cartel (horneado por suceso, un `drawImage` por fotograma) y, a la vez, todas las barras se rellenan. Textos: `suceso.*` en `pokeusera-combate.md` (`nombre`, `frase`, `desc`) y `suceso.titulo/al_momento/dura1/dura` para el cartel; en la guía, la página BAR trae las tres prioridades y los sucesos por sitio (`guia.prio.*` y `guia.sucesos.*` en `pokeusera.md`).
 
 ### Ventajas de entrenador
 
@@ -241,28 +291,28 @@ Todos suman lo mismo en estadísticas (420), para que no haya ninguno roto de sa
 |---|---|---|---|---|---|---|---|---|
 | 1 | **Draguserín**: el dragón del parque de Usera | Petardo / Ventolera | 75 | 80 | 70 | 95 | 100 | Traca, Petardazo, Planeo, Esconderse |
 | 2 | **Goudazard**: palito frito de gouda rebozado | Grasa / Petardo | 75 | 70 | 85 | 90 | 100 | De Goudamadre, Fogonazo, Pringue, Rebozado |
-| 3 | **Aceituna**: la perrita negra de Fran, pequeña y muy dulce (antes Aceitún) | Mindundi / Chanza | 90 | 100 | 90 | 75 | 65 | Lametazo, Cara de pena, Vacile, Dar la chapa |
-| 4 | **Cierzón**: remolino mañico que no para quieto | Ventolera | 75 | 95 | 70 | 105 | 75 | Cierzo, Planeo, Remolino, Venganza |
+| 3 | **Aceituna**: la perrita negra de Fran, pequeña y muy dulce (antes Aceitún) | Mindundi / Chanza | 90 | 100 | 90 | 75 | 65 | Lametazo, ¡Me cuelo!, Vacile, Dar la chapa |
+| 4 | **Cierzón**: remolino mañico que no para quieto | Ventolera | 75 | 95 | 70 | 105 | 75 | Cierzo, Planeo, Rebufo, Venganza |
 | 5 | **Turroncho**: bloque de turrón blando con almendras | Bronca / Droga | 85 | 80 | 95 | 70 | 90 | Almendrazo, Adoquín, Caparazón, Siesta |
 | 6 | **Tocinón**: cerdo enorme y tranquilo, 152 kilos de userito | Mindundi / Grasa | 105 | 95 | 70 | 75 | 75 | Barrigazo, Pringue, Temblor, Siesta |
 | 7 | **Roscochoco**: dulce navideño de chocolate, muy indigesto | Grasa / Juerga | 100 | 75 | 85 | 60 | 100 | Indigestión, Fritanga, Conga, Rebozado |
 | 8 | **Espumarro**: jarra de cerveza a la que nunca se le baja la espuma | Alcohol / Mindundi | 95 | 70 | 80 | 75 | 100 | Ronda, Garrafón, ¡Una más!, Barrigazo |
-| 9 | **Cajonazo**: cajón flamenco con brazos y mucho compás | Juerga | 100 | 115 | 100 | 50 | 55 | Rumba, Taconeo, Temblor, Compás |
+| 9 | **Cajonazo**: cajón flamenco con brazos y mucho compás | Juerga | 100 | 115 | 100 | 50 | 55 | Rumba, Taconeo, Aguantar el tipo, Compás |
 | 10 | **Lentejasur**: lenteja sucia que aparece cuando menos te lo esperas | Droga / Fantasma | 70 | 65 | 70 | 100 | 115 | Lluvia de lentejas, Tropezón, Susto, Esporas |
 | 11 | **Tragaperras**: la máquina del rincón del bar, que se ríe de ti | Chispa / Chanza | 75 | 60 | 80 | 90 | 115 | Premio gordo, Chispazo, Zasca, Cizaña |
 | 12 | **Turito**: el userito que aburre y cansa | Mindundi | 105 | 70 | 95 | 70 | 80 | Dar la chapa, Te pillo en la barra, Turra, Bostezo |
-| 13 | **Resacón**: nube gris que aparece a la mañana siguiente | Alcohol / Fantasma | 85 | 90 | 80 | 75 | 90 | Dolor de cabeza, Chupitazo, Venganza, Siesta |
-| 14 | **Evoscar**: dos cabezas, una de mujer y otra de hombre (pelo corto), con cuerpo de caballo; una pareja aburrida que se pasa el día discutiendo | Mindundi / Bronca | 100 | 105 | 95 | 55 | 65 | Coz doble, Galope, A dos voces, Sí, y… |
+| 13 | **Resacón**: nube gris que aparece a la mañana siguiente | Alcohol / Fantasma | 85 | 90 | 80 | 75 | 90 | Dolor de cabeza, Chupitazo, Venganza, Aguantar el tipo |
+| 14 | **Evoscar**: dos cabezas, una de mujer y otra de hombre (pelo corto), con cuerpo de caballo; una pareja aburrida que se pasa el día discutiendo | Mindundi / Bronca | 100 | 105 | 95 | 55 | 65 | Coz doble, Devolvérsela, A dos voces, Sí, y… |
 | 15 | **Chupitochu**: chupito muy fuerte y ardiente | Alcohol / Petardo | 75 | 55 | 75 | 90 | 125 | Chupitazo, Fogonazo, Garrafón, Esconderse |
 | 16 | **Caravaner**: una caravana | Bronca / Juerga | 85 | 85 | 75 | 85 | 90 | ¡Camioneees y caravanaaas!, Temblor, Caparazón, Siesta |
 | 17 | **Camioner**: un camión | Mindundi / Bronca | 105 | 125 | 100 | 35 | 55 | Trompazo, Adoquín, Bocinazo, ¡Camioneees y caravanaaas! |
-| 18 | **Criaturitah**: pequeña criaturita del bosque | Droga / Chanza | 80 | 60 | 80 | 100 | 100 | Esporas, Raíces, Vacile, Monada |
-| 19 | **Ego-Ego**: fantasma muy flipado | Fantasma | 80 | 100 | 75 | 95 | 70 | Eco, Chulería, Flipada, Selfie |
+| 18 | **Criaturitah**: pequeña criaturita del bosque | Droga / Chanza | 80 | 60 | 80 | 100 | 100 | Esporas, Raíces, Colleja, Monada |
+| 19 | **Ego-Ego**: fantasma muy flipado | Fantasma | 80 | 100 | 75 | 95 | 70 | Eco, Chulería, Flipada, ¡Que pague otro! |
 | 20 | **Kbronero**: teclado heavy | Chispa / Juerga | 80 | 90 | 70 | 85 | 95 | Solo de teclado, Distorsión, Pogo, Compás |
 | 21 | **Cubatillo**: un cubata (ron con cola) con hielos y pajita, con burbujas que chisporrotean | Alcohol / Chispa | 70 | 55 | 70 | 115 | 110 | Burbujeo, Ronda, Chispazo, ¡Una más! |
-| 22 | **P**: una P mayúscula gordita con ojos y patitas, muy pesada | Mindundi / Chanza | 95 | 90 | 100 | 60 | 75 | P de Pesao, Dar la chapa, Zasca, Cara de pena |
+| 22 | **P**: una P mayúscula gordita con ojos y patitas, muy pesada | Mindundi / Chanza | 95 | 90 | 100 | 60 | 75 | P de Pesao, Dar la chapa, ¡Que pague otro!, Cara de pena |
 | 23 | **JesúsPelo**: surfero de pelo blanco corto con su tabla, muy tranquilo | Droga / Ventolera | 85 | 90 | 75 | 95 | 75 | Tubo perfecto, Setas, Raíces, Planeo |
-| 24 | **Pantaloneto**: unos pantalones escapados del tendedero que van solos | Mindundi / Ventolera | 95 | 120 | 90 | 75 | 40 | Bajarse los pantalones, Cierzo, Dar la chapa, Coz doble |
+| 24 | **Pantaloneto**: unos pantalones escapados del tendedero que van solos | Mindundi / Ventolera | 95 | 120 | 90 | 75 | 40 | Bajarse los pantalones, Cierzo, Dar la chapa, ¡Me cuelo! |
 
 Reparto por tipos (contando los dobles): Mindundi 8, Petardo 3, Droga 4, Bronca 4, Ventolera 4, Chispa 3, Alcohol 4, Juerga 4, Chanza 4, Grasa 3, Fantasma 3.
 
@@ -291,7 +341,13 @@ Potencia, precisión y PP. «Uno» es un rival a elegir; «todos», los tres riv
 | Turra | Mindundi | — | 90 | 5 | todos | Se les quitan las ganas: baja 1 nivel el Ataque y el Especial |
 | Bostezo | Mindundi | — | 100 | 5 | uno | Se queda dormido al final del turno siguiente |
 | Cara de pena | Mindundi | — | 100 | 10 | uno | Nadie puede pegarle a esa carita: baja 2 niveles el Ataque |
-| Esconderse | Mindundi | — | — | 5 | yo | Nadie puede tocarle este turno; si lo repite seguido, la mitad de las veces falla |
+| Esconderse | Mindundi | — | — | 5 | yo | Prioridad +2. Nadie puede tocarle este turno; si usó cualquier protección el turno anterior, la mitad de las veces falla |
+| ¡Que pague otro! | Chanza | — | — | 5 | yo | Prioridad +2. Los ataques a un solo rival que iban a por ti se desvían a otro userito al azar (ni tú ni quien atacó); los de «todos» sí te dan; sin a quién desviarlos, falla. Misma regla del 50 % |
+| Aguantar el tipo | Mindundi | — | — | 5 | yo | Prioridad +2. Te pegan, pero ningún golpe te deja por debajo de 1 PS este turno. Misma regla del 50 % |
+| ¡Me cuelo! | Mindundi | 40 | 100 | 10 | uno | Prioridad +1 |
+| Rebufo | Ventolera | 40 | 100 | 10 | uno | Prioridad +1 |
+| Colleja | Chanza | 40 | 100 | 10 | uno | Prioridad +1 |
+| Devolvérsela | Bronca | — | 100 | 5 | auto | Prioridad −1. Devuelve 1,5 veces el daño recibido este turno a quien le pegó el último (daño fijo); sin golpes, falla |
 | Siesta | Mindundi | — | — | 5 | yo | Duerme 2 turnos y recupera todos los PS y estados |
 | Bajarse los pantalones | Mindundi | — | — | 5 | yo | Sube 2 niveles el Ataque y la Velocidad y baja 2 la Defensa |
 | Traca | Petardo | 70 | 100 | 5 | todos | 10 %: quema |
@@ -340,7 +396,7 @@ Potencia, precisión y PP. «Uno» es un rival a elegir; «todos», los tres riv
 | Tropezón | Grasa | 70 | 100 | 8 | uno | 30 %: lo empacha |
 | Indigestión | Grasa | — | 90 | 5 | uno | Lo empacha |
 | Rebozado | Grasa | — | — | 10 | yo | Sube 2 niveles la Defensa |
-| Susto | Fantasma | 40 | 100 | 10 | uno | Ataca antes que nadie (solo van antes los cambios y Esconderse) |
+| Susto | Fantasma | 40 | 100 | 10 | uno | Prioridad +1: ataca antes que los de prioridad 0 (solo van antes los cambios y las protecciones) |
 | Eco | Fantasma | 40 | 100 | 10 | uno | Pega dos veces |
 | Venganza | Fantasma | 50 | 100 | 5 | uno | Doble de potencia contra quien le hizo daño el turno anterior |
 | Flipada | Fantasma | — | — | 5 | yo | Sube 1 nivel el Ataque, el Especial y la Velocidad; baja 1 nivel la Defensa |

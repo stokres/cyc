@@ -27,6 +27,7 @@ import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
 import { atacantesFuertes, defensoresCon, hileraTipos } from './guia';
 import { miniatura, pieSprite, plataformaCacheada } from './fondos';
+import { clasePrioridad, iconoPrioridad, LADO_ICONO_PRIO } from './iconosMov';
 import { sobre } from './modal';
 import { barraArriba, barraValor, boton, envolver, fondoPapel, flecha, insignaTipo, rect, reposo, t, texto2, textoGrande } from './ui';
 
@@ -234,7 +235,11 @@ function maquetar(cx: CanvasRenderingContext2D | null, i: number): Omit<Ficha, '
       // Category and priority.
       const cat = m.pot === null && m.id !== 'premio' ? 'estado' : TIPOS_FISICOS.includes(m.tipo) ? 'fisico' : 'especial';
       const wc = texto2(cx, t(`useritopedia.cat.${cat}`), X0 + 10, y + 37, TINTA_SUAVE, null);
-      if (m.prioridad) texto2(cx, t('useritopedia.prio'), X0 + 10 + wc + 10, y + 37, ORO_UI_OSC, null);
+      const clase = clasePrioridad(m.prioridad);
+      if (clase) {
+        cx.drawImage(iconoPrioridad(clase), X0 + 10 + wc + 10, y + 36);
+        texto2(cx, t(`useritopedia.prio.${clase}`), X0 + 10 + wc + 10 + LADO_ICONO_PRIO + 4, y + 37, ORO_UI_OSC, null);
+      }
       rect(cx, '#d6c08a', X0 + 10, y + 49, AN - 20, 1);
       dm.forEach((l, j) => texto2(cx, l, X0 + 12, y + 53 + j * 12, TINTA2, null));
     }

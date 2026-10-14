@@ -15,10 +15,12 @@
 //  - 'cae' / 'sale' / 'eliminado' / 'fin' as in tipos.ts. 'texto' = only a text line; the ones about what happens
 //    to a target of the move (critical, effectiveness, «n times», no effect, perks, caps...) carry that target in `j`,
 //    so the screen can play the results of an area move on all its targets at once.
+//  - 'suceso' a bar event starts (turns 5, 10, 15, 20, 25: drawn at the end of the turn before). `id`, `turnos` (0 = instant),
+//             phrase in `clave`. The heals / stage changes it causes follow as ordinary 'cura' / 'nivel' events (all flagged `fin`).
 // Every event may carry `clave` + `vars` (quien = userito name, jugador = player name, mov, ...).
-import type { Eleccion, EstadoCombate, Estadisticas, EntrenadorId, Estado, Evento, Jugador, Movimiento, Stat, StatsUserito, Userito } from '../tipos';
-import { PERK_CANA_FRAN, PERK_PRECISION_PABLO, PERK_TARDE_CHUCHI, TIPOS_FISICOS } from '../tipos';
-import { DESESPERADA, EFECTOS, ESPECIE, MOVS, eficacia } from '../datos';
+import type { Eleccion, EscenarioId, EstadoCombate, Estadisticas, EntrenadorId, Estado, Evento, Jugador, Movimiento, Stat, StatsUserito, SucesoId, Tipo, Userito } from '../tipos';
+import { ESCENARIOS, PERK_CANA_FRAN, PERK_PRECISION_PABLO, PERK_TARDE_CHUCHI, TIPOS_FISICOS } from '../tipos';
+import { DESESPERADA, EFECTOS, ESPECIE, MOVS, SUCESOS, TURNOS_SUCESO, eficacia, sucesosDe } from '../datos';
 import { azar, elegir, entero, probar, type ConSemilla } from './azar';
 
 /** Turn from which Vero closes the bar (1/8 of max HP at the end of every turn). */
@@ -37,7 +39,7 @@ export const PS_SUMA = 80;
 // ------------------------------------------------------------------ construction
 
 const niveles0 = (): Record<Stat, number> => ({ ata: 0, def: 0, vel: 0, esp: 0, prec: 0 });
-const vol0 = (): Userito['vol'] => ({ atrapado: 0, atrapadoPor: -1, cizana: 0, bostezo: -1, recarga: false, sinCambio: false, escondidoAntes: false, escondido: false });
+const vol0 = (): Userito['vol'] => ({ atrapado: 0, atrapadoPor: -1, cizana: 0, bostezo: -1, recarga: false, sinCambio: false, protegidoAntes: false, escondido: false, desvia: false, aguanta: false });
 
 function crearUserito(especie: string): Userito {
   const sp = ESPECIE[especie];
@@ -71,7 +73,11 @@ function crearStats(jugadores: Jugador[]): Estadisticas {
   return { u: jugadores.map((q) => q.equipo.map(statsUserito0)), dm: matriz(), km: matriz(), gr: jugadores.map((): [number, number] => [0, 0]) };
 }
 
-export function crearCombate(equipos: { entrenador: EntrenadorId; nombre: string; bot: boolean; especies: string[] }[], semilla: number): EstadoCombate {
+/** The place of a battle when nobody chose one: drawn from the seed without touching the battle's own random stream. */
+export const escenarioDeSemilla = (semilla: number): EscenarioId => ESCENARIOS[Math.floor(azar({ semilla: (semilla | 0) ^ 0x5ce9a1d3 }) * ESCENARIOS.length)];
+
+/** `escenario`: the place (default: drawn from `semilla`). It travels in the state, so online guests get it in the 'inicio' message. */
+export function crearCombate(equipos: { entrenador: EntrenadorId; nombre: string; bot: boolean; especies: string[] }[], semilla: number, escenario?: EscenarioId): EstadoCombate {
   if (equipos.length < 2 || equipos.length > 4) throw new Error('Una batalla es de 2 a 4 jugadores');
   const jugadores: Jugador[] = equipos.map((q, idx) => ({
     idx,
@@ -84,6 +90,9 @@ export function crearCombate(equipos: { entrenador: EntrenadorId; nombre: string
     puesto: 0,
   }));
   return {
+    escenario: escenario ?? escenarioDeSemilla(semilla),
+    sucesos: [],
+    sucesosVistos: [],
     turno: 1,
     jugadores,
     semilla: semilla | 0,
@@ -158,6 +167,8 @@ export interface OpcionesDano {
   todos?: boolean;
   /** Second or later hit on the same target this turn from another player: ×0.5. */
   acorralado?: boolean;
+  /** Bonus of the sucesos on (Happy hour, Cierzo de golpe, Desfile Drag: ×1.5), see `multSuceso`. */
+  mult?: number;
 }
 
 /** The damage formula, without any randomness of its own. `ef` is the type effectiveness. */
@@ -173,10 +184,28 @@ export function calcularDano(a: Userito, d: Userito, mov: Movimiento, o: Opcione
   dano *= ef;
   if (o.todos) dano *= 0.75;
   if (o.acorralado) dano *= 0.5;
+  if (o.mult) dano *= o.mult;
   dano *= o.azar ?? 0.925;
   if (o.critico) dano *= 2;
   return { dano: Math.max(1, Math.floor(dano)), ef };
 }
+
+// ------------------------------------------------------------------ sucesos (queries)
+
+/** Whether suceso `id` is on now. */
+export const hayDeSuceso = (e: EstadoCombate, id: SucesoId): boolean => e.sucesos.some((s) => s.id === id);
+
+/** ×1.5 on the damage of a move of this type while Happy hour (Alcohol), Cierzo de golpe (Ventolera) or Desfile Drag (Juerga, Chanza) is on. */
+export function multSuceso(e: EstadoCombate, tipo: Tipo): number {
+  let m = 1;
+  if (tipo === 'alcohol' && hayDeSuceso(e, 'happy')) m *= 1.5;
+  if (tipo === 'ventolera' && hayDeSuceso(e, 'cierzo')) m *= 1.5;
+  if ((tipo === 'juerga' || tipo === 'chanza') && hayDeSuceso(e, 'desfile')) m *= 1.5;
+  return m;
+}
+
+/** Whole-team HP of a player (the «who is winning» measure of the sucesos). */
+const vidaTotal = (q: Jugador): number => q.equipo.reduce((s, u) => s + u.ps, 0);
 
 function danoAutogolpe(u: Userito, r: number): number {
   const A = u.ata * multNivel(u.niveles.ata) * (u.estado === 'quemado' ? 0.5 : 1);
@@ -217,7 +246,14 @@ interface Ctx {
   anulada: boolean[];
   retrocede: boolean[];
   cayo: boolean[];
-  usoEsc: boolean[];
+  /** A protection worked this turn (for the next one's 50 % fail). */
+  usoProt: boolean[];
+  /** HP lost this turn to other players' attacks, and who hit last (for «Devolvérsela»). */
+  recibido: number[];
+  ultimoAgresor: number[];
+  /** «Aguantar el tipo» cut a hit this turn / already said so. */
+  salvado: boolean[];
+  dichoAguante: boolean[];
   recargaIni: boolean[];
   cizanaIni: boolean[];
   pctIni: number[];
@@ -275,6 +311,8 @@ function danar(c: Ctx, t: number, dano: number, op: { ef?: number; critico?: boo
     v.dr += real;
     v.rg++;
     c.e.stats.dm[op.de][t] += real;
+    c.recibido[t] += real;
+    c.ultimoAgresor[t] = op.de;
     if (op.critico) {
       a.cri++;
       v.crr++;
@@ -387,7 +425,9 @@ function sacar(c: Ctx, j: number, idx: number) {
   c.agresoresIni[j] = [];
   c.recargaIni[j] = false;
   c.cizanaIni[j] = false;
-  c.usoEsc[j] = false;
+  c.usoProt[j] = false;
+  c.recibido[j] = 0;
+  c.ultimoAgresor[j] = -1;
   c.cayo[j] = false;
   soltarAtrapados(c, j);
   c.ev.push({ k: 'sale', j, idx, clave: 'combate.sale', vars: varsDe(c, j) });
@@ -411,14 +451,28 @@ function efectosPropios(c: Ctx, j: number, m: Movimiento) {
   const e = c.e;
   const u = act(c, j);
   const ef = EFECTOS[m.id] ?? {};
-  if (ef.especial === 'esconderse') {
-    if (u.vol.escondidoAntes && probar(e, 50)) {
-      fallaUsuario(c, j, 'combate.esconde_falla');
+  if (ef.especial === 'esconderse' || ef.especial === 'quepague' || ef.especial === 'aguantar') {
+    // «¡Que pague otro!» needs a third userito to take the blows; with two players left it fails.
+    if (ef.especial === 'quepague' && standing(c, j).length < 2) {
+      fallaUsuario(c, j);
       return;
     }
-    u.vol.escondido = true;
-    c.usoEsc[j] = true;
-    decir(c, 'combate.esconde', varsDe(c, j));
+    // Common rule of the protections: after one worked last turn, the next fails half of the times (a fail resets the chain).
+    if (u.vol.protegidoAntes && probar(e, 50)) {
+      fallaUsuario(c, j, ef.especial === 'esconderse' ? 'combate.esconde_falla' : 'combate.proteccion_falla');
+      return;
+    }
+    c.usoProt[j] = true;
+    if (ef.especial === 'esconderse') {
+      u.vol.escondido = true;
+      decir(c, 'combate.esconde', varsDe(c, j));
+    } else if (ef.especial === 'quepague') {
+      u.vol.desvia = true;
+      decir(c, 'combate.quepague', varsDe(c, j));
+    } else {
+      u.vol.aguanta = true;
+      decir(c, 'combate.aguantar', varsDe(c, j));
+    }
     return;
   }
   if (ef.especial === 'siesta') {
@@ -454,7 +508,9 @@ function efectosSecundarios(c: Ctx, j: number, t: number, m: Movimiento, danino:
   const ef = EFECTOS[m.id] ?? {};
   const v = act(c, t);
   if (v.ps <= 0) return;
-  if (ef.estado && (!danino || probar(e, ef.estado.prob))) ponerEstado(c, t, ef.estado.estado, danino, j);
+  // Happy hour: the attacks that make tipsy do it twice as often.
+  const prob = ef.estado && ef.estado.estado === 'achispado' && hayDeSuceso(e, 'happy') ? Math.min(100, ef.estado.prob * 2) : (ef.estado?.prob ?? 0);
+  if (ef.estado && (!danino || probar(e, prob))) ponerEstado(c, t, ef.estado.estado, danino, j);
   for (const n of ef.nivel ?? []) if (n.a === 'objetivo' && act(c, t).ps > 0 && (n.prob === undefined || probar(e, n.prob))) cambiarNivel(c, t, n.stat, n.cambio, j);
   if (ef.retrocede && !c.actuo[t] && probar(e, ef.retrocede)) c.retrocede[t] = true;
   if (ef.bloqueaCambio) v.vol.sinCambio = true;
@@ -500,6 +556,24 @@ function aplicarPerks(c: Ctx, t: number, dano: number): { dano: number; perk: 'c
   return { dano, perk };
 }
 
+/** «Aguantar el tipo»: while it is on, a hit never takes the userito under 1 HP (`dano` is cut to leave it there). */
+function topeAguante(c: Ctx, t: number, dano: number): number {
+  const v = act(c, t);
+  if (!v.vol.aguanta || dano < v.ps) return dano;
+  c.salvado[t] = true;
+  return Math.max(0, v.ps - 1);
+}
+
+/** The line that says a userito held on, once per move that did it (the flag is set by `topeAguante`). */
+function avisoAguante(c: Ctx, t: number) {
+  if (!c.salvado[t]) return;
+  c.salvado[t] = false;
+  if (!c.dichoAguante[t]) {
+    c.dichoAguante[t] = true;
+    decir(c, 'combate.aguanta', varsDe(c, t), t);
+  }
+}
+
 /** Runs move `m` for player `j` (already paid, announced and not skipped). */
 function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undefined, redirigir: boolean, evUsa: Extract<Evento, { k: 'usa' }>) {
   const e = c.e;
@@ -513,7 +587,11 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
 
   let objetivos: number[];
   if (m.objetivo === 'todos') objetivos = standing(c, j);
-  else {
+  else if (m.objetivo === 'auto') {
+    // «Devolvérsela»: whoever hit it last this turn, if somebody did and is still standing.
+    const ult = c.ultimoAgresor[j];
+    objetivos = c.recibido[j] > 0 && ult >= 0 && standing(c, j).includes(ult) ? [ult] : [];
+  } else {
     const rivales = standing(c, j);
     let t = pedido !== undefined && rivales.includes(pedido) ? pedido : rivales.length ? elegir(e, rivales) : -1; // fallen target -> any rival in pie
     if (t >= 0 && u.vol.cizana > 0) {
@@ -528,6 +606,15 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
         decir(c, 'combate.desvia', varsDe(c, j));
       }
     }
+    // «¡Que pague otro!»: a single-target attack aimed at a userito that is using it goes to a random third one (not the target, not the attacker).
+    if (t >= 0 && act(c, t).vol.desvia) {
+      const otros = rivales.filter((r) => r !== t);
+      if (otros.length) {
+        const antes = t;
+        t = elegir(e, otros);
+        decir(c, 'combate.quepague_desvia', varsDe(c, j, { otro: nom(act(c, antes)) }), antes);
+      }
+    }
     objetivos = t >= 0 ? [t] : [];
   }
   evUsa.obj = [...objetivos];
@@ -536,7 +623,11 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
     return;
   }
 
-  const danina = m.pot !== null || ef.especial === 'premio';
+  const danina = m.pot !== null || ef.especial === 'premio' || ef.especial === 'devolver';
+  const luz = hayDeSuceso(e, 'luz') && !ESPECIE[u.especie].tipos.includes('fantasma'); // Se va la luz: −20 accuracy, except for Fantasma
+  const karaoke = hayDeSuceso(e, 'karaoke'); // Dale al karaoke: area moves hit at 100 %, not 75 %
+  const multS = multSuceso(e, m.tipo);
+  const peleaJ = e.sucesos.find((x) => x.id === 'pelea')?.j; // Pelea en la barra: no «Acorralado» against this player
   let totalDano = 0;
   let algunoVivo = false;
   let cancionDicha = false;
@@ -551,7 +642,7 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
       decir(c, 'combate.esconde_protege', varsDe(c, t), t);
       continue;
     }
-    if (danina && eficacia(m.tipo, ESPECIE[v.especie].tipos) === 0) {
+    if (danina && ef.especial !== 'devolver' && eficacia(m.tipo, ESPECIE[v.especie].tipos) === 0) {
       st(c, j).fal++;
       st(c, t).esq++;
       decir(c, 'combate.no_afecta', varsDe(c, t), t);
@@ -560,7 +651,7 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
     if (m.prec !== null) {
       // Pablo «Labia»: his status moves (pot null) get +10 accuracy points, capped at 100.
       const base = e.jugadores[j].entrenador === 'pablo' && m.pot === null ? Math.min(100, m.prec + PERK_PRECISION_PABLO) : m.prec;
-      const p = base * multNivel(u.niveles.prec);
+      const p = base * multNivel(u.niveles.prec) - (luz ? 20 : 0);
       if (p < 100 && azar(e) * 100 >= p) {
         st(c, j).fal++;
         st(c, t).esq++;
@@ -586,23 +677,35 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
         cancionDicha = true;
       }
       if (pot > 0) {
-        const acorralado = c.golpeado[t].some((a) => a !== j);
+        const acorralado = c.golpeado[t].some((a) => a !== j) && peleaJ !== t;
         const n = ef.golpes === 'multi' ? tiradaGolpes(e) : (ef.golpes ?? 1);
         let efi = 1;
         for (let h = 0; h < n && v.ps > 0; h++) {
           const critico = azar(e) * 512 < ESPECIE[u.especie].base.vel;
-          const r = calcularDano(u, v, m, { pot, azar: 0.85 + azar(e) * 0.15, critico, todos: m.objetivo === 'todos', acorralado });
+          const r = calcularDano(u, v, m, { pot, azar: 0.85 + azar(e) * 0.15, critico, todos: m.objetivo === 'todos' && !karaoke, acorralado, mult: multS });
           efi = r.ef;
           const { dano, perk } = aplicarPerks(c, t, r.dano);
-          totalDano += danar(c, t, dano, { ef: r.ef, critico, de: j, mov: m.id, acorralado });
+          totalDano += danar(c, t, topeAguante(c, t, dano), { ef: r.ef, critico, de: j, mov: m.id, acorralado });
           hechos++;
           if (critico) decir(c, 'combate.critico', varsDe(c, t), t);
           if (perk) decir(c, `combate.perk.${perk}`, varsDe(c, t), t);
+          avisoAguante(c, t);
         }
         if (efi > 1) decir(c, 'combate.muy_eficaz', varsDe(c, t), t);
         else if (efi < 1) decir(c, 'combate.poco_eficaz', varsDe(c, t), t);
         if (n > 1) decir(c, 'combate.veces', { n: hechos }, t);
         if (hechos && !c.golpeado[t].includes(j)) c.golpeado[t].push(j);
+        revisarCaida(c, t, j);
+        v = act(c, t);
+      }
+      // «Devolvérsela»: 1.5 times what it took this turn, whatever the types (a fixed amount: no dice, no critical).
+      if (ef.especial === 'devolver') {
+        const { dano, perk } = aplicarPerks(c, t, Math.max(1, Math.floor(c.recibido[j] * 1.5)));
+        totalDano += danar(c, t, topeAguante(c, t, dano), { ef: 1, critico: false, de: j, mov: m.id });
+        hechos++;
+        if (perk) decir(c, `combate.perk.${perk}`, varsDe(c, t), t);
+        avisoAguante(c, t);
+        if (!c.golpeado[t].includes(j)) c.golpeado[t].push(j);
         revisarCaida(c, t, j);
         v = act(c, t);
       }
@@ -712,6 +815,85 @@ function actuar(c: Ctx, a: Extract<Accion, { tipo: 'atacar' }>) {
   cierre();
 }
 
+// ------------------------------------------------------------------ sucesos del bar
+
+/** 1/8 of the max HP, at least 1 (the heal of most sucesos). */
+const octavo = (u: Userito): number => Math.max(1, Math.floor(u.psMax / 8));
+
+/** Players whose active userito is standing and still in the battle. */
+const enCampo = (c: Ctx): number[] => c.e.jugadores.map((_q, j) => j).filter((j) => !eliminado(c.e, j) && act(c, j).ps > 0);
+
+/**
+ * Draws and applies the suceso of the turn that is about to begin (`e.turno` is already the new turn): turns 5, 10, 15, 20 and 25.
+ * Called at the end of the turn before, so the cartel is on screen before anyone chooses. It picks one of the general sucesos and of
+ * the place's own that has not happened yet in this battle; instant ones act now, the others stay in `e.sucesos` for their turns.
+ */
+function iniciarSuceso(c: Ctx) {
+  const e = c.e;
+  if (e.ganador !== null || !TURNOS_SUCESO.includes(e.turno)) return;
+  const libres = sucesosDe(e.escenario).filter((id) => !e.sucesosVistos.includes(id));
+  if (!libres.length) return;
+  const id = elegir(e, libres);
+  e.sucesosVistos.push(id);
+  const dura = SUCESOS[id].dura;
+  const enPie = enCampo(c);
+  const inicio = c.ev.length;
+  // The player or userito it is about, for the phrase.
+  let sobre = -1;
+  if (id === 'pelea') sobre = [...enPie].sort((a, b) => vidaTotal(e.jugadores[b]) - vidaTotal(e.jugadores[a]) || a - b)[0] ?? -1;
+  if (id === 'cumple') sobre = [...enPie].sort((a, b) => act(c, a).ps / act(c, a).psMax - act(c, b).ps / act(c, b).psMax || a - b)[0] ?? -1;
+  if (id === 'rosas' && enPie.length) sobre = elegir(e, enPie);
+  const vars = sobre >= 0 ? varsDe(c, sobre) : {};
+  c.ev.push({ k: 'suceso', id, turnos: dura, clave: `suceso.${id}.frase`, vars });
+  if (dura > 0) e.sucesos.push(sobre >= 0 && id === 'pelea' ? { id, turnos: dura, j: sobre } : { id, turnos: dura });
+
+  switch (id) {
+    case 'ronda':
+      for (const j of enPie) curar(c, j, octavo(act(c, j)));
+      break;
+    case 'cumple':
+      if (sobre >= 0) {
+        curar(c, sobre, Math.max(1, Math.floor(act(c, sobre).psMax / 4)));
+        cambiarNivel(c, sobre, 'ata', 1);
+      }
+      break;
+    case 'barre':
+      // Vero sweeps away every stage change (no per-stat events: the phrase says it and the state carries the zeros).
+      for (const j of enPie) act(c, j).niveles = niveles0();
+      break;
+    case 'premio': {
+      const gastadas = e.jugadores.map((_q, j) => j).filter((j) => !eliminado(e, j) && !e.jugadores[j].cana);
+      if (gastadas.length) {
+        const j = elegir(e, gastadas);
+        e.jugadores[j].cana = true;
+        c.ev.push({ k: 'texto', j, clave: 'suceso.premio.cana', vars: { jugador: e.jugadores[j].nombre } });
+      } else {
+        c.ev.push({ k: 'texto', clave: 'suceso.premio.cura' });
+        for (const j of enPie) curar(c, j, octavo(act(c, j)));
+      }
+      break;
+    }
+    case 'cierzo':
+      for (const j of enPie) cambiarNivel(c, j, 'vel', -1);
+      break;
+    case 'rosas':
+      if (sobre >= 0) cambiarNivel(c, sobre, 'esp', 1);
+      break;
+    case 'peluca':
+      for (const j of enPie) if (!ESPECIE[act(c, j).especie].tipos.includes('juerga')) cambiarNivel(c, j, 'prec', -1);
+      break;
+    case 'comanda':
+      for (const j of enPie) {
+        const tipos = ESPECIE[act(c, j).especie].tipos;
+        if (tipos.includes('juerga') || tipos.includes('chanza')) curar(c, j, octavo(act(c, j)));
+      }
+      break;
+    default:
+      break; // luz, happy, pelea, karaoke, chinchin: rules that bend the turns they last (see usarMovimiento, finDeTurno)
+  }
+  for (let i = inicio; i < c.ev.length; i++) c.ev[i].fin = true;
+}
+
 // ------------------------------------------------------------------ the turn
 
 function saneaEleccion(c: Ctx, j: number, ch: Eleccion | null | undefined): Accion | null {
@@ -793,6 +975,16 @@ function finDeTurno(c: Ctx) {
     }
   }
 
+  // Chin chin: the two players with the least HP in total heal 1/8 of their active userito's max HP.
+  if (hayDeSuceso(e, 'chinchin')) {
+    const flojos = e.jugadores
+      .map((_q, j) => j)
+      .filter(sigue)
+      .sort((a, b) => vidaTotal(e.jugadores[a]) - vidaTotal(e.jugadores[b]) || a - b)
+      .slice(0, 2);
+    for (const j of flojos) curar(c, j, octavo(act(c, j)), 'suceso.chinchin.cura');
+  }
+
   const octavos = octavosCierre(e.turno);
   if (octavos > 0) {
     decir(c, e.turno === TURNO_CIERRE ? 'combate.cierre' : (e.turno - TURNO_CIERRE) % TURNOS_ESCALADA === 0 ? 'combate.cierre_mas' : 'combate.cierre_sigue');
@@ -806,7 +998,9 @@ function finDeTurno(c: Ctx) {
   for (let j = 0; j < n; j++) {
     const u = act(c, j);
     u.vol.escondido = false;
-    u.vol.escondidoAntes = c.usoEsc[j];
+    u.vol.desvia = false;
+    u.vol.aguanta = false;
+    u.vol.protegidoAntes = c.usoProt[j];
     if (c.cizanaIni[j] && u.vol.cizana > 0) u.vol.cizana--;
   }
   e.cancionAntes = c.cancionAhora;
@@ -862,7 +1056,11 @@ export function resolverTurno(estado: EstadoCombate, elecciones: (Eleccion | nul
     anulada: e.jugadores.map(() => false),
     retrocede: e.jugadores.map(() => false),
     cayo: e.jugadores.map(() => false),
-    usoEsc: e.jugadores.map(() => false),
+    usoProt: e.jugadores.map(() => false),
+    recibido: e.jugadores.map(() => 0),
+    ultimoAgresor: e.jugadores.map(() => -1),
+    salvado: e.jugadores.map(() => false),
+    dichoAguante: e.jugadores.map(() => false),
     recargaIni: [],
     cizanaIni: [],
     pctIni: e.jugadores.map(pctEquipo),
@@ -916,7 +1114,11 @@ export function resolverTurno(estado: EstadoCombate, elecciones: (Eleccion | nul
   alInicio.forEach((idx, j) => {
     if (idx >= 0) e.stats.u[j][idx].tf++;
   });
+  // The sucesos that were on have lived one more turn.
+  e.sucesos = e.sucesos.flatMap((x) => (x.turnos > 1 ? [{ ...x, turnos: x.turnos - 1 }] : []));
   e.turno++;
+  // 5. Something happens in the bar at the start of turns 5, 10...: told now, before anyone chooses.
+  iniciarSuceso(c);
   return { estado: e, eventos: c.ev };
 }
 
@@ -946,7 +1148,11 @@ export function reemplazar(estado: EstadoCombate, elegidos: Record<number, numbe
     anulada: e.jugadores.map(() => false),
     retrocede: e.jugadores.map(() => false),
     cayo: e.jugadores.map(() => false),
-    usoEsc: e.jugadores.map(() => false),
+    usoProt: e.jugadores.map(() => false),
+    recibido: e.jugadores.map(() => 0),
+    ultimoAgresor: e.jugadores.map(() => -1),
+    salvado: e.jugadores.map(() => false),
+    dichoAguante: e.jugadores.map(() => false),
     recargaIni: [],
     cizanaIni: [],
     pctIni: [],

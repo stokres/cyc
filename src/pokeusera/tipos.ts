@@ -39,8 +39,9 @@ export interface Especie {
   movs: [string, string, string, string];
 }
 
-/** «uno»: one rival the player picks; «todos»: the three rivals (75 % power); «yo»: the user. */
-export type Objetivo = 'uno' | 'todos' | 'yo';
+/** «uno»: one rival the player picks; «todos»: the three rivals (75 % power); «yo»: the user;
+ *  «auto»: the engine picks the target (Devolvérsela: whoever hit the user last), nothing to choose. */
+export type Objetivo = 'uno' | 'todos' | 'yo' | 'auto';
 
 export interface Movimiento {
   id: string;
@@ -52,7 +53,8 @@ export interface Movimiento {
   prec: number | null;
   pp: number;
   objetivo: Objetivo;
-  /** Turn order bracket: 0 normal, 1 Susto, 2 Esconderse (switches and the caña go before all). */
+  /** Turn order bracket: +2 protections (Esconderse, ¡Que pague otro!, Aguantar el tipo), +1 quick (Susto, ¡Me cuelo!,
+   *  Rebufo, Colleja), 0 normal (absent), −1 slow (Devolvérsela). Switches and the caña go before all. Same bracket: faster first. */
   prioridad?: number;
 }
 
@@ -92,10 +94,14 @@ export interface Userito {
     recarga: boolean;
     /** «¡Una más!»: cannot switch next turn. */
     sinCambio: boolean;
-    /** «Esconderse» used last turn (for the 50 % fail). */
-    escondidoAntes: boolean;
-    /** Hidden this turn. */
+    /** A protection (Esconderse, ¡Que pague otro!, Aguantar el tipo) worked last turn: the next one fails half of the times. */
+    protegidoAntes: boolean;
+    /** Hidden this turn («Esconderse»). */
     escondido: boolean;
+    /** «¡Que pague otro!» this turn: the single-target attacks aimed at it go to another userito. */
+    desvia: boolean;
+    /** «Aguantar el tipo» this turn: no hit leaves it under 1 HP. */
+    aguanta: boolean;
   };
 }
 
@@ -186,7 +192,28 @@ export interface Estadisticas {
   gr: [number, number][];
 }
 
+/** The bars the battle can be played in (the background, the music and the events of the place; docs/POKEUSERA.md, «Sucesos del bar»). */
+export type EscenarioId = 'brio' | 'terraza' | 'rural' | 'juan';
+export const ESCENARIOS: readonly EscenarioId[] = ['brio', 'terraza', 'rural', 'juan'];
+
+/** Things that happen in the bar on turns 5, 10, 15, 20 and 25 (datos.ts: `SUCESOS`). */
+export type SucesoId = 'ronda' | 'luz' | 'happy' | 'cumple' | 'pelea' | 'karaoke' | 'barre' | 'premio' | 'cierzo' | 'rosas' | 'desfile' | 'peluca' | 'comanda' | 'chinchin';
+
+/** A suceso that lasts: `turnos` = turns it still counts for, including the one about to be chosen (2 at the start of its first turn).
+ *  `j`: the player it is about, when it picks one (Pelea en la barra: the leader, who is not «acorralado»). */
+export interface SucesoActivo {
+  id: SucesoId;
+  turnos: number;
+  j?: number;
+}
+
 export interface EstadoCombate {
+  /** Where the battle is played. */
+  escenario: EscenarioId;
+  /** Sucesos that are on now (the instant ones are not here), for the badge and for the rules they bend. */
+  sucesos: SucesoActivo[];
+  /** Every suceso already drawn in this battle (none repeats). */
+  sucesosVistos: SucesoId[];
   turno: number;
   jugadores: Jugador[];
   /** Seeded RNG state (mulberry32). */
@@ -240,6 +267,9 @@ export type Evento = {
   | { k: 'sale'; j: number; idx: number }
   | { k: 'eliminado'; j: number; puesto: number }
   | { k: 'fin'; ganador: number }
+  /** A suceso of the bar starts, at the end of the turn before it (so it is on screen before anyone chooses). `turnos`: how long it lasts
+   *  (0 = instant). `clave` is its phrase (`suceso.<id>.frase`); the effects that follow (heals, stages) are ordinary events. */
+  | { k: 'suceso'; id: SucesoId; turnos: number }
 );
 
 /** Draft (snake order) shared state. */

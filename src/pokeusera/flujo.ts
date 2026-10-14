@@ -2,10 +2,11 @@
 // battle → podium. Solo play is a `Partida` (partida.ts) whose hooks are answered by the screens
 // in pantallas/; online play (red/online.ts) runs the same `Partida` on the host and, for guests,
 // drives the same screens (VistaDraft, VistaCombate, pantallaPodio) from network messages.
-import { ENTRENADORES, type EntrenadorId } from './tipos';
+import { ENTRENADORES, type EntrenadorId, type EscenarioId } from './tipos';
 import { ESPECIES } from './datos';
 import { crearRnd } from './motor/azar';
 import { Partida, esCancelada, type Asiento, type Ganchos } from './partida';
+import { actualizarApp, hayConexion, instalarApp } from './aplicacion';
 import { pantalla } from './pantalla';
 import { sonido } from './sonido';
 import { cargarAjustes, guardarAjustes, pantallaAjustes } from './pantallas/ajustes';
@@ -15,9 +16,10 @@ import { abrirUseritopedia } from './pantallas/useritopedia';
 import { VistaDraft } from './pantallas/draft';
 import { pantallaEntrenador } from './pantallas/entrenador';
 import { pantallaMenu, type OpcionMenu } from './pantallas/menu';
+import { mensaje } from './pantallas/modal';
 import { pantallaPodio, type SalidaPodio } from './pantallas/podio';
 import { pantallaTitulo } from './pantallas/titulo';
-import { nombreEnt } from './pantallas/ui';
+import { envolver, nombreEnt, t } from './pantallas/ui';
 import { jugarOnline } from './red/online';
 
 /** Entry points other parts of the game replace. */
@@ -35,10 +37,12 @@ export interface OpcionesFlujo {
   auto: boolean;
   semilla?: number;
   pj?: EntrenadorId;
+  /** `?escenario=brio|terraza|rural|juan`: the bar of the battle (default: drawn from the seed). */
+  escenario?: EscenarioId;
 }
 
 /** Plays one solo game (you + three machines) and shows the podium. */
-export async function jugarSolo(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combate' | 'auto' | 'semilla'>): Promise<SalidaPodio> {
+export async function jugarSolo(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combate' | 'auto' | 'semilla' | 'escenario'>): Promise<SalidaPodio> {
   const otros = ENTRENADORES.filter((e) => e !== yo);
   const asientos: Asiento[] = [
     { tipo: o.auto ? 'bot' : 'local', entrenador: yo, nombre: nombreEnt(yo) },
@@ -80,7 +84,7 @@ export async function jugarSolo(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combat
     alReemplazo: (ev, estado) => vc.alReemplazo(ev, estado),
     alFin: (estado) => vc.alFin(estado),
   };
-  const partida = new Partida(asientos, ganchos, { semilla: o.semilla, rapido: o.auto, equipos });
+  const partida = new Partida(asientos, ganchos, { semilla: o.semilla, rapido: o.auto, equipos, escenario: o.escenario });
   vd.alAbandonar = vc.alAbandonar = () => partida.cancelar();
   (window as unknown as { __pokeusera?: unknown }).__pokeusera = { partida, vc, vd };
   try {
@@ -92,7 +96,7 @@ export async function jugarSolo(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combat
   }
 }
 
-async function jugarVarias(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combate' | 'auto' | 'semilla'>) {
+async function jugarVarias(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combate' | 'auto' | 'semilla' | 'escenario'>) {
   // «OTRA»: same trainer, a new draft.
   while ((await jugarSolo(yo, o)) === 'otra') o = { ...o, combate: false, semilla: undefined };
 }
@@ -116,8 +120,18 @@ export async function ejecutar(o: OpcionesFlujo): Promise<void> {
       if (m === 'ajustes') await pantallaAjustes();
       else if (m === 'guia') await abrirGuia(null);
       else if (m === 'useritopedia') await abrirUseritopedia(null);
-      else if (m === 'online') await enlaces.jugarOnline();
-      else if (m === 'solo') {
+      else if (m === 'online') {
+        // Without connection there is no room: say so (solo play, the Useritopedia and the guide work offline).
+        if (hayConexion()) await enlaces.jugarOnline();
+        else await mensaje(pantalla().escena, envolver(t('pwa.sinconexion'), 190));
+      } else if (m === 'actualizar') actualizarApp();
+      else if (m === 'instalar') {
+        // Android/Chrome: the browser's prompt. iPhone/Safari has none: two steps.
+        if ((await instalarApp()) === 'pasos') {
+          const lineas = [t('pwa.ios.titulo'), ...envolver(t('pwa.ios.1'), 190), ...envolver(t('pwa.ios.2'), 190)];
+          await mensaje(pantalla().escena, lineas);
+        }
+      } else if (m === 'solo') {
         const yo = await pantallaEntrenador();
         if (!yo) continue;
         guardarAjustes({ entrenador: yo });

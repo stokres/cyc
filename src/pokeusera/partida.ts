@@ -5,7 +5,7 @@
 //
 // Seats: 'local' = this browser's screens (`ganchos.pedirX`), 'bot' = the machine, 'remoto' = an
 // online guest (`ganchos.remoto.pedirX`; with no `remoto` the machine plays for them).
-import type { Eleccion, EntrenadorId, EstadoCombate, EstadoDraft, Evento } from './tipos';
+import type { Eleccion, EntrenadorId, EscenarioId, EstadoCombate, EstadoDraft, Evento } from './tipos';
 import { crearRnd } from './motor/azar';
 import { crearDraft, elegir as elegirDraft, equipos as equiposDraft, turnoDraft } from './motor/draft';
 import { crearCombate, eleccionAlAzar, eliminado, enGrada, reemplazar, resolverTurno, vivos } from './motor/combate';
@@ -50,6 +50,8 @@ export interface Ganchos extends Decisor {
 
 export interface OpcionesPartida {
   semilla?: number;
+  /** The bar where the battle is played (default: drawn from the battle's seed). It travels in `EstadoCombate.escenario`. */
+  escenario?: EscenarioId;
   /** Smoke tests: no thinking pauses for the bots. */
   rapido?: boolean;
   /** Skip the draft: the teams (species ids per seat). */
@@ -144,6 +146,7 @@ export class Partida {
     const estado0 = crearCombate(
       this.asientos.map((a, j) => ({ entrenador: a.entrenador, nombre: a.nombre, bot: a.tipo === 'bot', especies: listas[j] })),
       Math.floor(this.rnd() * 2 ** 31),
+      this.opciones.escenario,
     );
     this.estado = estado0;
     await this.esperar(this.ganchos.alInicio(estado0));

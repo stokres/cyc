@@ -5,15 +5,16 @@
 //   pedirEleccion(j, estado, ms) / pedirReemplazo(j, estado, ms)   the local player decides (promises)
 //   alTurno(eventos, estado) / alReemplazo(eventos, estado)       play the events, then adopt `estado`
 // so a guest can drive it from network messages exactly like the host does from Partida.
-import { ENTRENADORES, type Eleccion, type Estado, type EstadoCombate, type Evento, type Stat, type Tipo, type Userito } from '../tipos';
+import { ENTRENADORES, type Eleccion, type Estado, type EstadoCombate, type Evento, type Stat, type SucesoId, type Tipo, type Userito } from '../tipos';
 import { COLOR_TIPO } from '../arte/paleta';
 import { hayTexto } from '../../juego/textos';
-import { ESPECIE, MOVS, DESESPERADA, eficacia } from '../datos';
+import { ESPECIE, MOVS, DESESPERADA, SUCESOS, eficacia } from '../datos';
 import { activo, eliminado, enGrada, movsDisponibles, necesitaObjetivo, puedeCambiar, rivalesEnPie, vivos } from '../motor/combate';
 import { anchoTexto2, dibujarTexto2 } from '../arte2/fuente2';
 import { PS_TONOS, TINTA2, TINTA_SUAVE } from '../arte2/paleta2';
 import { spriteEspalda2, spriteFrente2 } from '../arte2/sprites2';
 import { barraPS2, bandaEntrenador, filaMenu, hornear, panel, panelCacheado, pegable, pip, relleno } from '../arte2/ui2';
+import { clasePrioridad, iconoPrioridad, LADO_ICONO_PRIO } from './iconosMov';
 import { JUGADORES2, SOMBRA_TEXTO } from '../arte2/paleta2';
 import { entrada, type Accion } from '../entrada';
 import { ANCHO, pantalla, type Escena } from '../pantalla';
@@ -266,6 +267,66 @@ function rotuloFlotante(s: string, color: string): HTMLCanvasElement {
   return c;
 }
 
+/** Width of the big banner of a suceso and of its chip's height. */
+const ANCHO_CARTEL_SUCESO = ANCHO - 28;
+const ALTO_CARTEL_SUCESO = 58;
+const ALTO_CHAPA = 13;
+/** The colour of the line «dura N turnos más» in the card of a suceso. */
+const colorAyuda = '#a8501c';
+
+/** The big banner of a suceso of the bar («SUCESO EN EL BAR», its name in big letters, how long it lasts), baked once per suceso: a blit per frame while it is up. */
+function cartelSucesoImg(id: SucesoId): HTMLCanvasElement {
+  const nombre = t(`suceso.${id}.nombre`).toUpperCase();
+  const w = ANCHO_CARTEL_SUCESO;
+  const h = ALTO_CARTEL_SUCESO;
+  return hornear(`suceso-cartel|${id}|${nombre}`, w, h, (cx) => {
+    panel(cx, 0, 0, w, h);
+    // The ribbon with the heading.
+    const cab = t('suceso.titulo');
+    const rw = anchoTexto2(cab) + 20;
+    const rx = Math.floor((w - rw) / 2);
+    relleno(cx, TINTA2, rx, 6, rw, 12);
+    texto2(cx, cab, rx + 10, 9, '#fdf0c0', null);
+    // The name: as big as it fits.
+    const dos = anchoTexto2(nombre) * 2 <= w - 16;
+    const escala = dos ? 2 : 1;
+    const nw = anchoTexto2(nombre) * escala;
+    textoGrande(cx, nombre, Math.floor((w - nw) / 2), dos ? 23 : 27, TINTA2, escala);
+    // How long it lasts, in a gold pill.
+    const dura = SUCESOS[id].dura;
+    const tx = dura === 0 ? t('suceso.al_momento') : dura === 1 ? t('suceso.dura1') : t('suceso.dura', { n: dura });
+    const pw = anchoTexto2(tx) + 12;
+    const px = Math.floor((w - pw) / 2);
+    relleno(cx, TINTA2, px, 42, pw, 11);
+    relleno(cx, '#f0c860', px + 1, 43, pw - 2, 9);
+    rect(cx, 'rgba(255,255,255,0.4)', px + 2, 43, pw - 4, 1);
+    texto2(cx, tx, px + 6, 45, TINTA2, null);
+    // A few gold sparkles at the sides.
+    for (const [sx, sy] of [[12, 28], [w - 13, 28], [20, 46], [w - 21, 46]]) {
+      rect(cx, '#e0a83a', sx, sy - 2, 1, 5);
+      rect(cx, '#e0a83a', sx - 2, sy, 5, 1);
+    }
+  });
+}
+
+/** The chip under the field while a suceso lasts: its name and the turns it has left. Baked per suceso and turns. */
+function chapaSucesoImg(id: SucesoId, turnos: number): HTMLCanvasElement {
+  const nombre = t(`suceso.${id}.nombre`).toUpperCase();
+  const wn = anchoTexto2(nombre);
+  const w = wn + 20;
+  return hornear(`suceso-chapa|${id}|${turnos}|${nombre}`, w, ALTO_CHAPA, (cx) => {
+    relleno(cx, TINTA2, 0, 0, w, ALTO_CHAPA);
+    relleno(cx, '#fbe19a', 1, 1, w - 2, ALTO_CHAPA - 2);
+    rect(cx, '#fff3c8', 3, 1, w - 6, 1);
+    texto2(cx, nombre, 4, 3, TINTA2, null);
+    const bx = 4 + wn + 3;
+    relleno(cx, TINTA2, bx, 2, 11, 9);
+    relleno(cx, '#d4382c', bx + 1, 3, 9, 7);
+    const n = String(turnos);
+    texto2(cx, n, bx + 1 + Math.floor((9 - anchoTexto2(n)) / 2), 4, '#fff8e8', null);
+  });
+}
+
 /** A translucent veil of a fixed colour as a ready-made `rgba` fill (no `save`, no `globalAlpha`); the strings are made once per level of alpha. */
 function velos(r: number, g: number, b: number) {
   const cache: string[] = [];
@@ -344,7 +405,7 @@ function anilloCacheado(rx: number, ry: number, color: string): HTMLCanvasElemen
 const REACCIONES = new Set(['combate.critico', 'combate.muy_eficaz', 'combate.poco_eficaz', 'combate.veces']);
 
 /** Lines that tell what happened to ONE target of an area move; they travel with the hits of that move (see `grupoArea`). */
-const TEXTOS_DE_GRUPO = new Set([...REACCIONES, 'combate.no_afecta', 'combate.esconde_protege', 'combate.sin_efecto', 'combate.tope_sube', 'combate.tope_baja', 'combate.atrapa', 'combate.bostezo', 'combate.cizana', 'combate.venganza']);
+const TEXTOS_DE_GRUPO = new Set([...REACCIONES, 'combate.no_afecta', 'combate.esconde_protege', 'combate.sin_efecto', 'combate.tope_sube', 'combate.tope_baja', 'combate.atrapa', 'combate.bostezo', 'combate.cizana', 'combate.venganza', 'combate.aguanta']);
 
 type EvGolpe = Extract<Evento, { k: 'golpe' }>;
 
@@ -371,7 +432,9 @@ export class VistaCombate implements Escena {
   /** The visual effects of the moves (lentils, firecrackers...): see `efectosMov.ts`. */
   private efectos = new EfectosMov();
   /** What the frame looks like apart from the animations (see `paso`): redraw only when it changes. */
-  private firma = new Firma(7 + 2 * MAX_FIRMA_FLOT);
+  private firma = new Firma(8 + 2 * MAX_FIRMA_FLOT);
+  /** The big banner of a suceso of the bar being announced (null: none). */
+  private cartelSuceso: SucesoId | null = null;
   private geomH = -1;
   private geomVal: ReturnType<VistaCombate['calcularGeom']> | null = null;
   private rivLista: number[] = [];
@@ -622,6 +685,14 @@ export class VistaCombate implements Escena {
     let area: number[] | null = null;
     for (let i = 0; i < eventos.length; i++) {
       const ev = eventos[i];
+      if (ev.k === 'suceso') {
+        // The suceso and what it does to the useritos (heals, stage changes: the events right after it) play as one.
+        let k = i + 1;
+        while (k < eventos.length && this.deSuceso(eventos[k])) k++;
+        await this.suceso(ev, eventos.slice(i + 1, k));
+        i = k - 1;
+        continue;
+      }
       if (ev.k === 'usa') area = (ev.obj?.length ?? 0) >= 2 ? ev.obj! : null;
       else if (area && this.deGrupo(ev, area)) {
         let k = i + 1;
@@ -682,6 +753,39 @@ export class VistaCombate implements Escena {
       default:
         return false;
     }
+  }
+
+  /** Whether `ev` is an effect of the suceso just announced (a heal, a stage change, or a line about them). */
+  private deSuceso(ev: Evento): boolean {
+    if (!ev.fin) return false;
+    switch (ev.k) {
+      case 'cura':
+      case 'nivel':
+        return !ev.clave || ev.clave.startsWith('combate.');
+      case 'texto':
+        return (ev.clave ?? '').startsWith('suceso.premio.') || (ev.clave ?? '').startsWith('combate.tope_');
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * Something happens in the bar: the big banner and the phrase, then its effects on the useritos all at once. A suceso that lasts
+   * joins the chips under the field (`disp.sucesos`, the same the engine's state will carry).
+   */
+  private async suceso(ev: Extract<Evento, { k: 'suceso' }>, efectos: Evento[]) {
+    this.entrarFin(ev);
+    this.foco = null;
+    if (ev.turnos > 0) this.disp.sucesos = [...this.disp.sucesos.filter((x) => x.id !== ev.id), { id: ev.id, turnos: ev.turnos }];
+    this.cartelSuceso = ev.id;
+    sonido.efecto('turno');
+    pantalla().redibujar();
+    // The banner stays while the phrase is read (with the tap-to-continue pace, until the tap) and at least a moment.
+    const minimo = cfg.rapido ? 0 : Math.max(900, ritmo().orden);
+    await Promise.all([ev.clave ? this.decir(t(ev.clave, ev.vars)) : Promise.resolve(), dormir(minimo)]);
+    this.cartelSuceso = null;
+    pantalla().redibujar();
+    if (efectos.length) await this.grupoArea(efectos);
   }
 
   private userito(j: number): Userito {
@@ -835,6 +939,7 @@ export class VistaCombate implements Escena {
         this.foco = null;
         break;
       case 'texto':
+      case 'suceso':
         break;
     }
     if (linea) tareas.push(this.decir(linea, espera));
@@ -885,9 +990,13 @@ export class VistaCombate implements Escena {
     const avisos: Extract<Evento, { k: 'texto' }>[] = [];
     const lineas: Extract<Evento, { k: 'texto' }>[] = [];
     const caidas: Extract<Evento, { k: 'cae' }>[] = [];
+    const curas: Extract<Evento, { k: 'cura' }>[] = [];
     const efectos: EvEfecto[] = [];
     for (const ev of evs) {
       switch (ev.k) {
+        case 'cura':
+          curas.push(ev);
+          break;
         case 'golpe': {
           const l = golpes.get(ev.j);
           if (l) l.push(ev);
@@ -933,6 +1042,19 @@ export class VistaCombate implements Escena {
       await Promise.all(ronda.flatMap((g) => this.golpeVisual(g, false, r < rondas - 1)));
     }
     if (!rondas && (fallas.length || avisos.length)) await dormir(ritmo().entre * 2);
+    // Heals (a suceso's): every bar fills at once, with its +N.
+    if (curas.length) {
+      sonido.efecto('cura');
+      await Promise.all(
+        curas.map((c) => {
+          const u = this.userito(c.j);
+          const ganado = c.ps - u.ps;
+          u.ps = c.ps;
+          if (ganado > 0) this.flota(c.j, `+${ganado}`, PS_VERDE, 'num');
+          return this.barra(c.j, c.ps);
+        }),
+      );
+    }
 
     // 2. What the hits left to say about one target (a perk, a cap...).
     for (const l of lineas) await this.decir(t(l.clave!, l.vars));
@@ -1318,6 +1440,7 @@ export class VistaCombate implements Escena {
     const foco = this.foco;
     const activo = foco !== null || n > 0 || this.ordenHasta > 0;
     v.fill(0);
+    v[7 + 2 * MAX_FIRMA_FLOT] = this.cartelSuceso ? 1 : 0;
     if (activo) {
       if (foco) {
         v[0] = 1 + Math.round(Math.min(1, (ahoraPerf - foco.t0) / duracionFundido()) * PASOS_FUNDIDO);
@@ -1413,6 +1536,7 @@ export class VistaCombate implements Escena {
     this.dibujarEleccionObjetivo(ctx, ahora);
     this.dibujarOrdenGrande(ctx, G);
     this.dibujarFlotantes(ctx);
+    this.dibujarSucesos(ctx, G);
     // Bottom area.
     dibujarBandeja(ctx, G.campo, G.H);
     this.zonaInferior(ctx, G, ahora);
@@ -1741,7 +1865,9 @@ export class VistaCombate implements Escena {
                 relleno(ctx, r.bg, x0 + wi - rw + 1, cy - 1, rw - 2, 9);
                 texto2(ctx, r.s, x0 + wi - rw + 4, cy, r.fg, null);
               }
-              texto2(ctx, recortar(m.nombre, wi - 30 - rw - 4), x0 + 28, cy, TINTA2, null);
+              const clase = clasePrioridad(m.prioridad);
+              if (clase) ctx.drawImage(iconoPrioridad(clase), x0 + wi - rw - LADO_ICONO_PRIO - 4, cy - 1);
+              texto2(ctx, recortar(m.nombre, wi - 30 - rw - 4 - (clase ? LADO_ICONO_PRIO + 4 : 0)), x0 + 28, cy, TINTA2, null);
               cy += 14;
             }
           }
@@ -1916,6 +2042,70 @@ export class VistaCombate implements Escena {
       relleno(ctx, TINTA2, cx, cy, 10, 12);
       texto2(ctx, String(i + 1), cx + 3, cy + 2, '#fdf0c0', null);
       texto2(ctx, recortar(ESPECIE[a.especie].nombre, cw - 3), cx + 1, cy + 36, TINTA2, null);
+    });
+  }
+
+  // ---- the sucesos of the bar: the big banner when one starts, the chips while it lasts
+
+  private dibujarSucesos(ctx: CanvasRenderingContext2D, G: ReturnType<VistaCombate['geom']>) {
+    // The chips of the sucesos that last, along the bottom of the field; a tap explains one (when the cards are available).
+    let x = 6;
+    for (const sc of this.disp.sucesos) {
+      const img = chapaSucesoImg(sc.id, sc.turnos);
+      const y = G.campo - ALTO_CHAPA - 1;
+      ctx.drawImage(img, x, y);
+      if (this.infoPosible) {
+        const id = sc.id;
+        const turnos = sc.turnos;
+        entrada.zona(x - 2, y - 4, img.width + 4, ALTO_CHAPA + 8, () => void this.abrirSuceso(id, turnos));
+      }
+      x += img.width + 4;
+    }
+    // The banner of the one being announced, in the middle of the field.
+    if (this.cartelSuceso) {
+      const y = G.hud + Math.max(4, Math.floor((G.campo - G.hud - ALTO_CARTEL_SUCESO) / 2));
+      ctx.drawImage(cartelSucesoImg(this.cartelSuceso), Math.floor((ANCHO - ANCHO_CARTEL_SUCESO) / 2), y);
+    }
+  }
+
+  /** The card of a suceso (tap its chip): its name, how long it has left and what it does. */
+  private abrirSuceso(id: SucesoId, turnos: number): Promise<void> {
+    sonido.efecto('aceptar');
+    return sobre<void>(this, (cerrar) => {
+      const cierra = () => {
+        sonido.efecto('atras');
+        cerrar();
+      };
+      return {
+        dibujar: (ctx) => {
+          const H = pantalla().alto;
+          const w = ANCHO - 24;
+          const x = 12;
+          const nombre = t(`suceso.${id}.nombre`).toUpperCase();
+          const desc = envolver(t(`suceso.${id}.desc`), w - 24);
+          const resta = turnos > 1 ? t('suceso.resta', { n: turnos }) : t('suceso.resta1');
+          const h = 16 + 16 + 16 + desc.length * 12 + 10 + 22 + 12;
+          const y = Math.max(20, Math.round((H - h) / 2));
+          oscurecer(ctx, H);
+          entrada.zona(0, 0, ANCHO, H, cierra);
+          entrada.zona(x, y, w, h, () => undefined);
+          panelCacheado(ctx, x, y, w, h);
+          texto2(ctx, t('suceso.titulo'), x + 12, y + 11, TINTA_SUAVE, null);
+          const dos = anchoTexto2(nombre) * 2 <= w - 24;
+          if (dos) textoGrande(ctx, nombre, x + 12, y + 24, TINTA2, 2);
+          else texto2(ctx, recortar(nombre, w - 24), x + 12, y + 27);
+          let yy = y + 46;
+          texto2(ctx, resta, x + 12, yy, colorAyuda, null);
+          yy += 16;
+          rect(ctx, '#d6c08a', x + 10, yy - 4, w - 20, 1);
+          desc.forEach((l, i) => texto2(ctx, l, x + 12, yy + 2 + i * 12, TINTA2, null));
+          const bh = 22;
+          const by = y + h - 10 - bh;
+          boton(ctx, x + 10, by, w - 20, bh, t('suceso.cerrar'), true);
+          entrada.zona(x + 10, by, w - 20, bh, cierra);
+        },
+        accion: () => cierra(),
+      };
     });
   }
 
@@ -2369,6 +2559,15 @@ export class VistaCombate implements Escena {
         const s = `${pp}/${m.pp}`;
         texto2(ctx, s, xFin - anchoTexto2(s), ty, sinPP ? '#d4382c' : TINTA_SUAVE, null);
         xFin -= anchoTexto2(s) + 6;
+      }
+      // The class of its priority (quick, protection, slow) as a pixel icon left of the PP.
+      const clase = clasePrioridad(m.prioridad);
+      if (clase) {
+        xFin -= LADO_ICONO_PRIO + 3;
+        ctx.save();
+        if (sinPP) ctx.globalAlpha = 0.45;
+        ctx.drawImage(iconoPrioridad(clase), xFin + 2, y + Math.floor((alto - LADO_ICONO_PRIO) / 2));
+        ctx.restore();
       }
       if (m.pot !== null && !sinPP) {
         // One marker per rival in play, in its trainer's colour: up = hits double, down = half, X = nothing, empty = normal.

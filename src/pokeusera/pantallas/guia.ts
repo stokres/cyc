@@ -4,7 +4,7 @@
 // Everything it says lives in src/textos/pokeusera.md (`guia.*`, plus the older `ayuda.*` keys); the type
 // table is read from `eficacia` in datos.ts, so it can never disagree with the engine.
 import { ENTRENADORES, type Estado, type Tipo } from '../tipos';
-import { TIPOS, eficacia } from '../datos';
+import { SUCESOS, TIPOS, eficacia } from '../datos';
 import { anchoTexto2 } from '../arte2/fuente2';
 import { PAPEL_ALTO, TINTA2, TINTA_SUAVE } from '../arte2/paleta2';
 import { hornear, icono2, panelCacheado, relleno } from '../arte2/ui2';
@@ -12,6 +12,7 @@ import { COLOR_TIPO, NOMBRE_TIPO } from '../arte/paleta';
 import { entrada, type Accion } from '../entrada';
 import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
+import { iconoPrioridad, LADO_ICONO_PRIO, type ClasePrioridad } from './iconosMov';
 import { sobre } from './modal';
 import { ALTO_INSIGNIA, barraArriba, boton, envolver, etiquetaEstado, ficha, fondoPapel, flecha, insignaTipo, nombreEnt, rect, t, texto2 } from './ui';
 
@@ -126,12 +127,21 @@ interface OpcionesTarjeta {
   alto?: number;
 }
 
+/** The wrapped lines of a card's paragraph, remembered (a long page draws a dozen cards on every redraw while it scrolls). */
+const lineasCache = new Map<string, string[]>();
+function lineasDe(s: string, w: number): string[] {
+  const k = `${w}|${s}`;
+  let l = lineasCache.get(k);
+  if (!l) lineasCache.set(k, (l = envolver(s, w)));
+  return l;
+}
+
 /** A paper card with an optional badge, a title and a paragraph; returns its height. */
 function tarjeta(ctx: CanvasRenderingContext2D, y: number, o: OpcionesTarjeta): number {
   const sang = o.sangria ?? 0;
   const tx = X0 + 8 + sang;
   const w = AN - 16 - sang;
-  const lineas = o.cuerpo ? envolver(o.cuerpo, w) : [];
+  const lineas = o.cuerpo ? lineasDe(o.cuerpo, w) : [];
   const h = Math.max(o.alto ?? 0, 8 + (o.titulo ? 14 : 0) + lineas.length * 12 + (o.pieAlto ?? 0) + 5);
   panelCacheado(ctx, X0, y, AN, h);
   o.marca?.(ctx, X0 + 8, y + 8);
@@ -164,6 +174,13 @@ const insigniaNum = (n: number) => (ctx: CanvasRenderingContext2D, x: number, y:
   rect(ctx, '#fff3c8', x + 2, y, 12, 1);
   const s = String(n);
   texto2(ctx, s, x + Math.floor((16 - anchoTexto2(s)) / 2), y + 4, TINTA2, null);
+};
+
+/** The 16×16 box with a priority's pixel icon in the middle. */
+const marcaPrioridad = (clase: ClasePrioridad) => (ctx: CanvasRenderingContext2D, x: number, y: number) => {
+  relleno(ctx, TINTA2, x, y - 1, 16, 16);
+  relleno(ctx, PAPEL_ALTO, x + 1, y, 14, 14);
+  ctx.drawImage(iconoPrioridad(clase), x + Math.floor((16 - LADO_ICONO_PRIO) / 2), y + 2);
 };
 
 /** A coloured badge with the rule's key figure inside (1/2, ×2, turn 30...). */
@@ -372,6 +389,7 @@ export function abrirGuia(base: Escena | null, pagina?: string): Promise<void> {
     const REGLAS: [string, string, string][] = [
       ['acorralado', '#d4382c', '1/2'],
       ['venganza', '#a85cc4', '×2'],
+      ['prioridad', '', ''],
       ['cierre', '#5a6aa8', '30'],
       ['grada', '#3a9a44', '3'],
       ['cana', '', ''],
@@ -386,12 +404,25 @@ export function abrirGuia(base: Escena | null, pagina?: string): Promise<void> {
             sangria: 22,
             marca: col
               ? insigniaColor(col, cifra)
-              : (c, x, yy) => {
-                  relleno(c, TINTA2, x, yy - 1, 16, 16);
-                  relleno(c, PAPEL_ALTO, x + 1, yy, 14, 14);
-                  icono2(c, 'cana', x + 1, yy);
-                },
+              : id === 'prioridad'
+                ? marcaPrioridad('rapido')
+                : (c, x, yy) => {
+                    relleno(c, TINTA2, x, yy - 1, 16, 16);
+                    relleno(c, PAPEL_ALTO, x + 1, yy, 14, 14);
+                    icono2(c, 'cana', x + 1, yy);
+                  },
           }) + 3;
+      // The three kinds of priority, with the icon the move buttons and cards carry.
+      for (const clase of ['rapido', 'proteccion', 'lento'] as const)
+        y += tarjeta(ctx, y, { titulo: t(`guia.prio.${clase}.t`), cuerpo: t(`guia.prio.${clase}.d`), sangria: 22, alto: 30, marca: marcaPrioridad(clase) }) + 3;
+      // What happens in the bar on turns 5 to 25.
+      y += 4 + encabezado(ctx, y + 4, t('guia.h.sucesos'));
+      y += tarjeta(ctx, y, { cuerpo: t('guia.sucesos.nota') }) + 3;
+      for (const id of Object.keys(SUCESOS) as (keyof typeof SUCESOS)[]) {
+        const sitio = SUCESOS[id].escenario;
+        const donde = sitio ? ` ${t('guia.sucesos.donde', { sitio: t(`guia.sucesos.sitio.${sitio}`) })}` : '';
+        y += tarjeta(ctx, y, { titulo: t(`suceso.${id}.nombre`).toUpperCase(), cuerpo: `${t(`suceso.${id}.desc`)}${donde}` }) + 3;
+      }
       // One small perk per trainer (the engine applies them: motor/combate.ts).
       y += 4 + encabezado(ctx, y + 4, t('guia.h.perks'));
       y += tarjeta(ctx, y, { cuerpo: t('guia.perks.nota') }) + 3;

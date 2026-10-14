@@ -1,7 +1,7 @@
 // PokéUsera · Edición Jarra: all the data of docs/POKEUSERA.md (type chart, the 24 useritos,
 // the move table and the engine-side effect of each move). Names are data; every sentence the
 // game says lives in src/textos/pokeusera-combate.md.
-import type { Especie, Estado, Movimiento, Stat, Tipo } from './tipos';
+import type { EscenarioId, Especie, Estado, Movimiento, Stat, SucesoId, Tipo } from './tipos';
 
 export const TIPOS: readonly Tipo[] = ['mindundi', 'petardo', 'droga', 'bronca', 'ventolera', 'chispa', 'alcohol', 'juerga', 'chanza', 'grasa', 'fantasma'];
 
@@ -63,29 +63,29 @@ const e = (id: string, nombre: string, tipos: Especie['tipos'], ps: number, ata:
 export const ESPECIES: Especie[] = [
   e('draguserin', 'Draguserín', ['petardo', 'ventolera'], 75, 80, 70, 95, 100, ['traca', 'petardazo', 'planeo', 'esconderse']),
   e('goudazard', 'Goudazard', ['grasa', 'petardo'], 75, 70, 85, 90, 100, ['goudamadre', 'fogonazo', 'pringue', 'rebozado']),
-  e('aceituna', 'Aceituna', ['mindundi', 'chanza'], 90, 100, 90, 75, 65, ['lametazo', 'cara_de_pena', 'vacile', 'chapa']),
-  e('cierzon', 'Cierzón', ['ventolera'], 75, 95, 70, 105, 75, ['cierzo', 'planeo', 'remolino', 'venganza']),
+  e('aceituna', 'Aceituna', ['mindundi', 'chanza'], 90, 100, 90, 75, 65, ['lametazo', 'mecuelo', 'vacile', 'chapa']),
+  e('cierzon', 'Cierzón', ['ventolera'], 75, 95, 70, 105, 75, ['cierzo', 'planeo', 'rebufo', 'venganza']),
   e('turroncho', 'Turroncho', ['bronca', 'droga'], 85, 80, 95, 70, 90, ['almendrazo', 'adoquin', 'caparazon', 'siesta']),
   e('tocinon', 'Tocinón', ['mindundi', 'grasa'], 105, 95, 70, 75, 75, ['barrigazo', 'pringue', 'temblor', 'siesta']),
   e('roscochoco', 'Roscochoco', ['grasa', 'juerga'], 100, 75, 85, 60, 100, ['indigestion', 'fritanga', 'conga', 'rebozado']),
   e('espumarro', 'Espumarro', ['alcohol', 'mindundi'], 95, 70, 80, 75, 100, ['ronda', 'garrafon', 'unamas', 'barrigazo']),
-  e('cajonazo', 'Cajonazo', ['juerga'], 100, 115, 100, 50, 55, ['rumba', 'taconeo', 'temblor', 'compas']),
+  e('cajonazo', 'Cajonazo', ['juerga'], 100, 115, 100, 50, 55, ['rumba', 'taconeo', 'aguantar', 'compas']),
   e('lentejasur', 'Lentejasur', ['droga', 'fantasma'], 70, 65, 70, 100, 115, ['lluvia', 'tropezon', 'susto', 'esporas']),
   e('tragaperras', 'Tragaperras', ['chispa', 'chanza'], 75, 60, 80, 90, 115, ['premio', 'chispazo', 'zasca', 'cizana']),
   e('turito', 'Turito', ['mindundi'], 105, 70, 95, 70, 80, ['chapa', 'pillo', 'turra', 'bostezo']),
-  e('resacon', 'Resacón', ['alcohol', 'fantasma'], 85, 90, 80, 75, 90, ['dolor', 'chupitazo', 'venganza', 'siesta']),
-  e('evoscar', 'Evoscar', ['mindundi', 'bronca'], 100, 105, 95, 55, 65, ['coz', 'galope', 'dosvoces', 'siy']),
+  e('resacon', 'Resacón', ['alcohol', 'fantasma'], 85, 90, 80, 75, 90, ['dolor', 'chupitazo', 'venganza', 'aguantar']),
+  e('evoscar', 'Evoscar', ['mindundi', 'bronca'], 100, 105, 95, 55, 65, ['coz', 'devolver', 'dosvoces', 'siy']),
   e('chupitochu', 'Chupitochu', ['alcohol', 'petardo'], 75, 55, 75, 90, 125, ['chupitazo', 'fogonazo', 'garrafon', 'esconderse']),
   e('caravaner', 'Caravaner', ['bronca', 'juerga'], 85, 85, 75, 85, 90, ['cancion', 'temblor', 'caparazon', 'siesta']),
   e('camioner', 'Camioner', ['mindundi', 'bronca'], 105, 125, 100, 35, 55, ['trompazo', 'adoquin', 'bocinazo', 'cancion']),
-  e('criaturitah', 'Criaturitah', ['droga', 'chanza'], 80, 60, 80, 100, 100, ['esporas', 'raices', 'vacile', 'monada']),
-  e('ego-ego', 'Ego-Ego', ['fantasma'], 80, 100, 75, 95, 70, ['eco', 'chuleria', 'flipada', 'selfie']),
+  e('criaturitah', 'Criaturitah', ['droga', 'chanza'], 80, 60, 80, 100, 100, ['esporas', 'raices', 'colleja', 'monada']),
+  e('ego-ego', 'Ego-Ego', ['fantasma'], 80, 100, 75, 95, 70, ['eco', 'chuleria', 'flipada', 'quepague']),
   e('kbronero', 'Kbronero', ['chispa', 'juerga'], 80, 90, 70, 85, 95, ['solo', 'distorsion', 'pogo', 'compas']),
   // Batch 4 (13-oct): the four new ones go at the end, so the Nº of the others does not change.
   e('cubatillo', 'Cubatillo', ['alcohol', 'chispa'], 70, 55, 70, 115, 110, ['burbujeo', 'ronda', 'chispazo', 'unamas']),
-  e('p', 'P', ['mindundi', 'chanza'], 95, 90, 100, 60, 75, ['pesao', 'chapa', 'zasca', 'cara_de_pena']),
+  e('p', 'P', ['mindundi', 'chanza'], 95, 90, 100, 60, 75, ['pesao', 'chapa', 'quepague', 'cara_de_pena']),
   e('jesuspelo', 'JesúsPelo', ['droga', 'ventolera'], 85, 90, 75, 95, 75, ['tubo', 'setas', 'raices', 'planeo']),
-  e('pantaloneto', 'Pantaloneto', ['mindundi', 'ventolera'], 95, 120, 90, 75, 40, ['pantalones', 'cierzo', 'chapa', 'coz']),
+  e('pantaloneto', 'Pantaloneto', ['mindundi', 'ventolera'], 95, 120, 90, 75, 40, ['pantalones', 'cierzo', 'chapa', 'mecuelo']),
 ];
 
 export const ESPECIE: Record<string, Especie> = Object.fromEntries(ESPECIES.map((s) => [s.id, s]));
@@ -110,6 +110,14 @@ const LISTA_MOVS: Movimiento[] = [
   m('bostezo', 'Bostezo', 'mindundi', null, 100, 5, 'uno'),
   m('cara_de_pena', 'Cara de pena', 'mindundi', null, 100, 10, 'uno'),
   m('esconderse', 'Esconderse', 'mindundi', null, null, 5, 'yo', 2),
+  // Tanda 6 (14-oct): priority +2 protections, +1 quick moves and a −1 counter (docs/POKEUSERA.md, «Prioridad y protección»).
+  m('quepague', '¡Que pague otro!', 'chanza', null, null, 5, 'yo', 2),
+  m('aguantar', 'Aguantar el tipo', 'mindundi', null, null, 5, 'yo', 2),
+  m('mecuelo', '¡Me cuelo!', 'mindundi', 40, 100, 10, 'uno', 1),
+  m('rebufo', 'Rebufo', 'ventolera', 40, 100, 10, 'uno', 1),
+  m('colleja', 'Colleja', 'chanza', 40, 100, 10, 'uno', 1),
+  // Pot null (it deals a fixed 1.5× of what it took), target chosen by the engine.
+  m('devolver', 'Devolvérsela', 'bronca', null, 100, 5, 'auto', -1),
   m('siesta', 'Siesta', 'mindundi', null, null, 5, 'yo'),
   m('pantalones', 'Bajarse los pantalones', 'mindundi', null, null, 5, 'yo'),
   m('traca', 'Traca', 'petardo', 70, 100, 5, 'todos'),
@@ -195,7 +203,7 @@ export interface Efecto {
   /** The target cannot switch next turn. */
   bloqueaCambio?: boolean;
   /** Moves with their own logic. */
-  especial?: 'premio' | 'siy' | 'venganza' | 'cancion' | 'esconderse' | 'siesta' | 'remolino' | 'bostezo' | 'cizana';
+  especial?: 'premio' | 'siy' | 'venganza' | 'cancion' | 'esconderse' | 'quepague' | 'aguantar' | 'devolver' | 'siesta' | 'remolino' | 'bostezo' | 'cizana';
 }
 
 export const EFECTOS: Record<string, Efecto> = {
@@ -214,6 +222,9 @@ export const EFECTOS: Record<string, Efecto> = {
   bostezo: { especial: 'bostezo' },
   cara_de_pena: { nivel: [{ a: 'objetivo', stat: 'ata', cambio: -2 }] },
   esconderse: { especial: 'esconderse' },
+  quepague: { especial: 'quepague' },
+  aguantar: { especial: 'aguantar' },
+  devolver: { especial: 'devolver' },
   siesta: { especial: 'siesta' },
   traca: { estado: { estado: 'quemado', prob: 10 } },
   fogonazo: { estado: { estado: 'quemado', prob: 10 } },
@@ -274,3 +285,29 @@ export const EFECTOS: Record<string, Efecto> = {
   selfie: { nivel: [{ a: 'objetivo', stat: 'prec', cambio: -1 }] },
   desesperada: { rebote: true },
 };
+
+// ---------------------------------------------------------------- sucesos del bar
+
+/** Turns at whose start something happens in the bar (the engine draws it at the end of the turn before). From turn 30 «Hora de cerrar» rules. */
+export const TURNOS_SUCESO: readonly number[] = [5, 10, 15, 20, 25];
+
+/** `dura`: turns it lasts (0 = instant). `escenario`: the only place where it can happen (null = anywhere). */
+export const SUCESOS: Record<SucesoId, { dura: number; escenario: EscenarioId | null }> = {
+  ronda: { dura: 0, escenario: null },
+  luz: { dura: 2, escenario: null },
+  happy: { dura: 2, escenario: null },
+  cumple: { dura: 0, escenario: null },
+  pelea: { dura: 1, escenario: null },
+  karaoke: { dura: 1, escenario: null },
+  barre: { dura: 0, escenario: 'brio' },
+  premio: { dura: 0, escenario: 'brio' },
+  cierzo: { dura: 2, escenario: 'terraza' },
+  rosas: { dura: 0, escenario: 'terraza' },
+  desfile: { dura: 2, escenario: 'rural' },
+  peluca: { dura: 0, escenario: 'rural' },
+  comanda: { dura: 0, escenario: 'juan' },
+  chinchin: { dura: 2, escenario: 'juan' },
+};
+
+/** The sucesos that can happen in a place: the general ones plus its own. */
+export const sucesosDe = (escenario: EscenarioId): SucesoId[] => (Object.keys(SUCESOS) as SucesoId[]).filter((id) => SUCESOS[id].escenario === null || SUCESOS[id].escenario === escenario);

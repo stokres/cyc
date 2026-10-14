@@ -15,6 +15,7 @@ import { sonido } from '../sonido';
 import { menuPausa } from './ajustes';
 import { abrirGuia, atacantesFuertes, defensoresCon, hileraTipos } from './guia';
 import { miniatura, plataformaCacheada } from './fondos';
+import { clasePrioridad, iconoPrioridad, LADO_ICONO_PRIO } from './iconosMov';
 import {
   Animador,
   barraArriba,
@@ -518,6 +519,9 @@ export class VistaDraft implements Escena {
       texto2(ctx, m.nombre, X + 24, ym + 1, TINTA2);
       const pp = `PP ${m.pp}`;
       texto2(ctx, pp, X + W - 12 - anchoTexto2(pp), ym + 1, TINTA_SUAVE);
+      // Quick, protection or slow: its pixel icon, left of the PP.
+      const clase = clasePrioridad(m.prioridad);
+      if (clase) ctx.drawImage(iconoPrioridad(clase), X + W - 12 - anchoTexto2(pp) - LADO_ICONO_PRIO - 4, ym);
       const dm = envolver(t(`mov.${mid}.desc`), W - 40).slice(0, 2);
       dm.forEach((l, i) => texto2(ctx, l, X + 24, ym + 13 + i * 12, TINTA_SUAVE, null));
       ym += 17 + dm.length * 12;

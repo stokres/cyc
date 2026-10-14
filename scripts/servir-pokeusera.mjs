@@ -7,7 +7,8 @@ import { extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { adjuntarSala } from './sala-pokeusera.mjs';
 
-const RAIZ = resolve(fileURLToPath(new URL('../dist', import.meta.url)));
+// POKEUSERA_DIST: another build folder (to try a build without touching ./dist).
+const RAIZ = resolve(process.env.POKEUSERA_DIST ?? fileURLToPath(new URL('../dist', import.meta.url)));
 const PUERTO = Number(process.env.PORT) || 8080;
 
 const TIPOS = {
@@ -74,6 +75,11 @@ const servidor = createServer(async (req, res) => {
     'Cache-Control': ruta.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'no-cache',
     'X-Content-Type-Options': 'nosniff',
   };
+  // The service worker (the installed app, docs/POKEUSERA.md): never cached, so a new version is noticed at once; it lives at the root, so its scope is the whole site.
+  if (ruta === '/pokeusera-sw.js') {
+    cabeceras['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+    cabeceras['Service-Worker-Allowed'] = '/';
+  }
   res.writeHead(200, cabeceras);
   if (req.method === 'HEAD') return res.end();
   createReadStream(hallado.archivo).on('error', () => res.destroy()).pipe(res);
