@@ -792,9 +792,11 @@ export class VistaCombate implements Escena {
     this.cartelSuceso = ev.id;
     sonido.efecto('turno');
     pantalla().redibujar();
-    // The banner stays while the phrase is read (with the tap-to-continue pace, until the tap) and at least a moment.
-    const minimo = cfg.rapido ? 0 : Math.max(900, ritmo().orden);
-    await Promise.all([ev.clave ? this.decir(t(ev.clave, ev.vars)) : Promise.resolve(), dormir(minimo)]);
+    // The banner stays while the phrase is read (with the tap-to-continue pace, until the tap) and long enough to read the banner
+    // itself: three times the turn-order strip (about 4 s at the normal pace), and the phrase waits twice its usual pause.
+    const minimo = cfg.rapido ? 0 : Math.max(2700, ritmo().orden * 3);
+    const espera = ritmo().espera < 0 ? undefined : ritmo().espera * 2;
+    await Promise.all([ev.clave ? this.decir(t(ev.clave, ev.vars), espera) : Promise.resolve(), dormir(minimo)]);
     this.cartelSuceso = null;
     pantalla().redibujar();
     if (efectos.length) await this.grupoArea(efectos);
