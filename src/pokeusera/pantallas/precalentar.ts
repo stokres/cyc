@@ -8,6 +8,7 @@ import { entrenador2, icono2 } from '../arte2/entrenadores2';
 import { spriteEspalda2, spriteFrente2 } from '../arte2/sprites2';
 import { tareasPrecalentarBarra } from './barra';
 import { alturaCampo } from './combate';
+import { tareasPrecalentarDraft } from './draft';
 import { hornearFondoEscenario, miniatura } from './fondos';
 import { tareasPrecalentarEfectos } from './efectosMov';
 import { tareasPrecalentarObjetos } from './iconosObjeto';
@@ -28,6 +29,7 @@ function construir(): (() => void)[] {
     tareas.push(() => icono2(id));
   }
   for (const s of ESPECIES) tareas.push(() => miniatura(s.id));
+  tareas.push(...tareasPrecalentarDraft());
   for (const s of ESPECIES) tareas.push(() => spriteFrente2(s.id, 1));
   for (const s of ESPECIES) {
     tareas.push(() => spriteEspalda2(s.id, 0));

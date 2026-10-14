@@ -99,6 +99,7 @@ combate.aguantar = ¡{quien} se pone firme: de aquí no se mueve!
 combate.aguanta = ¡{quien} aguanta el tipo con un hilo de vida!
 combate.despierta = ¡{quien} se despierta!
 combate.dormido_sigue = {quien} ronca a pierna suelta.
+combate.despierta_banco = ¡{quien} de {jugador} se ha despertado en el banquillo!
 combate.paralizado_no = ¡{quien} está paralizado! No se mueve.
 combate.quemado_dano = ¡La quemadura le duele a {quien}!
 combate.empachado_dano = ¡{quien} sufre un empacho!

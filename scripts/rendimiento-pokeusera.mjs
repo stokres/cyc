@@ -16,8 +16,8 @@
 // It starts nothing itself: run `npm run dev` first.
 //   node scripts/rendimiento-pokeusera.mjs [pantalla...]     (default: all)  [PUERTO=5173]
 //   node scripts/rendimiento-pokeusera.mjs 5174 combate-juega     (a bare number is the port)
-//   screens: titulo, menu, ajustes, entrenador, draft, draft-flujo, barra, combate-elige, combate-juega, combate-ritmo (+ the four bars: combate-elige-<bar> and combate-juega-<bar>,
-//            with <bar> = rural, terraza, juan; the default combate-* ones are the Bar del Brío), podio, estadisticas, useritopedia, useritopedia-ficha, guia, guia-objetos
+//   screens: titulo, menu, ajustes, entrenador, draft, draft-flujo, barra, salida, combate-elige, combate-juega, combate-ritmo (+ the four bars: combate-elige-<bar> and combate-juega-<bar>,
+//            with <bar> = rural, terraza, juan; the default combate-* ones are the Bar del Brío), podio, estadisticas, useritopedia, useritopedia-ficha, guia, guia-objetos, salida
 // Environment: SEG=4 (seconds measured per screen), CPU=4 (throttling rate; 1 = none, budgets then do not apply),
 //   VOLCAR=carpeta (also write a PNG of every screen there, to compare looks before/after).
 import { chromium } from 'playwright';
@@ -43,8 +43,9 @@ const PRESUPUESTOS = {
   titulo: { redibujos: 62, ms: 1.5, pico: 20, cb: 10, di: 25, lienzos: 0, largas: 0, primer: 1000 },
   menu: { redibujos: 6, ms: 1, pico: 20, cb: 3, di: 5, lienzos: 0, largas: 0, primer: 1000 },
   entrenador: { redibujos: 15, ms: 2.5, pico: 20, cb: 5, di: 45, lienzos: 0, largas: 0, primer: 1000 },
-  draft: { redibujos: 15, ms: 4, pico: 30, cb: 6, di: 80, lienzos: 0, largas: 0, primer: 1600 },
-  'draft-flujo': { redibujos: 15, ms: 4, pico: 30, cb: 6, di: 80, lienzos: 40, largas: 1, primer: 300 },
+  // The draft with the sheet inside it (the sheet and the grid are baked, 15 blits a frame; before: 61 blits, 2.2 ms).
+  draft: { redibujos: 10, ms: 2.5, pico: 20, cb: 3, di: 30, lienzos: 0, largas: 0, primer: 1600 },
+  'draft-flujo': { redibujos: 10, ms: 2.5, pico: 20, cb: 3, di: 30, lienzos: 40, largas: 1, primer: 300 },
   'combate-elige': { redibujos: 8, ms: 4, pico: 25, cb: 5, di: 85, lienzos: 0, largas: 0, primer: 600 },
   // ?auto plays ten times faster than a person sees (the animations last a tenth): nearly always something moves. It also sets off the move effects (≈ 10 drawImage while one flies).
   // «Lienzos» here are the screen's own (the text lines, damage numbers, badges); the background baking of precalentar.ts is not counted.
@@ -66,6 +67,8 @@ const PRESUPUESTOS = {
   ajustes: { redibujos: 2, ms: 1, pico: 10, cb: 2, di: 15, lienzos: 0, largas: 0, primer: 1000 },
   // «La barra» (after the draft): three offers, three useritos, a chosen pair highlighted.
   barra: { redibujos: 8, ms: 2.5, pico: 12, cb: 3, di: 30, lienzos: 0, largas: 0, primer: 800 },
+  // «¿Quién sale primero?» (after La barra): three baked cards, three breathing sprites and the marked one's frame.
+  salida: { redibujos: 10, ms: 2.5, pico: 12, cb: 3, di: 30, lienzos: 0, largas: 0, primer: 800 },
 };
 
 const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -86,6 +89,8 @@ const PANTALLAS = {
   'combate-ritmo': { url: '?combate&auto&semilla=7', ir: async (p) => { await p.evaluate(async () => { const ui = await import('/src/pokeusera/pantallas/ui.ts'); ui.cfg.rapido = false; ui.cfg.velocidad = 'normal'; }); }, esperar: 3000, quieto: false },
   // «La barra»: ?combate&barra goes straight to it (no draft). Its 20 s clock is stretched so it does not end while measuring; an object and a userito are chosen.
   barra: { url: '?combate&barra&semilla=7', ir: async (p) => { await entraBarra(p); await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter', false); }, esperar: 1500 },
+  // «¿Quién sale primero?»: the step after La barra (?combate&barra goes through both). Its 15 s clock is stretched as well; a userito is marked.
+  salida: { url: '?combate&barra&semilla=7', ir: async (p) => { await entraBarra(p); await tecla(p, 'Enter', false); await tecla(p, 'Enter'); await entraSalida(p); await tecla(p, 'ArrowDown', false); }, esperar: 1500 },
   // Reached by playing a whole quick game by itself (?auto): the podium, then ESTADÍSTICAS with Enter.
   podio: { url: '?auto&semilla=7', ir: async (p) => { await hastaPodio(p); } },
   estadisticas: { url: '?auto&semilla=7', ir: async (p) => { await hastaPodio(p); await tecla(p, 'Enter'); } },
@@ -134,6 +139,12 @@ async function esperarQuieto(p, max = 45000) {
 async function entraBarra(p) {
   await p.waitForFunction(() => !!window.__pokeusera?.vb?.resolver, null, { timeout: 30000, polling: 200 });
   await p.evaluate(() => { window.__pokeusera.vb.fin = Date.now() + 600000; });
+}
+
+/** Waits for «¿Quién sale primero?» to ask the local player and gives it a long clock. */
+async function entraSalida(p) {
+  await p.waitForFunction(() => !!window.__pokeusera?.vs?.resolver, null, { timeout: 30000, polling: 200 });
+  await p.evaluate(() => { window.__pokeusera.vs.fin = Date.now() + 600000; });
 }
 
 async function hastaPodio(p) {

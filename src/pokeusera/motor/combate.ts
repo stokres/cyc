@@ -79,15 +79,19 @@ function crearStats(jugadores: Jugador[]): Estadisticas {
 /** The place of a battle when nobody chose one: drawn from the seed without touching the battle's own random stream. */
 export const escenarioDeSemilla = (semilla: number): EscenarioId => ESCENARIOS[Math.floor(azar({ semilla: (semilla | 0) ^ 0x5ce9a1d3 }) * ESCENARIOS.length)];
 
-/** `escenario`: the place (default: drawn from `semilla`). It travels in the state, so online guests get it in the 'inicio' message. */
-export function crearCombate(equipos: { entrenador: EntrenadorId; nombre: string; bot: boolean; especies: string[]; objetos?: (ObjetoId | null | undefined)[] }[], semilla: number, escenario?: EscenarioId): EstadoCombate {
+/**
+ * `escenario`: the place (default: drawn from `semilla`). It travels in the state, so online guests get it in the 'inicio' message.
+ * `inicial`: the index in `especies` of the userito that starts on the field (default 0); an invalid one counts as 0. The team keeps
+ * its order, so the objects (by index) and the statistics stay with their useritos.
+ */
+export function crearCombate(equipos: { entrenador: EntrenadorId; nombre: string; bot: boolean; especies: string[]; objetos?: (ObjetoId | null | undefined)[]; inicial?: number }[], semilla: number, escenario?: EscenarioId): EstadoCombate {
   if (equipos.length < 2 || equipos.length > 4) throw new Error('Una batalla es de 2 a 4 jugadores');
   const jugadores: Jugador[] = equipos.map((q, idx) => ({
     idx,
     entrenador: q.entrenador,
     nombre: q.nombre,
     equipo: q.especies.slice(0, 3).map((id, i) => crearUserito(id, q.objetos?.[i])),
-    activo: 0,
+    activo: Number.isInteger(q.inicial) && q.inicial! >= 0 && q.inicial! < Math.min(3, q.especies.length) ? q.inicial! : 0,
     cana: true,
     bot: q.bot,
     puesto: 0,
@@ -1037,7 +1041,7 @@ function ejecutarPrevia(c: Ctx, a: Exclude<Accion, { tipo: 'atacar' }>) {
   }
 }
 
-function finDeTurno(c: Ctx) {
+function finDeTurno(c: Ctx, alInicio: number[]) {
   const e = c.e;
   const n = e.jugadores.length;
   const sigue = (j: number) => act(c, j).ps > 0 && !eliminado(e, j);
@@ -1088,6 +1092,8 @@ function finDeTurno(c: Ctx) {
     }
   }
 
+  correrBanquillo(c, alInicio);
+
   for (let j = 0; j < n; j++) {
     const u = act(c, j);
     u.vol.escondido = false;
@@ -1098,6 +1104,32 @@ function finDeTurno(c: Ctx) {
   }
   e.cancionAntes = c.cancionAhora;
   e.agresores = c.golpeado.map((l, j) => (act(c, j).ps > 0 ? [...l] : []));
+}
+
+/**
+ * The bench keeps living: at the end of every turn the useritos that are standing but out of the fight count the turns of their
+ * sleep (`sueno`) and drunkenness (`achispado`), so a sleeper wakes up on the bench instead of waiting for its next appearance.
+ * Burn and indigestion do not hurt on the bench. The userito that was on the field at the start of the turn (`alInicio`, even if
+ * it switched out during it) and the one on the field now (even if it came in during it) are not benched: their turn is counted
+ * when they try to act. No random numbers are used.
+ */
+function correrBanquillo(c: Ctx, alInicio: number[]) {
+  const e = c.e;
+  e.jugadores.forEach((q, j) => {
+    if (eliminado(e, j)) return;
+    q.equipo.forEach((u, i) => {
+      if (u.ps <= 0 || i === q.activo || i === alInicio[j]) return;
+      if (u.achispado > 0) u.achispado--;
+      if (u.estado === 'dormido') {
+        if (u.sueno > 0) u.sueno--;
+        if (u.sueno <= 0) {
+          u.estado = null;
+          u.sueno = 0;
+          c.ev.push({ k: 'texto', clave: 'combate.despierta_banco', vars: { quien: nom(u), jugador: q.nombre } });
+        }
+      }
+    });
+  });
 }
 
 /** Places the players who fell this turn and decides whether the battle is over. */
@@ -1211,7 +1243,7 @@ export function resolverTurno(estado: EstadoCombate, elecciones: (Eleccion | nul
 
   // 4. End of turn.
   const iFin = c.ev.length;
-  finDeTurno(c);
+  finDeTurno(c, alInicio);
   cerrarEliminaciones(c);
   for (let i = iFin; i < c.ev.length; i++) c.ev[i].fin = true;
   alInicio.forEach((idx, j) => {

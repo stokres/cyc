@@ -16,6 +16,8 @@ export type MsgAnfitrion =
   | { k: 'draft'; draft: EstadoDraft; turnoDe: number | null; plazoMs: number }
   /** «La barra», to the guest of that seat only: the three objects on offer and the guest's team (the choice goes back as 'objeto'). */
   | { k: 'barra'; ofertas: ObjetoId[]; especies: string[]; plazoMs: number }
+  /** «¿Quién sale primero?», to the guest of that seat only: their team and the objects on it (`null`: none); the choice goes back as 'salida'. */
+  | { k: 'salida'; especies: string[]; objetos: (ObjetoId | null)[]; plazoMs: number }
   /** The battle begins. The states of 'inicio', 'turno', 'reemplazo' and 'fin' go to each guest without the other players' objects that have not worked yet. */
   | { k: 'inicio'; estado: EstadoCombate }
   /** The players in `quienes` must choose for `turno` (= `estado.turno` of the last state they got). */
@@ -38,6 +40,8 @@ export type MsgInvitado =
   | { k: 'pick'; n: number; especie: string }
   /** The guest's choice in «La barra»: one of the offered objects and which userito (index in their team) carries it. */
   | { k: 'objeto'; objeto: ObjetoId; idx: number }
+  /** The guest's choice in «¿Quién sale primero?»: the index (0..2) of the userito in their team. */
+  | { k: 'salida'; idx: number }
   | { k: 'eleccion'; turno: number; eleccion: Eleccion | null }
   | { k: 'reemplazoIdx'; turno: number; idx: number };
 

@@ -103,7 +103,7 @@ draft.titulo = DRAFT
 draft.tuturno = ¡Tu turno!
 draft.elige = Elige {nombre}
 draft.elegir = ELEGIR
-draft.volver = VOLVER
+draft.movinfo = {nombre} (PP {pp}): {desc}
 draft.apelear = ¡A pelear!
 
 // ---- la barra (pantallas/barra.ts): tras el draft, un objeto para uno de tus useritos
@@ -116,6 +116,16 @@ barra.cambiar = OTRO OBJETO
 barra.espera = ¡Listo! Esperando a los demás...
 barra.lleva = Se lo lleva {nombre}.
 barra.apelear = ¡A pelear!
+
+// ---- ¿quién sale primero? (pantallas/salida.ts): tras la barra, cada uno elige en secreto qué userito abre el combate
+salida.titulo = ¿QUIÉN SALE PRIMERO?
+salida.pista = Toca uno. Otro toque lo confirma.
+salida.sale = Sale {nombre}.
+salida.salir = SALIR
+salida.secreto = Nadie lo ve hasta que empiece el combate.
+salida.espera = ¡Listo! Esperando a los demás...
+salida.movs = MOVS
+salida.sinobjeto = Sin objeto
 
 // ---- combate
 batalla.inicio = ¡Empieza la batalla a cuatro!
@@ -222,7 +232,7 @@ premio.rencoroso.n = RENCOROSO
 premio.rencoroso.d = Daño de Venganza. Lo apunta todo
 
 // ---- ayuda (la usan la GUÍA, la ficha de estado del combate y la del draft)
-ayuda.estado.dormido = Dormido: no hace nada durante 1 a 3 turnos.
+ayuda.estado.dormido = Dormido: no hace nada durante 1 a 3 turnos. El sueño también pasa en el banquillo: puede despertarse allí.
 ayuda.estado.paralizado = Paralizado: 1 de cada 4 turnos no actúa y su Velocidad baja a la cuarta parte.
 ayuda.estado.quemado = Quemado: pierde 1/16 de sus PS cada turno y su Ataque baja a la mitad.
 ayuda.estado.empachado = Empachado: pierde 1/8 de sus PS cada turno hasta que se cure o caiga.
@@ -254,7 +264,7 @@ guia.h.sucesos = SUCESOS DEL BAR
 guia.como.1.t = EL DRAFT
 guia.como.1.d = Antes de pelear os turnáis para elegir useritos, sin repetir (1-2-3-4, 4-3-2-1, 1-2-3-4). Cada uno se lleva tres. Tienes 20 segundos por elección.
 guia.como.2.t = LA BARRA
-guia.como.2.d = Con los equipos hechos, la barra te ofrece 3 objetos al azar: eliges uno y a cuál de tus useritos se lo das. Tienes 20 segundos. Los rivales no ven qué llevas hasta que funciona.
+guia.como.2.d = Con los equipos hechos, la barra te ofrece 3 objetos al azar: eliges uno y a cuál de tus useritos se lo das. Tienes 20 segundos. Los rivales no ven qué llevas hasta que funciona. Después eliges, en secreto y en 15 segundos, cuál de tus tres useritos sale primero.
 guia.como.3.t = TODOS A LA VEZ
 guia.como.3.d = Cada turno los cuatro elegís a la vez y en secreto: atacar (un movimiento y, si es a un rival, a quién), cambiar de userito o usar la caña (una vez por batalla). Tienes 30 segundos; si no eliges, tu userito pega con un movimiento al azar a un rival al azar.
 guia.como.4.t = EL MÁS RÁPIDO, PRIMERO
@@ -285,7 +295,7 @@ guia.tipos.r.05 = la mitad de daño
 guia.tipos.r.0 = no le afecta
 guia.tipos.t = CÓMO FUNCIONA
 
-guia.estados.nota = Solo puede haber un estado a la vez (Achispado se suma a los demás). Se ven junto al nombre del userito, con su etiqueta. La Siesta los cura todos.
+guia.estados.nota = Solo puede haber un estado a la vez (Achispado se suma a los demás). Se ven junto al nombre del userito, con su etiqueta. La Siesta los cura todos. El sueño sigue pasando en el banquillo; la quemadura y el empacho solo duelen a quien está luchando.
 
 guia.reglas.acorralado.t = ACORRALADO
 guia.reglas.acorralado.d = Si varios le pegan a un mismo userito en un turno, el segundo golpe y los siguientes hacen la mitad. Ir en manada sale menos a cuenta. Esos golpes recortados llevan un 1/2 rojo junto al número de daño.

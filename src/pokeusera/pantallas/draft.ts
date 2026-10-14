@@ -1,6 +1,12 @@
-// PokéUsera · the draft (snake order): who is choosing, every player's picks so far, the grid of
-// the 24 useritos and the detail card. It draws only from what it is told (`alDraft`: the draft
-// state, whose turn and for how long), so a guest can feed it from network messages too.
+// PokéUsera · the draft (snake order): who is choosing, every player's picks so far, the sheet of the userito being looked at and the
+// grid of the 24 useritos. The sheet lives in the screen itself (between the players' panels and the grid; no window): tapping a cell
+// of the grid shows that userito's sheet, tapping another one swaps it, and ELEGIR (on your turn only) takes it. The top bar with the
+// clock and whose turn it is never goes away. It draws only from what it is told (`alDraft`: the draft state, whose turn and for how
+// long), so a guest can feed it from network messages too.
+//
+// Performance (docs/ESTILO.md, T5/T6): the sheet (panel, name, types, bars, moves, text) is baked once per userito, layout and view
+// (`ficha`); the grid is one canvas that is redrawn only when a pick changes it; per frame there are a few blits, the breathing sprite
+// and the frames of the cursors. A tall screen gets the full sheet (sprite beside the stats); a short one the compact sheet.
 import type { EntrenadorId, EscenarioId, EstadoDraft, Tipo } from '../tipos';
 import { ESPECIE, ESPECIES, MOVS, TIPOS, eficacia } from '../datos';
 import { icono2 } from '../arte2/entrenadores2';
@@ -8,7 +14,7 @@ import { anchoTexto2 } from '../arte2/fuente2';
 import { ORO_UI, ORO_UI_OSC, PAPEL_ALTO, TINTA2, TINTA_SUAVE } from '../arte2/paleta2';
 import { spriteFrente2 } from '../arte2/sprites2';
 import { COLOR_TIPO } from '../arte/paleta';
-import { panelCacheado, relleno } from '../arte2/ui2';
+import { hornear, panel, panelCacheado, relleno } from '../arte2/ui2';
 import { entrada, type Accion } from '../entrada';
 import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
@@ -29,10 +35,8 @@ import {
   fondoPapel,
   insignaTipo,
   menuIcono,
-  oscurecer,
   recortar,
   parpadea,
-  textoGrande,
   rect,
   reposo,
   t,
@@ -56,20 +60,164 @@ const STATS: { clave: 'ps' | 'ata' | 'def' | 'vel' | 'esp'; nombre: string }[] =
   { clave: 'esp', nombre: 'ESP' },
 ];
 
+/** The sheet's panel: width, and the height from which the full sheet (sprite beside the stats) fits; below it the compact one is used. */
+const W_FICHA = ANCHO - 2;
+const ALTO_FICHA_COMPLETA = 168;
+const ALTO_BOTON = 28;
+
+/** The sheet's blocks, in the sheet's own coordinates (the panel's top-left is 0,0). Compact: header with ELEGIR at the right, the five stats in a row, moves, text. Full: sprite and ELEGIR on the left. */
+const G = {
+  x0: 8,
+  compacta: { btnW: 76, btnY: 4, statsY: 34, movsY: 54, movsFila: 12, textoY: 81 },
+  completa: { btnW: 74, btnY: 74, spriteX: 10, spriteY: 6, colX: 90, nombreY: 9, tiposY: 22, statsY: 38, statsFila: 11, movsY: 104, movsFila: 15, textoY: 140 },
+};
+const COL_MOV = 116;
+
+type Vista = number; // -1 the userito's text, 0..3 a move's description, 4 the type matchups
+
+/** The opened sheet of the layout: which blocks it has and where. */
+interface Diseno {
+  yInfo: number;
+  hInfo: number;
+  completa: boolean;
+}
+
+/** Where cell `i` of the moves block sits, in sheet coordinates, and how tall a row is. */
+function celdaMov(completa: boolean, i: number): { x: number; y: number; h: number } {
+  const g = completa ? G.completa : G.compacta;
+  return { x: G.x0 + (i % 2) * COL_MOV, y: g.movsY + Math.floor(i / 2) * g.movsFila, h: g.movsFila };
+}
+
+/** How many 12 px lines of text fit under the moves. */
+const lineasTexto = (completa: boolean, h: number): number => Math.max(1, Math.floor((h - 4 - (completa ? G.completa.textoY : G.compacta.textoY)) / 12));
+
+/** The sheet of a userito, baked without the sprite, the owner mark and the button: panel, name, types, bars, moves and the text strip for `vista`. */
+function fichaBase(id: string, completa: boolean, h: number, vista: Vista): HTMLCanvasElement {
+  return hornear(`draft|ficha|${id}|${completa ? 1 : 0}|${h}|${vista}`, W_FICHA, h + 2, (cx) => {
+    const sp = ESPECIE[id];
+    const num = `Nº${String(ESPECIES.findIndex((s) => s.id === id) + 1).padStart(2, '0')}`;
+    const color = COLOR_TIPO[sp.tipos[0]];
+    const x0 = G.x0;
+    panel(cx, 0, 0, W_FICHA, h);
+    if (completa) {
+      const g = G.completa;
+      // Beer mat under the sprite (the sprite itself breathes, so it is drawn each frame).
+      const mat = plataformaCacheada(30, 7);
+      cx.drawImage(mat, g.spriteX - 2 + Math.floor((68 - mat.width) / 2), g.spriteY + 62 - 12);
+      texto2(cx, sp.nombre, g.colX, g.nombreY);
+      texto2(cx, num, g.colX + anchoTexto2(sp.nombre) + 8, g.nombreY, TINTA_SUAVE);
+      let bx = g.colX;
+      for (const tp of sp.tipos) bx += insignaTipo(cx, tp, bx, g.tiposY) + 3;
+      STATS.forEach((st, i) => {
+        const y = g.statsY + i * g.statsFila;
+        texto2(cx, st.nombre, g.colX, y, TINTA_SUAVE);
+        const v = sp.base[st.clave];
+        barraValor(cx, g.colX + 24, y, 70, Math.min(v, 150) / 150, color);
+        texto2(cx, String(v), g.colX + 100, y);
+      });
+      // A small «?» at the end of the first stat row: «what do these mean?».
+      const qx = W_FICHA - 11 - 13;
+      relleno(cx, TINTA2, qx, g.statsY - 1, 13, 13);
+      relleno(cx, '#e8c25a', qx + 1, g.statsY, 11, 11);
+      rect(cx, '#fff3c8', qx + 2, g.statsY, 9, 1);
+      texto2(cx, '?', qx + 4, g.statsY + 2, TINTA2, null);
+    } else {
+      const g = G.compacta;
+      texto2(cx, sp.nombre, x0, 6);
+      texto2(cx, num, x0 + anchoTexto2(sp.nombre) + 8, 6, TINTA_SUAVE);
+      let bx = x0;
+      for (const tp of sp.tipos) bx += insignaTipo(cx, tp, bx, 17) + 3;
+      STATS.forEach((st, i) => {
+        const x = x0 + i * 44;
+        texto2(cx, st.nombre, x, g.statsY, TINTA_SUAVE);
+        const v = String(sp.base[st.clave]);
+        texto2(cx, v, x + 39 - anchoTexto2(v), g.statsY);
+        barraValor(cx, x, g.statsY + 9, 39, Math.min(sp.base[st.clave], 150) / 150, color);
+      });
+    }
+    // The four moves: type swatch, name and the priority icon; the tapped one is highlighted.
+    sp.movs.forEach((mid, i) => {
+      const m = MOVS[mid];
+      const c = celdaMov(completa, i);
+      if (i === vista) {
+        relleno(cx, ORO_UI_OSC, c.x - 3, c.y - Math.floor((c.h - 9) / 2) - 1, COL_MOV - 3, c.h);
+        relleno(cx, '#fbe19a', c.x - 2, c.y - Math.floor((c.h - 9) / 2), COL_MOV - 5, c.h - 2);
+      }
+      rect(cx, TINTA2, c.x, c.y, 7, 9);
+      rect(cx, COLOR_TIPO[m.tipo as Tipo], c.x + 1, c.y + 1, 5, 7);
+      const clase = clasePrioridad(m.prioridad);
+      texto2(cx, recortar(m.nombre, COL_MOV - 20 - (clase ? LADO_ICONO_PRIO + 3 : 0)), c.x + 11, c.y + 1, TINTA2, null);
+      if (clase) cx.drawImage(iconoPrioridad(clase), c.x + COL_MOV - 12 - LADO_ICONO_PRIO, c.y);
+    });
+    // The text strip: the userito's description, a move's, or the type matchups.
+    const ty = completa ? G.completa.textoY : G.compacta.textoY;
+    rect(cx, '#d6c08a', x0, ty - 4, W_FICHA - 2 * x0, 1);
+    const n = lineasTexto(completa, h);
+    if (vista === 4) {
+      const mitad = Math.floor((W_FICHA - 2 * x0) / 2) - 3;
+      const pega = [...new Set(sp.tipos.flatMap((a) => defensoresCon(a, 2)))];
+      const pegan = atacantesFuertes(sp.tipos);
+      const inmune = TIPOS.filter((a) => eficacia(a, sp.tipos) === 0);
+      const x4 = (tp: Tipo) => (eficacia(tp, sp.tipos) >= 4 ? t('draft.x4') : '');
+      texto2(cx, t('draft.pega'), x0, ty - 1, TINTA_SUAVE, null);
+      texto2(cx, t('draft.pegan'), x0 + mitad + 6, ty - 1, TINTA_SUAVE, null);
+      const a = hileraTipos(cx, pega, x0, ty + 11, mitad);
+      const b = hileraTipos(cx, pegan, x0 + mitad + 6, ty + 11, mitad, x4);
+      if (inmune.length && ty + 11 + Math.max(a, b) + 14 + 11 <= h - 3) {
+        const yi = ty + 11 + Math.max(a, b) + 3;
+        texto2(cx, t('draft.inmune'), x0, yi, TINTA_SUAVE, null);
+        hileraTipos(cx, inmune, x0, yi + 11, W_FICHA - 2 * x0);
+      }
+    } else {
+      const ancho = W_FICHA - 2 * x0 - 2;
+      let lineas: string[];
+      if (vista >= 0 && vista < 4) {
+        const m = MOVS[sp.movs[vista]];
+        // Name and PP first; on a short sheet a long description goes without them rather than cut.
+        lineas = envolver(t('draft.movinfo', { nombre: m.nombre, pp: m.pp, desc: t(`mov.${m.id}.desc`) }), ancho);
+        if (lineas.length > n) lineas = envolver(t(`mov.${m.id}.desc`), ancho);
+      } else lineas = envolver(t(`userito.${id}.desc`), ancho);
+      lineas.slice(0, n).forEach((l, i) => texto2(cx, l, x0, ty + i * 12));
+    }
+  });
+}
+
+/** Where everything sits on a screen of height `H` (the players' panels, the sheet, the grid). */
+function disenoDraft(H: number): Diseno & { yJug: number; hCelda: number; yGrid: number; cellH: number } {
+  const extra = Math.max(0, H - 384);
+  const yJug = 20;
+  const hCelda = 36 + Math.min(4, Math.floor(extra / 30));
+  const yInfo = yJug + 2 * hCelda + 2;
+  // The cells grow with the screen from 44 to 54 px; what is left goes to the sheet.
+  const cellH = Math.max(44, Math.min(54, 44 + Math.floor(extra / 14)));
+  const yGrid = H - 3 - cellH * 4;
+  const hInfo = yGrid - yInfo - 2;
+  return { yJug, hCelda, yInfo, hInfo, yGrid, cellH, completa: hInfo >= ALTO_FICHA_COMPLETA };
+}
+
+/** One task per userito for the background baking (`precalentar.ts`): its sheet as the player first sees it, for the current screen height. */
+export const tareasPrecalentarDraft = (): (() => void)[] =>
+  ESPECIES.map((sp) => () => {
+    const L = disenoDraft(pantalla().alto);
+    fichaBase(sp.id, L.completa, L.hInfo, -1);
+  });
+
 export class VistaDraft implements Escena {
   private anim = new Animador();
   private elegidos: string[] = [];
   private orden: number[] = [];
   private turnoDe: number | null = null;
   private fin = 0;
+  /** The userito whose sheet is shown (index in ESPECIES), and what the sheet's text strip shows (see `Vista`). */
   private sel = 0;
-  /** Highlight position in px (grid cell corner); it hops when a bot picks. */
+  private movSel = -1;
+  private tiposVista = false;
+  /** The machine's cursor (px of the grid cell's corner): it wanders while a machine thinks and hops to what it picks. */
   private hx = -1;
   private hy = -1;
-  private detalle: string | null = null;
+  private cursorOculto = true;
   /** What the clock last showed (see `paso`). */
   private marcaReloj = -1;
-  private foco = 0;
   private resolverPick: ((id: string) => void) | null = null;
   private apelear = false;
   private ultimoTic = -1;
@@ -81,14 +229,16 @@ export class VistaDraft implements Escena {
   private avisoHasta = 0;
   /** The bar of the battle that follows, when known: its tune is the one decoded during the draft. */
   escenario: EscenarioId | undefined;
+  /** The grid, baked: redrawn only when a pick (or the cell height) changes it. */
+  private rej: HTMLCanvasElement | null = null;
+  private rejAlto = 0;
+  private rejSucia = true;
 
   /** `miSeat`: the seat of this screen's player (null when only watching). */
   constructor(
     private plazas: PlazaDraft[],
     private miSeat: number | null,
-  ) {
-    this.sel = 0;
-  }
+  ) {}
 
   // ------------------------------------------------------------------ feeding (host or network)
 
@@ -107,18 +257,19 @@ export class VistaDraft implements Escena {
       const id = draft.elegidos[i];
       const k = ESPECIES.findIndex((s) => s.id === id);
       this.turnoDe = null;
-      this.detalle = this.detalle === id ? null : this.detalle;
       if (k >= 0) {
-        this.sel = k;
+        // The machine's cursor hops to the pick; the sheet stays where the player was looking.
         const [dx, dy] = this.celda(k);
         const x0 = this.hx < 0 ? dx : this.hx;
         const y0 = this.hy < 0 ? dy : this.hy;
+        this.cursorOculto = false;
         await this.anim.animar(this.hx < 0 ? 0 : 200, (p) => {
           this.hx = x0 + (dx - x0) * p;
           this.hy = y0 + (dy - y0) * p;
         });
       }
       this.elegidos = draft.elegidos.slice(0, i + 1);
+      this.rejSucia = true;
       sonido.efecto('elegido');
       sonido.grito(id);
       await dormir(650);
@@ -127,10 +278,12 @@ export class VistaDraft implements Escena {
     this.turnoDe = turnoDe;
     this.fin = Date.now() + plazoMs;
     this.ultimoTic = -1;
+    // The sheet never rests on a userito that is already taken: it moves on to the next free one.
+    if (this.dueno(ESPECIES[this.sel].id) >= 0) this.mirar(this.siguienteLibre(this.sel), false);
     if (turnoDe === null) {
-      this.detalle = null;
       this.resolverPick = null;
       this.apelear = true;
+      this.cursorOculto = true;
       sonido.efecto('turno');
       await dormir(1500);
     }
@@ -143,12 +296,11 @@ export class VistaDraft implements Escena {
     pantalla().redibujar();
   }
 
-  /** The local player's pick: resolves with the species id when they confirm it on the card. */
+  /** The local player's pick: resolves with the species id when they confirm it with ELEGIR. */
   pedirPick(): Promise<string> {
     return new Promise((res) => {
       this.resolverPick = (id) => {
         this.resolverPick = null;
-        this.detalle = null;
         res(id);
       };
     });
@@ -157,13 +309,7 @@ export class VistaDraft implements Escena {
   // ------------------------------------------------------------------ geometry
 
   private layout(H: number) {
-    const extra = Math.max(0, H - 384);
-    const yJug = 22;
-    const hCelda = 36 + Math.min(4, Math.floor(extra / 30));
-    const yInfo = yJug + 2 * hCelda + 4;
-    const cellH = Math.max(44, Math.min(54, 44 + Math.floor(extra / 14)));
-    const yGrid = H - 3 - cellH * 4;
-    return { yJug, hCelda, yInfo, hInfo: yGrid - yInfo - 3, yGrid, cellH };
+    return disenoDraft(H);
   }
 
   private celda(k: number): [number, number] {
@@ -176,42 +322,56 @@ export class VistaDraft implements Escena {
     return i < 0 ? -1 : this.orden[i];
   }
 
+  private siguienteLibre(desde: number): number {
+    const n = ESPECIES.length;
+    for (let d = 1; d <= n; d++) {
+      const k = (desde + d) % n;
+      if (this.dueno(ESPECIES[k].id) < 0) return k;
+    }
+    return desde;
+  }
+
   private get miTurno(): boolean {
     return this.resolverPick !== null && this.turnoDe !== null && this.turnoDe === this.miSeat;
   }
 
+  /** The vista of the text strip. */
+  private get vista(): Vista {
+    return this.movSel >= 0 ? this.movSel : this.tiposVista ? 4 : -1;
+  }
+
   // ------------------------------------------------------------------ input
 
-  private abrir(id: string) {
-    if (this.dueno(id) >= 0) return;
-    this.detalle = id;
-    this.foco = this.miTurno ? 0 : 1;
-    sonido.efecto('aceptar');
+  /** Shows the sheet of cell `k` (the text strip goes back to the description). */
+  private mirar(k: number, sonar = true) {
+    if (k === this.sel) return;
+    this.sel = k;
+    this.movSel = -1;
+    this.tiposVista = false;
+    if (sonar) sonido.efecto('cursor');
+    pantalla().redibujar();
+  }
+
+  private tocarMov(i: number) {
+    this.tiposVista = false;
+    this.movSel = this.movSel === i ? -1 : i;
+    sonido.efecto('cursor');
+  }
+
+  private tocarTipos() {
+    this.movSel = -1;
+    this.tiposVista = !this.tiposVista;
+    sonido.efecto('cursor');
   }
 
   private confirmar() {
-    if (!this.detalle || !this.miTurno) return;
-    const id = this.detalle;
+    if (!this.miTurno) return;
+    const id = ESPECIES[this.sel].id;
+    if (this.dueno(id) >= 0) return;
     this.resolverPick?.(id);
   }
 
   accion(a: Accion): boolean {
-    if (this.detalle) {
-      if (a === 'atras') {
-        this.detalle = null;
-        sonido.efecto('atras');
-      } else if (a === 'izq' || a === 'der' || a === 'arriba' || a === 'abajo') {
-        if (this.miTurno) this.foco = 1 - this.foco;
-        sonido.efecto('cursor');
-      } else if (a === 'aceptar') {
-        if (this.foco === 0 && this.miTurno) this.confirmar();
-        else {
-          this.detalle = null;
-          sonido.efecto('atras');
-        }
-      }
-      return true;
-    }
     if (a === 'atras') {
       void this.pausar();
       return true;
@@ -223,16 +383,14 @@ export class VistaDraft implements Escena {
     else if (a === 'arriba') k = (k + n - COLS) % n;
     else if (a === 'abajo') k = (k + COLS) % n;
     else if (a === 'aceptar') {
-      this.abrir(ESPECIES[k].id);
+      this.confirmar();
       return true;
     } else return false;
-    this.sel = k;
-    [this.hx, this.hy] = this.celda(k);
-    sonido.efecto('cursor');
+    this.mirar(k);
     return true;
   }
 
-  /** The guide over the card, on the statistics page (the countdown keeps running underneath). */
+  /** The guide on the statistics page (the countdown keeps running underneath). */
   private abrirGuiaStats() {
     sonido.efecto('aceptar');
     void abrirGuia(this, 'stats');
@@ -252,19 +410,19 @@ export class VistaDraft implements Escena {
         this.ultimoTic = seg;
         sonido.efecto('tic');
       }
-      // While a machine thinks, the highlight wanders over the free useritos.
-      if (this.turnoDe !== this.miSeat && !this.detalle && !this.anim.activo) {
+      // While a machine thinks, its cursor wanders over the free useritos (the player's sheet stays put).
+      if (this.turnoDe !== this.miSeat && !this.anim.activo) {
         this.vaga -= dt;
         if (this.vaga <= 0) {
           this.vaga = 230;
           const libres = ESPECIES.map((_, k) => k).filter((k) => this.dueno(ESPECIES[k].id) < 0);
           if (libres.length) {
-            this.sel = libres[Math.floor(Math.random() * libres.length)];
-            [this.hx, this.hy] = this.celda(this.sel);
+            [this.hx, this.hy] = this.celda(libres[Math.floor(Math.random() * libres.length)]);
+            this.cursorOculto = false;
             mueve = true;
           }
         }
-      }
+      } else if (this.turnoDe === this.miSeat) this.cursorOculto = true;
       // Redraw for the clock and the turn's blink only when they show something new, not every frame.
       const marca = seg * 2 + (Math.floor(performance.now() / 400) % 2);
       if (marca !== this.marcaReloj) {
@@ -272,7 +430,7 @@ export class VistaDraft implements Escena {
         mueve = true;
       }
     }
-    // The card's sprite breathes: a redraw twice a second is enough (the screen also redraws every quarter second).
+    // The sheet's sprite breathes: the screen redraws every quarter second, enough for its two resting frames.
     return mueve || Date.now() < this.avisoHasta;
   }
 
@@ -284,10 +442,9 @@ export class VistaDraft implements Escena {
     fondoPapel(ctx, H);
     if (this.hx < 0) [this.hx, this.hy] = this.celda(this.sel);
     this.jugadores(ctx, L.yJug, L.hCelda, ahora);
-    this.info(ctx, L.yInfo, L.hInfo, ahora);
+    this.ficha(ctx, L, ahora);
     this.rejilla(ctx, L, ahora);
     this.barraSuperior(ctx, ahora);
-    if (this.detalle) this.tarjeta(ctx, H, ahora);
     if (this.apelear) {
       const s = t('draft.apelear');
       const w = anchoTexto2(s) + 40;
@@ -346,241 +503,104 @@ export class VistaDraft implements Escena {
     }
   }
 
-  private info(ctx: CanvasRenderingContext2D, y: number, h: number, ahora: number) {
-    const k = Math.max(0, Math.min(ESPECIES.length - 1, this.sel));
-    const sp = ESPECIES[k];
-    panelCacheado(ctx, 1, y, ANCHO - 2, h);
-    const x0 = 9;
-    const ancho = ANCHO - 2 * x0 - 4;
-    const color = COLOR_TIPO[sp.tipos[0]];
-    // Tall screens: the 64×64 sprite breathes on its mat at the left and the sheet goes to its right.
-    const alto = h >= 128;
-    let yy = y + 8;
-    let xt = x0;
-    if (alto) {
-      const mat = plataformaCacheada(28, 6);
-      ctx.drawImage(mat, x0 + Math.floor((68 - mat.width) / 2), yy + 62 - 12);
-      ctx.drawImage(spriteFrente2(sp.id, reposo(ahora)), x0 + 2, yy);
-      xt = x0 + 76;
+  // ------------------------------------------------------------------ the sheet
+
+  /** The sheet of the userito being looked at: the baked body, the breathing sprite (full sheet), the owner mark if taken and ELEGIR. */
+  private ficha(ctx: CanvasRenderingContext2D, L: Diseno, ahora: number) {
+    const sp = ESPECIES[Math.max(0, Math.min(ESPECIES.length - 1, this.sel))];
+    const { yInfo: y, hInfo: h, completa } = L;
+    const x = 1;
+    const vista = this.vista;
+    ctx.drawImage(fichaBase(sp.id, completa, h, vista), x, y);
+    const d = this.dueno(sp.id);
+    const mio = this.miTurno && d < 0;
+    // Hit zones: the type badges and the moves (the text strip changes), the statistics (the guide).
+    for (let i = 0; i < 4; i++) {
+      const c = celdaMov(completa, i);
+      entrada.zona(x + c.x - 3, y + c.y - Math.floor((c.h - 9) / 2) - 1, COL_MOV - 3, c.h + 1, () => this.tocarMov(i));
     }
-    texto2(ctx, sp.nombre, xt, yy + 2);
-    let bx = xt + anchoTexto2(sp.nombre) + 8;
-    if (alto) {
-      yy += 15;
-      bx = xt;
+    if (lineasTexto(completa, h) >= 3) {
+      const tx = completa ? G.completa.colX : G.x0;
+      const ty = completa ? G.completa.tiposY : 17;
+      entrada.zona(x + tx - 3, y + ty - 3, 120, 17, () => this.tocarTipos());
     }
-    for (const tp of sp.tipos) bx += insignaTipo(ctx, tp, bx, yy) + 3;
-    yy += alto ? 16 : 17;
-    // Stats: five columns (label and value, bar underneath), or five short rows beside the sprite.
-    if (alto) {
-      STATS.forEach((st, i) => {
-        const yr = yy + i * 11;
-        texto2(ctx, st.nombre, xt, yr, TINTA_SUAVE);
-        const v = sp.base[st.clave];
-        barraValor(ctx, xt + 24, yr, 62, Math.min(v, 150) / 150, color);
-        texto2(ctx, String(v), xt + 90, yr);
-      });
-      yy = Math.max(y + 8 + 66, yy + STATS.length * 11 + 3);
+    if (completa) {
+      const c = G.completa;
+      entrada.zona(x + c.colX - 2, y + c.statsY - 3, W_FICHA - c.colX - 6, STATS.length * c.statsFila + 2, () => this.abrirGuiaStats());
+      ctx.drawImage(spriteFrente2(sp.id, reposo(ahora)), x + c.spriteX, y + c.spriteY);
+      if (d >= 0) ctx.drawImage(icono2(this.plazas[d].entrenador), x + W_FICHA - 11 - 16, y + 6);
+      this.botonElegir(ctx, x + G.x0, y + c.btnY, c.btnW, mio);
     } else {
-      STATS.forEach((st, i) => {
-        const x = 8 + i * 46;
-        texto2(ctx, st.nombre, x, yy, TINTA_SUAVE);
-        const v = String(sp.base[st.clave]);
-        texto2(ctx, v, x + 41 - anchoTexto2(v), yy);
-        barraValor(ctx, x, yy + 10, 41, Math.min(sp.base[st.clave], 150) / 150, color);
+      const c = G.compacta;
+      entrada.zona(x + 4, y + c.statsY - 3, W_FICHA - 8, 21, () => this.abrirGuiaStats());
+      const bx = x + W_FICHA - 8 - c.btnW;
+      if (d >= 0) ctx.drawImage(icono2(this.plazas[d].entrenador), bx - 20, y + 6);
+      this.botonElegir(ctx, bx, y + c.btnY, c.btnW, mio);
+    }
+  }
+
+  /** ELEGIR: live on your turn (for a free userito), greyed out otherwise (you can still look). */
+  private botonElegir(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, activo: boolean) {
+    boton(ctx, x, y, w, ALTO_BOTON, t('draft.elegir'), activo, activo);
+    if (activo) entrada.zona(x, y, w, ALTO_BOTON, () => this.confirmar());
+  }
+
+  // ------------------------------------------------------------------ the grid
+
+  /** The 24 cells on one canvas: plate, thumbnail and, for the taken ones, the owner's mark. Redone only when it changes. */
+  private rejillaLienzo(cellH: number): HTMLCanvasElement {
+    if (!this.rej) {
+      this.rej = document.createElement('canvas');
+      this.rej.width = ANCHO;
+    }
+    if (this.rejAlto !== cellH) {
+      this.rejAlto = cellH;
+      this.rej.height = cellH * 4;
+      this.rejSucia = true;
+    }
+    if (this.rejSucia) {
+      this.rejSucia = false;
+      const cx = this.rej.getContext('2d')!;
+      cx.imageSmoothingEnabled = false;
+      cx.clearRect(0, 0, ANCHO, cellH * 4);
+      ESPECIES.forEach((sp, k) => {
+        const x = (k % COLS) * CELDA_W;
+        const y = Math.floor(k / COLS) * cellH;
+        const d = this.dueno(sp.id);
+        const sy = y + Math.floor((cellH - 32) / 2);
+        // The cell's plate.
+        relleno(cx, 'rgba(59,42,63,0.22)', x + 2, y + 1, CELDA_W - 4, cellH - 2);
+        if (d >= 0) {
+          cx.save();
+          cx.globalAlpha = 0.3;
+          cx.drawImage(miniatura(sp.id), x + MINI_X, sy);
+          cx.restore();
+          rect(cx, colorEnt(this.plazas[d].entrenador), x + 6, y + cellH - 5, CELDA_W - 12, 3);
+          cx.drawImage(icono2(this.plazas[d].entrenador), x + Math.floor((CELDA_W - 16) / 2), sy + 8);
+        } else cx.drawImage(miniatura(sp.id), x + MINI_X, sy);
       });
-      yy += 22;
     }
-    const desc = envolver(t(`userito.${sp.id}.desc`), ancho);
-    if (yy + desc.length * 12 <= y + h - 4) {
-      for (const l of desc) {
-        texto2(ctx, l, x0, yy, TINTA2);
-        yy += 12;
-      }
-      yy += 3;
-    }
-    // Moves, two columns, when there is still room.
-    if (yy + 2 * 13 <= y + h - 3) {
-      sp.movs.forEach((mid, i) => {
-        const m = MOVS[mid];
-        const x = x0 + (i % 2) * 116;
-        const my = yy + Math.floor(i / 2) * 14;
-        rect(ctx, TINTA2, x, my, 7, 9);
-        rect(ctx, COLOR_TIPO[m.tipo as Tipo], x + 1, my + 1, 5, 7);
-        texto2(ctx, recortar(m.nombre, 98), x + 11, my + 1, TINTA2);
-      });
-    }
+    return this.rej;
   }
 
   private rejilla(ctx: CanvasRenderingContext2D, L: { yGrid: number; cellH: number }, ahora: number) {
-    ESPECIES.forEach((sp, k) => {
+    ctx.drawImage(this.rejillaLienzo(L.cellH), 0, L.yGrid);
+    ESPECIES.forEach((_sp, k) => {
       const x = (k % COLS) * CELDA_W;
       const y = L.yGrid + Math.floor(k / COLS) * L.cellH;
-      const d = this.dueno(sp.id);
-      const sy = y + Math.floor((L.cellH - 32) / 2);
-      // The cell's plate.
-      relleno(ctx, 'rgba(59,42,63,0.22)', x + 2, y + 1, CELDA_W - 4, L.cellH - 2);
-      if (d >= 0) {
-        ctx.save();
-        ctx.globalAlpha = 0.3;
-        ctx.drawImage(miniatura(sp.id), x + MINI_X, sy);
-        ctx.restore();
-        const col = colorEnt(this.plazas[d].entrenador);
-        rect(ctx, col, x + 6, y + L.cellH - 5, CELDA_W - 12, 3);
-        ctx.drawImage(icono2(this.plazas[d].entrenador), x + Math.floor((CELDA_W - 16) / 2), sy + 8);
-      } else {
-        ctx.drawImage(miniatura(sp.id), x + MINI_X, sy);
-        entrada.zona(x, y, CELDA_W, L.cellH, () => {
-          this.sel = k;
-          [this.hx, this.hy] = this.celda(k);
-          this.abrir(sp.id);
-        });
-      }
+      entrada.zona(x, y, CELDA_W, L.cellH, () => this.mirar(k));
     });
-    // The highlight.
-    if (this.hx >= 0 && this.turnoDe !== null) {
-      const col = this.turnoDe === this.miSeat ? colorEnt(this.plazas[this.turnoDe].entrenador) : ORO_UI;
-      const x = Math.round(this.hx);
-      const y = Math.round(this.hy);
-      const c = parpadea(ahora, 350) ? col : TINTA2;
-      const w = CELDA_W - 2;
-      rect(ctx, c, x + 1, y, w, 2);
-      rect(ctx, c, x + 1, y + L.cellH - 2, w, 2);
-      rect(ctx, c, x + 1, y, 2, L.cellH);
-      rect(ctx, c, x + w - 1, y, 2, L.cellH);
-    }
+    // The machine's cursor (gold) while it thinks or picks, and the cell whose sheet is open (the player's colour, blinking, on their turn).
+    if (!this.cursorOculto && this.hx >= 0) this.marco(ctx, Math.round(this.hx), Math.round(this.hy), L.cellH, ORO_UI);
+    const [sx, sy] = this.celda(this.sel);
+    this.marco(ctx, sx, sy, L.cellH, this.miTurno ? (parpadea(ahora, 400) ? colorEnt(this.plazas[this.miSeat!].entrenador) : TINTA2) : TINTA2);
   }
 
-  // ------------------------------------------------------------------ detail card
-
-  private tarjeta(ctx: CanvasRenderingContext2D, H: number, ahora: number) {
-    const id = this.detalle!;
-    const sp = ESPECIE[id];
-    const k = ESPECIES.findIndex((s) => s.id === id);
-    oscurecer(ctx, H);
-    entrada.zona(0, 0, ANCHO, H, () => undefined);
-    const X = 4;
-    const W = ANCHO - 8;
-    panelCacheado(ctx, X, 4, W, H - 8);
-    texto2(ctx, sp.nombre, X + 12, 15);
-    const num = `Nº${String(k + 1).padStart(2, '0')}`;
-    const hayTurno = this.turnoDe !== null && !this.apelear;
-    texto2(ctx, num, X + 12 + anchoTexto2(sp.nombre) + 8, 15, TINTA_SUAVE);
-    let bx = X + 12;
-    for (const tp of sp.tipos) bx += insignaTipo(ctx, tp, bx, 31) + 4;
-    // The countdown stays on the card (the card hides the top bar): a big chip at the top right, red and
-    // blinking in the last five seconds, and under it whose turn it is.
-    if (hayTurno) {
-      const seg = Math.max(0, Math.ceil((this.fin - Date.now()) / 1000));
-      const rojo = seg <= 5;
-      const s = String(seg);
-      const cw = Math.max(34, anchoTexto2(s) * 2 + 16);
-      const cx = X + W - 10 - cw;
-      const fuerte = rojo && parpadea(ahora, 400);
-      relleno(ctx, TINTA2, cx, 8, cw, 20);
-      relleno(ctx, rojo ? (fuerte ? '#e03a2c' : '#9c1c1c') : '#5a4660', cx + 1, 9, cw - 2, 18);
-      rect(ctx, 'rgba(255,255,255,0.25)', cx + 2, 9, cw - 4, 1);
-      textoGrande(ctx, s, cx + Math.floor((cw - anchoTexto2(s) * 2) / 2), 12, rojo ? '#fff0e0' : '#fdf0c0', 2);
-      const q = this.plazas[this.turnoDe!];
-      const mio = this.turnoDe === this.miSeat;
-      const txt = mio ? t('draft.tuturno') : t('draft.elige', { nombre: q.nombre });
-      const tw = anchoTexto2(txt);
-      const xr = X + W - 10;
-      if (bx + 4 + tw + 20 < xr) {
-        ctx.drawImage(icono2(q.entrenador), xr - tw - 20, 29, 16, 16);
-        texto2(ctx, txt, xr - tw, 34, mio ? colorEnt(q.entrenador) : TINTA2);
-      }
-    }
-    // Sprite on a beer mat (breathing), with the stats on the right (tap them for the guide).
-    const ys = 48;
-    const mat = plataformaCacheada(30, 7);
-    ctx.drawImage(mat, X + 8 + Math.floor((72 - mat.width) / 2), ys + 62 - 13);
-    ctx.drawImage(spriteFrente2(id, reposo(ahora)), X + 12, ys);
-    const xs = X + 88;
-    STATS.forEach((st, i) => {
-      const y = ys + 6 + i * 13;
-      texto2(ctx, st.nombre, xs, y, TINTA_SUAVE);
-      const v = sp.base[st.clave];
-      barraValor(ctx, xs + 24, y, 70, Math.min(v, 150) / 150, COLOR_TIPO[sp.tipos[0]]);
-      texto2(ctx, String(v), xs + 100, y);
-      entrada.zona(xs - 2, y - 3, 118, 13, () => this.abrirGuiaStats());
-    });
-    {
-      // A small «?» at the end of the first row: «what do these mean?».
-      const qx = X + W - 12 - 13;
-      const qy = ys + 2;
-      relleno(ctx, TINTA2, qx, qy, 13, 13);
-      relleno(ctx, '#e8c25a', qx + 1, qy + 1, 11, 11);
-      rect(ctx, '#fff3c8', qx + 2, qy + 1, 9, 1);
-      texto2(ctx, '?', qx + 4, qy + 3, TINTA2, null);
-      entrada.zona(qx - 4, qy - 4, 21, 21, () => this.abrirGuiaStats());
-    }
-    // Moves, each with its one-line description.
-    let ym = ys + 78;
-    for (const mid of sp.movs) {
-      const m = MOVS[mid];
-      rect(ctx, TINTA2, X + 12, ym, 7, 9);
-      rect(ctx, COLOR_TIPO[m.tipo as Tipo], X + 13, ym + 1, 5, 7);
-      texto2(ctx, m.nombre, X + 24, ym + 1, TINTA2);
-      const pp = `PP ${m.pp}`;
-      texto2(ctx, pp, X + W - 12 - anchoTexto2(pp), ym + 1, TINTA_SUAVE);
-      // Quick, protection or slow: its pixel icon, left of the PP.
-      const clase = clasePrioridad(m.prioridad);
-      if (clase) ctx.drawImage(iconoPrioridad(clase), X + W - 12 - anchoTexto2(pp) - LADO_ICONO_PRIO - 4, ym);
-      const dm = envolver(t(`mov.${mid}.desc`), W - 40).slice(0, 2);
-      dm.forEach((l, i) => texto2(ctx, l, X + 24, ym + 13 + i * 12, TINTA_SUAVE, null));
-      ym += 17 + dm.length * 12;
-    }
-    // Type matchups of this userito (from its types, via the engine's chart), then the description if there is still room.
-    const yb = H - 4 - 38;
-    const cw = W - 24;
-    const pega = [...new Set(sp.tipos.flatMap((a) => defensoresCon(a, 2)))];
-    const pegan = atacantesFuertes(sp.tipos);
-    const inmune = TIPOS.filter((a) => eficacia(a, sp.tipos) === 0);
-    const grupos: [string, readonly Tipo[], boolean][] = [
-      [t('draft.pega'), pega, false],
-      [t('draft.pegan'), pegan, true],
-    ];
-    if (inmune.length) grupos.push([t('draft.inmune'), inmune, false]);
-    const x4 = (tp: Tipo) => (eficacia(tp, sp.tipos) >= 4 ? t('draft.x4') : '');
-    const altoGrupos = (gs: typeof grupos) => gs.reduce((a, [, l, d]) => a + 12 + hileraTipos(null, l, 0, 0, cw, d ? x4 : undefined) + 3, 0);
-    const desc = envolver(t(`userito.${id}.desc`), W - 28);
-    const altoDesc = 8 + desc.length * 12;
-    let gs = grupos;
-    let conDesc = ym + 4 + altoDesc + 4 + altoGrupos(gs) <= yb - 2;
-    if (!conDesc && ym + 4 + altoGrupos(gs) > yb - 2 && gs.length > 2) gs = gs.slice(0, 2);
-    if (!conDesc && ym + 4 + altoGrupos(gs) > yb - 2) gs = [];
-    let yd = ym + 4;
-    if (conDesc || (gs.length === 0 && yd + altoDesc <= yb)) {
-      rect(ctx, '#d6c08a', X + 12, yd - 4, W - 24, 1);
-      for (const l of desc) {
-        texto2(ctx, l, X + 12, yd + 4);
-        yd += 12;
-      }
-      yd += 6;
-      conDesc = true;
-    }
-    if (gs.length) {
-      let yy = yd + (conDesc ? 4 : 0);
-      rect(ctx, '#d6c08a', X + 12, yy - 4, W - 24, 1);
-      yy += 2;
-      for (const [lab, l, d] of gs) {
-        texto2(ctx, lab, X + 12, yy, TINTA_SUAVE, null);
-        yy += 12;
-        yy += hileraTipos(ctx, l, X + 12, yy, cw, d ? x4 : undefined) + 3;
-      }
-    }
-    // Buttons.
-    const mio = this.miTurno;
-    const bw = 100;
-    boton(ctx, X + 10, yb, bw, 28, t('draft.elegir'), mio && this.foco === 0, mio);
-    boton(ctx, X + W - 10 - bw, yb, bw, 28, t('draft.volver'), this.foco === 1 || !mio);
-    if (mio) entrada.zona(X + 10, yb, bw, 28, () => this.confirmar());
-    entrada.zona(X + W - 10 - bw, yb, bw, 28, () => {
-      this.detalle = null;
-      sonido.efecto('atras');
-    });
+  private marco(ctx: CanvasRenderingContext2D, x: number, y: number, cellH: number, c: string) {
+    const w = CELDA_W - 2;
+    rect(ctx, c, x + 1, y, w, 2);
+    rect(ctx, c, x + 1, y + cellH - 2, w, 2);
+    rect(ctx, c, x + 1, y, 2, cellH);
+    rect(ctx, c, x + w - 1, y, 2, cellH);
   }
 }
-
-void ORO_UI_OSC;

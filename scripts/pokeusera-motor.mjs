@@ -1388,8 +1388,222 @@ function revisarObjetos() {
     }
   }
 }
+// ---- the bench keeps living (docs/POKEUSERA.md, «Estados en el banquillo») and the opening userito (`inicial`, «¿Quién sale primero?»).
+// Deterministic cases: sleep and drunkenness count down for the useritos that are standing but out of the fight at the end of every
+// turn; burn and indigestion do not hurt there; whoever was on the field during the turn (even if it switched out) or is on it now
+// (even if it came in) is not «bench» that turn; no random numbers are used.
+function revisarBanquillo() {
+  const mk = (a, b, semilla = 3) =>
+    M.crearCombate(
+      [
+        { entrenador: 'fran', nombre: 'A', bot: false, especies: a },
+        { entrenador: 'pablo', nombre: 'B', bot: false, especies: b },
+      ],
+      semilla,
+    );
+  const ataca = (mov, objetivo = 1) => ({ tipo: 'atacar', mov, objetivo });
+  const cana = { tipo: 'cana' };
+  const movIdx = (esp, mov) => M.ESPECIE[esp].movs.indexOf(mov);
+  const despiertas = (r) => r.eventos.filter((ev) => ev.k === 'texto' && ev.clave === 'combate.despierta_banco');
+  const dormir = (u, n) => {
+    u.estado = 'dormido';
+    u.sueno = n;
+  };
+  if (!textos.has('combate.despierta_banco')) falla('falta el texto combate.despierta_banco');
+  // A rival that does nothing (the caña, then a harmless move) so the team under test is never in danger.
+  const quieto = movIdx('turito', 'bostezo');
+
+  // The sleeper on the bench counts down one per turn and wakes up when it reaches 0, with one short line.
+  {
+    const e = mk(['turito', 'aceituna', 'cierzon'], ['turito', 'tocinon', 'cierzon']);
+    dormir(e.jugadores[0].equipo[1], 2);
+    const r1 = M.resolverTurno(e, [cana, cana]);
+    const u1 = r1.estado.jugadores[0].equipo[1];
+    if (u1.estado !== 'dormido' || u1.sueno !== 1) falla(`banquillo: tras 1 turno debería seguir dormido con sueno 1 (estado ${u1.estado}, sueno ${u1.sueno})`);
+    if (despiertas(r1).length) falla('banquillo: se despierta antes de tiempo');
+    const r2 = M.resolverTurno(r1.estado, [cana, cana]);
+    const u2 = r2.estado.jugadores[0].equipo[1];
+    if (u2.estado !== null || u2.sueno !== 0) falla(`banquillo: tras 2 turnos debería estar despierto (estado ${u2.estado}, sueno ${u2.sueno})`);
+    const d = despiertas(r2);
+    if (d.length !== 1 || d[0].vars?.quien !== 'Aceituna' || !d[0].fin) falla('banquillo: falta la línea «se ha despertado en el banquillo» (una, al final del turno)');
+    else if (!decir(d[0]).includes('Aceituna') || !decir(d[0]).includes('banquillo')) falla(`banquillo: texto raro «${decir(d[0])}»`);
+    const r3 = M.resolverTurno(r2.estado, [cana, cana]);
+    if (despiertas(r3).length) falla('banquillo: se despierta dos veces');
+    // A sleeper at 0 (it was counted down while it fought) wakes at the end of the first turn on the bench.
+    const e0 = mk(['turito', 'aceituna', 'cierzon'], ['turito', 'tocinon', 'cierzon']);
+    dormir(e0.jugadores[0].equipo[2], 0);
+    if (M.resolverTurno(e0, [cana, cana]).estado.jugadores[0].equipo[2].estado !== null) falla('banquillo: dormido con sueno 0 debería despertar');
+  }
+
+  // The userito on the field is not counted as bench: its sleep goes down only when it tries to act (one per turn).
+  {
+    const e = mk(['aceituna', 'turito', 'cierzon'], ['turito', 'tocinon', 'cierzon']);
+    dormir(e.jugadores[0].equipo[0], 2);
+    const r = M.resolverTurno(e, [ataca(0), cana]);
+    const u = r.estado.jugadores[0].equipo[0];
+    if (u.sueno !== 1 || u.estado !== 'dormido') falla(`banquillo: el activo cuenta doble (sueno ${u.sueno}, esperaba 1)`);
+    if (despiertas(r).length) falla('banquillo: línea de banquillo para el activo');
+  }
+
+  // Switched OUT this turn: it was on the field at the start, so it is not counted yet; the next turn it is.
+  {
+    const e = mk(['aceituna', 'turito', 'cierzon'], ['turito', 'tocinon', 'cierzon']);
+    dormir(e.jugadores[0].equipo[0], 2);
+    const r1 = M.resolverTurno(e, [{ tipo: 'cambiar', a: 1 }, cana]);
+    if (r1.estado.jugadores[0].activo !== 1) falla('banquillo: el cambio no se hizo');
+    const u1 = r1.estado.jugadores[0].equipo[0];
+    if (u1.sueno !== 2 || u1.estado !== 'dormido') falla(`banquillo: el que sale ese turno no debería contar (sueno ${u1.sueno}, esperaba 2)`);
+    const r2 = M.resolverTurno(r1.estado, [ataca(quieto), cana]);
+    if (r2.estado.jugadores[0].equipo[0].sueno !== 1) falla('banquillo: al turno siguiente ya en el banquillo debería bajar a 1');
+  }
+
+  // Switched IN this turn: it is on the field now, so it is not counted; it keeps its sleep until it tries to act.
+  {
+    const e = mk(['turito', 'aceituna', 'cierzon'], ['turito', 'tocinon', 'cierzon']);
+    dormir(e.jugadores[0].equipo[1], 2);
+    const r1 = M.resolverTurno(e, [{ tipo: 'cambiar', a: 1 }, cana]);
+    const u1 = r1.estado.jugadores[0].equipo[1];
+    if (u1.sueno !== 2 || u1.estado !== 'dormido' || despiertas(r1).length) falla(`banquillo: el que entra ese turno no debería contar (sueno ${u1.sueno}, esperaba 2)`);
+    // And the one that was at 1: it does not wake up on the bench in the very turn it comes in.
+    const e1 = mk(['turito', 'aceituna', 'cierzon'], ['turito', 'tocinon', 'cierzon']);
+    dormir(e1.jugadores[0].equipo[1], 1);
+    const q = M.resolverTurno(e1, [{ tipo: 'cambiar', a: 1 }, cana]);
+    if (q.estado.jugadores[0].equipo[1].estado !== 'dormido' || despiertas(q).length) falla('banquillo: el que entra con sueno 1 no debería despertarse en el banquillo ese turno');
+  }
+
+  // Burn and indigestion do not hurt on the bench, and paralysis stays; only sleep and drunkenness have a timer there.
+  {
+    const e = mk(['turito', 'aceituna', 'cierzon'], ['turito', 'tocinon', 'cierzon']);
+    e.jugadores[0].equipo[1].estado = 'quemado';
+    e.jugadores[0].equipo[2].estado = 'empachado';
+    const ps = [e.jugadores[0].equipo[1].ps, e.jugadores[0].equipo[2].ps];
+    let r = { estado: e, eventos: [] };
+    for (let i = 0; i < 3; i++) r = M.resolverTurno(r.estado, [cana, cana]);
+    const q = r.estado.jugadores[0];
+    if (q.equipo[1].ps !== ps[0] || q.equipo[2].ps !== ps[1]) falla('banquillo: el quemado o el empachado pierden PS en el banquillo');
+    if (q.equipo[1].estado !== 'quemado' || q.equipo[2].estado !== 'empachado') falla('banquillo: quemado o empachado desaparecen solos');
+    const e2 = mk(['turito', 'aceituna', 'cierzon'], ['turito', 'tocinon', 'cierzon']);
+    e2.jugadores[0].equipo[1].estado = 'paralizado';
+    if (M.resolverTurno(e2, [cana, cana]).estado.jugadores[0].equipo[1].estado !== 'paralizado') falla('banquillo: el paralizado se cura solo');
+  }
+
+  // Drunkenness counts down on the bench too and is gone at 0 (silently). (The engine clears it when a userito switches out, so this
+  // is set by hand: it guards the rule if the volatile reset ever changes.)
+  {
+    const e = mk(['turito', 'aceituna', 'cierzon'], ['turito', 'tocinon', 'cierzon']);
+    e.jugadores[0].equipo[1].achispado = 2;
+    const r1 = M.resolverTurno(e, [cana, cana]);
+    if (r1.estado.jugadores[0].equipo[1].achispado !== 1) falla('banquillo: el achispado no baja');
+    const r2 = M.resolverTurno(r1.estado, [cana, cana]);
+    if (r2.estado.jugadores[0].equipo[1].achispado !== 0 || r2.eventos.some((ev) => ev.clave === 'combate.sobrio')) falla('banquillo: el achispado se pasa en silencio al llegar a 0');
+    // The active one drunk: untouched here (it counts when it attacks).
+    const e2 = mk(['turito', 'aceituna', 'cierzon'], ['turito', 'tocinon', 'cierzon']);
+    e2.jugadores[0].equipo[0].achispado = 3;
+    if (M.resolverTurno(e2, [cana, cana]).estado.jugadores[0].equipo[0].achispado !== 3) falla('banquillo: el achispado del activo baja sin atacar');
+  }
+
+  // A fainted userito and an eliminated player are left alone; the fallen one keeps no state.
+  {
+    const e = mk(['turito', 'aceituna', 'cierzon'], ['turito', 'tocinon', 'cierzon']);
+    const caido = e.jugadores[0].equipo[2];
+    caido.ps = 0;
+    caido.estado = 'dormido';
+    caido.sueno = 2;
+    const r = M.resolverTurno(e, [cana, cana]);
+    if (r.estado.jugadores[0].equipo[2].sueno !== 2 || despiertas(r).length) falla('banquillo: cuenta un userito caído');
+  }
+
+  // It uses no random numbers: the same battle with and without a sleeper on the bench rolls the same dice (same events, apart from the wake-up line).
+  {
+    for (const sem of [3, 8, 21]) {
+      const a = mk(['cajonazo', 'aceituna', 'cierzon'], ['camioner', 'tocinon', 'cierzon'], sem);
+      const b = mk(['cajonazo', 'aceituna', 'cierzon'], ['camioner', 'tocinon', 'cierzon'], sem);
+      dormir(b.jugadores[0].equipo[1], 1);
+      let ra = a;
+      let rb = b;
+      for (let i = 0; i < 4; i++) {
+        const x = M.resolverTurno(ra, [ataca(0), ataca(0, 0)]);
+        const y = M.resolverTurno(rb, [ataca(0), ataca(0, 0)]);
+        ra = x.estado;
+        rb = y.estado;
+        const sinLinea = (ev) => ev.filter((v) => v.clave !== 'combate.despierta_banco');
+        if (JSON.stringify(sinLinea(x.eventos)) !== JSON.stringify(sinLinea(y.eventos))) falla(`banquillo (semilla ${sem}, turno ${i + 1}): gasta números aleatorios`);
+        if (ra.jugadores[0].equipo[0].ps <= 0 || ra.jugadores[1].equipo[0].ps <= 0) break;
+      }
+    }
+  }
+}
+
+function revisarSalida() {
+  const mk = (a, b, extra = {}, semilla = 5) =>
+    M.crearCombate(
+      [
+        { entrenador: 'fran', nombre: 'A', bot: false, especies: a, ...extra },
+        { entrenador: 'pablo', nombre: 'B', bot: false, especies: b },
+      ],
+      semilla,
+    );
+  const cana = { tipo: 'cana' };
+  const ataca = (mov, objetivo = 1) => ({ tipo: 'atacar', mov, objetivo });
+  // `inicial` is the opening userito; the team keeps its order, so objects and statistics stay with their useritos.
+  const e = mk(['turito', 'aceituna', 'cierzon'], ['tocinon', 'turito', 'cierzon'], { inicial: 2, objetos: [null, 'mechero', 'zapatillas'] });
+  const q = e.jugadores[0];
+  if (q.activo !== 2) falla(`inicial: activo ${q.activo}, esperaba 2`);
+  if (q.equipo.map((u) => u.especie).join() !== 'turito,aceituna,cierzon') falla('inicial: cambia el orden del equipo');
+  if (q.equipo[1].objeto?.id !== 'mechero' || q.equipo[2].objeto?.id !== 'zapatillas' || q.equipo[0].objeto) falla('inicial: los objetos no siguen a sus useritos');
+  if (e.jugadores[1].activo !== 0) falla('inicial: sin inicial el activo debería ser el primero');
+  // The opener is the one in the field on turn 1: its Zapatillas work at the start, the others' do not; it is the one that fights.
+  const r = M.resolverTurno(e, [ataca(0), cana]);
+  if (r.estado.jugadores[0].equipo[2].niveles.vel !== 1 || r.estado.jugadores[0].equipo[0].niveles.vel !== 0) falla('inicial: las zapatillas del inicial deberían activarse al empezar');
+  if (!r.eventos.some((ev) => ev.k === 'usa' && ev.j === 0)) falla('inicial: el inicial no ataca');
+  if (r.estado.stats.u[0][2].tf !== 1 || r.estado.stats.u[0][0].tf !== 0) falla('inicial: los turnos en campo van al userito equivocado');
+  // Invalid values count as the first one.
+  for (const mala of [-1, 3, 1.5, NaN, undefined, null, '1']) {
+    if (mk(['turito', 'aceituna', 'cierzon'], ['tocinon', 'turito', 'cierzon'], { inicial: mala }).jugadores[0].activo !== 0) falla(`inicial: ${String(mala)} debería valer 0`);
+  }
+  // A team of two cannot open with a third that is not there.
+  if (mk(['turito', 'aceituna'], ['tocinon', 'turito', 'cierzon'], { inicial: 2 }).jugadores[0].activo !== 0) falla('inicial: equipo de dos con inicial 2');
+  // A whole battle starting with each opener finishes and keeps the invariants.
+  for (let i = 0; i < 3; i++) {
+    let s = mk(['camioner', 'aceituna', 'cierzon'], ['tocinon', 'turito', 'cierzon'], { inicial: i }, 9 + i);
+    for (let t = 0; t < 120 && s.ganador === null; t++) {
+      const rr = M.resolverTurno(s, s.jugadores.map((_, j) => (M.eliminado(s, j) ? null : M.eleccionBot(s, j, M.crearRnd(t * 7 + j)))));
+      s = rr.estado;
+      if (s.reemplazos.length) s = M.reemplazar(s, {}).estado;
+      revisar(s, `inicial ${i}`);
+    }
+    if (s.ganador === null) falla(`inicial ${i}: la batalla no acaba`);
+  }
+
+  // The machine's pick: always valid, deterministic for a given dice, and sensible (with no noise the best matchup wins).
+  const todas = M.ESPECIES.map((sp) => sp.id);
+  for (let sem = 1; sem <= 60; sem++) {
+    const rnd = M.crearRnd(sem);
+    const mezcla = [...todas].sort(() => rnd() - 0.5);
+    const equipo = mezcla.slice(0, 3);
+    const rivales = [mezcla.slice(3, 6), mezcla.slice(6, 9), mezcla.slice(9, 12)];
+    const a = M.salidaBot(equipo, rivales, M.crearRnd(sem + 100));
+    const b = M.salidaBot(equipo, rivales, M.crearRnd(sem + 100));
+    if (a !== b) falla('salidaBot: no es determinista');
+    if (!Number.isInteger(a) || a < 0 || a > 2) falla(`salidaBot: ${a} no es un índice`);
+  }
+  // Against three teams of Mindundi (turito) the Juerga cajón (×2 to them, ×1 back) is the best opener of these three.
+  const sin = () => 0;
+  const rivs = [['turito', 'turito', 'turito'], ['turito', 'turito', 'turito'], ['turito', 'turito', 'turito']];
+  if (M.salidaBot(['camioner', 'draguserin', 'cajonazo'], rivs, sin) !== 2) falla('salidaBot: contra Mindundi debería abrir el de Juerga');
+  // Many different openers come out over many machines (it is not always the first one).
+  const salidas = new Set();
+  for (let sem = 1; sem <= 80; sem++) {
+    const rnd = M.crearRnd(sem * 31);
+    const mezcla = [...todas].sort(() => rnd() - 0.5);
+    salidas.add(M.salidaBot(mezcla.slice(0, 3), [mezcla.slice(3, 6), mezcla.slice(6, 9)], M.crearRnd(sem)));
+  }
+  if (salidas.size < 3) falla('salidaBot: siempre elige el mismo');
+}
 revisarTanda6();
 revisarObjetos();
+revisarBanquillo();
+revisarSalida();
 
 const semillas = process.argv.slice(2).map(Number).filter((n) => Number.isFinite(n)).slice(0, 5);
 if (!semillas.length) semillas.push(1);

@@ -9,6 +9,7 @@
 //    and threatened, uses the quick moves (+1) to finish off a rival, and Devolvérsela when it expects to be hit.
 //  - pickBot: picks in the draft by raw quality plus type variety.
 //  - reemplazoBot: who comes in after a fall.
+//  - salidaBot: which userito starts the battle (type matchup against the rivals' whole teams).
 import type { Eleccion, EstadoCombate, EstadoDraft, Stat, Tipo, Userito } from '../tipos';
 import { TIPOS_FISICOS } from '../tipos';
 import { EFECTOS, ESPECIE, MOVS, eficacia } from '../datos';
@@ -281,6 +282,31 @@ export function pickBot(draft: EstadoDraft, rnd: Rnd): string {
     if (valor > mejorV) {
       mejorV = valor;
       mejor = id;
+    }
+  }
+  return mejor;
+}
+
+/**
+ * Which of its useritos (index in `equipo`) the machine sends out first. The teams are public after the draft but nobody knows who the
+ * rivals lead with, so each candidate is scored against all the useritos of all the rival teams: how hard its best same-type attack hits
+ * them minus how hard theirs hit it (a ×0 counts as a wall, a ×4 as a risk), plus a little noise so the machines do not all open alike.
+ */
+export function salidaBot(equipo: readonly string[], rivales: readonly (readonly string[])[], rnd: Rnd): number {
+  const contra = rivales.flat();
+  let mejor = 0;
+  let mejorV = -Infinity;
+  for (let i = 0; i < Math.min(3, equipo.length); i++) {
+    const mios = ESPECIE[equipo[i]].tipos;
+    let v = 0;
+    for (const r of contra) {
+      const suyos = ESPECIE[r].tipos;
+      v += Math.max(...mios.map((t) => eficacia(t, suyos))) - Math.max(...suyos.map((t) => eficacia(t, mios)));
+    }
+    v = (contra.length ? v / contra.length : 0) + rnd() * 0.25;
+    if (v > mejorV) {
+      mejorV = v;
+      mejor = i;
     }
   }
   return mejor;

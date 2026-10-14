@@ -15,6 +15,7 @@ import { VistaCombate } from './pantallas/combate';
 import { abrirGuia } from './pantallas/guia';
 import { abrirUseritopedia } from './pantallas/useritopedia';
 import { VistaDraft } from './pantallas/draft';
+import { VistaSalida } from './pantallas/salida';
 import { pantallaEntrenador } from './pantallas/entrenador';
 import { pantallaMenu, type OpcionMenu } from './pantallas/menu';
 import { mensaje } from './pantallas/modal';
@@ -40,7 +41,7 @@ export interface OpcionesFlujo {
   pj?: EntrenadorId;
   /** `?escenario=brio|terraza|rural|juan`: the bar of the battle (default: drawn from the seed). */
   escenario?: EscenarioId;
-  /** `?barra`: with `?combate`, «La barra» is played too (otherwise the machine gives out the objects). */
+  /** `?barra`: with `?combate`, «La barra» and «¿Quién sale primero?» are played too (otherwise the machine gives out the objects and picks the openers). */
   barra?: boolean;
 }
 
@@ -55,6 +56,7 @@ export async function jugarSolo(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combat
   const vd = new VistaDraft(asientos, miSeat);
   const vc = new VistaCombate(miSeat);
   const vb = new VistaBarra(yo);
+  const vs = new VistaSalida(yo);
   let equipos: string[][] | undefined;
   if (o.combate) {
     // A random team of three each, from all of them.
@@ -76,6 +78,10 @@ export async function jugarSolo(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combat
       p.poner(vb);
       return vb.pedir(ofertas, especies, ms);
     },
+    pedirSalida: (_j, especies, objetos, ms) => {
+      p.poner(vs);
+      return vs.pedir(especies, objetos, ms);
+    },
     alDraft: (draft, turnoDe, ms) => {
       if (!enDraft) {
         enDraft = true;
@@ -94,8 +100,8 @@ export async function jugarSolo(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combat
   };
   const partida = new Partida(asientos, ganchos, { semilla: o.semilla, rapido: o.auto, equipos, escenario: o.escenario ?? escenarioElegido(), barra: o.barra });
   vd.escenario = partida.escenario;
-  vd.alAbandonar = vb.alAbandonar = vc.alAbandonar = () => partida.cancelar();
-  (window as unknown as { __pokeusera?: unknown }).__pokeusera = { partida, vc, vd, vb };
+  vd.alAbandonar = vb.alAbandonar = vs.alAbandonar = vc.alAbandonar = () => partida.cancelar();
+  (window as unknown as { __pokeusera?: unknown }).__pokeusera = { partida, vc, vd, vb, vs };
   try {
     const estado = await partida.jugar();
     return await pantallaPodio(estado, miSeat, o.auto);

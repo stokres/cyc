@@ -12,7 +12,8 @@
 // (it runs the game) but its screens only draw the objects that were revealed.
 import { ENTRENADORES, OBJETOS, type Eleccion, type EntrenadorId, type EstadoCombate, type ObjetoId } from '../tipos';
 import { crearRnd } from '../motor/azar';
-import { eleccionBot, pickBot, reemplazoBot } from '../motor/bot';
+import { equipos as equiposDraft } from '../motor/draft';
+import { eleccionBot, pickBot, reemplazoBot, salidaBot } from '../motor/bot';
 import { objetoBot, ocultarObjetos } from '../motor/objetos';
 import { Partida, esCancelada, type Asiento, type Ganchos } from '../partida';
 import { pantalla } from '../pantalla';
@@ -21,6 +22,7 @@ import { escenarioElegido } from '../pantallas/ajustes';
 import { VistaBarra } from '../pantallas/barra';
 import { VistaCombate } from '../pantallas/combate';
 import { VistaDraft } from '../pantallas/draft';
+import { VistaSalida } from '../pantallas/salida';
 import { pantallaPodio } from '../pantallas/podio';
 import { nombreEnt, t } from '../pantallas/ui';
 import type { Conexion } from './conexion';
@@ -206,9 +208,13 @@ async function unaPartida(
     }
   };
 
+  /** The teams of the other seats (what the machine looks at when it picks the opener for a guest who left). */
+  const salidaRivales = (j: number): string[][] => (partida.draft ? equiposDraft(partida.draft, n).filter((_e, k) => k !== j) : []);
+
   const vd = new VistaDraft(asientos, miSeat);
   const vc = new VistaCombate(miSeat);
   const vb = new VistaBarra(miSeat !== null ? asientos[miSeat].entrenador : null);
+  const vs = new VistaSalida(miSeat !== null ? asientos[miSeat].entrenador : null);
 
   const ganchos: Ganchos = {
     pedirPick: () => vd.pedirPick(),
@@ -218,6 +224,10 @@ async function unaPartida(
       p.poner(vb);
       return vb.pedir(ofertas, especies, ms);
     },
+    pedirSalida: (_j, especies, objetos, ms) => {
+      p.poner(vs);
+      return vs.pedir(especies, objetos, ms);
+    },
     remoto: {
       pedirPick: (j, draft) => buzon.esperar(`pick:${j}:${draft.elegidos.length}`, j, () => pickBot(draft, rnd)),
       pedirEleccion: (j, estado) => buzon.esperar<Eleccion | null>(`eleccion:${j}:${estado.turno}`, j, () => eleccionBot(estado, j, rnd)),
@@ -226,6 +236,11 @@ async function unaPartida(
       pedirObjeto: (j, ofertas, especies, ms) => {
         con.juego(idDe[j], { k: 'barra', ofertas, especies, plazoMs: ms } satisfies MsgAnfitrion);
         return buzon.esperar(`objeto:${j}`, j, () => objetoBot(especies, ofertas, rnd));
+      },
+      // Likewise «¿Quién sale primero?»: only that guest is asked (with the objects on their team); the answer comes back as 'salida'.
+      pedirSalida: (j, especies, objetos, ms) => {
+        con.juego(idDe[j], { k: 'salida', especies, objetos, plazoMs: ms } satisfies MsgAnfitrion);
+        return buzon.esperar(`salida:${j}`, j, () => salidaBot(especies, salidaRivales(j), rnd));
       },
     },
     alDraft: (draft, turnoDe, ms) => {
@@ -271,8 +286,8 @@ async function unaPartida(
   // The bar of the battles is the host's setting (AJUSTES → ESCENARIO; at random by default).
   const partida = new Partida(asientos, ganchos, { escenario: escenarioElegido() });
   vd.escenario = partida.escenario;
-  (window as unknown as { __pokeusera?: unknown }).__pokeusera = { partida, vc, vd, vb };
-  vd.alAbandonar = vb.alAbandonar = vc.alAbandonar = () => {
+  (window as unknown as { __pokeusera?: unknown }).__pokeusera = { partida, vc, vd, vb, vs };
+  vd.alAbandonar = vb.alAbandonar = vs.alAbandonar = vc.alAbandonar = () => {
     abandonada = true;
     partida.cancelar();
   };
@@ -296,6 +311,8 @@ async function unaPartida(
     } else if (d.k === 'objeto') {
       const el = objetoLimpio(d);
       if (el) buzon.entregar(`objeto:${seat}`, el);
+    } else if (d.k === 'salida') {
+      if (esEntero(d.idx) && d.idx >= 0 && d.idx < 3) buzon.entregar(`salida:${seat}`, d.idx);
     } else if (d.k === 'reemplazoIdx') {
       if (esEntero(d.turno) && esEntero(d.idx)) buzon.entregar(`reemplazo:${seat}:${d.turno}`, d.idx);
     }

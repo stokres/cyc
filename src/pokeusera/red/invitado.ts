@@ -10,6 +10,7 @@ import { sonido } from '../sonido';
 import { VistaBarra } from '../pantallas/barra';
 import { VistaCombate } from '../pantallas/combate';
 import { VistaDraft } from '../pantallas/draft';
+import { VistaSalida } from '../pantallas/salida';
 import { pantallaPodio } from '../pantallas/podio';
 import { cfg, t } from '../pantallas/ui';
 import type { Conexion } from './conexion';
@@ -31,7 +32,7 @@ interface Recibido {
 }
 
 /** Messages that settle any question asked before them. */
-const CIERRAN = new Set<MsgAnfitrion['k']>(['asientos', 'draft', 'inicio', 'turno', 'reemplazo', 'fin', 'otra']);
+const CIERRAN = new Set<MsgAnfitrion['k']>(['asientos', 'draft', 'salida', 'inicio', 'turno', 'reemplazo', 'fin', 'otra']);
 
 /** Plays one session as a guest. Resolves when it is over: back to the room, to the menu, or the room is gone. */
 export function jugarInvitado(con: Conexion): Promise<FinOnline> {
@@ -53,6 +54,7 @@ export function jugarInvitado(con: Conexion): Promise<FinOnline> {
     let vd: VistaDraft | null = null;
     let vc: VistaCombate | null = null;
     let vb: VistaBarra | null = null;
+    let vs: VistaSalida | null = null;
     let miSeat: number | null = null;
     let enDraft = false;
     let fase: 'draft' | 'combate' | 'podio' = 'draft';
@@ -88,9 +90,10 @@ export function jugarInvitado(con: Conexion): Promise<FinOnline> {
         vd = new VistaDraft(msg.asientos, miSeat);
         vc = new VistaCombate(miSeat);
         vb = new VistaBarra(miSeat !== null ? (msg.asientos[miSeat]?.entrenador ?? null) : null);
+        vs = new VistaSalida(miSeat !== null ? (msg.asientos[miSeat]?.entrenador ?? null) : null);
         vd.escenario = msg.escenario;
-        vd.alAbandonar = vc.alAbandonar = vb.alAbandonar = abandonar;
-        (window as unknown as { __pokeusera?: unknown }).__pokeusera = { vc, vd, vb, cola };
+        vd.alAbandonar = vc.alAbandonar = vb.alAbandonar = vs.alAbandonar = abandonar;
+        (window as unknown as { __pokeusera?: unknown }).__pokeusera = { vc, vd, vb, vs, cola };
         enDraft = false;
         fase = 'draft';
         podioVivo = false;
@@ -101,7 +104,7 @@ export function jugarInvitado(con: Conexion): Promise<FinOnline> {
         podioVivo = false;
         return;
       }
-      if (!vd || !vc || !vb) return;
+      if (!vd || !vc || !vb || !vs) return;
       switch (msg.k) {
         case 'draft': {
           if (!enDraft) {
@@ -126,6 +129,17 @@ export function jugarInvitado(con: Conexion): Promise<FinOnline> {
           p.poner(vb);
           void vb.pedir(msg.ofertas, msg.especies, resta).then((el) => {
             if (!muerto && !caducada(idx)) enviar({ k: 'objeto', objeto: el.objeto, idx: el.idx });
+          });
+          return;
+        }
+        case 'salida': {
+          // «¿Quién sale primero?»: only this guest was asked. The choice goes back as 'salida'; the 'inicio' that follows settles any question left open.
+          if (miSeat === null || caducada(idx)) return;
+          const tope = Math.max(1500, msg.plazoMs - MARGEN_MS);
+          const resta = Math.min(tope, Math.max(Math.min(MIN_ELECCION_MS, tope), tope - (Date.now() - cuando)));
+          p.poner(vs);
+          void vs.pedir(msg.especies, msg.objetos, resta).then((i) => {
+            if (!muerto && !caducada(idx)) enviar({ k: 'salida', idx: i });
           });
           return;
         }

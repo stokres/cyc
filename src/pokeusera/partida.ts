@@ -9,7 +9,7 @@ import type { Eleccion, EntrenadorId, EscenarioId, EstadoCombate, EstadoDraft, E
 import { crearRnd } from './motor/azar';
 import { crearDraft, elegir as elegirDraft, equipos as equiposDraft, turnoDraft } from './motor/draft';
 import { crearCombate, eleccionAlAzar, eliminado, enGrada, escenarioDeSemilla, reemplazar, resolverTurno, vivos } from './motor/combate';
-import { eleccionBot, pickBot, reemplazoBot } from './motor/bot';
+import { eleccionBot, pickBot, reemplazoBot, salidaBot } from './motor/bot';
 import { PLAZO_BARRA, eleccionObjetoValida, objetoBot, ofertasObjetos, type EleccionObjeto } from './motor/objetos';
 
 export interface Asiento {
@@ -28,6 +28,8 @@ export interface Decisor {
   pedirReemplazo(j: number, estado: EstadoCombate, plazoMs: number): Promise<number>;
   /** «La barra»: which of the three `ofertas` the player takes and which of their three `especies` (index) carries it. */
   pedirObjeto(j: number, ofertas: ObjetoId[], especies: string[], plazoMs: number): Promise<EleccionObjeto>;
+  /** «¿Quién sale primero?»: the index (0..2, in `especies`) of the userito the player sends out first; `objetos` are the ones «La barra» gave to their useritos. */
+  pedirSalida(j: number, especies: string[], objetos: (ObjetoId | null)[], plazoMs: number): Promise<number>;
 }
 
 export interface Ganchos extends Decisor {
@@ -59,9 +61,10 @@ export interface OpcionesPartida {
   rapido?: boolean;
   /** Skip the draft: the teams (species ids per seat). */
   equipos?: string[][];
-  /** With `equipos` (no draft) «La barra» is skipped too and every seat gets its object from the machine, unless this is set (`?barra`). */
+  /** With `equipos` (no draft) «La barra» and «¿Quién sale primero?» are skipped too and the machine decides for every seat, unless this is set (`?barra`). */
   barra?: boolean;
   plazoBarraMs?: number;
+  plazoSalidaMs?: number;
   plazoPickMs?: number;
   plazoTurnoMs?: number;
   plazoReemplazoMs?: number;
@@ -70,6 +73,7 @@ export interface OpcionesPartida {
 export const PLAZO_PICK = 20000;
 export const PLAZO_TURNO = 30000;
 export const PLAZO_REEMPLAZO = 15000;
+export const PLAZO_SALIDA = 15000;
 export { PLAZO_BARRA };
 /** Extra time the host gives guests over the clock they see, for network lag. */
 const GRACIA_REMOTO = 1200;
@@ -156,8 +160,9 @@ export class Partida {
     if (this.opciones.equipos) listas = this.opciones.equipos;
     else listas = await this.hacerDraft();
     const objetos = await this.hacerBarra(listas);
+    const iniciales = await this.hacerSalida(listas, objetos);
     const estado0 = crearCombate(
-      this.asientos.map((a, j) => ({ entrenador: a.entrenador, nombre: a.nombre, bot: a.tipo === 'bot', especies: listas[j], objetos: objetos[j] })),
+      this.asientos.map((a, j) => ({ entrenador: a.entrenador, nombre: a.nombre, bot: a.tipo === 'bot', especies: listas[j], objetos: objetos[j], inicial: iniciales[j] })),
       this.semillaCombate,
       this.escenario,
     );
@@ -266,6 +271,26 @@ export class Partida {
       }),
     );
     return res;
+  }
+
+  // ------------------------------------------------------------------ who comes out first
+
+  /**
+   * Every seat chooses at once and in secret which of its three useritos starts the battle (`PLAZO_SALIDA`); the machines choose by type
+   * matchup against the other teams, and a player who runs out of time (or answers nonsense) sends out the first one. Returns, per seat,
+   * the index in its team. Skipped like «La barra» (the machine chooses for everybody) when the draft was.
+   */
+  private async hacerSalida(listas: string[][], objetos: (ObjetoId | null)[][]): Promise<number[]> {
+    const plazo = this.opciones.plazoSalidaMs ?? PLAZO_SALIDA;
+    const preguntar = !this.opciones.equipos || !!this.opciones.barra;
+    return Promise.all(
+      this.asientos.map(async (_a, j) => {
+        const dec = preguntar ? this.decisor(j) : null;
+        if (!dec) return salidaBot(listas[j], listas.filter((_l, k) => k !== j), this.rndBots[j]);
+        const idx = await this.conPlazo<number>(dec.pedirSalida(j, listas[j], objetos[j], plazo), plazo + this.gracia(j), () => 0);
+        return Number.isInteger(idx) && idx >= 0 && idx < Math.min(3, listas[j].length) ? idx : 0;
+      }),
+    );
   }
 
   // ------------------------------------------------------------------ battle
