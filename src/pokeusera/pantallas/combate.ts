@@ -471,6 +471,10 @@ export class VistaCombate implements Escena {
   private resolverReemplazo: ((i: number) => void) | null = null;
   /** Set by the flow: the player chose ABANDONAR in the pause box. */
   alAbandonar: (() => void) | null = null;
+  /** Hunting mode (src/pokeusera/caza/): the third action reads CAZAR instead of CAÑA (it still sends `{ tipo: 'cana' }`, which the hunting flow turns into a jarra throw). */
+  cazar = false;
+  /** The opening line of the battle (default «¡Empieza la batalla a cuatro!»; the hunting mode has its own: a wild userito, a boss). */
+  textoInicio: string | null = null;
   private yo: number;
 
   /** `miSeat`: this screen's player (null = just watching: seat 0 goes at the bottom). */
@@ -497,7 +501,7 @@ export class VistaCombate implements Escena {
       await dormir(250 * i);
       await this.entra(j);
     });
-    const texto = this.caja.decir(t('batalla.inicio'), 900);
+    const texto = this.caja.decir(this.textoInicio ?? t('batalla.inicio'), 900);
     await Promise.all([texto, ...sacadas]);
   }
 
@@ -2606,7 +2610,7 @@ export class VistaCombate implements Escena {
     const iconos = ['luchar', 'userito', 'cana'] as const;
     ['luchar', 'userito', 'cana'].forEach((k, i) => {
       const y = y0 + i * rowH;
-      filaMenu(ctx, 10, y, ANCHO - 20, rowH, t(`batalla.${k}`), iconos[i], this.sel === i, ok[i]);
+      filaMenu(ctx, 10, y, ANCHO - 20, rowH, t(`batalla.${k === 'cana' && this.cazar ? 'cazar' : k}`), iconos[i], this.sel === i, ok[i]);
       this.fil(8, y, ANCHO - 16, rowH, () => {
         this.sel = i;
         this.accionPrincipal(i);

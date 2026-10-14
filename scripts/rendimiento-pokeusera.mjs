@@ -17,7 +17,8 @@
 //   node scripts/rendimiento-pokeusera.mjs [pantalla...]     (default: all)  [PUERTO=5173]
 //   node scripts/rendimiento-pokeusera.mjs 5174 combate-juega     (a bare number is the port)
 //   screens: titulo, menu, ajustes, entrenador, draft, draft-flujo, barra, salida, combate-elige, combate-juega, combate-ritmo (+ the four bars: combate-elige-<bar> and combate-juega-<bar>,
-//            with <bar> = rural, terraza, juan; the default combate-* ones are the Bar del Brío), podio, estadisticas, useritopedia, useritopedia-ficha, guia, guia-objetos, salida
+//            with <bar> = rural, terraza, juan; the default combate-* ones are the Bar del Brío), podio, estadisticas, useritopedia, useritopedia-ficha, guia, guia-objetos, salida,
+//            aventura-inicial, aventura-mapa, aventura-zona, aventura-equipo, aventura-salvaje (AVENTURA, src/pokeusera/caza/: ?aventura&demo=nueva&pj=fran and ?aventura&demo)
 // Environment: SEG=4 (seconds measured per screen), CPU=4 (throttling rate; 1 = none, budgets then do not apply),
 //   VOLCAR=carpeta (also write a PNG of every screen there, to compare looks before/after).
 import { chromium } from 'playwright';
@@ -69,6 +70,13 @@ const PRESUPUESTOS = {
   barra: { redibujos: 8, ms: 2.5, pico: 12, cb: 3, di: 30, lienzos: 0, largas: 0, primer: 800 },
   // «¿Quién sale primero?» (after La barra): three baked cards, three breathing sprites and the marked one's frame.
   salida: { redibujos: 10, ms: 2.5, pico: 12, cb: 3, di: 30, lienzos: 0, largas: 0, primer: 800 },
+  // AVENTURA (src/pokeusera/caza/): the starter pick has three breathing sprites out of step (about 6 redraws a second); the map, the bar and the team are static (they redraw on input only).
+  'aventura-inicial': { redibujos: 8, ms: 2, pico: 20, cb: 3, di: 25, lienzos: 0, largas: 0, primer: 1000 },
+  'aventura-mapa': { redibujos: 2, ms: 1.5, pico: 20, cb: 2, di: 30, lienzos: 0, largas: 0, primer: 1000 },
+  'aventura-zona': { redibujos: 2, ms: 1.5, pico: 20, cb: 2, di: 30, lienzos: 0, largas: 0, primer: 1000 },
+  'aventura-equipo': { redibujos: 2, ms: 2.5, pico: 20, cb: 2, di: 45, lienzos: 0, largas: 0, primer: 1000 },
+  // A wild battle (bar 1, BUSCAR USERITOS) at the choosing moment: the same budget as combate-elige.
+  'aventura-salvaje': { redibujos: 8, ms: 4, pico: 25, cb: 5, di: 85, lienzos: 0, largas: 0, primer: 600 },
 };
 
 const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -94,15 +102,24 @@ const PANTALLAS = {
   // Reached by playing a whole quick game by itself (?auto): the podium, then ESTADÍSTICAS with Enter.
   podio: { url: '?auto&semilla=7', ir: async (p) => { await hastaPodio(p); } },
   estadisticas: { url: '?auto&semilla=7', ir: async (p) => { await hastaPodio(p); await tecla(p, 'Enter'); } },
-  // The Useritopedia: menu → USERITOPEDIA (third entry): the list, and a card (Enter on the first userito).
-  useritopedia: { url: '', ir: async (p) => { await tecla(p, 'Enter'); await tecla(p, 'ArrowDown', false); await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
-  'useritopedia-ficha': { url: '', ir: async (p) => { await tecla(p, 'Enter'); await tecla(p, 'ArrowDown', false); await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); await tecla(p, 'Enter', false); }, esperar: 1500 },
-  // The guide: menu → GUÍA (fourth entry).
-  guia: { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 3; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
+  // The Useritopedia: menu → USERITOPEDIA (fourth entry, after JUGAR SOLO, AVENTURA and JUGAR ONLINE): the list, and a card (Enter on the first userito).
+  useritopedia: { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 3; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
+  'useritopedia-ficha': { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 3; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); await tecla(p, 'Enter', false); }, esperar: 1500 },
+  // The guide: menu → GUÍA (fifth entry).
+  guia: { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 4; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
   // The guide on its OBJETOS tab (the last one: ▶ five times).
-  'guia-objetos': { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 3; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); for (let i = 0; i < 5; i++) await tecla(p, 'ArrowRight', false); }, esperar: 1000 },
-  // The settings: menu → AJUSTES (fifth entry), with the ESCENARIO row.
-  ajustes: { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 4; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
+  'guia-objetos': { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 4; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); for (let i = 0; i < 5; i++) await tecla(p, 'ArrowRight', false); }, esperar: 1000 },
+  // The settings: menu → AJUSTES (sixth entry), with the ESCENARIO row.
+  ajustes: { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 5; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
+  // AVENTURA. The shortcuts skip the title and the menu (`?aventura`); `&demo` is a test adventure in memory (a starter and seven caught, bar 2 open, never saved).
+  'aventura-inicial': { url: '?aventura&demo=nueva&pj=fran', ir: async () => {} },
+  'aventura-mapa': { url: '?aventura&demo', ir: async () => {} },
+  // The map marks bar 2 (the first one whose boss is standing): ↑ goes to bar 1, Enter opens it.
+  'aventura-zona': { url: '?aventura&demo', ir: async (p) => { await tecla(p, 'ArrowUp', false); await tecla(p, 'Enter'); } },
+  // From bar 2, four rows down (bar 3, bar 4, FINAL, EQUIPO) and Enter: the team screen.
+  'aventura-equipo': { url: '?aventura&demo', ir: async (p) => { for (let i = 0; i < 4; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
+  // Bar 1 → BUSCAR USERITOS → the battle screen asking for the first action of the player.
+  'aventura-salvaje': { url: '?aventura&demo', ir: async (p) => { await tecla(p, 'ArrowUp', false); await tecla(p, 'Enter'); await tecla(p, 'Enter'); }, esperar: 2500 },
 };
 // The battle screens in each other bar (the Bar del Brío is the default one above).
 for (const esc of ['rural', 'terraza', 'juan']) {
@@ -192,7 +209,7 @@ for (const nombre of Object.keys(PANTALLAS)) {
   const cdp = await ctx.newCDPSession(page);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU });
   await page.goto(BASE + (def.url ? def.url + '&medir' : '?medir'));
-  await page.waitForFunction(() => window.__medir && window.__medir.dibujos > 2, null, { timeout: 60000 });
+  await page.waitForFunction(() => window.__medir && window.__medir.dibujos > 0, null, { timeout: 60000 });
   // `marca()`: from there on the «first spike» counts only what happens after it (entering a screen from the previous one).
   const marca = () => page.evaluate(() => { window.__medir.reiniciar(); });
   await def.ir(page, marca);

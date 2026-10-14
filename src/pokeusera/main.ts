@@ -2,7 +2,11 @@
 // Test shortcuts: ?combate (random team, straight to battle), ?draft, ?auto (a machine plays your
 // seat, fast), ?rapido (fast animations only: for testing online play by hand), ?semilla=N, ?pj=fran|pablo|chuchi|guille,
 // ?escenario=brio|terraza|rural|juan (the bar of the battle; otherwise AJUSTES' ESCENARIO, which is at random by default),
-// ?barra (with ?combate: «La barra» is played too, instead of the machine choosing the objects).
+// ?barra (with ?combate: «La barra» is played too, instead of the machine choosing the objects),
+// ?aventura (no title or menu: straight into AVENTURA, the one-player hunting mode; its saved adventure, or the trainer pick if there is none),
+// ?aventura&demo (a test adventure in memory, never saved: the starter plus seven caught, bar 2 open; ?pj=... picks the trainer, Fran by default),
+// ?aventura&demo=nueva[&pj=fran] (the beginning, never saved: the starter pick, or the trainer pick first when there is no ?pj).
+// When AVENTURA is left the game goes on to the title, as always.
 import raw from '../textos/pokeusera.md?raw';
 import rawCombate from '../textos/pokeusera-combate.md?raw';
 import { cargarTextos } from '../juego/textos';
@@ -50,6 +54,7 @@ void ejecutar({
   pj: pj && ENTRENADORES.includes(pj) ? pj : undefined,
   escenario: escenario && ESCENARIOS.includes(escenario) ? escenario : undefined,
   barra: q.has('barra'),
+  aventura: q.has('aventura') ? { demo: q.has('demo') ? (q.get('demo') === 'nueva' ? 'nueva' : 'si') : undefined, pj: pj && ENTRENADORES.includes(pj) ? pj : undefined } : undefined,
 }).catch((e) => {
   console.error(e);
 });

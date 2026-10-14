@@ -1322,6 +1322,7 @@ function saneaEleccion(c: Ctx, j: number, ch: Eleccion | null | undefined): Acci
     return null;
   }
   if (act(c, j).ps <= 0) return null;
+  if (ch && ch.tipo === 'pasar') return null;
   if (ch && ch.tipo === 'cambiar' && puedeCambiar(e, j) && vivos(q).includes(ch.a) && ch.a !== q.activo) return { tipo: 'cambiar', j, a: ch.a };
   if (ch && ch.tipo === 'cana' && q.cana) return { tipo: 'cana', j };
   if (ch && ch.tipo === 'atacar') return { tipo: 'atacar', j, mov: Number.isInteger(ch.mov) && ch.mov >= 0 && ch.mov < 4 ? ch.mov : 0, objetivo: ch.objetivo };

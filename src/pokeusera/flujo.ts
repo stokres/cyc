@@ -23,6 +23,7 @@ import { pantallaPodio, type SalidaPodio } from './pantallas/podio';
 import { pantallaTitulo } from './pantallas/titulo';
 import { envolver, nombreEnt, t } from './pantallas/ui';
 import { jugarOnline } from './red/online';
+import { jugarAventura } from './caza/flujo';
 
 /** Entry points other parts of the game replace. */
 export const enlaces = {
@@ -43,6 +44,8 @@ export interface OpcionesFlujo {
   escenario?: EscenarioId;
   /** `?barra`: with `?combate`, «La barra» and «¿Quién sale primero?» are played too (otherwise the machine gives out the objects and picks the openers). */
   barra?: boolean;
+  /** `?aventura`: no title or menu, straight into AVENTURA (the one-player hunting mode); `demo`: a test adventure in memory that is never saved ('si': a starter and seven caught; 'nueva': from the beginning), with `pj` as the trainer. */
+  aventura?: { demo?: 'si' | 'nueva'; pj?: EntrenadorId };
 }
 
 /** Plays one solo game (you + three machines) and shows the podium. */
@@ -117,7 +120,8 @@ async function jugarVarias(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combate' | 
 }
 
 export async function ejecutar(o: OpcionesFlujo): Promise<void> {
-  if (o.combate || o.draft || o.auto) {
+  if (o.aventura) await jugarAventura(o.aventura);
+  else if (o.combate || o.draft || o.auto) {
     const yo = o.pj ?? cargarAjustes().entrenador ?? ENTRENADORES[0];
     if (o.auto) {
       await jugarSolo(yo, o);
@@ -135,6 +139,7 @@ export async function ejecutar(o: OpcionesFlujo): Promise<void> {
       if (m === 'ajustes') await pantallaAjustes();
       else if (m === 'guia') await abrirGuia(null);
       else if (m === 'useritopedia') await abrirUseritopedia(null);
+      else if (m === 'aventura') await jugarAventura({});
       else if (m === 'online') {
         // Without connection there is no room: say so (solo play, the Useritopedia and the guide work offline).
         if (hayConexion()) await enlaces.jugarOnline();

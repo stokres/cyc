@@ -284,7 +284,9 @@ export type Eleccion =
   | { tipo: 'cambiar'; a: number }
   | { tipo: 'cana' }
   /** Eliminated players, every 3rd turn: invite a caña (heal 1/10) or boo (accuracy −1). */
-  | { tipo: 'grada'; accion: 'cana' | 'abucheo'; objetivo: number };
+  | { tipo: 'grada'; accion: 'cana' | 'abucheo'; objetivo: number }
+  /** The player gives up the turn on purpose (the hunting mode: throwing a jarra at a wild userito is decided outside the engine). */
+  | { tipo: 'pasar' };
 
 /**
  * What happened in a turn, in order, for the screen to play one by one. Every event can carry

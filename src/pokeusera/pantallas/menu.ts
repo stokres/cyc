@@ -1,4 +1,4 @@
-// PokéUsera · main menu: JUGAR SOLO / JUGAR ONLINE / USERITOPEDIA / GUÍA / AJUSTES, plus two rows that only exist when they
+// PokéUsera · main menu: JUGAR SOLO / AVENTURA / JUGAR ONLINE / USERITOPEDIA / GUÍA / AJUSTES, plus two rows that only exist when they
 // make sense: «Hay versión nueva» (a new version is waiting) and INSTALAR EN EL MÓVIL (see ../aplicacion.ts).
 import { app, instalable } from '../aplicacion';
 import { filaMenu, hornear, panelCacheado } from '../arte2/ui2';
@@ -7,16 +7,17 @@ import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
 import { ORO_UI, SOMBRA_TEXTO, TINTA2 } from '../arte2/paleta2';
 import { dibujarTexto2 } from '../arte2/fuente2';
+import { ALTO_LOGO2 } from '../arte2/logo2';
 import { dibujarFondoBar } from './fondos';
 import { iconoGuia } from './guia';
 import { dibujarLogo } from './titulo';
 import { mover, rect, t } from './ui';
 
-export type OpcionMenu = 'solo' | 'online' | 'useritopedia' | 'guia' | 'ajustes' | 'instalar' | 'actualizar' | 'titulo';
-const BASE: OpcionMenu[] = ['solo', 'online', 'useritopedia', 'guia', 'ajustes'];
+export type OpcionMenu = 'solo' | 'aventura' | 'online' | 'useritopedia' | 'guia' | 'ajustes' | 'instalar' | 'actualizar' | 'titulo';
+const BASE: OpcionMenu[] = ['solo', 'aventura', 'online', 'useritopedia', 'guia', 'ajustes'];
 /** The rows now: the update notice on top, the install option at the end, each only while it applies. */
 const opciones = (): OpcionMenu[] => [...(app.hayActualizacion ? (['actualizar'] as const) : []), ...BASE, ...(instalable() ? (['instalar'] as const) : [])];
-const ICONOS: Record<string, string> = { solo: 'luchar', online: 'online', useritopedia: 'userito', ajustes: 'ajustes' };
+const ICONOS: Record<string, string> = { solo: 'luchar', aventura: 'cana', online: 'online', useritopedia: 'userito', ajustes: 'ajustes' };
 
 /** A down arrow into a tray, baked once. */
 function iconoInstalar(ctx: CanvasRenderingContext2D, x: number, y: number) {
@@ -68,9 +69,11 @@ export function pantallaMenu(inicial: OpcionMenu = 'solo'): Promise<OpcionMenu> 
         dibujarLogo(ctx, 18 + Math.round((H - 384) * 0.08));
         const w = 200;
         const x = Math.floor((ANCHO - w) / 2);
-        const fila = 34;
         const lista = opciones();
         if (!lista.includes(sel)) sel = 'solo';
+        // 34 px a row; with the update notice and the install row on top of the six it shrinks so the panel stays under the logo.
+        const bajoLogo = 18 + Math.round((H - 384) * 0.08) + ALTO_LOGO2 + 4;
+        const fila = Math.min(34, Math.floor((H - 8 - bajoLogo - 14) / lista.length));
         const h = fila * lista.length + 14;
         // With the extra rows on a short screen the panel moves up instead of running off the bottom.
         const y = Math.min(Math.round(H * 0.5) + Math.round((H - 384) * 0.05), H - h - 8);

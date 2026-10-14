@@ -534,3 +534,9 @@ objeto.panuelo.activa = ¡El pañuelo de la peña da moral a {quien}!
 objeto.llavero.nombre = Llavero de la caravana
 objeto.llavero.desc = Si cae, quien lo tumbó baja 1 su Ataque y 1 su Especial.
 objeto.llavero.activa = ¡El llavero de {quien} se venga de {otro}!
+
+// ---- AVENTURA (modo a un jugador): la jarra para cazar useritos salvajes
+caza.lanza = ¡{jugador} lanza una jarra vacía a {quien}!
+caza.tambalea = La jarra se tambalea... una... dos...
+caza.atrapado = ¡Atrapado! {quien} se mete en la jarra.
+caza.escapa = ¡Oh, no! {quien} se escapa de la jarra.
