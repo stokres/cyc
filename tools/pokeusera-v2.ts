@@ -156,8 +156,11 @@ if (vista === 'efectos') {
     { x: 160, y: 170 },
   ];
   // Sample moves with the generic effect, to see them next to the signature ones.
-  const GENERICOS = ['zasca', 'planeo', 'caparazon', 'bostezo'];
-  const LISTA = [...MOVS_CON_EFECTO, ...GENERICOS];
+  const GENERICOS = ['bostezo', 'remolino', 'flipada', 'susto'];
+  const TODOS = [...MOVS_CON_EFECTO, ...GENERICOS];
+  // &movs=a,b,c: only those moves (for a contact sheet of the new effects).
+  const solo = params.get('movs')?.split(',');
+  const LISTA = solo ? TODOS.filter((m) => solo.includes(m)) : TODOS;
 
   /** The static stage (backdrop, platforms and sprites), baked once. */
   const escenario = document.createElement('canvas');
@@ -218,7 +221,7 @@ if (vista === 'efectos') {
       const oy = 12 + Math.floor(i / COLS) * (SH + 22);
       semillaFx(1234);
       const dur = new EfectosMov().lanzar(mov, tipoDe(mov), YO, objetivosDe(mov));
-      dibujarTexto2(hx, `${mov.toUpperCase()}  ${dur} ms`, ox, oy - 2, '#f6e6b4');
+      dibujarTexto2(hx, `${mov.toUpperCase().replace(/_/g, " ")}  ${dur} ms`, ox, oy - 2, '#f6e6b4');
       (FRAC_DE[mov] ?? [0.3, 0.55, 0.82]).forEach((f, k) => hx.drawImage(fotograma(mov, Math.round(dur * f)), ox + k * (SW + 4), oy + 12));
     });
     (window as any).__hojaPNG = () => hoja.toDataURL('image/png');
@@ -299,7 +302,7 @@ if (vista === 'efectos') {
     const fx = new EfectosMov();
     const lanza = (): void => {
       fx.lanzar('traca', 'petardo', YO, RIVALES);
-      fx.lanzar('adoquin', 'bronca', YO, RIVALES);
+      fx.lanzar('bostezo', 'mindundi', YO, RIVALES);
     };
     const medir = (vaciar: boolean): Record<string, number> => {
       const ts: number[] = [];
