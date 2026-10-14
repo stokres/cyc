@@ -13,7 +13,7 @@
 import type { Eleccion, EstadoCombate, EstadoDraft, Stat, Tipo, Userito } from '../tipos';
 import { TIPOS_FISICOS } from '../tipos';
 import { EFECTOS, ESPECIE, MOVS, eficacia } from '../datos';
-import { activo, calcularDano, enGrada, eliminado, hayDeSuceso, multNivel, multObjeto, multSuceso, puedeCambiar, rivalesEnPie, vivos } from './combate';
+import { activo, calcularDano, enGrada, eliminado, hayDeSuceso, multNivel, multObjeto, multSuceso, potenciaDe, puedeCambiar, recienDespierto, rivalesEnPie, vivos } from './combate';
 import { disponibles, turnoDraft } from './draft';
 
 type Rnd = () => number;
@@ -43,7 +43,7 @@ function presion(e: EstadoCombate, j: number, rivales: number[]): Presion {
     let top = 0;
     for (const id of ESPECIE[a.especie].movs) {
       const mv = MOVS[id];
-      if (mv.pot !== null) top = Math.max(top, calcularDano(a, u, mv, { todos: mv.objetivo === 'todos', mult: multSuceso(e, mv.tipo) * multObjeto(a, mv) }).dano);
+      if (mv.pot !== null) top = Math.max(top, calcularDano(a, u, mv, { pot: potenciaDe(a, mv), todos: mv.objetivo === 'todos', mult: multSuceso(e, mv.tipo) * multObjeto(a, mv) }).dano);
     }
     return top;
   });
@@ -63,7 +63,7 @@ function valorMovimiento(e: EstadoCombate, j: number, idx: number, rivales: numb
   // Damaging moves.
   if (m.pot !== null || ef.especial === 'premio') {
     const golpes = ef.golpes === 'multi' ? 3.1 : (ef.golpes ?? 1);
-    const pot0 = ef.especial === 'premio' ? 67 : (m.pot ?? 0);
+    const pot0 = ef.especial === 'premio' ? 67 : potenciaDe(u, m);
     let mejor: Valor = { valor: 0 };
     let suma = 0;
     for (const r of rivales) {
@@ -87,6 +87,17 @@ function valorMovimiento(e: EstadoCombate, j: number, idx: number, rivales: numb
     if (ef.rebote) valor *= 0.9;
     if (ef.drena) valor *= 1 + (1 - hp) * 0.3;
     if (ef.nivel?.some((n) => n.a === 'yo' && n.cambio > 0)) valor *= 1.08;
+    if (ef.especial === 'tendedero') {
+      // Hit and run: it goes back to the bench if the blow lands, so it is worth most when it is threatened or hurt and has somebody to send in
+      // (and not when it would throw away stat boosts or leave the only one standing).
+      const q = e.jugadores[j];
+      const banco = vivos(q).length > 1;
+      const amenazado = pres.peligro || pres.golpeado >= 2 || hp < 0.5;
+      const subidas = (Object.values(u.niveles) as number[]).reduce((n, x) => n + Math.max(0, x), 0);
+      if (!banco) valor *= 0.9;
+      else if (amenazado) valor += 0.3 + (1 - hp) * 0.2;
+      else valor *= subidas >= 2 ? 0.7 : 0.9;
+    }
     return { valor, objetivo: mejor.objetivo };
   }
 
@@ -129,13 +140,13 @@ function valorMovimiento(e: EstadoCombate, j: number, idx: number, rivales: numb
       candidato((r) => 0.2 + 0.06 * (Object.values(activo(e, r).niveles) as number[]).reduce((s, x) => s + Math.max(0, x), 0));
       break;
     case 'bostezo':
-      candidato((r) => (sinEstado(r) && activo(e, r).vol.bostezo < 0 ? 0.5 : 0));
+      candidato((r) => (sinEstado(r) && activo(e, r).vol.bostezo < 0 && !recienDespierto(e, activo(e, r)) ? 0.5 : 0));
       break;
     case 'cizana':
       candidato((r) => (activo(e, r).vol.cizana > 0 ? 0 : 0.3));
       break;
     default:
-      if (ef.estado) candidato((r) => (ef.estado!.estado === 'achispado' ? (activo(e, r).achispado > 0 ? 0 : 0.45) : sinEstado(r) ? (ef.estado!.estado === 'dormido' ? 0.65 : 0.5) : 0));
+      if (ef.estado) candidato((r) => (ef.estado!.estado === 'achispado' ? (activo(e, r).achispado > 0 ? 0 : 0.45) : sinEstado(r) ? (ef.estado!.estado === 'dormido' ? (recienDespierto(e, activo(e, r)) ? 0 : 0.65) : 0.5) : 0));
       else if (ef.nivel) {
         if (m.objetivo === 'yo') {
           let v = 0;
@@ -234,7 +245,8 @@ export function eleccionBot(estado: EstadoCombate, j: number, rnd: Rnd): Eleccio
 /** Who comes in after a fall: HP, damage it could do to the rivals and how afraid of them it should be. Deterministic. */
 export function reemplazoBot(estado: EstadoCombate, j: number): number {
   const q = estado.jugadores[j];
-  const candidatos = vivos(q);
+  // A userito that is still standing is leaving the field (Al tendedero): it cannot be the one that comes in.
+  const candidatos = vivos(q).filter((i) => i !== q.activo || q.equipo[i].ps <= 0);
   if (!candidatos.length) return 0;
   const rivales = rivalesEnPie(estado, j);
   let mejor = candidatos[0];
@@ -249,7 +261,7 @@ export function reemplazoBot(estado: EstadoCombate, j: number): number {
       for (const id of ESPECIE[cand.especie].movs) {
         const m = MOVS[id];
         if (m.pot === null) continue;
-        top = Math.max(top, Math.min(1, calcularDano(cand, v, m, { todos: m.objetivo === 'todos' }).dano / v.ps));
+        top = Math.max(top, Math.min(1, calcularDano(cand, v, m, { pot: potenciaDe(cand, m), todos: m.objetivo === 'todos' }).dano / v.ps));
       }
       ofensiva += top;
       miedo = Math.max(miedo, amenaza(v, cand));

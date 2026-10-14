@@ -26,13 +26,13 @@ const TABLA: Record<Tipo, { x2?: Tipo[]; x05?: Tipo[]; x0?: Tipo[] }> = {
   petardo: { x2: ['droga', 'alcohol'], x05: ['petardo', 'bronca', 'grasa'] },
   droga: { x2: ['bronca', 'grasa'], x05: ['petardo', 'droga', 'alcohol'] },
   bronca: { x2: ['petardo', 'chispa'], x05: ['droga'], x0: ['ventolera'] },
-  ventolera: { x2: ['petardo', 'juerga'], x05: ['chispa', 'bronca'] },
+  ventolera: { x2: ['petardo', 'juerga', 'grasa'], x05: ['chispa', 'bronca'] },
   chispa: { x2: ['ventolera', 'alcohol'], x05: ['chispa', 'droga'], x0: ['bronca'] },
   alcohol: { x2: ['grasa', 'droga'], x05: ['alcohol', 'petardo'] },
   juerga: { x2: ['mindundi', 'bronca'], x05: ['grasa'] },
   chanza: { x2: ['juerga', 'fantasma'], x05: ['chanza'] },
   grasa: { x2: ['alcohol', 'juerga'], x05: ['petardo', 'droga'] },
-  fantasma: { x2: ['chanza', 'fantasma'], x0: ['mindundi'] },
+  fantasma: { x2: ['chanza', 'fantasma', 'chispa'], x0: ['mindundi'] },
 };
 
 /** Effectiveness of an attack type against a (one or two types) defender: 0, 0.25, 0.5, 1, 2, 4. */
@@ -61,22 +61,22 @@ const e = (id: string, nombre: string, tipos: Especie['tipos'], ps: number, ata:
 });
 
 export const ESPECIES: Especie[] = [
-  e('draguserin', 'Draguserín', ['petardo', 'ventolera'], 75, 80, 70, 95, 100, ['traca', 'petardazo', 'planeo', 'esconderse']),
+  e('draguserin', 'Draguserín', ['petardo', 'ventolera'], 75, 80, 70, 105, 90, ['traca', 'petardazo', 'planeo', 'esconderse']),
   e('goudazard', 'Goudazard', ['grasa', 'petardo'], 75, 70, 85, 90, 100, ['goudamadre', 'fogonazo', 'pringue', 'rebozado']),
   e('aceituna', 'Aceituna', ['mindundi', 'chanza'], 90, 100, 90, 75, 65, ['lametazo', 'mecuelo', 'vacile', 'chapa']),
   e('cierzon', 'Cierzón', ['ventolera'], 75, 95, 70, 105, 75, ['cierzo', 'planeo', 'rebufo', 'venganza']),
-  e('turroncho', 'Turroncho', ['bronca', 'droga'], 85, 80, 95, 70, 90, ['almendrazo', 'adoquin', 'caparazon', 'siesta']),
+  e('turroncho', 'Turroncho', ['bronca', 'droga'], 85, 80, 95, 85, 75, ['almendrazo', 'adoquin', 'caparazon', 'siesta']),
   e('tocinon', 'Tocinón', ['mindundi', 'grasa'], 105, 95, 70, 75, 75, ['barrigazo', 'pringue', 'temblor', 'siesta']),
   e('roscochoco', 'Roscochoco', ['grasa', 'juerga'], 100, 75, 85, 60, 100, ['indigestion', 'fritanga', 'conga', 'rebozado']),
   e('espumarro', 'Espumarro', ['alcohol', 'mindundi'], 95, 70, 80, 75, 100, ['ronda', 'garrafon', 'unamas', 'barrigazo']),
-  e('cajonazo', 'Cajonazo', ['juerga'], 100, 115, 100, 50, 55, ['rumba', 'taconeo', 'aguantar', 'compas']),
+  e('cajonazo', 'Cajonazo', ['juerga'], 105, 120, 100, 45, 50, ['remate', 'taconeo', 'aguantar', 'temblor']),
   e('lentejasur', 'Lentejasur', ['droga', 'fantasma'], 70, 65, 70, 100, 115, ['lluvia', 'tropezon', 'susto', 'esporas']),
   e('tragaperras', 'Tragaperras', ['chispa', 'chanza'], 75, 60, 80, 90, 115, ['premio', 'chispazo', 'zasca', 'cizana']),
-  e('turito', 'Turito', ['mindundi'], 105, 70, 95, 70, 80, ['chapa', 'pillo', 'turra', 'bostezo']),
+  e('turito', 'Turito', ['mindundi'], 100, 70, 90, 80, 80, ['chapa', 'pillo', 'turra', 'bostezo']),
   e('resacon', 'Resacón', ['alcohol', 'fantasma'], 85, 90, 80, 75, 90, ['dolor', 'chupitazo', 'venganza', 'aguantar']),
   e('evoscar', 'Evoscar', ['mindundi', 'bronca'], 100, 105, 95, 55, 65, ['coz', 'devolver', 'dosvoces', 'siy']),
   e('chupitochu', 'Chupitochu', ['alcohol', 'petardo'], 75, 55, 75, 90, 125, ['chupitazo', 'fogonazo', 'garrafon', 'esconderse']),
-  e('caravaner', 'Caravaner', ['bronca', 'juerga'], 85, 85, 75, 85, 90, ['cancion', 'temblor', 'caparazon', 'siesta']),
+  e('caravaner', 'Caravaner', ['bronca', 'juerga'], 85, 85, 70, 95, 85, ['cancion', 'temblor', 'caparazon', 'siesta']),
   e('camioner', 'Camioner', ['mindundi', 'bronca'], 105, 125, 100, 35, 55, ['trompazo', 'adoquin', 'bocinazo', 'cancion']),
   e('criaturitah', 'Criaturitah', ['droga', 'chanza'], 80, 60, 80, 100, 100, ['esporas', 'raices', 'colleja', 'monada']),
   e('ego-ego', 'Ego-Ego', ['fantasma'], 80, 100, 75, 95, 70, ['eco', 'chuleria', 'flipada', 'quepague']),
@@ -85,7 +85,7 @@ export const ESPECIES: Especie[] = [
   e('cubatillo', 'Cubatillo', ['alcohol', 'chispa'], 70, 55, 70, 115, 110, ['burbujeo', 'ronda', 'chispazo', 'unamas']),
   e('p', 'P', ['mindundi', 'chanza'], 95, 90, 100, 60, 75, ['pesao', 'chapa', 'quepague', 'cara_de_pena']),
   e('jesuspelo', 'JesúsPelo', ['droga', 'ventolera'], 85, 90, 75, 95, 75, ['tubo', 'setas', 'raices', 'planeo']),
-  e('pantaloneto', 'Pantaloneto', ['mindundi', 'ventolera'], 95, 120, 90, 75, 40, ['pantalones', 'cierzo', 'chapa', 'mecuelo']),
+  e('pantaloneto', 'Pantaloneto', ['mindundi', 'ventolera'], 95, 120, 90, 75, 40, ['pantalones', 'tendedero', 'chapa', 'mecuelo']),
 ];
 
 export const ESPECIE: Record<string, Especie> = Object.fromEntries(ESPECIES.map((s) => [s.id, s]));
@@ -126,12 +126,14 @@ const LISTA_MOVS: Movimiento[] = [
   m('raices', 'Raíces', 'droga', 60, 100, 8, 'uno'),
   m('almendrazo', 'Almendrazo', 'droga', 85, 100, 8, 'uno'),
   m('lluvia', 'Lluvia de lentejas', 'droga', 25, 90, 10, 'uno'),
-  m('esporas', 'Esporas', 'droga', null, 75, 8, 'uno'),
+  m('esporas', 'Esporas', 'droga', null, 75, 5, 'uno'),
   m('setas', 'Setas', 'droga', 70, 100, 8, 'uno'),
   m('temblor', 'Temblor', 'bronca', 80, 100, 5, 'todos'),
   m('adoquin', 'Adoquín', 'bronca', 100, 85, 5, 'uno'),
   m('caparazon', 'Caparazón', 'bronca', null, null, 5, 'yo'),
   m('cierzo', 'Cierzo', 'ventolera', 70, 95, 5, 'todos'),
+  // Tanda 7 (Pantaloneto): hits one rival and, if it lands, goes back to the bench (the player picks who comes in, like after a fall).
+  m('tendedero', 'Al tendedero', 'ventolera', 80, 100, 8, 'uno'),
   m('planeo', 'Planeo', 'ventolera', 80, 100, 8, 'uno'),
   m('tubo', 'Tubo perfecto', 'ventolera', 90, 95, 5, 'uno'),
   m('remolino', 'Remolino', 'ventolera', null, 100, 8, 'uno'),
@@ -145,14 +147,16 @@ const LISTA_MOVS: Movimiento[] = [
   m('garrafon', 'Garrafón', 'alcohol', 110, 85, 3, 'uno'),
   m('unamas', '¡Una más!', 'alcohol', null, 100, 5, 'todos'),
   m('dolor', 'Dolor de cabeza', 'alcohol', null, 90, 8, 'uno'),
-  m('rumba', 'Rumba', 'juerga', 20, 90, 10, 'uno'),
-  m('taconeo', 'Taconeo', 'juerga', 85, 100, 8, 'uno'),
+  m('rumba', 'Rumba', 'juerga', 30, 90, 10, 'uno'),
+  // Tanda 7 (Cajonazo): the lower its HP, the harder it hits (see `potenciaRemate`). `pot` is only the nominal middle of the range.
+  m('remate', 'Remate por bulerías', 'juerga', 110, 100, 5, 'uno'),
+  m('taconeo', 'Taconeo', 'juerga', 95, 100, 8, 'uno'),
   m('conga', 'Conga', 'juerga', 70, 100, 5, 'todos'),
   m('pogo', 'Pogo', 'juerga', 75, 95, 5, 'todos'),
   m('coz', 'Coz doble', 'juerga', 45, 100, 8, 'uno'),
   m('chuleria', 'Chulería', 'juerga', 80, 100, 8, 'uno'),
   m('compas', 'Compás', 'juerga', null, null, 10, 'yo'),
-  m('cancion', '¡Camioneees y caravanaaas!', 'juerga', 90, 100, 3, 'todos'),
+  m('cancion', '¡Camioneees y caravanaaas!', 'juerga', 75, 100, 3, 'todos'),
   m('zasca', 'Zasca', 'chanza', 100, 90, 5, 'uno'),
   m('vacile', 'Vacile', 'chanza', 80, 100, 8, 'uno'),
   m('pesao', 'P de Pesao', 'chanza', 60, 100, 8, 'uno'),
@@ -203,7 +207,7 @@ export interface Efecto {
   /** The target cannot switch next turn. */
   bloqueaCambio?: boolean;
   /** Moves with their own logic. */
-  especial?: 'premio' | 'siy' | 'venganza' | 'cancion' | 'esconderse' | 'quepague' | 'aguantar' | 'devolver' | 'siesta' | 'remolino' | 'bostezo' | 'cizana';
+  especial?: 'premio' | 'siy' | 'venganza' | 'cancion' | 'esconderse' | 'quepague' | 'aguantar' | 'devolver' | 'siesta' | 'remolino' | 'bostezo' | 'cizana' | 'tendedero' | 'remate';
 }
 
 export const EFECTOS: Record<string, Efecto> = {
@@ -264,8 +268,7 @@ export const EFECTOS: Record<string, Efecto> = {
   pantalones: {
     nivel: [
       { a: 'yo', stat: 'ata', cambio: 2 },
-      { a: 'yo', stat: 'vel', cambio: 2 },
-      { a: 'yo', stat: 'def', cambio: -2 },
+      { a: 'yo', stat: 'vel', cambio: 1 },
     ],
   },
   pringue: { nivel: [{ a: 'objetivo', stat: 'vel', cambio: -1, prob: 20 }] },
@@ -279,12 +282,16 @@ export const EFECTOS: Record<string, Efecto> = {
       { a: 'yo', stat: 'ata', cambio: 1 },
       { a: 'yo', stat: 'esp', cambio: 1 },
       { a: 'yo', stat: 'vel', cambio: 1 },
-      { a: 'yo', stat: 'def', cambio: -1 },
     ],
   },
   selfie: { nivel: [{ a: 'objetivo', stat: 'prec', cambio: -1 }] },
   desesperada: { rebote: true },
+  tendedero: { especial: 'tendedero' },
+  remate: { especial: 'remate' },
 };
+
+/** «Remate por bulerías»: 20 at full HP up to 200 on the brink, 20 + 180 × (1 − HP / max HP), rounded. */
+export const potenciaRemate = (ps: number, psMax: number): number => Math.round(20 + 180 * (1 - Math.max(0, Math.min(psMax, ps)) / psMax));
 
 // ---------------------------------------------------------------- sucesos del bar
 

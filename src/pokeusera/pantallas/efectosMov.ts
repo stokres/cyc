@@ -12,7 +12,7 @@
 // Movimientos con diseño propio (el resto usa una chispa genérica del color de su tipo; los de estado sobre uno
 // mismo, unos brillos). Sobre rivales (`FX`): lluvia, almendrazo, traca, fogonazo, petardazo, chispazo, cierzo, chupitazo,
 // garrafon, cancion, esporas, temblor, bocinazo, chapa, planeo, pringue, cara_de_pena, vacile, venganza, adoquin, barrigazo,
-// ronda, unamas, zasca, coz, raices, setas, burbujeo, pesao, tubo, goudamadre. Sobre uno mismo (`FX_YO`, `lanzar` los llama
+// ronda, unamas, zasca, coz, raices, setas, burbujeo, pesao, tubo, goudamadre, tendedero, remate. Sobre uno mismo (`FX_YO`, `lanzar` los llama
 // con la lista de objetivos vacía): siesta, esconderse, rebozado, caparazon, compas, pantalones. Los de «todos» llegan a
 // todos los rivales a la vez. Para añadir uno: función `(e, tipo, desde, a)` + entrada en `FX` o `FX_YO` + `LLEGA`/`LLEGA_YO`;
 // el precalentado (`tareasPrecalentarEfectos`) lo recoge solo.
@@ -1339,6 +1339,53 @@ function hLlamarada(): Hoja {
   });
 }
 
+// -- Al tendedero: trozos de cuerda (cuatro orientaciones), pinzas de colores y, de vuelta, los pantalones
+/** Un trozo de cuerda de tender: 0 horizontal, 1 diagonal «\», 2 vertical, 3 diagonal «/». */
+function trozoCuerda(dir: number): HTMLCanvasElement {
+  const L = 12;
+  const w = dir === 2 ? 8 : L + 6;
+  const h = dir === 0 ? 8 : L + 6;
+  const c = lienzo(w, h);
+  const x = ctxDe(c);
+  const [x0, y0, x1, y1] = dir === 0 ? [3, 3, w - 4, 3] : dir === 2 ? [3, 3, 3, h - 4] : dir === 1 ? [3, 3, w - 4, h - 4] : [3, h - 4, w - 4, 3];
+  linea(x, '#5a3a1e', x0, y0, x1, y1, 4);
+  linea(x, '#d8bc8c', x0, y0, x1, y1, 2);
+  // El torzal: un píxel más claro cada tres.
+  const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+  for (let k = 1; k < n; k += 3) pix(x, '#f4e4bc', Math.round(x0 + ((x1 - x0) * k) / n), Math.round(y0 + ((y1 - y0) * k) / n));
+  return c;
+}
+function hCuerdas(): Hoja {
+  return [0, 1, 2, 3].map(trozoCuerda);
+}
+function hPinzas(): Hoja {
+  const fila = ['.kkk.', 'kcllk', 'kcclk', '.kgk.', '.kck.', '.kck.', 'kc.ck'];
+  return [
+    ['#e0524a', '#ff9a8c'],
+    ['#4a8ae0', '#9cc4ff'],
+    ['#ffd83a', '#fff2a0'],
+  ].map(([c, l]) => esc(filas(fila, { k: TINTA, c, l, g: '#a8aab8' }), 1.5));
+}
+
+// -- Remate por bulerías: el cajón que vuela y los golpes que suenan cada vez más grandes
+function hCajon(): Hoja {
+  const c = sombrear(15, 15, caja(0, 0, 14, 14), { ol: '#3a200e', base: '#c8884a', luz: '#ecb674', som: '#96602c' });
+  const x = ctxDe(c);
+  pix(x, '#f4d098', 2, 2, 11, 1);
+  rellenarDisco(x, '#2a1608', 7, 8, 3);
+  pix(x, '#6a4020', 6, 7, 2, 1);
+  for (const [i, j] of [[2, 4], [12, 4], [2, 12], [12, 12]]) pix(x, '#e8e0d0', i, j);
+  return girar(c).map((f) => esc(f, 1.5));
+}
+/** Estrella de impacto de seis tamaños (`idx` 0..5: cuanto más fuerte el golpe, más grande), con tres fotogramas: nace, estalla y se encoge. */
+const RADIOS_REMATE = [6, 9, 13, 17, 21, 26];
+function hGolpeCajon(idx: number): Hoja {
+  const R = RADIOS_REMATE[idx];
+  const a: Mat = { ol: '#c83a78', base: AMARILLO, luz: BLANCO, som: NARANJA };
+  const b: Mat = { ol: '#c83a78', base: '#ff9ac0', luz: BLANCO, som: '#ee6aa4' };
+  return [pum(Math.max(4, Math.round(R * 0.6)), Math.round(R * 0.3), 8, a), pum(R, Math.round(R * 0.5), 9, a), pum(Math.round(R * 0.85), Math.round(R * 0.4), 9, b)];
+}
+
 // ------------------------------------------------------------------------------------------------------------
 // Depósito de partículas
 // ------------------------------------------------------------------------------------------------------------
@@ -1377,6 +1424,8 @@ export class EfectosMov {
   private n = 0;
   /** Fin (ms) del efecto lanzado en este momento. */
   private fin = 0;
+  /** Cuánto pega el golpe del efecto que se lanza, de 0 a 1 (solo lo usan los movimientos de potencia variable: Remate por bulerías). */
+  fuerza = 0.5;
 
   constructor() {
     for (let i = 0; i < MAX; i++) this.pool.push(new Part());
@@ -1398,10 +1447,11 @@ export class EfectosMov {
 
   /**
    * Empieza el efecto de `mov` desde el atacante en `desde` hacia cada punto de `a` (vacío: movimiento sobre uno
-   * mismo). Devuelve su duración en ms. Todos los objetivos a la vez.
+   * mismo). Devuelve su duración en ms. Todos los objetivos a la vez. `fuerza` (0 a 1): lo fuerte que pega, para los de potencia variable.
    */
-  lanzar(mov: string, tipo: Tipo, desde: PuntoFx, a: PuntoFx[]): number {
+  lanzar(mov: string, tipo: Tipo, desde: PuntoFx, a: PuntoFx[], fuerza = 0.5): number {
     this.fin = 0;
+    this.fuerza = fuerza;
     const f = a.length ? FX[mov] : FX_YO[mov];
     if (f) f(this, tipo, desde, a);
     else generico(this, tipo, desde, a, MOVS[mov]?.pot == null);
@@ -2043,11 +2093,70 @@ const goudamadre: Efecto = (e, tipo, d, a) => {
   }
 };
 
+/** Al tendedero: una cuerda con pinzas cruza hasta el rival y le suelta el golpe; unos pantalones vuelan de vuelta a quien la tiró. */
+const tendedero: Efecto = (e, tipo, d, a) => {
+  const hc = unos('cuerda', hCuerdas);
+  const hp = unos('pinza', hPinzas);
+  const hq = memo('pantalones', hPantalones);
+  for (const t of a) {
+    const dx = t.x - d.x;
+    const dy = t.y - d.y;
+    const n = Math.max(5, Math.min(18, Math.round(Math.hypot(dx, dy) / 10)));
+    // La orientación de los trozos sale del ángulo del tiro (horizontal, diagonal o vertical).
+    const g = Math.atan2(Math.abs(dy), Math.abs(dx));
+    const dir = g < 0.39 ? 0 : g > 1.18 ? 2 : dx >= 0 === dy >= 0 ? 1 : 3;
+    // La cuerda se tiende de punta a punta con un poco de panza, trozo a trozo.
+    for (let i = 0; i < n; i++) {
+      const u = (i + 0.5) / n;
+      const ret = Math.round(u * 190);
+      const x = d.x + dx * u;
+      const y = d.y + dy * u + 40 * u * (1 - u);
+      e.mk(hc[dir], x, y, x, y, ret, 520 - ret, 0, 0, 1, 0, 0, 110);
+    }
+    // Tres pinzas colgadas de la cuerda.
+    [0.3, 0.5, 0.7].forEach((u, k) => {
+      const ret = Math.round(u * 190) + 20;
+      const x = d.x + dx * u;
+      const y = d.y + dy * u + 40 * u * (1 - u) + 6;
+      e.mk(hp[k], x, y, x, y, ret, 500 - ret, 0, 0, 1, 0, 0, 110);
+    });
+    golpe(e, tipo, t.x, t.y, 215, 3);
+    // Y los pantalones vuelven volando al tendedero, con dos rachas de viento detrás.
+    e.mk(hq, t.x, t.y - 4, d.x, d.y - 6, 235, 380, -34, 0, 1, 0, 0, 100);
+    const hr = d.x >= t.x ? unos('racha+', hRachaD) : unos('racha-', hRachaI);
+    for (let j = 0; j < 2; j++) e.mk(hr[j], t.x, t.y - 8 + j * 14, d.x, d.y - 14 + j * 14, 250 + j * 50, 330, 0, 0, 1, 0);
+  }
+};
+
+/** Remate por bulerías: el cajón vuela hasta el rival y le suena tres veces, cada golpe con su estrella y su onda, y más grandes cuanta más potencia (`fuerza`). */
+const remate: Efecto = (e, tipo, d, a) => {
+  const hc = memo('cajon', hCajon);
+  const quieto = unos('cajon-quieto', () => [hc[0]]);
+  const ho = e.fuerza < 0.5 ? memo('onda-corta', () => memo('onda', hOnda).slice(0, 3)) : memo('onda', hOnda);
+  const hn = memo('nota-suelta', hNotaSuelta);
+  const base = Math.max(0, Math.min(3, Math.round(e.fuerza * 3)));
+  const sitio: [number, number][] = [[-8, -6], [8, 2], [0, -10]];
+  for (const t of a) {
+    e.mk(hc, d.x, d.y, t.x, t.y, 0, 210, -26, 0, 1, 0, 55);
+    e.mk(quieto[0], t.x, t.y, t.x, t.y, 210, 270, 0, 0, 1, 0, 0, 100);
+    for (let k = 0; k < 3; k++) {
+      const ret = 210 + k * 85;
+      const x = t.x + sitio[k][0];
+      const y = t.y + sitio[k][1];
+      const idx = base + k;
+      e.mk(memo(`golpe-cajon-${idx}`, () => hGolpeCajon(idx)), x, y, x, y, ret, 240);
+      e.mk(ho, x, y + 4, x, y + 4, ret + 10, 300);
+      golpe(e, tipo, x, y, ret, k === 2 ? 4 : 2);
+    }
+    for (let i = 0; i < 3; i++) e.mk(hn, t.x + (i - 1) * 22, t.y - 14, t.x + (i - 1) * 30, alto(t.y - 46 - (i & 1) * 8), 300 + i * 70, 340, 0, 5, 1, 0, 0, 100);
+  }
+};
+
 /** Efectos de los movimientos sobre rivales (y «todos»). */
 const FX: Record<string, Efecto> = {
   lluvia, almendrazo, traca, fogonazo, petardazo, chispazo, cierzo, chupitazo, garrafon, cancion, esporas, temblor, bocinazo,
   chapa, planeo, pringue, cara_de_pena, vacile, venganza, adoquin, barrigazo, ronda, unamas, zasca, coz, raices,
-  setas, burbujeo, pesao, tubo, goudamadre,
+  setas, burbujeo, pesao, tubo, goudamadre, tendedero, remate,
 };
 
 /** Efectos de los movimientos sobre uno mismo (objetivo «yo»: `lanzar` los llama sin objetivos). */
@@ -2089,6 +2198,8 @@ const LLEGA: Record<string, number> = {
   pesao: 330,
   tubo: 290,
   goudamadre: 255,
+  tendedero: 215,
+  remate: 210,
 };
 
 /** Lo mismo para los movimientos sobre uno mismo (cuándo se nota el efecto: el texto de lo que sube o baja viene detrás). */
@@ -2116,6 +2227,13 @@ export function tareasPrecalentarEfectos(): (() => void)[] {
   for (const m of Object.keys(FX)) {
     tareas.push(() => {
       e.lanzar(m, 'mindundi', d, a);
+      e.limpiar();
+    });
+  }
+  // Las estrellas del Remate por bulerías (seis tamaños) se hornean con el golpe más flojo y el más fuerte.
+  for (const fuerza of [0, 1]) {
+    tareas.push(() => {
+      e.lanzar('remate', 'juerga', d, a, fuerza);
       e.limpiar();
     });
   }

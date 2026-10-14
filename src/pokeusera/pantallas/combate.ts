@@ -8,8 +8,8 @@
 import { ENTRENADORES, type Eleccion, type Estado, type EstadoCombate, type Evento, type ObjetoId, type ObjetoLlevado, type Stat, type SucesoId, type Tipo, type Userito } from '../tipos';
 import { COLOR_TIPO } from '../arte/paleta';
 import { hayTexto } from '../../juego/textos';
-import { ESPECIE, MOVS, DESESPERADA, OBJETO_PERMANENTE, SUCESOS, eficacia } from '../datos';
-import { activo, eliminado, enGrada, movsDisponibles, necesitaObjetivo, puedeCambiar, rivalesEnPie, vivos } from '../motor/combate';
+import { ESPECIE, MOVS, DESESPERADA, OBJETO_PERMANENTE, SUCESOS, eficacia, potenciaRemate } from '../datos';
+import { activo, eliminado, enGrada, movsDisponibles, necesitaObjetivo, puedeCambiar, recienDespierto, rivalesEnPie, vivos } from '../motor/combate';
 import { anchoTexto2, dibujarTexto2 } from '../arte2/fuente2';
 import { PS_TONOS, TINTA2, TINTA_SUAVE } from '../arte2/paleta2';
 import { spriteEspalda2, spriteFrente2 } from '../arte2/sprites2';
@@ -560,7 +560,8 @@ export class VistaCombate implements Escena {
       this.ultimoTic = -1;
       this.reemplazo = true;
       const q = estado.jugadores[j];
-      this.sel = Math.max(0, vivos(q)[0] ?? 0);
+      // A userito still standing on the field is leaving it (Al tendedero): the choice starts on another one.
+      this.sel = Math.max(0, vivos(q).find((i) => i !== q.activo || q.equipo[i].ps <= 0) ?? 0);
       this.caja.fijar('');
       this.modo = 'equipo';
       this.resolverReemplazo = (i) => {
@@ -1190,7 +1191,10 @@ export class VistaCombate implements Escena {
     const llega = Math.round(plan.llega / k);
     const esp = espera ?? ritmo().espera;
     await this.decir(linea, esp >= 0 ? Math.max(0, esp - llega) : esp);
-    this.efectos.lanzar(ev.mov, MOVS[ev.mov].tipo, plan.desde, plan.a);
+    // Remate por bulerías: the effect is bigger the harder it hits (its power depends on the attacker's HP at this moment).
+    const u = this.userito(ev.j);
+    const fuerza = ev.mov === 'remate' ? (potenciaRemate(u.ps, u.psMax) - 20) / 180 : 0.5;
+    this.efectos.lanzar(ev.mov, MOVS[ev.mov].tipo, plan.desde, plan.a, fuerza);
     void this.embestida(ev.j, ev.obj ?? []);
     await dormir(llega);
   }
@@ -1323,6 +1327,7 @@ export class VistaCombate implements Escena {
     const q = this.real.jugadores[this.yo];
     const u = q.equipo[i];
     if (!u || u.ps <= 0) return;
+    if (this.reemplazo && i === q.activo) return; // Al tendedero: the one that is leaving cannot come back in
     if (this.reemplazo) {
       this.modo = 'espera';
       this.caja.fijar(t('batalla.espera'));
@@ -1834,7 +1839,7 @@ export class VistaCombate implements Escena {
           const estados: (Estado | 'achispado')[] = [];
           if (u.estado) estados.push(u.estado);
           if (u.achispado > 0) estados.push('achispado');
-          if (!estados.length) texto2(ctx, t('ficha.sin_estado'), ex, cy + 3, TINTA2, null);
+          if (!estados.length) texto2(ctx, t(recienDespierto(this.disp, u) ? 'ficha.recien' : 'ficha.sin_estado'), ex, cy + 3, TINTA2, null);
           for (const e of estados) {
             const ew = etiquetaEstado(ctx, e, ex, cy + 1);
             if (mismo(tema, { k: 'estado', e })) rect(ctx, TINTA2, ex, cy + 13, ew, 2);
@@ -2662,7 +2667,7 @@ export class VistaCombate implements Escena {
       const y = y0 + i * rowH;
       const alto = rowH - 6;
       const vivo = u.ps > 0;
-      const activoAhora = i === q.activo && !this.reemplazo;
+      const activoAhora = i === q.activo && (!this.reemplazo || vivo);
       const sp = ESPECIE[u.especie];
       const ocioso = !vivo || activoAhora;
       if (this.sel === i) realce(ctx, 10, y, ANCHO - 20, alto);

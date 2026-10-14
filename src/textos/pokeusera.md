@@ -232,7 +232,7 @@ premio.rencoroso.n = RENCOROSO
 premio.rencoroso.d = Daño de Venganza. Lo apunta todo
 
 // ---- ayuda (la usan la GUÍA, la ficha de estado del combate y la del draft)
-ayuda.estado.dormido = Dormido: no hace nada durante 1 a 3 turnos. El sueño también pasa en el banquillo: puede despertarse allí.
+ayuda.estado.dormido = Dormido: no hace nada durante 1 a 3 turnos. El sueño también pasa en el banquillo: puede despertarse allí. Al despertar, 2 turnos sin que lo duerman otra vez.
 ayuda.estado.paralizado = Paralizado: 1 de cada 4 turnos no actúa y su Velocidad baja a la cuarta parte.
 ayuda.estado.quemado = Quemado: pierde 1/16 de sus PS cada turno y su Ataque baja a la mitad.
 ayuda.estado.empachado = Empachado: pierde 1/8 de sus PS cada turno hasta que se cure o caiga.
@@ -356,6 +356,7 @@ useritopedia.prec = PREC
 useritopedia.pp = PP
 useritopedia.sin = -
 useritopedia.pot.azar = 0-150
+useritopedia.pot.remate = 20-200
 useritopedia.prio.rapido = RÁPIDO (+1)
 useritopedia.prio.proteccion = PROTECCIÓN (+2)
 useritopedia.prio.lento = LENTO (-1)

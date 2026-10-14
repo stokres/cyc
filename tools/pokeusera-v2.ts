@@ -162,9 +162,12 @@ if (vista === 'efectos') {
   // Sample moves with the generic effect, to see them next to the signature ones.
   const GENERICOS = ['bostezo', 'remolino', 'flipada', 'susto'];
   const TODOS = [...MOVS_CON_EFECTO, ...GENERICOS];
-  // &movs=a,b,c: only those moves (for a contact sheet of the new effects).
+  // &movs=a,b,c: only those moves (for a contact sheet of the new effects). `mov@0.2` sets the strength (0 to 1) of a move of variable
+  // power (Remate por bulerías); the same move can come several times with different strengths.
   const solo = params.get('movs')?.split(',');
-  const LISTA = solo ? TODOS.filter((m) => solo.includes(m)) : TODOS;
+  const LISTA = solo ? solo.filter((m) => TODOS.includes(m.split('@')[0])) : TODOS;
+  const base = (m: string): string => m.split('@')[0];
+  const fuerzaDe = (m: string): number => (m.includes('@') ? Number(m.split('@')[1]) : 0.5);
 
   /** The static stage (backdrop, platforms and sprites), baked once. */
   const escenario = document.createElement('canvas');
@@ -184,10 +187,10 @@ if (vista === 'efectos') {
     cx.drawImage(spriteEspalda2('draguserin', 0), YO.x - 32, YO.y - 32);
   }
   const objetivosDe = (mov: string): PuntoFx[] => {
-    const o = MOVS[mov]?.objetivo;
+    const o = MOVS[base(mov)]?.objetivo;
     return o === 'yo' ? [] : o === 'todos' ? RIVALES : [RIVALES[1]];
   };
-  const tipoDe = (mov: string) => MOVS[mov]?.tipo ?? 'mindundi';
+  const tipoDe = (mov: string) => MOVS[base(mov)]?.tipo ?? 'mindundi';
 
   /** Pause between loops (ms). */
   const PAUSA = 450;
@@ -195,7 +198,7 @@ if (vista === 'efectos') {
     // measuring only: no loop, no sheet (so the first launch really bakes the sprites)
   } else if (params.get('hoja')) {
     // --- Contact sheet: LISTA × 3 frames, two effects per row.
-    const FRAC_DE: Record<string, number[]> = { petardazo: [0.35, 0.55, 0.8], chupitazo: [0.35, 0.62, 0.85], garrafon: [0.35, 0.65, 0.88], fogonazo: [0.3, 0.6, 0.85] };
+    const FRAC_DE: Record<string, number[]> = { tendedero: [0.22, 0.42, 0.75], remate: [0.12, 0.45, 0.7], petardazo: [0.35, 0.55, 0.8], chupitazo: [0.35, 0.62, 0.85], garrafon: [0.35, 0.65, 0.88], fogonazo: [0.3, 0.6, 0.85] };
     const COLS = 2;
     const filasN = Math.ceil(LISTA.length / COLS);
     const celda = SW * 3 + 16;
@@ -214,7 +217,7 @@ if (vista === 'efectos') {
     const fotograma = (mov: string, ms: number): HTMLCanvasElement => {
       semillaFx(1234);
       const fx = new EfectosMov();
-      fx.lanzar(mov, tipoDe(mov), YO, objetivosDe(mov));
+      fx.lanzar(base(mov), tipoDe(mov), YO, objetivosDe(mov), fuerzaDe(mov));
       for (let t = 0; t < ms; t += 8) fx.paso(8);
       cc.drawImage(escenario, 0, 0);
       fx.dibujar(cc);
@@ -224,9 +227,9 @@ if (vista === 'efectos') {
       const ox = 16 + (i % COLS) * celda;
       const oy = 12 + Math.floor(i / COLS) * (SH + 22);
       semillaFx(1234);
-      const dur = new EfectosMov().lanzar(mov, tipoDe(mov), YO, objetivosDe(mov));
-      dibujarTexto2(hx, `${mov.toUpperCase().replace(/_/g, " ")}  ${dur} ms`, ox, oy - 2, '#f6e6b4');
-      (FRAC_DE[mov] ?? [0.3, 0.55, 0.82]).forEach((f, k) => hx.drawImage(fotograma(mov, Math.round(dur * f)), ox + k * (SW + 4), oy + 12));
+      const dur = new EfectosMov().lanzar(base(mov), tipoDe(mov), YO, objetivosDe(mov), fuerzaDe(mov));
+      dibujarTexto2(hx, `${mov.toUpperCase().replace(/_/g, " ").replace('@', ' FUERZA ')}  ${dur} ms`, ox, oy - 2, '#f6e6b4');
+      (FRAC_DE[base(mov)] ?? [0.3, 0.55, 0.82]).forEach((f, k) => hx.drawImage(fotograma(mov, Math.round(dur * f)), ox + k * (SW + 4), oy + 12));
     });
     (window as any).__hojaPNG = () => hoja.toDataURL('image/png');
     (window as any).__fotograma = (mov: string, ms: number, z = 2) => {
@@ -239,7 +242,7 @@ if (vista === 'efectos') {
       ox.drawImage(c, 0, 0, o.width, o.height);
       return o.toDataURL('image/png');
     };
-    (window as any).__duraciones = () => Object.fromEntries(LISTA.map((m) => [m, new EfectosMov().lanzar(m, tipoDe(m), YO, objetivosDe(m))]));
+    (window as any).__duraciones = () => Object.fromEntries(LISTA.map((m) => [m, new EfectosMov().lanzar(base(m), tipoDe(m), YO, objetivosDe(m), fuerzaDe(m))]));
     document.body.dataset.listo = '1';
   } else {
     // --- Live loop, one cell per move.
@@ -267,9 +270,9 @@ if (vista === 'efectos') {
       return c;
     });
     const lanzar = (c: Celda): void => {
-      const dur = c.fx.lanzar(c.mov, tipoDe(c.mov), YO, objetivosDe(c.mov));
+      const dur = c.fx.lanzar(base(c.mov), tipoDe(c.mov), YO, objetivosDe(c.mov), fuerzaDe(c.mov));
       c.resto = dur + PAUSA;
-      (c.cx.canvas.previousSibling as HTMLElement).textContent = `${c.mov} · ${dur} ms · ${MOVS[c.mov]?.objetivo ?? ''}`;
+      (c.cx.canvas.previousSibling as HTMLElement).textContent = `${c.mov} · ${dur} ms · ${MOVS[base(c.mov)]?.objetivo ?? ''}`;
     };
     celdas.forEach(lanzar);
     let ant = performance.now();

@@ -21,8 +21,8 @@
 //             phrase in `clave`. The heals / stage changes it causes follow as ordinary 'cura' / 'nivel' events (all flagged `fin`).
 // Every event may carry `clave` + `vars` (quien = userito name, jugador = player name, mov, ...).
 import type { Eleccion, EscenarioId, EstadoCombate, Estadisticas, EntrenadorId, Estado, Evento, Jugador, Movimiento, ObjetoId, Stat, StatsUserito, SucesoId, Tipo, Userito } from '../tipos';
-import { ESCENARIOS, OBJ_BOCATA_CURA, OBJ_GAFAS_PREC, OBJ_MECHERO_QUEMA, OBJ_PALILLO_CRIT, OBJ_PANUELO, PERK_CANA_FRAN, PERK_PRECISION_PABLO, PERK_TARDE_CHUCHI, TIPOS_FISICOS } from '../tipos';
-import { DESESPERADA, EFECTOS, ESPECIE, MOVS, SUCESOS, TURNOS_SUCESO, eficacia, sucesosDe } from '../datos';
+import { ESCENARIOS, OBJ_BOCATA_CURA, OBJ_GAFAS_PREC, OBJ_MECHERO_QUEMA, OBJ_PALILLO_CRIT, OBJ_PANUELO, OBJ_TAPON_USOS, PERK_CANA_FRAN, PERK_PRECISION_PABLO, PERK_TARDE_CHUCHI, TIPOS_FISICOS } from '../tipos';
+import { DESESPERADA, EFECTOS, ESPECIE, MOVS, SUCESOS, TURNOS_SUCESO, eficacia, potenciaRemate, sucesosDe } from '../datos';
 import { azar, elegir, entero, probar, type ConSemilla } from './azar';
 
 /** Turn from which Vero closes the bar (1/8 of max HP at the end of every turn). */
@@ -32,6 +32,9 @@ export const TURNOS_ESCALADA = 4;
 
 /** Eighths of max HP everybody loses at the end of turn `turno` (0 before «Hora de cerrar»). */
 export const octavosCierre = (turno: number): number => (turno < TURNO_CIERRE ? 0 : 1 + Math.floor((turno - TURNO_CIERRE) / TURNOS_ESCALADA));
+
+/** «Recién despierto»: for this many turns after waking up (on the field, on the bench or by the Chicle de menta) a userito cannot be put to sleep again. */
+export const TURNOS_RECIEN = 2;
 
 /** HP at level 50: round(base × PS_MULT) + PS_SUMA (the other stats are base + 5). Sturdier than the
  *  originals' base + 60 so that a battle of four lasts ~16–24 turns instead of 9–18 (scripts/pokeusera-motor.mjs --sim=200). */
@@ -204,6 +207,13 @@ export function multObjeto(u: Userito, mov: Movimiento): number {
   return u.objeto?.id === 'panuelo' && ESPECIE[u.especie].tipos.includes(mov.tipo) ? OBJ_PANUELO / 100 : 1;
 }
 
+/** «Recién despierto»: whether `u` woke up recently (this turn or the last `TURNOS_RECIEN`) and nothing can put it to sleep now.
+ *  `turno` is the turn being resolved or about to be chosen (`estado.turno`). */
+export const recienDespierto = (e: EstadoCombate, u: Userito): boolean => u.sinSuenoHasta !== undefined && e.turno <= u.sinSuenoHasta;
+
+/** The power move `m` has when `u` uses it now: «Remate por bulerías» depends on its HP, the rest is fixed (0 for status moves). */
+export const potenciaDe = (u: Userito, m: Movimiento): number => (EFECTOS[m.id]?.especial === 'remate' ? potenciaRemate(u.ps, u.psMax) : (m.pot ?? 0));
+
 /** Whether the Tapón de cava can make this move quick: a damaging attack (not Devolvérsela, which has to go last). */
 const esAtaque = (m: Movimiento): boolean => m.pot !== null || EFECTOS[m.id]?.especial === 'premio';
 
@@ -273,6 +283,8 @@ interface Ctx {
   dichoAguante: boolean[];
   /** The Tapón de cava made this player's attack quick this turn (it is spent when the attack is really used). */
   tapon: boolean[];
+  /** «Al tendedero» landed: this player's userito goes back to the bench at the end of the turn (the player picks who comes in). */
+  tendedero: boolean[];
   recargaIni: boolean[];
   cizanaIni: boolean[];
   pctIni: number[];
@@ -305,7 +317,7 @@ function activarObjeto(c: Ctx, j: number, gasta: boolean, clave: string, extra: 
   c.ev.push({ k: 'objeto', j, objeto: o.id, clave, vars: varsDe(c, j, extra) });
 }
 
-/** Bocata de calamares: when the holder is left under half of its HP, it eats it and heals 1/4. */
+/** Bocata de calamares: when the holder is left under half of its HP, it eats it and heals 1/5. */
 function comerBocata(c: Ctx, j: number) {
   const u = act(c, j);
   const o = u.objeto;
@@ -314,12 +326,22 @@ function comerBocata(c: Ctx, j: number) {
   curar(c, j, Math.max(1, Math.floor(u.psMax / OBJ_BOCATA_CURA)));
 }
 
-/** Zapatillas nuevas: every time the userito comes out to fight (and at the start of the battle) its Speed goes up 1. */
+/** Zapatillas nuevas: every time the userito comes out to fight (and at the start of the battle) its Speed goes up 1; the first time it also raises the Attack 1. */
 function alSalirAlCampo(c: Ctx, j: number) {
   const u = act(c, j);
-  if (u.objeto?.id !== 'zapatillas' || u.ps <= 0) return;
+  const o = u.objeto;
+  if (o?.id !== 'zapatillas' || u.ps <= 0) return;
   activarObjeto(c, j, false, 'objeto.zapatillas.activa');
   cambiarNivel(c, j, 'vel', 1);
+  if (!o.salio) {
+    o.salio = true;
+    cambiarNivel(c, j, 'ata', 1);
+  }
+}
+
+/** It has just woken up (on the field, on the bench, or the Chicle cured its sleep): for `TURNOS_RECIEN` turns nothing can put it to sleep again. */
+function despertado(c: Ctx, u: Userito) {
+  u.sinSuenoHasta = c.e.turno + TURNOS_RECIEN;
 }
 
 function reiniciar(u: Userito) {
@@ -462,6 +484,11 @@ function ponerEstado(c: Ctx, t: number, est: Estado | 'achispado', silencio: boo
       if (!silencio) decir(c, 'combate.sin_efecto', varsDe(c, t), t);
       return false;
     }
+    // «Recién despierto»: nothing puts it to sleep again so soon (it says so even when the status was a side effect).
+    if (est === 'dormido' && recienDespierto(c.e, u)) {
+      decir(c, 'combate.recien', varsDe(c, t), t);
+      return false;
+    }
     u.estado = est;
     if (est === 'dormido') u.sueno = 1 + entero(c.e, 3);
   }
@@ -475,6 +502,7 @@ function ponerEstado(c: Ctx, t: number, est: Estado | 'achispado', silencio: boo
     else {
       u.estado = null;
       u.sueno = 0;
+      if (est === 'dormido') despertado(c, u);
     }
     c.ev.push({ k: 'estado', j: t, estado: null, de: est });
   }
@@ -495,6 +523,7 @@ function sacar(c: Ctx, j: number, idx: number) {
   c.recibido[j] = 0;
   c.ultimoAgresor[j] = -1;
   c.cayo[j] = false;
+  c.tendedero[j] = false;
   soltarAtrapados(c, j);
   c.ev.push({ k: 'sale', j, idx, clave: 'combate.sale', vars: varsDe(c, j) });
   alSalirAlCampo(c, j);
@@ -551,7 +580,7 @@ function efectosPropios(c: Ctx, j: number, m: Movimiento) {
     u.sueno = 2;
     u.achispado = 0;
     c.ev.push({ k: 'estado', j, estado: 'dormido', clave: 'combate.siesta', vars: varsDe(c, j) });
-    curar(c, j, u.psMax);
+    curar(c, j, Math.floor(u.psMax / 2));
     return;
   }
   for (const n of ef.nivel ?? []) if (n.a === 'yo') cambiarNivel(c, j, n.stat, n.cambio, j);
@@ -588,6 +617,7 @@ function efectosSecundarios(c: Ctx, j: number, t: number, m: Movimiento, danino:
   }
   if (ef.especial === 'bostezo') {
     if (v.estado || v.vol.bostezo >= 0) decir(c, 'combate.sin_efecto', varsDe(c, t), t);
+    else if (recienDespierto(e, v)) decir(c, 'combate.recien', varsDe(c, t), t);
     else {
       v.vol.bostezo = 2;
       decir(c, 'combate.bostezo', varsDe(c, t), t);
@@ -739,6 +769,7 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
     let hechos = 0;
     if (danina) {
       let pot = m.pot ?? 0;
+      if (ef.especial === 'remate') pot = potenciaRemate(u.ps, u.psMax);
       if (ef.especial === 'premio') {
         pot = elegir(e, [0, 40, 80, 150]);
         decir(c, `combate.premio${pot}`, varsDe(c, j));
@@ -821,6 +852,14 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
     }
   }
   if (ef.recarga && totalDano > 0 && algunoVivo && u.ps > 0) u.vol.recarga = true;
+  // «Al tendedero»: if the blow landed and there is somebody to take its place, it goes back to the bench when the turn ends.
+  if (ef.especial === 'tendedero' && acerto && u.ps > 0) {
+    const q = e.jugadores[j];
+    if (vivos(q).some((i) => i !== q.activo)) {
+      c.tendedero[j] = true;
+      decir(c, 'combate.tendedero_vuelve', varsDe(c, j));
+    }
+  }
 }
 
 /** A player's attack slot: the checks that can stop it (sleep, paralysis...), the PP, the announcement. */
@@ -841,6 +880,7 @@ function actuar(c: Ctx, a: Extract<Accion, { tipo: 'atacar' }>) {
       return;
     }
     u.estado = null;
+    despertado(c, u);
     c.ev.push({ k: 'estado', j, estado: null, de: 'dormido', clave: 'combate.despierta', vars: varsDe(c, j) });
   }
   if (c.retrocede[j]) {
@@ -887,10 +927,14 @@ function actuar(c: Ctx, a: Extract<Accion, { tipo: 'atacar' }>) {
     st(c, j).mv[idx]++;
     m = MOVS[ids[idx]];
   }
-  // Tapón de cava: its first attack was quick; now it pops.
+  // Tapón de cava: its first two attacks are quick; each one pops (the second one uses it up).
   if (c.tapon[j]) {
     c.tapon[j] = false;
-    if (u.objeto?.id === 'tapon' && !u.objeto.gastado && esAtaque(m)) activarObjeto(c, j, true, 'objeto.tapon.activa');
+    const o = u.objeto;
+    if (o?.id === 'tapon' && !o.gastado && esAtaque(m)) {
+      o.usos = (o.usos ?? 0) + 1;
+      activarObjeto(c, j, o.usos >= OBJ_TAPON_USOS, o.usos === 1 ? 'objeto.tapon.activa' : 'objeto.tapon.activa2');
+    }
   }
   const evUsa: Extract<Evento, { k: 'usa' }> = { k: 'usa', j, mov: m.id, obj: [], clave: 'combate.usa', vars: varsDe(c, j, { mov: m.nombre.replace(/^¡(.*)!$/, '$1') }) };
   c.ev.push(evUsa);
@@ -1125,11 +1169,18 @@ function correrBanquillo(c: Ctx, alInicio: number[]) {
         if (u.sueno <= 0) {
           u.estado = null;
           u.sueno = 0;
+          despertado(c, u);
           c.ev.push({ k: 'texto', clave: 'combate.despierta_banco', vars: { quien: nom(u), jugador: q.nombre } });
         }
       }
     });
   });
+}
+
+/** «Al tendedero» sends this player's userito back to the bench at the end of the turn (it is still standing and somebody can take its place). */
+function retiraAlTendedero(c: Ctx, j: number): boolean {
+  const q = c.e.jugadores[j];
+  return c.tendedero[j] && act(c, j).ps > 0 && vivos(q).some((i) => i !== q.activo);
 }
 
 /** Places the players who fell this turn and decides whether the battle is over. */
@@ -1163,7 +1214,7 @@ function cerrarEliminaciones(c: Ctx) {
     e.ganador = g;
     e.reemplazos = [];
     c.ev.push({ k: 'fin', ganador: g, clave: 'combate.fin', vars: varsDe(c, g) });
-  } else e.reemplazos = enPie.filter((j) => act(c, j).ps <= 0);
+  } else e.reemplazos = enPie.filter((j) => act(c, j).ps <= 0 || retiraAlTendedero(c, j));
 }
 
 /**
@@ -1187,6 +1238,7 @@ export function resolverTurno(estado: EstadoCombate, elecciones: (Eleccion | nul
     salvado: e.jugadores.map(() => false),
     dichoAguante: e.jugadores.map(() => false),
     tapon: e.jugadores.map(() => false),
+    tendedero: e.jugadores.map(() => false),
     recargaIni: [],
     cizanaIni: [],
     pctIni: e.jugadores.map(pctEquipo),
@@ -1262,7 +1314,8 @@ function reemplazarEn(c: Ctx, elegidos: Record<number, number>): Evento[] {
   const inicio = c.ev.length;
   for (const j of e.reemplazos) {
     const q = e.jugadores[j];
-    const vivosJ = vivos(q);
+    // A userito that is still standing is leaving the field (Al tendedero): it cannot be chosen to come back in.
+    const vivosJ = vivos(q).filter((i) => i !== q.activo || act(c, j).ps <= 0);
     if (!vivosJ.length) continue;
     const pedido = elegidos[j];
     sacar(c, j, Number.isInteger(pedido) && vivosJ.includes(pedido) ? pedido : vivosJ[0]);
@@ -1289,6 +1342,7 @@ export function reemplazar(estado: EstadoCombate, elegidos: Record<number, numbe
     salvado: e.jugadores.map(() => false),
     dichoAguante: e.jugadores.map(() => false),
     tapon: e.jugadores.map(() => false),
+    tendedero: e.jugadores.map(() => false),
     recargaIni: [],
     cizanaIni: [],
     pctIni: [],

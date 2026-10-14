@@ -24,7 +24,8 @@ export const PERK_TARDE_CHUCHI = 80; // Chuchi: first hit each userito receives 
 export type ObjetoId = 'mechero' | 'chicle' | 'bocata' | 'posavasos' | 'tapon' | 'palillo' | 'gafas' | 'zapatillas' | 'panuelo' | 'llavero';
 export const OBJETOS: readonly ObjetoId[] = ['mechero', 'chicle', 'bocata', 'posavasos', 'tapon', 'palillo', 'gafas', 'zapatillas', 'panuelo', 'llavero'];
 export const OBJ_MECHERO_QUEMA = 50; // Mechero: % chance that the first attacker to hit its holder is burnt
-export const OBJ_BOCATA_CURA = 4; // Bocata de calamares: heals 1/4 of max HP when the holder drops under half
+export const OBJ_BOCATA_CURA = 5; // Bocata de calamares: heals 1/5 of max HP when the holder drops under half
+export const OBJ_TAPON_USOS = 2; // Tapón de cava: its first two attacks are quick (+1)
 export const OBJ_GAFAS_PREC = 10; // Gafas de sol: +10 accuracy points on its attacks
 export const OBJ_PANUELO = 120; // Pañuelo de la peña: its same-type attacks do 120 % damage
 export const OBJ_PALILLO_CRIT = 2; // Palillo: twice as many critical hits
@@ -35,6 +36,10 @@ export interface ObjetoLlevado {
   id: ObjetoId;
   gastado?: true;
   visto?: true;
+  /** Tapón de cava: how many of its `OBJ_TAPON_USOS` quick attacks it has made so far. */
+  usos?: number;
+  /** Zapatillas nuevas: it has already come out once (the first time it also raises the Attack). */
+  salio?: true;
 }
 
 export interface Base {
@@ -100,6 +105,9 @@ export interface Userito {
   perk?: { tarde?: true; manico?: true };
   /** The object of «La barra» it carries, if any (like `perk`, it survives switching out). */
   objeto?: ObjetoLlevado;
+  /** «Recién despierto»: it woke up this turn (on the field or on the bench, or the Chicle de menta cured its sleep) and, until this turn
+   *  (inclusive), nothing can put it to sleep again. Absent until it wakes. Survives switching out. See `recienDespierto` in motor/combate.ts. */
+  sinSuenoHasta?: number;
   /** Volatile effects, reset on switching out. */
   vol: {
     /** Turns trapped by «Te pillo en la barra» (and who trapped it). */
@@ -243,7 +251,7 @@ export interface EstadoCombate {
   cancionAntes: boolean;
   /** Per player: the players whose moves damaged its active userito last turn (for «Venganza»). */
   agresores: number[][];
-  /** Players whose active userito fainted and must pick a replacement before the next turn. */
+  /** Players who must pick a replacement before the next turn: their active fainted, or (Al tendedero) is going back to the bench. */
   reemplazos: number[];
   /** Index of the winner, once the battle is over. */
   ganador: number | null;

@@ -227,7 +227,7 @@ function maquetar(cx: CanvasRenderingContext2D | null, i: number): Omit<Ficha, '
         texto2(cx, valor, x + w2 + 4, y + 23, TINTA2, null);
         x += ancho;
       };
-      par(t('useritopedia.pot'), m.id === 'premio' ? t('useritopedia.pot.azar') : m.pot === null ? t('useritopedia.sin') : String(m.pot), 56);
+      par(t('useritopedia.pot'), m.id === 'premio' ? t('useritopedia.pot.azar') : m.id === 'remate' ? t('useritopedia.pot.remate') : m.pot === null ? t('useritopedia.sin') : String(m.pot), 56);
       par(t('useritopedia.prec'), m.prec === null ? t('useritopedia.sin') : String(m.prec), 68);
       par(t('useritopedia.pp'), String(m.pp), 40);
       const obj = t(`useritopedia.obj.${m.objetivo}`);

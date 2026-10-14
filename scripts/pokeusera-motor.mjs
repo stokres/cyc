@@ -15,7 +15,7 @@ const tmp = mkdtempSync(join(tmpdir(), 'pokeusera-'));
 const salida = join(tmp, 'motor.mjs');
 await build({
   stdin: {
-    contents: `export * from './src/pokeusera/datos'; export * from './src/pokeusera/motor/combate'; export * from './src/pokeusera/motor/draft'; export * from './src/pokeusera/motor/bot'; export * from './src/pokeusera/motor/objetos'; export { OBJETOS } from './src/pokeusera/tipos'; export { crearRnd, azar, entero } from './src/pokeusera/motor/azar';`,
+    contents: `export * from './src/pokeusera/datos'; export * from './src/pokeusera/motor/combate'; export * from './src/pokeusera/motor/draft'; export * from './src/pokeusera/motor/bot'; export * from './src/pokeusera/motor/objetos'; export { OBJETOS, OBJ_TAPON_USOS, OBJ_BOCATA_CURA } from './src/pokeusera/tipos'; export { crearRnd, azar, entero } from './src/pokeusera/motor/azar';`,
     resolveDir: raiz,
     loader: 'ts',
   },
@@ -192,7 +192,7 @@ function jugar(semilla, verbose) {
         if (!u || !u.objeto.visto) falla(`turno ${e.turno - 1}: objeto ${ev.objeto} de ${ev.j} sin dueño o sin visto`);
         const clave = `${ev.j}|${ev.objeto}`;
         usos.set(clave, (usos.get(clave) ?? 0) + 1);
-        if (!M.OBJETO_PERMANENTE[ev.objeto] && usos.get(clave) > 1) falla(`objeto de un uso repetido: ${clave}`);
+        if (!M.OBJETO_PERMANENTE[ev.objeto] && usos.get(clave) > (ev.objeto === 'tapon' ? M.OBJ_TAPON_USOS : 1)) falla(`objeto de un uso repetido: ${clave}`);
         if (u && u.objeto.gastado === !!M.OBJETO_PERMANENTE[ev.objeto]) falla(`objeto ${ev.objeto}: gastado = ${u.objeto.gastado}`);
       }
       todos.push({ turno: e.turno - 1, ev });
@@ -548,7 +548,7 @@ revisarPerks();
   };
   if (nivel('jesuspelo', 0, 0) !== 'vel+1') falla(`Tubo perfecto: niveles del usuario ${nivel('jesuspelo', 0, 0)}`);
   if (nivel('p', 0, 1) !== 'vel-1') falla(`P de Pesao: niveles del rival ${nivel('p', 0, 1)}`);
-  if (nivel('pantaloneto', 0, 0) !== 'ata+2,vel+2,def-2') falla(`Bajarse los pantalones: ${nivel('pantaloneto', 0, 0)}`);
+  if (nivel('pantaloneto', 0, 0) !== 'ata+2,vel+1') falla(`Bajarse los pantalones: ${nivel('pantaloneto', 0, 0)}`);
 }
 
 // ---- tanda 6: prioridad y protección (¡Me cuelo!, Rebufo, Colleja, ¡Que pague otro!, Aguantar el tipo, Devolvérsela) y sucesos del bar.
@@ -592,7 +592,7 @@ function revisarTanda6() {
   {
     for (let semilla = 1; semilla <= 40; semilla++) {
       const e = M.crearCombate(equipo(['p', 'tocinon', 'cajonazo']), semilla);
-      const r = M.resolverTurno(e, [ataca(2), ataca(0, 0), ataca(3)]);
+      const r = M.resolverTurno(e, [ataca(2), ataca(0, 0), ataca(2)]); // Cajonazo hace de comparsa con Aguantar el tipo
       const u1 = usas(r).find((ev) => ev.j === 1);
       if (u1?.obj?.join() !== '2') falla(`¡Que pague otro! (3 jugadores, semilla ${semilla}): el golpe va a ${u1?.obj}`);
       if (r.estado.jugadores[0].equipo[0].ps !== e.jugadores[0].equipo[0].ps) falla('¡Que pague otro!: aun así le dieron');
@@ -602,7 +602,7 @@ function revisarTanda6() {
     const destinos = new Set();
     for (let semilla = 1; semilla <= 60; semilla++) {
       const e = M.crearCombate(equipo(['ego-ego', 'tocinon', 'tocinon', 'cajonazo']), semilla);
-      const r = M.resolverTurno(e, [ataca(3), ataca(0, 0), ataca(0, 0), ataca(3)]);
+      const r = M.resolverTurno(e, [ataca(3), ataca(0, 0), ataca(0, 0), ataca(2)]);
       for (const ev of usas(r)) {
         if (ev.j !== 1 && ev.j !== 2) continue;
         if (ev.obj.length !== 1 || ev.obj[0] === 0 || ev.obj[0] === ev.j) falla(`¡Que pague otro! (4 jugadores): ${ev.j} pega a ${ev.obj}`);
@@ -611,7 +611,7 @@ function revisarTanda6() {
     }
     if (destinos.size < 3) falla(`¡Que pague otro!: el desvío no es al azar (${[...destinos]})`);
     const e = M.crearCombate(equipo(['p', 'tocinon', 'cajonazo']), 3);
-    const todos = M.resolverTurno(e, [ataca(2), ataca(2), ataca(3)]); // Temblor (todos) del Tocinón: sí le da
+    const todos = M.resolverTurno(e, [ataca(2), ataca(2), ataca(2)]); // Temblor (todos) del Tocinón: sí le da
     if (!dano(todos, 0)) falla('¡Que pague otro! no debe parar los ataques a todos');
     const dos = M.resolverTurno(M.crearCombate(equipo(['p', 'tocinon']), 3), [ataca(2), ataca(0, 0)]);
     if (!dos.eventos.some((ev) => ev.k === 'falla' && ev.j === 0) || !dano(dos, 0)) falla('¡Que pague otro! con dos jugadores debe fallar y dejar pasar el golpe');
@@ -651,7 +651,7 @@ function revisarTanda6() {
     if (orden(r).join() !== '1,0') falla('Devolvérsela no va la última');
     revisarStatsSimple(r.estado, 'Devolvérsela'); // no PS edited by hand in this one
     // Nobody hits it: fails.
-    const nadie = M.resolverTurno(M.crearCombate(equipo(['evoscar', 'cajonazo']), 8), [ataca(1), ataca(3)]);
+    const nadie = M.resolverTurno(M.crearCombate(equipo(['evoscar', 'cajonazo']), 8), [ataca(1), ataca(2)]); // Cajonazo no ataca: se protege
     if (!nadie.eventos.some((ev) => ev.k === 'falla' && ev.j === 0) || dano(nadie, 1)) falla('Devolvérsela sin que nadie le pegue debe fallar');
     // Two attackers: the one that hit last gets 1.5 × the total.
     const e3 = M.crearCombate(equipo(['evoscar', 'tocinon', 'camioner']), 8);
@@ -722,7 +722,7 @@ function revisarTanda6() {
   }
 
   // --- Sucesos: every one, forced by hunting a seed whose draw gives it (turn 4 → 5).
-  const PASIVO = { cajonazo: 3, kbronero: 3, draguserin: 3, pantaloneto: 0, p: 2 };
+  const PASIVO = { cajonazo: 2, kbronero: 3, draguserin: 3, pantaloneto: 0, p: 2 };
   const pasivas = (e) => e.jugadores.map((q, j) => (PASIVO[q.equipo[q.activo].especie] !== undefined ? ataca(PASIVO[q.equipo[q.activo].especie]) : { tipo: 'cana' }));
   const forzar = (id, escenario, primeros, prep) => {
     for (let semilla = 1; semilla <= 4000; semilla++) {
@@ -1009,7 +1009,7 @@ function revisarObjetos() {
   // --- Data and texts.
   if (M.OBJETOS.length !== 10 || new Set(M.OBJETOS).size !== 10) falla('objetos: tienen que ser 10 distintos');
   for (const id of M.OBJETOS) {
-    for (const k of ['nombre', 'desc', 'activa']) if (!textos.has(`objeto.${id}.${k}`)) falla(`falta el texto objeto.${id}.${k}`);
+    for (const k of id === 'tapon' ? ['nombre', 'desc', 'activa', 'activa2'] : ['nombre', 'desc', 'activa']) if (!textos.has(`objeto.${id}.${k}`)) falla(`falta el texto objeto.${id}.${k}`);
     if (typeof M.OBJETO_PERMANENTE[id] !== 'boolean') falla(`${id}: sin OBJETO_PERMANENTE`);
   }
   for (const k of ['mechero.falla']) if (!textos.has(`objeto.${k}`)) falla(`falta el texto objeto.${k}`);
@@ -1128,7 +1128,7 @@ function revisarObjetos() {
     if (!achis) falla('chicle: Dolor de cabeza nunca llegó a achispar');
   }
 
-  // --- Bocata de calamares: under half of its HP it eats and heals 1/4 of the maximum; once.
+  // --- Bocata de calamares: under half of its HP it eats and heals 1/5 of the maximum; once.
   {
     let casos = 0;
     for (let sem = 1; sem <= 60; sem++) {
@@ -1154,7 +1154,7 @@ function revisarObjetos() {
       if (!antes || !c) falla('bocata: sin golpe antes o sin cura después');
       else {
         if (antes.ps * 2 >= u.psMax) falla('bocata: se come con más de la mitad');
-        if (c.ps - antes.ps !== Math.floor(u.psMax / 4)) falla(`bocata: cura ${c.ps - antes.ps} y esperaba ${Math.floor(u.psMax / 4)}`);
+        if (c.ps - antes.ps !== Math.floor(u.psMax / 5)) falla(`bocata: cura ${c.ps - antes.ps} y esperaba ${Math.floor(u.psMax / 5)}`);
       }
       void ultimo;
       // The second time it goes under half there is nothing left to eat.
@@ -1200,7 +1200,7 @@ function revisarObjetos() {
     }
   }
 
-  // --- Tapón de cava: the first damaging attack goes quick (+1); it pops when used; Devolvérsela is not made quick.
+  // --- Tapón de cava: the first TWO damaging attacks go quick (+1); each pops when used (the second one uses it up); Devolvérsela is not made quick.
   {
     const lento = 'tocinon';
     const rapido = 'cierzon';
@@ -1215,8 +1215,22 @@ function revisarObjetos() {
     const ev = objs(r, 'objeto.tapon.activa');
     if (ev.length !== 1) falla('tapón: falta el cartel');
     else if (r.eventos.indexOf(ev[0]) > r.eventos.findIndex((x) => x.k === 'usa' && x.j === 0)) falla('tapón: el cartel va después de «usó»');
-    if (!r.estado.jugadores[0].equipo[0].objeto.gastado) falla('tapón: no se gasta');
-    if (orden(M.resolverTurno(r.estado, [ataca(mL), ataca(mR)])).join() !== '1,0') falla('tapón: vuelve a ir primero en el segundo turno');
+    const t1 = r.estado.jugadores[0].equipo[0].objeto;
+    if (t1.gastado || t1.usos !== 1 || !t1.visto) falla('tapón: tras el primer ataque debe quedarle uno (usos 1, sin gastar, visto)');
+    // The second attack is quick as well (its own line), and then it is used up.
+    const llena = (e) => {
+      const c = structuredClone(e);
+      c.jugadores.forEach((q) => q.equipo.forEach((u) => (u.ps = u.psMax)));
+      return c;
+    };
+    const r2 = M.resolverTurno(llena(r.estado), [ataca(mL), ataca(mR)]);
+    if (orden(r2).join() !== '0,1') falla(`tapón: el segundo ataque debería ir primero también (${orden(r2)})`);
+    if (objs(r2, 'objeto.tapon.activa2').length !== 1 || objs(r2, 'objeto.tapon.activa').length) falla('tapón: el segundo corchazo lleva su propio cartel');
+    const t2 = r2.estado.jugadores[0].equipo[0].objeto;
+    if (!t2.gastado || t2.usos !== 2) falla('tapón: tras el segundo ataque debe estar gastado');
+    // The third one is normal again.
+    const r3 = M.resolverTurno(llena(r2.estado), [ataca(mL), ataca(mR)]);
+    if (orden(r3).join() !== '1,0' || objs(r3).length) falla('tapón: el tercer ataque ya no es rápido');
     // Not with a move that has to go last, nor with one that does no damage (and it is not spent then).
     const evo = mk(['evoscar', 'turito', 'aceituna'], ['camioner', 'turito', 'aceituna'], rellena('tapon'), [], 3);
     const rd = M.resolverTurno(evo, [ataca(movIdx('evoscar', 'devolver')), ataca(movIdx('camioner', 'trompazo'))]);
@@ -1291,6 +1305,8 @@ function revisarObjetos() {
     const ev = objs(r, 'objeto.zapatillas.activa');
     if (ev.length !== 1 || ev[0].j !== 0) falla('zapatillas: falta el cartel al empezar');
     if (r.estado.jugadores[0].equipo[0].niveles.vel !== 1) falla('zapatillas: no sube la Velocidad');
+    if (r.estado.jugadores[0].equipo[0].niveles.ata !== 1) falla('zapatillas: la primera vez que sale también sube el Ataque');
+    if (!r.eventos.some((ev) => ev.k === 'nivel' && ev.j === 0 && ev.stat === 'ata' && ev.cambio === 1)) falla('zapatillas: falta el evento de nivel del Ataque');
     if (r.estado.jugadores[0].equipo[0].objeto.gastado) falla('zapatillas: es permanente');
     const r2 = M.resolverTurno(r.estado, [ataca(movIdx('aceituna', 'mecuelo')), { tipo: 'cana' }]);
     if (objs(r2).length) falla('zapatillas: se repite sin cambiar');
@@ -1301,6 +1317,12 @@ function revisarObjetos() {
     const iSale = rb.eventos.findIndex((x) => x.k === 'sale' && x.j === 0);
     if (evb.length !== 1 || rb.eventos.indexOf(evb[0]) < iSale) falla('zapatillas: al salir del banquillo, el cartel va después de «sale»');
     if (rb.estado.jugadores[0].equipo[1].niveles.vel !== 1) falla('zapatillas: al salir no sube la Velocidad');
+    if (rb.estado.jugadores[0].equipo[1].niveles.ata !== 1) falla('zapatillas: al salir por primera vez no sube el Ataque');
+    // Out and in again: only the Speed (the Attack was the first time), with its message.
+    const rb2 = M.resolverTurno(rb.estado, [{ tipo: 'cambiar', a: 0 }, { tipo: 'cana' }]);
+    const rb3 = M.resolverTurno(rb2.estado, [{ tipo: 'cambiar', a: 1 }, { tipo: 'cana' }]);
+    const u3 = rb3.estado.jugadores[0].equipo[1];
+    if (u3.niveles.vel !== 1 || u3.niveles.ata !== 0 || objs(rb3, 'objeto.zapatillas.activa').length !== 1) falla(`zapatillas: la segunda vez solo Velocidad (vel ${u3.niveles.vel}, ata ${u3.niveles.ata})`);
     // It was not drawn at the start for a bench userito.
     if (objs(M.resolverTurno(b, [ataca(0), { tipo: 'cana' }])).length) falla('zapatillas: se activa desde el banquillo');
   }
@@ -1534,6 +1556,311 @@ function revisarBanquillo() {
   }
 }
 
+// ---- tanda 7: «Recién despierto», Al tendedero (Pantaloneto) y Remate por bulerías (Cajonazo).
+function revisarTanda7() {
+  const mk = (a, b, semilla = 3, extra = {}) =>
+    M.crearCombate(
+      [
+        { entrenador: 'fran', nombre: 'A', bot: false, especies: a, ...extra.a },
+        { entrenador: 'pablo', nombre: 'B', bot: false, especies: b, ...extra.b },
+      ],
+      semilla,
+    );
+  const ataca = (mov, objetivo = 1) => ({ tipo: 'atacar', mov, objetivo });
+  const cana = { tipo: 'cana' };
+  const idx = (esp, mov) => M.ESPECIE[esp].movs.indexOf(mov);
+  const textosVistos = (r, clave) => r.eventos.filter((ev) => ev.clave === clave);
+  const activo0 = (e, j = 0) => e.jugadores[j].equipo[e.jugadores[j].activo];
+  const dano = (r, j) => r.eventos.filter((ev) => ev.k === 'golpe' && ev.j === j && !ev.fin && !ev.clave).reduce((n, ev) => n + ev.dano, 0);
+  for (const k of ['combate.recien', 'combate.tendedero_vuelve', 'ficha.recien']) if (!textos.has(k)) falla(`falta el texto ${k}`);
+
+  // --- Data: the two new moves, who carries them and that the old ones stay in MOVS.
+  {
+    const T = M.MOVS.tendedero;
+    const R = M.MOVS.remate;
+    if (!T || T.tipo !== 'ventolera' || T.pot !== 80 || T.prec !== 100 || T.pp !== 8 || T.objetivo !== 'uno' || T.prioridad) falla('Al tendedero: Ventolera, 80, 100, 8 PP, a uno, sin prioridad');
+    if (!R || R.tipo !== 'juerga' || R.prec !== 100 || R.pp !== 5 || R.objetivo !== 'uno' || R.prioridad) falla('Remate por bulerías: Juerga, precisión 100, 5 PP, a uno, sin prioridad');
+    if (M.ESPECIE.pantaloneto.movs.join() !== 'pantalones,tendedero,chapa,mecuelo') falla(`Pantaloneto: ${M.ESPECIE.pantaloneto.movs}`);
+    if (M.ESPECIE.cajonazo.movs.join() !== 'remate,taconeo,aguantar,temblor') falla(`Cajonazo: ${M.ESPECIE.cajonazo.movs}`);
+    if (!M.MOVS.cierzo || !M.MOVS.rumba || !textos.has('mov.cierzo.desc') || !textos.has('mov.rumba.desc')) falla('Cierzo y Rumba se quedan en MOVS con su texto');
+    for (const sp of M.ESPECIES) {
+      const suma = sp.base.ps + sp.base.ata + sp.base.def + sp.base.vel + sp.base.esp;
+      if (suma !== 420) falla(`${sp.id} suma ${suma} (todos 420)`);
+    }
+  }
+
+  // --- Recién despierto: 2 turns without being put to sleep again after waking up (in the field, on the bench, or by the Chicle).
+  {
+    const esporas = idx('criaturitah', 'esporas');
+    // The rival never misses: its accuracy is at +6.
+    const seguro = (e, j) => (activo0(e, j).niveles.prec = 6);
+    const dormido = (e) => activo0(e).estado === 'dormido';
+    // (a) Wakes up on the field in turn 1 (sleep 0), then is hit by Esporas in the same turn: «recién» in turns 1, 2, 3; asleep again in turn 4.
+    {
+      let e = mk(['cierzon', 'turito', 'tocinon'], ['criaturitah', 'turito', 'tocinon']);
+      activo0(e).estado = 'dormido';
+      activo0(e).sueno = 0;
+      seguro(e, 1);
+      activo0(e, 1).ps = activo0(e, 1).psMax = 5000; // the rival must live through the four turns
+      const trazas = [];
+      for (let turno = 1; turno <= 4; turno++) {
+        const r = M.resolverTurno(e, [ataca(idx('cierzon', 'planeo')), ataca(esporas, 0)]);
+        e = r.estado;
+        trazas.push({ recien: textosVistos(r, 'combate.recien').length, dormido: dormido(e) });
+        if (turno === 1 && (!r.eventos.some((ev) => ev.k === 'estado' && ev.j === 0 && ev.estado === null && ev.de === 'dormido') || activo0(e).sinSuenoHasta !== 3)) falla(`recién despierto: al despertar debe quedar protegido hasta el turno 3 (${activo0(e).sinSuenoHasta})`);
+        if (e.ganador !== null) break;
+      }
+      const resumen = trazas.map((x) => `${x.recien}${x.dormido ? 'D' : '-'}`).join(' ');
+      if (resumen !== '1- 1- 1- 0D') falla(`recién despierto en el campo: esperaba «1- 1- 1- 0D» y salió «${resumen}»`);
+      const ev = textosVistos(M.resolverTurno(mk(['cierzon', 'turito', 'tocinon'], ['criaturitah', 'turito', 'tocinon']), [ataca(0), ataca(esporas, 0)]), 'combate.recien');
+      if (ev.length) falla('recién despierto: sin haber dormido, Esporas no debe decir nada de eso');
+    }
+    // (b) Wakes up on the bench at the end of turn 1: it comes out in turn 2 and is protected in turns 2 and 3 (not in 4).
+    {
+      let e = mk(['turito', 'aceituna', 'cierzon'], ['criaturitah', 'turito', 'tocinon']);
+      e.jugadores[0].equipo[1].estado = 'dormido';
+      e.jugadores[0].equipo[1].sueno = 1;
+      seguro(e, 1);
+      const r1 = M.resolverTurno(e, [cana, ataca(idx('criaturitah', 'monada'), 0)]);
+      e = r1.estado;
+      if (e.jugadores[0].equipo[1].estado !== null || e.jugadores[0].equipo[1].sinSuenoHasta !== 3) falla(`recién despierto en el banquillo: sinSuenoHasta ${e.jugadores[0].equipo[1].sinSuenoHasta}`);
+      const trazas = [];
+      for (let turno = 2; turno <= 4; turno++) {
+        const r = M.resolverTurno(e, [turno === 2 ? { tipo: 'cambiar', a: 1 } : cana, ataca(esporas, 0)]);
+        e = r.estado;
+        trazas.push(`${textosVistos(r, 'combate.recien').length}${dormido(e) ? 'D' : '-'}`);
+      }
+      if (trazas.join(' ') !== '1- 1- 0D') falla(`recién despierto del banquillo: esperaba «1- 1- 0D» y salió «${trazas.join(' ')}»`);
+    }
+    // (c) The Chicle de menta cures the sleep: the one who wakes like that is protected as well, and the gum is not wasted on the shielded one.
+    {
+      let e = mk(['cierzon', 'turito', 'tocinon'], ['criaturitah', 'turito', 'tocinon'], 3, { a: { objetos: ['chicle', null, null] } });
+      seguro(e, 1);
+      const r1 = M.resolverTurno(e, [cana, ataca(esporas, 0)]);
+      e = r1.estado;
+      if (!r1.eventos.some((ev) => ev.k === 'objeto' && ev.objeto === 'chicle') || dormido(e) || activo0(e).sinSuenoHasta !== 3) falla('chicle: el chicle debe despertarlo y dejarlo recién despierto');
+      const trazas = [];
+      for (let turno = 2; turno <= 4; turno++) {
+        const r = M.resolverTurno(e, [cana, ataca(esporas, 0)]);
+        e = r.estado;
+        trazas.push(`${textosVistos(r, 'combate.recien').length}${dormido(e) ? 'D' : '-'}`);
+      }
+      if (trazas.join(' ') !== '1- 1- 0D') falla(`recién despierto por el chicle: esperaba «1- 1- 0D» y salió «${trazas.join(' ')}»`);
+      // A fresh chicle is not spent when the sleep never starts (the shielded one): sleeper-to-be with sinSuenoHasta and a chicle.
+      const e2 = mk(['cierzon', 'turito', 'tocinon'], ['criaturitah', 'turito', 'tocinon'], 3, { a: { objetos: ['chicle', null, null] } });
+      activo0(e2).sinSuenoHasta = 9;
+      seguro(e2, 1);
+      const r2 = M.resolverTurno(e2, [cana, ataca(esporas, 0)]);
+      if (r2.eventos.some((ev) => ev.k === 'objeto') || activo0(r2.estado).objeto.gastado) falla('chicle: se gasta con el que está protegido');
+    }
+    // (d) Bostezo fails too (with its line, and no yawn is left pending); other statuses are unaffected; Siesta (own choice) works.
+    {
+      const e = mk(['cierzon', 'turito', 'tocinon'], ['turito', 'tocinon', 'cierzon']);
+      activo0(e).sinSuenoHasta = 5;
+      const r = M.resolverTurno(e, [cana, ataca(idx('turito', 'bostezo'), 0)]);
+      if (!textosVistos(r, 'combate.recien').length || activo0(r.estado).vol.bostezo !== -1) falla('recién despierto: el Bostezo debe fallar sin dejar bostezo pendiente');
+      const q = mk(['tocinon', 'turito', 'cierzon'], ['turito', 'tocinon', 'cierzon']);
+      activo0(q).sinSuenoHasta = 5;
+      activo0(q).ps = Math.floor(activo0(q).psMax / 2);
+      const rs = M.resolverTurno(q, [ataca(idx('tocinon', 'siesta')), cana]);
+      if (!dormido(rs.estado)) falla('recién despierto: la Siesta (la elige él) sí funciona');
+      const f = mk(['cierzon', 'turito', 'tocinon'], ['chupitochu', 'turito', 'tocinon']);
+      activo0(f).sinSuenoHasta = 5;
+      seguro(f, 1);
+      const rd = M.resolverTurno(f, [cana, ataca(idx('chupitochu', 'fogonazo'), 0)]);
+      if (rd.eventos.some((ev) => ev.clave === 'combate.recien')) falla('recién despierto: solo vale contra el sueño');
+    }
+    // (e) The machine does not try: with the rival just awake it does not pick Esporas or Bostezo; without it, it does sometimes.
+    {
+      const cuenta = (esp, mov, recien) => {
+        let n = 0;
+        for (let sem = 1; sem <= 60; sem++) {
+          const e = mk(['cierzon', 'turito', 'tocinon'], [esp, 'turito', 'tocinon'], sem);
+          if (recien) activo0(e).sinSuenoHasta = 5;
+          const c = M.eleccionBot(e, 1, M.crearRnd(sem * 13));
+          if (c?.tipo === 'atacar' && c.mov === idx(esp, mov)) n++;
+        }
+        return n;
+      };
+      for (const [esp, mov] of [['criaturitah', 'esporas'], ['turito', 'bostezo']]) {
+        const sin = cuenta(esp, mov, false);
+        const con = cuenta(esp, mov, true);
+        if (con !== 0) falla(`bot: intenta dormir con ${mov} a un recién despierto (${con}/60)`);
+        if (sin < 5) falla(`bot: control, ${mov} nunca sale sin recién despierto (${sin}/60)`);
+      }
+    }
+  }
+
+  // --- Al tendedero: the hit lands, Pantaloneto goes back to the bench at the end of the turn and its player chooses who comes in.
+  {
+    const tend = idx('pantaloneto', 'tendedero');
+    const base = (semilla = 3) => mk(['pantaloneto', 'turito', 'tocinon'], ['tocinon', 'turito', 'cierzon'], semilla);
+    const r = M.resolverTurno(base(), [ataca(tend), cana]);
+    if (!dano(r, 1)) falla('Al tendedero: no pega');
+    if (r.estado.reemplazos.join() !== '0') falla(`Al tendedero: reemplazos ${r.estado.reemplazos} (esperaba 0)`);
+    if (activo0(r.estado).ps <= 0) falla('Al tendedero: control, no debería haber caído');
+    const iTexto = r.eventos.findIndex((ev) => ev.clave === 'combate.tendedero_vuelve' && ev.vars?.quien === 'Pantaloneto');
+    if (iTexto < 0 || iTexto < r.eventos.findIndex((ev) => ev.k === 'golpe' && ev.j === 1)) falla('Al tendedero: la línea de «vuelve al tendedero» va justo tras el golpe');
+    if (r.estado.ganador !== null || r.eventos.some((ev) => ev.k === 'sale' || ev.k === 'cae' && ev.j === 0)) falla('Al tendedero: no se retira dentro del turno');
+    // The player picks: a valid one comes in, the active itself or nonsense counts as the first other one.
+    const rr = M.reemplazar(r.estado, { 0: 2 });
+    if (activo0(rr.estado).especie !== 'tocinon' || rr.estado.reemplazos.length || !rr.eventos.some((ev) => ev.k === 'sale' && ev.j === 0 && ev.idx === 2)) falla('Al tendedero: el reemplazo elegido no sale');
+    if (rr.estado.jugadores[0].equipo[0].ps <= 0) falla('Al tendedero: el retirado debe seguir vivo en el banquillo');
+    for (const mala of [0, 7, -1, undefined]) {
+      const m = M.reemplazar(r.estado, { 0: mala });
+      if (m.estado.jugadores[0].activo !== 1) falla(`Al tendedero: elección ${mala} debería sacar al primero de los otros`);
+    }
+    // Its stat changes go away like in any switch, and its objects stay with it (Zapatillas on the one coming in work).
+    const z = mk(['pantaloneto', 'turito', 'tocinon'], ['tocinon', 'turito', 'cierzon'], 3, { a: { objetos: [null, 'zapatillas', null] } });
+    const rz = M.resolverTurno(z, [ataca(tend), cana]);
+    const rzr = M.reemplazar(rz.estado, { 0: 1 });
+    if (activo0(rzr.estado).niveles.vel !== 1 || !rzr.eventos.some((ev) => ev.k === 'objeto' && ev.objeto === 'zapatillas')) falla('Al tendedero: el que entra debería activar sus zapatillas');
+    if (rzr.estado.jugadores[0].equipo[0].niveles.ata !== 0) falla('Al tendedero: el retirado conserva sus niveles');
+    // The bot never chooses the one who is leaving, and the screen/host default (first alive) is corrected.
+    if (M.reemplazoBot(r.estado, 0) === 0) falla('reemplazoBot elige al que se está yendo');
+    // The next turn goes on normally (the state is consistent and JSON-safe).
+    const sig = M.resolverTurno(JSON.parse(JSON.stringify(rr.estado)), [ataca(0), cana]);
+    if (!sig.eventos.some((ev) => ev.k === 'usa' && ev.j === 0)) falla('Al tendedero: el turno siguiente no se juega');
+    // If the blow does not land it does not leave: Esconderse (nothing to hit)...
+    const esc = mk(['pantaloneto', 'turito', 'tocinon'], ['draguserin', 'turito', 'cierzon']);
+    const re = M.resolverTurno(esc, [ataca(tend), ataca(idx('draguserin', 'esconderse'))]);
+    if (re.estado.reemplazos.length || textosVistos(re, 'combate.tendedero_vuelve').length) falla('Al tendedero: se retira aunque el rival se esconda');
+    // ...or a miss (accuracy lowered: some seeds miss, and exactly those do not leave).
+    let fallos_ = 0;
+    let aciertos = 0;
+    for (let sem = 1; sem <= 60; sem++) {
+      const f = base(sem);
+      activo0(f).niveles.prec = -3;
+      const rf = M.resolverTurno(f, [ataca(tend), cana]);
+      const fallo = rf.eventos.some((ev) => ev.clave === 'combate.esquiva');
+      if (fallo) fallos_++;
+      else aciertos++;
+      if (fallo === (rf.estado.reemplazos.length > 0)) falla(`Al tendedero (semilla ${sem}): ${fallo ? 'falla y se retira' : 'acierta y no se retira'}`);
+    }
+    if (fallos_ < 5 || aciertos < 5) falla(`Al tendedero: los fallos no salen (${fallos_} fallos, ${aciertos} aciertos)`);
+    // Nobody to send in: it stays (no replacement, no line); with only one left, that one comes in.
+    const solo = base();
+    solo.jugadores[0].equipo[1].ps = 0;
+    solo.jugadores[0].equipo[2].ps = 0;
+    const rs = M.resolverTurno(solo, [ataca(tend), cana]);
+    if (rs.estado.reemplazos.length || textosVistos(rs, 'combate.tendedero_vuelve').length || !dano(rs, 1)) falla('Al tendedero: sin nadie en el banquillo no debe retirarse');
+    const uno = base();
+    uno.jugadores[0].equipo[1].ps = 0;
+    const ru = M.reemplazar(M.resolverTurno(uno, [ataca(tend), cana]).estado, {});
+    if (ru.estado.jugadores[0].activo !== 2) falla('Al tendedero: con un solo suplente, ese entra');
+    // It lands and knocks the rival out: both leave (the rival because it fell, Pantaloneto because of the hangers).
+    const ko = base();
+    activo0(ko, 1).ps = 1;
+    const rk = M.resolverTurno(ko, [ataca(tend), ataca(idx('tocinon', 'barrigazo'), 0)]);
+    if ([...rk.estado.reemplazos].sort().join() !== '0,1') falla(`Al tendedero + K.O.: reemplazos ${rk.estado.reemplazos} (esperaba 0,1)`);
+    const rkr = M.reemplazar(rk.estado, { 0: 2, 1: 2 });
+    if (rkr.estado.jugadores[0].activo !== 2 || rkr.estado.jugadores[1].activo !== 2) falla('Al tendedero + K.O.: no salen los dos elegidos');
+    // It is hit afterwards and falls: no duplicates, and the replacement is the usual one (any alive).
+    const cae = mk(['pantaloneto', 'turito', 'tocinon'], ['cierzon', 'turito', 'tocinon']);
+    activo0(cae).ps = 1;
+    const rc = M.resolverTurno(cae, [ataca(tend), ataca(idx('cierzon', 'planeo'), 0)]);
+    if (activo0(rc.estado).ps !== 0) falla('Al tendedero: control, debía caer al final');
+    if (rc.estado.reemplazos.filter((j) => j === 0).length !== 1) falla('Al tendedero: reemplazo duplicado');
+    // Whole battles with Pantaloneto and bots: the invariants hold and every battle ends (a replacement is asked every time it leaves).
+    let retiradas = 0;
+    for (let sem = 1; sem <= 40; sem++) {
+      const rnd = M.crearRnd(sem * 17 + 3);
+      let s = M.crearCombate(
+        [
+          { entrenador: 'fran', nombre: 'F', bot: true, especies: ['pantaloneto', 'cajonazo', 'turito'] },
+          { entrenador: 'pablo', nombre: 'P', bot: true, especies: ['tocinon', 'pantaloneto', 'cierzon'] },
+          { entrenador: 'chuchi', nombre: 'C', bot: true, especies: ['camioner', 'draguserin', 'cajonazo'] },
+          { entrenador: 'guille', nombre: 'G', bot: true, especies: ['kbronero', 'p', 'aceituna'] },
+        ],
+        sem,
+      );
+      for (let t = 0; t < 200 && s.ganador === null; t++) {
+        const rt = M.resolverTurno(s, s.jugadores.map((_q, j) => M.eleccionBot(s, j, rnd)));
+        s = rt.estado;
+        revisar(s, `tendedero ${sem}`);
+        if (s.ganador === null && s.reemplazos.length) {
+          for (const j of s.reemplazos) if (M.activo(s, j).ps > 0) retiradas++;
+          s = M.reemplazar(s, Object.fromEntries(s.reemplazos.map((j) => [j, M.reemplazoBot(s, j)]))).estado;
+        }
+      }
+      if (s.ganador === null) falla(`batalla con Pantaloneto ${sem}: no acaba`);
+      revisarStatsSimple(s, `tendedero ${sem}`);
+    }
+    if (!retiradas) falla('batallas de bots: Al tendedero nunca se usa');
+    // The bot uses it when it is threatened and has somebody to send in, much less when it is the last one standing.
+    const usos = (conBanco) => {
+      let n = 0;
+      for (let sem = 1; sem <= 60; sem++) {
+        const e = mk(['pantaloneto', 'turito', 'tocinon'], ['camioner', 'cierzon', 'tocinon'], sem);
+        activo0(e).ps = Math.floor(activo0(e).psMax * 0.3);
+        if (!conBanco) {
+          e.jugadores[0].equipo[1].ps = 0;
+          e.jugadores[0].equipo[2].ps = 0;
+        }
+        const c = M.eleccionBot(e, 0, M.crearRnd(sem * 7));
+        if (c?.tipo === 'atacar' && c.mov === tend) n++;
+      }
+      return n;
+    };
+    const conB = usos(true);
+    const sinB = usos(false);
+    if (conB < 20 || conB <= sinB) falla(`bot: Al tendedero amenazado con banquillo ${conB}/60, sin banquillo ${sinB}/60`);
+  }
+
+  // --- Remate por bulerías: power 20 + 180 × (1 − HP / max HP), rounded.
+  {
+    const pr = M.potenciaRemate;
+    const casos = [[300, 300, 20], [150, 300, 110], [1, 300, 199], [0, 300, 200], [30, 300, 182], [231, 300, 61]];
+    for (const [ps, max, esperada] of casos) if (pr(ps, max) !== esperada) falla(`potenciaRemate(${ps}, ${max}) = ${pr(ps, max)}, esperaba ${esperada}`);
+    const rem = idx('cajonazo', 'remate');
+    const prueba = (frac, semilla = 4) => {
+      const e = mk(['cajonazo', 'turito', 'tocinon'], ['tocinon', 'turito', 'cierzon'], semilla);
+      const u = activo0(e);
+      u.ps = Math.max(1, Math.round(u.psMax * frac));
+      const v = activo0(e, 1);
+      v.ps = v.psMax = 5000; // nothing knocks it out, so that the damages can be compared
+      const r = M.resolverTurno(e, [ataca(rem), cana]);
+      const pot = pr(u.ps, u.psMax);
+      const lo = M.calcularDano(u, v, M.MOVS.remate, { pot, azar: 0.85 }).dano;
+      const hi = M.calcularDano(u, v, M.MOVS.remate, { pot, azar: 1, critico: true }).dano;
+      return { d: dano(r, 1), pot, lo, hi, golpes: r.eventos.filter((ev) => ev.k === 'golpe' && ev.j === 1 && !ev.clave).length };
+    };
+    let ant = 0;
+    for (const f of [1, 0.75, 0.5, 0.25, 0.05]) {
+      const x = prueba(f);
+      if (x.golpes !== 1) falla(`Remate: ${x.golpes} golpes a vida ${f}`);
+      if (x.d < x.lo || x.d > x.hi) falla(`Remate a ${Math.round(f * 100)} % de vida: ${x.d} fuera de [${x.lo}, ${x.hi}] con potencia ${x.pot}`);
+      if (x.d < ant) falla(`Remate: con menos vida debe pegar más (${x.d} tras ${ant})`);
+      ant = x.d;
+    }
+    const lleno = prueba(1);
+    const bajo = prueba(0.05);
+    if (lleno.pot !== 20 || bajo.pot < 180 || bajo.d < lleno.d * 5) falla(`Remate: vida llena ${lleno.d} (pot ${lleno.pot}) y casi muerto ${bajo.d} (pot ${bajo.pot})`);
+    // Its own type (Juerga) and Aguantar el tipo go together: holding on at 1 HP, the next Remate is ~200.
+    const e = mk(['cajonazo', 'turito', 'tocinon'], ['turito', 'cierzon', 'tocinon']);
+    activo0(e).ps = 5;
+    const agu = M.resolverTurno(e, [ataca(idx('cajonazo', 'aguantar')), ataca(0, 0)]);
+    if (activo0(agu.estado).ps < 1) falla('Remate + Aguantar: debía aguantar con 1 PS');
+    if (M.potenciaDe(activo0(agu.estado), M.MOVS.remate) < 190) falla('Remate: con 1 PS pega con ~200');
+    // The machine: with little HP it likes it, with a full bar it hardly ever picks it.
+    const elige = (frac) => {
+      let n = 0;
+      for (let sem = 1; sem <= 60; sem++) {
+        const q = mk(['cajonazo', 'turito', 'tocinon'], ['tocinon', 'cierzon', 'tocinon'], sem);
+        activo0(q).ps = Math.max(1, Math.round(activo0(q).psMax * frac));
+        const c = M.eleccionBot(q, 0, M.crearRnd(sem * 5));
+        if (c?.tipo === 'atacar' && c.mov === rem) n++;
+      }
+      return n;
+    };
+    const alto = elige(1);
+    const poco = elige(0.5);
+    if (poco < 30 || alto > 10) falla(`bot: Remate con poca vida ${poco}/60 y con la barra llena ${alto}/60 (esperaba mucho / casi nunca)`);
+    // The effect screens use the same formula: bounds of the "fuerza" they derive.
+    if (pr(300, 300) - 20 !== 0 || (pr(0, 300) - 20) / 180 !== 1) falla('Remate: la fuerza del efecto va de 0 a 1');
+  }
+}
+
 function revisarSalida() {
   const mk = (a, b, extra = {}, semilla = 5) =>
     M.crearCombate(
@@ -1603,6 +1930,7 @@ function revisarSalida() {
 revisarTanda6();
 revisarObjetos();
 revisarBanquillo();
+revisarTanda7();
 revisarSalida();
 
 const semillas = process.argv.slice(2).map(Number).filter((n) => Number.isFinite(n)).slice(0, 5);
