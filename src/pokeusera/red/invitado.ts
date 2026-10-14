@@ -7,6 +7,7 @@
 import type { EstadoCombate } from '../tipos';
 import { pantalla } from '../pantalla';
 import { sonido } from '../sonido';
+import { VistaBarra } from '../pantallas/barra';
 import { VistaCombate } from '../pantallas/combate';
 import { VistaDraft } from '../pantallas/draft';
 import { pantallaPodio } from '../pantallas/podio';
@@ -51,6 +52,7 @@ export function jugarInvitado(con: Conexion): Promise<FinOnline> {
     // What the current game looks like from here.
     let vd: VistaDraft | null = null;
     let vc: VistaCombate | null = null;
+    let vb: VistaBarra | null = null;
     let miSeat: number | null = null;
     let enDraft = false;
     let fase: 'draft' | 'combate' | 'podio' = 'draft';
@@ -85,8 +87,10 @@ export function jugarInvitado(con: Conexion): Promise<FinOnline> {
         jugados = 0;
         vd = new VistaDraft(msg.asientos, miSeat);
         vc = new VistaCombate(miSeat);
-        vd.alAbandonar = vc.alAbandonar = abandonar;
-        (window as unknown as { __pokeusera?: unknown }).__pokeusera = { vc, vd, cola };
+        vb = new VistaBarra(miSeat !== null ? (msg.asientos[miSeat]?.entrenador ?? null) : null);
+        vd.escenario = msg.escenario;
+        vd.alAbandonar = vc.alAbandonar = vb.alAbandonar = abandonar;
+        (window as unknown as { __pokeusera?: unknown }).__pokeusera = { vc, vd, vb, cola };
         enDraft = false;
         fase = 'draft';
         podioVivo = false;
@@ -97,7 +101,7 @@ export function jugarInvitado(con: Conexion): Promise<FinOnline> {
         podioVivo = false;
         return;
       }
-      if (!vd || !vc) return;
+      if (!vd || !vc || !vb) return;
       switch (msg.k) {
         case 'draft': {
           if (!enDraft) {
@@ -112,6 +116,17 @@ export function jugarInvitado(con: Conexion): Promise<FinOnline> {
               if (!muerto && !caducada(idx)) enviar({ k: 'pick', n, especie });
             });
           }
+          return;
+        }
+        case 'barra': {
+          // «La barra»: only this guest got the offers. The choice goes back as 'objeto'; the 'inicio' that follows settles any question left open.
+          if (miSeat === null || caducada(idx)) return;
+          const tope = Math.max(1500, msg.plazoMs - MARGEN_MS);
+          const resta = Math.min(tope, Math.max(Math.min(MIN_ELECCION_MS, tope), tope - (Date.now() - cuando)));
+          p.poner(vb);
+          void vb.pedir(msg.ofertas, msg.especies, resta).then((el) => {
+            if (!muerto && !caducada(idx)) enviar({ k: 'objeto', objeto: el.objeto, idx: el.idx });
+          });
           return;
         }
         case 'inicio':

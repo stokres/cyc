@@ -4,6 +4,7 @@
 //    kills, weak targets and super-effective moves, adds noise so the bots do not all gang up on
 //    the same rival, uses the caña when low, now and then buffs/inflicts statuses, rarely switches
 //    out of a ×4 weakness, and acts from the grada when eliminated.
+//    Objects: only the obvious (the Pañuelo's +20 % goes into its damage estimates); what to take in «La barra» is `objetoBot` (objetos.ts).
 //    Tanda 6: it protects itself (Esconderse, ¡Que pague otro!, Aguantar el tipo) when two or more rivals hit it last turn or it is low
 //    and threatened, uses the quick moves (+1) to finish off a rival, and Devolvérsela when it expects to be hit.
 //  - pickBot: picks in the draft by raw quality plus type variety.
@@ -11,7 +12,7 @@
 import type { Eleccion, EstadoCombate, EstadoDraft, Stat, Tipo, Userito } from '../tipos';
 import { TIPOS_FISICOS } from '../tipos';
 import { EFECTOS, ESPECIE, MOVS, eficacia } from '../datos';
-import { activo, calcularDano, enGrada, eliminado, hayDeSuceso, multNivel, multSuceso, puedeCambiar, rivalesEnPie, vivos } from './combate';
+import { activo, calcularDano, enGrada, eliminado, hayDeSuceso, multNivel, multObjeto, multSuceso, puedeCambiar, rivalesEnPie, vivos } from './combate';
 import { disponibles, turnoDraft } from './draft';
 
 type Rnd = () => number;
@@ -41,7 +42,7 @@ function presion(e: EstadoCombate, j: number, rivales: number[]): Presion {
     let top = 0;
     for (const id of ESPECIE[a.especie].movs) {
       const mv = MOVS[id];
-      if (mv.pot !== null) top = Math.max(top, calcularDano(a, u, mv, { todos: mv.objetivo === 'todos', mult: multSuceso(e, mv.tipo) }).dano);
+      if (mv.pot !== null) top = Math.max(top, calcularDano(a, u, mv, { todos: mv.objetivo === 'todos', mult: multSuceso(e, mv.tipo) * multObjeto(a, mv) }).dano);
     }
     return top;
   });
@@ -69,7 +70,7 @@ function valorMovimiento(e: EstadoCombate, j: number, idx: number, rivales: numb
       let pot = pot0;
       if (ef.especial === 'venganza' && e.agresores[j].includes(r)) pot *= 2;
       if (ef.especial === 'cancion' && e.cancionAntes) pot *= 2;
-      const { dano } = calcularDano(u, v, m, { pot, todos: m.objetivo === 'todos' && !hayDeSuceso(e, 'karaoke'), mult: multSuceso(e, m.tipo) });
+      const { dano } = calcularDano(u, v, m, { pot, todos: m.objetivo === 'todos' && !hayDeSuceso(e, 'karaoke'), mult: multSuceso(e, m.tipo) * multObjeto(u, m) });
       const total = dano * golpes;
       const frac = Math.min(1, total / v.ps);
       let val = acc * frac * (total >= v.ps ? 1.6 : 1) * (1 + (1 - v.ps / v.psMax) * 0.4);

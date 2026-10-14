@@ -2,7 +2,8 @@
 // under the battle's text box and menus, and the half-size thumbnails of the useritos (32×32, made once
 // by averaging 2×2 blocks of the 64×64 art, so the little ones stay crisp and keep their colours).
 import { fondoBar, plataforma } from '../arte2/escena2';
-import { fondoEscenario, type EscenarioId } from '../arte2/escenarios2';
+import type { EscenarioId } from '../tipos';
+import { fondoEscenario } from '../arte2/escenarios2';
 import { spriteFrente2 } from '../arte2/sprites2';
 import { ANCHO } from '../pantalla';
 
@@ -31,15 +32,26 @@ export function dibujarFondoBar(ctx: CanvasRenderingContext2D, alto: number, osc
 
 const escenarios = new Map<string, HTMLCanvasElement>();
 
-/** Any of the four battle backdrops ('brio' is the Bar del Brío, cached as before) at the logical width and `alto`, baked once per (id, alto), optionally dimmed with a plum veil. Kept: the last six. */
-export function dibujarFondoEscenario(ctx: CanvasRenderingContext2D, id: EscenarioId, alto: number, oscuro = 0) {
+function escenarioCacheado(id: EscenarioId, alto: number): HTMLCanvasElement {
+  if (id === 'brio') return barraCacheada(alto);
   const k = `${id}|${alto}`;
-  let c = id === 'brio' ? barraCacheada(alto) : escenarios.get(k);
+  let c = escenarios.get(k);
   if (!c) {
     if (escenarios.size >= 6) escenarios.delete(escenarios.keys().next().value!);
     c = fondoEscenario(id, ANCHO, alto);
     escenarios.set(k, c);
   }
+  return c;
+}
+
+/** Bakes a backdrop ahead of the frame that first draws it (the battle's start, the background baking), so that frame does not stall. */
+export function hornearFondoEscenario(id: EscenarioId, alto: number): void {
+  escenarioCacheado(id, alto);
+}
+
+/** Any of the four battle backdrops ('brio' is the Bar del Brío, cached as before) at the logical width and `alto`, baked once per (id, alto), optionally dimmed with a plum veil. Kept: the last six. */
+export function dibujarFondoEscenario(ctx: CanvasRenderingContext2D, id: EscenarioId, alto: number, oscuro = 0) {
+  const c = escenarioCacheado(id, alto);
   ctx.drawImage(c, 0, 0);
   if (oscuro > 0) {
     ctx.fillStyle = `rgba(48,30,56,${oscuro})`;

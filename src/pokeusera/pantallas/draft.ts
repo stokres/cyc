@@ -1,7 +1,7 @@
 // PokéUsera · the draft (snake order): who is choosing, every player's picks so far, the grid of
 // the 24 useritos and the detail card. It draws only from what it is told (`alDraft`: the draft
 // state, whose turn and for how long), so a guest can feed it from network messages too.
-import type { EntrenadorId, EstadoDraft, Tipo } from '../tipos';
+import type { EntrenadorId, EscenarioId, EstadoDraft, Tipo } from '../tipos';
 import { ESPECIE, ESPECIES, MOVS, TIPOS, eficacia } from '../datos';
 import { icono2 } from '../arte2/entrenadores2';
 import { anchoTexto2 } from '../arte2/fuente2';
@@ -79,6 +79,8 @@ export class VistaDraft implements Escena {
   private precargado = false;
   private avisoTxt = '';
   private avisoHasta = 0;
+  /** The bar of the battle that follows, when known: its tune is the one decoded during the draft. */
+  escenario: EscenarioId | undefined;
 
   /** `miSeat`: the seat of this screen's player (null when only watching). */
   constructor(
@@ -96,7 +98,10 @@ export class VistaDraft implements Escena {
     if (!this.precargado) {
       // The battle's tune is decoded during the draft (a few seconds in, so as not to compete with the draft's own tune).
       this.precargado = true;
-      setTimeout(() => sonido.precargar('combate'), 4000);
+      setTimeout(() => {
+        sonido.elegirCombate(this.escenario);
+        sonido.precargar('combate');
+      }, 4000);
     }
     for (let i = this.elegidos.length; i < draft.elegidos.length; i++) {
       const id = draft.elegidos[i];

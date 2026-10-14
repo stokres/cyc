@@ -2,12 +2,16 @@
 // computer and tens of them on a slow phone, so doing it the moment a screen first needs it (the trainer pick,
 // the draft's grid of twenty, the first battle and its move effects) made those screens stall. This bakes them one at a time
 // while the player is still on the title and the menu, whenever the browser says it has nothing better to do.
-import { ENTRENADORES } from '../tipos';
+import { ENTRENADORES, ESCENARIOS } from '../tipos';
 import { ESPECIES } from '../datos';
 import { entrenador2, icono2 } from '../arte2/entrenadores2';
 import { spriteEspalda2, spriteFrente2 } from '../arte2/sprites2';
-import { miniatura } from './fondos';
+import { tareasPrecalentarBarra } from './barra';
+import { alturaCampo } from './combate';
+import { hornearFondoEscenario, miniatura } from './fondos';
 import { tareasPrecalentarEfectos } from './efectosMov';
+import { tareasPrecalentarObjetos } from './iconosObjeto';
+import { pantalla } from '../pantalla';
 
 let cola: (() => void)[] | null = null;
 let pendiente = false;
@@ -29,6 +33,10 @@ function construir(): (() => void)[] {
     tareas.push(() => spriteEspalda2(s.id, 0));
     tareas.push(() => spriteEspalda2(s.id, 1));
   }
+  // The pixel icons of the objects («La barra», the panels) and the four bars' backdrops (one canvas per screen height; the battle bakes the one it
+  // needs again if the window changed size meanwhile).
+  tareas.push(...tareasPrecalentarObjetos(), ...tareasPrecalentarBarra());
+  for (const id of ESCENARIOS) tareas.push(() => hornearFondoEscenario(id, alturaCampo(pantalla().alto)));
   // The move effects of the battle: one move or one type per task (tiny canvases, but not all in one frame).
   tareas.push(...tareasPrecalentarEfectos());
   return tareas.reverse(); // popped from the end

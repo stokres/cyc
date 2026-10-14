@@ -20,6 +20,23 @@ export const PERK_PRECISION_PABLO = 10; // Pablo: status moves +10 accuracy poin
 export const PERK_TARDE_CHUCHI = 80; // Chuchi: first hit each userito receives does 20 % less (80 % of the damage)
 // Guille: once per userito, a hit from full HP that would KO leaves it at 1 HP.
 
+/** The objects of «La barra» (docs/POKEUSERA.md, «Objetos de la barra»): one per player, held by one of the three useritos. */
+export type ObjetoId = 'mechero' | 'chicle' | 'bocata' | 'posavasos' | 'tapon' | 'palillo' | 'gafas' | 'zapatillas' | 'panuelo' | 'llavero';
+export const OBJETOS: readonly ObjetoId[] = ['mechero', 'chicle', 'bocata', 'posavasos', 'tapon', 'palillo', 'gafas', 'zapatillas', 'panuelo', 'llavero'];
+export const OBJ_MECHERO_QUEMA = 50; // Mechero: % chance that the first attacker to hit its holder is burnt
+export const OBJ_BOCATA_CURA = 4; // Bocata de calamares: heals 1/4 of max HP when the holder drops under half
+export const OBJ_GAFAS_PREC = 10; // Gafas de sol: +10 accuracy points on its attacks
+export const OBJ_PANUELO = 120; // Pañuelo de la peña: its same-type attacks do 120 % damage
+export const OBJ_PALILLO_CRIT = 2; // Palillo: twice as many critical hits
+
+/** What a userito carries. One-use objects are `gastado` once they work; `visto` is set the first time everybody sees them work
+ *  (until then the rivals' screens do not show them; online, the host does not even send them: `ocultarObjetos` in motor/objetos.ts). */
+export interface ObjetoLlevado {
+  id: ObjetoId;
+  gastado?: true;
+  visto?: true;
+}
+
 export interface Base {
   ps: number;
   ata: number;
@@ -81,6 +98,8 @@ export interface Userito {
   /** Trainer perks already used by this userito in this battle (Chuchi «Llega tarde», Guille «Mañico»).
    *  Not in `vol`: they must survive switching out. Absent until used. */
   perk?: { tarde?: true; manico?: true };
+  /** The object of «La barra» it carries, if any (like `perk`, it survives switching out). */
+  objeto?: ObjetoLlevado;
   /** Volatile effects, reset on switching out. */
   vol: {
     /** Turns trapped by «Te pillo en la barra» (and who trapped it). */
@@ -270,6 +289,8 @@ export type Evento = {
   /** A suceso of the bar starts, at the end of the turn before it (so it is on screen before anyone chooses). `turnos`: how long it lasts
    *  (0 = instant). `clave` is its phrase (`suceso.<id>.frase`); the effects that follow (heals, stages) are ordinary events. */
   | { k: 'suceso'; id: SucesoId; turnos: number }
+  /** The object carried by `j`'s userito works (and from now on everybody can see it). `clave`: its line (`objeto.<id>.activa`, `.falla`...). */
+  | { k: 'objeto'; j: number; objeto: ObjetoId }
 );
 
 /** Draft (snake order) shared state. */

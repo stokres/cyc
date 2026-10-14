@@ -1,7 +1,7 @@
 // PokéUsera · Edición Jarra: all the data of docs/POKEUSERA.md (type chart, the 24 useritos,
 // the move table and the engine-side effect of each move). Names are data; every sentence the
 // game says lives in src/textos/pokeusera-combate.md.
-import type { EscenarioId, Especie, Estado, Movimiento, Stat, SucesoId, Tipo } from './tipos';
+import type { EscenarioId, Especie, Estado, Movimiento, ObjetoId, Stat, SucesoId, Tipo } from './tipos';
 
 export const TIPOS: readonly Tipo[] = ['mindundi', 'petardo', 'droga', 'bronca', 'ventolera', 'chispa', 'alcohol', 'juerga', 'chanza', 'grasa', 'fantasma'];
 
@@ -311,3 +311,19 @@ export const SUCESOS: Record<SucesoId, { dura: number; escenario: EscenarioId | 
 
 /** The sucesos that can happen in a place: the general ones plus its own. */
 export const sucesosDe = (escenario: EscenarioId): SucesoId[] => (Object.keys(SUCESOS) as SucesoId[]).filter((id) => SUCESOS[id].escenario === null || SUCESOS[id].escenario === escenario);
+
+// ---------------------------------------------------------------- objetos de la barra
+
+/** `permanente`: it works every time it can and is never used up (Palillo, Gafas, Zapatillas, Pañuelo); the others work once. Names and sentences: `objeto.<id>.*` in pokeusera-combate.md. */
+export const OBJETO_PERMANENTE: Record<ObjetoId, boolean> = {
+  mechero: false,
+  chicle: false,
+  bocata: false,
+  posavasos: false,
+  tapon: false,
+  palillo: true,
+  gafas: true,
+  zapatillas: true,
+  panuelo: true,
+  llavero: false,
+};

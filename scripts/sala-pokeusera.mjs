@@ -112,9 +112,11 @@ export function adjuntarSala(servidor) {
         for (const w of dentro.keys()) enviar(w, { tipo: 'volver' });
         return repartirSala();
       case 'juego': {
-        if (msg.a !== 'anfitrion' && msg.a !== 'todos') return;
+        // `a` is 'anfitrion', 'todos' or, from the host only, the id of one player (what only that player may see: their objects).
+        const privado = Number.isInteger(msg.a) && yo.anfitrion;
+        if (msg.a !== 'anfitrion' && msg.a !== 'todos' && !privado) return;
         const salida = JSON.stringify({ tipo: 'juego', de: yo.id, datos: msg.datos });
-        const destinos = msg.a === 'anfitrion' ? [anfitrionWs()] : [...dentro.keys()];
+        const destinos = privado ? [...dentro].filter(([, j]) => j.id === msg.a).map(([w]) => w) : msg.a === 'anfitrion' ? [anfitrionWs()] : [...dentro.keys()];
         for (const w of destinos) {
           if (!w || w === ws || w.readyState !== w.OPEN || w.bufferedAmount > MAX_PENDIENTE) continue;
           w.send(salida);

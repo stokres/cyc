@@ -5,10 +5,10 @@
 //   pedirEleccion(j, estado, ms) / pedirReemplazo(j, estado, ms)   the local player decides (promises)
 //   alTurno(eventos, estado) / alReemplazo(eventos, estado)       play the events, then adopt `estado`
 // so a guest can drive it from network messages exactly like the host does from Partida.
-import { ENTRENADORES, type Eleccion, type Estado, type EstadoCombate, type Evento, type Stat, type SucesoId, type Tipo, type Userito } from '../tipos';
+import { ENTRENADORES, type Eleccion, type Estado, type EstadoCombate, type Evento, type ObjetoId, type ObjetoLlevado, type Stat, type SucesoId, type Tipo, type Userito } from '../tipos';
 import { COLOR_TIPO } from '../arte/paleta';
 import { hayTexto } from '../../juego/textos';
-import { ESPECIE, MOVS, DESESPERADA, SUCESOS, eficacia } from '../datos';
+import { ESPECIE, MOVS, DESESPERADA, OBJETO_PERMANENTE, SUCESOS, eficacia } from '../datos';
 import { activo, eliminado, enGrada, movsDisponibles, necesitaObjetivo, puedeCambiar, rivalesEnPie, vivos } from '../motor/combate';
 import { anchoTexto2, dibujarTexto2 } from '../arte2/fuente2';
 import { PS_TONOS, TINTA2, TINTA_SUAVE } from '../arte2/paleta2';
@@ -22,8 +22,9 @@ import { sonido } from '../sonido';
 import { CajaTexto } from './caja';
 import { menuPausa } from './ajustes';
 import { EfectosMov, llegadaFx, tareasPrecalentarEfectos, type PuntoFx } from './efectosMov';
-import { cajaSprite, dibujarBandeja, dibujarFondoBar, miniatura, pieSprite, plataformaCacheada } from './fondos';
+import { cajaSprite, dibujarBandeja, dibujarFondoEscenario, hornearFondoEscenario, miniatura, pieSprite, plataformaCacheada } from './fondos';
 import { abrirGuia } from './guia';
+import { LADO_ICONO_OBJETO, iconoObjeto, tareasPrecalentarObjetos } from './iconosObjeto';
 import { sobre } from './modal';
 import {
   ALTO_CELDA,
@@ -106,10 +107,16 @@ interface Foco {
 }
 
 /** Which card the info box opens on a status or stat. */
-type Tema = { k: 'estado'; e: Estado | 'achispado' } | { k: 'stat'; s: 'ps' | 'ata' | 'def' | 'esp' | 'vel' | 'prec' } | { k: 'tipos' } | null;
+type Tema = { k: 'estado'; e: Estado | 'achispado' } | { k: 'objeto'; id: ObjetoId } | { k: 'stat'; s: 'ps' | 'ata' | 'def' | 'esp' | 'vel' | 'prec' } | { k: 'tipos' } | null;
 
 /** Height of the action banner under the text box. */
 const ALTO_CARTEL = 40;
+
+/** Height of the field (the backdrop) on a screen of height `H`: the top bar, the four rows and the sprite of the last one. */
+export function alturaCampo(H: number): number {
+  const k = Math.max(0, Math.min(1, (H - 384) / 136));
+  return 18 + 4 + 3 * Math.round(50 + k * 26) + 78;
+}
 
 /** The width of a trainer's name in capitals (it is asked for every frame), and of a status tag's text. */
 const anchosNombre = new Map<string, number>();
@@ -477,6 +484,8 @@ export class VistaCombate implements Escena {
     await this.calentar(estado);
     this.adoptar(estado);
     this.turnoHud = estado.turno;
+    // The bar's own tune (the draft already chose and decoded it when it knew the bar; asking again keeps that choice).
+    sonido.elegirCombate(estado.escenario);
     sonido.musica('combate');
     this.fx.forEach((f) => {
       f.oculto = true;
@@ -507,6 +516,8 @@ export class VistaCombate implements Escena {
         tareas.push(() => miniatura(u.especie), () => spriteFrente2(u.especie, 0), () => spriteFrente2(u.especie, 1), () => spriteEspalda2(u.especie, 0), () => spriteEspalda2(u.especie, 1));
       }
     }
+    // The bar's backdrop and the object icons (a baked backdrop is a big canvas: better before the first frame than in it).
+    tareas.push(() => hornearFondoEscenario(estado.escenario, alturaCampo(pantalla().alto)), ...tareasPrecalentarObjetos());
     // The sprites of the move effects too (already baked when the background baking is over: then this is a few empty loops).
     tareas.push(...tareasPrecalentarEfectos());
     let t0 = performance.now();
@@ -792,6 +803,15 @@ export class VistaCombate implements Escena {
     return activo(this.disp, j);
   }
 
+  /**
+   * The object of `u` (player j's userito) as this screen may show it: your own always, the others' only once it has worked
+   * (`visto`: the event of its first use sets it). Until then a rival's object is not drawn, whatever the state carries.
+   */
+  private objetoVisible(j: number, u: Userito): ObjetoLlevado | null {
+    const o = u.objeto;
+    return o && (j === this.yo || o.visto) ? o : null;
+  }
+
   /** Puts a line in the log and in the text box. */
   private decir(linea: string, esperaMs?: number): Promise<void> {
     this.registrar(linea);
@@ -912,6 +932,14 @@ export class VistaCombate implements Escena {
       case 'nivel':
         sonido.efecto(ev.cambio > 0 ? 'sube' : 'baja');
         break;
+      case 'objeto': {
+        // The object works: from now on everybody sees it on the panel (a one-use one greyed out), and its name flashes over the userito.
+        const u = this.userito(ev.j);
+        u.objeto = { id: ev.objeto, visto: true, ...(OBJETO_PERMANENTE[ev.objeto] ? {} : { gastado: true as const }) };
+        sonido.efecto('estado');
+        this.flota(ev.j, t(`objeto.${ev.objeto}.nombre`).toUpperCase(), TAG_ORO, 'tag');
+        break;
+      }
       case 'cae': {
         sonido.efecto('cae');
         this.userito(ev.j).ps = 0;
@@ -1476,7 +1504,7 @@ export class VistaCombate implements Escena {
     /** Pitch between the four rows: the sprites may overlap a little on short screens. */
     const P = Math.round(50 + k * 26);
     const y0 = hud + 4;
-    const campo = y0 + 3 * P + 78;
+    const campo = alturaCampo(H);
     const lineas = H < 430 ? 2 : 3;
     const boxH = lineas === 2 ? 40 : 52;
     const yBox = campo + 4;
@@ -1521,7 +1549,7 @@ export class VistaCombate implements Escena {
   dibujar(ctx: CanvasRenderingContext2D, ahora: number) {
     if (!this.disp) return;
     const G = this.geom();
-    dibujarFondoBar(ctx, G.campo);
+    dibujarFondoEscenario(ctx, this.disp.escenario, G.campo);
     // A tap anywhere on the field moves the text on (registered first: the buttons above it win).
     if (this.modo === 'cola' || this.modo === 'espera') entrada.zona(0, G.hud, ANCHO, G.H - G.hud, () => this.caja.toque());
     // Rows.
@@ -1710,6 +1738,7 @@ export class VistaCombate implements Escena {
   private textoTema(tm: Tema): string {
     if (!tm) return t('ficha.toca');
     if (tm.k === 'estado') return t(`ayuda.estado.${tm.e}`);
+    if (tm.k === 'objeto') return t(`objeto.${tm.id}.desc`);
     if (tm.k === 'tipos') return t('ayuda.tipos');
     return tm.s === 'prec' ? t('ficha.prec_ayuda') : t(`ayuda.stat.${tm.s}`);
   }
@@ -1813,6 +1842,20 @@ export class VistaCombate implements Escena {
             ex += ew + 4;
           }
           cy += 18;
+          // The object it carries (yours always; a rival's once it has worked): tap it for what it does.
+          const ob = this.objetoVisible(j, u);
+          if (ob) {
+            texto2(ctx, t('ficha.objeto'), x0, cy + 3, TINTA_SUAVE, null);
+            const sel = mismo(tema, { k: 'objeto', id: ob.id });
+            ctx.drawImage(iconoObjeto(ob.id, ob.gastado === true), x0 + 52, cy);
+            const nom = t(`objeto.${ob.id}.nombre`);
+            texto2(ctx, nom, x0 + 68, cy + 3, ob.gastado ? '#a898a8' : TINTA2, null);
+            if (sel) rect(ctx, TINTA2, x0 + 68, cy + 13, anchoTexto2(nom), 2);
+            const uso = t(ob.gastado ? 'objeto.gastado' : OBJETO_PERMANENTE[ob.id] ? 'objeto.perm' : 'objeto.unico');
+            texto2(ctx, uso, x0 + wi - anchoTexto2(uso), cy + 3, TINTA_SUAVE, null);
+            zonaC(x0 + 48, cy - 2, wi - 48, 17, () => elige({ k: 'objeto', id: ob.id }));
+            cy += 18;
+          }
           // Stat stages.
           const cambios = (['ata', 'def', 'esp', 'vel', 'prec'] as Stat[]).filter((s) => u.niveles[s] !== 0);
           if (cambios.length) {
@@ -2215,6 +2258,7 @@ export class VistaCombate implements Escena {
     // Status tags: next to the trainer's name.
     const ey = py + (mia ? 29 : 29);
     let ex = px + 18 + anchoNombre(q.nombre) + 6;
+    const obj = this.objetoVisible(j, u);
     if (mia) {
       const nums = this.numerosPS(f, u.psMax);
       texto2(ctx, nums, px + w - 8 - anchoTexto2(nums), py + 30);
@@ -2222,14 +2266,19 @@ export class VistaCombate implements Escena {
       ex = px + 18 + 3 * 9 + 6;
       if (u.estado) ex += this.etiqueta(ctx, j, u.estado, ex, py + 39, info) + 2;
       if (u.achispado > 0) this.etiqueta(ctx, j, 'achispado', ex, py + 39, info);
+      // The object carried, at the right end of the last line.
+      if (obj) ctx.drawImage(iconoObjeto(obj.id, obj.gastado === true), px + w - 8 - LADO_ICONO_OBJETO, py + 38);
     } else {
       // The tags go after the trainer's name; the jars (pips) sit at the right, and give way when two tags do not fit beside them.
       const e1: Estado | 'achispado' | null = u.estado;
       const e2: 'achispado' | null = u.achispado > 0 ? 'achispado' : null;
       const anchoTags = (e1 ? anchoEstado(e1) + 8 : 0) + (e2 ? anchoEstado(e2) + 8 : 0);
-      const conPips = ex + anchoTags <= px + w - 8 - 27 - 1;
-      if (conPips) pipsFila(ctx, px + w - 8 - 3 * 9 + 1, py + 29, vivos, JUGADORES2[asiento].base);
-      const lim = conPips ? px + w - 8 - 27 - 1 : px + w - 6;
+      // The object (once it has worked) takes the right end of the line, the jars go left of it.
+      const xPips = px + w - 8 - 3 * 9 + 1 - (obj ? LADO_ICONO_OBJETO + 3 : 0);
+      const conPips = ex + anchoTags <= xPips - 2;
+      if (conPips) pipsFila(ctx, xPips, py + 29, vivos, JUGADORES2[asiento].base);
+      if (obj) ctx.drawImage(iconoObjeto(obj.id, obj.gastado === true), px + w - 8 - LADO_ICONO_OBJETO + 1, py + 26);
+      const lim = conPips ? xPips - 2 : px + w - 6;
       if (e1 && ex + anchoEstado(e1) + 6 <= lim) ex += this.etiqueta(ctx, j, e1, ex, ey - 1, info) + 2;
       if (e2 && ex + anchoEstado(e2) + 6 <= lim) ex += this.etiqueta(ctx, j, e2, ex, ey - 1, info) + 2;
     }
@@ -2624,6 +2673,8 @@ export class VistaCombate implements Escena {
       ctx.drawImage(miniatura(u.especie), 0, Math.floor((32 - mh) / 2) - 1 > 0 ? Math.floor((32 - mh) / 2) - 1 : 0, 32, mh, 22, y + Math.floor((alto - mh) / 2), 32, mh);
       ctx.restore();
       const col = ocioso ? '#a898a8' : TINTA2;
+      // Your own object next to each name.
+      if (u.objeto) ctx.drawImage(iconoObjeto(u.objeto.id, u.objeto.gastado === true), 60 + anchoTexto2(sp.nombre) + 4, alto >= 24 ? y + 2 : y + Math.floor((alto - LADO_ICONO_OBJETO) / 2));
       if (alto >= 24) {
         texto2(ctx, sp.nombre, 60, y + 3, col, null);
         barraPS2(ctx, 60, y + alto - 11, 100, u.ps / u.psMax);

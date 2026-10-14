@@ -13,10 +13,12 @@
 // detail; the floor is calm and low-contrast so the sprites and plates read first (a veil is laid on at the
 // end). Everything is `fillRect` (no antialiased paths, no SVG, no filters); the floors are written once into
 // an ImageData created at bake time (never read back from a canvas).
+import type { EscenarioId } from '../tipos';
 import { fondoBar } from './escena2';
 
-export type EscenarioId = 'brio' | 'terraza' | 'rural' | 'juan';
-export const ESCENARIOS: readonly EscenarioId[] = ['brio', 'terraza', 'rural', 'juan'];
+// The ids live in tipos.ts (the contract); re-exported here for the preview tool (tools/pokeusera-v2.ts).
+export { ESCENARIOS } from '../tipos';
+export type { EscenarioId } from '../tipos';
 
 type Cx = CanvasRenderingContext2D;
 type RGB = [number, number, number];

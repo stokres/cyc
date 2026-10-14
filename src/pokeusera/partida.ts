@@ -5,11 +5,12 @@
 //
 // Seats: 'local' = this browser's screens (`ganchos.pedirX`), 'bot' = the machine, 'remoto' = an
 // online guest (`ganchos.remoto.pedirX`; with no `remoto` the machine plays for them).
-import type { Eleccion, EntrenadorId, EscenarioId, EstadoCombate, EstadoDraft, Evento } from './tipos';
+import type { Eleccion, EntrenadorId, EscenarioId, EstadoCombate, EstadoDraft, Evento, ObjetoId } from './tipos';
 import { crearRnd } from './motor/azar';
 import { crearDraft, elegir as elegirDraft, equipos as equiposDraft, turnoDraft } from './motor/draft';
-import { crearCombate, eleccionAlAzar, eliminado, enGrada, reemplazar, resolverTurno, vivos } from './motor/combate';
+import { crearCombate, eleccionAlAzar, eliminado, enGrada, escenarioDeSemilla, reemplazar, resolverTurno, vivos } from './motor/combate';
 import { eleccionBot, pickBot, reemplazoBot } from './motor/bot';
+import { PLAZO_BARRA, eleccionObjetoValida, objetoBot, ofertasObjetos, type EleccionObjeto } from './motor/objetos';
 
 export interface Asiento {
   tipo: 'local' | 'bot' | 'remoto';
@@ -25,6 +26,8 @@ export interface Decisor {
   pedirEleccion(j: number, estado: EstadoCombate, plazoMs: number): Promise<Eleccion | null>;
   /** Index in `equipo` of the userito that comes in. */
   pedirReemplazo(j: number, estado: EstadoCombate, plazoMs: number): Promise<number>;
+  /** «La barra»: which of the three `ofertas` the player takes and which of their three `especies` (index) carries it. */
+  pedirObjeto(j: number, ofertas: ObjetoId[], especies: string[], plazoMs: number): Promise<EleccionObjeto>;
 }
 
 export interface Ganchos extends Decisor {
@@ -56,6 +59,9 @@ export interface OpcionesPartida {
   rapido?: boolean;
   /** Skip the draft: the teams (species ids per seat). */
   equipos?: string[][];
+  /** With `equipos` (no draft) «La barra» is skipped too and every seat gets its object from the machine, unless this is set (`?barra`). */
+  barra?: boolean;
+  plazoBarraMs?: number;
   plazoPickMs?: number;
   plazoTurnoMs?: number;
   plazoReemplazoMs?: number;
@@ -64,6 +70,7 @@ export interface OpcionesPartida {
 export const PLAZO_PICK = 20000;
 export const PLAZO_TURNO = 30000;
 export const PLAZO_REEMPLAZO = 15000;
+export { PLAZO_BARRA };
 /** Extra time the host gives guests over the clock they see, for network lag. */
 const GRACIA_REMOTO = 1200;
 
@@ -78,6 +85,9 @@ const pausa = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 export class Partida {
   readonly semilla: number;
+  /** The seed of the battle itself (known from the start: «La barra» offers are drawn from it) and its bar (known from the start too, so the screens can load its tune). */
+  readonly semillaCombate: number;
+  readonly escenario: EscenarioId;
   draft: EstadoDraft | null = null;
   estado: EstadoCombate | null = null;
   private rnd: () => number;
@@ -94,6 +104,8 @@ export class Partida {
     if (asientos.length < 2 || asientos.length > 4) throw new Error('De 2 a 4 asientos');
     this.semilla = opciones.semilla ?? Math.floor(Math.random() * 2 ** 31);
     this.rnd = crearRnd(this.semilla ^ 0x5bd1e995);
+    this.semillaCombate = Math.floor(crearRnd(this.semilla ^ 0x1b873593)() * 2 ** 31);
+    this.escenario = opciones.escenario ?? escenarioDeSemilla(this.semillaCombate);
     asientos.forEach((_, j) => (this.rndBots[j] = crearRnd(this.semilla + 7919 * (j + 1))));
     this.cancelacion = new Promise<never>((_, rej) => {
       this.cancelar_ = () => rej(new Cancelada());
@@ -143,10 +155,11 @@ export class Partida {
     let listas: string[][];
     if (this.opciones.equipos) listas = this.opciones.equipos;
     else listas = await this.hacerDraft();
+    const objetos = await this.hacerBarra(listas);
     const estado0 = crearCombate(
-      this.asientos.map((a, j) => ({ entrenador: a.entrenador, nombre: a.nombre, bot: a.tipo === 'bot', especies: listas[j] })),
-      Math.floor(this.rnd() * 2 ** 31),
-      this.opciones.escenario,
+      this.asientos.map((a, j) => ({ entrenador: a.entrenador, nombre: a.nombre, bot: a.tipo === 'bot', especies: listas[j], objetos: objetos[j] })),
+      this.semillaCombate,
+      this.escenario,
     );
     this.estado = estado0;
     await this.esperar(this.ganchos.alInicio(estado0));
@@ -224,6 +237,35 @@ export class Partida {
       return pickBot(draft, rndBot);
     }
     return this.conPlazo(dec.pedirPick(j, draft, plazo), plazo + this.gracia(j), () => pickBot(draft, rndBot));
+  }
+
+  // ------------------------------------------------------------------ la barra (objects)
+
+  /**
+   * Every seat takes one of its three offered objects for one of its three useritos, all at once (`PLAZO_BARRA`). The machines choose at
+   * once; a player who runs out of time gets the machine's choice. Returns, per seat, the object of each userito (null: none).
+   * With the draft skipped (`equipos`) and no `barra` option nobody is asked: the machine chooses for every seat.
+   */
+  private async hacerBarra(listas: string[][]): Promise<(ObjetoId | null)[][]> {
+    const plazo = this.opciones.plazoBarraMs ?? PLAZO_BARRA;
+    const preguntar = !this.opciones.equipos || !!this.opciones.barra;
+    const res: (ObjetoId | null)[][] = listas.map(() => [null, null, null]);
+    await Promise.all(
+      this.asientos.map(async (_a, j) => {
+        const ofertas = ofertasObjetos(this.semillaCombate, j);
+        const rndBot = this.rndBots[j];
+        const porDefecto = () => objetoBot(listas[j], ofertas, rndBot);
+        const dec = preguntar ? this.decisor(j) : null;
+        let el: EleccionObjeto;
+        if (!dec) el = porDefecto();
+        else {
+          const pedido = await this.conPlazo<EleccionObjeto | null>(dec.pedirObjeto(j, ofertas, listas[j], plazo), plazo + this.gracia(j), () => null);
+          el = eleccionObjetoValida(pedido, ofertas) ? pedido : porDefecto();
+        }
+        res[j][el.idx] = el.objeto;
+      }),
+    );
+    return res;
   }
 
   // ------------------------------------------------------------------ battle

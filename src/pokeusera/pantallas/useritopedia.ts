@@ -25,7 +25,7 @@ import { COLOR_TIPO, NOMBRE_TIPO } from '../arte/paleta';
 import { entrada, type Accion } from '../entrada';
 import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
-import { atacantesFuertes, defensoresCon, hileraTipos } from './guia';
+import { abrirGuia, atacantesFuertes, defensoresCon, hileraTipos } from './guia';
 import { miniatura, pieSprite, plataformaCacheada } from './fondos';
 import { clasePrioridad, iconoPrioridad, LADO_ICONO_PRIO } from './iconosMov';
 import { sobre } from './modal';
@@ -329,6 +329,10 @@ export function abrirUseritopedia(base: Escena | null, id?: string): Promise<voi
       sonido.efecto('atras');
       cerrar();
     };
+    const verObjetos = () => {
+      sonido.efecto('aceptar');
+      void abrirGuia(pantalla().escena, 'objetos');
+    };
     const alto = () => (modo === 'lista' ? TOPE_LISTA + N * PASO_FILA + 6 : ficha(idx).alto);
     const maxScroll = () => Math.max(0, alto() - altoVista);
     const limitar = (v: number) => Math.max(0, Math.min(maxScroll(), v));
@@ -534,9 +538,13 @@ export function abrirUseritopedia(base: Escena | null, id?: string): Promise<voi
         // Bottom buttons.
         const bw = 110;
         if (modo === 'lista') {
-          const bx = Math.floor((ANCHO - bw) / 2);
-          boton(ctx, bx, H - 32, bw, ALTO_BOTON, t('useritopedia.volver'), true);
-          entrada.zona(bx, H - 32, bw, ALTO_BOTON, volver);
+          // VOLVER and OBJETOS (the objects of «La barra»: the guide's page for them).
+          const bw2 = 102;
+          const bx = Math.floor((ANCHO - 2 * bw2 - 8) / 2);
+          boton(ctx, bx, H - 32, bw2, ALTO_BOTON, t('useritopedia.volver'), true);
+          entrada.zona(bx, H - 32, bw2, ALTO_BOTON, volver);
+          boton(ctx, bx + bw2 + 8, H - 32, bw2, ALTO_BOTON, t('useritopedia.objetos'), false);
+          entrada.zona(bx + bw2 + 8, H - 32, bw2, ALTO_BOTON, verObjetos);
         } else {
           const bx = Math.floor((ANCHO - bw) / 2);
           boton(ctx, bx, H - 32, bw, ALTO_BOTON, t('useritopedia.volver'), true);
@@ -559,6 +567,7 @@ export function abrirUseritopedia(base: Escena | null, id?: string): Promise<voi
             asegurarFila(sel);
             sonido.efecto('cursor');
           } else if (a === 'aceptar') abrirFicha(sel < 0 ? 0 : sel);
+          else if (a === 'der') verObjetos();
           else if (a === 'atras') volver();
         } else if (a === 'izq') irA(-1);
         else if (a === 'der') irA(1);

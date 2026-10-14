@@ -1,10 +1,10 @@
-// PokéUsera · the GUÍA: a paged help screen (CÓMO SE JUEGA, ESTADÍSTICAS, TIPOS, ESTADOS, REGLAS DEL BAR)
+// PokéUsera · the GUÍA: a paged help screen (CÓMO SE JUEGA, ESTADÍSTICAS, TIPOS, ESTADOS, REGLAS DEL BAR, OBJETOS)
 // that opens over whatever is on screen (main menu, pause box, draft card) and gives it back when closed.
 // ◀ ▶ / swipe / the tabs change page; a long page scrolls (drag or ▲▼); VOLVER goes back.
 // Everything it says lives in src/textos/pokeusera.md (`guia.*`, plus the older `ayuda.*` keys); the type
 // table is read from `eficacia` in datos.ts, so it can never disagree with the engine.
-import { ENTRENADORES, type Estado, type Tipo } from '../tipos';
-import { SUCESOS, TIPOS, eficacia } from '../datos';
+import { ENTRENADORES, OBJETOS, type Estado, type Tipo } from '../tipos';
+import { OBJETO_PERMANENTE, SUCESOS, TIPOS, eficacia } from '../datos';
 import { anchoTexto2 } from '../arte2/fuente2';
 import { PAPEL_ALTO, TINTA2, TINTA_SUAVE } from '../arte2/paleta2';
 import { hornear, icono2, panelCacheado, relleno } from '../arte2/ui2';
@@ -13,11 +13,12 @@ import { entrada, type Accion } from '../entrada';
 import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
 import { iconoPrioridad, LADO_ICONO_PRIO, type ClasePrioridad } from './iconosMov';
+import { LADO_ICONO_OBJETO, iconoObjeto } from './iconosObjeto';
 import { sobre } from './modal';
 import { ALTO_INSIGNIA, barraArriba, boton, envolver, etiquetaEstado, ficha, fondoPapel, flecha, insignaTipo, nombreEnt, rect, t, texto2 } from './ui';
 
-export type PaginaGuia = 'como' | 'stats' | 'tipos' | 'estados' | 'reglas';
-const PAGINAS: PaginaGuia[] = ['como', 'stats', 'tipos', 'estados', 'reglas'];
+export type PaginaGuia = 'como' | 'stats' | 'tipos' | 'estados' | 'reglas' | 'objetos';
+const PAGINAS: PaginaGuia[] = ['como', 'stats', 'tipos', 'estados', 'reglas', 'objetos'];
 
 /** Accepts the page ids above and a few natural aliases («estadisticas», «juego», «bar»...). */
 function indicePagina(p?: string): number {
@@ -30,6 +31,7 @@ function indicePagina(p?: string): number {
   if (s === 'estado' || s === 'estados') return 3;
   if (s.startsWith('stat') || s.startsWith('estad') || s.startsWith('dato') || s.startsWith('cifra')) return 1;
   if (s.startsWith('regla') || s === 'bar') return 4;
+  if (s.startsWith('objeto')) return 5;
   return 0;
 }
 
@@ -220,7 +222,7 @@ export function abrirGuia(base: Escena | null, pagina?: string): Promise<void> {
     // ---- CÓMO SE JUEGA
     const como = (ctx: CanvasRenderingContext2D, y0: number): number => {
       let y = y0 + encabezado(ctx, y0, t('guia.h.como'));
-      for (let i = 1; i <= 5; i++) y += tarjeta(ctx, y, { titulo: t(`guia.como.${i}.t`), cuerpo: t(`guia.como.${i}.d`), sangria: 22, marca: insigniaNum(i) }) + 3;
+      for (let i = 1; i <= 6; i++) y += tarjeta(ctx, y, { titulo: t(`guia.como.${i}.t`), cuerpo: t(`guia.como.${i}.d`), sangria: 22, marca: insigniaNum(i) }) + 3;
       return y - y0;
     };
 
@@ -438,6 +440,29 @@ export function abrirGuia(base: Escena | null, pagina?: string): Promise<void> {
       return y - y0;
     };
 
+    // ---- OBJETOS DE LA BARRA
+    const objetos = (ctx: CanvasRenderingContext2D, y0: number): number => {
+      let y = y0 + encabezado(ctx, y0, t('guia.h.objetos'));
+      y += tarjeta(ctx, y, { cuerpo: t('guia.objetos.nota') }) + 3;
+      for (const id of OBJETOS) {
+        const uso = t(OBJETO_PERMANENTE[id] ? 'objeto.perm' : 'objeto.unico');
+        y +=
+          tarjeta(ctx, y, {
+            titulo: t(`objeto.${id}.nombre`).toUpperCase(),
+            cuerpo: t(`objeto.${id}.desc`),
+            sangria: 22,
+            alto: 30,
+            marca: (c, x, yy) => {
+              relleno(c, TINTA2, x, yy - 1, 16, 16);
+              relleno(c, PAPEL_ALTO, x + 1, yy, 14, 14);
+              c.drawImage(iconoObjeto(id), x + Math.floor((16 - LADO_ICONO_OBJETO) / 2), yy + 1);
+              texto2(c, uso, X0 + AN - 8 - anchoTexto2(uso), yy, TINTA_SUAVE, null);
+            },
+          }) + 3;
+      }
+      return y - y0;
+    };
+
     const e: Escena = {
       dibujar(ctx) {
         const H = pantalla().alto;
@@ -451,7 +476,7 @@ export function abrirGuia(base: Escena | null, pagina?: string): Promise<void> {
         ctx.clip();
         const base = yTop + 2 - scroll;
         const id = PAGINAS[pag];
-        altoContenido = id === 'como' ? como(ctx, base) : id === 'stats' ? stats(ctx, base) : id === 'tipos' ? tipos(ctx, base, yTop, yFin) : id === 'estados' ? estados(ctx, base) : reglas(ctx, base);
+        altoContenido = id === 'como' ? como(ctx, base) : id === 'stats' ? stats(ctx, base) : id === 'tipos' ? tipos(ctx, base, yTop, yFin) : id === 'estados' ? estados(ctx, base) : id === 'reglas' ? reglas(ctx, base) : objetos(ctx, base);
         ctx.restore();
         const maxScroll = Math.max(0, altoContenido + 6 - alto);
         scroll = Math.max(0, Math.min(maxScroll, scroll));

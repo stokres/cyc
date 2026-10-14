@@ -1,6 +1,6 @@
 // PokéUsera · online: the game messages that travel inside the room's `juego` envelope
 // (docs/POKEUSERA.md, «Online»). The server only relays them; the host's browser runs the game.
-import type { Eleccion, EntrenadorId, EstadoCombate, EstadoDraft, Evento } from '../tipos';
+import type { Eleccion, EntrenadorId, EscenarioId, EstadoCombate, EstadoDraft, Evento, ObjetoId } from '../tipos';
 
 export interface AsientoMsg {
   entrenador: EntrenadorId;
@@ -11,9 +11,12 @@ export interface AsientoMsg {
 /** Host → everybody (`juego`, `a: 'todos'`). */
 export type MsgAnfitrion =
   /** A game begins (also for «OTRA»). `seats` maps a room id to its seat; ids missing there only watch. `id` names the game (guests echo it in `listo`). */
-  | { k: 'asientos'; id: number; asientos: AsientoMsg[]; seats: Record<string, number> }
+  | { k: 'asientos'; id: number; asientos: AsientoMsg[]; seats: Record<string, number>; escenario: EscenarioId }
   /** The draft changed; `turnoDe` picks next (null = over) and has `plazoMs`. `draft.elegidos.length` identifies the pick. */
   | { k: 'draft'; draft: EstadoDraft; turnoDe: number | null; plazoMs: number }
+  /** «La barra», to the guest of that seat only: the three objects on offer and the guest's team (the choice goes back as 'objeto'). */
+  | { k: 'barra'; ofertas: ObjetoId[]; especies: string[]; plazoMs: number }
+  /** The battle begins. The states of 'inicio', 'turno', 'reemplazo' and 'fin' go to each guest without the other players' objects that have not worked yet. */
   | { k: 'inicio'; estado: EstadoCombate }
   /** The players in `quienes` must choose for `turno` (= `estado.turno` of the last state they got). */
   | { k: 'pide'; turno: number; quienes: number[]; plazoMs: number }
@@ -33,6 +36,8 @@ export type MsgInvitado =
   /** «I have finished playing» the `n`-th 'inicio' / 'turno' / 'reemplazo' message of game `g`: the host waits for these (up to a cap) before opening the next turn. */
   | { k: 'listo'; g: number; n: number }
   | { k: 'pick'; n: number; especie: string }
+  /** The guest's choice in «La barra»: one of the offered objects and which userito (index in their team) carries it. */
+  | { k: 'objeto'; objeto: ObjetoId; idx: number }
   | { k: 'eleccion'; turno: number; eleccion: Eleccion | null }
   | { k: 'reemplazoIdx'; turno: number; idx: number };
 

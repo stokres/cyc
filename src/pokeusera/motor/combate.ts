@@ -15,11 +15,13 @@
 //  - 'cae' / 'sale' / 'eliminado' / 'fin' as in tipos.ts. 'texto' = only a text line; the ones about what happens
 //    to a target of the move (critical, effectiveness, «n times», no effect, perks, caps...) carry that target in `j`,
 //    so the screen can play the results of an area move on all its targets at once.
+//  - 'objeto' the object of j's userito works (Mechero, Chicle de menta...): its line is in `clave` (`objeto.<id>.activa`); from then on the
+//             object is `visto` (the rivals may see it). The effects that go with it (a heal, a stage, a status ending) are ordinary events.
 //  - 'suceso' a bar event starts (turns 5, 10, 15, 20, 25: drawn at the end of the turn before). `id`, `turnos` (0 = instant),
 //             phrase in `clave`. The heals / stage changes it causes follow as ordinary 'cura' / 'nivel' events (all flagged `fin`).
 // Every event may carry `clave` + `vars` (quien = userito name, jugador = player name, mov, ...).
-import type { Eleccion, EscenarioId, EstadoCombate, Estadisticas, EntrenadorId, Estado, Evento, Jugador, Movimiento, Stat, StatsUserito, SucesoId, Tipo, Userito } from '../tipos';
-import { ESCENARIOS, PERK_CANA_FRAN, PERK_PRECISION_PABLO, PERK_TARDE_CHUCHI, TIPOS_FISICOS } from '../tipos';
+import type { Eleccion, EscenarioId, EstadoCombate, Estadisticas, EntrenadorId, Estado, Evento, Jugador, Movimiento, ObjetoId, Stat, StatsUserito, SucesoId, Tipo, Userito } from '../tipos';
+import { ESCENARIOS, OBJ_BOCATA_CURA, OBJ_GAFAS_PREC, OBJ_MECHERO_QUEMA, OBJ_PALILLO_CRIT, OBJ_PANUELO, PERK_CANA_FRAN, PERK_PRECISION_PABLO, PERK_TARDE_CHUCHI, TIPOS_FISICOS } from '../tipos';
 import { DESESPERADA, EFECTOS, ESPECIE, MOVS, SUCESOS, TURNOS_SUCESO, eficacia, sucesosDe } from '../datos';
 import { azar, elegir, entero, probar, type ConSemilla } from './azar';
 
@@ -41,7 +43,7 @@ export const PS_SUMA = 80;
 const niveles0 = (): Record<Stat, number> => ({ ata: 0, def: 0, vel: 0, esp: 0, prec: 0 });
 const vol0 = (): Userito['vol'] => ({ atrapado: 0, atrapadoPor: -1, cizana: 0, bostezo: -1, recarga: false, sinCambio: false, protegidoAntes: false, escondido: false, desvia: false, aguanta: false });
 
-function crearUserito(especie: string): Userito {
+function crearUserito(especie: string, objeto?: ObjetoId | null): Userito {
   const sp = ESPECIE[especie];
   if (!sp) throw new Error(`Especie desconocida: ${especie}`);
   const ps = Math.round(sp.base.ps * PS_MULT) + PS_SUMA;
@@ -59,6 +61,7 @@ function crearUserito(especie: string): Userito {
     achispado: 0,
     niveles: niveles0(),
     vol: vol0(),
+    ...(objeto ? { objeto: { id: objeto } } : {}),
   };
 }
 
@@ -77,13 +80,13 @@ function crearStats(jugadores: Jugador[]): Estadisticas {
 export const escenarioDeSemilla = (semilla: number): EscenarioId => ESCENARIOS[Math.floor(azar({ semilla: (semilla | 0) ^ 0x5ce9a1d3 }) * ESCENARIOS.length)];
 
 /** `escenario`: the place (default: drawn from `semilla`). It travels in the state, so online guests get it in the 'inicio' message. */
-export function crearCombate(equipos: { entrenador: EntrenadorId; nombre: string; bot: boolean; especies: string[] }[], semilla: number, escenario?: EscenarioId): EstadoCombate {
+export function crearCombate(equipos: { entrenador: EntrenadorId; nombre: string; bot: boolean; especies: string[]; objetos?: (ObjetoId | null | undefined)[] }[], semilla: number, escenario?: EscenarioId): EstadoCombate {
   if (equipos.length < 2 || equipos.length > 4) throw new Error('Una batalla es de 2 a 4 jugadores');
   const jugadores: Jugador[] = equipos.map((q, idx) => ({
     idx,
     entrenador: q.entrenador,
     nombre: q.nombre,
-    equipo: q.especies.slice(0, 3).map(crearUserito),
+    equipo: q.especies.slice(0, 3).map((id, i) => crearUserito(id, q.objetos?.[i])),
     activo: 0,
     cana: true,
     bot: q.bot,
@@ -190,6 +193,16 @@ export function calcularDano(a: Userito, d: Userito, mov: Movimiento, o: Opcione
   return { dano: Math.max(1, Math.floor(dano)), ef };
 }
 
+// ------------------------------------------------------------------ objetos (queries)
+
+/** ×1.2 for the Pañuelo de la peña on an attack of the holder's own type (1 for anything else). */
+export function multObjeto(u: Userito, mov: Movimiento): number {
+  return u.objeto?.id === 'panuelo' && ESPECIE[u.especie].tipos.includes(mov.tipo) ? OBJ_PANUELO / 100 : 1;
+}
+
+/** Whether the Tapón de cava can make this move quick: a damaging attack (not Devolvérsela, which has to go last). */
+const esAtaque = (m: Movimiento): boolean => m.pot !== null || EFECTOS[m.id]?.especial === 'premio';
+
 // ------------------------------------------------------------------ sucesos (queries)
 
 /** Whether suceso `id` is on now. */
@@ -254,6 +267,8 @@ interface Ctx {
   /** «Aguantar el tipo» cut a hit this turn / already said so. */
   salvado: boolean[];
   dichoAguante: boolean[];
+  /** The Tapón de cava made this player's attack quick this turn (it is spent when the attack is really used). */
+  tapon: boolean[];
   recargaIni: boolean[];
   cizanaIni: boolean[];
   pctIni: number[];
@@ -276,6 +291,31 @@ const varsDe = (c: Ctx, j: number, extra: Record<string, string | number> = {}) 
 
 function decir(c: Ctx, clave: string, vars?: Record<string, string | number>, j?: number) {
   c.ev.push(j === undefined ? { k: 'texto', clave, vars } : { k: 'texto', clave, vars, j });
+}
+
+/** The object of player j's active userito works: it becomes `visto` (and `gastado` if it is a one-use one) and the event tells it. */
+function activarObjeto(c: Ctx, j: number, gasta: boolean, clave: string, extra: Record<string, string | number> = {}) {
+  const o = act(c, j).objeto!;
+  o.visto = true;
+  if (gasta) o.gastado = true;
+  c.ev.push({ k: 'objeto', j, objeto: o.id, clave, vars: varsDe(c, j, extra) });
+}
+
+/** Bocata de calamares: when the holder is left under half of its HP, it eats it and heals 1/4. */
+function comerBocata(c: Ctx, j: number) {
+  const u = act(c, j);
+  const o = u.objeto;
+  if (o?.id !== 'bocata' || o.gastado || u.ps <= 0 || u.ps * 2 >= u.psMax) return;
+  activarObjeto(c, j, true, 'objeto.bocata.activa');
+  curar(c, j, Math.max(1, Math.floor(u.psMax / OBJ_BOCATA_CURA)));
+}
+
+/** Zapatillas nuevas: every time the userito comes out to fight (and at the start of the battle) its Speed goes up 1. */
+function alSalirAlCampo(c: Ctx, j: number) {
+  const u = act(c, j);
+  if (u.objeto?.id !== 'zapatillas' || u.ps <= 0) return;
+  activarObjeto(c, j, false, 'objeto.zapatillas.activa');
+  cambiarNivel(c, j, 'vel', 1);
 }
 
 function reiniciar(u: Userito) {
@@ -359,7 +399,11 @@ function curar(c: Ctx, j: number, cantidad: number, clave?: string): number {
 /** `por`: the player whose attack just hit it (gets the KO). */
 function revisarCaida(c: Ctx, j: number, por?: number) {
   const u = act(c, j);
-  if (u.ps > 0 || c.cayo[j]) return;
+  if (u.ps > 0) {
+    comerBocata(c, j);
+    return;
+  }
+  if (c.cayo[j]) return;
   c.cayo[j] = true;
   st(c, j).cae++;
   if (por !== undefined && por !== j) {
@@ -371,6 +415,13 @@ function revisarCaida(c: Ctx, j: number, por?: number) {
   reiniciar(u);
   soltarAtrapados(c, j);
   c.ev.push({ k: 'cae', j, clave: 'combate.cae', vars: varsDe(c, j) });
+  // Llavero de la caravana: whoever knocked it out loses 1 Ataque and 1 Especial.
+  const o = u.objeto;
+  if (o?.id === 'llavero' && !o.gastado && por !== undefined && por !== j && act(c, por).ps > 0) {
+    activarObjeto(c, j, true, 'objeto.llavero.activa', { otro: nom(act(c, por)) });
+    cambiarNivel(c, por, 'ata', -1);
+    cambiarNivel(c, por, 'esp', -1);
+  }
 }
 
 /** `por`: the player who causes the change (counts as a change on itself or on others). */
@@ -412,6 +463,17 @@ function ponerEstado(c: Ctx, t: number, est: Estado | 'achispado', silencio: boo
   }
   if (por !== undefined && por !== t) st(c, por).est++;
   c.ev.push({ k: 'estado', j: t, estado: est, clave: `combate.estado.${est}`, vars: varsDe(c, t) });
+  // Chicle de menta: the first status it gets is gone at once.
+  const o = u.objeto;
+  if (o?.id === 'chicle' && !o.gastado) {
+    activarObjeto(c, t, true, 'objeto.chicle.activa');
+    if (est === 'achispado') u.achispado = 0;
+    else {
+      u.estado = null;
+      u.sueno = 0;
+    }
+    c.ev.push({ k: 'estado', j: t, estado: null, de: est });
+  }
   return true;
 }
 
@@ -431,6 +493,7 @@ function sacar(c: Ctx, j: number, idx: number) {
   c.cayo[j] = false;
   soltarAtrapados(c, j);
   c.ev.push({ k: 'sale', j, idx, clave: 'combate.sale', vars: varsDe(c, j) });
+  alSalirAlCampo(c, j);
 }
 
 const standing = (c: Ctx, j: number) => rivalesEnPie(c.e, j);
@@ -650,13 +713,22 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
     }
     if (m.prec !== null) {
       // Pablo «Labia»: his status moves (pot null) get +10 accuracy points, capped at 100.
-      const base = e.jugadores[j].entrenador === 'pablo' && m.pot === null ? Math.min(100, m.prec + PERK_PRECISION_PABLO) : m.prec;
+      const base0 = e.jugadores[j].entrenador === 'pablo' && m.pot === null ? Math.min(100, m.prec + PERK_PRECISION_PABLO) : m.prec;
+      // Gafas de sol: +10 accuracy points on its attacks; they show themselves the first time they make a blow land that would have missed.
+      const gafas = danina && u.objeto?.id === 'gafas';
+      const base = gafas ? Math.min(100, base0 + OBJ_GAFAS_PREC) : base0;
       const p = base * multNivel(u.niveles.prec) - (luz ? 20 : 0);
-      if (p < 100 && azar(e) * 100 >= p) {
-        st(c, j).fal++;
-        st(c, t).esq++;
-        c.ev.push({ k: 'falla', j: t, clave: 'combate.esquiva', vars: varsDe(c, t) });
-        continue;
+      const sin = base0 * multNivel(u.niveles.prec) - (luz ? 20 : 0);
+      // The roll is drawn exactly when it would be without the glasses (sin < 100), so they never shift the random stream.
+      if (sin < 100 || p < 100) {
+        const tirada = azar(e) * 100;
+        if (tirada >= p) {
+          st(c, j).fal++;
+          st(c, t).esq++;
+          c.ev.push({ k: 'falla', j: t, clave: 'combate.esquiva', vars: varsDe(c, t) });
+          continue;
+        }
+        if (gafas && !u.objeto!.visto && tirada >= sin) activarObjeto(c, j, false, 'objeto.gafas.activa');
       }
     }
 
@@ -680,16 +752,32 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
         const acorralado = c.golpeado[t].some((a) => a !== j) && peleaJ !== t;
         const n = ef.golpes === 'multi' ? tiradaGolpes(e) : (ef.golpes ?? 1);
         let efi = 1;
+        const palillo = u.objeto?.id === 'palillo' ? OBJ_PALILLO_CRIT : 1; // Palillo en la boca: twice the critical hits
+        const panuelo = multObjeto(u, m); // Pañuelo de la peña: ×1.2 on attacks of its own type
         for (let h = 0; h < n && v.ps > 0; h++) {
-          const critico = azar(e) * 512 < ESPECIE[u.especie].base.vel;
-          const r = calcularDano(u, v, m, { pot, azar: 0.85 + azar(e) * 0.15, critico, todos: m.objetivo === 'todos' && !karaoke, acorralado, mult: multS });
+          const critico = azar(e) * 512 < ESPECIE[u.especie].base.vel * palillo;
+          const r = calcularDano(u, v, m, { pot, azar: 0.85 + azar(e) * 0.15, critico, todos: m.objetivo === 'todos' && !karaoke, acorralado, mult: multS * panuelo });
           efi = r.ef;
-          const { dano, perk } = aplicarPerks(c, t, r.dano);
+          let dano0 = r.dano;
+          // Posavasos: the first very effective blow (×2 or more) does half.
+          if (r.ef >= 2 && v.objeto?.id === 'posavasos' && !v.objeto.gastado) {
+            activarObjeto(c, t, true, 'objeto.posavasos.activa');
+            dano0 = Math.max(1, Math.floor(dano0 / 2));
+          }
+          const { dano, perk } = aplicarPerks(c, t, dano0);
           totalDano += danar(c, t, topeAguante(c, t, dano), { ef: r.ef, critico, de: j, mov: m.id, acorralado });
           hechos++;
           if (critico) decir(c, 'combate.critico', varsDe(c, t), t);
           if (perk) decir(c, `combate.perk.${perk}`, varsDe(c, t), t);
           avisoAguante(c, t);
+          // The attacker's permanent objects show themselves the first time they matter.
+          if (u.objeto && !u.objeto.visto && ((critico && palillo > 1) || panuelo > 1)) activarObjeto(c, j, false, critico && palillo > 1 ? 'objeto.palillo.activa' : 'objeto.panuelo.activa');
+          // Mechero: the first rival that hits the holder may get burnt.
+          if (v.ps > 0 && u.ps > 0 && v.objeto?.id === 'mechero' && !v.objeto.gastado) {
+            const prende = probar(e, OBJ_MECHERO_QUEMA) && !u.estado;
+            activarObjeto(c, t, true, prende ? 'objeto.mechero.activa' : 'objeto.mechero.falla', { otro: nom(u) });
+            if (prende) ponerEstado(c, j, 'quemado', true, t);
+          }
         }
         if (efi > 1) decir(c, 'combate.muy_eficaz', varsDe(c, t), t);
         else if (efi < 1) decir(c, 'combate.poco_eficaz', varsDe(c, t), t);
@@ -794,6 +882,11 @@ function actuar(c: Ctx, a: Extract<Accion, { tipo: 'atacar' }>) {
     st(c, j).pp++;
     st(c, j).mv[idx]++;
     m = MOVS[ids[idx]];
+  }
+  // Tapón de cava: its first attack was quick; now it pops.
+  if (c.tapon[j]) {
+    c.tapon[j] = false;
+    if (u.objeto?.id === 'tapon' && !u.objeto.gastado && esAtaque(m)) activarObjeto(c, j, true, 'objeto.tapon.activa');
   }
   const evUsa: Extract<Evento, { k: 'usa' }> = { k: 'usa', j, mov: m.id, obj: [], clave: 'combate.usa', vars: varsDe(c, j, { mov: m.nombre.replace(/^¡(.*)!$/, '$1') }) };
   c.ev.push(evUsa);
@@ -1061,6 +1154,7 @@ export function resolverTurno(estado: EstadoCombate, elecciones: (Eleccion | nul
     ultimoAgresor: e.jugadores.map(() => -1),
     salvado: e.jugadores.map(() => false),
     dichoAguante: e.jugadores.map(() => false),
+    tapon: e.jugadores.map(() => false),
     recargaIni: [],
     cizanaIni: [],
     pctIni: e.jugadores.map(pctEquipo),
@@ -1071,6 +1165,8 @@ export function resolverTurno(estado: EstadoCombate, elecciones: (Eleccion | nul
   if (e.ganador !== null) return { estado: e, eventos: [] };
   if (e.reemplazos.length) c.ev.push(...reemplazarEn(c, {}));
   const n = e.jugadores.length;
+  // The first turn of the battle: the Zapatillas nuevas of the useritos that start out in the field.
+  if (e.turno === 1) for (let j = 0; j < n; j++) if (!eliminado(e, j)) alSalirAlCampo(c, j);
   // Turns on the field: the userito that starts the turn out, for everybody still playing.
   const alInicio = e.jugadores.map((q, j) => (eliminado(e, j) ? -1 : q.activo));
 
@@ -1101,7 +1197,14 @@ export function resolverTurno(estado: EstadoCombate, elecciones: (Eleccion | nul
   const prio = (a: Extract<Accion, { tipo: 'atacar' }>) => {
     const u = act(c, a.j);
     const id = ESPECIE[u.especie].movs[a.mov];
-    return u.pp[a.mov] > 0 && !c.recargaIni[a.j] ? (MOVS[id].prioridad ?? 0) : 0;
+    if (!(u.pp[a.mov] > 0) || c.recargaIni[a.j]) return 0;
+    const p = MOVS[id].prioridad ?? 0;
+    // Tapón de cava: its first attack goes as a quick one (+1).
+    if (p < 1 && u.objeto?.id === 'tapon' && !u.objeto.gastado && esAtaque(MOVS[id])) {
+      c.tapon[a.j] = true;
+      return 1;
+    }
+    return p;
   };
   const porPrio = orden(ataques, (a) => prio(a as Extract<Accion, { tipo: 'atacar' }>) * 100000 + velDe(a));
   for (const a of porPrio) if (a.tipo === 'atacar') actuar(c, a);
@@ -1153,6 +1256,7 @@ export function reemplazar(estado: EstadoCombate, elegidos: Record<number, numbe
     ultimoAgresor: e.jugadores.map(() => -1),
     salvado: e.jugadores.map(() => false),
     dichoAguante: e.jugadores.map(() => false),
+    tapon: e.jugadores.map(() => false),
     recargaIni: [],
     cizanaIni: [],
     pctIni: [],

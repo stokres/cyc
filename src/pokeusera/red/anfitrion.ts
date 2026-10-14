@@ -5,12 +5,20 @@
 // waits (at most ESPERA_LISTOS) for every guest to say «listo» (it finished playing it) before it
 // opens the next turn, so nobody is asked a question while still watching the last one; a guest
 // that is still late then gets extra time (GRACIA_TARDE) on top of the usual deadline.
-import { ENTRENADORES, type Eleccion, type EntrenadorId } from '../tipos';
+//
+// The objects of «La barra» are secret: each guest is asked about theirs privately ('barra', addressed to that guest only), and the
+// states that travel to the guests (inicio, turno, reemplazo, fin) are sent one by one, each without the other players' objects that
+// have not worked yet (`ocultarObjetos`); the 'objeto' event reveals one when it works. The host's own browser holds the whole state
+// (it runs the game) but its screens only draw the objects that were revealed.
+import { ENTRENADORES, OBJETOS, type Eleccion, type EntrenadorId, type EstadoCombate, type ObjetoId } from '../tipos';
 import { crearRnd } from '../motor/azar';
 import { eleccionBot, pickBot, reemplazoBot } from '../motor/bot';
+import { objetoBot, ocultarObjetos } from '../motor/objetos';
 import { Partida, esCancelada, type Asiento, type Ganchos } from '../partida';
 import { pantalla } from '../pantalla';
 import { sonido } from '../sonido';
+import { escenarioElegido } from '../pantallas/ajustes';
+import { VistaBarra } from '../pantallas/barra';
 import { VistaCombate } from '../pantallas/combate';
 import { VistaDraft } from '../pantallas/draft';
 import { pantallaPodio } from '../pantallas/podio';
@@ -69,6 +77,14 @@ const ESPERA_LISTOS = 20000;
 const GRACIA_TARDE = 20000;
 
 const esEntero = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v);
+
+/** A guest's choice in «La barra», cleaned up (undefined: nonsense; the Partida also checks it against the offers). */
+function objetoLimpio(d: unknown): { objeto: ObjetoId; idx: number } | undefined {
+  const e = d as { objeto?: unknown; idx?: unknown } | null;
+  if (!e || typeof e !== 'object') return undefined;
+  const objeto = OBJETOS.find((o) => o === e.objeto);
+  return objeto && esEntero(e.idx) && e.idx >= 0 && e.idx < 3 ? { objeto, idx: e.idx } : undefined;
+}
 
 /** A guest's choice, cleaned up so nothing odd reaches the engine (null = «nothing»). */
 function eleccionLimpia(v: unknown, n: number): Eleccion | null | undefined {
@@ -154,6 +170,15 @@ async function unaPartida(
   const buzon = new Buzon();
   const rnd = crearRnd((Date.now() ^ 0x2545f491) & 0x7fffffff);
   const enviar = (d: MsgAnfitrion) => con.juego('todos', d);
+  /** A message that carries the state: each player gets it without the objects they must not see yet (those still unrevealed). */
+  const enviarConEstado = (hacer: (estado: EstadoCombate) => MsgAnfitrion, estado: EstadoCombate) => {
+    if (ocultarObjetos(estado, null) === estado) return enviar(hacer(estado));
+    for (const j of con.jugadores) {
+      if (j.id === con.id) continue;
+      const seat = idDe.indexOf(j.id);
+      con.juego(j.id, hacer(ocultarObjetos(estado, seat >= 0 ? seat : null)));
+    }
+  };
   let fase: 'draft' | 'combate' | 'podio' = 'draft';
   let enDraft = false;
   /** The turn the guests were last asked about (the 'turno' message carries it). */
@@ -183,15 +208,25 @@ async function unaPartida(
 
   const vd = new VistaDraft(asientos, miSeat);
   const vc = new VistaCombate(miSeat);
+  const vb = new VistaBarra(miSeat !== null ? asientos[miSeat].entrenador : null);
 
   const ganchos: Ganchos = {
     pedirPick: () => vd.pedirPick(),
     pedirEleccion: (j, estado, ms) => vc.pedirEleccion(j, estado, ms),
     pedirReemplazo: (j, estado, ms) => vc.pedirReemplazo(j, estado, ms),
+    pedirObjeto: (_j, ofertas, especies, ms) => {
+      p.poner(vb);
+      return vb.pedir(ofertas, especies, ms);
+    },
     remoto: {
       pedirPick: (j, draft) => buzon.esperar(`pick:${j}:${draft.elegidos.length}`, j, () => pickBot(draft, rnd)),
       pedirEleccion: (j, estado) => buzon.esperar<Eleccion | null>(`eleccion:${j}:${estado.turno}`, j, () => eleccionBot(estado, j, rnd)),
       pedirReemplazo: (j, estado) => buzon.esperar(`reemplazo:${j}:${estado.turno}`, j, () => reemplazoBot(estado, j)),
+      // Only that guest is told what is on offer (and their team); the answer comes back as 'objeto'.
+      pedirObjeto: (j, ofertas, especies, ms) => {
+        con.juego(idDe[j], { k: 'barra', ofertas, especies, plazoMs: ms } satisfies MsgAnfitrion);
+        return buzon.esperar(`objeto:${j}`, j, () => objetoBot(especies, ofertas, rnd));
+      },
     },
     alDraft: (draft, turnoDe, ms) => {
       enviar({ k: 'draft', draft, turnoDe, plazoMs: ms });
@@ -205,7 +240,7 @@ async function unaPartida(
     graciaExtraMs: (j) => (remotoAtrasado(j) ? GRACIA_TARDE : 0),
     alInicio: async (estado) => {
       fase = 'combate';
-      enviar({ k: 'inicio', estado });
+      enviarConEstado((e) => ({ k: 'inicio', estado: e }), estado);
       enviados++;
       p.poner(vc);
       await vc.alInicio(estado);
@@ -216,26 +251,28 @@ async function unaPartida(
       enviar({ k: 'pide', turno: estado.turno, quienes, plazoMs: ms });
     },
     alTurno: async (eventos, estado) => {
-      enviar({ k: 'turno', turno: turnoPide, eventos, estado });
+      enviarConEstado((e) => ({ k: 'turno', turno: turnoPide, eventos, estado: e }), estado);
       enviados++;
       await vc.alTurno(eventos, estado);
       if (estado.ganador === null) await esperarListos();
     },
     alPideReemplazo: (_estado, ms, quienes) => enviar({ k: 'pideRemp', quienes, plazoMs: ms }),
     alReemplazo: async (eventos, estado) => {
-      enviar({ k: 'reemplazo', eventos, estado });
+      enviarConEstado((e) => ({ k: 'reemplazo', eventos, estado: e }), estado);
       enviados++;
       await vc.alReemplazo(eventos, estado);
       await esperarListos();
     },
     alFin: (estado) => {
-      enviar({ k: 'fin', estado });
+      enviarConEstado((e) => ({ k: 'fin', estado: e }), estado);
       return vc.alFin(estado);
     },
   };
-  const partida = new Partida(asientos, ganchos, {});
-  (window as unknown as { __pokeusera?: unknown }).__pokeusera = { partida, vc, vd };
-  vd.alAbandonar = vc.alAbandonar = () => {
+  // The bar of the battles is the host's setting (AJUSTES → ESCENARIO; at random by default).
+  const partida = new Partida(asientos, ganchos, { escenario: escenarioElegido() });
+  vd.escenario = partida.escenario;
+  (window as unknown as { __pokeusera?: unknown }).__pokeusera = { partida, vc, vd, vb };
+  vd.alAbandonar = vb.alAbandonar = vc.alAbandonar = () => {
     abandonada = true;
     partida.cancelar();
   };
@@ -256,6 +293,9 @@ async function unaPartida(
     } else if (d.k === 'eleccion') {
       const e = esEntero(d.turno) ? eleccionLimpia(d.eleccion, n) : undefined;
       if (e !== undefined) buzon.entregar(`eleccion:${seat}:${d.turno}`, e);
+    } else if (d.k === 'objeto') {
+      const el = objetoLimpio(d);
+      if (el) buzon.entregar(`objeto:${seat}`, el);
     } else if (d.k === 'reemplazoIdx') {
       if (esEntero(d.turno) && esEntero(d.idx)) buzon.entregar(`reemplazo:${seat}:${d.turno}`, d.idx);
     }
@@ -282,7 +322,7 @@ async function unaPartida(
   idDe.forEach((id, seat) => {
     if (id >= 0) seats[String(id)] = seat;
   });
-  enviar({ k: 'asientos', id: idJuego, asientos: asientos.map((a) => ({ entrenador: a.entrenador, nombre: a.nombre, bot: a.tipo === 'bot' })), seats });
+  enviar({ k: 'asientos', id: idJuego, asientos: asientos.map((a) => ({ entrenador: a.entrenador, nombre: a.nombre, bot: a.tipo === 'bot' })), seats, escenario: partida.escenario });
 
   try {
     const jugando = partida.jugar();

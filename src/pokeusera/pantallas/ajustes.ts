@@ -1,7 +1,7 @@
 // PokéUsera · settings: music and effects volume (0–10, saved in localStorage 'pokeusera.v1'),
 // the settings screen, and the pause box of the battle (volumes + abandon).
-import type { EntrenadorId } from '../tipos';
-import { ENTRENADORES } from '../tipos';
+import type { EntrenadorId, EscenarioId } from '../tipos';
+import { ENTRENADORES, ESCENARIOS } from '../tipos';
 import { anchoTexto2 } from '../arte2/fuente2';
 import { PAPEL_ALTO, SOMBRA_TEXTO, TINTA2, TINTA_SUAVE } from '../arte2/paleta2';
 import { panelCacheado, relleno } from '../arte2/ui2';
@@ -21,6 +21,8 @@ export interface Guardado {
   /** Battle pacing (VELOCIDAD DEL COMBATE). */
   velocidad: Velocidad;
   entrenador?: EntrenadorId;
+  /** The bar of the battles (ESCENARIO); missing = AL AZAR, drawn from each battle's seed. */
+  escenario?: EscenarioId;
 }
 
 const POR_DEFECTO: Guardado = { musica: 7, efectos: 10, velocidad: 'normal' };
@@ -36,6 +38,7 @@ export function cargarAjustes(): Guardado {
         efectos: n(o.efectos, POR_DEFECTO.efectos),
         velocidad: VELOCIDADES.includes(o.velocidad as Velocidad) ? (o.velocidad as Velocidad) : POR_DEFECTO.velocidad,
         entrenador: ENTRENADORES.includes(o.entrenador as EntrenadorId) ? (o.entrenador as EntrenadorId) : undefined,
+        escenario: ESCENARIOS.includes(o.escenario as EscenarioId) ? (o.escenario as EscenarioId) : undefined,
       };
     }
   } catch {
@@ -94,6 +97,54 @@ export function ajustarVelocidad(a: Accion) {
   else if (a === 'der') cambiarVelocidad(VELOCIDADES[Math.min(VELOCIDADES.length - 1, i + 1)]);
 }
 
+/** The scenario row's values: AL AZAR (undefined) and the four bars. */
+const ESCENARIOS_FILA: readonly (EscenarioId | undefined)[] = [undefined, ...ESCENARIOS];
+
+/** The saved scenario, read once (the row draws it every frame): `null` = not read yet. */
+let escenarioGuardado: EscenarioId | undefined | null = null;
+
+/** The bar for the next battles (AJUSTES → ESCENARIO): undefined = at random. */
+export function escenarioElegido(): EscenarioId | undefined {
+  if (escenarioGuardado === null) escenarioGuardado = cargarAjustes().escenario;
+  return escenarioGuardado;
+}
+
+function cambiarEscenario(v: EscenarioId | undefined) {
+  if (v === escenarioElegido()) return;
+  escenarioGuardado = v;
+  // `undefined` is dropped by JSON, which is what «AL AZAR» means.
+  guardarAjustes({ escenario: v });
+  sonido.efecto('cursor');
+}
+
+/** The scenario row: the label and «◀ AL AZAR ▶» (AL AZAR / the four bars). Height 44. */
+export function filaEscenario(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, sel: boolean) {
+  if (sel) realce(ctx, x, y, w, 44);
+  texto2(ctx, t('ajustes.escenario'), x + 18, y + 6, TINTA2, sel ? '#f0c860' : SOMBRA_TEXTO);
+  const actual = escenarioElegido();
+  const i = ESCENARIOS_FILA.indexOf(actual);
+  const valor = t(actual ? `escenario.${actual}` : 'escenario.azar');
+  const yy = y + 21;
+  const cx = x + Math.floor(w / 2);
+  const bw = 136;
+  relleno(ctx, TINTA2, cx - bw / 2, yy - 1, bw, 17);
+  relleno(ctx, PAPEL_ALTO, cx - bw / 2 + 1, yy, bw - 2, 15);
+  rect(ctx, '#d6c08a', cx - bw / 2 + 3, yy + 13, bw - 6, 1);
+  texto2(ctx, valor, cx - Math.floor(anchoTexto2(valor) / 2), yy + 4, TINTA2, null);
+  flecha(ctx, cx - bw / 2 - 18, yy + 4, -1, i > 0 ? TINTA2 : '#a898a8');
+  flecha(ctx, cx + bw / 2 + 13, yy + 4, 1, i < ESCENARIOS_FILA.length - 1 ? TINTA2 : '#a898a8');
+  entrada.zona(cx - bw / 2 - 40, yy - 4, 36, 26, () => cambiarEscenario(ESCENARIOS_FILA[Math.max(0, i - 1)]));
+  entrada.zona(cx + bw / 2 + 4, yy - 4, 36, 26, () => cambiarEscenario(ESCENARIOS_FILA[Math.min(ESCENARIOS_FILA.length - 1, i + 1)]));
+  // Tapping the value goes round.
+  entrada.zona(cx - bw / 2 - 1, yy - 4, bw + 2, 26, () => cambiarEscenario(ESCENARIOS_FILA[(i + 1) % ESCENARIOS_FILA.length]));
+}
+
+export function ajustarEscenario(a: Accion) {
+  const i = ESCENARIOS_FILA.indexOf(escenarioElegido());
+  if (a === 'izq') cambiarEscenario(ESCENARIOS_FILA[Math.max(0, i - 1)]);
+  else if (a === 'der') cambiarEscenario(ESCENARIOS_FILA[Math.min(ESCENARIOS_FILA.length - 1, i + 1)]);
+}
+
 type Canal = 'musica' | 'efectos';
 const nivel = (c: Canal) => Math.round(sonido.getVolumen(c) * 10);
 
@@ -142,6 +193,8 @@ export function pantallaAjustes(): Promise<void> {
       res();
     };
     const e: Escena = {
+      // Nothing here moves by itself: redrawn only when a key or a tap changes something.
+      estatica: true,
       dibujar(ctx) {
         const H = p.alto;
         dibujarFondoBar(ctx, H, 0.3);
@@ -152,26 +205,30 @@ export function pantallaAjustes(): Promise<void> {
         const y0 = 70 + Math.round((H - 384) * 0.1);
         const x = 8;
         const w = ANCHO - 16;
-        panelCacheado(ctx, x, y0, w, 138);
+        panelCacheado(ctx, x, y0, w, 172);
         filaVolumen(ctx, x + 6, y0 + 10, w - 12, 'musica', sel === 0);
         filaVolumen(ctx, x + 6, y0 + 44, w - 12, 'efectos', sel === 1);
         filaVelocidad(ctx, x + 6, y0 + 78, w - 12, sel === 2);
+        filaEscenario(ctx, x + 6, y0 + 122, w - 12, sel === 3);
         entrada.zona(x, y0 + 8, 80, 34, () => (sel = 0));
         entrada.zona(x, y0 + 42, 80, 34, () => (sel = 1));
         entrada.zona(x, y0 + 76, w, 18, () => (sel = 2));
-        const yb = Math.min(H - 44, y0 + 138 + 24);
-        boton(ctx, Math.floor((ANCHO - 100) / 2), yb, 100, 28, t('ajustes.volver'), sel === 3);
+        entrada.zona(x, y0 + 120, w, 18, () => (sel = 3));
+        const yb = Math.min(H - 44, y0 + 172 + 24);
+        boton(ctx, Math.floor((ANCHO - 100) / 2), yb, 100, 28, t('ajustes.volver'), sel === 4);
         entrada.zona(Math.floor((ANCHO - 100) / 2), yb, 100, 28, salir);
       },
       accion(a) {
         if (a === 'atras') salir();
         else if (a === 'arriba' || a === 'abajo') {
-          sel = mover(sel, 4, a);
+          sel = mover(sel, 5, a);
           sonido.efecto('cursor');
         } else if (a === 'izq' || a === 'der') {
           if (sel < 2) ajustarCanal(sel === 0 ? 'musica' : 'efectos', a);
           else if (sel === 2) ajustarVelocidad(a);
-        } else if (a === 'aceptar' && sel === 3) salir();
+          else if (sel === 3) ajustarEscenario(a);
+        } else if (a === 'aceptar' && sel === 4) salir();
+        else if (a === 'aceptar' && sel === 3) cambiarEscenario(ESCENARIOS_FILA[(ESCENARIOS_FILA.indexOf(escenarioElegido()) + 1) % ESCENARIOS_FILA.length]);
         return true;
       },
     };

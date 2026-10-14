@@ -18,7 +18,7 @@ export type MensajeCliente =
   | { tipo: 'elegir'; pj: PjId | null }
   | { tipo: 'empezar' }
   | { tipo: 'volver' }
-  | { tipo: 'juego'; a: 'anfitrion' | 'todos'; datos: unknown };
+  | { tipo: 'juego'; a: 'anfitrion' | 'todos' | number; datos: unknown };
 
 export interface MsgBienvenida {
   tipo: 'bienvenida';
@@ -142,8 +142,8 @@ export class Conexion {
     if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(m));
   }
 
-  /** Game traffic: to the host only, or to everybody else. */
-  juego(a: 'anfitrion' | 'todos', datos: unknown) {
+  /** Game traffic: to the host only, to everybody else, or (host only) to the player with this room id (what only they may see). */
+  juego(a: 'anfitrion' | 'todos' | number, datos: unknown) {
     this.enviar({ tipo: 'juego', a, datos });
   }
 

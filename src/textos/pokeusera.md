@@ -59,11 +59,18 @@ ajustes.titulo = AJUSTES
 ajustes.musica = MÚSICA
 ajustes.efectos = EFECTOS
 ajustes.velocidad = VELOCIDAD DEL COMBATE
+ajustes.escenario = ESCENARIO
 ajustes.volver = VOLVER
 
 velocidad.lenta = LENTA
 velocidad.normal = NORMAL
 velocidad.rapida = RÁPIDA
+
+escenario.azar = AL AZAR
+escenario.brio = BAR DEL BRÍO
+escenario.terraza = LA TERRAZA
+escenario.rural = CASA RURAL DRAG QUEEN
+escenario.juan = BAR DONDE JUAN
 
 pausa.titulo = PAUSA
 pausa.abandonar = ABANDONAR
@@ -98,6 +105,17 @@ draft.elige = Elige {nombre}
 draft.elegir = ELEGIR
 draft.volver = VOLVER
 draft.apelear = ¡A pelear!
+
+// ---- la barra (pantallas/barra.ts): tras el draft, un objeto para uno de tus useritos
+barra.titulo = LA BARRA
+barra.pista1 = Elige un objeto de los tres.
+barra.pista2 = ¿Quién se lo lleva?
+barra.secreto = Los rivales no verán qué llevas hasta que funcione.
+barra.elegir = ELEGIR
+barra.cambiar = OTRO OBJETO
+barra.espera = ¡Listo! Esperando a los demás...
+barra.lleva = Se lo lleva {nombre}.
+barra.apelear = ¡A pelear!
 
 // ---- combate
 batalla.inicio = ¡Empieza la batalla a cuatro!
@@ -223,24 +241,28 @@ guia.tab.stats = DATOS
 guia.tab.tipos = TIPOS
 guia.tab.estados = ESTADOS
 guia.tab.reglas = BAR
+guia.tab.objetos = OBJETOS
 guia.h.como = CÓMO SE JUEGA
 guia.h.stats = ESTADÍSTICAS
 guia.h.tipos = TABLA DE TIPOS
 guia.h.estados = ESTADOS
 guia.h.reglas = REGLAS DEL BAR
+guia.h.objetos = OBJETOS DE LA BARRA
 guia.h.perks = VENTAJAS DE ENTRENADOR
 guia.h.sucesos = SUCESOS DEL BAR
 
 guia.como.1.t = EL DRAFT
 guia.como.1.d = Antes de pelear os turnáis para elegir useritos, sin repetir (1-2-3-4, 4-3-2-1, 1-2-3-4). Cada uno se lleva tres. Tienes 20 segundos por elección.
-guia.como.2.t = TODOS A LA VEZ
-guia.como.2.d = Cada turno los cuatro elegís a la vez y en secreto: atacar (un movimiento y, si es a un rival, a quién), cambiar de userito o usar la caña (una vez por batalla). Tienes 30 segundos; si no eliges, tu userito pega con un movimiento al azar a un rival al azar.
-guia.como.3.t = EL MÁS RÁPIDO, PRIMERO
-guia.como.3.d = Primero van los cambios y la caña, y luego los ataques por prioridad (mira la pestaña BAR) y, dentro de cada una, de más a menos Velocidad. Si hay empate, a suertes.
-guia.como.4.t = EL ÚLTIMO EN PIE
-guia.como.4.d = Cuando cae tu userito sale el siguiente. Si caen los tres, quedas eliminado y tu puesto es el orden en que caes. Gana el último que se queda en pie.
-guia.como.5.t = EL TRUCO
-guia.como.5.d = Mira las pestañas TIPOS y ESTADOS: saber quién pega fuerte a quién gana más batallas que la suerte.
+guia.como.2.t = LA BARRA
+guia.como.2.d = Con los equipos hechos, la barra te ofrece 3 objetos al azar: eliges uno y a cuál de tus useritos se lo das. Tienes 20 segundos. Los rivales no ven qué llevas hasta que funciona.
+guia.como.3.t = TODOS A LA VEZ
+guia.como.3.d = Cada turno los cuatro elegís a la vez y en secreto: atacar (un movimiento y, si es a un rival, a quién), cambiar de userito o usar la caña (una vez por batalla). Tienes 30 segundos; si no eliges, tu userito pega con un movimiento al azar a un rival al azar.
+guia.como.4.t = EL MÁS RÁPIDO, PRIMERO
+guia.como.4.d = Primero van los cambios y la caña, y luego los ataques por prioridad (mira la pestaña BAR) y, dentro de cada una, de más a menos Velocidad. Si hay empate, a suertes.
+guia.como.5.t = EL ÚLTIMO EN PIE
+guia.como.5.d = Cuando cae tu userito sale el siguiente. Si caen los tres, quedas eliminado y tu puesto es el orden en que caes. Gana el último que se queda en pie.
+guia.como.6.t = EL TRUCO
+guia.como.6.d = Mira las pestañas TIPOS y ESTADOS: saber quién pega fuerte a quién gana más batallas que la suerte.
 
 guia.stats.niveles.t = SUBIR Y BAJAR
 guia.stats.niveles.d = Algunos movimientos suben o bajan una estadística (menos los PS) entre -6 y +6 niveles. Con +2 se dobla; con -2 se queda a la mitad. Todo se pierde al cambiar de userito.
@@ -289,6 +311,7 @@ guia.sucesos.sitio.brio = el Bar del Brío
 guia.sucesos.sitio.terraza = la terraza
 guia.sucesos.sitio.rural = la Casa Rural Drag Queen
 guia.sucesos.sitio.juan = el Bar Donde Juan
+guia.objetos.nota = Tras el draft, la barra te ofrece 3 objetos al azar: eliges uno y a cuál de tus useritos se lo das. Los rivales no ven qué llevas hasta que funciona; entonces sale un cartel. Casi todos se gastan al usarse; los permanentes lo dicen.
 guia.perks.nota = Cada entrenador trae una ventaja pequeña. Vale para todos, también para la máquina.
 
 // ---- ficha del draft: tipos del userito
@@ -300,6 +323,7 @@ draft.x4 = ×4
 // ---- useritopedia (pantallas/useritopedia.ts)
 useritopedia.titulo = USERITOPEDIA
 useritopedia.volver = VOLVER
+useritopedia.objetos = OBJETOS
 useritopedia.lista.pista = Toca un userito para ver su ficha completa.
 useritopedia.num = Nº{n}
 useritopedia.de = {n} DE {total}

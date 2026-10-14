@@ -9,7 +9,8 @@ import { Partida, esCancelada, type Asiento, type Ganchos } from './partida';
 import { actualizarApp, hayConexion, instalarApp } from './aplicacion';
 import { pantalla } from './pantalla';
 import { sonido } from './sonido';
-import { cargarAjustes, guardarAjustes, pantallaAjustes } from './pantallas/ajustes';
+import { cargarAjustes, escenarioElegido, guardarAjustes, pantallaAjustes } from './pantallas/ajustes';
+import { VistaBarra } from './pantallas/barra';
 import { VistaCombate } from './pantallas/combate';
 import { abrirGuia } from './pantallas/guia';
 import { abrirUseritopedia } from './pantallas/useritopedia';
@@ -39,10 +40,12 @@ export interface OpcionesFlujo {
   pj?: EntrenadorId;
   /** `?escenario=brio|terraza|rural|juan`: the bar of the battle (default: drawn from the seed). */
   escenario?: EscenarioId;
+  /** `?barra`: with `?combate`, «La barra» is played too (otherwise the machine gives out the objects). */
+  barra?: boolean;
 }
 
 /** Plays one solo game (you + three machines) and shows the podium. */
-export async function jugarSolo(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combate' | 'auto' | 'semilla' | 'escenario'>): Promise<SalidaPodio> {
+export async function jugarSolo(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combate' | 'auto' | 'semilla' | 'escenario' | 'barra'>): Promise<SalidaPodio> {
   const otros = ENTRENADORES.filter((e) => e !== yo);
   const asientos: Asiento[] = [
     { tipo: o.auto ? 'bot' : 'local', entrenador: yo, nombre: nombreEnt(yo) },
@@ -51,6 +54,7 @@ export async function jugarSolo(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combat
   const miSeat = o.auto ? null : 0;
   const vd = new VistaDraft(asientos, miSeat);
   const vc = new VistaCombate(miSeat);
+  const vb = new VistaBarra(yo);
   let equipos: string[][] | undefined;
   if (o.combate) {
     // A random team of three each, from all of them.
@@ -68,6 +72,10 @@ export async function jugarSolo(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combat
     pedirPick: () => vd.pedirPick(),
     pedirEleccion: (j, estado, ms) => vc.pedirEleccion(j, estado, ms),
     pedirReemplazo: (j, estado, ms) => vc.pedirReemplazo(j, estado, ms),
+    pedirObjeto: (_j, ofertas, especies, ms) => {
+      p.poner(vb);
+      return vb.pedir(ofertas, especies, ms);
+    },
     alDraft: (draft, turnoDe, ms) => {
       if (!enDraft) {
         enDraft = true;
@@ -84,9 +92,10 @@ export async function jugarSolo(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combat
     alReemplazo: (ev, estado) => vc.alReemplazo(ev, estado),
     alFin: (estado) => vc.alFin(estado),
   };
-  const partida = new Partida(asientos, ganchos, { semilla: o.semilla, rapido: o.auto, equipos, escenario: o.escenario });
-  vd.alAbandonar = vc.alAbandonar = () => partida.cancelar();
-  (window as unknown as { __pokeusera?: unknown }).__pokeusera = { partida, vc, vd };
+  const partida = new Partida(asientos, ganchos, { semilla: o.semilla, rapido: o.auto, equipos, escenario: o.escenario ?? escenarioElegido(), barra: o.barra });
+  vd.escenario = partida.escenario;
+  vd.alAbandonar = vb.alAbandonar = vc.alAbandonar = () => partida.cancelar();
+  (window as unknown as { __pokeusera?: unknown }).__pokeusera = { partida, vc, vd, vb };
   try {
     const estado = await partida.jugar();
     return await pantallaPodio(estado, miSeat, o.auto);
@@ -96,7 +105,7 @@ export async function jugarSolo(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combat
   }
 }
 
-async function jugarVarias(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combate' | 'auto' | 'semilla' | 'escenario'>) {
+async function jugarVarias(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combate' | 'auto' | 'semilla' | 'escenario' | 'barra'>) {
   // «OTRA»: same trainer, a new draft.
   while ((await jugarSolo(yo, o)) === 'otra') o = { ...o, combate: false, semilla: undefined };
 }

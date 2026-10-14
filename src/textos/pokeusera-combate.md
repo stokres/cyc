@@ -49,6 +49,7 @@ ficha.toca_userito = Toca a un userito para ver su ficha.
 ficha.contra = TUS MOVIMIENTOS CONTRA ÉL
 ficha.stats = ESTADÍSTICAS BASE
 ficha.estado = ESTADO
+ficha.objeto = OBJETO
 ficha.sin_estado = Sin estado.
 ficha.niveles = CAMBIOS
 ficha.toca = Toca un estado o una estadística para ver qué significa.
@@ -349,3 +350,49 @@ suceso.chinchin.nombre = Chin chin
 suceso.chinchin.frase = ¡Chin chin! Juan invita a los que van peor.
 suceso.chinchin.desc = Los 2 jugadores con menos vida en total curan 1/8 a su userito al final de cada turno.
 suceso.chinchin.cura = ¡{quien} brinda y se anima!
+
+// ---- objetos de la barra (motor/combate.ts, pantallas/barra.ts, guía y ficha)
+objeto.unico = UN USO
+objeto.perm = PERMANENTE
+objeto.gastado = GASTADO
+
+objeto.mechero.nombre = Mechero
+objeto.mechero.desc = El primer rival que le pegue con un ataque tiene un 50 % de quemarse.
+objeto.mechero.activa = ¡El mechero de {quien} prende a {otro}!
+objeto.mechero.falla = ¡El mechero de {quien} hace chispas, pero {otro} se libra!
+
+objeto.chicle.nombre = Chicle de menta
+objeto.chicle.desc = La primera vez que le dejan dormido, paralizado, quemado, empachado o achispado, se le quita al momento.
+objeto.chicle.activa = ¡El chicle de menta despeja a {quien}!
+
+objeto.bocata.nombre = Bocata de calamares
+objeto.bocata.desc = Cuando baja de la mitad de los PS, se lo come y cura 1/4.
+objeto.bocata.activa = ¡{quien} se zampa el bocata de calamares!
+
+objeto.posavasos.nombre = Posavasos
+objeto.posavasos.desc = El primer golpe muy eficaz (×2 o más) le hace la mitad.
+objeto.posavasos.activa = ¡El posavasos amortigua el golpe a {quien}!
+
+objeto.tapon.nombre = Tapón de cava
+objeto.tapon.desc = Su primer ataque es rápido (+1 de prioridad).
+objeto.tapon.activa = ¡{quien} descorcha el tapón de cava y sale disparado!
+
+objeto.palillo.nombre = Palillo en la boca
+objeto.palillo.desc = Hace el doble de golpes críticos.
+objeto.palillo.activa = ¡El palillo en la boca le da puntería a {quien}!
+
+objeto.gafas.nombre = Gafas de sol
+objeto.gafas.desc = Sus ataques tienen +10 de precisión.
+objeto.gafas.activa = ¡Con las gafas de sol, {quien} apunta mejor!
+
+objeto.zapatillas.nombre = Zapatillas nuevas
+objeto.zapatillas.desc = Cada vez que sale al combate, sube 1 su Velocidad.
+objeto.zapatillas.activa = ¡Las zapatillas nuevas aceleran a {quien}!
+
+objeto.panuelo.nombre = Pañuelo de la peña
+objeto.panuelo.desc = Sus ataques de su mismo tipo pegan un 20 % más.
+objeto.panuelo.activa = ¡El pañuelo de la peña da moral a {quien}!
+
+objeto.llavero.nombre = Llavero de la caravana
+objeto.llavero.desc = Si cae, quien lo tumbó baja 1 su Ataque y 1 su Especial.
+objeto.llavero.activa = ¡El llavero de {quien} se venga de {otro}!

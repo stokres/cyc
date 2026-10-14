@@ -16,7 +16,8 @@
 // It starts nothing itself: run `npm run dev` first.
 //   node scripts/rendimiento-pokeusera.mjs [pantalla...]     (default: all)  [PUERTO=5173]
 //   node scripts/rendimiento-pokeusera.mjs 5174 combate-juega     (a bare number is the port)
-//   screens: titulo, menu, entrenador, draft, draft-flujo, combate-elige, combate-juega, combate-ritmo, podio, estadisticas, useritopedia, useritopedia-ficha, guia
+//   screens: titulo, menu, ajustes, entrenador, draft, draft-flujo, barra, combate-elige, combate-juega, combate-ritmo (+ the four bars: combate-elige-<bar> and combate-juega-<bar>,
+//            with <bar> = rural, terraza, juan; the default combate-* ones are the Bar del Brío), podio, estadisticas, useritopedia, useritopedia-ficha, guia, guia-objetos
 // Environment: SEG=4 (seconds measured per screen), CPU=4 (throttling rate; 1 = none, budgets then do not apply),
 //   VOLCAR=carpeta (also write a PNG of every screen there, to compare looks before/after).
 import { chromium } from 'playwright';
@@ -48,12 +49,23 @@ const PRESUPUESTOS = {
   // ?auto plays ten times faster than a person sees (the animations last a tenth): nearly always something moves. It also sets off the move effects (≈ 10 drawImage while one flies).
   // «Lienzos» here are the screen's own (the text lines, damage numbers, badges); the background baking of precalentar.ts is not counted.
   'combate-juega': { redibujos: 60, ms: 6, pico: 50, cb: 30, di: 120, lienzos: 200, largas: 6, primer: 600 },
+  // The same battle in each of the other three bars (backdrop, music and the bar's own sucesos): same budget as the Brío.
+  'combate-elige-rural': { redibujos: 8, ms: 4, pico: 25, cb: 5, di: 85, lienzos: 0, largas: 0, primer: 600 },
+  'combate-elige-terraza': { redibujos: 8, ms: 4, pico: 25, cb: 5, di: 85, lienzos: 0, largas: 0, primer: 600 },
+  'combate-elige-juan': { redibujos: 8, ms: 4, pico: 25, cb: 5, di: 85, lienzos: 0, largas: 0, primer: 600 },
+  'combate-juega-rural': { redibujos: 60, ms: 6, pico: 50, cb: 30, di: 120, lienzos: 200, largas: 6, primer: 600 },
+  'combate-juega-terraza': { redibujos: 60, ms: 6, pico: 50, cb: 30, di: 120, lienzos: 200, largas: 6, primer: 600 },
+  'combate-juega-juan': { redibujos: 60, ms: 6, pico: 50, cb: 30, di: 120, lienzos: 200, largas: 6, primer: 600 },
   'combate-ritmo': { redibujos: 40, ms: 5, pico: 50, cb: 16, di: 100, lienzos: 60, largas: 4, primer: 600 },
   podio: { redibujos: 30, ms: 3, pico: 20, cb: 8, di: 55, lienzos: 0, largas: 0, primer: 1500 },
   estadisticas: { redibujos: 8, ms: 6, pico: 25, cb: 4, di: 150, lienzos: 0, largas: 0, primer: 1500 },
   useritopedia: { redibujos: 2, ms: 3, pico: 10, cb: 3, di: 45, lienzos: 0, largas: 0, primer: 1500 },
   'useritopedia-ficha': { redibujos: 6, ms: 3, pico: 10, cb: 4, di: 25, lienzos: 0, largas: 0, primer: 1500 },
   guia: { redibujos: 8, ms: 3, pico: 20, cb: 4, di: 70, lienzos: 0, largas: 0, primer: 1000 },
+  'guia-objetos': { redibujos: 8, ms: 3.5, pico: 20, cb: 4, di: 95, lienzos: 0, largas: 0, primer: 1000 },
+  ajustes: { redibujos: 2, ms: 1, pico: 10, cb: 2, di: 15, lienzos: 0, largas: 0, primer: 1000 },
+  // «La barra» (after the draft): three offers, three useritos, a chosen pair highlighted.
+  barra: { redibujos: 8, ms: 2.5, pico: 12, cb: 3, di: 30, lienzos: 0, largas: 0, primer: 800 },
 };
 
 const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -72,6 +84,8 @@ const PANTALLAS = {
   'combate-juega': { url: '?combate&auto&semilla=7', ir: async () => {}, esperar: 1500, quieto: false },
   // The same battle at the pace a player sees (the speed setting NORMAL, no ?auto shortcut speed-up): `cfg` is changed in the page (dev server only).
   'combate-ritmo': { url: '?combate&auto&semilla=7', ir: async (p) => { await p.evaluate(async () => { const ui = await import('/src/pokeusera/pantallas/ui.ts'); ui.cfg.rapido = false; ui.cfg.velocidad = 'normal'; }); }, esperar: 3000, quieto: false },
+  // «La barra»: ?combate&barra goes straight to it (no draft). Its 20 s clock is stretched so it does not end while measuring; an object and a userito are chosen.
+  barra: { url: '?combate&barra&semilla=7', ir: async (p) => { await entraBarra(p); await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter', false); }, esperar: 1500 },
   // Reached by playing a whole quick game by itself (?auto): the podium, then ESTADÍSTICAS with Enter.
   podio: { url: '?auto&semilla=7', ir: async (p) => { await hastaPodio(p); } },
   estadisticas: { url: '?auto&semilla=7', ir: async (p) => { await hastaPodio(p); await tecla(p, 'Enter'); } },
@@ -80,7 +94,16 @@ const PANTALLAS = {
   'useritopedia-ficha': { url: '', ir: async (p) => { await tecla(p, 'Enter'); await tecla(p, 'ArrowDown', false); await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); await tecla(p, 'Enter', false); }, esperar: 1500 },
   // The guide: menu → GUÍA (fourth entry).
   guia: { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 3; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
+  // The guide on its OBJETOS tab (the last one: ▶ five times).
+  'guia-objetos': { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 3; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); for (let i = 0; i < 5; i++) await tecla(p, 'ArrowRight', false); }, esperar: 1000 },
+  // The settings: menu → AJUSTES (fifth entry), with the ESCENARIO row.
+  ajustes: { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 4; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
 };
+// The battle screens in each other bar (the Bar del Brío is the default one above).
+for (const esc of ['rural', 'terraza', 'juan']) {
+  PANTALLAS[`combate-elige-${esc}`] = { ...PANTALLAS['combate-elige'], url: `?combate&semilla=7&escenario=${esc}` };
+  PANTALLAS[`combate-juega-${esc}`] = { ...PANTALLAS['combate-juega'], url: `?combate&auto&semilla=7&escenario=${esc}` };
+}
 for (const n of quiero) if (!PANTALLAS[n]) { console.error(`Pantalla desconocida: ${n}. Hay: ${Object.keys(PANTALLAS).join(', ')}`); process.exit(2); }
 
 /** Presses a key. With `cambia` (the default) the screen is expected to change: the key is pressed again once if nothing happened (a slow, busy machine can lose one). */
@@ -105,6 +128,12 @@ async function esperarQuieto(p, max = 45000) {
     ultimo = n;
     await dormir(500);
   }
+}
+
+/** Waits for «La barra» to ask the local player and gives it a long clock (the 20 s would run out while measuring). */
+async function entraBarra(p) {
+  await p.waitForFunction(() => !!window.__pokeusera?.vb?.resolver, null, { timeout: 30000, polling: 200 });
+  await p.evaluate(() => { window.__pokeusera.vb.fin = Date.now() + 600000; });
 }
 
 async function hastaPodio(p) {

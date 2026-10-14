@@ -15,6 +15,7 @@
 //   sonido.efecto('golpeFuerte') one of EFECTOS, 0.6 s at most.
 //   sonido.grito('aceituna')     the cry of a userito, always the same for the same id.
 //   sonido.setVolumen('musica', 0.5), sonido.getVolumen('efectos')   0–1, as the settings menu has them.
+import type { EscenarioId } from './tipos';
 import urlTitulo from '../sonido/pokeusera-titulo.mp3?url';
 import urlDraft from '../sonido/pokeusera-draft.mp3?url';
 import urlCombate from '../sonido/pokeusera-combate.mp3?url';
@@ -28,14 +29,12 @@ import urlFinal from '../sonido/pokeusera-final.mp3?url';
 import urlVictoria from '../sonido/pokeusera-victoria.mp3?url';
 
 export type Musica = 'titulo' | 'draft' | 'combate' | 'final' | 'victoria';
-/** Where a battle is fought, for its music (the same literals as the scenarios): 'brio' is the bar, with the rotation of four tunes. */
-export type EscenarioMusica = 'brio' | 'terraza' | 'rural' | 'juan';
 /** The files behind `Musica`: 'combate' is one of these (see `elegirCombate`). */
 type Pista = Musica | 'combateRock' | 'combateVerbena' | 'combateElectro' | 'combateTerraza' | 'combateRural' | 'combateJuan';
 /** The rotation of the Bar del Brío. */
 const COMBATES: readonly Pista[] = ['combate', 'combateRock', 'combateVerbena', 'combateElectro'];
 /** The tune of each scenario that has one of its own. */
-const COMBATE_DE: Record<Exclude<EscenarioMusica, 'brio'>, Pista> = { terraza: 'combateTerraza', rural: 'combateRural', juan: 'combateJuan' };
+const COMBATE_DE: Record<Exclude<EscenarioId, 'brio'>, Pista> = { terraza: 'combateTerraza', rural: 'combateRural', juan: 'combateJuan' };
 const ES_COMBATE: ReadonlySet<Pista> = new Set<Pista>([...COMBATES, ...Object.values(COMBATE_DE)]);
 export const EFECTOS = [
   'cursor', 'aceptar', 'atras', 'golpe', 'golpeFuerte', 'golpeFlojo', 'critico', 'falla', 'cae', 'sube', 'baja', 'cura',
@@ -252,10 +251,13 @@ export class Sonido {
    * Chooses the tune of the next battle by its scenario: 'terraza' (rumba), 'rural' (techno) and 'juan' (bachata) have one
    * of their own; 'brio' or no argument is the rotation of the four (a new draw, never the last battle's). It counts for
    * one battle (the next `musica('combate')` that starts one), so a scenario without a call falls back to the rotation.
-   * Call it before `precargar('combate')`, which then loads just that tune. A battle in course keeps its own.
+   * Call it before `precargar('combate')`, which then loads just that tune. A battle in course keeps its own. It can be called
+   * more than once for the same battle: the tune chosen (or preloaded) is kept unless the scenario asks for another.
    */
-  elegirCombate(escenario?: 'brio' | 'terraza' | 'rural' | 'juan') {
-    this.combateProximo = escenario && escenario !== 'brio' ? COMBATE_DE[escenario] ?? this.rotacion() : this.rotacion();
+  elegirCombate(escenario?: EscenarioId) {
+    // Asking again for the same battle (the draft screen does, to preload the tune, and the battle screen does when it starts) keeps the choice made.
+    if (escenario && escenario !== 'brio') this.combateProximo = COMBATE_DE[escenario] ?? this.rotacion();
+    else if (this.combateProximo === null || !COMBATES.includes(this.combateProximo)) this.combateProximo = this.rotacion();
   }
 
   /** A battle tune of the rotation at random, never the one of the last battle (when there is another). */
