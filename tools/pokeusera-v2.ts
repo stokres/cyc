@@ -8,6 +8,9 @@
 //                  &hoja=1 builds the contact sheet (3 frames per effect) in #hoja-efectos instead and exposes
 //                  window.__hojaPNG() (data URL) and window.__fotograma(mov, ms) (data URL of one frame);
 //                  &medir=1 exposes window.__medir() (cost of paso+dibujar in the worst case).
+//  - fondos:       the four battle backdrops (arte2/escenarios2.ts) side by side in #hoja-fondos (&h=290 is the field height,
+//                  &con=1 puts the four useritos, their plates and mock panels on top as in combat, &z=3 the zoom, &ids=terraza,juan
+//                  limits them). Exposes window.__hojaFondosPNG().
 // The real screens are the game itself (/pokeusera.html); there is no separate mock any more.
 import { plataforma } from '../src/pokeusera/arte2/escena2';
 import { dibujarTexto2 } from '../src/pokeusera/arte2/fuente2';
@@ -16,6 +19,7 @@ import { IDS_USERITOS2, coloresSprite2, spriteEspalda2, spriteFrente2 } from '..
 import { ANCHO_ENT2, ALTO_ENT2, coloresEntrenador2, entrenador2, icono2, retrato2 } from '../src/pokeusera/arte2/entrenadores2';
 import { logo2 } from '../src/pokeusera/arte2/logo2';
 import { fondoBar } from '../src/pokeusera/arte2/escena2';
+import { ESCENARIOS, fondoEscenario, type EscenarioId } from '../src/pokeusera/arte2/escenarios2';
 import { EfectosMov, MOVS_CON_EFECTO, precalentarEfectos, semillaFx, type PuntoFx } from '../src/pokeusera/pantallas/efectosMov';
 import { MOVS } from '../src/pokeusera/datos';
 import type { EntrenadorId } from '../src/pokeusera/tipos';
@@ -365,4 +369,77 @@ if (vista === 'useritopedia') {
   void (async () => {
     for (;;) await abrirUseritopedia(null, id);
   })();
+}
+
+// ---------------------------------------------------------------------------------------------
+// Battle backdrops (?vista=fondos[&h=290][&con=1][&ids=...]): the four scenes side by side.
+// ---------------------------------------------------------------------------------------------
+if (vista === 'fondos') {
+  for (const v of ['detalle', 'fuente']) document.getElementById(`${v}-w`)!.hidden = true;
+  const H = Number(params.get('h') ?? 290);
+  const con = params.get('con') === '1';
+  const ids = (params.get('ids')?.split(',') ?? [...ESCENARIOS]) as EscenarioId[];
+  const NOMBRE: Record<EscenarioId, string> = { brio: 'BAR DEL BRÍO', terraza: 'LA TERRAZA', rural: 'CASA RURAL DRAG QUEEN', juan: 'BAR DONDE JUAN' };
+  const hoja = document.createElement('canvas');
+  const sep = 6;
+  const cab = 14;
+  hoja.width = ids.length * (240 * ZOOM + sep) + sep;
+  hoja.height = H * ZOOM + cab + sep * 2;
+  hoja.style.display = 'block';
+  hoja.id = 'hoja-fondos';
+  document.body.appendChild(hoja);
+  const hx = hoja.getContext('2d')!;
+  hx.imageSmoothingEnabled = false;
+  hx.fillStyle = '#2b2b33';
+  hx.fillRect(0, 0, hoja.width, hoja.height);
+  const panel = (c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) => {
+    c.fillStyle = '#3b2a3f';
+    c.fillRect(x, y, w, h);
+    c.fillStyle = '#f6ecd0';
+    c.fillRect(x + 1, y + 1, w - 2, h - 2);
+    c.fillStyle = '#e0a83a';
+    c.fillRect(x + 1, y + 1, w - 2, 1);
+    c.fillStyle = '#7ac070'; // the HP bar
+    c.fillRect(x + 18, y + 18, w - 28, 4);
+    c.fillStyle = '#3b2a3f';
+    c.fillRect(x + 18, y + 8, 40, 5);
+  };
+  ids.forEach((id, k) => {
+    const tile = document.createElement('canvas');
+    tile.width = 240;
+    tile.height = H;
+    const c = tile.getContext('2d')!;
+    c.imageSmoothingEnabled = false;
+    c.drawImage(fondoEscenario(id, 240, H), 0, 0);
+    if (con) {
+      // Same geometry as the combat screen (see `calcularGeom` and `filaSprite` in pantallas/combate.ts).
+      const P = Math.round((H - 100) / 3);
+      const y0 = 22;
+      const rivales = ['tocinon', 'aceituna', 'ego-ego'];
+      const mat = (rx: number, ry: number) => plataforma(rx, ry);
+      for (let i = 0; i < 4; i++) {
+        const mia = i === 3;
+        const top = y0 + i * P;
+        const base = mia ? spriteEspalda2('draguserin', 0) : spriteFrente2(rivales[i], 0);
+        const pies = top + 62;
+        const m = mia ? mat(42, 10) : mat(30, 7);
+        const cxm = mia ? 52 : 190;
+        c.drawImage(m, cxm - Math.floor(m.width / 2), pies - 3 - (mia ? 14 : 10));
+        c.drawImage(base, mia ? 20 : 158, top + 62 - pie(base));
+        const w = mia ? 134 : 128;
+        panel(c, mia ? 102 : 6, top + (mia ? 8 : Math.max(4, Math.min(11, P - 41))), w, mia ? 52 : 40);
+      }
+      // the HUD bar on top
+      c.fillStyle = '#3b2a3f';
+      c.fillRect(0, 0, 240, 18);
+      c.fillStyle = '#5a4660';
+      c.fillRect(0, 17, 240, 1);
+    }
+    const x = sep + k * (240 * ZOOM + sep);
+    hx.fillStyle = '#f6e6b4';
+    hx.font = '600 11px system-ui, sans-serif';
+    hx.fillText(NOMBRE[id] ?? id, x + 2, 11);
+    hx.drawImage(tile, x, cab, 240 * ZOOM, H * ZOOM);
+  });
+  (window as unknown as { __hojaFondosPNG: () => string }).__hojaFondosPNG = () => hoja.toDataURL('image/png');
 }
