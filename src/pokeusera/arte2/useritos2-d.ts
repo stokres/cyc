@@ -235,8 +235,8 @@ function pe(P: Pintor): void {
 }
 
 // ---------------------------------------------------------------------------------------------
-// JesúsPelo · a laid-back surfer: long wavy sun-bleached WHITE hair, a tan, board shorts, a shell necklace, a
-// shaka sign and his turquoise board standing next to him. A friendly homage to the group's own Jesús.
+// JesúsPelo · a laid-back surfer: SHORT tousled sun-bleached WHITE hair (it never reaches the shoulders), a tan, board
+// shorts, a shell necklace, a shaka sign and his turquoise board standing next to him. A friendly homage to the group's own Jesús.
 // ---------------------------------------------------------------------------------------------
 const TINTA_J = '#3a1a24';
 const PELO_J: Mat = { r: ['#8c9ccc', '#c0ceee', '#eef4ff', '#ffffff'], ol: TINTA_J, ol2: '#8c9ccc', rim: '#ffffff' };
@@ -295,9 +295,6 @@ function jesuspelo(P: Pintor): void {
   P.px(X(30), 43 + dy, '#ffffff');
 
   const cabezaY = 21 + dy;
-  // Long hair seen from the front hangs behind the shoulders (drawn first); from behind it covers the whole back.
-  const melenaFondo = un(el(29.5, cabezaY + 3, 13.6, 14), rr(20, cabezaY + 4, 20, 14, 5));
-  if (!E) P.forma(melenaFondo, PELO_J, { rad: 7, grad: 0.3, sesgo: -0.2 });
 
   // Torso, bare and tanned.
   const torso = rr(21, 31 + dy, 18, 14, 5.4);
@@ -339,27 +336,37 @@ function jesuspelo(P: Pintor): void {
     // Shell necklace.
     P.llenar(cur(bez3([25, 33 + dy], [28, 37 + dy], [32, 37 + dy], [34, 33 + dy], 8), 1), '#ffffff');
     P.forma(el(29.6, 38 + dy, 1.9, 1.9), PELO_J, { rad: 1.5, paso: 2 });
-    // Hair: a wavy white cap over the forehead and temples, long locks falling in front of the shoulders.
-    const gorro = men(un(el(29.5, cabezaY - 5, 14.4, 9.6), el(29.5, cabezaY - 1, 13.2, 7)), un(el(29.5, cabezaY + 2.6, 9.6, 7), el(23, cabezaY - 1.6, 3.4, 2.4)));
+    // Hair: short and tousled, a white cap that hugs the head (sideburns, a lazy fringe) with a few tufts sticking up.
+    const gorro = men(un(el(29.5, cabezaY - 4.4, 12.8, 9.2), el(29.5, cabezaY - 1, 12.2, 6.6)), un(el(29.5, cabezaY + 2.6, 9.6, 7.4), el(23, cabezaY - 1.6, 3.4, 2.4)));
     P.forma(gorro, PELO_J, { rad: 5, grad: 0.4 });
-    const mechonI = trazo(bez3([16.6, cabezaY - 3], [12, cabezaY + 4], [18, cabezaY + 11 + sw], [13.4, cabezaY + 19 + sw], 12), 3, 2);
-    const mechonD = trazo(bez3([42.4, cabezaY - 3], [47, cabezaY + 4], [41, cabezaY + 11 - sw], [45.6, cabezaY + 19 - sw], 12), 3, 2);
-    P.forma(un(mechonI, mechonD), PELO_J, { rad: 2.4, sesgo: -0.05 });
+    const pua = (x0: number, x1: number, y1: number) => trazo([[x0, cabezaY - 10], [x1, y1]], 2.6, 0.7);
+    P.forma(un(pua(22.5, 19.4, cabezaY - 15 - sw), pua(28, 28.6 + sw, cabezaY - 16.4), pua(34, 38, cabezaY - 15.6 + sw), pua(38.6, 43, cabezaY - 11)), PELO_J, { rad: 2, sesgo: -0.05 });
     // Strands of the wave, a lit edge.
-    P.llenar(cur(bez3([24, cabezaY - 12], [22, cabezaY - 8], [27, cabezaY - 6], [25, cabezaY - 3], 8), 1), PELO_J.r[1]);
-    P.llenar(cur(bez3([33, cabezaY - 13], [35, cabezaY - 9], [31, cabezaY - 7], [33, cabezaY - 4], 8), 1), PELO_J.r[1]);
-    P.llenar(cur(bez3([39, cabezaY - 10], [42, cabezaY - 6], [39, cabezaY - 4], [42, cabezaY - 2], 8), 1), PELO_J.r[1]);
+    P.llenar(cur(bez3([24, cabezaY - 11], [22, cabezaY - 8], [27, cabezaY - 6], [25, cabezaY - 3], 8), 1), PELO_J.r[1]);
+    P.llenar(cur(bez3([33, cabezaY - 11], [35, cabezaY - 8], [31, cabezaY - 7], [33, cabezaY - 4], 8), 1), PELO_J.r[1]);
+    P.llenar(cur(bez3([39, cabezaY - 9], [41, cabezaY - 6], [39, cabezaY - 4], [41, cabezaY - 2], 8), 1), PELO_J.r[1]);
   } else {
-    // From behind: the head is a dome of white hair that runs down the back in long waves, tips flicking out.
-    const dorso = un(el(29.5, cabezaY, 13.2, 13.6), rr(21, cabezaY + 4, 17, 16, 5));
-    const puntas = un(el(24.4, cabezaY + 22 + sw, 3.6, 3), el(30, cabezaY + 23 - sw, 3.8, 3.2), el(35.4, cabezaY + 22 + sw, 3.6, 3));
-    const pelo = un(dorso, puntas);
-    P.sombra(pelo, 1, 1, 1);
-    P.forma(pelo, PELO_J, { rad: 9, grad: 0.4 });
-    for (const [x0, k] of [[24, 0], [28, 1], [32, 0], [36, 1]] as [number, number][]) {
-      P.llenarSobre(cur(bez3([x0, cabezaY - 5], [x0 - 3 + k * 5, cabezaY + 4], [x0 + 3 - k * 5, cabezaY + 12], [x0 + (k ? 2 : -2), cabezaY + 22], 12), 1), PELO_J.r[1], PELO_J);
+    // From behind: neck, ears and the nape in tanned skin (the necklace cord hides under the head), a short cap of tousled white hair on top and the bare back.
+    P.forma(rr(26, 29 + dy, 8, 6, 2), PIEL_J, { rad: 2.6, sesgo: -0.2 });
+    const cabeza = un(el(29.5, cabezaY, 11.6, 12), rr(19, cabezaY, 21, 12, 6));
+    P.sombra(cabeza, 1, 1, 1);
+    P.forma(cabeza, PIEL_J, { rad: 7, grad: 0.35, sesgo: 0.05 });
+    P.forma(un(el(18.4, cabezaY + 3.4, 2, 2.8), el(40.6, cabezaY + 3.4, 2, 2.8)), PIEL_J, { rad: 2 });
+    // Back of the shoulders: a shoulder-blade shade and the line of the spine.
+    P.tono(T(el(25, 39 + dy, 3.6, 2.6)), PIEL_J, -1);
+    P.tono(T(el(35, 39 + dy, 3.6, 2.6)), PIEL_J, -1);
+    P.llenar(cur([[29.5, 37 + dy], [29.5, 42 + dy]], 1), PIEL_J.r[0]);
+    // Hair: a dome over the top and back of the head that stops above the nape, ragged at the bottom, tufts on top.
+    const casquete = un(el(29.5, cabezaY - 3, 12.4, 10), rr(18.2, cabezaY - 3, 22.6, 7.4, 3.4));
+    const flecos = un(el(21.6, cabezaY + 5.6, 2.4, 2.4), el(26.4, cabezaY + 6.4 + sw, 2.2, 2.2), el(33, cabezaY + 6.2 - sw, 2.4, 2.2), el(38, cabezaY + 5.4, 2.2, 2.4));
+    const pelo = un(casquete, flecos);
+    P.forma(pelo, PELO_J, { rad: 7, grad: 0.4 });
+    const pua = (x0: number, x1: number, y1: number) => trazo([[x0, cabezaY - 9], [x1, y1]], 2.6, 0.7);
+    P.forma(un(pua(22.5, 19.4, cabezaY - 14 - sw), pua(28, 28.6 + sw, cabezaY - 15.4), pua(34, 38, cabezaY - 14.6 + sw), pua(38.6, 43, cabezaY - 10)), PELO_J, { rad: 2, sesgo: -0.05 });
+    for (const [x0, k] of [[24, 0], [29, 1], [34, 0]] as [number, number][]) {
+      P.llenarSobre(cur(bez3([x0, cabezaY - 8], [x0 - 2 + k * 4, cabezaY - 4], [x0 + 2 - k * 4, cabezaY], [x0 + (k ? 1 : -1), cabezaY + 4.6], 10), 1), PELO_J.r[1], PELO_J);
     }
-    P.tono(el(24, cabezaY - 7, 7, 3), PELO_J, 1);
+    P.tono(el(24, cabezaY - 8, 6, 2.6), PELO_J, 1);
   }
 }
 

@@ -192,6 +192,7 @@ mov.raices.desc = Pega y recupera la mitad.
 mov.almendrazo.desc = Golpe sólido con almendras.
 mov.lluvia.desc = Pega de 2 a 5 veces.
 mov.esporas.desc = Duerme al rival.
+mov.setas.desc = Pega. Puede achispar: no preguntes de qué eran.
 mov.temblor.desc = Pega a todos. No afecta a Ventolera.
 mov.adoquin.desc = Golpe pesado.
 mov.caparazon.desc = Sube la Defensa.

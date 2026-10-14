@@ -84,7 +84,7 @@ export const ESPECIES: Especie[] = [
   // Batch 4 (13-oct): the four new ones go at the end, so the Nº of the others does not change.
   e('cubatillo', 'Cubatillo', ['alcohol', 'chispa'], 70, 55, 70, 115, 110, ['burbujeo', 'ronda', 'chispazo', 'unamas']),
   e('p', 'P', ['mindundi', 'chanza'], 95, 90, 100, 60, 75, ['pesao', 'chapa', 'zasca', 'cara_de_pena']),
-  e('jesuspelo', 'JesúsPelo', ['droga', 'ventolera'], 85, 90, 75, 95, 75, ['tubo', 'esporas', 'raices', 'planeo']),
+  e('jesuspelo', 'JesúsPelo', ['droga', 'ventolera'], 85, 90, 75, 95, 75, ['tubo', 'setas', 'raices', 'planeo']),
   e('pantaloneto', 'Pantaloneto', ['mindundi', 'ventolera'], 95, 120, 90, 75, 40, ['pantalones', 'cierzo', 'chapa', 'coz']),
 ];
 
@@ -119,6 +119,7 @@ const LISTA_MOVS: Movimiento[] = [
   m('almendrazo', 'Almendrazo', 'droga', 85, 100, 8, 'uno'),
   m('lluvia', 'Lluvia de lentejas', 'droga', 25, 90, 10, 'uno'),
   m('esporas', 'Esporas', 'droga', null, 75, 8, 'uno'),
+  m('setas', 'Setas', 'droga', 70, 100, 8, 'uno'),
   m('temblor', 'Temblor', 'bronca', 80, 100, 5, 'todos'),
   m('adoquin', 'Adoquín', 'bronca', 100, 85, 5, 'uno'),
   m('caparazon', 'Caparazón', 'bronca', null, null, 5, 'yo'),
@@ -220,6 +221,7 @@ export const EFECTOS: Record<string, Efecto> = {
   raices: { drena: true },
   lluvia: { golpes: 'multi' },
   esporas: { estado: { estado: 'dormido', prob: 100 } },
+  setas: { estado: { estado: 'achispado', prob: 30 } },
   caparazon: { nivel: [{ a: 'yo', stat: 'def', cambio: 1 }] },
   cierzo: { nivel: [{ a: 'objetivo', stat: 'vel', cambio: -1 }] },
   remolino: { especial: 'remolino' },

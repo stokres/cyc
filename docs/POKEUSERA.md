@@ -240,29 +240,29 @@ Todos suman lo mismo en estadísticas (420), para que no haya ninguno roto de sa
 | # | Userito | Tipo | PS | Ata | Def | Vel | Esp | Movimientos |
 |---|---|---|---|---|---|---|---|---|
 | 1 | **Draguserín**: el dragón del parque de Usera | Petardo / Ventolera | 75 | 80 | 70 | 95 | 100 | Traca, Petardazo, Planeo, Esconderse |
-| 2 | **Goudazard**: palito frito de gouda rebozado | Grasa / Petardo | 85 | 70 | 90 | 65 | 110 | De Goudamadre, Fogonazo, Pringue, Rebozado |
-| 3 | **Aceituna**: la perrita negra de Fran, pequeña y muy dulce (antes Aceitún) | Mindundi / Chanza | 70 | 85 | 70 | 110 | 85 | Lametazo, Cara de pena, Vacile, Dar la chapa |
-| 4 | **Cierzón**: remolino mañico que no para quieto | Ventolera | 70 | 90 | 65 | 120 | 75 | Cierzo, Planeo, Remolino, Venganza |
-| 5 | **Turroncho**: bloque de turrón blando con almendras | Bronca / Droga | 95 | 80 | 120 | 35 | 90 | Almendrazo, Adoquín, Caparazón, Siesta |
-| 6 | **Tocinón**: cerdo enorme y tranquilo, 152 kilos de userito | Mindundi / Grasa | 140 | 95 | 80 | 30 | 75 | Barrigazo, Pringue, Temblor, Siesta |
-| 7 | **Roscochoco**: dulce navideño de chocolate, muy indigesto | Grasa / Juerga | 105 | 75 | 90 | 50 | 100 | Indigestión, Fritanga, Conga, Rebozado |
+| 2 | **Goudazard**: palito frito de gouda rebozado | Grasa / Petardo | 75 | 70 | 85 | 90 | 100 | De Goudamadre, Fogonazo, Pringue, Rebozado |
+| 3 | **Aceituna**: la perrita negra de Fran, pequeña y muy dulce (antes Aceitún) | Mindundi / Chanza | 90 | 100 | 90 | 75 | 65 | Lametazo, Cara de pena, Vacile, Dar la chapa |
+| 4 | **Cierzón**: remolino mañico que no para quieto | Ventolera | 75 | 95 | 70 | 105 | 75 | Cierzo, Planeo, Remolino, Venganza |
+| 5 | **Turroncho**: bloque de turrón blando con almendras | Bronca / Droga | 85 | 80 | 95 | 70 | 90 | Almendrazo, Adoquín, Caparazón, Siesta |
+| 6 | **Tocinón**: cerdo enorme y tranquilo, 152 kilos de userito | Mindundi / Grasa | 105 | 95 | 70 | 75 | 75 | Barrigazo, Pringue, Temblor, Siesta |
+| 7 | **Roscochoco**: dulce navideño de chocolate, muy indigesto | Grasa / Juerga | 100 | 75 | 85 | 60 | 100 | Indigestión, Fritanga, Conga, Rebozado |
 | 8 | **Espumarro**: jarra de cerveza a la que nunca se le baja la espuma | Alcohol / Mindundi | 95 | 70 | 80 | 75 | 100 | Ronda, Garrafón, ¡Una más!, Barrigazo |
-| 9 | **Cajonazo**: cajón flamenco con brazos y mucho compás | Juerga | 85 | 105 | 90 | 80 | 60 | Rumba, Taconeo, Temblor, Compás |
-| 10 | **Lentejasur**: lenteja sucia que aparece cuando menos te lo esperas | Droga / Fantasma | 60 | 65 | 60 | 120 | 115 | Lluvia de lentejas, Tropezón, Susto, Esporas |
-| 11 | **Tragaperras**: la máquina del rincón del bar, que se ríe de ti | Chispa / Chanza | 85 | 60 | 95 | 65 | 115 | Premio gordo, Chispazo, Zasca, Cizaña |
-| 12 | **Turito**: el userito que aburre y cansa | Mindundi | 115 | 70 | 110 | 45 | 80 | Dar la chapa, Te pillo en la barra, Turra, Bostezo |
-| 13 | **Resacón**: nube gris que aparece a la mañana siguiente | Alcohol / Fantasma | 80 | 90 | 75 | 85 | 90 | Dolor de cabeza, Chupitazo, Venganza, Siesta |
-| 14 | **Evoscar**: dos cabezas, una de mujer y otra de hombre (pelo corto), con cuerpo de caballo; una pareja aburrida que se pasa el día discutiendo | Mindundi / Bronca | 90 | 95 | 80 | 85 | 70 | Coz doble, Galope, A dos voces, Sí, y… |
-| 15 | **Chupitochu**: chupito muy fuerte y ardiente | Alcohol / Petardo | 60 | 55 | 60 | 120 | 125 | Chupitazo, Fogonazo, Garrafón, Esconderse |
-| 16 | **Caravaner**: una caravana | Bronca / Juerga | 100 | 90 | 105 | 35 | 90 | ¡Camioneees y caravanaaas!, Temblor, Caparazón, Siesta |
-| 17 | **Camioner**: un camión | Mindundi / Bronca | 100 | 125 | 100 | 50 | 45 | Trompazo, Adoquín, Bocinazo, ¡Camioneees y caravanaaas! |
+| 9 | **Cajonazo**: cajón flamenco con brazos y mucho compás | Juerga | 100 | 115 | 100 | 50 | 55 | Rumba, Taconeo, Temblor, Compás |
+| 10 | **Lentejasur**: lenteja sucia que aparece cuando menos te lo esperas | Droga / Fantasma | 70 | 65 | 70 | 100 | 115 | Lluvia de lentejas, Tropezón, Susto, Esporas |
+| 11 | **Tragaperras**: la máquina del rincón del bar, que se ríe de ti | Chispa / Chanza | 75 | 60 | 80 | 90 | 115 | Premio gordo, Chispazo, Zasca, Cizaña |
+| 12 | **Turito**: el userito que aburre y cansa | Mindundi | 105 | 70 | 95 | 70 | 80 | Dar la chapa, Te pillo en la barra, Turra, Bostezo |
+| 13 | **Resacón**: nube gris que aparece a la mañana siguiente | Alcohol / Fantasma | 85 | 90 | 80 | 75 | 90 | Dolor de cabeza, Chupitazo, Venganza, Siesta |
+| 14 | **Evoscar**: dos cabezas, una de mujer y otra de hombre (pelo corto), con cuerpo de caballo; una pareja aburrida que se pasa el día discutiendo | Mindundi / Bronca | 100 | 105 | 95 | 55 | 65 | Coz doble, Galope, A dos voces, Sí, y… |
+| 15 | **Chupitochu**: chupito muy fuerte y ardiente | Alcohol / Petardo | 75 | 55 | 75 | 90 | 125 | Chupitazo, Fogonazo, Garrafón, Esconderse |
+| 16 | **Caravaner**: una caravana | Bronca / Juerga | 85 | 85 | 75 | 85 | 90 | ¡Camioneees y caravanaaas!, Temblor, Caparazón, Siesta |
+| 17 | **Camioner**: un camión | Mindundi / Bronca | 105 | 125 | 100 | 35 | 55 | Trompazo, Adoquín, Bocinazo, ¡Camioneees y caravanaaas! |
 | 18 | **Criaturitah**: pequeña criaturita del bosque | Droga / Chanza | 80 | 60 | 80 | 100 | 100 | Esporas, Raíces, Vacile, Monada |
-| 19 | **Ego-Ego**: fantasma muy flipado | Fantasma | 75 | 100 | 70 | 105 | 70 | Eco, Chulería, Flipada, Selfie |
+| 19 | **Ego-Ego**: fantasma muy flipado | Fantasma | 80 | 100 | 75 | 95 | 70 | Eco, Chulería, Flipada, Selfie |
 | 20 | **Kbronero**: teclado heavy | Chispa / Juerga | 80 | 90 | 70 | 85 | 95 | Solo de teclado, Distorsión, Pogo, Compás |
-| 21 | **Cubatillo**: un cubata (ron con cola) con hielos y pajita, con burbujas que chisporrotean | Alcohol / Chispa | 75 | 55 | 70 | 105 | 115 | Burbujeo, Ronda, Chispazo, ¡Una más! |
+| 21 | **Cubatillo**: un cubata (ron con cola) con hielos y pajita, con burbujas que chisporrotean | Alcohol / Chispa | 70 | 55 | 70 | 115 | 110 | Burbujeo, Ronda, Chispazo, ¡Una más! |
 | 22 | **P**: una P mayúscula gordita con ojos y patitas, muy pesada | Mindundi / Chanza | 95 | 90 | 100 | 60 | 75 | P de Pesao, Dar la chapa, Zasca, Cara de pena |
-| 23 | **JesúsPelo**: surfero de pelo blanco con su tabla, muy tranquilo | Droga / Ventolera | 80 | 85 | 65 | 110 | 80 | Tubo perfecto, Esporas, Raíces, Planeo |
-| 24 | **Pantaloneto**: unos pantalones escapados del tendedero que van solos | Mindundi / Ventolera | 80 | 105 | 70 | 110 | 55 | Bajarse los pantalones, Cierzo, Dar la chapa, Coz doble |
+| 23 | **JesúsPelo**: surfero de pelo blanco corto con su tabla, muy tranquilo | Droga / Ventolera | 85 | 90 | 75 | 95 | 75 | Tubo perfecto, Setas, Raíces, Planeo |
+| 24 | **Pantaloneto**: unos pantalones escapados del tendedero que van solos | Mindundi / Ventolera | 95 | 120 | 90 | 75 | 40 | Bajarse los pantalones, Cierzo, Dar la chapa, Coz doble |
 
 Reparto por tipos (contando los dobles): Mindundi 8, Petardo 3, Droga 4, Bronca 4, Ventolera 4, Chispa 3, Alcohol 4, Juerga 4, Chanza 4, Grasa 3, Fantasma 3.
 
@@ -270,8 +270,8 @@ Cosas a tener en cuenta del equilibrio:
 
 - **Turito** solo es débil a Juerga y no le afecta lo Fantasma: aguanta mucho, pega poco y aburre al rival con Turra y Bostezo.
 - **Ego-Ego** pega muy fuerte, pero lo Mindundi no le toca y él no toca a los Mindundi, así que lleva Chulería (Juerga) para ellos. Es débil a Chanza: no soporta que se rían de él.
-- **Aceituna** (13-oct, antes Aceitún, Droga / Grasa) es ahora la perrita negra de Fran, la que él llama «su novia»: Mindundi / Chanza, con los mismos números y los movimientos Lametazo, Cara de pena, Vacile y Dar la chapa. Solo le pega fuerte Juerga (×2) y nada de Fantasma la toca (lo Mindundi no se deja asustar).
-- **Cubatillo, P, JesúsPelo y Pantaloneto** (13-oct, tanda 4): sumaban 420 como los demás y se escogieron para reforzar los tipos con menos useritos (Ventolera y Chispa tenían 2 cada uno). Sus ids son `cubatillo`, `p`, `jesuspelo` y `pantaloneto` y van al final de `ESPECIES`, así que los Nº 1-20 no cambian.
+- **Aceituna** (13-oct, antes Aceitún, Droga / Grasa) es ahora la perrita negra de Fran, la que él llama «su novia»: Mindundi / Chanza, con los movimientos Lametazo, Cara de pena, Vacile y Dar la chapa. Solo le pega fuerte Juerga (×2) y nada de Fantasma la toca (lo Mindundi no se deja asustar).
+- **Cubatillo, P, JesúsPelo y Pantaloneto** (13-oct, tanda 4): sumaban 420 como los demás y se escogieron para reforzar los tipos con menos useritos (Ventolera y Chispa tenían 2 cada uno). Sus ids son `cubatillo`, `p`, `jesuspelo` y `pantaloneto` y van al final de `ESPECIES`, así que los Nº 1-20 no cambian. **JesúsPelo** (14-oct, por Jesús): pelo blanco corto y despeinado (no la melena larga) y cambia Esporas por **Setas** (Droga, 70, 100, 8 PP, 30 % de achispar).
 - **Equilibrio de la tanda 4** (`node scripts/pokeusera-motor.mjs --especies=8000`: batallas de cuatro máquinas con drafts al azar; muestra la tasa de victoria, 25 % de media, y el puesto medio de cada userito; con 8000 el ruido baja a unas centésimas, con 400 era de ±0,15). Con los 24 recién metidos salía de ×0,65 (Aceituna, Evoscar, Pantaloneto) a ×1,68 (Turroncho, Tocinón, Caravaner): en un todos contra todos las máquinas de aguante lentas ganan porque nadie las ataca (los bots, y la gente, van a por quien pueden tumbar) y la Velocidad vale poco. Retoques, todos con 420 de suma: los tanques cambian aguante por Velocidad, los flojos ganan aguante y pierden Velocidad (19 useritos tocados, ver `datos.ts`), Caparazón sube la Defensa 1 nivel en vez de 2 y tiene 5 PP, y A dos voces pasa de 65 a 75. Resultado: de ×0,75 (Pantaloneto, Cajonazo) a ×1,35 (Caravaner, Turroncho). El resto de la diferencia es estructural (la Velocidad apenas cuenta) y queda para ajustar a mano si Jesús lo nota jugando.
 - **Camioner y Caravaner** comparten el movimiento de la canción; si uno la canta justo después del otro, pega el doble (ver la tabla).
 
@@ -301,6 +301,7 @@ Potencia, precisión y PP. «Uno» es un rival a elegir; «todos», los tres riv
 | Almendrazo | Droga | 85 | 100 | 8 | uno | — |
 | Lluvia de lentejas | Droga | 25 | 90 | 10 | uno | Pega de 2 a 5 veces |
 | Esporas | Droga | — | 75 | 8 | uno | Lo duerme |
+| Setas | Droga | 70 | 100 | 8 | uno | 30 %: achispa |
 | Temblor | Bronca | 80 | 100 | 5 | todos | No afecta a los de tipo Ventolera |
 | Adoquín | Bronca | 100 | 85 | 5 | uno | — |
 | Caparazón | Bronca | — | — | 10 | yo | Sube 2 niveles la Defensa |
