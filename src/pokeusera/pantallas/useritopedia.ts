@@ -191,12 +191,10 @@ function maquetar(cx: CanvasRenderingContext2D | null, i: number): Omit<Ficha, '
   // --- Base stats.
   y += cx ? encabezado(cx, y, t('useritopedia.h.stats')) : 18;
   const total = STATS.reduce((a, s) => a + sp.base[s], 0);
-  const igual = ESPECIES.every((e) => STATS.reduce((a, s) => a + e.base[s], 0) === total);
   const k = mejorStat(i);
-  const notaTotal = envolver(t(igual ? 'useritopedia.total.igual' : 'useritopedia.total.dist'), AN - 24);
   const lineaMejor = envolver(t('useritopedia.mejor.linea', { stat: t(`useritopedia.stat.${k}`), v: sp.base[k], p: rangoDe(k, i), n: N }), AN - 24);
   const pista = envolver(t('useritopedia.stats.toca'), AN - 24);
-  const hStats = 8 + STATS.length * 16 + 6 + 12 + (notaTotal.length + lineaMejor.length + pista.length) * 12 + 6;
+  const hStats = 8 + STATS.length * 16 + 6 + 12 + (lineaMejor.length + pista.length) * 12 + 6;
   for (let s = 0; s < STATS.length; s++) yStat.push(y + 8 + s * 16);
   if (cx) {
     panelCacheado(cx, X0, y, AN, hStats);
@@ -212,7 +210,7 @@ function maquetar(cx: CanvasRenderingContext2D | null, i: number): Omit<Ficha, '
     yy += 6;
     texto2(cx, t('useritopedia.total', { n: total }), X0 + 12, yy, TINTA2);
     yy += 12;
-    for (const l of [...notaTotal, ...lineaMejor]) {
+    for (const l of lineaMejor) {
       texto2(cx, l, X0 + 12, yy, TINTA2, null);
       yy += 12;
     }

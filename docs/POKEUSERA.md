@@ -342,7 +342,7 @@ Todos suman lo mismo en estadísticas (420), para que no haya ninguno roto de sa
 | 2 | **Goudazard**: palito frito de gouda rebozado | Grasa / Petardo | 75 | 70 | 85 | 90 | 100 | De Goudamadre, Fogonazo, Pringue, Rebozado |
 | 3 | **Aceituna**: la perrita negra de Fran, pequeña y muy dulce (antes Aceitún) | Mindundi / Chanza | 90 | 100 | 90 | 75 | 65 | Lametazo, ¡Me cuelo!, Vacile, Dar la chapa |
 | 4 | **Cierzón**: remolino mañico que no para quieto | Ventolera | 75 | 95 | 70 | 105 | 75 | Cierzo, Planeo, Rebufo, Venganza |
-| 5 | **Turroncho**: bloque de turrón blando con almendras | Bronca / Droga | 85 | 80 | 95 | 85 | 75 | Almendrazo, Adoquín, Caparazón, Siesta |
+| 5 | **Turroncho**: bloque de turrón blando con almendras | Bronca / Droga | 75 | 80 | 90 | 95 | 80 | Almendrazo, Adoquín, Caparazón, Siesta |
 | 6 | **Tocinón**: cerdo enorme y tranquilo, 152 kilos de userito | Mindundi / Grasa | 105 | 95 | 70 | 75 | 75 | Barrigazo, Pringue, Temblor, Siesta |
 | 7 | **Roscochoco**: dulce navideño de chocolate, muy indigesto | Grasa / Juerga | 100 | 75 | 85 | 60 | 100 | Indigestión, Fritanga, Conga, Rebozado |
 | 8 | **Espumarro**: jarra de cerveza a la que nunca se le baja la espuma | Alcohol / Mindundi | 95 | 70 | 80 | 75 | 100 | Ronda, Garrafón, ¡Una más!, Barrigazo |
@@ -355,7 +355,7 @@ Todos suman lo mismo en estadísticas (420), para que no haya ninguno roto de sa
 | 15 | **Chupitochu**: chupito muy fuerte y ardiente | Alcohol / Petardo | 75 | 55 | 75 | 90 | 125 | Chupitazo, Fogonazo, Garrafón, Esconderse |
 | 16 | **Caravaner**: una caravana | Bronca / Juerga | 85 | 85 | 70 | 95 | 85 | ¡Camioneees y caravanaaas!, Temblor, Caparazón, Siesta |
 | 17 | **Camioner**: un camión | Mindundi / Bronca | 105 | 125 | 100 | 35 | 55 | Trompazo, Adoquín, Bocinazo, ¡Camioneees y caravanaaas! |
-| 18 | **Criaturitah**: pequeña criaturita del bosque | Droga / Chanza | 80 | 60 | 80 | 100 | 100 | Esporas, Raíces, Colleja, Monada |
+| 18 | **Criaturitah**: pequeña criaturita del bosque | Droga / Chanza | 75 | 70 | 75 | 100 | 100 | Esporas, Raíces, Colleja, Monada |
 | 19 | **Ego-Ego**: fantasma muy flipado | Fantasma | 80 | 100 | 75 | 95 | 70 | Eco, Chulería, Flipada, ¡Que pague otro! |
 | 20 | **Kbronero**: teclado heavy | Chispa / Juerga | 80 | 90 | 70 | 85 | 95 | Solo de teclado, Distorsión, Pogo, Compás |
 | 21 | **Cubatillo**: un cubata (ron con cola) con hielos y pajita, con burbujas que chisporrotean | Alcohol / Chispa | 70 | 55 | 70 | 115 | 110 | Burbujeo, Ronda, Chispazo, ¡Una más! |
@@ -363,11 +363,11 @@ Todos suman lo mismo en estadísticas (420), para que no haya ninguno roto de sa
 | 23 | **JesúsPelo**: surfero de pelo blanco corto con su tabla, muy tranquilo | Droga / Ventolera | 85 | 90 | 75 | 95 | 75 | Tubo perfecto, Setas, Raíces, Planeo |
 | 24 | **Pantaloneto**: unos pantalones escapados del tendedero que van solos | Mindundi / Ventolera | 95 | 120 | 90 | 75 | 40 | Bajarse los pantalones, Al tendedero, Dar la chapa, ¡Me cuelo! |
 | 25 | **Maletrio**: tres maletas blancas apiladas, el equipaje perdido de «Impropios Airlines» | Bronca / Fantasma | 90 | 100 | 105 | 55 | 70 | Maletazo, Embarque prioritario, Abróchense los cinturones, Venganza |
-| 26 | **Teloneon**: un telón rojo de teatro con careta, que improvisa | Chanza / Fantasma | 85 | 75 | 80 | 90 | 90 | ¡Improvisa!, Monólogo, Zasca, Susto |
-| 27 | **Choquechu**: un coche de choque de feria con su pértiga echando chispas | Chispa / Petardo | 80 | 70 | 85 | 100 | 85 | Carambola, Otra ficha, Chispazo, Fogonazo |
-| 28 | **Torrezmón**: un torrezno grasiento con su corteza crujiente y su limón | Grasa / Droga | 100 | 65 | 85 | 70 | 100 | Crujiente, Con limón, Fritanga, Raíces |
-| 29 | **Papiroflexeon**: un avión de papel turquesa | Ventolera | 70 | 95 | 65 | 120 | 70 | Corte de papel, Papiroflexia, Rebufo, Chulería |
-| 30 | **Ceceseta**: la camiseta blanca de Camiones y Caravanas | Juerga / Alcohol | 90 | 90 | 80 | 80 | 80 | Pasodoble, Mancha de cerveza, ¡Camioneees y caravanaaas!, Ronda |
+| 26 | **Teloneon**: un telón rojo de teatro con careta, que improvisa | Chanza / Fantasma | 70 | 65 | 70 | 115 | 100 | ¡Improvisa!, Monólogo, Zasca, Susto |
+| 27 | **Choquechu**: un coche de choque de feria con su pértiga echando chispas | Chispa / Petardo | 80 | 80 | 80 | 100 | 80 | Carambola, Otra ficha, Chispazo, Fogonazo |
+| 28 | **Torrezmón**: un torrezno grasiento con su corteza crujiente y su limón | Grasa / Droga | 90 | 65 | 75 | 90 | 100 | Crujiente, Con limón, Fritanga, Pringue |
+| 29 | **Papiroflexeon**: un avión de papel turquesa | Ventolera | 85 | 110 | 75 | 100 | 50 | Corte de papel, Papiroflexia, Rebufo, Chulería |
+| 30 | **Ceceseta**: la camiseta blanca de Camiones y Caravanas | Juerga / Alcohol | 90 | 95 | 75 | 90 | 70 | Pasodoble, Mancha de cerveza, ¡Camioneees y caravanaaas!, Ronda |
 
 Reparto por tipos (contando los dobles, con los 6 de la tanda 8): Mindundi 8, Petardo 4, Droga 5, Bronca 5, Ventolera 5, Chispa 4, Alcohol 5, Juerga 5, Chanza 5, Grasa 4, Fantasma 5. Los ids nuevos (`maletrio`, `teloneon`, `choquechu`, `torrezmon`, `papiroflexeon`, `ceceseta`) van al final de `ESPECIES`. Las habilidades de los 30 están en «Habilidades».
 
@@ -382,6 +382,7 @@ Cosas a tener en cuenta del equilibrio:
 - **Camioner y Caravaner** comparten el movimiento de la canción; si uno la canta justo después del otro, pega el doble (ver la tabla).
 - **Tanda 7** (14-oct): Turroncho, Turito y Cajonazo cambian de estadísticas (siguen sumando 420), Cajonazo y Pantaloneto cambian un movimiento cada uno (Remate por bulerías y Al tendedero) y Rumba se queda sin dueño (sigue en los datos, pero ningún userito la lleva). Detalle y motivos en «Equilibrio de la tanda 6».
 - **Repaso tras la tanda 7** (14-oct, 8000 batallas): Draguserín 75/80/70/105/90 y Caravaner 85/85/70/95/85 (bajan Especial y Defensa a cambio de Velocidad) y Al tendedero de 70 a 80. Queda: useritos de ×0,76 (Pantaloneto) a ×1,21 (Caravaner) y tipos de ×0,96 a ×1,04 (antes de la tanda 6: ×0,70–1,34 y ×0,87–1,13). Pantaloneto sigue abajo con la máquina, que no aprovecha bien la ida y vuelta: mirarlo jugando.
+- **Equilibrio de la tanda 8** (14-oct, 8000 batallas con los 30 y sus habilidades): al entrar salía de ×0,72 (Papiroflexeon) a ×1,46 (Teloneon), con Torrezmón ×1,37 y Turroncho ×1,34. Retoques: Duro de roer pasa de anular los críticos a dejarlos en ×1,5 (anularlos valía +0,2 por sí solo), Público entregado una vez por turno y hasta +2, Grasiento del 20 % al 10 %, Monólogo de 65 a 55, Corte de papel de 70 a 80, Torrezmón cambia Raíces por Pringue, y estadísticas (todas suman 420) de Teloneon, Choquechu, Torrezmón, Papiroflexeon, Ceceseta, Turroncho y Criaturitah. Queda: useritos de ×0,76 (Pantaloneto) a ×1,20 (Teloneon) y tipos de ×0,90 (Juerga) a ×1,10 (Chanza).
 
 ### Habilidades (tanda 8)
 
@@ -394,12 +395,12 @@ Cada userito tiene una **habilidad pasiva** fija (`Especie.habilidad`, un `Habil
 | Inmunidades | Gratinado, Ya estoy curado, Dos cabezas | `ponerEstado` (el aviso sale justo antes de que saliera el `estado`); Dos cabezas también en la Siesta copiada (cura sin dormir) |
 | Absorben un tipo | Buena ola (Ventolera, +1 Vel), Toma de corriente (Chispa, +1 Esp) | `absorbe` en `calcularDano` (daño 0) y en el bucle de golpes, antes de la precisión |
 | Estadísticas | La espuma no baja, Mañico | `cambiarNivel` (solo bajadas de un rival; Mañico responde con +2 Ata) |
-| Críticos | Bote acumulado (×2), Duro de roer (anula) | tirada de crítico del bucle de golpes (`vel × palillo × bote × papel`) |
+| Críticos | Bote acumulado (×2), Duro de roer (crítico ×1,5 en vez de ×2) | tirada de crítico del bucle de golpes (`vel × palillo × bote × papel`) |
 | Daño | Pareja de carretera, Fan de la gira (+20 %), Con hielo (½ de Petardo), A todo volumen (sin el 75 %), Duro como un cajón | `multHabilidad` / `bonusCompania`, el `if` de `todos`, y `topeCajon` antes de `topeAguante` |
 | Reacciones al golpe | Buena chica, Indigesto, Ardiente, Pesadísimo | `reaccionAlGolpe`, una vez por golpeado tras el bucle |
 | Al entrar | Cuando menos te lo esperas (primer ataque +1, `vol.sorpresa`, consumido por el primer ataque), Coñazo, A favor del viento | `alSalirAlCampo` y `prio` |
 | Fin de turno / banquillo | Fotosíntesis (1/16), Recién lavado (quita estados y cura 1/8 al volver al banquillo) | `finDeTurno`, `sacar` (antes de `reiniciar`) |
-| Otras | 152 kilos (ni Remolino ni retroceso), Fuego de dragón (quema ×2), Grasiento (20 % de empacho extra), Flipado (+1 Ata al tumbar), Se abre la maleta (+2 Ata la primera vez que baja de la mitad, `habUsada`), Público entregado (+1 Esp al fallar un rival) | `forzarCambio` y el retroceso, `efectosSecundarios`, `revisarCaida` (también `abrirMaleta`), fallos de precisión (`publicoEntregado`) |
+| Otras | 152 kilos (ni Remolino ni retroceso), Fuego de dragón (quema ×2), Grasiento (10 % de empacho extra), Flipado (+1 Ata al tumbar), Se abre la maleta (+2 Ata la primera vez que baja de la mitad, `habUsada`), Público entregado (+1 Esp al fallar un rival) | `forzarCambio` y el retroceso, `efectosSecundarios`, `revisarCaida` (también `abrirMaleta`), fallos de precisión (`publicoEntregado`) |
 
 Constantes en `tipos.ts`: `HAB_PAREJA` 20, `HAB_PROB_REACCION` 30, `HAB_GRASIENTO` 20, `HAB_MALETA_ATA` 2, `HAB_MANICO_ATA` 2, `HAB_LAVADO_CURA` 8, `HAB_FOTOSINTESIS` 16.
 
@@ -519,12 +520,12 @@ Potencia, precisión y PP. «Uno» es un rival a elegir; «todos», los tres riv
 | Embarque prioritario | Bronca | 40 | 100 | 10 | uno | Prioridad +1. El primer ataque rápido de Bronca |
 | Abróchense los cinturones | Bronca | — | — | 5 | yo | Sube 1 nivel el Ataque y 1 la Defensa |
 | ¡Improvisa! | Chanza | — | — | 8 | — | Usa un movimiento al azar de `MOVS_IMPROVISA` (todos menos protecciones, los de un solo dueño, Sí, y… y él mismo); lo tira el motor con su azar |
-| Monólogo | Chanza | 65 | 100 | 5 | todos | 20 %: baja 1 nivel el Especial |
+| Monólogo | Chanza | 55 | 100 | 5 | todos | 20 %: baja 1 nivel el Especial |
 | Carambola | Chispa | 70 | 100 | 5 | todos | 20 %: baja 1 nivel la Velocidad |
 | Otra ficha | Chispa | — | — | 5 | yo | Cura la mitad de los PS y quita los estados; el turno siguiente no hace nada (recarga). Falla si está sano y sin estado |
 | Crujiente | Grasa | 25 | 90 | 10 | uno | Pega de 2 a 5 veces |
 | Con limón | Droga | — | — | 5 | yo | Quita los estados y sube 1 nivel el Especial |
-| Corte de papel | Ventolera | 70 | 100 | 8 | uno | Triple de probabilidad de crítico (`critico: 3`) |
+| Corte de papel | Ventolera | 80 | 100 | 8 | uno | Triple de probabilidad de crítico (`critico: 3`) |
 | Papiroflexia | Ventolera | — | — | 5 | yo | Sube 1 nivel el Ataque y 1 la Velocidad |
 | Pasodoble | Juerga | 80 | 100 | 8 | uno | 30 %: sube 1 nivel la Velocidad del que lo usa |
 | Mancha de cerveza | Alcohol | 75 | 100 | 8 | uno | 30 %: baja 1 nivel la Precisión |

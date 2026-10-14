@@ -57,7 +57,7 @@ export type HabilidadId =
   | 'pesadisimo' | 'ola' | 'lavado' | 'maleta' | 'publico' | 'corriente' | 'grasiento' | 'viento' | 'fan';
 export const HAB_PAREJA = 20; // Pareja de carretera / Fan de la gira: % more damage on its attacks while the partner is on the field
 export const HAB_PROB_REACCION = 30; // Buena chica / Indigesto / Ardiente: % chance that whoever hits them pays for it
-export const HAB_GRASIENTO = 20; // Grasiento: % chance that its Grasa attacks give the target an empacho
+export const HAB_GRASIENTO = 10; // Grasiento: % chance that its Grasa attacks give the target an empacho
 export const HAB_MALETA_ATA = 2; // Se abre la maleta: Attack stages it gains the first time it drops under half of its HP
 export const HAB_MANICO_ATA = 2; // Mañico: Attack stages it gains each time a rival lowers one of its stats
 export const HAB_LAVADO_CURA = 8; // Recién lavado: heals 1/8 of its max HP when it goes back to the bench

@@ -313,6 +313,8 @@ interface Ctx {
   tapon: boolean[];
   /** «Al tendedero» landed: this player's userito goes back to the bench at the end of the turn (the player picks who comes in). */
   tendedero: boolean[];
+  /** «Público entregado» already worked for this player this turn (at most once a turn). */
+  publico: boolean[];
   recargaIni: boolean[];
   cizanaIni: boolean[];
   pctIni: number[];
@@ -992,13 +994,13 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
         if (volumen) habilidad(c, j, 'volumen');
         for (let h = 0; h < n && v.ps > 0; h++) {
           const tirada = azar(e) * 512;
-          let critico = tirada < ESPECIE[u.especie].base.vel * palillo * bote * papel;
-          if (critico && habilidadDe(v) === 'duro_de_roer') {
-            // Duro de roer (Turroncho): nobody makes it a critical blow.
-            critico = false;
+          const critico = tirada < ESPECIE[u.especie].base.vel * palillo * bote * papel;
+          // Duro de roer (Turroncho): a critical blow hits it ×1.5 instead of ×2.
+          const roer = critico && habilidadDe(v) === 'duro_de_roer' ? 0.75 : 1;
+          if (roer < 1) {
             habilidad(c, t, 'duro_de_roer', 'hab.duro_de_roer.activa');
           } else if (critico && bote > 1 && tirada >= ESPECIE[u.especie].base.vel * palillo * papel) habilidad(c, j, 'bote');
-          const r = calcularDano(u, v, m, { pot, azar: 0.85 + azar(e) * 0.15, critico, todos: m.objetivo === 'todos' && !karaoke && !volumen, acorralado, mult: multS * panuelo * multH });
+          const r = calcularDano(u, v, m, { pot, azar: 0.85 + azar(e) * 0.15, critico, todos: m.objetivo === 'todos' && !karaoke && !volumen, acorralado, mult: multS * panuelo * multH * roer });
           efi = r.ef;
           let dano0 = r.dano;
           // Posavasos: the first very effective blow (×2 or more) does half.
@@ -1109,7 +1111,8 @@ function publicoEntregado(c: Ctx, atacante: number) {
   c.e.jugadores.forEach((_q, r) => {
     if (r === atacante || eliminado(c.e, r)) return;
     const v = act(c, r);
-    if (v.ps <= 0 || habilidadDe(v) !== 'publico') return;
+    if (v.ps <= 0 || habilidadDe(v) !== 'publico' || c.publico[r] || v.niveles.esp >= 2) return;
+    c.publico[r] = true;
     habilidad(c, r, 'publico');
     cambiarNivel(c, r, 'esp', 1, r);
   });
@@ -1524,6 +1527,7 @@ export function resolverTurno(estado: EstadoCombate, elecciones: (Eleccion | nul
     dichoAguante: e.jugadores.map(() => false),
     tapon: e.jugadores.map(() => false),
     tendedero: e.jugadores.map(() => false),
+    publico: e.jugadores.map(() => false),
     recargaIni: [],
     cizanaIni: [],
     pctIni: e.jugadores.map(pctEquipo),
@@ -1637,6 +1641,7 @@ export function reemplazar(estado: EstadoCombate, elegidos: Record<number, numbe
     dichoAguante: e.jugadores.map(() => false),
     tapon: e.jugadores.map(() => false),
     tendedero: e.jugadores.map(() => false),
+    publico: e.jugadores.map(() => false),
     recargaIni: [],
     cizanaIni: [],
     pctIni: [],

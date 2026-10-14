@@ -66,7 +66,7 @@ export const ESPECIES: Especie[] = [
   e('goudazard', 'Goudazard', ['grasa', 'petardo'], 75, 70, 85, 90, 100, ['goudamadre', 'fogonazo', 'pringue', 'rebozado'], 'gratinado'),
   e('aceituna', 'Aceituna', ['mindundi', 'chanza'], 90, 100, 90, 75, 65, ['lametazo', 'mecuelo', 'vacile', 'chapa'], 'buena_chica'),
   e('cierzon', 'Cierzón', ['ventolera'], 75, 95, 70, 105, 75, ['cierzo', 'planeo', 'rebufo', 'venganza'], 'manico'),
-  e('turroncho', 'Turroncho', ['bronca', 'droga'], 85, 80, 95, 85, 75, ['almendrazo', 'adoquin', 'caparazon', 'siesta'], 'duro_de_roer'),
+  e('turroncho', 'Turroncho', ['bronca', 'droga'], 75, 80, 90, 95, 80, ['almendrazo', 'adoquin', 'caparazon', 'siesta'], 'duro_de_roer'),
   e('tocinon', 'Tocinón', ['mindundi', 'grasa'], 105, 95, 70, 75, 75, ['barrigazo', 'pringue', 'temblor', 'siesta'], 'kilos'),
   e('roscochoco', 'Roscochoco', ['grasa', 'juerga'], 100, 75, 85, 60, 100, ['indigestion', 'fritanga', 'conga', 'rebozado'], 'indigesto'),
   e('espumarro', 'Espumarro', ['alcohol', 'mindundi'], 95, 70, 80, 75, 100, ['ronda', 'garrafon', 'unamas', 'barrigazo'], 'espuma'),
@@ -79,7 +79,7 @@ export const ESPECIES: Especie[] = [
   e('chupitochu', 'Chupitochu', ['alcohol', 'petardo'], 75, 55, 75, 90, 125, ['chupitazo', 'fogonazo', 'garrafon', 'esconderse'], 'ardiente'),
   e('caravaner', 'Caravaner', ['bronca', 'juerga'], 85, 85, 70, 95, 85, ['cancion', 'temblor', 'caparazon', 'siesta'], 'pareja'),
   e('camioner', 'Camioner', ['mindundi', 'bronca'], 105, 125, 100, 35, 55, ['trompazo', 'adoquin', 'bocinazo', 'cancion'], 'pareja'),
-  e('criaturitah', 'Criaturitah', ['droga', 'chanza'], 80, 60, 80, 100, 100, ['esporas', 'raices', 'colleja', 'monada'], 'fotosintesis'),
+  e('criaturitah', 'Criaturitah', ['droga', 'chanza'], 75, 70, 75, 100, 100, ['esporas', 'raices', 'colleja', 'monada'], 'fotosintesis'),
   e('ego-ego', 'Ego-Ego', ['fantasma'], 80, 100, 75, 95, 70, ['eco', 'chuleria', 'flipada', 'quepague'], 'flipado'),
   e('kbronero', 'Kbronero', ['chispa', 'juerga'], 80, 90, 70, 85, 95, ['solo', 'distorsion', 'pogo', 'compas'], 'volumen'),
   // Batch 4 (13-oct): the four new ones go at the end, so the Nº of the others does not change.
@@ -89,11 +89,11 @@ export const ESPECIES: Especie[] = [
   e('pantaloneto', 'Pantaloneto', ['mindundi', 'ventolera'], 95, 120, 90, 75, 40, ['pantalones', 'tendedero', 'chapa', 'mecuelo'], 'lavado'),
   // Batch 8 (14-oct): six more, Nº 25-30, again at the end so the Nº of the others does not change. Each one has an ability (docs/POKEUSERA.md, «Habilidades»).
   e('maletrio', 'Maletrio', ['bronca', 'fantasma'], 90, 100, 105, 55, 70, ['maletazo', 'embarque', 'cinturones', 'venganza'], 'maleta'),
-  e('teloneon', 'Teloneon', ['chanza', 'fantasma'], 85, 75, 80, 90, 90, ['improvisa', 'monologo', 'zasca', 'susto'], 'publico'),
-  e('choquechu', 'Choquechu', ['chispa', 'petardo'], 80, 70, 85, 100, 85, ['carambola', 'ficha', 'chispazo', 'fogonazo'], 'corriente'),
-  e('torrezmon', 'Torrezmón', ['grasa', 'droga'], 100, 65, 85, 70, 100, ['crujiente', 'limon', 'fritanga', 'raices'], 'grasiento'),
-  e('papiroflexeon', 'Papiroflexeon', ['ventolera'], 70, 95, 65, 120, 70, ['cortepapel', 'papiroflexia', 'rebufo', 'chuleria'], 'viento'),
-  e('ceceseta', 'Ceceseta', ['juerga', 'alcohol'], 90, 90, 80, 80, 80, ['pasodoble', 'mancha', 'cancion', 'ronda'], 'fan'),
+  e('teloneon', 'Teloneon', ['chanza', 'fantasma'], 70, 65, 70, 115, 100, ['improvisa', 'monologo', 'zasca', 'susto'], 'publico'),
+  e('choquechu', 'Choquechu', ['chispa', 'petardo'], 80, 80, 80, 100, 80, ['carambola', 'ficha', 'chispazo', 'fogonazo'], 'corriente'),
+  e('torrezmon', 'Torrezmón', ['grasa', 'droga'], 90, 65, 75, 90, 100, ['crujiente', 'limon', 'fritanga', 'pringue'], 'grasiento'),
+  e('papiroflexeon', 'Papiroflexeon', ['ventolera'], 85, 110, 75, 100, 50, ['cortepapel', 'papiroflexia', 'rebufo', 'chuleria'], 'viento'),
+  e('ceceseta', 'Ceceseta', ['juerga', 'alcohol'], 90, 95, 75, 90, 70, ['pasodoble', 'mancha', 'cancion', 'ronda'], 'fan'),
 ];
 
 export const ESPECIE: Record<string, Especie> = Object.fromEntries(ESPECIES.map((s) => [s.id, s]));
@@ -190,12 +190,12 @@ const LISTA_MOVS: Movimiento[] = [
   m('cinturones', 'Abróchense los cinturones', 'bronca', null, null, 5, 'yo'),
   // Like «Sí, y…» it has no target of its own: the engine picks a move at random and, if it is a single-target one, a rival at random.
   m('improvisa', '¡Improvisa!', 'chanza', null, null, 8, 'yo'),
-  m('monologo', 'Monólogo', 'chanza', 65, 100, 5, 'todos'),
+  m('monologo', 'Monólogo', 'chanza', 55, 100, 5, 'todos'),
   m('carambola', 'Carambola', 'chispa', 70, 100, 5, 'todos'),
   m('ficha', 'Otra ficha', 'chispa', null, null, 5, 'yo'),
   m('crujiente', 'Crujiente', 'grasa', 25, 90, 10, 'uno'),
   m('limon', 'Con limón', 'droga', null, null, 5, 'yo'),
-  m('cortepapel', 'Corte de papel', 'ventolera', 70, 100, 8, 'uno'),
+  m('cortepapel', 'Corte de papel', 'ventolera', 80, 100, 8, 'uno'),
   m('papiroflexia', 'Papiroflexia', 'ventolera', null, null, 5, 'yo'),
   m('pasodoble', 'Pasodoble', 'juerga', 80, 100, 8, 'uno'),
   m('mancha', 'Mancha de cerveza', 'alcohol', 75, 100, 8, 'uno'),

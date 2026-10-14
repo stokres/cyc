@@ -297,8 +297,8 @@ hab.manico.nombre = Mañico
 hab.manico.desc = Cada vez que un rival le baja una estadística, sube 2 su Ataque.
 
 hab.duro_de_roer.nombre = Duro de roer
-hab.duro_de_roer.desc = No le hacen golpes críticos.
-hab.duro_de_roer.activa = ¡{quien} es duro de roer: ese golpe no es crítico!
+hab.duro_de_roer.desc = Los golpes críticos le hacen ×1,5 en vez de ×2.
+hab.duro_de_roer.activa = ¡{quien} es duro de roer: el crítico le hace menos!
 
 hab.kilos.nombre = 152 kilos
 hab.kilos.desc = No le mueven: Remolino y los retrocesos no le afectan.
@@ -372,14 +372,14 @@ hab.maleta.desc = La primera vez que baja de la mitad de los PS, sube 2 su Ataqu
 hab.maleta.activa = ¡Se abre la maleta de {quien}!
 
 hab.publico.nombre = Público entregado
-hab.publico.desc = Cada vez que un rival falla un ataque, sube 1 su Especial.
+hab.publico.desc = Cuando un rival falla un ataque, sube 1 su Especial (una vez por turno y hasta +2).
 
 hab.corriente.nombre = Toma de corriente
 hab.corriente.desc = Los ataques de Chispa no le hacen daño y le suben 1 el Especial: va enchufado a la red de la pista.
 hab.corriente.activa = ¡{quien} se enchufa a la corriente!
 
 hab.grasiento.nombre = Grasiento
-hab.grasiento.desc = Sus ataques de Grasa empachan un 20 % de las veces.
+hab.grasiento.desc = Sus ataques de Grasa empachan un 10 % de las veces.
 
 hab.viento.nombre = A favor del viento
 hab.viento.desc = Al salir al combate, sube 1 su Velocidad.

@@ -1999,11 +1999,11 @@ function revisarTanda8() {
     if (M.ESPECIES.slice(0, 24).map((s) => s.id).join() !== viejos) falla('los Nº 1-24 han cambiado de sitio');
     const nuevos = [
       ['maletrio', ['bronca', 'fantasma'], [90, 100, 105, 55, 70], 'maletazo,embarque,cinturones,venganza', 'maleta'],
-      ['teloneon', ['chanza', 'fantasma'], [85, 75, 80, 90, 90], 'improvisa,monologo,zasca,susto', 'publico'],
-      ['choquechu', ['chispa', 'petardo'], [80, 70, 85, 100, 85], 'carambola,ficha,chispazo,fogonazo', 'corriente'],
-      ['torrezmon', ['grasa', 'droga'], [100, 65, 85, 70, 100], 'crujiente,limon,fritanga,raices', 'grasiento'],
-      ['papiroflexeon', ['ventolera'], [70, 95, 65, 120, 70], 'cortepapel,papiroflexia,rebufo,chuleria', 'viento'],
-      ['ceceseta', ['juerga', 'alcohol'], [90, 90, 80, 80, 80], 'pasodoble,mancha,cancion,ronda', 'fan'],
+      ['teloneon', ['chanza', 'fantasma'], [70, 65, 70, 115, 100], 'improvisa,monologo,zasca,susto', 'publico'],
+      ['choquechu', ['chispa', 'petardo'], [80, 80, 80, 100, 80], 'carambola,ficha,chispazo,fogonazo', 'corriente'],
+      ['torrezmon', ['grasa', 'droga'], [90, 65, 75, 90, 100], 'crujiente,limon,fritanga,pringue', 'grasiento'],
+      ['papiroflexeon', ['ventolera'], [85, 110, 75, 100, 50], 'cortepapel,papiroflexia,rebufo,chuleria', 'viento'],
+      ['ceceseta', ['juerga', 'alcohol'], [90, 95, 75, 90, 70], 'pasodoble,mancha,cancion,ronda', 'fan'],
     ];
     nuevos.forEach(([id, tipos, b, movs, hab], i) => {
       const sp = M.ESPECIES[24 + i];
@@ -2029,12 +2029,12 @@ function revisarTanda8() {
       embarque: ['bronca', 40, 100, 10, 'uno', 1],
       cinturones: ['bronca', null, null, 5, 'yo', 0],
       improvisa: ['chanza', null, null, 8, 'yo', 0],
-      monologo: ['chanza', 65, 100, 5, 'todos', 0],
+      monologo: ['chanza', 55, 100, 5, 'todos', 0],
       carambola: ['chispa', 70, 100, 5, 'todos', 0],
       ficha: ['chispa', null, null, 5, 'yo', 0],
       crujiente: ['grasa', 25, 90, 10, 'uno', 0],
       limon: ['droga', null, null, 5, 'yo', 0],
-      cortepapel: ['ventolera', 70, 100, 8, 'uno', 0],
+      cortepapel: ['ventolera', 80, 100, 8, 'uno', 0],
       papiroflexia: ['ventolera', null, null, 5, 'yo', 0],
       pasodoble: ['juerga', 80, 100, 8, 'uno', 0],
       mancha: ['alcohol', 75, 100, 8, 'uno', 0],
@@ -2218,11 +2218,11 @@ function revisarTanda8() {
       }
       return razon(crit, golpesN);
     };
-    // Vel base 120: 120/512 = 23 % of critical hits; Corte de papel: 70 % (three times).
+    // Vel base 100: 100/512 = 20 % of critical hits; Corte de papel: 59 % (three times).
     const normal = tasa('rebufo');
     const papel = tasa('cortepapel');
-    if (normal < 0.17 || normal > 0.3) falla(`críticos de Rebufo: ${normal.toFixed(2)} (esperaba ~0,23)`);
-    if (papel < 0.6 || papel > 0.8) falla(`críticos de Corte de papel: ${papel.toFixed(2)} (esperaba ~0,70)`);
+    if (normal < 0.14 || normal > 0.26) falla(`críticos de Rebufo: ${normal.toFixed(2)} (esperaba ~0,20)`);
+    if (papel < 0.49 || papel > 0.69) falla(`críticos de Corte de papel: ${papel.toFixed(2)} (esperaba ~0,59)`);
   }
 
   // --- Habilidades: data (each userito, each text) and one minimal case per ability.
@@ -2377,7 +2377,7 @@ function revisarTanda8() {
     if (niveles(rc, 1).ata !== 0 || niveles(rc, 2).ata !== 1) falla(`Coñazo contra Espumarro (${niveles(rc, 1).ata}) y Cierzón (${niveles(rc, 2).ata})`);
   }
 
-  // Duro de roer (Turroncho): no critical hits against it. Bote acumulado (Tragaperras): twice the critical hits.
+  // Duro de roer (Turroncho): critical hits against it do ×1.5 instead of ×2 (each one says so). Bote acumulado (Tragaperras): twice the critical hits.
   {
     const criticos = (objetivo, hab) =>
       conHab(objetivo, hab, () => {
@@ -2394,7 +2394,7 @@ function revisarTanda8() {
       });
     const con = criticos('turroncho', 'duro_de_roer');
     const sin = criticos('turroncho', NEUTRO);
-    if (con.c !== 0 || con.hay < 50 || sin.c < 50 || sin.hay) falla(`Duro de roer: ${con.c} críticos y ${con.hay} avisos con él; ${sin.c} críticos sin él`);
+    if (con.c < 50 || con.hay !== con.c || sin.c < 50 || sin.hay) falla(`Duro de roer: ${con.c} críticos y ${con.hay} avisos con él; ${sin.c} críticos sin él`);
     const tasa = (hab) =>
       conHab('tragaperras', hab, () => {
         let c = 0;
@@ -2785,7 +2785,7 @@ function revisarTanda8() {
     if (niveles(rin, 0).esp !== 0 || !rin.eventos.some((ev) => ev.clave === 'combate.no_afecta')) falla('Público entregado: «no afecta» (Mindundi contra Fantasma) no es fallar');
   }
 
-  // Grasiento (Torrezmón): its Grasa attacks give an empacho 20 % of the times (once per move, whatever the number of hits); other types never.
+  // Grasiento (Torrezmón): its Grasa attacks give an empacho 10 % of the times (once per move, whatever the number of hits); other types never.
   {
     let emp = 0;
     let n = 0;
@@ -2801,12 +2801,8 @@ function revisarTanda8() {
         emp++;
         antesDe(r, 'grasiento', (ev) => ev.k === 'estado' && ev.estado === 'empachado', 'Grasiento');
       }
-      const e2 = mk([['torrezmon', 'turito', 'tocinon'], ['turito', 'turito', 'tocinon']], sem);
-      seguro(e2, 0);
-      const r2 = M.resolverTurno(e2, [ataca(idx('torrezmon', 'raices')), cana]);
-      if (act0(r2.estado, 1).estado || habs(r2, 'grasiento').length) falla('Grasiento: Raíces (Droga) no empacha');
     }
-    if (n < 250 || emp < 0.12 * n || emp > 0.3 * n) falla(`Grasiento: ${emp} empachos de ${n} (20 %)`);
+    if (n < 250 || emp < 0.04 * n || emp > 0.17 * n) falla(`Grasiento: ${emp} empachos de ${n} (10 %)`);
   }
 
   // A favor del viento (Papiroflexeon): +1 Speed on coming out, at the start and again after every switch.
