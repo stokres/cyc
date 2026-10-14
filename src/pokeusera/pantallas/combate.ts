@@ -21,7 +21,7 @@ import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
 import { CajaTexto } from './caja';
 import { menuPausa } from './ajustes';
-import { EfectosMov, llegadaFx, tareasPrecalentarEfectos, type PuntoFx } from './efectosMov';
+import { EfectosMov, llegadaFx, tareasEfectosDe, type PuntoFx } from './efectosMov';
 import { cajaSprite, dibujarBandeja, dibujarFondoEscenario, hornearFondoEscenario, miniatura, pieSprite, plataformaCacheada } from './fondos';
 import { abrirGuia } from './guia';
 import { LADO_ICONO_OBJETO, iconoObjeto, tareasPrecalentarObjetos } from './iconosObjeto';
@@ -518,8 +518,9 @@ export class VistaCombate implements Escena {
     }
     // The bar's backdrop and the object icons (a baked backdrop is a big canvas: better before the first frame than in it).
     tareas.push(() => hornearFondoEscenario(estado.escenario, alturaCampo(pantalla().alto)), ...tareasPrecalentarObjetos());
-    // The sprites of the move effects too (already baked when the background baking is over: then this is a few empty loops).
-    tareas.push(...tareasPrecalentarEfectos());
+    // The sprites of the move effects too, but only those of the moves these twelve useritos have, with each move's own type (already baked when the
+    // background baking is over: then this is a few empty loops). Baking every effect of the game here (tens of tasks) stalled the start of a cold battle.
+    tareas.push(...tareasEfectosDe([DESESPERADA, ...[...vistas].flatMap((id) => ESPECIE[id]?.movs ?? [])]));
     let t0 = performance.now();
     for (const f of tareas) {
       f();

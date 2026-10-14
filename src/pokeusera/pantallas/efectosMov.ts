@@ -2850,6 +2850,35 @@ export function tareasPrecalentarEfectos(): (() => void)[] {
   return tareas;
 }
 
+/**
+ * Las tareas que hornean los efectos de ESTOS movimientos con su propio tipo (el del movimiento, que es el que usa `lanzar` en el combate):
+ * una tarea por movimiento. El combate las usa al empezar (`calentar`) en vez de las de todo el juego: solo hornea lo que van a usar los
+ * doce useritos y con el tipo exacto, así que el arranque en frío cuesta la mitad y el primer golpe no hornea nada.
+ */
+export function tareasEfectosDe(movs: Iterable<string>): (() => void)[] {
+  const e = new EfectosMov();
+  const d: PuntoFx = { x: 100, y: 100 };
+  const a: PuntoFx[] = [
+    { x: 0, y: 40 },
+    { x: 200, y: 100 },
+    { x: 200, y: 160 },
+  ];
+  const tareas: (() => void)[] = [];
+  for (const m of new Set(movs)) {
+    const tipo = MOVS[m]?.tipo;
+    if (!tipo) continue;
+    // Los de uno mismo se lanzan sin objetivos (otro dibujo); el Remate por bulerías, con el golpe más flojo y el más fuerte.
+    const objetivos = FX_YO[m] ? [] : a;
+    for (const fuerza of m === 'remate' ? [0, 1] : [0.5]) {
+      tareas.push(() => {
+        e.lanzar(m, tipo, d, objetivos, fuerza);
+        e.limpiar();
+      });
+    }
+  }
+  return tareas;
+}
+
 /** Hornea ya todos los sprites (por ejemplo, durante una pantalla de carga) para que el primer golpe no tenga que hacerlo. */
 export function precalentarEfectos(): void {
   for (const f of tareasPrecalentarEfectos()) f();
