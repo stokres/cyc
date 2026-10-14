@@ -100,6 +100,57 @@ if (vista === 'todo' || vista === 'detalle') {
   document.getElementById('detalle-nota')!.textContent = 'Cada userito: 64×64, 13–15 colores en rampas de 3–5 tonos, contorno de color, luz arriba a la izquierda y luz de borde.';
 }
 
+// ---------------------------------------------------------------------------------------------
+// Contact sheet (?vista=hoja&ids=a,b,c&z=4): per userito the front (frames 0 and 1) and the back, pixel-sharp
+// at ×z on a neutral backdrop, the id underneath. Two userito blocks per row.
+// ---------------------------------------------------------------------------------------------
+if (vista === 'hoja') {
+  document.getElementById('hoja-w')!.hidden = false;
+  const NUEVOS = ['maletrio', 'teloneon', 'choquechu', 'torrezmon', 'papiroflexeon', 'ceceseta'];
+  const ids = (params.get('ids') ?? NUEVOS.join(',')).split(',');
+  const z = Number(params.get('z') ?? 4);
+  const CELDA = 72; // 64 px of sprite + 4 px of air on every side
+  const ETIQ = 30; // height of the id strip (screen px)
+  const POR_FILA = 2;
+  const filas = Math.ceil(ids.length / POR_FILA);
+  const bloqueW = CELDA * 3 * z;
+  const bloqueH = CELDA * z + ETIQ;
+  const hoja = document.getElementById('hoja') as HTMLCanvasElement;
+  hoja.width = bloqueW * POR_FILA;
+  hoja.height = bloqueH * filas;
+  hoja.style.width = `${hoja.width}px`;
+  hoja.style.height = `${hoja.height}px`;
+  const cx = hoja.getContext('2d')!;
+  cx.imageSmoothingEnabled = false;
+  cx.fillStyle = '#b4b7c2';
+  cx.fillRect(0, 0, hoja.width, hoja.height);
+  ids.forEach((id, n) => {
+    const x0 = (n % POR_FILA) * bloqueW;
+    const y0 = Math.floor(n / POR_FILA) * bloqueH;
+    for (let k = 0; k < 3; k++) {
+      cx.fillStyle = (k + n) % 2 ? '#b9bcc7' : '#aeb1bd';
+      cx.fillRect(x0 + k * CELDA * z, y0, CELDA * z, CELDA * z);
+      const sp = k < 2 ? spriteFrente2(id, k) : spriteEspalda2(id, 0);
+      cx.drawImage(sp, x0 + (k * CELDA + 4) * z, y0 + 4 * z, 64 * z, 64 * z);
+    }
+    cx.fillStyle = '#2b2b33';
+    cx.fillRect(x0, y0 + CELDA * z, bloqueW, ETIQ);
+    cx.fillStyle = '#f2f2f6';
+    cx.font = '600 15px system-ui, sans-serif';
+    cx.textBaseline = 'middle';
+    cx.textAlign = 'center';
+    cx.fillText(id, x0 + bloqueW / 2, y0 + CELDA * z + ETIQ / 2);
+    cx.font = '500 11px system-ui, sans-serif';
+    cx.fillStyle = '#a9acba';
+    cx.textAlign = 'left';
+    cx.fillText('frente 1 · frente 2 · espalda', x0 + 8, y0 + CELDA * z + ETIQ / 2);
+    cx.textAlign = 'right';
+    cx.fillText(`${coloresSprite2(id, false, 0)} / ${coloresSprite2(id, false, 1)} / ${coloresSprite2(id, true, 0)} colores`, x0 + bloqueW - 8, y0 + CELDA * z + ETIQ / 2);
+    console.log(id, 'colores', coloresSprite2(id, false, 0), coloresSprite2(id, false, 1), coloresSprite2(id, true, 0), coloresSprite2(id, true, 1));
+  });
+  document.body.dataset.listo = '1';
+}
+
 // Font specimen (for review).
 if (vista === 'fuente') {
   const ctx = lienzo('fuente', 240, 120, ZOOM);

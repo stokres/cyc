@@ -1,5 +1,5 @@
 // PokéUsera · the draft (snake order): who is choosing, every player's picks so far, the sheet of the userito being looked at and the
-// grid of the 24 useritos. The sheet lives in the screen itself (between the players' panels and the grid; no window): tapping a cell
+// grid of the 30 useritos. The sheet lives in the screen itself (between the players' panels and the grid; no window): tapping a cell
 // of the grid shows that userito's sheet, tapping another one swaps it, and ELEGIR (on your turn only) takes it. The top bar with the
 // clock and whose turn it is never goes away. It draws only from what it is told (`alDraft`: the draft state, whose turn and for how
 // long), so a guest can feed it from network messages too.
@@ -48,8 +48,9 @@ export interface PlazaDraft {
   nombre: string;
 }
 
-/** The grid: 6 columns × 4 rows for the 24 useritos (a 32×32 thumbnail per 40×44–54 cell, ≥ 65×71 CSS px on a 390 px phone). */
+/** The grid: 6 columns × 5 rows for the 30 useritos (a 32×32 thumbnail per 40×36–43 cell, ≥ 65×58 CSS px on a 390 px phone). */
 const COLS = 6;
+const FILAS = Math.ceil(ESPECIES.length / COLS);
 const CELDA_W = ANCHO / COLS;
 const MINI_X = Math.floor((CELDA_W - 32) / 2);
 const STATS: { clave: 'ps' | 'ata' | 'def' | 'vel' | 'esp'; nombre: string }[] = [
@@ -62,18 +63,18 @@ const STATS: { clave: 'ps' | 'ata' | 'def' | 'vel' | 'esp'; nombre: string }[] =
 
 /** The sheet's panel: width, and the height from which the full sheet (sprite beside the stats) fits; below it the compact one is used. */
 const W_FICHA = ANCHO - 2;
-const ALTO_FICHA_COMPLETA = 168;
+const ALTO_FICHA_COMPLETA = 183;
 const ALTO_BOTON = 28;
 
-/** The sheet's blocks, in the sheet's own coordinates (the panel's top-left is 0,0). Compact: header with ELEGIR at the right, the five stats in a row, moves, text. Full: sprite and ELEGIR on the left. */
+/** The sheet's blocks, in the sheet's own coordinates (the panel's top-left is 0,0). Compact: header with ELEGIR at the right, the five stats in a row, moves, ability, text. Full: sprite and ELEGIR on the left. */
 const G = {
   x0: 8,
-  compacta: { btnW: 76, btnY: 4, statsY: 34, movsY: 54, movsFila: 12, textoY: 81 },
-  completa: { btnW: 74, btnY: 74, spriteX: 10, spriteY: 6, colX: 90, nombreY: 9, tiposY: 22, statsY: 38, statsFila: 11, movsY: 104, movsFila: 15, textoY: 140 },
+  compacta: { btnW: 76, btnY: 4, statsY: 34, movsY: 54, movsFila: 12, habY: 78, textoY: 93 },
+  completa: { btnW: 74, btnY: 74, spriteX: 10, spriteY: 6, colX: 90, nombreY: 9, tiposY: 22, statsY: 38, statsFila: 11, movsY: 104, movsFila: 15, habY: 134, textoY: 155 },
 };
 const COL_MOV = 116;
 
-type Vista = number; // -1 the userito's text, 0..3 a move's description, 4 the type matchups
+type Vista = number; // -1 the userito's text, 0..3 a move's description, 4 the type matchups, 5 the ability
 
 /** The opened sheet of the layout: which blocks it has and where. */
 interface Diseno {
@@ -149,7 +150,22 @@ function fichaBase(id: string, completa: boolean, h: number, vista: Vista): HTML
       texto2(cx, recortar(m.nombre, COL_MOV - 20 - (clase ? LADO_ICONO_PRIO + 3 : 0)), c.x + 11, c.y + 1, TINTA2, null);
       if (clase) cx.drawImage(iconoPrioridad(clase), c.x + COL_MOV - 12 - LADO_ICONO_PRIO, c.y);
     });
-    // The text strip: the userito's description, a move's, or the type matchups.
+    // The ability (the same for everybody to see): a gold swatch, its label and its name; tapped, its description goes in the strip.
+    {
+      const g = completa ? G.completa : G.compacta;
+      const hy = g.habY;
+      if (vista === 5) {
+        relleno(cx, ORO_UI_OSC, x0 - 3, hy - Math.floor((g.movsFila - 9) / 2) - 1, W_FICHA - 2 * x0 + 6, g.movsFila);
+        relleno(cx, '#fbe19a', x0 - 2, hy - Math.floor((g.movsFila - 9) / 2), W_FICHA - 2 * x0 + 4, g.movsFila - 2);
+      }
+      rect(cx, TINTA2, x0, hy, 7, 9);
+      rect(cx, '#e8c25a', x0 + 1, hy + 1, 5, 7);
+      const etiqueta = t('hab.titulo');
+      texto2(cx, etiqueta, x0 + 11, hy + 1, TINTA_SUAVE, null);
+      const nx = x0 + 11 + anchoTexto2(etiqueta) + 6;
+      texto2(cx, recortar(t(`hab.${sp.habilidad}.nombre`), W_FICHA - x0 - nx), nx, hy + 1, TINTA2, null);
+    }
+    // The text strip: the userito's description, a move's, the type matchups or the ability's.
     const ty = completa ? G.completa.textoY : G.compacta.textoY;
     rect(cx, '#d6c08a', x0, ty - 4, W_FICHA - 2 * x0, 1);
     const n = lineasTexto(completa, h);
@@ -171,7 +187,8 @@ function fichaBase(id: string, completa: boolean, h: number, vista: Vista): HTML
     } else {
       const ancho = W_FICHA - 2 * x0 - 2;
       let lineas: string[];
-      if (vista >= 0 && vista < 4) {
+      if (vista === 5) lineas = envolver(t('draft.habinfo', { nombre: t(`hab.${sp.habilidad}.nombre`), desc: t(`hab.${sp.habilidad}.desc`) }), ancho);
+      else if (vista >= 0 && vista < 4) {
         const m = MOVS[sp.movs[vista]];
         // Name and PP first; on a short sheet a long description goes without them rather than cut.
         lineas = envolver(t('draft.movinfo', { nombre: m.nombre, pp: m.pp, desc: t(`mov.${m.id}.desc`) }), ancho);
@@ -188,9 +205,9 @@ function disenoDraft(H: number): Diseno & { yJug: number; hCelda: number; yGrid:
   const yJug = 20;
   const hCelda = 36 + Math.min(4, Math.floor(extra / 30));
   const yInfo = yJug + 2 * hCelda + 2;
-  // The cells grow with the screen from 44 to 54 px; what is left goes to the sheet.
-  const cellH = Math.max(44, Math.min(54, 44 + Math.floor(extra / 14)));
-  const yGrid = H - 3 - cellH * 4;
+  // The cells grow with the screen from 36 to 43 px (five rows, about what the four rows of 44-54 took); what is left goes to the sheet.
+  const cellH = Math.max(36, Math.min(43, 36 + Math.floor(extra / 19)));
+  const yGrid = H - 3 - cellH * FILAS;
   const hInfo = yGrid - yInfo - 2;
   return { yJug, hCelda, yInfo, hInfo, yGrid, cellH, completa: hInfo >= ALTO_FICHA_COMPLETA };
 }
@@ -212,6 +229,7 @@ export class VistaDraft implements Escena {
   private sel = 0;
   private movSel = -1;
   private tiposVista = false;
+  private habVista = false;
   /** The machine's cursor (px of the grid cell's corner): it wanders while a machine thinks and hops to what it picks. */
   private hx = -1;
   private hy = -1;
@@ -337,7 +355,7 @@ export class VistaDraft implements Escena {
 
   /** The vista of the text strip. */
   private get vista(): Vista {
-    return this.movSel >= 0 ? this.movSel : this.tiposVista ? 4 : -1;
+    return this.movSel >= 0 ? this.movSel : this.tiposVista ? 4 : this.habVista ? 5 : -1;
   }
 
   // ------------------------------------------------------------------ input
@@ -348,19 +366,29 @@ export class VistaDraft implements Escena {
     this.sel = k;
     this.movSel = -1;
     this.tiposVista = false;
+    this.habVista = false;
     if (sonar) sonido.efecto('cursor');
     pantalla().redibujar();
   }
 
   private tocarMov(i: number) {
     this.tiposVista = false;
+    this.habVista = false;
     this.movSel = this.movSel === i ? -1 : i;
     sonido.efecto('cursor');
   }
 
   private tocarTipos() {
     this.movSel = -1;
+    this.habVista = false;
     this.tiposVista = !this.tiposVista;
+    sonido.efecto('cursor');
+  }
+
+  private tocarHab() {
+    this.movSel = -1;
+    this.tiposVista = false;
+    this.habVista = !this.habVista;
     sonido.efecto('cursor');
   }
 
@@ -519,6 +547,10 @@ export class VistaDraft implements Escena {
       const c = celdaMov(completa, i);
       entrada.zona(x + c.x - 3, y + c.y - Math.floor((c.h - 9) / 2) - 1, COL_MOV - 3, c.h + 1, () => this.tocarMov(i));
     }
+    {
+      const g = completa ? G.completa : G.compacta;
+      entrada.zona(x + G.x0 - 3, y + g.habY - Math.floor((g.movsFila - 9) / 2) - 1, W_FICHA - 2 * G.x0 + 6, g.movsFila + 1, () => this.tocarHab());
+    }
     if (lineasTexto(completa, h) >= 3) {
       const tx = completa ? G.completa.colX : G.x0;
       const ty = completa ? G.completa.tiposY : 17;
@@ -547,7 +579,7 @@ export class VistaDraft implements Escena {
 
   // ------------------------------------------------------------------ the grid
 
-  /** The 24 cells on one canvas: plate, thumbnail and, for the taken ones, the owner's mark. Redone only when it changes. */
+  /** The 30 cells on one canvas: plate, thumbnail and, for the taken ones, the owner's mark. Redone only when it changes. */
   private rejillaLienzo(cellH: number): HTMLCanvasElement {
     if (!this.rej) {
       this.rej = document.createElement('canvas');
@@ -555,14 +587,14 @@ export class VistaDraft implements Escena {
     }
     if (this.rejAlto !== cellH) {
       this.rejAlto = cellH;
-      this.rej.height = cellH * 4;
+      this.rej.height = cellH * FILAS;
       this.rejSucia = true;
     }
     if (this.rejSucia) {
       this.rejSucia = false;
       const cx = this.rej.getContext('2d')!;
       cx.imageSmoothingEnabled = false;
-      cx.clearRect(0, 0, ANCHO, cellH * 4);
+      cx.clearRect(0, 0, ANCHO, cellH * FILAS);
       ESPECIES.forEach((sp, k) => {
         const x = (k % COLS) * CELDA_W;
         const y = Math.floor(k / COLS) * cellH;

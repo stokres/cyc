@@ -329,6 +329,7 @@ draft.pega = Le pega fuerte a
 draft.pegan = Le pegan fuerte
 draft.inmune = No le afectan
 draft.x4 = ×4
+draft.habinfo = {nombre}: {desc}
 
 // ---- useritopedia (pantallas/useritopedia.ts)
 useritopedia.titulo = USERITOPEDIA
@@ -346,6 +347,7 @@ useritopedia.stat.esp = ESP
 useritopedia.h.stats = ESTADÍSTICAS BASE
 useritopedia.h.movs = MOVIMIENTOS
 useritopedia.h.tipos = FRENTE A LOS TIPOS
+useritopedia.h.hab = HABILIDAD
 useritopedia.stats.toca = Toca una estadística para ver qué significa.
 useritopedia.total = TOTAL {n}
 useritopedia.total.igual = Todos los useritos suman lo mismo: aquí manda la maña.

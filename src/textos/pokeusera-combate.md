@@ -114,6 +114,9 @@ combate.bostezo = ¡{quien} empieza a bostezar!
 combate.cizana = ¡{quien} está lleno de cizaña!
 combate.siesta = ¡{quien} se echa una siesta y se recupera!
 combate.tendedero_vuelve = ¡{quien} vuelve al tendedero a secarse!
+combate.ficha = ¡{quien} echa otra ficha y se recupera!
+combate.limon = ¡{quien} se echa un chorrito de limón!
+combate.improvisa = ¡{quien} improvisa {mov}!
 combate.premio0 = ¡Tres limones! Sin premio.
 combate.premio40 = ¡Salen unas monedas!
 combate.premio80 = ¡Premio! ¡Lluvia de monedas!
@@ -180,6 +183,12 @@ userito.cubatillo.desc = Cubata con hielos y pajita. Burbujea y se sube a la cab
 userito.p.desc = Una P gordita con patitas. Muy pesada, y no por la letra.
 userito.jesuspelo.desc = Surfero de pelo blanco. Todo fluye, colega. Sin prisa.
 userito.pantaloneto.desc = Unos pantalones escapados del tendedero. Van solos.
+userito.maletrio.desc = Tres maletas apiladas. El equipaje perdido de Impropios Airlines.
+userito.teloneon.desc = Telón rojo con careta, que improvisa. Lo bueno pasa detrás.
+userito.choquechu.desc = Coche de choque de feria, con la pértiga echando chispas.
+userito.torrezmon.desc = Un torrezno grasiento y crujiente, con su limón.
+userito.papiroflexeon.desc = Avión de papel turquesa. Rápido, y corta como un papel.
+userito.ceceseta.desc = La camiseta de Camiones y Caravanas. La fan número uno.
 
 // ---- movimientos: efecto corto para el menú
 mov.barrigazo.desc = Golpe fuerte. Puede paralizar.
@@ -255,6 +264,128 @@ mov.colleja.desc = Colleja a traición. Pega el primero.
 mov.quepague.desc = Va el primero. Los golpes a ti se desvían a otro. Los de «todos», no.
 mov.aguantar.desc = Va el primero. Este turno ningún golpe te deja con menos de 1 PS.
 mov.devolver.desc = Va el último. Devuelve 1,5 veces el daño que te hicieron a quien te pegó el último.
+mov.maletazo.desc = Le cae la maleta de arriba. Puede bajar la Defensa.
+mov.embarque.desc = Embarque prioritario: pega el primero.
+mov.cinturones.desc = Sube el Ataque y la Defensa.
+mov.improvisa.desc = Usa un movimiento al azar de todo el juego. Sin ensayar.
+mov.monologo.desc = Pega a todos con un monólogo que nadie pidió. Puede bajar el Especial.
+mov.carambola.desc = Choca con todos. Puede bajar su Velocidad.
+mov.ficha.desc = Cura la mitad de los PS y quita los estados. El turno siguiente no haces nada.
+mov.crujiente.desc = Pega de 2 a 5 veces: cada mordisco cruje.
+mov.limon.desc = Quita los estados y sube el Especial.
+mov.cortepapel.desc = Hace el triple de golpes críticos.
+mov.papiroflexia.desc = Sube el Ataque y la Velocidad.
+mov.pasodoble.desc = Pega. Puede subir tu Velocidad.
+mov.mancha.desc = Le pone perdida la camiseta. Puede bajar su Precisión.
+
+// ---- habilidades (motor/combate.ts, evento «habilidad»). Por cada una: .nombre = el rótulo sobre el userito y la ficha ·
+//      .desc = lo que hace · .activa = la frase al activarse (si la tiene; {quien} = el que la tiene, {otro} = el otro userito)
+hab.titulo = HABILIDAD
+
+hab.fuego_dragon.nombre = Fuego de dragón
+hab.fuego_dragon.desc = Sus ataques de Petardo queman el doble de veces.
+
+hab.gratinado.nombre = Gratinado
+hab.gratinado.desc = No se puede quemar.
+hab.gratinado.activa = ¡{quien} está gratinado y no se quema!
+
+hab.buena_chica.nombre = Buena chica
+hab.buena_chica.desc = Quien le pega con un ataque a uno tiene un 30 % de bajar 1 su Ataque: nadie puede con esa carita.
+hab.buena_chica.activa = ¡Con esa carita, a {otro} se le quitan las ganas de pegar!
+
+hab.manico.nombre = Mañico
+hab.manico.desc = Cada vez que un rival le baja una estadística, sube 2 su Ataque.
+
+hab.duro_de_roer.nombre = Duro de roer
+hab.duro_de_roer.desc = No le hacen golpes críticos.
+hab.duro_de_roer.activa = ¡{quien} es duro de roer: ese golpe no es crítico!
+
+hab.kilos.nombre = 152 kilos
+hab.kilos.desc = No le mueven: Remolino y los retrocesos no le afectan.
+hab.kilos.activa = ¡{quien} pesa 152 kilos y no se mueve!
+
+hab.indigesto.nombre = Indigesto
+hab.indigesto.desc = Quien le pega con un ataque físico tiene un 30 % de empacharse.
+hab.indigesto.activa = ¡{otro} se empacha al pegar a {quien}!
+
+hab.espuma.nombre = La espuma no baja
+hab.espuma.desc = Los rivales no le pueden bajar las estadísticas.
+hab.espuma.activa = ¡La espuma de {quien} no baja!
+
+hab.cajon.nombre = Duro como un cajón
+hab.cajon.desc = Con todos sus PS, ningún golpe le tumba: se queda a 1 PS.
+hab.cajon.activa = ¡{quien} aguanta de pie, duro como un cajón!
+
+hab.inesperado.nombre = Cuando menos te lo esperas
+hab.inesperado.desc = Al salir al combate, su primer ataque es rápido (+1).
+hab.inesperado.activa = ¡{quien} aparece cuando menos te lo esperas!
+
+hab.bote.nombre = Bote acumulado
+hab.bote.desc = Hace el doble de golpes críticos.
+
+hab.conazo.nombre = Coñazo
+hab.conazo.desc = Al salir al combate, todos los rivales bajan 1 su Ataque.
+hab.conazo.activa = ¡{quien} suelta un coñazo y a los rivales se les quitan las ganas!
+
+hab.curado.nombre = Ya estoy curado
+hab.curado.desc = No se puede achispar.
+hab.curado.activa = ¡{quien} ya está curado: no se achispa!
+
+hab.dos_cabezas.nombre = Dos cabezas
+hab.dos_cabezas.desc = No se puede dormir: siempre hay una cabeza despierta.
+hab.dos_cabezas.activa = ¡Una cabeza de {quien} siempre está despierta!
+
+hab.ardiente.nombre = Ardiente
+hab.ardiente.desc = Quien le pega con un ataque físico tiene un 30 % de quemarse.
+hab.ardiente.activa = ¡{otro} se quema al tocar a {quien}!
+
+hab.pareja.nombre = Pareja de carretera
+hab.pareja.desc = Si su pareja (Camioner o Caravaner) está en combate, sea de quien sea, sus ataques pegan un 20 % más.
+
+hab.fotosintesis.nombre = Fotosíntesis
+hab.fotosintesis.desc = Cura 1/16 de sus PS al final de cada turno.
+hab.fotosintesis.cura = ¡{quien} hace la fotosíntesis y se recupera!
+
+hab.flipado.nombre = Flipado
+hab.flipado.desc = Cada vez que tumba a un userito, sube 1 su Ataque.
+
+hab.volumen.nombre = A todo volumen
+hab.volumen.desc = Sus ataques a todos pegan al 100 %, no al 75 %.
+
+hab.hielo.nombre = Con hielo
+hab.hielo.desc = Los ataques de Petardo le hacen la mitad.
+
+hab.pesadisimo.nombre = Pesadísimo
+hab.pesadisimo.desc = Quien le pega con un ataque físico baja 1 su Velocidad.
+hab.pesadisimo.activa = ¡{otro} se cansa de pegar a {quien}!
+
+hab.ola.nombre = Buena ola
+hab.ola.desc = Los ataques de Ventolera no le hacen daño y le suben 1 la Velocidad.
+hab.ola.activa = ¡{quien} surfea la ola: no le hace nada!
+
+hab.lavado.nombre = Recién lavado
+hab.lavado.desc = Al volver al banquillo se le quitan los estados y cura 1/8. Le va bien con Al tendedero.
+hab.lavado.activa = ¡{quien} se da una ducha antes de irse al banquillo!
+
+hab.maleta.nombre = Se abre la maleta
+hab.maleta.desc = La primera vez que baja de la mitad de los PS, sube 2 su Ataque.
+hab.maleta.activa = ¡Se abre la maleta de {quien}!
+
+hab.publico.nombre = Público entregado
+hab.publico.desc = Cada vez que un rival falla un ataque, sube 1 su Especial.
+
+hab.corriente.nombre = Toma de corriente
+hab.corriente.desc = Los ataques de Chispa no le hacen daño y le suben 1 el Especial: va enchufado a la red de la pista.
+hab.corriente.activa = ¡{quien} se enchufa a la corriente!
+
+hab.grasiento.nombre = Grasiento
+hab.grasiento.desc = Sus ataques de Grasa empachan un 20 % de las veces.
+
+hab.viento.nombre = A favor del viento
+hab.viento.desc = Al salir al combate, sube 1 su Velocidad.
+
+hab.fan.nombre = Fan de la gira
+hab.fan.desc = Si Camioner o Caravaner están en combate, sea de quien sea, sus ataques pegan un 20 % más.
 
 // ---- ventajas de entrenador (motor/combate.ts: Chuchi «Llega tarde», Guille «Mañico»)
 combate.perk.chuchi = {quien} llegaba tarde: el golpe le pilla a medias.

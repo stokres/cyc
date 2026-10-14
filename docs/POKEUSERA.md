@@ -74,7 +74,7 @@ Once piezas originales de estilo Game Boy (2 pulsos, onda de 16 pasos y ruido), 
 
 Pedido por Jesús tras la beta («entender cómo funcionan las estadísticas… una tabla de apoyo con qué ataca mejor a qué… el significado de los estados… un juego más fácil de seguir»). `pantallas/guia.ts` exporta `abrirGuia(base, pagina?)`, hecha sobre `sobre` (`modal.ts`), así que se abre encima de cualquier pantalla y la devuelve al cerrarse: **GUÍA** en el menú principal (entre JUGAR ONLINE y AJUSTES, con su icono «?» dibujado en `guia.ts`), **GUÍA** en la caja de pausa del combate (`menuPausa`; en online la batalla sigue por debajo) y el «?» de la ficha del draft. Cinco páginas (◀ ▶, deslizar, flechas, pestañas; arrastrar para bajar si no cabe; VOLVER): **JUEGO** (draft, turno simultáneo, orden, último en pie), **DATOS** (PS/ATA/DEF/ESP/VEL con los textos `ayuda.stat.*` y la escala de niveles −6…+6), **TIPOS** (la tabla 11×11 sacada de `eficacia` de `datos.ts`, atacante en filas y defensor en columnas, casillas verdes ×2, naranjas ×½ y oscuras ×0; tocar un tipo o una casilla enmarca su fila y columna y lista «Pega fuerte a / Pega poco a / No afecta a / Le pegan fuerte»), **ESTADOS** (las cinco etiquetas DOR/PAR/QUE/EMP/ACH con `ayuda.estado.*`) y **BAR** (Acorralado, Venganza, Hora de cerrar, Desde la grada, la caña y, debajo, las ventajas de los cuatro entrenadores). `pagina` acepta `como`, `stats` (o `estadisticas`), `tipos`, `estados` y `reglas`. Los textos están en `pokeusera.md` (`guia.*`).
 
-**La ficha del draft** (pedido por Jesús el 14-oct-2026: «que al pulsar un userito, sus detalles salgan directamente en la pantalla de draft, no en una ventana nueva, desde la que también poder elegirlo o pulsar a otro diferente para ver sus detalles»; `pantallas/draft.ts`, `fichaBase`). La ficha ya no es una ventana: vive en la propia pantalla, en una zona fija entre los paneles de los jugadores y la rejilla de 6×4, que siempre se ve entera. Tocar una casilla de la rejilla (de cualquier userito, también uno ya elegido) pone su ficha ahí; tocar otra la cambia; tocar la misma no hace nada. **ELEGIR** (un botón de la ficha, ≥ 28 px lógicos) toma el userito mostrado y solo está activo en tu turno y para un userito libre: fuera de tu turno se puede mirar todo pero no elegir (el botón sale apagado). Enter elige lo mismo con el teclado y las flechas mueven la selección. La cuenta atrás y de quién es el turno (barra de arriba) no se tapan nunca. Dos versiones según el alto que sobra (`disenoDraft`): **completa** desde 168 px lógicos de alto de ficha (móviles de unos 475 px lógicos en adelante, como un 390×844, que da ~200): el sprite de 64×64 respirando a la izquierda con ELEGIR debajo, y a su derecha nombre, Nº, tipos, las cinco estadísticas en barras y el «?» (que, como las filas, abre la guía en DATOS); y **compacta** (de 384 hasta ~475): sin sprite, con nombre y tipos a la izquierda y ELEGIR a la derecha, las cinco estadísticas en una fila de barras y los cuatro movimientos en 2×2, cada uno con el cuadradito de su tipo, su nombre y, si lo tiene, el icono de prioridad. En las dos, debajo de los movimientos va una tira de texto: por defecto la descripción del userito; **tocar un movimiento** (cuadradito, nombre) la cambia por «Nombre (PP n): descripción» y tocarlo otra vez la devuelve; y **tocar los tipos** del userito (si hay sitio para tres líneas, o sea casi siempre salvo en 384) la cambia por «Le pega fuerte a / Le pegan fuerte» (con «×4») y «No le afectan» si cabe, como en la Useritopedia. Cambiar de userito devuelve la tira a la descripción. Al elegir una máquina, su cursor dorado salta a su pick (y vaga mientras piensa) sin mover la ficha que miras; si el userito que miras lo elige otro, la ficha pasa al siguiente libre. Los movimientos de la ficha miden 12-15 px lógicos de alto (menos que los 44 px CSS de la regla I4: son informativos, tocar uno no cambia nada). **Rendimiento:** cada ficha (panel, nombre, barras, movimientos, tira) se hornea una vez por userito, tamaño y vista (`hornear`, y las 24 de la vista por defecto en el segundo plano: `tareasPrecalentarDraft` en `precalentar.ts`), la rejilla es un solo lienzo que solo se rehace al cambiar un pick, y cada fotograma son ~15 `drawImage` (antes 61): `draft` baja de 2,2 a 1,1-1,3 ms por fotograma y de 61 a 15 `drawImage`; tocar una casilla con la CPU ×4 cuesta menos de 11 ms en el peor fotograma. De paso, `sobre` ya no devuelve la pantalla anterior si el juego ya había cambiado de pantalla mientras estaba abierto (el draft acabó, salió el podio).
+**La ficha del draft** (pedido por Jesús el 14-oct-2026: «que al pulsar un userito, sus detalles salgan directamente en la pantalla de draft, no en una ventana nueva, desde la que también poder elegirlo o pulsar a otro diferente para ver sus detalles»; `pantallas/draft.ts`, `fichaBase`). La ficha ya no es una ventana: vive en la propia pantalla, en una zona fija entre los paneles de los jugadores y la rejilla de 6×5, que siempre se ve entera. Tocar una casilla de la rejilla (de cualquier userito, también uno ya elegido) pone su ficha ahí; tocar otra la cambia; tocar la misma no hace nada. **ELEGIR** (un botón de la ficha, ≥ 28 px lógicos) toma el userito mostrado y solo está activo en tu turno y para un userito libre: fuera de tu turno se puede mirar todo pero no elegir (el botón sale apagado). Enter elige lo mismo con el teclado y las flechas mueven la selección. La cuenta atrás y de quién es el turno (barra de arriba) no se tapan nunca. Dos versiones según el alto que sobra (`disenoDraft`): **completa** desde 168 px lógicos de alto de ficha (móviles de unos 475 px lógicos en adelante, como un 390×844, que da ~200): el sprite de 64×64 respirando a la izquierda con ELEGIR debajo, y a su derecha nombre, Nº, tipos, las cinco estadísticas en barras y el «?» (que, como las filas, abre la guía en DATOS); y **compacta** (de 384 hasta ~475): sin sprite, con nombre y tipos a la izquierda y ELEGIR a la derecha, las cinco estadísticas en una fila de barras y los cuatro movimientos en 2×2, cada uno con el cuadradito de su tipo, su nombre y, si lo tiene, el icono de prioridad. En las dos, debajo de los movimientos va una tira de texto: por defecto la descripción del userito; **tocar un movimiento** (cuadradito, nombre) la cambia por «Nombre (PP n): descripción» y tocarlo otra vez la devuelve; y **tocar los tipos** del userito (si hay sitio para tres líneas, o sea casi siempre salvo en 384) la cambia por «Le pega fuerte a / Le pegan fuerte» (con «×4») y «No le afectan» si cabe, como en la Useritopedia. Cambiar de userito devuelve la tira a la descripción. Al elegir una máquina, su cursor dorado salta a su pick (y vaga mientras piensa) sin mover la ficha que miras; si el userito que miras lo elige otro, la ficha pasa al siguiente libre. Los movimientos de la ficha miden 12-15 px lógicos de alto (menos que los 44 px CSS de la regla I4: son informativos, tocar uno no cambia nada). **Rendimiento:** cada ficha (panel, nombre, barras, movimientos, tira) se hornea una vez por userito, tamaño y vista (`hornear`, y las 30 de la vista por defecto en el segundo plano: `tareasPrecalentarDraft` en `precalentar.ts`), la rejilla es un solo lienzo que solo se rehace al cambiar un pick, y cada fotograma son ~15 `drawImage` (antes 61): `draft` baja de 2,2 a 1,1-1,3 ms por fotograma y de 61 a 15 `drawImage`; tocar una casilla con la CPU ×4 cuesta menos de 11 ms en el peor fotograma. De paso, `sobre` ya no devuelve la pantalla anterior si el juego ya había cambiado de pantalla mientras estaba abierto (el draft acabó, salió el podio).
 
 ### Online
 
@@ -182,7 +182,7 @@ Lo que se nota: en el ritmo que ve el jugador el combate dibuja menos de la mita
 
 ### Elegir equipo: el draft en serpiente
 
-Todos ven los 24 useritos a la vez y se eligen por turnos, sin repetir: 1-2-3-4, 4-3-2-1, 1-2-3-4. 20 segundos por elección; si se acaba el tiempo, la máquina elige por ti. Al tocar un userito de la rejilla su ficha sale en la propia pantalla (ver «La ficha del draft»). Así cada uno tiene useritos distintos, y ya hay pique antes de pelear. Con 24 useritos y 12 elegidos, la mitad se queda fuera en cada partida. La rejilla del draft es de 6 columnas × 4 filas (casillas de 40 × 44-54 px lógicos, de 65 × 71 px CSS o más en un móvil de 390 px).
+Todos ven los 30 useritos a la vez y se eligen por turnos, sin repetir: 1-2-3-4, 4-3-2-1, 1-2-3-4. 20 segundos por elección; si se acaba el tiempo, la máquina elige por ti. Al tocar un userito de la rejilla su ficha sale en la propia pantalla (ver «La ficha del draft»). Así cada uno tiene useritos distintos, y ya hay pique antes de pelear. Con 30 useritos y 12 elegidos, más de la mitad se queda fuera en cada partida. La rejilla del draft es de 6 columnas × 5 filas (casillas de 40 × 36-43 px lógicos; la altura sobrante la reparte `cellH`).
 
 ### Cada turno
 
@@ -332,7 +332,7 @@ Once tipos. Doble de daño (×2), la mitad (×½) o nada (×0). Si un userito ti
 
 ---
 
-## 3. Los 24 useritos (validados)
+## 3. Los 30 useritos (24 validados, 6 de la tanda 8)
 
 Todos suman lo mismo en estadísticas (420), para que no haya ninguno roto de salida: cada uno destaca en algo y flojea en otra cosa. Las cifras se ajustarán al probar. La columna PS es la base: en combate el PS es `round(base × 2) + 80` (ver «Precisiones del motor»).
 
@@ -362,8 +362,14 @@ Todos suman lo mismo en estadísticas (420), para que no haya ninguno roto de sa
 | 22 | **P**: una P mayúscula gordita con ojos y patitas, muy pesada | Mindundi / Chanza | 95 | 90 | 100 | 60 | 75 | P de Pesao, Dar la chapa, ¡Que pague otro!, Cara de pena |
 | 23 | **JesúsPelo**: surfero de pelo blanco corto con su tabla, muy tranquilo | Droga / Ventolera | 85 | 90 | 75 | 95 | 75 | Tubo perfecto, Setas, Raíces, Planeo |
 | 24 | **Pantaloneto**: unos pantalones escapados del tendedero que van solos | Mindundi / Ventolera | 95 | 120 | 90 | 75 | 40 | Bajarse los pantalones, Al tendedero, Dar la chapa, ¡Me cuelo! |
+| 25 | **Maletrio**: tres maletas blancas apiladas, el equipaje perdido de «Impropios Airlines» | Bronca / Fantasma | 90 | 100 | 105 | 55 | 70 | Maletazo, Embarque prioritario, Abróchense los cinturones, Venganza |
+| 26 | **Teloneon**: un telón rojo de teatro con careta, que improvisa | Chanza / Fantasma | 85 | 75 | 80 | 90 | 90 | ¡Improvisa!, Monólogo, Zasca, Susto |
+| 27 | **Choquechu**: un coche de choque de feria con su pértiga echando chispas | Chispa / Petardo | 80 | 70 | 85 | 100 | 85 | Carambola, Otra ficha, Chispazo, Fogonazo |
+| 28 | **Torrezmón**: un torrezno grasiento con su corteza crujiente y su limón | Grasa / Droga | 100 | 65 | 85 | 70 | 100 | Crujiente, Con limón, Fritanga, Raíces |
+| 29 | **Papiroflexeon**: un avión de papel turquesa | Ventolera | 70 | 95 | 65 | 120 | 70 | Corte de papel, Papiroflexia, Rebufo, Chulería |
+| 30 | **Ceceseta**: la camiseta blanca de Camiones y Caravanas | Juerga / Alcohol | 90 | 90 | 80 | 80 | 80 | Pasodoble, Mancha de cerveza, ¡Camioneees y caravanaaas!, Ronda |
 
-Reparto por tipos (contando los dobles): Mindundi 8, Petardo 3, Droga 4, Bronca 4, Ventolera 4, Chispa 3, Alcohol 4, Juerga 4, Chanza 4, Grasa 3, Fantasma 3.
+Reparto por tipos (contando los dobles, con los 6 de la tanda 8): Mindundi 8, Petardo 4, Droga 5, Bronca 5, Ventolera 5, Chispa 4, Alcohol 5, Juerga 5, Chanza 5, Grasa 4, Fantasma 5. Los ids nuevos (`maletrio`, `teloneon`, `choquechu`, `torrezmon`, `papiroflexeon`, `ceceseta`) van al final de `ESPECIES`. Las habilidades de los 30 están en «Habilidades».
 
 Cosas a tener en cuenta del equilibrio:
 
@@ -376,6 +382,60 @@ Cosas a tener en cuenta del equilibrio:
 - **Camioner y Caravaner** comparten el movimiento de la canción; si uno la canta justo después del otro, pega el doble (ver la tabla).
 - **Tanda 7** (14-oct): Turroncho, Turito y Cajonazo cambian de estadísticas (siguen sumando 420), Cajonazo y Pantaloneto cambian un movimiento cada uno (Remate por bulerías y Al tendedero) y Rumba se queda sin dueño (sigue en los datos, pero ningún userito la lleva). Detalle y motivos en «Equilibrio de la tanda 6».
 - **Repaso tras la tanda 7** (14-oct, 8000 batallas): Draguserín 75/80/70/105/90 y Caravaner 85/85/70/95/85 (bajan Especial y Defensa a cambio de Velocidad) y Al tendedero de 70 a 80. Queda: useritos de ×0,76 (Pantaloneto) a ×1,21 (Caravaner) y tipos de ×0,96 a ×1,04 (antes de la tanda 6: ×0,70–1,34 y ×0,87–1,13). Pantaloneto sigue abajo con la máquina, que no aprovecha bien la ida y vuelta: mirarlo jugando.
+
+### Habilidades (tanda 8)
+
+Cada userito tiene una **habilidad pasiva** fija (`Especie.habilidad`, un `HabilidadId` de `tipos.ts`). Se ve siempre, también la de los rivales: en la ficha del draft (fila con el cuadradito dorado, tocarla pone el texto en la tira inferior), en la ficha del combate (fila «HABILIDAD», tocarla da la descripción) y en la Useritopedia (sección «HABILIDAD»). Los textos son `hab.<id>.nombre`, `hab.<id>.desc` y, si dice algo al activarse, `hab.<id>.activa`.
+
+**Interfaz con el motor.** Al activarse, `habilidad(c, j, id, clave?)` (`motor/combate.ts`) emite `{ k: 'habilidad', j, id }` **justo antes** de los eventos de su efecto (y la frase `.activa`, si la hay); no repite el aviso dentro de la misma acción (`c.uso`). La pantalla de combate lo pinta como el rótulo de los objetos (`flota(..., TAG_ORO, 'tag')`, horneado y en caché por texto) y en los movimientos a todos los muestra a la vez que el resto del grupo (`grupoArea`). Nada se dibuja con texto por fotograma. Todo vive en el motor del anfitrión; los invitados solo reproducen eventos. La máquina las respeta con `absorbe`, `habilidadDe` y `multHabilidad` (`motor/bot.ts`): no lanza Chispa a Choquechu ni Ventolera a JesúsPelo.
+
+| Grupo | Habilidades | Dónde se aplican |
+|---|---|---|
+| Inmunidades | Gratinado, Ya estoy curado, Dos cabezas | `ponerEstado` (el aviso sale justo antes de que saliera el `estado`); Dos cabezas también en la Siesta copiada (cura sin dormir) |
+| Absorben un tipo | Buena ola (Ventolera, +1 Vel), Toma de corriente (Chispa, +1 Esp) | `absorbe` en `calcularDano` (daño 0) y en el bucle de golpes, antes de la precisión |
+| Estadísticas | La espuma no baja, Mañico | `cambiarNivel` (solo bajadas de un rival; Mañico responde con +2 Ata) |
+| Críticos | Bote acumulado (×2), Duro de roer (anula) | tirada de crítico del bucle de golpes (`vel × palillo × bote × papel`) |
+| Daño | Pareja de carretera, Fan de la gira (+20 %), Con hielo (½ de Petardo), A todo volumen (sin el 75 %), Duro como un cajón | `multHabilidad` / `bonusCompania`, el `if` de `todos`, y `topeCajon` antes de `topeAguante` |
+| Reacciones al golpe | Buena chica, Indigesto, Ardiente, Pesadísimo | `reaccionAlGolpe`, una vez por golpeado tras el bucle |
+| Al entrar | Cuando menos te lo esperas (primer ataque +1, `vol.sorpresa`, consumido por el primer ataque), Coñazo, A favor del viento | `alSalirAlCampo` y `prio` |
+| Fin de turno / banquillo | Fotosíntesis (1/16), Recién lavado (quita estados y cura 1/8 al volver al banquillo) | `finDeTurno`, `sacar` (antes de `reiniciar`) |
+| Otras | 152 kilos (ni Remolino ni retroceso), Fuego de dragón (quema ×2), Grasiento (20 % de empacho extra), Flipado (+1 Ata al tumbar), Se abre la maleta (+2 Ata la primera vez que baja de la mitad, `habUsada`), Público entregado (+1 Esp al fallar un rival) | `forzarCambio` y el retroceso, `efectosSecundarios`, `revisarCaida` (también `abrirMaleta`), fallos de precisión (`publicoEntregado`) |
+
+Constantes en `tipos.ts`: `HAB_PAREJA` 20, `HAB_PROB_REACCION` 30, `HAB_GRASIENTO` 20, `HAB_MALETA_ATA` 2, `HAB_MANICO_ATA` 2, `HAB_LAVADO_CURA` 8, `HAB_FOTOSINTESIS` 16.
+
+| Userito | Habilidad |
+|---|---|
+| Draguserín | Fuego de dragón |
+| Goudazard | Gratinado |
+| Aceituna | Buena chica |
+| Cierzón | Mañico |
+| Turroncho | Duro de roer |
+| Tocinón | 152 kilos |
+| Roscochoco | Indigesto |
+| Espumarro | La espuma no baja |
+| Cajonazo | Duro como un cajón |
+| Lentejasur | Cuando menos te lo esperas |
+| Tragaperras | Bote acumulado |
+| Turito | Coñazo |
+| Resacón | Ya estoy curado |
+| Evoscar | Dos cabezas |
+| Chupitochu | Ardiente |
+| Caravaner, Camioner | Pareja de carretera |
+| Criaturitah | Fotosíntesis |
+| Ego-Ego | Flipado |
+| Kbronero | A todo volumen |
+| Cubatillo | Con hielo |
+| P | Pesadísimo |
+| JesúsPelo | Buena ola |
+| Pantaloneto | Recién lavado |
+| Maletrio | Se abre la maleta |
+| Teloneon | Público entregado |
+| Choquechu | Toma de corriente |
+| Torrezmón | Grasiento |
+| Papiroflexeon | A favor del viento |
+| Ceceseta | Fan de la gira (con Camioner o Caravaner en combate, de quien sea) |
+
+Decisiones donde la propuesta no llegaba: ¡Improvisa! elige entre 29 movimientos (`MOVS_IMPROVISA`) y deja como «último movimiento» el elegido (así Sí, y… copia el real); Otra ficha y Con limón no hacen nada si están sanos (Otra ficha falla, como la Siesta); la Siesta de Evoscar copiada por Dos cabezas cura sin dormir; Guille no gasta su Mañico con Cajonazo. Las habilidades todavía no se han pasado por la simulación de equilibrio.
 
 ### Los movimientos
 
@@ -455,6 +515,19 @@ Potencia, precisión y PP. «Uno» es un rival a elegir; «todos», los tres riv
 | Venganza | Fantasma | 50 | 100 | 5 | uno | Doble de potencia contra quien le hizo daño el turno anterior |
 | Flipada | Fantasma | — | — | 5 | yo | Sube 1 nivel el Ataque, el Especial y la Velocidad; baja 1 nivel la Defensa |
 | Selfie | Fantasma | — | 70 | 8 | todos | Flash en la cara: baja 1 nivel la precisión de los rivales |
+| Maletazo | Bronca | 90 | 100 | 8 | uno | 20 %: baja 1 nivel la Defensa (tanda 8) |
+| Embarque prioritario | Bronca | 40 | 100 | 10 | uno | Prioridad +1. El primer ataque rápido de Bronca |
+| Abróchense los cinturones | Bronca | — | — | 5 | yo | Sube 1 nivel el Ataque y 1 la Defensa |
+| ¡Improvisa! | Chanza | — | — | 8 | — | Usa un movimiento al azar de `MOVS_IMPROVISA` (todos menos protecciones, los de un solo dueño, Sí, y… y él mismo); lo tira el motor con su azar |
+| Monólogo | Chanza | 65 | 100 | 5 | todos | 20 %: baja 1 nivel el Especial |
+| Carambola | Chispa | 70 | 100 | 5 | todos | 20 %: baja 1 nivel la Velocidad |
+| Otra ficha | Chispa | — | — | 5 | yo | Cura la mitad de los PS y quita los estados; el turno siguiente no hace nada (recarga). Falla si está sano y sin estado |
+| Crujiente | Grasa | 25 | 90 | 10 | uno | Pega de 2 a 5 veces |
+| Con limón | Droga | — | — | 5 | yo | Quita los estados y sube 1 nivel el Especial |
+| Corte de papel | Ventolera | 70 | 100 | 8 | uno | Triple de probabilidad de crítico (`critico: 3`) |
+| Papiroflexia | Ventolera | — | — | 5 | yo | Sube 1 nivel el Ataque y 1 la Velocidad |
+| Pasodoble | Juerga | 80 | 100 | 8 | uno | 30 %: sube 1 nivel la Velocidad del que lo usa |
+| Mancha de cerveza | Alcohol | 75 | 100 | 8 | uno | 30 %: baja 1 nivel la Precisión |
 
 ### Equilibrio de la tanda 6
 
@@ -499,6 +572,6 @@ Todos siguen sumando 420. Resultado simulado: useritos de ×0,70-1,34 a **×0,73
 
 Pedido por Jesús («una useritopedia con todos los detalles de todos los useritos: su número, su tipo, su descripción, etcétera»). `pantallas/useritopedia.ts` exporta `abrirUseritopedia(base, id?)`, hecha sobre `sobre` (`modal.ts`) como la guía: se abre encima de cualquier pantalla (o de nada, con `base` null) y la devuelve al cerrarse. Con `id` abre directamente la ficha de ese userito y VOLVER cierra; sin él abre la **LISTA**. Todavía no tiene entrada en el menú (la añade quien edite `menu.ts` / `flujo.ts`: `await abrirUseritopedia(escena)`).
 
-- **Lista:** los 24 en el orden de `ESPECIES` (Nº01…Nº24, el mismo número de la ficha del draft), cada fila con número, miniatura 32×32, nombre, tipos y su mejor estadística (`ESP 100`). Se arrastra con inercia, flechas ↑↓ para moverse, Enter o toque para abrir, VOLVER.
-- **Ficha:** una sola página que se desliza hacia abajo: nombre y Nº; el sprite de frente a 2× y el de espaldas, ambos con su reposo de dos fotogramas (a ~2 por segundo), y los tipos; la descripción (`userito.<id>.desc`); las cinco estadísticas base con barras (tocar una abre su `ayuda.stat.*`), el total (todos suman 420) y en qué estadística destaca y con qué puesto de 24; los cuatro movimientos con tipo, potencia, precisión, PP, objetivo (a uno / a todos / a sí mismo), categoría (físico / especial / estado, según `TIPOS_FISICOS`), prioridad y `mov.<id>.desc`; y «Le pega fuerte a / Le pegan fuerte (×4) / No le afectan», calculado con `eficacia` como en la ficha del draft (reutiliza `hileraTipos`, `defensoresCon` y `atacantesFuertes` de `guia.ts`). ◀ ▶ (arriba, abajo, flechas del teclado o deslizar de lado) pasan al anterior o siguiente con un deslizamiento de 160 ms y su grito (`sonido.grito`, que también suena al abrir y al tocar el sprite grande); VOLVER vuelve a la lista.
+- **Lista:** los 30 en el orden de `ESPECIES` (Nº01…Nº30, el mismo número de la ficha del draft), cada fila con número, miniatura 32×32, nombre, tipos y su mejor estadística (`ESP 100`). Se arrastra con inercia, flechas ↑↓ para moverse, Enter o toque para abrir, VOLVER.
+- **Ficha:** una sola página que se desliza hacia abajo: nombre y Nº; el sprite de frente a 2× y el de espaldas, ambos con su reposo de dos fotogramas (a ~2 por segundo), y los tipos; la descripción (`userito.<id>.desc`); las cinco estadísticas base con barras (tocar una abre su `ayuda.stat.*`), el total (todos suman 420) y en qué estadística destaca y con qué puesto de 30; los cuatro movimientos con tipo, potencia, precisión, PP, objetivo (a uno / a todos / a sí mismo), categoría (físico / especial / estado, según `TIPOS_FISICOS`), prioridad y `mov.<id>.desc`; y «Le pega fuerte a / Le pegan fuerte (×4) / No le afectan», calculado con `eficacia` como en la ficha del draft (reutiliza `hileraTipos`, `defensoresCon` y `atacantesFuertes` de `guia.ts`). ◀ ▶ (arriba, abajo, flechas del teclado o deslizar de lado) pasan al anterior o siguiente con un deslizamiento de 160 ms y su grito (`sonido.grito`, que también suena al abrir y al tocar el sprite grande); VOLVER vuelve a la lista.
 - **Rendimiento:** la pantalla es `estatica` (y `sobre` ahora propaga ese dato: un modal estático sobre nada o sobre otra pantalla estática no se repinta cada 250 ms). `paso` devuelve true solo mientras hay inercia, durante el deslizamiento entre useritos y en el instante en que cambia el fotograma de reposo. Cada fila de la lista y cada ficha (un lienzo alto con todo menos los dos sprites y la burbuja de explicación) se hornean una vez; en reposo se hornea una pieza por fotograma (filas, luego las fichas de las filas visibles; o los sprites y la ficha de los vecinos de la abierta), así que abrir una ficha o pasar con ◀ ▶ no se nota. Un fotograma son unas pocas llamadas a `drawImage`; el texto va por la caché de `fuente2`. Medido con la CPU 4× más lenta, 390×844: la lista en reposo no repinta nada; la ficha en reposo, 2 repintados por segundo de ~1,2-1,7 ms; arrastrando o deslizando, ~1,3 ms de media por fotograma (máx. 5 ms). Vista previa: `tools/pokeusera-v2.html?vista=useritopedia` (`&id=camioner` abre una ficha; `&medir=1` da `window.__medir`). Textos: `useritopedia.*` en `pokeusera.md`.

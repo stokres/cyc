@@ -1,7 +1,7 @@
-// PokéUsera · Edición Jarra: all the data of docs/POKEUSERA.md (type chart, the 24 useritos,
+// PokéUsera · Edición Jarra: all the data of docs/POKEUSERA.md (type chart, the 30 useritos,
 // the move table and the engine-side effect of each move). Names are data; every sentence the
 // game says lives in src/textos/pokeusera-combate.md.
-import type { EscenarioId, Especie, Estado, Movimiento, ObjetoId, Stat, SucesoId, Tipo } from './tipos';
+import type { EscenarioId, Especie, Estado, HabilidadId, Movimiento, ObjetoId, Stat, SucesoId, Tipo } from './tipos';
 
 export const TIPOS: readonly Tipo[] = ['mindundi', 'petardo', 'droga', 'bronca', 'ventolera', 'chispa', 'alcohol', 'juerga', 'chanza', 'grasa', 'fantasma'];
 
@@ -52,40 +52,48 @@ export function eficacia(tipoAtaque: Tipo, defensa: readonly Tipo[]): number {
 // keeping 420 in 19 useritos (the slow tanks give bulk for speed; the weak ones get bulk back), Caparazón +1 DEF and 5 PP,
 // «A dos voces» 65 → 75. Win rate went from ×0.65–×1.68 of the average to ×0.75–×1.35.
 
-const e = (id: string, nombre: string, tipos: Especie['tipos'], ps: number, ata: number, def: number, vel: number, esp: number, movs: Especie['movs']): Especie => ({
+const e = (id: string, nombre: string, tipos: Especie['tipos'], ps: number, ata: number, def: number, vel: number, esp: number, movs: Especie['movs'], habilidad: HabilidadId): Especie => ({
   id,
   nombre,
   tipos,
   base: { ps, ata, def, vel, esp },
   movs,
+  habilidad,
 });
 
 export const ESPECIES: Especie[] = [
-  e('draguserin', 'Draguserín', ['petardo', 'ventolera'], 75, 80, 70, 105, 90, ['traca', 'petardazo', 'planeo', 'esconderse']),
-  e('goudazard', 'Goudazard', ['grasa', 'petardo'], 75, 70, 85, 90, 100, ['goudamadre', 'fogonazo', 'pringue', 'rebozado']),
-  e('aceituna', 'Aceituna', ['mindundi', 'chanza'], 90, 100, 90, 75, 65, ['lametazo', 'mecuelo', 'vacile', 'chapa']),
-  e('cierzon', 'Cierzón', ['ventolera'], 75, 95, 70, 105, 75, ['cierzo', 'planeo', 'rebufo', 'venganza']),
-  e('turroncho', 'Turroncho', ['bronca', 'droga'], 85, 80, 95, 85, 75, ['almendrazo', 'adoquin', 'caparazon', 'siesta']),
-  e('tocinon', 'Tocinón', ['mindundi', 'grasa'], 105, 95, 70, 75, 75, ['barrigazo', 'pringue', 'temblor', 'siesta']),
-  e('roscochoco', 'Roscochoco', ['grasa', 'juerga'], 100, 75, 85, 60, 100, ['indigestion', 'fritanga', 'conga', 'rebozado']),
-  e('espumarro', 'Espumarro', ['alcohol', 'mindundi'], 95, 70, 80, 75, 100, ['ronda', 'garrafon', 'unamas', 'barrigazo']),
-  e('cajonazo', 'Cajonazo', ['juerga'], 105, 120, 100, 45, 50, ['remate', 'taconeo', 'aguantar', 'temblor']),
-  e('lentejasur', 'Lentejasur', ['droga', 'fantasma'], 70, 65, 70, 100, 115, ['lluvia', 'tropezon', 'susto', 'esporas']),
-  e('tragaperras', 'Tragaperras', ['chispa', 'chanza'], 75, 60, 80, 90, 115, ['premio', 'chispazo', 'zasca', 'cizana']),
-  e('turito', 'Turito', ['mindundi'], 100, 70, 90, 80, 80, ['chapa', 'pillo', 'turra', 'bostezo']),
-  e('resacon', 'Resacón', ['alcohol', 'fantasma'], 85, 90, 80, 75, 90, ['dolor', 'chupitazo', 'venganza', 'aguantar']),
-  e('evoscar', 'Evoscar', ['mindundi', 'bronca'], 100, 105, 95, 55, 65, ['coz', 'devolver', 'dosvoces', 'siy']),
-  e('chupitochu', 'Chupitochu', ['alcohol', 'petardo'], 75, 55, 75, 90, 125, ['chupitazo', 'fogonazo', 'garrafon', 'esconderse']),
-  e('caravaner', 'Caravaner', ['bronca', 'juerga'], 85, 85, 70, 95, 85, ['cancion', 'temblor', 'caparazon', 'siesta']),
-  e('camioner', 'Camioner', ['mindundi', 'bronca'], 105, 125, 100, 35, 55, ['trompazo', 'adoquin', 'bocinazo', 'cancion']),
-  e('criaturitah', 'Criaturitah', ['droga', 'chanza'], 80, 60, 80, 100, 100, ['esporas', 'raices', 'colleja', 'monada']),
-  e('ego-ego', 'Ego-Ego', ['fantasma'], 80, 100, 75, 95, 70, ['eco', 'chuleria', 'flipada', 'quepague']),
-  e('kbronero', 'Kbronero', ['chispa', 'juerga'], 80, 90, 70, 85, 95, ['solo', 'distorsion', 'pogo', 'compas']),
+  e('draguserin', 'Draguserín', ['petardo', 'ventolera'], 75, 80, 70, 105, 90, ['traca', 'petardazo', 'planeo', 'esconderse'], 'fuego_dragon'),
+  e('goudazard', 'Goudazard', ['grasa', 'petardo'], 75, 70, 85, 90, 100, ['goudamadre', 'fogonazo', 'pringue', 'rebozado'], 'gratinado'),
+  e('aceituna', 'Aceituna', ['mindundi', 'chanza'], 90, 100, 90, 75, 65, ['lametazo', 'mecuelo', 'vacile', 'chapa'], 'buena_chica'),
+  e('cierzon', 'Cierzón', ['ventolera'], 75, 95, 70, 105, 75, ['cierzo', 'planeo', 'rebufo', 'venganza'], 'manico'),
+  e('turroncho', 'Turroncho', ['bronca', 'droga'], 85, 80, 95, 85, 75, ['almendrazo', 'adoquin', 'caparazon', 'siesta'], 'duro_de_roer'),
+  e('tocinon', 'Tocinón', ['mindundi', 'grasa'], 105, 95, 70, 75, 75, ['barrigazo', 'pringue', 'temblor', 'siesta'], 'kilos'),
+  e('roscochoco', 'Roscochoco', ['grasa', 'juerga'], 100, 75, 85, 60, 100, ['indigestion', 'fritanga', 'conga', 'rebozado'], 'indigesto'),
+  e('espumarro', 'Espumarro', ['alcohol', 'mindundi'], 95, 70, 80, 75, 100, ['ronda', 'garrafon', 'unamas', 'barrigazo'], 'espuma'),
+  e('cajonazo', 'Cajonazo', ['juerga'], 105, 120, 100, 45, 50, ['remate', 'taconeo', 'aguantar', 'temblor'], 'cajon'),
+  e('lentejasur', 'Lentejasur', ['droga', 'fantasma'], 70, 65, 70, 100, 115, ['lluvia', 'tropezon', 'susto', 'esporas'], 'inesperado'),
+  e('tragaperras', 'Tragaperras', ['chispa', 'chanza'], 75, 60, 80, 90, 115, ['premio', 'chispazo', 'zasca', 'cizana'], 'bote'),
+  e('turito', 'Turito', ['mindundi'], 100, 70, 90, 80, 80, ['chapa', 'pillo', 'turra', 'bostezo'], 'conazo'),
+  e('resacon', 'Resacón', ['alcohol', 'fantasma'], 85, 90, 80, 75, 90, ['dolor', 'chupitazo', 'venganza', 'aguantar'], 'curado'),
+  e('evoscar', 'Evoscar', ['mindundi', 'bronca'], 100, 105, 95, 55, 65, ['coz', 'devolver', 'dosvoces', 'siy'], 'dos_cabezas'),
+  e('chupitochu', 'Chupitochu', ['alcohol', 'petardo'], 75, 55, 75, 90, 125, ['chupitazo', 'fogonazo', 'garrafon', 'esconderse'], 'ardiente'),
+  e('caravaner', 'Caravaner', ['bronca', 'juerga'], 85, 85, 70, 95, 85, ['cancion', 'temblor', 'caparazon', 'siesta'], 'pareja'),
+  e('camioner', 'Camioner', ['mindundi', 'bronca'], 105, 125, 100, 35, 55, ['trompazo', 'adoquin', 'bocinazo', 'cancion'], 'pareja'),
+  e('criaturitah', 'Criaturitah', ['droga', 'chanza'], 80, 60, 80, 100, 100, ['esporas', 'raices', 'colleja', 'monada'], 'fotosintesis'),
+  e('ego-ego', 'Ego-Ego', ['fantasma'], 80, 100, 75, 95, 70, ['eco', 'chuleria', 'flipada', 'quepague'], 'flipado'),
+  e('kbronero', 'Kbronero', ['chispa', 'juerga'], 80, 90, 70, 85, 95, ['solo', 'distorsion', 'pogo', 'compas'], 'volumen'),
   // Batch 4 (13-oct): the four new ones go at the end, so the Nº of the others does not change.
-  e('cubatillo', 'Cubatillo', ['alcohol', 'chispa'], 70, 55, 70, 115, 110, ['burbujeo', 'ronda', 'chispazo', 'unamas']),
-  e('p', 'P', ['mindundi', 'chanza'], 95, 90, 100, 60, 75, ['pesao', 'chapa', 'quepague', 'cara_de_pena']),
-  e('jesuspelo', 'JesúsPelo', ['droga', 'ventolera'], 85, 90, 75, 95, 75, ['tubo', 'setas', 'raices', 'planeo']),
-  e('pantaloneto', 'Pantaloneto', ['mindundi', 'ventolera'], 95, 120, 90, 75, 40, ['pantalones', 'tendedero', 'chapa', 'mecuelo']),
+  e('cubatillo', 'Cubatillo', ['alcohol', 'chispa'], 70, 55, 70, 115, 110, ['burbujeo', 'ronda', 'chispazo', 'unamas'], 'hielo'),
+  e('p', 'P', ['mindundi', 'chanza'], 95, 90, 100, 60, 75, ['pesao', 'chapa', 'quepague', 'cara_de_pena'], 'pesadisimo'),
+  e('jesuspelo', 'JesúsPelo', ['droga', 'ventolera'], 85, 90, 75, 95, 75, ['tubo', 'setas', 'raices', 'planeo'], 'ola'),
+  e('pantaloneto', 'Pantaloneto', ['mindundi', 'ventolera'], 95, 120, 90, 75, 40, ['pantalones', 'tendedero', 'chapa', 'mecuelo'], 'lavado'),
+  // Batch 8 (14-oct): six more, Nº 25-30, again at the end so the Nº of the others does not change. Each one has an ability (docs/POKEUSERA.md, «Habilidades»).
+  e('maletrio', 'Maletrio', ['bronca', 'fantasma'], 90, 100, 105, 55, 70, ['maletazo', 'embarque', 'cinturones', 'venganza'], 'maleta'),
+  e('teloneon', 'Teloneon', ['chanza', 'fantasma'], 85, 75, 80, 90, 90, ['improvisa', 'monologo', 'zasca', 'susto'], 'publico'),
+  e('choquechu', 'Choquechu', ['chispa', 'petardo'], 80, 70, 85, 100, 85, ['carambola', 'ficha', 'chispazo', 'fogonazo'], 'corriente'),
+  e('torrezmon', 'Torrezmón', ['grasa', 'droga'], 100, 65, 85, 70, 100, ['crujiente', 'limon', 'fritanga', 'raices'], 'grasiento'),
+  e('papiroflexeon', 'Papiroflexeon', ['ventolera'], 70, 95, 65, 120, 70, ['cortepapel', 'papiroflexia', 'rebufo', 'chuleria'], 'viento'),
+  e('ceceseta', 'Ceceseta', ['juerga', 'alcohol'], 90, 90, 80, 80, 80, ['pasodoble', 'mancha', 'cancion', 'ronda'], 'fan'),
 ];
 
 export const ESPECIE: Record<string, Especie> = Object.fromEntries(ESPECIES.map((s) => [s.id, s]));
@@ -176,6 +184,21 @@ const LISTA_MOVS: Movimiento[] = [
   m('venganza', 'Venganza', 'fantasma', 50, 100, 5, 'uno'),
   m('flipada', 'Flipada', 'fantasma', null, null, 5, 'yo'),
   m('selfie', 'Selfie', 'fantasma', null, 70, 8, 'todos'),
+  // Tanda 8 (14-oct, the six new useritos): 13 moves, all with one owner.
+  m('maletazo', 'Maletazo', 'bronca', 90, 100, 8, 'uno'),
+  m('embarque', 'Embarque prioritario', 'bronca', 40, 100, 10, 'uno', 1),
+  m('cinturones', 'Abróchense los cinturones', 'bronca', null, null, 5, 'yo'),
+  // Like «Sí, y…» it has no target of its own: the engine picks a move at random and, if it is a single-target one, a rival at random.
+  m('improvisa', '¡Improvisa!', 'chanza', null, null, 8, 'yo'),
+  m('monologo', 'Monólogo', 'chanza', 65, 100, 5, 'todos'),
+  m('carambola', 'Carambola', 'chispa', 70, 100, 5, 'todos'),
+  m('ficha', 'Otra ficha', 'chispa', null, null, 5, 'yo'),
+  m('crujiente', 'Crujiente', 'grasa', 25, 90, 10, 'uno'),
+  m('limon', 'Con limón', 'droga', null, null, 5, 'yo'),
+  m('cortepapel', 'Corte de papel', 'ventolera', 70, 100, 8, 'uno'),
+  m('papiroflexia', 'Papiroflexia', 'ventolera', null, null, 5, 'yo'),
+  m('pasodoble', 'Pasodoble', 'juerga', 80, 100, 8, 'uno'),
+  m('mancha', 'Mancha de cerveza', 'alcohol', 75, 100, 8, 'uno'),
   // Used when no move has PP left (Mindundi, 50, never misses, recoil 1/4).
   m('desesperada', 'A la desesperada', 'mindundi', 50, null, 1, 'uno'),
 ];
@@ -206,8 +229,10 @@ export interface Efecto {
   recarga?: boolean;
   /** The target cannot switch next turn. */
   bloqueaCambio?: boolean;
+  /** Critical-hit chance multiplier (Corte de papel: ×3). */
+  critico?: number;
   /** Moves with their own logic. */
-  especial?: 'premio' | 'siy' | 'venganza' | 'cancion' | 'esconderse' | 'quepague' | 'aguantar' | 'devolver' | 'siesta' | 'remolino' | 'bostezo' | 'cizana' | 'tendedero' | 'remate';
+  especial?: 'premio' | 'siy' | 'venganza' | 'cancion' | 'esconderse' | 'quepague' | 'aguantar' | 'devolver' | 'siesta' | 'remolino' | 'bostezo' | 'cizana' | 'tendedero' | 'remate' | 'improvisa' | 'ficha' | 'limon';
 }
 
 export const EFECTOS: Record<string, Efecto> = {
@@ -288,7 +313,37 @@ export const EFECTOS: Record<string, Efecto> = {
   desesperada: { rebote: true },
   tendedero: { especial: 'tendedero' },
   remate: { especial: 'remate' },
+  // Tanda 8.
+  maletazo: { nivel: [{ a: 'objetivo', stat: 'def', cambio: -1, prob: 20 }] },
+  cinturones: {
+    nivel: [
+      { a: 'yo', stat: 'ata', cambio: 1 },
+      { a: 'yo', stat: 'def', cambio: 1 },
+    ],
+  },
+  improvisa: { especial: 'improvisa' },
+  monologo: { nivel: [{ a: 'objetivo', stat: 'esp', cambio: -1, prob: 20 }] },
+  carambola: { nivel: [{ a: 'objetivo', stat: 'vel', cambio: -1, prob: 20 }] },
+  ficha: { especial: 'ficha' },
+  crujiente: { golpes: 'multi' },
+  limon: { nivel: [{ a: 'yo', stat: 'esp', cambio: 1 }], especial: 'limon' },
+  cortepapel: { critico: 3 },
+  papiroflexia: {
+    nivel: [
+      { a: 'yo', stat: 'ata', cambio: 1 },
+      { a: 'yo', stat: 'vel', cambio: 1 },
+    ],
+  },
+  pasodoble: { nivel: [{ a: 'yo', stat: 'vel', cambio: 1, prob: 30 }] },
+  mancha: { nivel: [{ a: 'objetivo', stat: 'prec', cambio: -1, prob: 30 }] },
 };
+
+/** The moves ¡Improvisa! can pick: every move that has not exactly one owner among the useritos (so not the ones made for one userito, like Al tendedero
+ *  or Remate por bulerías), without the protections (priority +2), «Sí, y…», «A la desesperada» and itself. */
+export const MOVS_IMPROVISA: readonly string[] = Object.keys(MOVS).filter((id) => {
+  const duenos = ESPECIES.filter((sp) => sp.movs.includes(id)).length;
+  return duenos !== 1 && (MOVS[id].prioridad ?? 0) < 2 && id !== 'siy' && id !== DESESPERADA && id !== 'improvisa';
+});
 
 /** «Remate por bulerías»: 20 at full HP up to 200 on the brink, 20 + 180 × (1 − HP / max HP), rounded. */
 export const potenciaRemate = (ps: number, psMax: number): number => Math.round(20 + 180 * (1 - Math.max(0, Math.min(psMax, ps)) / psMax));

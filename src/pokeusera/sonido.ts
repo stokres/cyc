@@ -42,11 +42,11 @@ export const EFECTOS = [
 ] as const;
 export type Efecto = (typeof EFECTOS)[number];
 export type Canal = 'musica' | 'efectos';
-/** The 24 useritos that have a cry of their own (any other id gets one from its hash too). */
+/** The 30 useritos that have a cry of their own (any other id gets one from its hash too). */
 export const ESPECIES = [
   'draguserin', 'goudazard', 'aceituna', 'cierzon', 'turroncho', 'tocinon', 'roscochoco', 'espumarro', 'cajonazo', 'lentejasur',
   'tragaperras', 'turito', 'resacon', 'evoscar', 'chupitochu', 'caravaner', 'camioner', 'criaturitah', 'ego-ego', 'kbronero',
-  'cubatillo', 'p', 'jesuspelo', 'pantaloneto',
+  'cubatillo', 'p', 'jesuspelo', 'pantaloneto', 'maletrio', 'teloneon', 'choquechu', 'torrezmon', 'papiroflexeon', 'ceceseta',
 ] as const;
 
 /**
@@ -574,9 +574,9 @@ export class Sonido {
   private cantar(ac: AudioContext, fx: GainNode, id: string) {
     const r = azar(hash(id));
     const idx = (ESPECIES as readonly string[]).indexOf(id);
-    // The 24 known ids take 24 different slots in pitch (7 is coprime with 24, so they shuffle); the rest, a random one.
-    const ranura = idx >= 0 ? (idx * 7) % 24 : Math.floor(r() * 24);
-    const f0 = 140 * 2 ** (((ranura + r() * 0.8) / 24) * 2.5);
+    // The 30 known ids take 30 different slots in pitch (7 is coprime with 30, so they shuffle); the rest, a random one.
+    const ranura = idx >= 0 ? (idx * 7) % 30 : Math.floor(r() * 30);
+    const f0 = 140 * 2 ** (((ranura + r() * 0.8) / 30) * 2.5);
     const total = 0.42 + r() * 0.36;
     const silabas = 1 + Math.floor(r() * 3);
     const forma = Math.floor(r() * 5);

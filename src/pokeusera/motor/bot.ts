@@ -5,6 +5,9 @@
 //    the same rival, uses the caña when low, now and then buffs/inflicts statuses, rarely switches
 //    out of a ×4 weakness, and acts from the grada when eliminated.
 //    Objects: only the obvious (the Pañuelo's +20 % goes into its damage estimates); what to take in «La barra» is `objetoBot` (objetos.ts).
+//    Tanda 8: abilities. It never throws Chispa at Choquechu or Ventolera at JesúsPelo (`calcularDano` gives 0 against an absorbing
+//    ability and the target is skipped), counts the +20 % of the partners and the ½ of Con hielo in its estimates, buffs itself when
+//    it is healthy (the generic stat-up branch), heals with Otra ficha when it is low and cleans itself with Con limón when it is ill.
 //    Tanda 6: it protects itself (Esconderse, ¡Que pague otro!, Aguantar el tipo) when two or more rivals hit it last turn or it is low
 //    and threatened, uses the quick moves (+1) to finish off a rival, and Devolvérsela when it expects to be hit.
 //  - pickBot: picks in the draft by raw quality plus type variety.
@@ -13,7 +16,7 @@
 import type { Eleccion, EstadoCombate, EstadoDraft, Stat, Tipo, Userito } from '../tipos';
 import { TIPOS_FISICOS } from '../tipos';
 import { EFECTOS, ESPECIE, MOVS, eficacia } from '../datos';
-import { activo, calcularDano, enGrada, eliminado, hayDeSuceso, multNivel, multObjeto, multSuceso, potenciaDe, puedeCambiar, recienDespierto, rivalesEnPie, vivos } from './combate';
+import { absorbe, activo, calcularDano, enGrada, eliminado, habilidadDe, hayDeSuceso, multHabilidad, multNivel, multObjeto, multSuceso, potenciaDe, puedeCambiar, recienDespierto, rivalesEnPie, vivos } from './combate';
 import { disponibles, turnoDraft } from './draft';
 
 type Rnd = () => number;
@@ -22,7 +25,7 @@ const tiposDe = (u: Userito) => ESPECIE[u.especie].tipos;
 
 /** How hard the best STAB attack of type(s) `atacante` hits a userito: 0..4. */
 function amenaza(atacante: Userito, victima: Userito): number {
-  return Math.max(...tiposDe(atacante).map((t) => eficacia(t, tiposDe(victima))));
+  return Math.max(...tiposDe(atacante).map((t) => (absorbe(victima, t) ? 0 : eficacia(t, tiposDe(victima)))));
 }
 
 interface Valor {
@@ -43,7 +46,7 @@ function presion(e: EstadoCombate, j: number, rivales: number[]): Presion {
     let top = 0;
     for (const id of ESPECIE[a.especie].movs) {
       const mv = MOVS[id];
-      if (mv.pot !== null) top = Math.max(top, calcularDano(a, u, mv, { pot: potenciaDe(a, mv), todos: mv.objetivo === 'todos', mult: multSuceso(e, mv.tipo) * multObjeto(a, mv) }).dano);
+      if (mv.pot !== null) top = Math.max(top, calcularDano(a, u, mv, { pot: potenciaDe(a, mv), todos: mv.objetivo === 'todos' && habilidadDe(a) !== 'volumen', mult: multSuceso(e, mv.tipo) * multObjeto(a, mv) * multHabilidad(e, r, a, u, mv) }).dano);
     }
     return top;
   });
@@ -68,10 +71,12 @@ function valorMovimiento(e: EstadoCombate, j: number, idx: number, rivales: numb
     let suma = 0;
     for (const r of rivales) {
       const v = activo(e, r);
+      // Buena ola / Toma de corriente: the blow does nothing to it.
+      if (absorbe(v, m.tipo)) continue;
       let pot = pot0;
       if (ef.especial === 'venganza' && e.agresores[j].includes(r)) pot *= 2;
       if (ef.especial === 'cancion' && e.cancionAntes) pot *= 2;
-      const { dano } = calcularDano(u, v, m, { pot, todos: m.objetivo === 'todos' && !hayDeSuceso(e, 'karaoke'), mult: multSuceso(e, m.tipo) * multObjeto(u, m) });
+      const { dano } = calcularDano(u, v, m, { pot, todos: m.objetivo === 'todos' && !hayDeSuceso(e, 'karaoke') && habilidadDe(u) !== 'volumen', mult: multSuceso(e, m.tipo) * multObjeto(u, m) * multHabilidad(e, j, u, v, m) });
       const total = dano * golpes;
       const frac = Math.min(1, total / v.ps);
       let val = acc * frac * (total >= v.ps ? 1.6 : 1) * (1 + (1 - v.ps / v.psMax) * 0.4);
@@ -136,6 +141,23 @@ function valorMovimiento(e: EstadoCombate, j: number, idx: number, rivales: numb
       valor = e.ultimoMov ? 0.3 : 0;
       objetivo = rivales[Math.floor(rnd() * rivales.length)];
       break;
+    case 'improvisa':
+      // A gamble on any move of the game: about as good as an average attack.
+      valor = 0.3;
+      break;
+    case 'ficha': {
+      // Otra ficha: half of the HP back and no status, but the next turn it does nothing: only when it is low (or ill) and not about to be finished off.
+      const enfermo = !!u.estado && u.estado !== 'dormido';
+      valor = hp < 0.4 ? 0.5 + (0.4 - hp) - (pres.peligro ? 0.1 : 0) : enfermo && hp < 0.65 ? 0.3 : 0;
+      break;
+    }
+    case 'limon': {
+      // Con limón: cleans the status and raises the Especial a little: worth it when ill (and a mild buff when healthy, from the generic branch).
+      const enfermo = (!!u.estado && u.estado !== 'dormido') || u.achispado > 0;
+      const util = ataqueFisico(u) ? 0.3 : 1;
+      valor = (enfermo ? 0.45 : 0) + (hp > 0.35 ? 0.1 * util * (1 - Math.abs(u.niveles.esp) / 6) : 0);
+      break;
+    }
     case 'remolino':
       candidato((r) => 0.2 + 0.06 * (Object.values(activo(e, r).niveles) as number[]).reduce((s, x) => s + Math.max(0, x), 0));
       break;

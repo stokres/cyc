@@ -1,9 +1,9 @@
-// PokéUsera · the USERITOPEDIA: the encyclopedia of the 24 useritos. It opens over whatever is on screen (or over
+// PokéUsera · the USERITOPEDIA: the encyclopedia of the 30 useritos. It opens over whatever is on screen (or over
 // nothing) like the guide and gives it back when closed. Two views:
-//   LISTA   – the 24 useritos in their numeric order (Nº01…Nº24): number, thumbnail, name, type chips and best stat.
+//   LISTA   – the 30 useritos in their numeric order (Nº01…Nº30): number, thumbnail, name, type chips and best stat.
 //             Drag to scroll (with inertia), ↑↓ to move, Enter/tap to open one, VOLVER to leave.
 //   FICHA   – one userito: big front sprite and small back sprite (both with their 2-frame idle), Nº, name, types,
-//             description, the five base stats (tap one for its explanation), the four moves (type, power, accuracy,
+//             description, its ability (name and what it does), the five base stats (tap one for its explanation), the four moves (type, power, accuracy,
 //             PP, target, category, description) and its type matchups. ◀ ▶ / swipe / ←→ go to the previous or next one;
 //             drag up/down to scroll; VOLVER goes back to the list (or closes, if it was opened on one userito).
 // All the sentences are in src/textos/pokeusera.md (`useritopedia.*`) and pokeusera-combate.md (`userito.*.desc`,
@@ -40,7 +40,7 @@ const STATS: readonly ClaveStat[] = ['ps', 'ata', 'def', 'vel', 'esp'];
 
 const numero = (i: number): string => t('useritopedia.num', { n: String(i + 1).padStart(2, '0') });
 
-/** Position (1 = best) of each userito in each base stat, among the 24 (ties share the place). Computed once. */
+/** Position (1 = best) of each userito in each base stat, among all of them (ties share the place). Computed once. */
 let rangos: Record<ClaveStat, number[]> | null = null;
 function rangoDe(k: ClaveStat, i: number): number {
   if (!rangos) {
@@ -174,6 +174,19 @@ function maquetar(cx: CanvasRenderingContext2D | null, i: number): Omit<Ficha, '
     desc.forEach((l, k) => texto2(cx, l, X0 + 12, y + 9 + k * 12));
   }
   y += hDesc + 6;
+
+  // --- Ability: visible for everybody, like the rest of the ficha.
+  y += cx ? encabezado(cx, y, t('useritopedia.h.hab')) : 18;
+  const descHab = envolver(t(`hab.${sp.habilidad}.desc`), AN - 24);
+  const hHab = 9 + 14 + descHab.length * 12 + 4;
+  if (cx) {
+    panelCacheado(cx, X0, y, AN, hHab);
+    relleno(cx, TINTA2, X0 + 12, y + 9, 7, 9);
+    relleno(cx, '#e8c25a', X0 + 13, y + 10, 5, 7);
+    texto2(cx, t(`hab.${sp.habilidad}.nombre`), X0 + 24, y + 10, TINTA2);
+    descHab.forEach((l, k) => texto2(cx, l, X0 + 12, y + 9 + 16 + k * 12, TINTA2, null));
+  }
+  y += hHab + 6;
 
   // --- Base stats.
   y += cx ? encabezado(cx, y, t('useritopedia.h.stats')) : 18;

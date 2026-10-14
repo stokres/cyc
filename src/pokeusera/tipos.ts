@@ -50,6 +50,19 @@ export interface Base {
   esp: number;
 }
 
+/** The 29 passive abilities (docs/POKEUSERA.md, «Habilidades»): one per userito (Caravaner and Camioner share `pareja`). Names and sentences: `hab.<id>.*` in pokeusera-combate.md. */
+export type HabilidadId =
+  | 'fuego_dragon' | 'gratinado' | 'buena_chica' | 'manico' | 'duro_de_roer' | 'kilos' | 'indigesto' | 'espuma' | 'cajon' | 'inesperado'
+  | 'bote' | 'conazo' | 'curado' | 'dos_cabezas' | 'ardiente' | 'pareja' | 'fotosintesis' | 'flipado' | 'volumen' | 'hielo'
+  | 'pesadisimo' | 'ola' | 'lavado' | 'maleta' | 'publico' | 'corriente' | 'grasiento' | 'viento' | 'fan';
+export const HAB_PAREJA = 20; // Pareja de carretera / Fan de la gira: % more damage on its attacks while the partner is on the field
+export const HAB_PROB_REACCION = 30; // Buena chica / Indigesto / Ardiente: % chance that whoever hits them pays for it
+export const HAB_GRASIENTO = 20; // Grasiento: % chance that its Grasa attacks give the target an empacho
+export const HAB_MALETA_ATA = 2; // Se abre la maleta: Attack stages it gains the first time it drops under half of its HP
+export const HAB_MANICO_ATA = 2; // Mañico: Attack stages it gains each time a rival lowers one of its stats
+export const HAB_LAVADO_CURA = 8; // Recién lavado: heals 1/8 of its max HP when it goes back to the bench
+export const HAB_FOTOSINTESIS = 16; // Fotosíntesis: heals 1/16 of its max HP at the end of every turn
+
 export interface Especie {
   /** Lowercase ascii id, e.g. 'draguserin', 'ego-ego'. Also the key for the sprite and the texts. */
   id: string;
@@ -59,6 +72,8 @@ export interface Especie {
   base: Base;
   /** Four move ids. */
   movs: [string, string, string, string];
+  /** Its passive ability, visible to everybody. */
+  habilidad: HabilidadId;
 }
 
 /** «uno»: one rival the player picks; «todos»: the three rivals (75 % power); «yo»: the user;
@@ -103,6 +118,8 @@ export interface Userito {
   /** Trainer perks already used by this userito in this battle (Chuchi «Llega tarde», Guille «Mañico»).
    *  Not in `vol`: they must survive switching out. Absent until used. */
   perk?: { tarde?: true; manico?: true };
+  /** «Se abre la maleta» (Maletrio) already worked: it is once per userito and battle, so it survives switching out. */
+  habUsada?: true;
   /** The object of «La barra» it carries, if any (like `perk`, it survives switching out). */
   objeto?: ObjetoLlevado;
   /** «Recién despierto»: it woke up this turn (on the field or on the bench, or the Chicle de menta cured its sleep) and, until this turn
@@ -123,6 +140,8 @@ export interface Userito {
     sinCambio: boolean;
     /** A protection (Esconderse, ¡Que pague otro!, Aguantar el tipo) worked last turn: the next one fails half of the times. */
     protegidoAntes: boolean;
+    /** «Cuando menos te lo esperas» (Lentejasur): it came out and has not attacked yet, so its first attack is quick (+1). */
+    sorpresa: boolean;
     /** Hidden this turn («Esconderse»). */
     escondido: boolean;
     /** «¡Que pague otro!» this turn: the single-target attacks aimed at it go to another userito. */
@@ -299,6 +318,9 @@ export type Evento = {
   | { k: 'suceso'; id: SucesoId; turnos: number }
   /** The object carried by `j`'s userito works (and from now on everybody can see it). `clave`: its line (`objeto.<id>.activa`, `.falla`...). */
   | { k: 'objeto'; j: number; objeto: ObjetoId }
+  /** The ability of `j`'s userito works (and everybody sees its name over the userito): `id` is the ability, `clave` an optional phrase (`hab.<id>.activa`).
+   *  What it does (stages, heals, a status that does not land...) follows as ordinary events. */
+  | { k: 'habilidad'; j: number; id: HabilidadId }
 );
 
 /** Draft (snake order) shared state. */

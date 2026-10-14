@@ -5,11 +5,11 @@
 //   pedirEleccion(j, estado, ms) / pedirReemplazo(j, estado, ms)   the local player decides (promises)
 //   alTurno(eventos, estado) / alReemplazo(eventos, estado)       play the events, then adopt `estado`
 // so a guest can drive it from network messages exactly like the host does from Partida.
-import { ENTRENADORES, type Eleccion, type Estado, type EstadoCombate, type Evento, type ObjetoId, type ObjetoLlevado, type Stat, type SucesoId, type Tipo, type Userito } from '../tipos';
+import { ENTRENADORES, type Eleccion, type Estado, type EstadoCombate, type Evento, type HabilidadId, type ObjetoId, type ObjetoLlevado, type Stat, type SucesoId, type Tipo, type Userito } from '../tipos';
 import { COLOR_TIPO } from '../arte/paleta';
 import { hayTexto } from '../../juego/textos';
 import { ESPECIE, MOVS, DESESPERADA, OBJETO_PERMANENTE, SUCESOS, eficacia, potenciaRemate } from '../datos';
-import { activo, eliminado, enGrada, movsDisponibles, necesitaObjetivo, puedeCambiar, recienDespierto, rivalesEnPie, vivos } from '../motor/combate';
+import { activo, eliminado, enGrada, habilidadDe, movsDisponibles, necesitaObjetivo, puedeCambiar, recienDespierto, rivalesEnPie, vivos } from '../motor/combate';
 import { anchoTexto2, dibujarTexto2 } from '../arte2/fuente2';
 import { PS_TONOS, TINTA2, TINTA_SUAVE } from '../arte2/paleta2';
 import { spriteEspalda2, spriteFrente2 } from '../arte2/sprites2';
@@ -107,7 +107,7 @@ interface Foco {
 }
 
 /** Which card the info box opens on a status or stat. */
-type Tema = { k: 'estado'; e: Estado | 'achispado' } | { k: 'objeto'; id: ObjetoId } | { k: 'stat'; s: 'ps' | 'ata' | 'def' | 'esp' | 'vel' | 'prec' } | { k: 'tipos' } | null;
+type Tema = { k: 'estado'; e: Estado | 'achispado' } | { k: 'objeto'; id: ObjetoId } | { k: 'habilidad'; id: HabilidadId } | { k: 'stat'; s: 'ps' | 'ata' | 'def' | 'esp' | 'vel' | 'prec' } | { k: 'tipos' } | null;
 
 /** Height of the action banner under the text box. */
 const ALTO_CARTEL = 40;
@@ -759,6 +759,7 @@ export class VistaCombate implements Escena {
       case 'estado':
       case 'nivel':
       case 'cae':
+      case 'habilidad':
         return area.includes(ev.j);
       case 'texto':
         return ev.j !== undefined && area.includes(ev.j) && (TEXTOS_DE_GRUPO.has(ev.clave ?? '') || (ev.clave ?? '').startsWith('combate.perk.'));
@@ -943,6 +944,11 @@ export class VistaCombate implements Escena {
         this.flota(ev.j, t(`objeto.${ev.objeto}.nombre`).toUpperCase(), TAG_ORO, 'tag');
         break;
       }
+      case 'habilidad':
+        // The ability works: its name flashes over the userito (baked once per name; the phrase, if it has one, is the event's line).
+        sonido.efecto('estado');
+        this.flota(ev.j, t(`hab.${ev.id}.nombre`).toUpperCase(), TAG_ORO, 'tag');
+        break;
       case 'cae': {
         sonido.efecto('cae');
         this.userito(ev.j).ps = 0;
@@ -1023,8 +1029,12 @@ export class VistaCombate implements Escena {
     const caidas: Extract<Evento, { k: 'cae' }>[] = [];
     const curas: Extract<Evento, { k: 'cura' }>[] = [];
     const efectos: EvEfecto[] = [];
+    const habs: Extract<Evento, { k: 'habilidad' }>[] = [];
     for (const ev of evs) {
       switch (ev.k) {
+        case 'habilidad':
+          habs.push(ev);
+          break;
         case 'cura':
           curas.push(ev);
           break;
@@ -1063,6 +1073,11 @@ export class VistaCombate implements Escena {
       this.registrar(t(a.clave!, a.vars));
     }
     if (fallas.length) sonido.efecto('falla');
+    // The abilities that work on these targets (an immunity, a blocked drop...): their name over the userito, all at once.
+    if (habs.length) {
+      sonido.efecto('estado');
+      for (const h of habs) this.flota(h.j, t(`hab.${h.id}.nombre`).toUpperCase(), TAG_ORO, 'tag');
+    }
     const listas = [...golpes.values()];
     const rondas = Math.max(0, ...listas.map((l) => l.length));
     for (let r = 0; r < rondas; r++) {
@@ -1087,7 +1102,8 @@ export class VistaCombate implements Escena {
       );
     }
 
-    // 2. What the hits left to say about one target (a perk, a cap...).
+    // 2. What the hits left to say about one target (a perk, a cap, an ability...).
+    for (const h of habs) if (h.clave) await this.decir(t(h.clave, h.vars));
     for (const l of lineas) await this.decir(t(l.clave!, l.vars));
 
     // 3. Everyone who fell, together.
@@ -1746,6 +1762,7 @@ export class VistaCombate implements Escena {
     if (!tm) return t('ficha.toca');
     if (tm.k === 'estado') return t(`ayuda.estado.${tm.e}`);
     if (tm.k === 'objeto') return t(`objeto.${tm.id}.desc`);
+    if (tm.k === 'habilidad') return t(`hab.${tm.id}.desc`);
     if (tm.k === 'tipos') return t('ayuda.tipos');
     return tm.s === 'prec' ? t('ficha.prec_ayuda') : t(`ayuda.stat.${tm.s}`);
   }
@@ -1762,7 +1779,8 @@ export class VistaCombate implements Escena {
     const mio = j === this.yo;
     const mi = activo(this.real, this.yo);
     const contra = !mio && !eliminado(this.real, this.yo) && mi.ps > 0;
-    let tema: Tema = tema0 ?? (u.estado ? { k: 'estado', e: u.estado } : u.achispado > 0 ? { k: 'estado', e: 'achispado' } : null);
+    // It opens on the status if it has one, else on what its ability does (the abilities are visible to everybody).
+    let tema: Tema = tema0 ?? (u.estado ? { k: 'estado', e: u.estado } : u.achispado > 0 ? { k: 'estado', e: 'achispado' } : { k: 'habilidad', id: habilidadDe(u) });
     return sobre<void>(this, (cerrar) => {
       let scroll = 0;
       let maxScroll = 0;
@@ -1835,6 +1853,14 @@ export class VistaCombate implements Escena {
           if (u.ps > 0) texto2(ctx, nums, x1 + nw - anchoTexto2(nums), cy + 66, TINTA_SUAVE, null);
           else texto2(ctx, t('ficha.cae'), x1, cy + 66, TINTA_SUAVE, null);
           cy += 78;
+          // Ability (visible for everybody): tap it for what it does.
+          const hab = habilidadDe(u);
+          const nomHab = recortar(t(`hab.${hab}.nombre`), wi - 58);
+          texto2(ctx, t('hab.titulo'), x0, cy + 3, TINTA_SUAVE, null);
+          texto2(ctx, nomHab, x0 + 56, cy + 3, TINTA2, null);
+          if (mismo(tema, { k: 'habilidad', id: hab })) rect(ctx, TINTA2, x0 + 56, cy + 13, anchoTexto2(nomHab), 2);
+          zonaC(x0 + 52, cy - 2, wi - 52, 17, () => elige({ k: 'habilidad', id: hab }));
+          cy += 18;
           // Status.
           texto2(ctx, t('ficha.estado'), x0, cy + 3, TINTA_SUAVE, null);
           let ex = x0 + 52;
