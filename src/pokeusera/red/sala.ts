@@ -10,6 +10,7 @@ import { panelCacheado, relleno } from '../arte2/ui2';
 import { entrada, type Accion } from '../entrada';
 import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
+import { guardarModo, modoElegido } from '../pantallas/ajustes';
 import { Campo } from '../pantallas/campo';
 import { dibujarFondoBar } from '../pantallas/fondos';
 import { mensaje } from '../pantallas/modal';
@@ -173,7 +174,20 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
       for (const f of offs) f();
       res(r);
     };
-    offs.push(con.on('sala', () => p.redibujar()));
+    // The mode (AL AZAR / NORMAL) is the host's: it starts as the one used last, and the room is told again whenever somebody joins (a guest asks nothing).
+    let jugadoresAnunciados = con.jugadores.length;
+    if (con.anfitrion) {
+      con.modo = modoElegido();
+      con.anunciarModo();
+    }
+    offs.push(
+      con.on('sala', () => {
+        if (con.anfitrion && con.jugadores.length !== jugadoresAnunciados) con.anunciarModo();
+        jugadoresAnunciados = con.jugadores.length;
+        p.redibujar();
+      }),
+    );
+    offs.push(con.on('juego', () => p.redibujar()));
     offs.push(
       con.on('empezar', () => {
         ultimoRelleno = relleno_;
@@ -204,6 +218,12 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
     };
     const alternar = () => {
       relleno_ = !relleno_;
+      sonido.efecto('cursor');
+    };
+    const alternarModo = () => {
+      con.modo = con.modo === 'azar' ? 'normal' : 'azar';
+      guardarModo(con.modo);
+      con.anunciarModo();
       sonido.efecto('cursor');
     };
     const empezar = () => {
@@ -288,22 +308,34 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
         });
         y += Math.ceil(ENTRENADORES.length / 2) * (ch + 4);
 
+        // The mode (docs/POKEUSERA.md, «Modo AL AZAR»): everybody sees it, only the host changes it.
+        panelCacheado(ctx, 4, y, ANCHO - 8, 24);
+        texto2(ctx, t('sala.modo'), 14, y + 9);
+        const vm = t(`modo.${con.modo}`);
+        texto2(ctx, vm, ANCHO - 14 - anchoTexto2(vm), y + 9, con.modo === 'azar' ? colorEnt('vinas') : TINTA_SUAVE);
+        if (con.anfitrion) {
+          const k = ctl.length;
+          ctl.push({ x: 4, y, w: ANCHO - 8, h: 24, fn: () => ((sel = k), alternarModo()) });
+        }
+        y += 27;
+
         // Host: fill with machines?
         if (con.anfitrion) {
-          panelCacheado(ctx, 4, y, ANCHO - 8, 28);
-          texto2(ctx, t('sala.rellenar'), 14, y + 11);
+          panelCacheado(ctx, 4, y, ANCHO - 8, 24);
+          texto2(ctx, t('sala.rellenar'), 14, y + 9);
           const v = t(relleno_ ? 'sala.si' : 'sala.no');
-          texto2(ctx, v, ANCHO - 14 - anchoTexto2(v), y + 11, relleno_ ? colorEnt('chuchi') : TINTA_SUAVE);
+          texto2(ctx, v, ANCHO - 14 - anchoTexto2(v), y + 9, relleno_ ? colorEnt('chuchi') : TINTA_SUAVE);
           const k = ctl.length;
-          ctl.push({ x: 4, y, w: ANCHO - 8, h: 28, fn: () => ((sel = k), alternar()) });
-          y += 32;
+          ctl.push({ x: 4, y, w: ANCHO - 8, h: 24, fn: () => ((sel = k), alternar()) });
+          y += 27;
         }
 
-        // Hint and buttons.
+        // Hint and buttons (on a short phone the host's two rows leave no room for the hint: it is left out).
         const yb = H - 36;
         const pista = con.anfitrion ? t(puedeEmpezar() ? 'sala.pista.listo' : mio ? 'sala.pista.faltan' : 'sala.pista.elige') : mio ? t('sala.esperando') : t('sala.pista.elige');
         const lp = envolver(pista, 200);
-        lp.forEach((l, i) => centrado(ctx, l, Math.min(yb - 6 - lp.length * 12, y + 4) + i * 12, TINTA_SUAVE, { sombra: null }));
+        const yh = Math.min(yb - 6 - lp.length * 12, y + 4);
+        if (yh >= y) lp.forEach((l, i) => centrado(ctx, l, yh + i * 12, TINTA_SUAVE, { sombra: null }));
         if (con.anfitrion) {
           boton(ctx, 10, yb, 108, 28, t('sala.empezar'), false, puedeEmpezar());
           boton(ctx, 122, yb, 108, 28, t('sala.salir'), false);

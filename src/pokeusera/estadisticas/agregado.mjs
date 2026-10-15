@@ -39,6 +39,10 @@ const suma = (o, k, v) => {
 
 function sumarSeccion(s, r, soloPersonas) {
   s.n++;
+  // AL AZAR (r.az): nobody chose their team or object. Everything counts except what depends on having chosen: the draft order (`ord`) is not summed,
+  // and `az` (here, per userito and per object) says how many of the `n` were dealt, so «elegido» is n − az.
+  const azar = r.az === 1;
+  if (azar) s.az = (s.az || 0) + 1;
   s.tu += r.tu;
   const esc = (s.esc[r.es] ??= { n: 0, tu: 0 });
   esc.n++;
@@ -73,7 +77,8 @@ function sumarSeccion(s, r, soloPersonas) {
       e.ini += u.ini;
       if (u.ob) e.ob++;
       e.oa += u.oa;
-      if (u.o >= 0 && u.o < 3) e.ord[u.o]++;
+      if (azar) e.az = (e.az || 0) + 1;
+      else if (u.o >= 0 && u.o < 3) e.ord[u.o]++;
       en.dh += u.dh;
       en.dr += u.dr;
       en.ko += u.ko;
@@ -81,6 +86,7 @@ function sumarSeccion(s, r, soloPersonas) {
       if (u.ob) {
         const o = (s.obj[u.ob] ??= { n: 0, a: 0, g: 0, pu: 0, dh: 0, ko: 0 });
         o.n++;
+        if (azar) o.az = (o.az || 0) + 1;
         o.a += u.oa;
         o.g += gana;
         o.pu += j.pu;
@@ -208,6 +214,8 @@ export function normalizarResumen(r, cat, ahora = Date.now()) {
     // A date from the phone's clock: out of range (before the game existed, or in the future) it is replaced by the server's.
     const f = typeof r.f === 'number' && Number.isFinite(r.f) && r.f > FECHA_MIN && r.f <= ahora + 86_400_000 ? Math.round(r.f) : ahora;
     exigir(typeof r.mo === 'string' && MODOS.has(r.mo), 'mo');
+    // AL AZAR mark (docs/POKEUSERA.md, «Modo AL AZAR»): absent or 1; anything else is nonsense.
+    const az = r.az === undefined || r.az === null ? undefined : exigir(r.az === 1 && 1, 'az');
     exigir(typeof r.es === 'string' && cat.escenarios.has(r.es), 'es');
     const tu = exigir(entero(r.tu, MAX_TURNOS), 'tu');
     exigir(tu >= 1, 'tu');
@@ -236,7 +244,7 @@ export function normalizarResumen(r, cat, ahora = Date.now()) {
     exigir(new Set(ju.map((j) => j.en)).size === ju.length, 'jugadores.repetidos');
     exigir(ju.every((j) => j.pu >= 1 && j.pu <= ju.length), 'jugador.pu.rango');
     exigir(ju.filter((j) => j.pu === 1).length === 1, 'ganador');
-    return { resumen: { v: FORMATO, id: r.id, ver: r.ver, f, mo: r.mo, es: r.es, tu, su, ju } };
+    return { resumen: { v: FORMATO, id: r.id, ver: r.ver, f, mo: r.mo, ...(az ? { az } : {}), es: r.es, tu, su, ju } };
   } catch (e) {
     if (e instanceof Mal) return { error: e.message };
     throw e;

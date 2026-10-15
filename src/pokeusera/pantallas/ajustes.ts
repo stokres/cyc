@@ -1,7 +1,7 @@
 // PokéUsera · settings: music and effects volume (0–10, saved in localStorage 'pokeusera.v1'),
 // the settings screen, and the pause box of the battle (volumes + abandon).
-import type { EntrenadorId, EscenarioId } from '../tipos';
-import { ENTRENADORES, ESCENARIOS } from '../tipos';
+import type { EntrenadorId, EscenarioId, ModoJuego } from '../tipos';
+import { ENTRENADORES, ESCENARIOS, MODOS_JUEGO } from '../tipos';
 import { anchoTexto2 } from '../arte2/fuente2';
 import { PAPEL_ALTO, SOMBRA_TEXTO, TINTA2, TINTA_SUAVE } from '../arte2/paleta2';
 import { panelCacheado, relleno } from '../arte2/ui2';
@@ -24,6 +24,8 @@ export interface Guardado {
   entrenador?: EntrenadorId;
   /** The bar of the battles (ESCENARIO); missing = AL AZAR, drawn from each battle's seed. */
   escenario?: EscenarioId;
+  /** The way of playing last used (NORMAL / AL AZAR), solo and online; missing = NORMAL. */
+  modo?: ModoJuego;
 }
 
 const POR_DEFECTO: Guardado = { musica: 7, efectos: 10, velocidad: 'normal' };
@@ -40,6 +42,7 @@ export function cargarAjustes(): Guardado {
         velocidad: VELOCIDADES.includes(o.velocidad as Velocidad) ? (o.velocidad as Velocidad) : POR_DEFECTO.velocidad,
         entrenador: ENTRENADORES.includes(o.entrenador as EntrenadorId) ? (o.entrenador as EntrenadorId) : undefined,
         escenario: ESCENARIOS.includes(o.escenario as EscenarioId) ? (o.escenario as EscenarioId) : undefined,
+        modo: MODOS_JUEGO.includes(o.modo as ModoJuego) ? (o.modo as ModoJuego) : undefined,
       };
     }
   } catch {
@@ -55,6 +58,15 @@ export function guardarAjustes(parcial: Partial<Guardado>) {
   } catch {
     /* no storage */
   }
+}
+
+/** The mode last used for a game (NORMAL by default), saved with the settings. */
+export function modoElegido(): ModoJuego {
+  return cargarAjustes().modo ?? 'normal';
+}
+
+export function guardarModo(modo: ModoJuego) {
+  guardarAjustes({ modo });
 }
 
 /** Applies the saved volumes and battle speed (call once at start). */

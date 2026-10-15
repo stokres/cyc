@@ -41,8 +41,8 @@ function medidas(H: number) {
   return { yBoton, yNota, yCeldas, yPista2, hCarta, hueco };
 }
 
-/** One offer, baked: a box with the object's icon at 2×, its name, «UN USO» / «PERMANENTE» and its effect (up to three lines), centred in a card `h` tall. */
-function carta(id: ObjetoId, h: number): HTMLCanvasElement {
+/** One offer, baked (also «TU EQUIPO AL AZAR» shows the dealt object with it): a box with the object's icon at 2×, its name, «UN USO» / «PERMANENTE» and its effect (up to three lines), centred in a card `h` tall. */
+export function carta(id: ObjetoId, h: number): HTMLCanvasElement {
   return hornear(`barra|carta|${id}|${h}`, AN, h + 2, (cx) => {
     const dy = Math.floor((h - ALTO_CARTA) / 2);
     panel(cx, 0, 0, AN, h);

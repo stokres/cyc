@@ -95,7 +95,7 @@ function itemEspecie(id: string, nombre: string, tipos: readonly Tipo[], e: Secc
     n,
     color: COLOR_TIPO[tipos[0]],
     m: e
-      ? { eleg: n, vict: pct(e.g, n), puesto: media(e.pu, n), dano: media(e.dh, n), ko: media(e.ko, n), cae: pct(e.ca, n), cura: media(e.cu, n), crit: media(e.cr, n), ini: pct(e.ini, n) }
+      ? { eleg: n - (e.az ?? 0), vict: pct(e.g, n), puesto: media(e.pu, n), dano: media(e.dh, n), ko: media(e.ko, n), cae: pct(e.ca, n), cura: media(e.cu, n), crit: media(e.cr, n), ini: pct(e.ini, n) }
       : {},
     icono: (cx, x, y) => cx.drawImage(miniatura(id), x, y),
   };
@@ -134,11 +134,12 @@ function vistaMovs(s: Seccion): Vista {
 
 function vistaTipos(s: Seccion): Vista {
   const items = TIPOS.map((tipo): Item => {
-    const a = { n: 0, g: 0, pu: 0, dh: 0, ko: 0, ca: 0 };
+    const a = { n: 0, az: 0, g: 0, pu: 0, dh: 0, ko: 0, ca: 0 };
     for (const sp of ESPECIES) {
       const e = s.esp[sp.id];
       if (!e || !(sp.tipos as readonly Tipo[]).includes(tipo)) continue;
       a.n += e.n;
+      a.az += e.az ?? 0;
       a.g += e.g;
       a.pu += e.pu;
       a.dh += e.dh;
@@ -150,7 +151,7 @@ function vistaTipos(s: Seccion): Vista {
       nombre: t(`tipo.${tipo}`),
       n: a.n,
       color: COLOR_TIPO[tipo],
-      m: a.n ? { eleg: a.n, vict: pct(a.g, a.n), puesto: media(a.pu, a.n), dano: media(a.dh, a.n), ko: media(a.ko, a.n), cae: pct(a.ca, a.n) } : {},
+      m: a.n ? { eleg: a.n - a.az, vict: pct(a.g, a.n), puesto: media(a.pu, a.n), dano: media(a.dh, a.n), ko: media(a.ko, a.n), cae: pct(a.ca, a.n) } : {},
       icono: (cx, x, y) => chipTipo(cx, tipo, x + 6, y + 10),
     };
   });
@@ -173,7 +174,7 @@ function vistaObjetos(s: Seccion): Vista {
       nombre: t(`objeto.${id}.nombre`),
       n,
       color: COLOR_BARRA,
-      m: a ? { eleg: n, act: pct(a.a, n), vict: pct(a.g, n), puesto: media(a.pu, n), dano: media(a.dh, n), ko: media(a.ko, n) } : {},
+      m: a ? { eleg: n - (a.az ?? 0), act: pct(a.a, n), vict: pct(a.g, n), puesto: media(a.pu, n), dano: media(a.dh, n), ko: media(a.ko, n) } : {},
       icono: (cx, x, y) => cx.drawImage(iconoObjeto(id), 0, 0, 12, 12, x + 4, y + 4, 24, 24),
     };
   });
@@ -297,14 +298,16 @@ function tarjetasYo(yo: DeCuenta): Tarjeta[] {
   tj('racha', entero(yo.racha.a), { m: yo.racha.m });
   // Favourite: the most picked; the one that wins most: best win rate among those picked at least twice (any, if there are none).
   const lista = Object.entries(s.esp).filter(([id]) => ESPECIE[id]);
-  const fav = [...lista].sort((a, b) => b[1].n - a[1].n)[0];
+  // «Elegido» does not count the useritos the game dealt in AL AZAR (`az`): nobody chose them.
+  const elegido = (e: { n: number; az?: number }): number => e.n - (e.az ?? 0);
+  const fav = [...lista].filter(([, e]) => elegido(e) > 0).sort((a, b) => elegido(b[1]) - elegido(a[1]))[0];
   if (fav) {
     const [id, e] = fav;
     out.push({
       titulo: t('acum.yo.fav'),
-      valor: `x${entero(e.n)}`,
-      detalle: t('acum.yo.fav.d', { userito: ESPECIE[id].nombre, v: entero(e.n) }),
-      pie: t('acum.yo.fav.pie', { pct: Math.round(pct(e.n, n)) }),
+      valor: `x${entero(elegido(e))}`,
+      detalle: t('acum.yo.fav.d', { userito: ESPECIE[id].nombre, v: entero(elegido(e)) }),
+      pie: t('acum.yo.fav.pie', { pct: Math.round(pct(elegido(e), n)) }),
       icono: (cx, x, y) => cx.drawImage(miniatura(id), x, y),
     });
   }

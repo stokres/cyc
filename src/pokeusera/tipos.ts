@@ -17,7 +17,8 @@ export const ENTRENADORES: readonly EntrenadorId[] = ['fran', 'pablo', 'chuchi',
 /** One mild perk per trainer (docs/POKEUSERA.md, «Ventajas de entrenador»); the engine applies it by `Jugador.entrenador`. */
 export const PERK_CANA_FRAN = 60; // Fran: his caña heals 60 % of max HP instead of 50 %
 export const PERK_PRECISION_PABLO = 10; // Pablo: status moves +10 accuracy points
-export const PERK_TARDE_CHUCHI = 80; // Chuchi: first hit each userito receives does 20 % less (80 % of the damage)
+export const PERK_RUIDO_FER = 50; // Fer: a rival's sound move does 50 % of the damage (a sound move without damage gets through 50 % of the time)
+export const PERK_TARDE_CHUCHI = 85; // Chuchi: first hit each userito receives does 15 % less (85 % of the damage)
 export const PERK_VERSO_VINAS = 110; // Viñas: his Chanza and Juerga attacks hit 10 % harder (110 % of the damage)
 export const PERK_COSECHA_ARI = 10; // Ari: % chance that each blow of her attacks is critical, on top of the usual chance
 // Guille: once per userito, a hit from full HP that would KO leaves it at 1 HP.
@@ -335,6 +336,10 @@ export type Evento = {
    *  What it does (stages, heals, a status that does not land...) follows as ordinary events. */
   | { k: 'habilidad'; j: number; id: HabilidadId }
 );
+
+/** How a game is set up (docs/POKEUSERA.md, «Modo AL AZAR»): NORMAL = draft and La barra; AL AZAR = the game deals everybody 3 useritos and 1 object, the player only chooses who comes out first. */
+export type ModoJuego = 'normal' | 'azar';
+export const MODOS_JUEGO: readonly ModoJuego[] = ['normal', 'azar'];
 
 /** Draft (snake order) shared state. */
 export interface EstadoDraft {

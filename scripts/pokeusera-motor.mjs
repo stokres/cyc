@@ -16,7 +16,7 @@ const tmp = mkdtempSync(join(tmpdir(), 'pokeusera-'));
 const salida = join(tmp, 'motor.mjs');
 await build({
   stdin: {
-    contents: `export * from './src/pokeusera/datos'; export * from './src/pokeusera/motor/combate'; export * from './src/pokeusera/motor/draft'; export * from './src/pokeusera/motor/bot'; export * from './src/pokeusera/motor/objetos'; export { OBJETOS, OBJ_TAPON_USOS, OBJ_BOCATA_CURA } from './src/pokeusera/tipos'; export { crearRnd, azar, entero, sacarAlAzar } from './src/pokeusera/motor/azar'; export { ENTRENADORES } from './src/pokeusera/tipos'; export { envolver2 } from './src/pokeusera/arte2/fuente2'; export { Recolector } from './src/pokeusera/estadisticas/resumen'; export { prepararCatalogo, normalizarResumen } from './src/pokeusera/estadisticas/agregado.mjs';`,
+    contents: `export * from './src/pokeusera/datos'; export * from './src/pokeusera/motor/combate'; export * from './src/pokeusera/motor/draft'; export * from './src/pokeusera/motor/bot'; export * from './src/pokeusera/motor/objetos'; export { OBJETOS, OBJ_TAPON_USOS, OBJ_BOCATA_CURA } from './src/pokeusera/tipos'; export { crearRnd, azar, entero, sacarAlAzar } from './src/pokeusera/motor/azar'; export { ENTRENADORES } from './src/pokeusera/tipos'; export { envolver2 } from './src/pokeusera/arte2/fuente2'; export { Recolector } from './src/pokeusera/estadisticas/resumen'; export { prepararCatalogo, normalizarResumen, sumarResumen, agregadoVacio } from './src/pokeusera/estadisticas/agregado.mjs';`,
     resolveDir: raiz,
     loader: 'ts',
   },
@@ -536,7 +536,7 @@ function revisarPerks() {
   const ch = golpe('chuchi');
   const ot = golpe('guille');
   const ref = golpe('fran');
-  if (ch.danos[0] !== Math.max(1, Math.floor((ref.danos[0] * 80) / 100))) falla(`perk Chuchi: primer golpe ${ch.danos[0]} != 80 % de ${ref.danos[0]}`);
+  if (ch.danos[0] !== Math.max(1, Math.floor((ref.danos[0] * 85) / 100))) falla(`perk Chuchi: primer golpe ${ch.danos[0]} != 85 % de ${ref.danos[0]}`);
   if (ch.danos[1] !== ref.danos[1]) falla(`perk Chuchi: el segundo golpe cambia (${ch.danos[1]} vs ${ref.danos[1]})`);
   if (ch.log.length !== 1 || ch.log[0].clave !== 'combate.perk.chuchi' || ch.log[0].j !== 1 || !ch.log[0].vars?.quien) falla('perk Chuchi: debía avisar una sola vez');
   if (ref.log.length !== 0) falla('perk Chuchi: lo ha activado otro entrenador');
@@ -651,39 +651,54 @@ function revisarPerksNuevos() {
     if (!distinto) falla('De su cosecha: atacando no gasta ningún número de azar extra');
   }
 
-  // Cancelación de ruido: ¡Ay, ay, ay! (sound, all rivals) and Serenata (sound, one) do nothing to Fer, a normal move and a Petardo hit him as usual; Bocinazo
-  // does not lower his Attack. Camioner: Trompazo 0 (normal), Bocinazo 2 (sound); Mariachi: ¡Ay, ay, ay! 0, Serenata 1, Salsa picante 2 (normal).
+  // Cancelación de ruido: a sound move with damage (¡Ay, ay, ay!) does half to Fer (floor, min 1) and warns once; one without damage (Serenata, Bocinazo) gets through
+  // about half of the seeds (and when it does not, nothing reaches him and the line says why); a normal move and a Petardo hit him as usual.
+  // Camioner: Trompazo 0 (normal), Bocinazo 2 (sound); Mariachi: ¡Ay, ay, ay! 0, Serenata 1, Salsa picante 2 (normal).
   {
-    const sonidos = ['bocinazo', 'ayayay', 'serenata', 'distorsion', 'solo', 'pasodoble'];
-    if (sonidos.some((id) => !M.esSonido(id)) || M.esSonido('trompazo') || M.esSonido('picante') || M.esSonido('zasca')) falla('Cancelación de ruido: la lista de sonido no es la esperada');
-    const vs = (esp, ent, mov, objetivo = 1) => {
-      const e = M.crearCombate(eq(['pablo', ent], [esp, ['tocinon', 'turito', 'cierzon']]), 21);
+    const sonidos = ['bocinazo', 'ayayay', 'serenata', 'distorsion', 'solo', 'pasodoble', 'cancion', 'dosvoces', 'eco', 'monologo'];
+    if (sonidos.some((id) => !M.esSonido(id)) || M.esSonido('trompazo') || M.esSonido('picante') || M.esSonido('zasca') || M.esSonido('turra')) falla('Cancelación de ruido: la lista de sonido no es la esperada');
+    const vs = (esp, ent, mov, objetivo = 1, semilla = 21) => {
+      const e = M.crearCombate(eq(['pablo', ent], [esp, ['tocinon', 'turito', 'cierzon']]), semilla);
       return { e, r: M.resolverTurno(e, [ataca(mov, objetivo), cana]) };
     };
-    for (const mov of [0, 1]) {
-      const fer = vs(['mariachi', 'turito', 'cierzon'], 'fer', mov);
-      const ref = vs(['mariachi', 'turito', 'cierzon'], 'fran', mov);
-      if (fer.r.estado.jugadores[1].equipo[0].ps !== fer.r.estado.jugadores[1].equipo[0].psMax) falla(`Fer: le llega el movimiento de sonido ${mov}`);
-      const avisos = fer.r.eventos.filter((ev) => ev.clave === 'combate.perk.fer');
-      if (avisos.length !== 1 || avisos[0].j !== 1 || !avisos[0].vars?.quien) falla(`Fer: aviso mal (${avisos.length}) con el movimiento ${mov}`);
-      if (ref.r.eventos.some((ev) => ev.clave === 'combate.perk.fer')) falla('Fer: lo ha activado otro entrenador');
-      if (mov === 0 && ref.r.estado.jugadores[1].equipo[0].ps >= ref.r.estado.jugadores[1].equipo[0].psMax) falla('Fer (referencia): ¡Ay, ay, ay! no hace daño a Fran');
-      if (mov === 1 && ref.r.estado.jugadores[1].equipo[0].vol.embobado <= 0) falla('Fer (referencia): Serenata no embobaba a Fran');
-      if (mov === 1 && fer.r.estado.jugadores[1].equipo[0].vol.embobado > 0) falla('Fer: Serenata le embobó');
-    }
+    const perdido = (x) => x.r.estado.jugadores[1].equipo[0].psMax - x.r.estado.jugadores[1].equipo[0].ps;
+    // Damage: half of what Fran takes (same seed, same dice), one warning, and a normal move is not halved.
+    const feroz = vs(['mariachi', 'turito', 'cierzon'], 'fer', 0);
+    const refe = vs(['mariachi', 'turito', 'cierzon'], 'fran', 0);
+    if (perdido(refe) < 2 || perdido(feroz) !== Math.max(1, Math.floor((perdido(refe) * 50) / 100))) falla(`Fer: ¡Ay, ay, ay! no hace la mitad (${perdido(feroz)} contra ${perdido(refe)})`);
+    const avisos = feroz.r.eventos.filter((ev) => ev.clave === 'combate.perk.fer');
+    if (avisos.length !== 1 || avisos[0].j !== 1 || !avisos[0].vars?.quien) falla(`Fer: aviso mal (${avisos.length})`);
+    if (refe.r.eventos.some((ev) => ev.clave === 'combate.perk.fer' || ev.clave === 'combate.perk.fer_nada')) falla('Fer: lo ha activado otro entrenador');
     const normal = vs(['mariachi', 'turito', 'cierzon'], 'fer', 2);
-    if (normal.r.estado.jugadores[1].equipo[0].ps >= normal.r.estado.jugadores[1].equipo[0].psMax || normal.r.eventos.some((ev) => ev.clave === 'combate.perk.fer')) falla('Fer: Salsa picante (no es de sonido) no le hace daño normal');
-    const boc = vs(['camioner', 'turito', 'cierzon'], 'fer', 2);
-    if (boc.r.estado.jugadores[1].equipo[0].niveles.ata !== 0) falla('Fer: Bocinazo le baja el Ataque');
-    const boc2 = vs(['camioner', 'turito', 'cierzon'], 'fran', 2);
-    if (boc2.r.estado.jugadores[1].equipo[0].niveles.ata !== -1) falla('Fer (referencia): Bocinazo no baja el Ataque a Fran');
+    const normalRef = vs(['mariachi', 'turito', 'cierzon'], 'fran', 2);
+    if (perdido(normal) !== perdido(normalRef) || normal.r.eventos.some((ev) => ev.clave === 'combate.perk.fer')) falla('Fer: Salsa picante (no es de sonido) no le hace el daño normal');
     const tromp = vs(['camioner', 'turito', 'cierzon'], 'fer', 0);
-    if (tromp.r.estado.jugadores[1].equipo[0].ps >= tromp.r.estado.jugadores[1].equipo[0].psMax) falla('Fer: Trompazo (normal) no le hace daño');
+    if (perdido(tromp) !== perdido(vs(['camioner', 'turito', 'cierzon'], 'fran', 0))) falla('Fer: Trompazo (normal) no le hace el daño normal');
+    // No damage: Serenata (embobado) and Bocinazo (−1 Attack) reach him about half of the seeds, and exactly when the warning is not given; always reach Fran.
+    for (const [esp, mov, llega, nombre] of [
+      ['mariachi', 1, (x) => x.r.estado.jugadores[1].equipo[0].vol.embobado > 0, 'Serenata'],
+      ['camioner', 2, (x) => x.r.estado.jugadores[1].equipo[0].niveles.ata === -1, 'Bocinazo'],
+    ]) {
+      let paso = 0;
+      const N = 200;
+      for (let sem = 1; sem <= N; sem++) {
+        const x = vs([esp, 'turito', 'cierzon'], 'fer', mov, 1, sem);
+        const aviso = x.r.eventos.some((ev) => ev.clave === 'combate.perk.fer_nada');
+        if (llega(x) === aviso) falla(`Fer: ${nombre} y su aviso no coinciden (semilla ${sem})`);
+        if (llega(x)) paso++;
+        if (!llega(vs([esp, 'turito', 'cierzon'], 'fran', mov, 1, sem))) falla(`Fer (referencia): ${nombre} no llega a Fran (semilla ${sem})`);
+      }
+      if (paso < N * 0.35 || paso > N * 0.65) falla(`Fer: ${nombre} le llega ${paso} de ${N} veces (se esperaba la mitad)`);
+    }
     // His own sound moves work as ever, and the userito that comes in after a fall is covered too.
     const suyo = M.resolverTurno(M.crearCombate(eq(['fer', 'pablo'], [['mariachi', 'turito', 'cierzon'], ['tocinon', 'turito', 'cierzon']]), 21), [ataca(0), cana]);
-    if (suyo.estado.jugadores[1].equipo[0].ps >= suyo.estado.jugadores[1].equipo[0].psMax) falla('Fer: sus propios movimientos de sonido no funcionan');
+    const suyoRef = M.resolverTurno(M.crearCombate(eq(['fran', 'pablo'], [['mariachi', 'turito', 'cierzon'], ['tocinon', 'turito', 'cierzon']]), 21), [ataca(0), cana]);
+    if (suyo.estado.jugadores[1].equipo[0].ps !== suyoRef.estado.jugadores[1].equipo[0].ps) falla('Fer: sus propios movimientos de sonido no funcionan igual');
     const banco = M.resolverTurno(M.crearCombate(eq(['pablo', 'fer'], [['mariachi', 'turito', 'cierzon'], ['tocinon', 'camioner', 'cierzon']]), 21), [ataca(0), { tipo: 'cambiar', a: 1 }]);
-    if (banco.estado.jugadores[1].equipo[1].ps !== banco.estado.jugadores[1].equipo[1].psMax) falla('Fer: el userito que entra recibe el ruido');
+    const bancoRef = M.resolverTurno(M.crearCombate(eq(['pablo', 'fran'], [['mariachi', 'turito', 'cierzon'], ['tocinon', 'camioner', 'cierzon']]), 21), [ataca(0), { tipo: 'cambiar', a: 1 }]);
+    const c1 = banco.estado.jugadores[1].equipo[1];
+    const c2 = bancoRef.estado.jugadores[1].equipo[1];
+    if (c2.psMax - c2.ps >= 2 && c1.psMax - c1.ps !== Math.max(1, Math.floor(((c2.psMax - c2.ps) * 50) / 100))) falla('Fer: el userito que entra no recibe la mitad del ruido');
   }
 }
 revisarPerksNuevos();
@@ -3929,6 +3944,92 @@ function revisarTanda12() {
       }
     }
   }
+}
+
+// --- Modo AL AZAR (docs/POKEUSERA.md, «Modo AL AZAR»): the deal, its determinism, a battle with it and the statistics mark.
+{
+  const ids = new Set(M.ESPECIES.map((x) => x.id));
+  const objetosVistos = new Set();
+  const portadores = new Set();
+  let distintos = 0;
+  for (let sem = 1; sem <= 400; sem++) {
+    for (const n of [2, 3, 4]) {
+      const r = M.repartoAzar(sem * 7919 + n, n);
+      if (r.equipos.length !== n || r.objetos.length !== n) falla(`reparto ${sem}/${n}: ${r.equipos.length} equipos y ${r.objetos.length} listas de objetos`);
+      const todos = r.equipos.flat();
+      if (todos.length !== 3 * n || new Set(todos).size !== 3 * n) falla(`reparto ${sem}/${n}: useritos repetidos (${todos.join()})`);
+      if (!todos.every((x) => ids.has(x))) falla(`reparto ${sem}/${n}: un userito que no existe`);
+      r.objetos.forEach((lista, j) => {
+        const con = lista.filter((o) => o !== null);
+        if (lista.length !== 3 || con.length !== 1 || !M.OBJETOS.includes(con[0])) falla(`reparto ${sem}/${n}: el jugador ${j} lleva ${JSON.stringify(lista)} (esperaba un objeto en uno de los tres)`);
+        else {
+          objetosVistos.add(con[0]);
+          portadores.add(lista.findIndex((o) => o !== null));
+        }
+      });
+      // The same seed, the same deal.
+      const otra = M.repartoAzar(sem * 7919 + n, n);
+      if (JSON.stringify(otra) !== JSON.stringify(r)) falla(`reparto ${sem}/${n}: la misma semilla da otro reparto`);
+      if (n === 4 && JSON.stringify(M.repartoAzar(sem * 7919 + n + 1, n)) !== JSON.stringify(r)) distintos++;
+    }
+  }
+  if (objetosVistos.size !== M.OBJETOS.length) falla(`reparto: en 1200 repartos solo salieron ${objetosVistos.size} de ${M.OBJETOS.length} objetos`);
+  if (portadores.size !== 3) falla('reparto: el objeto no cae en los tres sitios del equipo');
+  if (distintos < 395) falla(`reparto: semillas distintas dan el mismo reparto (${400 - distintos} de 400)`);
+  // Two seats may carry the same object (it is allowed); the usual deal does repeat one in some games.
+  let repetidos = 0;
+  for (let sem = 1; sem <= 400; sem++) {
+    const os = M.repartoAzar(sem, 4).objetos.map((l) => l.find((o) => o !== null));
+    if (new Set(os).size < 4) repetidos++;
+  }
+  if (repetidos < 100) falla(`reparto: apenas se repiten objetos entre jugadores (${repetidos} de 400)`);
+  // A battle with a deal plays through with the machines (the opener of each is the machine's choice) and ends.
+  for (const sem of [3, 11]) {
+    const r = M.repartoAzar(sem, 4);
+    const rnd = M.crearRnd(sem);
+    const inicial = r.equipos.map((eq, j) => M.salidaBot(eq, r.equipos.filter((_x, k) => k !== j), rnd));
+    let e = M.crearCombate(r.equipos.map((especies, i) => ({ entrenador: ['fran', 'pablo', 'chuchi', 'guille'][i], nombre: 'J' + i, bot: true, especies, objetos: r.objetos[i], inicial: inicial[i] })), sem);
+    // One object per player and in the state at the start; no object is visible yet.
+    e.jugadores.forEach((q, j) => {
+      const con = q.equipo.filter((u) => u.objeto);
+      if (con.length !== 1 || con[0].objeto.id !== r.objetos[j].find((o) => o !== null)) falla(`batalla al azar ${sem}: el objeto del jugador ${j} no es el repartido`);
+    });
+    for (let t = 0; t < 250 && e.ganador === null; t++) {
+      const rr = M.resolverTurno(e, e.jugadores.map((_, j) => (M.eliminado(e, j) ? null : M.eleccionBot(e, j, rnd))));
+      e = rr.estado;
+      if (e.ganador === null && e.reemplazos.length) e = M.reemplazar(e, Object.fromEntries(e.reemplazos.map((j) => [j, M.reemplazoBot(e, j)]))).estado;
+    }
+    if (e.ganador === null) falla(`batalla al azar ${sem}: no acabó`);
+    // The statistics mark: the summary carries az:1 only when asked, the server accepts it (and only 1), and the aggregates keep «elegido» apart.
+    const cat = M.prepararCatalogo({ especies: M.ESPECIES.map((x) => x.id), movs: Object.keys(M.MOVS), objetos: [...M.OBJETOS], entrenadores: M.ENTRENADORES, escenarios: ['brio', 'terraza', 'rural', 'juan', 'feria'], sucesos: Object.keys(M.SUCESOS) });
+    const rec = new M.Recolector();
+    rec.inicio(M.crearCombate(r.equipos.map((especies, i) => ({ entrenador: ['fran', 'pablo', 'chuchi', 'guille'][i], nombre: 'J' + i, bot: true, especies })), sem));
+    const normal = rec.resumen(e, [false, false, false, false], 'maquina');
+    const azar = rec.resumen(e, [false, false, false, false], 'maquina', true);
+    if ('az' in normal) falla('resumen NORMAL con marca az');
+    if (azar.az !== 1) falla('resumen AL AZAR sin az:1');
+    const v = M.normalizarResumen(JSON.parse(JSON.stringify(azar)), cat);
+    if (!('resumen' in v) || v.resumen.az !== 1) falla(`el servidor no acepta o pierde az:1 (${JSON.stringify(v).slice(0, 80)})`);
+    if (!('resumen' in M.normalizarResumen(JSON.parse(JSON.stringify(normal)), cat)) || 'az' in M.normalizarResumen(JSON.parse(JSON.stringify(normal)), cat).resumen) falla('el servidor añade az a un resumen NORMAL');
+    for (const malo of [2, 0, true, 'si']) if ('resumen' in M.normalizarResumen({ ...JSON.parse(JSON.stringify(azar)), az: malo }, cat)) falla(`el servidor acepta az:${JSON.stringify(malo)}`);
+    const ag = M.agregadoVacio();
+    M.sumarResumen(ag, { ...v.resumen, id: 'abc123456' });
+    M.sumarResumen(ag, { ...M.normalizarResumen(JSON.parse(JSON.stringify(normal)), cat).resumen, id: 'def123456' });
+    const s = ag.todas;
+    const esp0 = azar.ju[0].us[0].e;
+    const objs = Object.values(s.obj);
+    if (s.n !== 2 || s.az !== 1) falla(`agregado: n ${s.n}, az ${s.az} (esperaba 2 y 1)`);
+    // Dealt once and (if the same userito/object came in the second summary) chosen once: «elegido» is n − az and the draft order only counts the NORMAL one.
+    const e0 = s.esp[esp0];
+    if (!e0 || e0.n !== 2 || e0.az !== 1) falla(`agregado: ${esp0} n ${e0?.n} az ${e0?.az}`);
+    if (Object.values(s.esp).some((x) => x.ord.reduce((a, b) => a + b, 0) !== x.n - (x.az || 0))) falla('agregado: el orden del draft cuenta batallas al azar');
+    if (objs.some((o) => (o.az || 0) > o.n)) falla('agregado: objetos con más azar que usos');
+    if (objs.reduce((a, o) => a + (o.az || 0), 0) !== azar.ju.flatMap((q) => q.us).filter((u) => u.ob).length) falla('agregado: los objetos al azar no coinciden con los del resumen');
+  }
+  // The texts of the mode exist.
+  const interfaz = readFileSync(join(raiz, 'src/textos/pokeusera.md'), 'utf8');
+  for (const k of ['azar.titulo', 'azar.pista', 'azar.lleva', 'azar.rivales', 'azar.secreto', 'azar.apelear', 'azar.espera', 'azar.sinobjeto', 'modo.titulo', 'modo.normal', 'modo.azar', 'modo.normal.d', 'modo.azar.d', 'modo.ultimo', 'modo.volver', 'modo.pista', 'sala.modo'])
+    if (!new RegExp(`^${k.replace(/\./g, '\\.')}\\s*=`, 'm').test(interfaz)) falla('falta el texto ' + k);
 }
 
 const semillas = process.argv.slice(2).map(Number).filter((n) => Number.isFinite(n)).slice(0, 5);

@@ -28,7 +28,7 @@
 //    abilities, objects, falls...): see `golpesPrimero`. The state and the dice do not change, only the order of the events.
 // Every event may carry `clave` + `vars` (quien = userito name, jugador = player name, mov, ...).
 import type { Eleccion, EscenarioId, EstadoCombate, Estadisticas, EntrenadorId, Estado, Evento, HabilidadId, Jugador, Movimiento, ObjetoId, Stat, StatsUserito, SucesoId, Tipo, Userito } from '../tipos';
-import { ESCENARIOS, HAB_CANTA_MULT, HAB_FOTOSINTESIS, HAB_GRASIENTO, HAB_LAVADO_CURA, HAB_MALETA_ATA, HAB_MANICO_ATA, HAB_PAREJA, HAB_PROB_REACCION, OBJ_BOCATA_CURA, OBJ_GAFAS_PREC, OBJ_MECHERO_QUEMA, OBJ_PALILLO_CRIT, OBJ_PANUELO, OBJ_TAPON_USOS, PERK_CANA_FRAN, PERK_COSECHA_ARI, PERK_PRECISION_PABLO, PERK_TARDE_CHUCHI, PERK_VERSO_VINAS, TIPOS_FISICOS } from '../tipos';
+import { ESCENARIOS, HAB_CANTA_MULT, HAB_FOTOSINTESIS, HAB_GRASIENTO, HAB_LAVADO_CURA, HAB_MALETA_ATA, HAB_MANICO_ATA, HAB_PAREJA, HAB_PROB_REACCION, OBJ_BOCATA_CURA, OBJ_GAFAS_PREC, OBJ_MECHERO_QUEMA, OBJ_PALILLO_CRIT, OBJ_PANUELO, OBJ_TAPON_USOS, PERK_CANA_FRAN, PERK_COSECHA_ARI, PERK_PRECISION_PABLO, PERK_RUIDO_FER, PERK_TARDE_CHUCHI, PERK_VERSO_VINAS, TIPOS_FISICOS } from '../tipos';
 import { DESESPERADA, EFECTOS, ESPECIE, MOVS, MOVS_IMPROVISA, SUCESOS, TURNOS_SUCESO, eficacia, esSonido, potenciaRemate, sucesosDe } from '../datos';
 import { azar, elegir, entero, probar, type ConSemilla } from './azar';
 
@@ -856,11 +856,11 @@ function efectosSecundarios(c: Ctx, j: number, t: number, m: Movimiento, danino:
 /** Trainer perks that change a hit from another player on player `t`'s active userito (`dano` is
  *  already final: after type, spread, Acorralado, random and critical). Chuchi «Llega tarde»: the
  *  first such hit each of his useritos receives does 20 % less (min 1). Guille «Mañico»: once per
- *  userito, a hit that would KO it from full HP leaves it at 1 HP. Each is spent once per battle. */
-function aplicarPerks(c: Ctx, t: number, dano: number): { dano: number; bruto: number; perk: 'chuchi' | 'guille' | null } {
+ *  userito, a hit that would KO it from full HP leaves it at 1 HP. Each is spent once per battle. Fer «Cancelación de ruido»: a sound move does half (every time, not spent). */
+function aplicarPerks(c: Ctx, t: number, dano: number, sonido = false): { dano: number; bruto: number; perk: 'chuchi' | 'guille' | 'fer' | null } {
   const v = act(c, t);
   const ent = c.e.jugadores[t].entrenador;
-  let perk: 'chuchi' | 'guille' | null = null;
+  let perk: 'chuchi' | 'guille' | 'fer' | null = null;
   // `bruto`: Chuchi's 20 % is a real cut of the blow (it stays); Guille's 1 HP is a cap, so the gross damage is the one before it.
   let bruto = dano;
   if (ent === 'chuchi' && !v.perk?.tarde) {
@@ -872,6 +872,11 @@ function aplicarPerks(c: Ctx, t: number, dano: number): { dano: number; bruto: n
     v.perk = { ...v.perk, manico: true };
     dano = v.ps - 1;
     perk = 'guille';
+  } else if (ent === 'fer' && sonido) {
+    // Fer «Cancelación de ruido»: a sound move does half (a real cut, like Chuchi's).
+    dano = Math.max(1, Math.floor((dano * PERK_RUIDO_FER) / 100));
+    bruto = dano;
+    perk = 'fer';
   }
   return { dano, bruto, perk };
 }
@@ -1010,11 +1015,12 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
       decir(c, 'combate.esconde_protege', varsDe(c, t), t);
       continue;
     }
-    // Fer «Cancelación de ruido»: a rival's sound move does not reach any of his useritos (no damage, no effect), and the line says why.
-    if (esSonido(m.id) && e.jugadores[t].entrenador === 'fer') {
+    // Fer «Cancelación de ruido»: a rival's sound move does half to his useritos. A sound move without damage (Bocinazo, Serenata) gets through half the time:
+    // when it does not, nothing reaches him and the line says why. (The roll is only made when Fer is the target.)
+    if (esSonido(m.id) && !danina && e.jugadores[t].entrenador === 'fer' && !probar(e, PERK_RUIDO_FER)) {
       st(c, j).fal++;
       st(c, t).esq++;
-      decir(c, 'combate.perk.fer', varsDe(c, t), t);
+      decir(c, 'combate.perk.fer_nada', varsDe(c, t), t);
       continue;
     }
     if (danina && ef.especial !== 'devolver' && eficacia(m.tipo, ESPECIE[v.especie].tipos) === 0) {
@@ -1105,7 +1111,7 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
             activarObjeto(c, t, true, 'objeto.posavasos.activa');
             dano0 = Math.max(1, Math.floor(dano0 / 2));
           }
-          const { dano, bruto, perk } = aplicarPerks(c, t, dano0);
+          const { dano, bruto, perk } = aplicarPerks(c, t, dano0, esSonido(m.id));
           totalDano += danar(c, t, topeAguante(c, t, topeCajon(c, t, dano)), { ef: r.ef, critico, de: j, mov: m.id, acorralado, bruto });
           hechos++;
           if (critico) decir(c, 'combate.critico', varsDe(c, t), t);

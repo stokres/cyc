@@ -63,7 +63,7 @@ export class Recolector {
   }
 
   /** The summary of a finished battle. `personas`: which seats were people (the rest, the machine). */
-  resumen(estado: EstadoCombate, personas: boolean[], modo: ModoBatalla): ResumenBatalla {
+  resumen(estado: EstadoCombate, personas: boolean[], modo: ModoBatalla, azar = false): ResumenBatalla {
     const ju: ResumenJugador[] = estado.jugadores.map((q, j) => ({
       en: q.entrenador,
       pe: personas[j] ? 1 : 0,
@@ -101,7 +101,9 @@ export class Recolector {
         };
       }),
     }));
-    return { v: FORMATO, id: idAzar(), ver: versionJuego(), f: Date.now(), mo: modo, es: estado.escenario, tu: estado.turno, su: [...estado.sucesosVistos], ju };
+    const r: ResumenBatalla = { v: FORMATO, id: idAzar(), ver: versionJuego(), f: Date.now(), mo: modo, es: estado.escenario, tu: estado.turno, su: [...estado.sucesosVistos], ju };
+    if (azar) r.az = 1;
+    return r;
   }
 
   /** The ids of a species' moves by slot: its four, then «A la desesperada». */
@@ -114,8 +116,9 @@ export class Recolector {
  * `ganchos` with the statistics collected on the way: when the battle ends, `alResumen` gets its summary (it must not block: the final animation goes on).
  * The seats that are not machines are people (the local player and the online guests).
  * `tokens`: asked when the battle ends, the account token of each seat (null: none); it goes into the summary's `cu` and the server swaps it for the public id.
+ * `azar`: the battle was played in mode AL AZAR (the summary carries `az: 1`).
  */
-export function conEstadisticas(ganchos: Ganchos, asientos: Asiento[], modo: ModoBatalla, alResumen: (r: ResumenBatalla) => void, tokens?: () => (string | null)[]): Ganchos {
+export function conEstadisticas(ganchos: Ganchos, asientos: Asiento[], modo: ModoBatalla, alResumen: (r: ResumenBatalla) => void, tokens?: () => (string | null)[], azar = false): Ganchos {
   const rec = new Recolector();
   const personas = asientos.map((a) => a.tipo !== 'bot');
   return {
@@ -134,7 +137,7 @@ export function conEstadisticas(ganchos: Ganchos, asientos: Asiento[], modo: Mod
     },
     alFin: (estado) => {
       try {
-        const r = rec.resumen(estado, personas, modo);
+        const r = rec.resumen(estado, personas, modo, azar);
         const cs = tokens?.();
         if (cs) r.ju.forEach((q, j) => (q.cu = q.pe && cs[j] ? cs[j] : null));
         alResumen(r);

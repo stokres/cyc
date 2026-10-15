@@ -5,12 +5,12 @@
 //
 // Seats: 'local' = this browser's screens (`ganchos.pedirX`), 'bot' = the machine, 'remoto' = an
 // online guest (`ganchos.remoto.pedirX`; with no `remoto` the machine plays for them).
-import type { Eleccion, EntrenadorId, EscenarioId, EstadoCombate, EstadoDraft, Evento, ObjetoId } from './tipos';
+import type { Eleccion, EntrenadorId, EscenarioId, EstadoCombate, EstadoDraft, Evento, ModoJuego, ObjetoId } from './tipos';
 import { crearRnd } from './motor/azar';
 import { crearDraft, elegir as elegirDraft, equipos as equiposDraft, turnoDraft } from './motor/draft';
 import { crearCombate, eleccionAlAzar, eliminado, enGrada, escenarioDeSemilla, reemplazar, resolverTurno, vivos } from './motor/combate';
 import { eleccionBot, pickBot, reemplazoBot, salidaBot } from './motor/bot';
-import { PLAZO_BARRA, eleccionObjetoValida, objetoBot, ofertasObjetos, type EleccionObjeto } from './motor/objetos';
+import { PLAZO_AZAR, PLAZO_BARRA, eleccionObjetoValida, objetoBot, ofertasObjetos, repartoAzar, type EleccionObjeto } from './motor/objetos';
 
 export interface Asiento {
   tipo: 'local' | 'bot' | 'remoto';
@@ -30,6 +30,8 @@ export interface Decisor {
   pedirObjeto(j: number, ofertas: ObjetoId[], especies: string[], plazoMs: number): Promise<EleccionObjeto>;
   /** «¿Quién sale primero?»: the index (0..2, in `especies`) of the userito the player sends out first; `objetos` are the ones «La barra» gave to their useritos. */
   pedirSalida(j: number, especies: string[], objetos: (ObjetoId | null)[], plazoMs: number): Promise<number>;
+  /** «TU EQUIPO AL AZAR» (mode AL AZAR): shows the player their dealt team (`equipos[j]`, with the others' teams for reference) and their `objetos`; resolves when they press ¡A PELEAR! (`plazoMs` ≤ 0: no limit). */
+  pedirAzar(j: number, equipos: string[][], objetos: (ObjetoId | null)[], plazoMs: number): Promise<void>;
 }
 
 export interface Ganchos extends Decisor {
@@ -61,6 +63,10 @@ export interface OpcionesPartida {
   rapido?: boolean;
   /** Skip the draft: the teams (species ids per seat). */
   equipos?: string[][];
+  /** `'azar'`: nobody drafts or visits «La barra»: the game deals every seat 3 useritos and 1 object (`repartoAzar`) and each player only chooses who comes out first. Ignored with `equipos`. */
+  modo?: ModoJuego;
+  /** Milliseconds a player has on «TU EQUIPO AL AZAR» (default `PLAZO_AZAR`; 0 = no limit, as in solo play). */
+  plazoAzarMs?: number;
   /** With `equipos` (no draft) «La barra» and «¿Quién sale primero?» are skipped too and the machine decides for every seat, unless this is set (`?barra`). */
   barra?: boolean;
   plazoBarraMs?: number;
@@ -93,6 +99,10 @@ export class Partida {
   readonly semillaCombate: number;
   readonly escenario: EscenarioId;
   draft: EstadoDraft | null = null;
+  /** The teams of the battle (species per seat) once the draft is over or the AL AZAR deal is made; null before. */
+  equipos: string[][] | null = null;
+  /** The game's mode: AL AZAR unless the teams were given (`opciones.equipos`). */
+  readonly modo: ModoJuego;
   estado: EstadoCombate | null = null;
   private rnd: () => number;
   private rndBots: Record<number, () => number> = {};
@@ -110,6 +120,7 @@ export class Partida {
     this.rnd = crearRnd(this.semilla ^ 0x5bd1e995);
     this.semillaCombate = Math.floor(crearRnd(this.semilla ^ 0x1b873593)() * 2 ** 31);
     this.escenario = opciones.escenario ?? escenarioDeSemilla(this.semillaCombate);
+    this.modo = opciones.modo === 'azar' && !opciones.equipos ? 'azar' : 'normal';
     asientos.forEach((_, j) => (this.rndBots[j] = crearRnd(this.semilla + 7919 * (j + 1))));
     this.cancelacion = new Promise<never>((_, rej) => {
       this.cancelar_ = () => rej(new Cancelada());
@@ -157,9 +168,18 @@ export class Partida {
   async jugar(): Promise<EstadoCombate> {
     const n = this.asientos.length;
     let listas: string[][];
-    if (this.opciones.equipos) listas = this.opciones.equipos;
-    else listas = await this.hacerDraft();
-    const objetos = await this.hacerBarra(listas);
+    let objetos: (ObjetoId | null)[][];
+    if (this.modo === 'azar') {
+      // AL AZAR: no draft and no «La barra»; the deal comes from the battle's seed (the host's, online) and is the same for machines and people.
+      const reparto = repartoAzar(this.semillaCombate, n);
+      listas = reparto.equipos;
+      objetos = reparto.objetos;
+    } else {
+      if (this.opciones.equipos) listas = this.opciones.equipos;
+      else listas = await this.hacerDraft();
+      objetos = await this.hacerBarra(listas);
+    }
+    this.equipos = listas;
     const iniciales = await this.hacerSalida(listas, objetos);
     const estado0 = crearCombate(
       this.asientos.map((a, j) => ({ entrenador: a.entrenador, nombre: a.nombre, bot: a.tipo === 'bot', especies: listas[j], objetos: objetos[j], inicial: iniciales[j] })),
@@ -278,14 +298,21 @@ export class Partida {
   /**
    * Every seat chooses at once and in secret which of its three useritos starts the battle (`PLAZO_SALIDA`); the machines choose by type
    * matchup against the other teams, and a player who runs out of time (or answers nonsense) sends out the first one. Returns, per seat,
-   * the index in its team. Skipped like «La barra» (the machine chooses for everybody) when the draft was.
+   * the index in its team. Skipped like «La barra» (the machine chooses for everybody) when the draft was. In mode AL AZAR each seat first sees «TU EQUIPO AL AZAR».
    */
   private async hacerSalida(listas: string[][], objetos: (ObjetoId | null)[][]): Promise<number[]> {
     const plazo = this.opciones.plazoSalidaMs ?? PLAZO_SALIDA;
     const preguntar = !this.opciones.equipos || !!this.opciones.barra;
+    const plazoAzar = this.opciones.plazoAzarMs ?? PLAZO_AZAR;
     return Promise.all(
       this.asientos.map(async (_a, j) => {
         const dec = preguntar ? this.decisor(j) : null;
+        // AL AZAR: first the player sees their team (each at their own pace), then chooses who opens.
+        if (dec && this.modo === 'azar') {
+          const visto = dec.pedirAzar(j, listas, objetos[j], plazoAzar);
+          if (plazoAzar > 0) await this.conPlazo<void>(visto, plazoAzar + this.gracia(j), () => undefined);
+          else await this.esperar(visto.catch(() => undefined));
+        }
         if (!dec) return salidaBot(listas[j], listas.filter((_l, k) => k !== j), this.rndBots[j]);
         const idx = await this.conPlazo<number>(dec.pedirSalida(j, listas[j], objetos[j], plazo), plazo + this.gracia(j), () => 0);
         return Number.isInteger(idx) && idx >= 0 && idx < Math.min(3, listas[j].length) ? idx : 0;

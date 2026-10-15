@@ -3,7 +3,7 @@
 // The effects themselves live in combate.ts (they bend the turn's rules).
 import type { EstadoCombate, ObjetoId } from '../tipos';
 import { OBJETOS } from '../tipos';
-import { ESPECIE, MOVS, TIPOS, eficacia } from '../datos';
+import { ESPECIE, ESPECIES, MOVS, TIPOS, eficacia } from '../datos';
 import { crearRnd } from './azar';
 
 /** What a player chooses in «La barra»: one of the objects offered, and which of the three useritos (index in the team) carries it. */
@@ -24,6 +24,36 @@ export function ofertasObjetos(semilla: number, seat: number): ObjetoId[] {
     [lista[i], lista[k]] = [lista[k], lista[i]];
   }
   return lista.slice(0, 3);
+}
+
+/** Seconds a player has to look at «TU EQUIPO AL AZAR» online (solo play has no limit: nobody waits for you). */
+export const PLAZO_AZAR = 15000;
+
+/** What «AL AZAR» deals: the teams (species ids per seat, never repeated across seats) and, per seat, the object of each of its three useritos (null: none). */
+export interface RepartoAzar {
+  equipos: string[][];
+  objetos: (ObjetoId | null)[][];
+}
+
+/**
+ * The deal of the AL AZAR mode (docs/POKEUSERA.md, «Modo AL AZAR»): `n` players get three different useritos each (all of them different, as in the
+ * draft) and one object, any of the ten (it may repeat across players), held by one of their three useritos. Pure: the same `semilla` always gives
+ * the same deal (the host and a replay agree; no Math.random). Uses its own generator, so it never shifts the numbers of the battle.
+ */
+export function repartoAzar(semilla: number, n: number): RepartoAzar {
+  const rnd = crearRnd((semilla | 0) ^ 0x0a2a2a5);
+  const ids = ESPECIES.map((s) => s.id);
+  for (let i = ids.length - 1; i > 0; i--) {
+    const k = Math.floor(rnd() * (i + 1));
+    [ids[i], ids[k]] = [ids[k], ids[i]];
+  }
+  const equipos = Array.from({ length: n }, (_, j) => ids.slice(j * 3, j * 3 + 3));
+  const objetos = equipos.map((): (ObjetoId | null)[] => {
+    const lleva: (ObjetoId | null)[] = [null, null, null];
+    lleva[Math.floor(rnd() * 3)] = OBJETOS[Math.floor(rnd() * OBJETOS.length)];
+    return lleva;
+  });
+  return { equipos, objetos };
 }
 
 /** Whether `e` is something the player may take: one of the offers and a valid index. */

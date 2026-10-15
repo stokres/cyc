@@ -1,6 +1,6 @@
 // PokéUsera's online connection (docs/POKEUSERA.md, «Online»; copied from the Pang's): a thin wrapper over the room's WebSocket.
 // It only carries messages; the game itself is run by the host's browser.
-import type { EntrenadorId as PjId } from '../tipos';
+import { MODOS_JUEGO, type EntrenadorId as PjId, type ModoJuego } from '../tipos';
 import { leerMensajeCuenta } from '../cuentas/sala';
 
 // ---------------------------------------------------------------- messages
@@ -78,6 +78,8 @@ export class Conexion {
   enPartida = false;
   /** Host only: the account (token and name) each guest told us about on entering, by room id (docs/POKEUSERA.md, «Cuentas»). Never shown. */
   readonly cuentas = new Map<number, { token: string; nombre: string }>();
+  /** The room's way of playing (docs/POKEUSERA.md, «Modo AL AZAR»): the host's choice, which `anunciarModo` sends; a guest learns it from the host's 'modo' message (NORMAL until then). */
+  modo: ModoJuego = 'normal';
 
   private ws: WebSocket | null = null;
   private oyentes = new Map<string, Set<(m: never) => void>>();
@@ -150,6 +152,11 @@ export class Conexion {
     this.enviar({ tipo: 'juego', a, datos });
   }
 
+  /** Host only: tells the room the mode (the guests see it in the lobby). Sent again whenever somebody joins. */
+  anunciarModo() {
+    if (this.anfitrion) this.juego('todos', { k: 'modo', modo: this.modo });
+  }
+
   /** Leaves on purpose (no `perdida`). */
   cerrar() {
     this.terminada = true;
@@ -176,6 +183,9 @@ export class Conexion {
     } else if (m.tipo === 'juego') {
       const c = leerMensajeCuenta(m.datos);
       if (c) this.cuentas.set(m.de, c);
+      // The host's mode, from the host only (a guest's message is nothing to believe).
+      const d = m.datos as { k?: unknown; modo?: unknown } | null;
+      if (d && typeof d === 'object' && d.k === 'modo' && MODOS_JUEGO.includes(d.modo as ModoJuego) && this.jugadores.find((j) => j.anfitrion)?.id === m.de) this.modo = d.modo as ModoJuego;
     } else if (m.tipo === 'salio') {
       this.cuentas.delete(m.id);
     }

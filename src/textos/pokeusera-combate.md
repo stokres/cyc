@@ -409,7 +409,8 @@ hab.malaleche.activa = ¡{quien} se pone de mala leche!
 combate.perk.chuchi = {quien} llegaba tarde: el golpe le pilla a medias.
 combate.perk.guille = ¡{quien} aguanta como un buen mañico!
 combate.perk.ari = ¡{quien} improvisa y el golpe sale mejor de lo previsto!
-combate.perk.fer = {quien} lleva los cascos puestos: el ruido no le llega.
+combate.perk.fer = {quien} lleva los cascos puestos: el ruido le llega a la mitad.
+combate.perk.fer_nada = {quien} lleva los cascos puestos: esta vez el ruido no le llega.
 
 // ---- un movimiento a todos los rivales: una sola línea para todos los que lo sufren ({quienes}: «A, B y C»)
 combate.todos.y = y

@@ -23,6 +23,7 @@ import { Partida, esCancelada, type Asiento, type Ganchos } from '../partida';
 import { pantalla } from '../pantalla';
 import { sonido } from '../sonido';
 import { escenarioElegido } from '../pantallas/ajustes';
+import { VistaAzar } from '../pantallas/azar';
 import { VistaBarra } from '../pantallas/barra';
 import { VistaCombate } from '../pantallas/combate';
 import { VistaDraft } from '../pantallas/draft';
@@ -176,6 +177,8 @@ async function unaPartida(
 ): Promise<FinOnline | 'otra'> {
   const p = pantalla();
   const n = asientos.length;
+  /** The game's mode, the host's choice in the room (it stays for «OTRA»). */
+  const modo = con.modo;
   const buzon = new Buzon();
   const rnd = crearRnd((Date.now() ^ 0x2545f491) & 0x7fffffff);
   const enviar = (d: MsgAnfitrion) => con.juego('todos', d);
@@ -216,12 +219,13 @@ async function unaPartida(
   };
 
   /** The teams of the other seats (what the machine looks at when it picks the opener for a guest who left). */
-  const salidaRivales = (j: number): string[][] => (partida.draft ? equiposDraft(partida.draft, n).filter((_e, k) => k !== j) : []);
+  const salidaRivales = (j: number): string[][] => (partida.equipos ?? (partida.draft ? equiposDraft(partida.draft, n) : [])).filter((_e, k) => k !== j);
 
   const vd = new VistaDraft(asientos, miSeat);
   const vc = new VistaCombate(miSeat);
   const vb = new VistaBarra(miSeat !== null ? asientos[miSeat].entrenador : null);
   const vs = new VistaSalida(miSeat !== null ? asientos[miSeat].entrenador : null);
+  const va = new VistaAzar(asientos, miSeat);
 
   const ganchos: Ganchos = {
     pedirPick: () => vd.pedirPick(),
@@ -234,6 +238,10 @@ async function unaPartida(
     pedirSalida: (_j, especies, objetos, ms) => {
       p.poner(vs);
       return vs.pedir(especies, objetos, ms);
+    },
+    pedirAzar: (_j, equipos, objetos, ms) => {
+      p.poner(va);
+      return va.pedir(equipos, objetos, ms);
     },
     remoto: {
       pedirPick: (j, draft) => buzon.esperar(`pick:${j}:${draft.elegidos.length}`, j, () => pickBot(draft, rnd)),
@@ -248,6 +256,11 @@ async function unaPartida(
       pedirSalida: (j, especies, objetos, ms) => {
         con.juego(idDe[j], { k: 'salida', especies, objetos, plazoMs: ms } satisfies MsgAnfitrion);
         return buzon.esperar(`salida:${j}`, j, () => salidaBot(especies, salidaRivales(j), rnd));
+      },
+      // AL AZAR: only that guest is told their dealt team (everybody's useritos, which are public, but only their own objects); 'azar' comes back when they press ¡A PELEAR!.
+      pedirAzar: (j, equipos, objetos, ms) => {
+        con.juego(idDe[j], { k: 'azar', equipos, objetos, plazoMs: ms } satisfies MsgAnfitrion);
+        return buzon.esperar<void>(`azar:${j}`, j, () => undefined);
       },
     },
     alDraft: (draft, turnoDe, ms) => {
@@ -292,10 +305,10 @@ async function unaPartida(
   };
   // The bar of the battles is the host's setting (AJUSTES → ESCENARIO; at random by default).
   // Statistics (docs/POKEUSERA.md): only the host sends the summary, once per battle.
-  const partida = new Partida(asientos, conEstadisticas(ganchos, asientos, 'online', registrarBatalla, () => asientos.map((a, j) => (a.tipo === 'local' ? tokenLocal() : a.tipo === 'remoto' ? (con.cuentas.get(idDe[j])?.token ?? null) : null))), { escenario: escenarioElegido() });
-  vd.escenario = partida.escenario;
-  (window as unknown as { __pokeusera?: unknown }).__pokeusera = { partida, vc, vd, vb, vs };
-  vd.alAbandonar = vb.alAbandonar = vs.alAbandonar = vc.alAbandonar = () => {
+  const partida = new Partida(asientos, conEstadisticas(ganchos, asientos, 'online', registrarBatalla, () => asientos.map((a, j) => (a.tipo === 'local' ? tokenLocal() : a.tipo === 'remoto' ? (con.cuentas.get(idDe[j])?.token ?? null) : null)), modo === 'azar'), { escenario: escenarioElegido(), modo });
+  vd.escenario = va.escenario = partida.escenario;
+  (window as unknown as { __pokeusera?: unknown }).__pokeusera = { partida, vc, vd, vb, vs, va };
+  vd.alAbandonar = vb.alAbandonar = vs.alAbandonar = va.alAbandonar = vc.alAbandonar = () => {
     abandonada = true;
     partida.cancelar();
   };
@@ -319,6 +332,8 @@ async function unaPartida(
     } else if (d.k === 'objeto') {
       const el = objetoLimpio(d);
       if (el) buzon.entregar(`objeto:${seat}`, el);
+    } else if (d.k === 'azar') {
+      buzon.entregar(`azar:${seat}`, undefined);
     } else if (d.k === 'salida') {
       if (esEntero(d.idx) && d.idx >= 0 && d.idx < 3) buzon.entregar(`salida:${seat}`, d.idx);
     } else if (d.k === 'reemplazoIdx') {
@@ -347,7 +362,7 @@ async function unaPartida(
   idDe.forEach((id, seat) => {
     if (id >= 0) seats[String(id)] = seat;
   });
-  enviar({ k: 'asientos', id: idJuego, asientos: asientos.map((a) => ({ entrenador: a.entrenador, nombre: a.nombre, bot: a.tipo === 'bot' })), seats, escenario: partida.escenario });
+  enviar({ k: 'asientos', id: idJuego, asientos: asientos.map((a) => ({ entrenador: a.entrenador, nombre: a.nombre, bot: a.tipo === 'bot' })), seats, escenario: partida.escenario, modo });
 
   try {
     const jugando = partida.jugar();

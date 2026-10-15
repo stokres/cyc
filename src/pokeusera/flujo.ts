@@ -2,7 +2,7 @@
 // battle → podium. Solo play is a `Partida` (partida.ts) whose hooks are answered by the screens
 // in pantallas/; online play (red/online.ts) runs the same `Partida` on the host and, for guests,
 // drives the same screens (VistaDraft, VistaCombate, pantallaPodio) from network messages.
-import { ENTRENADORES, type EntrenadorId, type EscenarioId } from './tipos';
+import { ENTRENADORES, type EntrenadorId, type EscenarioId, type ModoJuego } from './tipos';
 import { ESPECIES } from './datos';
 import { crearRnd, sacarAlAzar } from './motor/azar';
 import { conEstadisticas } from './estadisticas/resumen';
@@ -13,7 +13,8 @@ import { Partida, esCancelada, type Asiento, type Ganchos } from './partida';
 import { actualizarApp, hayConexion, instalarApp } from './aplicacion';
 import { pantalla } from './pantalla';
 import { sonido } from './sonido';
-import { cargarAjustes, escenarioElegido, guardarAjustes, pantallaAjustes } from './pantallas/ajustes';
+import { cargarAjustes, escenarioElegido, guardarAjustes, guardarModo, pantallaAjustes } from './pantallas/ajustes';
+import { VistaAzar } from './pantallas/azar';
 import { VistaBarra } from './pantallas/barra';
 import { VistaCombate } from './pantallas/combate';
 import { abrirGuia } from './pantallas/guia';
@@ -22,6 +23,7 @@ import { abrirUseritopedia } from './pantallas/useritopedia';
 import { VistaDraft } from './pantallas/draft';
 import { VistaSalida } from './pantallas/salida';
 import { pantallaEntrenador } from './pantallas/entrenador';
+import { pantallaModo } from './pantallas/modo';
 import { pantallaMenu, type OpcionMenu } from './pantallas/menu';
 import { mensaje } from './pantallas/modal';
 import { pantallaPodio, type SalidaPodio } from './pantallas/podio';
@@ -49,12 +51,14 @@ export interface OpcionesFlujo {
   escenario?: EscenarioId;
   /** `?barra`: with `?combate`, «La barra» and «¿Quién sale primero?» are played too (otherwise the machine gives out the objects and picks the openers). */
   barra?: boolean;
+  /** `?azar`: no title or menu, straight to a game in mode AL AZAR (the game deals the teams and the object; you only choose who comes out first). Without it the mode is the one saved (NORMAL / AL AZAR). */
+  azar?: boolean;
   /** `?aventura`: no title or menu, straight into AVENTURA (the one-player hunting mode); `demo`: a test adventure in memory that is never saved ('si': a starter and seven caught; 'nueva': from the beginning), with `pj` as the trainer. */
   aventura?: { demo?: 'si' | 'nueva'; pj?: EntrenadorId };
 }
 
 /** Plays one solo game (you + three machines) and shows the podium. */
-export async function jugarSolo(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combate' | 'auto' | 'semilla' | 'escenario' | 'barra'>): Promise<SalidaPodio> {
+export async function jugarSolo(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combate' | 'auto' | 'semilla' | 'escenario' | 'barra'> & { modo?: ModoJuego }): Promise<SalidaPodio> {
   // With seven trainers, you pick one and the other three seats get three of the six left, at random (docs/POKEUSERA.md, «Ventajas de entrenador»).
   // The seed is fixed here so `?semilla=N` repeats the whole game; it has its own generator, so the rest of the battle draws the same numbers as ever.
   const semilla = o.semilla ?? Math.floor(Math.random() * 2 ** 31);
@@ -68,6 +72,7 @@ export async function jugarSolo(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combat
   const vc = new VistaCombate(miSeat);
   const vb = new VistaBarra(yo);
   const vs = new VistaSalida(yo);
+  const va = new VistaAzar(asientos, miSeat);
   let equipos: string[][] | undefined;
   if (o.combate) {
     // A random team of three each, from all of them.
@@ -79,6 +84,8 @@ export async function jugarSolo(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combat
     }
     equipos = asientos.map((_, j) => ids.slice(j * 3, j * 3 + 3));
   }
+  // AL AZAR (docs/POKEUSERA.md, «Modo AL AZAR»): the game deals the teams and the objects; with the teams given (`?combate`) there is nothing to deal.
+  const azar = o.modo === 'azar' && !equipos;
   const p = pantalla();
   let enDraft = false;
   const ganchos: Ganchos = {
@@ -92,6 +99,10 @@ export async function jugarSolo(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combat
     pedirSalida: (_j, especies, objetos, ms) => {
       p.poner(vs);
       return vs.pedir(especies, objetos, ms);
+    },
+    pedirAzar: (_j, equipos, objetos, ms) => {
+      p.poner(va);
+      return va.pedir(equipos, objetos, ms);
     },
     alDraft: (draft, turnoDe, ms) => {
       if (!enDraft) {
@@ -109,10 +120,10 @@ export async function jugarSolo(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combat
     alReemplazo: (ev, estado) => vc.alReemplazo(ev, estado),
     alFin: (estado) => vc.alFin(estado),
   };
-  const partida = new Partida(asientos, conEstadisticas(ganchos, asientos, 'maquina', registrarBatalla, () => asientos.map((a) => (a.tipo === 'local' ? tokenLocal() : null))), { semilla, rapido: o.auto, equipos, escenario: o.escenario ?? escenarioElegido(), barra: o.barra });
-  vd.escenario = partida.escenario;
-  vd.alAbandonar = vb.alAbandonar = vs.alAbandonar = vc.alAbandonar = () => partida.cancelar();
-  (window as unknown as { __pokeusera?: unknown }).__pokeusera = { partida, vc, vd, vb, vs };
+  const partida = new Partida(asientos, conEstadisticas(ganchos, asientos, 'maquina', registrarBatalla, () => asientos.map((a) => (a.tipo === 'local' ? tokenLocal() : null)), azar), { semilla, rapido: o.auto, equipos, escenario: o.escenario ?? escenarioElegido(), barra: o.barra, modo: azar ? 'azar' : 'normal', plazoAzarMs: 0 });
+  vd.escenario = va.escenario = partida.escenario;
+  vd.alAbandonar = vb.alAbandonar = vs.alAbandonar = va.alAbandonar = vc.alAbandonar = () => partida.cancelar();
+  (window as unknown as { __pokeusera?: unknown }).__pokeusera = { partida, vc, vd, vb, vs, va };
   try {
     const estado = await partida.jugar();
     return await pantallaPodio(estado, miSeat, o.auto);
@@ -122,20 +133,22 @@ export async function jugarSolo(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combat
   }
 }
 
-async function jugarVarias(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combate' | 'auto' | 'semilla' | 'escenario' | 'barra'>) {
-  // «OTRA»: same trainer, a new draft.
+async function jugarVarias(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combate' | 'auto' | 'semilla' | 'escenario' | 'barra'> & { modo?: ModoJuego }) {
+  // «OTRA»: same trainer and mode, a new draft (or a new deal).
   while ((await jugarSolo(yo, o)) === 'otra') o = { ...o, combate: false, semilla: undefined };
 }
 
 export async function ejecutar(o: OpcionesFlujo): Promise<void> {
   if (o.aventura) await jugarAventura(o.aventura);
-  else if (o.combate || o.draft || o.auto) {
+  else if (o.combate || o.draft || o.auto || o.azar) {
     const yo = o.pj ?? cargarAjustes().entrenador ?? ENTRENADORES[0];
+    // The shortcuts play AL AZAR only with `?azar` (otherwise NORMAL, whatever was saved).
+    const oo = { ...o, modo: o.azar ? ('azar' as const) : ('normal' as const) };
     if (o.auto) {
-      await jugarSolo(yo, o);
+      await jugarSolo(yo, oo);
       return;
     }
-    await jugarVarias(yo, o);
+    await jugarVarias(yo, oo);
   }
   /** «MÁS TARDE» in the name screen: not asked again until the game is opened anew. */
   let nombreAplazado = false;
@@ -168,7 +181,11 @@ export async function ejecutar(o: OpcionesFlujo): Promise<void> {
         const yo = await pantallaEntrenador();
         if (!yo) continue;
         guardarAjustes({ entrenador: yo });
-        await jugarVarias(yo, { combate: false, auto: false });
+        // NORMAL or AL AZAR, right before the game (the last one used starts selected).
+        const modo = await pantallaModo();
+        if (!modo) continue;
+        guardarModo(modo);
+        await jugarVarias(yo, { combate: false, auto: false, modo });
       }
     }
   }

@@ -16,7 +16,7 @@
 // It starts nothing itself: run `npm run dev` first.
 //   node scripts/rendimiento-pokeusera.mjs [pantalla...]     (default: all)  [PUERTO=5173]
 //   node scripts/rendimiento-pokeusera.mjs 5174 combate-juega     (a bare number is the port)
-//   screens: titulo, menu, ajustes, entrenador, draft, draft-flujo, barra, salida, combate-elige, combate-juega, combate-ritmo (+ the four bars: combate-elige-<bar> and combate-juega-<bar>,
+//   screens: titulo, menu, ajustes, entrenador, modo, azar, draft, draft-flujo, barra, salida, combate-elige, combate-juega, combate-ritmo (+ the four bars: combate-elige-<bar> and combate-juega-<bar>,
 //            with <bar> = rural, terraza, juan, feria; the default combate-* ones are the Bar del Brío), podio, estadisticas, useritopedia, useritopedia-ficha, acumuladas, acumuladas-records, guia, guia-objetos, salida,
 //            nombre (la pantalla «¿Cómo te llamas?», sin cuenta), cuenta (AJUSTES → MI CUENTA), acumuladas-yo (ESTADÍSTICAS, página YO, con una copia guardada de 80 batallas),
 //            aventura-inicial, aventura-mapa, aventura-zona, aventura-equipo, aventura-salvaje (AVENTURA, src/pokeusera/caza/: ?aventura&demo=nueva&pj=fran and ?aventura&demo)
@@ -82,6 +82,10 @@ const PRESUPUESTOS = {
   barra: { redibujos: 8, ms: 2.5, pico: 12, cb: 3, di: 30, lienzos: 0, largas: 0, primer: 800 },
   // «¿Quién sale primero?» (after La barra): three baked cards, three breathing sprites and the marked one's frame.
   salida: { redibujos: 10, ms: 2.5, pico: 12, cb: 3, di: 30, lienzos: 0, largas: 0, primer: 800 },
+  // «TU EQUIPO AL AZAR» (mode AL AZAR, replaces the draft and La barra): everything baked, no clock in solo play: it must not redraw at rest.
+  azar: { redibujos: 2, ms: 2.5, pico: 12, cb: 3, di: 30, lienzos: 0, largas: 0, primer: 800 },
+  // «¿CÓMO JUGAMOS?» (NORMAL / AL AZAR, solo play, after the trainer): two baked cards over the bar's backdrop; static.
+  modo: { redibujos: 2, ms: 2, pico: 12, cb: 3, di: 20, lienzos: 0, largas: 0, primer: 1000 },
   // AVENTURA (src/pokeusera/caza/): the starter pick has three breathing sprites out of step (about 6 redraws a second); the map, the bar and the team are static (they redraw on input only).
   'aventura-inicial': { redibujos: 8, ms: 2, pico: 20, cb: 3, di: 25, lienzos: 0, largas: 0, primer: 1000 },
   'aventura-mapa': { redibujos: 2, ms: 1.5, pico: 20, cb: 2, di: 30, lienzos: 0, largas: 0, primer: 1000 },
@@ -99,9 +103,9 @@ const PANTALLAS = {
   menu: { url: '', ir: async (p) => { await tecla(p, 'Enter'); } },
   entrenador: { url: '', ir: async (p) => { await tecla(p, 'Enter'); await tecla(p, 'Enter'); } },
   draft: { url: '?draft', ir: async () => {} },
-  // The draft as a player reaches it: title, menu, trainer pick, one and a half seconds on each (the background baking
+  // The draft as a player reaches it: title, menu, trainer pick, mode (NORMAL by default), one and a half seconds on each (the background baking
   // gets only that long). «1.º pico» is then the worst frame from the moment ELEGIR is pressed: how much the draft stalls.
-  'draft-flujo': { url: '', ir: async (p, marca) => { await tecla(p, 'Enter'); await dormir(1500); await tecla(p, 'Enter'); await dormir(1500); await marca(); await tecla(p, 'Enter'); }, quieto: false },
+  'draft-flujo': { url: '', ir: async (p, marca) => { await tecla(p, 'Enter'); await dormir(1500); await tecla(p, 'Enter'); await dormir(1500); await tecla(p, 'Enter'); await dormir(1500); await marca(); await tecla(p, 'Enter'); }, quieto: false },
   'combate-elige': { url: '?combate&semilla=7&escenario=brio', ir: async () => {}, esperar: 2500 },
   // The battle plays by itself (and writes new lines of text all the time): there is no quiet moment to wait for.
   'combate-juega': { url: '?combate&auto&semilla=7&escenario=brio', ir: async () => {}, esperar: 1500, quieto: false },
@@ -109,6 +113,10 @@ const PANTALLAS = {
   'combate-ritmo': { url: '?combate&auto&semilla=7&escenario=brio', ir: async (p) => { await p.evaluate(async () => { const ui = await import('/src/pokeusera/pantallas/ui.ts'); ui.cfg.rapido = false; ui.cfg.velocidad = 'normal'; }); }, esperar: 3000, quieto: false },
   // «La barra»: ?combate&barra goes straight to it (no draft). Its 20 s clock is stretched so it does not end while measuring; an object and a userito are chosen.
   barra: { url: '?combate&barra&semilla=7', ir: async (p) => { await entraBarra(p); await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter', false); }, esperar: 1500 },
+  // «TU EQUIPO AL AZAR»: ?azar goes straight to a game in mode AL AZAR (no title or menu): the dealt team, no time limit in solo play.
+  azar: { url: '?azar&semilla=7', ir: async (p) => { await p.waitForFunction(() => !!window.__pokeusera?.va?.resolver, null, { timeout: 30000, polling: 200 }); }, esperar: 1500 },
+  // «¿CÓMO JUGAMOS?»: title, menu, trainer pick, then the mode screen.
+  modo: { url: '', ir: async (p) => { await tecla(p, 'Enter'); await tecla(p, 'Enter'); await tecla(p, 'Enter'); } },
   // «¿Quién sale primero?»: the step after La barra (?combate&barra goes through both). Its 15 s clock is stretched as well; a userito is marked.
   salida: { url: '?combate&barra&semilla=7', ir: async (p) => { await entraBarra(p); await tecla(p, 'Enter', false); await tecla(p, 'Enter'); await entraSalida(p); await tecla(p, 'ArrowDown', false); }, esperar: 1500 },
   // Reached by playing a whole quick game by itself (?auto): the podium, then ESTADÍSTICAS with Enter.

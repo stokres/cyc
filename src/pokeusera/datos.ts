@@ -368,11 +368,10 @@ export const MOVS_IMPROVISA: readonly string[] = Object.keys(MOVS).filter((id) =
   return duenos !== 1 && (MOVS[id].prioridad ?? 0) < 2 && id !== 'siy' && id !== DESESPERADA && id !== 'improvisa';
 });
 
-/** The sound moves (music, horns, shouts): the ones Fer's «Cancelación de ruido» stops, and the ones the Useritopedia labels SONIDO (docs/POKEUSERA.md, «Ventajas de entrenador»).
- *  Bocinazo, ¡Ay, ay, ay!, Serenata, Distorsión, Solo de teclado and Pasodoble. Also sounds by name but LEFT OUT on purpose, because the balance report (`--entrenadores`)
- *  showed Fer winning 31 % (par 25 %) with ¡Camioneees y caravanaaas! alone: that one, Eco, A dos voces and Monólogo. Not sounds at all: Turra, Dar la chapa, Zasca
- *  or Susto (talk or scares), the Petardo explosions and the dances. */
-export const MOVS_SONIDO: readonly string[] = ['bocinazo', 'ayayay', 'serenata', 'distorsion', 'solo', 'pasodoble'];
+/** The sound moves (music, horns, shouts, voices): the ones Fer's «Cancelación de ruido» halves, and the ones the Useritopedia labels SONIDO (docs/POKEUSERA.md, «Ventajas de entrenador»).
+ *  Bocinazo, ¡Ay, ay, ay!, Serenata, Distorsión, Solo de teclado, Pasodoble, ¡Camioneees y caravanaaas!, A dos voces, Eco and Monólogo. Not sounds: Turra, Dar la chapa,
+ *  Zasca or Susto (talk or scares), the Petardo explosions and the dances. */
+export const MOVS_SONIDO: readonly string[] = ['bocinazo', 'ayayay', 'serenata', 'distorsion', 'solo', 'pasodoble', 'cancion', 'dosvoces', 'eco', 'monologo'];
 export const esSonido = (id: string): boolean => MOVS_SONIDO.includes(id);
 
 /** «Remate por bulerías»: 20 at full HP up to 200 on the brink, 20 + 180 × (1 − HP / max HP), rounded. */

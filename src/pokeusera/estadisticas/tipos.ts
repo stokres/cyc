@@ -68,6 +68,11 @@ export interface ResumenBatalla {
   /** Fecha (milisegundos desde 1970). */
   f: number;
   mo: ModoBatalla;
+  /**
+   * 1 si fue en el modo AL AZAR (docs/POKEUSERA.md, «Modo AL AZAR»): nadie eligió su equipo ni su objeto, los repartió el juego. Opcional: sin él, la
+   * batalla es NORMAL. Estas batallas cuentan para todo menos para lo que dependa de haber elegido (el orden del draft, «elegido» de useritos y objetos).
+   */
+  az?: 1;
   es: EscenarioId;
   /** Turnos que duró. */
   tu: number;
@@ -99,11 +104,15 @@ export interface AcEspecie {
   /** Veces que llevó objeto y veces que se le activó. */
   ob: number;
   oa: number;
-  /** Veces elegido en primera, segunda y tercera ronda del draft. */
+  /** Veces elegido en primera, segunda y tercera ronda del draft (no suma en AL AZAR: no se eligió). */
   ord: [number, number, number];
+  /** Cuántas de las `n` veces le tocó al azar (modo AL AZAR): «elegido» es `n − az`. Falta en los agregados anteriores al modo. */
+  az?: number;
 }
 export interface AcObjeto {
   n: number;
+  /** Cuántas de las `n` veces le tocó al azar (modo AL AZAR): «elegido» es `n − az`. Falta en los agregados anteriores al modo. */
+  az?: number;
   a: number;
   g: number;
   pu: number;
@@ -137,6 +146,8 @@ export interface Marca {
 
 export interface Seccion {
   n: number;
+  /** Cuántas de las `n` batallas fueron en el modo AL AZAR. Falta en los agregados anteriores al modo. */
+  az?: number;
   tu: number;
   esp: Record<string, AcEspecie>;
   mov: Record<string, AcMov>;

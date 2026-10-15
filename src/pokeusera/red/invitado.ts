@@ -5,8 +5,10 @@
 // time and moved on) is dropped instead of being sent. After playing each part of the battle the
 // guest tells the host «listo»; its own countdown for a choice starts when it is ready to choose.
 import type { EstadoCombate } from '../tipos';
+import { ESPECIE } from '../datos';
 import { pantalla } from '../pantalla';
 import { sonido } from '../sonido';
+import { VistaAzar } from '../pantallas/azar';
 import { VistaBarra } from '../pantallas/barra';
 import { VistaCombate } from '../pantallas/combate';
 import { VistaDraft } from '../pantallas/draft';
@@ -55,6 +57,7 @@ export function jugarInvitado(con: Conexion): Promise<FinOnline> {
     let vc: VistaCombate | null = null;
     let vb: VistaBarra | null = null;
     let vs: VistaSalida | null = null;
+    let va: VistaAzar | null = null;
     let miSeat: number | null = null;
     let enDraft = false;
     let fase: 'draft' | 'combate' | 'podio' = 'draft';
@@ -91,9 +94,10 @@ export function jugarInvitado(con: Conexion): Promise<FinOnline> {
         vc = new VistaCombate(miSeat);
         vb = new VistaBarra(miSeat !== null ? (msg.asientos[miSeat]?.entrenador ?? null) : null);
         vs = new VistaSalida(miSeat !== null ? (msg.asientos[miSeat]?.entrenador ?? null) : null);
-        vd.escenario = msg.escenario;
-        vd.alAbandonar = vc.alAbandonar = vb.alAbandonar = vs.alAbandonar = abandonar;
-        (window as unknown as { __pokeusera?: unknown }).__pokeusera = { vc, vd, vb, vs, cola };
+        va = new VistaAzar(msg.asientos, miSeat);
+        vd.escenario = va.escenario = msg.escenario;
+        vd.alAbandonar = vc.alAbandonar = vb.alAbandonar = vs.alAbandonar = va.alAbandonar = abandonar;
+        (window as unknown as { __pokeusera?: unknown }).__pokeusera = { vc, vd, vb, vs, va, cola };
         enDraft = false;
         fase = 'draft';
         podioVivo = false;
@@ -104,7 +108,7 @@ export function jugarInvitado(con: Conexion): Promise<FinOnline> {
         podioVivo = false;
         return;
       }
-      if (!vd || !vc || !vb || !vs) return;
+      if (!vd || !vc || !vb || !vs || !va) return;
       switch (msg.k) {
         case 'draft': {
           if (!enDraft) {
@@ -129,6 +133,17 @@ export function jugarInvitado(con: Conexion): Promise<FinOnline> {
           p.poner(vb);
           void vb.pedir(msg.ofertas, msg.especies, resta).then((el) => {
             if (!muerto && !caducada(idx)) enviar({ k: 'objeto', objeto: el.objeto, idx: el.idx });
+          });
+          return;
+        }
+        case 'azar': {
+          // AL AZAR: «TU EQUIPO AL AZAR», asked of this guest only. ¡A PELEAR! goes back as 'azar'; the 'salida' that follows settles any question left open.
+          if (miSeat === null || caducada(idx) || !Array.isArray(msg.equipos) || !msg.equipos.every((e) => Array.isArray(e) && e.every((x) => typeof x === 'string' && ESPECIE[x]))) return;
+          const tope = Math.max(1500, msg.plazoMs - MARGEN_MS);
+          const resta = Math.min(tope, Math.max(Math.min(MIN_ELECCION_MS, tope), tope - (Date.now() - cuando)));
+          p.poner(va);
+          void va.pedir(msg.equipos, Array.isArray(msg.objetos) ? msg.objetos : [], resta).then(() => {
+            if (!muerto && !caducada(idx)) enviar({ k: 'azar' });
           });
           return;
         }

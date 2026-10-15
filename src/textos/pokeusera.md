@@ -148,6 +148,7 @@ sala.eligiendo = ELIGIENDO
 sala.elige = ELIGE TU ENTRENADOR
 sala.tuyo = TUYO
 sala.ocupado = OCUPADO
+sala.modo = MODO
 sala.rellenar = RELLENAR CON MÁQUINA
 sala.si = SÍ
 sala.no = NO
@@ -238,7 +239,7 @@ entrenador.fran.perk_d = Su caña cura el 60 % de los PS, no la mitad.
 entrenador.pablo.perk = Labia
 entrenador.pablo.perk_d = Sus movimientos de estado fallan menos: +10 de precisión.
 entrenador.chuchi.perk = Llega tarde
-entrenador.chuchi.perk_d = El primer golpe que recibe cada userito le hace un 20 % menos.
+entrenador.chuchi.perk_d = El primer golpe que recibe cada userito le hace un 15 % menos.
 entrenador.guille.perk = Mañico
 entrenador.guille.perk_d = Una vez por userito, aguanta con 1 PS un golpe mortal a vida llena.
 entrenador.vinas.perk = Verso libre
@@ -246,7 +247,7 @@ entrenador.vinas.perk_d = Sus ataques de Chanza y Juerga pegan un 10 % más.
 entrenador.ari.perk = De su cosecha
 entrenador.ari.perk_d = Cada golpe que da tiene un 10 % más de salir crítico.
 entrenador.fer.perk = Cancelación de ruido
-entrenador.fer.perk_d = Los movimientos con la etiqueta SONIDO (bocinas, gritos, música…) no le afectan.
+entrenador.fer.perk_d = Los movimientos con la etiqueta SONIDO (bocinas, gritos, música…) le hacen la mitad.
 entrenador.elegir = ELEGIR
 
 // ---- draft
@@ -277,6 +278,26 @@ salida.secreto = Nadie lo ve hasta que empiece el combate.
 salida.espera = ¡Listo! Esperando a los demás...
 salida.movs = MOVS
 salida.sinobjeto = Sin objeto
+
+// ---- modo de juego: NORMAL o AL AZAR (pantallas/modo.ts, la sala online)
+modo.titulo = ¿CÓMO JUGAMOS?
+modo.normal = NORMAL
+modo.normal.d = Elegís los useritos por turnos (el draft) y cada uno coge un objeto en La barra.
+modo.azar = AL AZAR
+modo.azar.d = El juego reparte a cada uno 3 useritos y 1 objeto al azar. Tú solo decides con cuál sales primero.
+modo.ultimo = ÚLTIMA VEZ
+modo.volver = VOLVER
+modo.pista = Toca un modo para jugar.
+
+// ---- TU EQUIPO AL AZAR (pantallas/azar.ts): en el modo AL AZAR, en lugar del draft y de La barra
+azar.titulo = TU EQUIPO AL AZAR
+azar.pista = Esto es lo que te ha tocado.
+azar.lleva = Lo lleva {nombre}.
+azar.sinobjeto = Sin objeto
+azar.rivales = TUS RIVALES
+azar.secreto = Los rivales no verán tu objeto hasta que funcione.
+azar.apelear = ¡A PELEAR!
+azar.espera = ¡Listo! Esperando a los demás...
 
 // ---- combate
 batalla.inicio = ¡Empieza la batalla a cuatro!
