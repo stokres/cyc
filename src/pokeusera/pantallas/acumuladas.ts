@@ -251,16 +251,17 @@ const fecha = (f: number): string => {
 const entero = (v: number): string => String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 
 /** The records that exist, in the order of `RECORDS` (agregado.mjs). */
-function tarjetas(s: Seccion, orden: readonly string[]): Tarjeta[] {
+function tarjetas(s: Seccion, orden: readonly string[], nombreDe: (cu: string) => string | undefined): Tarjeta[] {
   const out: Tarjeta[] = [];
   for (const id of orden) {
     const r: Marca | undefined = s.rec[id];
     if (!r) continue;
+    const persona = r.cu ? nombreDe(r.cu) : undefined;
     const vars = {
       v: entero(r.v),
       userito: r.e ? (ESPECIE[r.e]?.nombre ?? r.e) : '',
       mov: r.m ? (MOVS[r.m]?.nombre ?? r.m) : '',
-      quien: r.en ? t(`entrenador.${r.en}`) : '',
+      quien: persona ?? (r.en ? t(`entrenador.${r.en}`) : ''),
       bar: r.es ? t(`escenario.${r.es}`) : '',
     };
     const e = r.e;
@@ -268,7 +269,7 @@ function tarjetas(s: Seccion, orden: readonly string[]): Tarjeta[] {
       titulo: t(`acum.rec.${id}`),
       valor: vars.v,
       detalle: t(`acum.rec.${id}.d`, vars),
-      pie: r.en && id !== 'danoj' ? t('acum.rec.pie.con', { quien: vars.quien, fecha: fecha(r.f) }) : t('acum.rec.pie.sin', { fecha: fecha(r.f) }),
+      pie: (persona || r.en) && id !== 'danoj' ? t('acum.rec.pie.con', { quien: vars.quien, fecha: fecha(r.f) }) : t('acum.rec.pie.sin', { fecha: fecha(r.f) }),
       icono: e ? (cx, x, y) => cx.drawImage(miniatura(e), x, y) : r.en ? (cx, x, y) => ficha(cx, r.en!, x + 4, y + 4, 24) : undefined,
     });
   }
@@ -523,7 +524,9 @@ export function abrirAcumuladas(): Promise<void> {
       };
       if (id === 'yo') return;
       if (id === 'records') {
-        for (const c of tarjetas(s, RECORDS)) poner(filaTarjeta(c));
+        const nombreDe = (cu: string): string | undefined =>
+          fuente === 'movil' ? (cu === cuentaLocal()?.id ? cuentaLocal()?.nombre : undefined) : remoto !== 'cargando' && remoto !== 'fallo' ? remoto.cuentas.find((c) => c.id === cu)?.nombre : undefined;
+        for (const c of tarjetas(s, RECORDS, nombreDe)) poner(filaTarjeta(c));
         if (!plan.length) mensajeVacio('acum.vacio');
       } else {
         const cuentas = fuente === 'todos' && remoto !== 'cargando' && remoto !== 'fallo' ? remoto.cuentas : [];

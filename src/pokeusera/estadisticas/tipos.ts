@@ -130,6 +130,8 @@ export interface Marca {
   e?: string;
   m?: string;
   en?: EntrenadorId;
+  /** Id público de la cuenta de quien lo hizo (si jugaba con cuenta). */
+  cu?: string;
   es?: EscenarioId;
 }
 

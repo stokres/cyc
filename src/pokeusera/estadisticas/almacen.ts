@@ -4,6 +4,7 @@
 //  - la pantalla pide los agregados de todos al servidor (con la última copia guardada por si no hay red) y los de este móvil a la copia local.
 // Nada de esto toca el dibujo ni bloquea: la suma local se hace un momento después, y el envío es un fetch.
 import { FORMATO, type Agregado, type ResumenBatalla, type ResumenCuenta } from './tipos';
+import { cuentaLocal } from '../cuentas/almacen';
 import { agregadoVacio, agregadoValido, sumarResumen } from './agregado.mjs';
 
 const CLAVE_LOCAL = 'pokeusera.est.local';
@@ -80,7 +81,9 @@ export async function enviarPendientes(): Promise<void> {
 /** A battle is over: counts it on this phone and sends it. Quick: the work that takes a moment (storage, network) is left for later. */
 export function registrarBatalla(r: ResumenBatalla): void {
   setTimeout(() => {
-    sumarResumen(agregadoLocal(), r);
+    // The secret token never goes into the local aggregate: a record only keeps the public id of this phone's account.
+    const mia = cuentaLocal()?.id ?? null;
+    sumarResumen(agregadoLocal(), { ...r, ju: r.ju.map((j) => ({ ...j, cu: j.cu ? mia : null })) });
     guardar(CLAVE_LOCAL, agregadoLocal());
     guardar(CLAVE_PENDIENTES, [...pendientes(), r].slice(-TOPE_PENDIENTES));
     void enviarPendientes();

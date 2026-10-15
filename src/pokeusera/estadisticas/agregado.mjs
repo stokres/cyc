@@ -98,7 +98,7 @@ function sumarSeccion(s, r, soloPersonas) {
           mejorId = id;
         }
       }
-      const ctx = { f: r.f, e: u.e, en: j.en };
+      const ctx = { f: r.f, e: u.e, en: j.en, cu: j.cu || undefined };
       marca(s, 'golpe', u.mx, { ...ctx, m: u.mm });
       marca(s, 'movdano', mejorMov, { ...ctx, m: mejorId });
       marca(s, 'ko', u.ko, ctx);
@@ -109,7 +109,7 @@ function sumarSeccion(s, r, soloPersonas) {
       marca(s, 'hab', u.ha, ctx);
       if (!u.ca) marca(s, 'campo', u.tf, ctx);
     }
-    marca(s, 'danoj', danoJugador, { f: r.f, en: j.en });
+    marca(s, 'danoj', danoJugador, { f: r.f, en: j.en, cu: j.cu || undefined });
   }
 }
 
