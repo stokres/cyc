@@ -15,6 +15,8 @@ import { tareasPrecalentarObjetos } from './iconosObjeto';
 import { pantalla } from '../pantalla';
 
 let cola: (() => void)[] | null = null;
+/** Tasks asked for by a screen that is already running (the battle's benched useritos): done before the rest of `cola`, popped from the end too. */
+const urgentes: (() => void)[] = [];
 let pendiente = false;
 
 type Ocioso = (cb: (d: { timeRemaining(): number; didTimeout: boolean }) => void, o?: { timeout: number }) => number;
@@ -45,7 +47,7 @@ function construir(): (() => void)[] {
 }
 
 function siguiente() {
-  if (pendiente || !cola?.length) return;
+  if (pendiente || !(urgentes.length || cola?.length)) return;
   pendiente = true;
   const hacer = (d?: { timeRemaining(): number; didTimeout: boolean }) => {
     pendiente = false;
@@ -58,7 +60,7 @@ function siguiente() {
     const w = window as unknown as { __precalentando?: boolean };
     w.__precalentando = true;
     try {
-      cola?.pop()?.();
+      (urgentes.pop() ?? cola?.pop())?.();
     } finally {
       w.__precalentando = false;
     }
@@ -72,5 +74,14 @@ function siguiente() {
 export function precalentar(): void {
   if (cola) return;
   cola = construir();
+  siguiente();
+}
+
+/**
+ * Bakes these tasks, in order, in the background before anything else of the warm-up: what a screen can do without in its first frames
+ * (the battle: the benched useritos and the moves nobody has in the field yet) so it opens sooner. Works even if `precalentar` was never called.
+ */
+export function precalentarPronto(tareas: (() => void)[]): void {
+  urgentes.push(...[...tareas].reverse());
   siguiente();
 }

@@ -21,6 +21,7 @@ import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
 import { CajaTexto } from './caja';
 import { menuPausa } from './ajustes';
+import { precalentarPronto } from './precalentar';
 import { EfectosMov, llegadaFx, tareasEfectosDe, type PuntoFx } from './efectosMov';
 import { cajaSprite, dibujarBandeja, dibujarFondoEscenario, hornearFondoEscenario, miniatura, pieSprite, plataformaCacheada } from './fondos';
 import { abrirGuia } from './guia';
@@ -506,25 +507,43 @@ export class VistaCombate implements Escena {
   }
 
   /**
-   * Bakes the art of the twelve useritos (both idle frames of front and back, and the thumbnail) and of the move effects before the teams come out, a few at a
-   * time, giving the screen a frame in between: the background baking (`precalentar.ts`) normally has done it long ago, but a
-   * battle can start before that (the ?combate shortcut, an online guest who skipped the title).
+   * Bakes, before the teams come out, what the first turn draws, a few tasks at a time, giving the screen a frame in between: the art of the useritos
+   * on the field (their thumbnails, both idle frames, the back view of the local player's) and the effects of their moves. The rest (the benched
+   * useritos, the other moves) goes to the background baking (`precalentar.ts`), which normally has done it all long ago: a battle can start before
+   * that (the ?combate shortcut, an online guest who skipped the title), and baking all of it here made the opening last seconds on a slow phone.
    */
   private async calentar(estado: EstadoCombate) {
-    const vistas = new Set<string>();
     const tareas: (() => void)[] = [];
+    const enCampo = new Set<string>();
+    for (const q of estado.jugadores) {
+      const u = q.equipo[q.activo];
+      if (u) enCampo.add(u.especie);
+    }
+    const yo = estado.jugadores[this.yo];
+    const miEspecie = yo?.equipo[yo.activo]?.especie;
+    const vistas = new Set<string>();
+    const traseras: (() => void)[] = [];
+    const banquillo: (() => void)[] = [];
     for (const q of estado.jugadores) {
       for (const u of q.equipo) {
-        if (vistas.has(u.especie)) continue;
-        vistas.add(u.especie);
-        tareas.push(() => miniatura(u.especie), () => spriteFrente2(u.especie, 0), () => spriteFrente2(u.especie, 1), () => spriteEspalda2(u.especie, 0), () => spriteEspalda2(u.especie, 1));
+        const id = u.especie;
+        if (vistas.has(id)) continue;
+        vistas.add(id);
+        if (enCampo.has(id)) {
+          tareas.push(() => miniatura(id), () => spriteFrente2(id, 1));
+          if (id === miEspecie) tareas.push(() => spriteEspalda2(id, 0), () => spriteEspalda2(id, 1));
+          else traseras.push(() => spriteEspalda2(id, 0), () => spriteEspalda2(id, 1));
+        } else banquillo.push(() => miniatura(id), () => spriteFrente2(id, 1), () => spriteEspalda2(id, 0), () => spriteEspalda2(id, 1));
       }
     }
     // The bar's backdrop and the object icons (a baked backdrop is a big canvas: better before the first frame than in it).
     tareas.push(() => hornearFondoEscenario(estado.escenario, alturaCampo(pantalla().alto)), ...tareasPrecalentarObjetos());
-    // The sprites of the move effects too, but only those of the moves these twelve useritos have, with each move's own type (already baked when the
-    // background baking is over: then this is a few empty loops). Baking every effect of the game here (tens of tasks) stalled the start of a cold battle.
-    tareas.push(...tareasEfectosDe([DESESPERADA, ...[...vistas].flatMap((id) => ESPECIE[id]?.movs ?? [])]));
+    // The sprites of the move effects too, but only those of the moves of the useritos on the field (the others, and the ones of the benched, in the
+    // background), each move with its own type. Baking every effect of the game here (tens of tasks) stalled the start of a cold battle.
+    const movsCampo = new Set<string>([...enCampo].flatMap((id) => ESPECIE[id]?.movs ?? []));
+    const movsResto = [DESESPERADA, ...[...vistas].flatMap((id) => ESPECIE[id]?.movs ?? [])].filter((m) => !movsCampo.has(m));
+    tareas.push(...tareasEfectosDe(movsCampo));
+    precalentarPronto([...traseras, ...banquillo, ...tareasEfectosDe(movsResto)]);
     let t0 = performance.now();
     for (const f of tareas) {
       f();
