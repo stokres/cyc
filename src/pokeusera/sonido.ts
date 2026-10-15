@@ -55,16 +55,16 @@ export const ESPECIES = [
  * plays once, from the start.
  */
 const PISTAS: Record<Pista, { url: string; inicio: number; fin: number | null }> = {
-  titulo: { url: urlTitulo, inicio: 0.5, fin: 46.214286 },
-  draft: { url: urlDraft, inicio: 0.5, fin: 35.411202 },
-  combate: { url: urlCombate, inicio: 0.5, fin: 49.726304 },
-  combateRock: { url: urlCombateRock, inicio: 0.5, fin: 53.836236 },
+  titulo: { url: urlTitulo, inicio: 0.5, fin: 168.119048 },
+  draft: { url: urlDraft, inicio: 0.5, fin: 183.78381 },
+  combate: { url: urlCombate, inicio: 0.5, fin: 172.792063 },
+  combateRock: { url: urlCombateRock, inicio: 0.5, fin: 173.842766 },
   combateVerbena: { url: urlCombateVerbena, inicio: 0.5, fin: 58.677596 },
   combateElectro: { url: urlCombateElectro, inicio: 0.5, fin: 59.571565 },
   combateTerraza: { url: urlCombateTerraza, inicio: 0.5, fin: 56.494921 },
   combateRural: { url: urlCombateRural, inicio: 0.5, fin: 56.146621 },
   combateJuan: { url: urlCombateJuan, inicio: 0.5, fin: 59.571565 },
-  final: { url: urlFinal, inicio: 0.5, fin: 33.98898 },
+  final: { url: urlFinal, inicio: 0.5, fin: 167.944898 },
   victoria: { url: urlVictoria, inicio: 0, fin: null },
 };
 
