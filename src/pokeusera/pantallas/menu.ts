@@ -1,4 +1,4 @@
-// PokéUsera · main menu: JUGAR SOLO / AVENTURA / JUGAR ONLINE / USERITOPEDIA / GUÍA / AJUSTES, plus two rows that only exist when they
+// PokéUsera · main menu: JUGAR SOLO / (AVENTURA, hidden for now) / JUGAR ONLINE / USERITOPEDIA / GUÍA / AJUSTES, plus two rows that only exist when they
 // make sense: «Hay versión nueva» (a new version is waiting) and INSTALAR EN EL MÓVIL (see ../aplicacion.ts).
 import { app, instalable } from '../aplicacion';
 import { filaMenu, hornear, panelCacheado } from '../arte2/ui2';
@@ -14,7 +14,9 @@ import { dibujarLogo } from './titulo';
 import { Firma, mover, rect, reposo, t } from './ui';
 
 export type OpcionMenu = 'solo' | 'aventura' | 'online' | 'useritopedia' | 'estadisticas' | 'guia' | 'ajustes' | 'instalar' | 'actualizar' | 'titulo';
-const BASE: OpcionMenu[] = ['solo', 'aventura', 'online', 'useritopedia', 'estadisticas', 'guia', 'ajustes'];
+/** AVENTURA is hidden from the menu for now (15-oct-2026): its code and the `?aventura` shortcut stay. Set to true to bring the row back. */
+const AVENTURA_VISIBLE = false;
+const BASE: OpcionMenu[] = (['solo', 'aventura', 'online', 'useritopedia', 'estadisticas', 'guia', 'ajustes'] as OpcionMenu[]).filter((o) => o !== 'aventura' || AVENTURA_VISIBLE);
 /** The rows now: the update notice on top, the install option at the end, each only while it applies. */
 const opciones = (): OpcionMenu[] => [...(app.hayActualizacion ? (['actualizar'] as const) : []), ...BASE, ...(instalable() ? (['instalar'] as const) : [])];
 const ICONOS: Record<string, string> = { solo: 'luchar', aventura: 'cana', online: 'online', useritopedia: 'userito', ajustes: 'ajustes' };

@@ -119,19 +119,6 @@ export function alturaCampo(H: number): number {
   return 18 + 4 + 3 * Math.round(50 + k * 26) + 78;
 }
 
-/** The width of a trainer's name in capitals (it is asked for every frame), and of a status tag's text. */
-const anchosNombre = new Map<string, number>();
-const anchoNombre = (nombre: string): number => {
-  let w = anchosNombre.get(nombre);
-  if (w === undefined) anchosNombre.set(nombre, (w = anchoTexto2(nombre.toUpperCase())));
-  return w;
-};
-const anchosEstado = new Map<string, number>();
-const anchoEstado = (e: Estado | 'achispado'): number => {
-  let w = anchosEstado.get(e);
-  if (w === undefined) anchosEstado.set(e, (w = anchoTexto2(t(`estado.${e}`))));
-  return w;
-};
 /** The widths of a userito's type chips with names (`largo`) and as bare squares (`corto`), by the types it has. */
 const chipsAncho = new Map<string, { largo: number; corto: number }>();
 function anchosChips(tipos: readonly Tipo[]): { largo: number; corto: number } {
@@ -2266,7 +2253,10 @@ export class VistaCombate implements Escena {
     return hornear(`placa|${mia ? 1 : 0}|${asiento}|${nombre}`, w, h + 2, (cx) => {
       panel(cx, 0, 0, w, h);
       bandaEntrenador(cx, 4, 4, h - 8, asiento, ini);
-      texto2(cx, nombre.toUpperCase(), 18, 30, JUGADORES2[asiento].oscuro, SOMBRA_TEXTO);
+      // On the player's own panel the «PS/max» numbers share the name's line: a 12-letter name gives way before them (65 px).
+      let nom = nombre.toUpperCase();
+      if (mia) while (nom.length > 1 && anchoTexto2(nom) > 65) nom = nom.slice(0, -1);
+      texto2(cx, nom, 18, 30, JUGADORES2[asiento].oscuro, SOMBRA_TEXTO);
     });
   }
 
@@ -2312,32 +2302,32 @@ export class VistaCombate implements Escena {
     // Pips: the jars still standing.
     let vivos = 0;
     for (const e of q.equipo) if (e.ps > 0) vivos++;
-    // Status tags: next to the trainer's name.
-    const ey = py + (mia ? 29 : 29);
-    let ex = px + 18 + anchoNombre(q.nombre) + 6;
     const obj = this.objetoVisible(j, u);
     if (mia) {
       const nums = this.numerosPS(f, u.psMax);
       texto2(ctx, nums, px + w - 8 - anchoTexto2(nums), py + 30);
       pipsFila(ctx, px + 18, py + 40, vivos, JUGADORES2[asiento].base);
-      ex = px + 18 + 3 * 9 + 6;
+      // Status tags: right of the jars.
+      let ex = px + 18 + 3 * 9 + 6;
       if (u.estado) ex += this.etiqueta(ctx, j, u.estado, ex, py + 39, info) + 2;
       if (u.achispado > 0) this.etiqueta(ctx, j, 'achispado', ex, py + 39, info);
       // The object carried, at the right end of the last line.
       if (obj) ctx.drawImage(iconoObjeto(obj.id, obj.gastado === true), px + w - 8 - LADO_ICONO_OBJETO, py + 38);
     } else {
-      // The tags go after the trainer's name; the jars (pips) sit at the right, and give way when two tags do not fit beside them.
-      const e1: Estado | 'achispado' | null = u.estado;
-      const e2: 'achispado' | null = u.achispado > 0 ? 'achispado' : null;
-      const anchoTags = (e1 ? anchoEstado(e1) + 8 : 0) + (e2 ? anchoEstado(e2) + 8 : 0);
-      // The object (once it has worked) takes the right end of the line, the jars go left of it.
-      const xPips = px + w - 8 - 3 * 9 + 1 - (obj ? LADO_ICONO_OBJETO + 3 : 0);
-      const conPips = ex + anchoTags <= xPips - 2;
-      if (conPips) pipsFila(ctx, xPips, py + 29, vivos, JUGADORES2[asiento].base);
-      if (obj) ctx.drawImage(iconoObjeto(obj.id, obj.gastado === true), px + w - 8 - LADO_ICONO_OBJETO + 1, py + 26);
-      const lim = conPips ? xPips - 2 : px + w - 6;
-      if (e1 && ex + anchoEstado(e1) + 6 <= lim) ex += this.etiqueta(ctx, j, e1, ex, ey - 1, info) + 2;
-      if (e2 && ex + anchoEstado(e2) + 6 <= lim) ex += this.etiqueta(ctx, j, e2, ex, ey - 1, info) + 2;
+      // The jars (pips) always sit at the right end of the name line: the longest name (12 letters of an online account) ends before them.
+      pipsFila(ctx, px + w - 8 - 3 * 9 + 1, py + 29, vivos, JUGADORES2[asiento].base);
+      // The object (once it has worked) and the status tags hang in a column off the panel's right edge, between it and the sprite, so
+      // that no name, tag or object ever takes room from the jars or from each other: object, then the status, then «achispado».
+      let yc = py + 1;
+      if (obj) {
+        ctx.drawImage(iconoObjeto(obj.id, obj.gastado === true), px + w + 2, yc);
+        yc += LADO_ICONO_OBJETO + 2;
+      }
+      if (u.estado) {
+        this.etiqueta(ctx, j, u.estado, px + w + 2, yc, info);
+        yc += 13;
+      }
+      if (u.achispado > 0) this.etiqueta(ctx, j, 'achispado', px + w + 2, yc, info);
     }
     // Eliminated: greyed with the place.
     const filaR = this.filaDe(j);

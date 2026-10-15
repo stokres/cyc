@@ -8,12 +8,16 @@ import type { ModoBatalla, ResumenBatalla, ResumenJugador, ResumenUserito } from
 import { FORMATO } from './tipos';
 
 declare const __POKEUSERA_VERSION__: string | undefined;
+declare const __POKEUSERA_LANZAMIENTO__: string | undefined;
 
 /** Ventaja de entrenador (docs/POKEUSERA.md, «Ventajas de entrenador»): la que lleva cada uno. */
 const VENTAJA: Record<EntrenadorId, string> = { fran: 'cana', pablo: 'labia', chuchi: 'tarde', guille: 'manico' };
 
 /** Version of the game that played the battle (the build's commit; `dev` on the dev server and in scripts). */
 export const versionJuego = (): string => (typeof __POKEUSERA_VERSION__ === 'string' && __POKEUSERA_VERSION__ ? __POKEUSERA_VERSION__ : 'dev');
+
+/** Release number shown on the title screen (package.json `version`, baked in by vite.config.ts; `dev` where there is no build, as in scripts). */
+export const lanzamientoJuego = (): string => (typeof __POKEUSERA_LANZAMIENTO__ === 'string' && __POKEUSERA_LANZAMIENTO__ ? __POKEUSERA_LANZAMIENTO__ : 'dev');
 
 function idAzar(): string {
   const abc = 'abcdefghijklmnopqrstuvwxyz0123456789';

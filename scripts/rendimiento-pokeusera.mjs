@@ -112,25 +112,25 @@ const PANTALLAS = {
   // Reached by playing a whole quick game by itself (?auto): the podium, then ESTADÍSTICAS with Enter.
   podio: { url: '?auto&semilla=7', ir: async (p) => { await hastaPodio(p); } },
   estadisticas: { url: '?auto&semilla=7', ir: async (p) => { await hastaPodio(p); await tecla(p, 'Enter'); } },
-  // The Useritopedia: menu → USERITOPEDIA (fourth entry, after JUGAR SOLO, AVENTURA and JUGAR ONLINE): the list, and a card (Enter on the first userito).
-  useritopedia: { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 3; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
-  'useritopedia-ficha': { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 3; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); await tecla(p, 'Enter', false); }, esperar: 1500 },
-  // ESTADÍSTICAS: menu → ESTADÍSTICAS (fifth entry); the phone's own aggregates are made up first (80 battles), and the view set to «EN ESTE MÓVIL» (no server in the way).
-  acumuladas: { url: '', ir: async (p) => { await sembrarEstadisticas(p); await tecla(p, 'Enter'); for (let i = 0; i < 4; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); await dormir(800); } },
+  // The Useritopedia: menu → USERITOPEDIA (third entry, after JUGAR SOLO and JUGAR ONLINE; AVENTURA is hidden): the list, and a card (Enter on the first userito).
+  useritopedia: { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 2; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
+  'useritopedia-ficha': { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 2; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); await tecla(p, 'Enter', false); }, esperar: 1500 },
+  // ESTADÍSTICAS: menu → ESTADÍSTICAS (fourth entry); the phone's own aggregates are made up first (80 battles), and the view set to «EN ESTE MÓVIL» (no server in the way).
+  acumuladas: { url: '', ir: async (p) => { await sembrarEstadisticas(p); await tecla(p, 'Enter'); for (let i = 0; i < 3; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); await dormir(800); } },
   // The same on its last page (RÉCORDS: ▶ six times).
-  'acumuladas-records': { url: '', ir: async (p) => { await sembrarEstadisticas(p); await tecla(p, 'Enter'); for (let i = 0; i < 4; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); await dormir(800); for (let i = 0; i < 6; i++) await tecla(p, 'ArrowRight', false); }, esperar: 1000 },
+  'acumuladas-records': { url: '', ir: async (p) => { await sembrarEstadisticas(p); await tecla(p, 'Enter'); for (let i = 0; i < 3; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); await dormir(800); for (let i = 0; i < 6; i++) await tecla(p, 'ArrowRight', false); }, esperar: 1000 },
   // The YO page (the eighth, after RÉCORDS: ▶ seven times). The phone's copy of «my numbers» is made up first (the dev server has no such account: the request is answered from the page).
-  'acumuladas-yo': { url: '', ir: async (p) => { await sembrarYo(p); await tecla(p, 'Enter'); for (let i = 0; i < 4; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); await dormir(800); for (let i = 0; i < 7; i++) await tecla(p, 'ArrowRight', false); }, esperar: 1500 },
+  'acumuladas-yo': { url: '', ir: async (p) => { await sembrarYo(p); await tecla(p, 'Enter'); for (let i = 0; i < 3; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); await dormir(800); for (let i = 0; i < 7; i++) await tecla(p, 'ArrowRight', false); }, esperar: 1500 },
   // «¿Cómo te llamas?»: the title, then a tap: with no account on the phone the name screen comes before the menu (the other screens start with an account made up).
   nombre: { url: '', sinCuenta: true, ir: async (p) => { await tecla(p, 'Enter'); } },
   // AJUSTES → MI CUENTA (the settings' fifth row: ▼ four times).
-  cuenta: { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 6; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); for (let i = 0; i < 4; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
-  // The guide: menu → GUÍA (sixth entry).
-  guia: { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 5; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
+  cuenta: { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 5; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); for (let i = 0; i < 4; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
+  // The guide: menu → GUÍA (fifth entry).
+  guia: { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 4; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
   // The guide on its OBJETOS tab (the last one: ▶ five times).
-  'guia-objetos': { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 5; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); for (let i = 0; i < 5; i++) await tecla(p, 'ArrowRight', false); }, esperar: 1000 },
-  // The settings: menu → AJUSTES (seventh entry), with the ESCENARIO row.
-  ajustes: { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 6; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
+  'guia-objetos': { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 4; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); for (let i = 0; i < 5; i++) await tecla(p, 'ArrowRight', false); }, esperar: 1000 },
+  // The settings: menu → AJUSTES (sixth entry), with the ESCENARIO row.
+  ajustes: { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 5; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
   // AVENTURA. The shortcuts skip the title and the menu (`?aventura`); `&demo` is a test adventure in memory (a starter and seven caught, bar 2 open, never saved).
   'aventura-inicial': { url: '?aventura&demo=nueva&pj=fran', ir: async () => {} },
   'aventura-mapa': { url: '?aventura&demo', ir: async () => {} },

@@ -15,7 +15,7 @@ Los mensajes del combate y las descripciones de useritos y movimientos están en
 titulo = POKéUSERA
 titulo.sub = EDICIÓN JARRA
 titulo.toca = TOCA PARA EMPEZAR
-titulo.credito = PARA FRAN - PABLO - CHUCHI - GUILLE
+titulo.version = v{v}
 
 menu.solo = JUGAR SOLO
 menu.aventura = AVENTURA

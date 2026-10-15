@@ -9,7 +9,8 @@ import { panelCacheado } from '../arte2/ui2';
 import { anchoTexto2 } from '../arte2/fuente2';
 import { dibujarBandeja } from './fondos';
 import { capasTitulo, dibujarCapasTitulo, dibujarFiesta, disenoTitulo, estadoNeon, nuevaFiesta } from './fondoTitulo';
-import { Firma, centrado, parpadea, reposo, t, texto2 } from './ui';
+import { Firma, centrado, derecha, parpadea, reposo, t } from './ui';
+import { lanzamientoJuego } from '../estadisticas/resumen';
 
 /** Draws the logo centred at the top. Returns the y where it ends. */
 export function dibujarLogo(ctx: CanvasRenderingContext2D, y: number): number {
@@ -23,6 +24,7 @@ export function pantallaTitulo(): Promise<void> {
     const p = pantalla();
     // The party at the door of the bar: four different species, drawn anew every time the title is entered.
     const fiesta = nuevaFiesta();
+    const version = t('titulo.version', { v: lanzamientoJuego() }); // built once, not per frame
     let listo = false;
     const seguir = () => {
       if (listo) return;
@@ -63,9 +65,9 @@ export function pantallaTitulo(): Promise<void> {
           panelCacheado(ctx, x, y, w, 28);
           centrado(ctx, s, y + 11);
         }
-        const cred = t('titulo.credito');
+        // The tray under the street, with the release number small in its right corner (baked text: `t` remembers it, the glyph lines are cached).
         dibujarBandeja(ctx, H - 22, H);
-        texto2(ctx, cred, Math.floor((ANCHO - anchoTexto2(cred)) / 2), H - 15, '#f0e2b8', null);
+        derecha(ctx, version, ANCHO - 8, H - 15, '#b9a8b8', null);
         entrada.zona(0, 0, ANCHO, H, seguir);
       },
       accion(a) {

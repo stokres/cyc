@@ -18,6 +18,9 @@ const catalogo = () => ({
   sucesos: Object.keys(SUCESOS),
 });
 
+/** The release number: package.json `version` (docs/POKEUSERA.md, «Publicación»: only its third digit goes up at each release). */
+const lanzamiento: string = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf8')).version;
+
 /** The version written into each battle summary: the commit being built (Railway gives it; otherwise git), or the date. */
 function versionJuego(): string {
   const sha = process.env.RAILWAY_GIT_COMMIT_SHA || process.env.GITHUB_SHA;
@@ -110,7 +113,8 @@ export default defineConfig({
   // Relative paths: GitHub Pages serves the game from /<repositorio>/.
   base: './',
   plugins: [pokeuseraSw(), pokeuseraEstadisticas()],
-  define: { __POKEUSERA_VERSION__: JSON.stringify(versionJuego()) },
+  // __POKEUSERA_LANZAMIENTO__: the release number shown on the title screen (package.json `version`, docs/POKEUSERA.md «Publicación»).
+  define: { __POKEUSERA_VERSION__: JSON.stringify(versionJuego()), __POKEUSERA_LANZAMIENTO__: JSON.stringify(lanzamiento) },
   // Online room: `npm start` (PORT=8080) in another terminal serves /sala; POKEUSERA_SALA overrides the target.
   server: { proxy: { '/sala': { target: process.env.POKEUSERA_SALA ?? 'ws://localhost:8080', ws: true } } },
   build: {
