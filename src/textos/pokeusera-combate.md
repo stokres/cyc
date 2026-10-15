@@ -448,64 +448,65 @@ suceso.dura1 = ESTE TURNO
 suceso.dura = {n} TURNOS
 suceso.resta1 = Dura este turno.
 suceso.resta = Dura {n} turnos más.
+suceso.nada = Pero esta vez no cambia nada.
 suceso.cerrar = CERRAR
 
 suceso.ronda.nombre = ¡Ronda gratis!
-suceso.ronda.frase = Invita la casa: ¡ronda para todos! Todos recuperan fuerzas.
+suceso.ronda.frase = Invita la casa: ¡ronda para todos! Cada userito en combate recupera 1/8 de su vida.
 suceso.ronda.desc = Todos los useritos en combate curan 1/8 de sus PS.
 
 suceso.luz.nombre = Se va la luz
-suceso.luz.frase = ¡Se va la luz! Ahora nadie ve nada, salvo los fantasmas.
+suceso.luz.frase = ¡Se va la luz! Durante 2 turnos todos fallan más, menos los de Fantasma, que ven en la oscuridad.
 suceso.luz.desc = Todos fallan más (20 puntos menos de precisión), menos los de tipo Fantasma, que se mueven a oscuras.
 
 suceso.happy.nombre = Happy hour
-suceso.happy.frase = ¡Happy hour! Dos por uno y todo el mundo achispado.
+suceso.happy.frase = ¡Happy hour! Dos por uno: durante 2 turnos el Alcohol pega un 50 % más y achispa el doble de veces.
 suceso.happy.desc = Los ataques de Alcohol pegan un 50 % más y achispan el doble de veces.
 
 suceso.cumple.nombre = ¡Es su cumple!
-suceso.cumple.frase = ¡Es el cumple de {quien}! Le sacan una tarta con una vela.
+suceso.cumple.frase = ¡Es el cumple de {quien}! Le sacan una tarta: cura 1/4 de su vida y sube 1 su Ataque.
 suceso.cumple.desc = Al userito con menos vida le sacan una tarta: cura 1/4 de sus PS y sube 1 su Ataque.
 
 suceso.pelea.nombre = Pelea en la barra
-suceso.pelea.frase = ¡Pelea en la barra! Todos a por {jugador}, que va ganando.
+suceso.pelea.frase = ¡Pelea en la barra! Todos a por {jugador}, que va ganando: este turno todos le pegan enteros, sin perder fuerza.
 suceso.pelea.desc = Contra el jugador con más vida en total no cuenta el Acorralado: todos le pegan entero.
 
 suceso.karaoke.nombre = Dale al karaoke
-suceso.karaoke.frase = ¡Alguien le da al karaoke! Se canta a coro y se pega a coro.
+suceso.karaoke.frase = ¡Alguien le da al karaoke! Se canta a coro y se pega a coro: este turno los ataques a todos pegan enteros.
 suceso.karaoke.desc = Los ataques a todos pegan al 100 % en vez de al 75 %.
 
 suceso.barre.nombre = Vero barre
-suceso.barre.frase = Vero pasa la escoba y barre todo: ¡fuera subidas y bajadas!
+suceso.barre.frase = Vero pasa la escoba y barre todo: ¡fuera las subidas y bajadas de estadísticas de todos!
 suceso.barre.desc = Se borran todas las subidas y bajadas de estadísticas de todos los useritos.
 
 suceso.premio.nombre = Premio de la tragaperras
-suceso.premio.frase = ¡La tragaperras escupe monedas! Esto sí que es suerte.
+suceso.premio.frase = ¡La tragaperras escupe monedas! Esto sí que es suerte: quien ya gastó la caña la recupera; si nadie, curan todos.
 suceso.premio.desc = A un jugador al azar le devuelven la caña, si ya la había gastado. Si nadie la gastó, todos curan 1/8.
-suceso.premio.cana = ¡{jugador} se lleva otra caña de premio!
-suceso.premio.cura = Nadie ha gastado la caña: ¡las monedas son para todos!
+suceso.premio.cana = ¡{jugador} se lleva otra caña de premio! Ya puede volver a usarla.
+suceso.premio.cura = Nadie ha gastado la caña: ¡las monedas son para todos! Todos recuperan 1/8 de su vida.
 
 suceso.cierzo.nombre = Cierzo de golpe
-suceso.cierzo.frase = ¡Cierzo de golpe! Vuelan las servilletas y las ganas de correr.
+suceso.cierzo.frase = ¡Cierzo de golpe! Vuelan las servilletas: durante 2 turnos todos bajan 1 su Velocidad y Ventolera pega un 50 % más.
 suceso.cierzo.desc = Todos bajan 1 su Velocidad y los de tipo Ventolera pegan un 50 % más.
 
 suceso.rosas.nombre = Pasa el de las rosas
-suceso.rosas.frase = Pasa el de las rosas y le deja una a {quien}. Qué detalle.
+suceso.rosas.frase = Pasa el de las rosas y le deja una a {quien}. Qué detalle: sube 1 su Especial.
 suceso.rosas.desc = Un userito al azar recibe una rosa y sube 1 su Especial.
 
 suceso.desfile.nombre = Desfile Drag
-suceso.desfile.frase = ¡Desfile Drag! Que suene la música y salga la reina.
+suceso.desfile.frase = ¡Desfile Drag! Que suene la música y salga la reina: durante 2 turnos Juerga y Chanza pegan un 50 % más.
 suceso.desfile.desc = Los ataques de Juerga y de Chanza pegan un 50 % más.
 
 suceso.peluca.nombre = Peluca descolocada
-suceso.peluca.frase = ¡Peluca descolocada! Con el flequillo en los ojos no se apunta bien.
+suceso.peluca.frase = ¡Peluca descolocada! Con el flequillo en los ojos no se apunta bien: todos bajan 1 su Precisión, menos los de Juerga.
 suceso.peluca.desc = Todos bajan 1 su Precisión, menos los de tipo Juerga, que van de peluca todos los días.
 
 suceso.comanda.nombre = ¡Comanda!
-suceso.comanda.frase = ¡Marchando una comanda! Raciones para los más marchosos.
+suceso.comanda.frase = ¡Marchando una comanda! Raciones para los más marchosos: los de Juerga y Chanza en combate recuperan 1/8 de su vida.
 suceso.comanda.desc = Los useritos de Juerga y de Chanza que están en combate curan 1/8 de sus PS.
 
 suceso.chinchin.nombre = Chin chin
-suceso.chinchin.frase = ¡Chin chin! Juan invita a los que van peor.
+suceso.chinchin.frase = ¡Chin chin! Juan invita a los que van peor: 2 turnos, los 2 jugadores con menos vida curan 1/8 al acabar cada turno.
 suceso.chinchin.desc = Los 2 jugadores con menos vida en total curan 1/8 a su userito al final de cada turno.
 suceso.chinchin.cura = ¡{quien} brinda y se anima!
 

@@ -221,7 +221,8 @@ export interface StatsUserito {
   cana: number;
   /** PP spent. */
   pp: number;
-  /** Biggest single hit: damage, move id, target player. */
+  /** Biggest single hit: its GROSS damage (what the blow would have done without the cap of the HP the target had left, see the `bruto` of the 'golpe' event; the
+   *  damage dealt and counted in `dh` is the real one), move id, target player. */
   mx: number;
   mm: string;
   mo: number;
@@ -311,8 +312,11 @@ export type Evento = {
   | { k: 'texto'; j?: number }
   /** `obj`: the players the move was aimed at (after redirections), `[]` for moves on itself. */
   | { k: 'usa'; j: number; mov: string; obj?: number[] }
-  /** `acorralado`: this hit was halved because another player had already hit the same userito this turn (Acorralado); the screen marks it with a symbol next to the damage. */
-  | { k: 'golpe'; j: number; dano: number; ps: number; ef: number; critico: boolean; acorralado?: true }
+  /** `dano`: the HP really lost (the bar and the statistics use it). `bruto` (only when it is more than `dano`): the damage of the blow before the cap of the HP the userito
+   *  had left, with critical, effectiveness and the defence's reductions already applied (and before the 1 HP caps of Duro como un cajón, Aguantar el tipo and Guille's
+   *  Mañico): 150 when a userito with 30 HP left takes a hit of 150 (`dano` 30). The screen shows `bruto ?? dano`; only the «biggest hit» record counts it.
+   *  `acorralado`: this hit was halved because another player had already hit the same userito this turn (Acorralado); the screen marks it with a symbol next to the damage. */
+  | { k: 'golpe'; j: number; dano: number; ps: number; ef: number; critico: boolean; acorralado?: true; bruto?: number }
   | { k: 'falla'; j: number }
   | { k: 'cura'; j: number; ps: number }
   /** `estado: null` = a status ended; `de` says which (always set by the engine in that case). */

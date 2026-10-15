@@ -6,7 +6,8 @@
 // Event conventions (what the screens get in `eventos`, in order):
 //  - 'usa'    j = the user. Text «¡X usó Y!».
 //  - 'golpe'  j = the VICTIM of any HP loss (attacks, recoil, burn, trap, hangover, Hora de cerrar...).
-//             `dano` = HP really lost, `ps` = HP after. The attacker is the j of the last 'usa'.
+//             `dano` = HP really lost, `ps` = HP after. The attacker is the j of the last 'usa'. `bruto` (only when it is more than `dano`) = the damage the
+//             blow would have done without the cap of the HP left (the screen shows it; the bar, `dh`/`dr` and everything else use `dano`; only the biggest-hit `mx` counts it).
 //             `acorralado` = the hit was halved because someone else had already hit this userito this turn.
 //  - 'cura'   j = who recovers (drain, caña, grada, Siesta). `ps` = HP after.
 //  - 'falla'  j = the one who dodged (a miss on a target), or the user when its own move fails.
@@ -21,7 +22,10 @@
 //             is the ability; an optional phrase goes in `clave` (`hab.<id>.activa`). What it does (a stage, a heal, a status that does
 //             not land...) follows as ordinary events. Announced once per move and ability, even if it works on several targets.
 //  - 'suceso' a bar event starts (turns 5, 10, 15, 20, 25: drawn at the end of the turn before). `id`, `turnos` (0 = instant),
-//             phrase in `clave`. The heals / stage changes it causes follow as ordinary 'cura' / 'nivel' events (all flagged `fin`).
+//             phrase in `clave` (it tells the effect). The heals / stage changes it causes follow as ordinary 'cura' / 'nivel' events (all flagged `fin`);
+//             an instant one that changed nothing adds the line `suceso.nada`.
+//  - A move on several rivals ('todos', 2+ targets) tells all its blows first ('golpe', 'falla' and the lines about them) and then everything else (statuses, stages,
+//    abilities, objects, falls...): see `golpesPrimero`. The state and the dice do not change, only the order of the events.
 // Every event may carry `clave` + `vars` (quien = userito name, jugador = player name, mov, ...).
 import type { Eleccion, EscenarioId, EstadoCombate, Estadisticas, EntrenadorId, Estado, Evento, HabilidadId, Jugador, Movimiento, ObjetoId, Stat, StatsUserito, SucesoId, Tipo, Userito } from '../tipos';
 import { ESCENARIOS, HAB_CANTA_MULT, HAB_FOTOSINTESIS, HAB_GRASIENTO, HAB_LAVADO_CURA, HAB_MALETA_ATA, HAB_MANICO_ATA, HAB_PAREJA, HAB_PROB_REACCION, OBJ_BOCATA_CURA, OBJ_GAFAS_PREC, OBJ_MECHERO_QUEMA, OBJ_PALILLO_CRIT, OBJ_PANUELO, OBJ_TAPON_USOS, PERK_CANA_FRAN, PERK_COSECHA_ARI, PERK_PRECISION_PABLO, PERK_TARDE_CHUCHI, PERK_VERSO_VINAS, TIPOS_FISICOS } from '../tipos';
@@ -397,10 +401,10 @@ function alSalirAlCampo(c: Ctx, j: number) {
   const o = u.objeto;
   if (o?.id === 'zapatillas') {
     activarObjeto(c, j, false, 'objeto.zapatillas.activa');
-    cambiarNivel(c, j, 'vel', 1);
+    cambiarNivel(c, j, 'vel', 1, undefined, undefined, true);
     if (!o.salio) {
       o.salio = true;
-      cambiarNivel(c, j, 'ata', 1);
+      cambiarNivel(c, j, 'ata', 1, undefined, undefined, true);
     }
   }
   // The abilities «al salir al combate»: at the start of the battle and every time it comes in (a switch, Al tendedero, after a fall).
@@ -409,14 +413,18 @@ function alSalirAlCampo(c: Ctx, j: number) {
       u.vol.sorpresa = true; // announced when its first attack goes quick
       break;
     case 'viento':
-      habilidad(c, j, 'viento');
-      cambiarNivel(c, j, 'vel', 1, j);
+      // Nothing is announced when the Speed cannot go up any more.
+      if (u.niveles.vel < 6) {
+        habilidad(c, j, 'viento');
+        cambiarNivel(c, j, 'vel', 1, j);
+      }
       break;
     case 'conazo': {
+      // Coñazo only speaks when some rival's Attack can still go down; the rivals that cannot just stay as they are, without «no puede bajar más».
       const rivales = rivalesEnPie(c.e, j);
-      if (!rivales.length) break;
+      if (!rivales.some((r) => act(c, r).niveles.ata > -6)) break;
       habilidad(c, j, 'conazo', 'hab.conazo.activa');
-      for (const r of rivales) cambiarNivel(c, r, 'ata', -1, j);
+      for (const r of rivales) cambiarNivel(c, r, 'ata', -1, j, undefined, true);
       break;
     }
   }
@@ -444,12 +452,18 @@ function soltarAtrapados(c: Ctx, j: number) {
   });
 }
 
-/** Subtracts HP and emits the 'golpe' event. Fainting ('cae') is announced later by revisarCaida. */
-function danar(c: Ctx, t: number, dano: number, op: { ef?: number; critico?: boolean; clave?: string; vars?: Record<string, string | number>; de?: number; mov?: string; acorralado?: boolean } = {}): number {
+/**
+ * Subtracts HP and emits the 'golpe' event. Fainting ('cae') is announced later by revisarCaida.
+ * `bruto`: the damage the blow would have done without the caps of the HP left (the HP itself, Duro como un cajón, Aguantar el tipo, Guille's Mañico); the event
+ * carries it when it is more than what was really lost, the screen shows it and the «biggest hit» statistic counts it. Everything else counts the real damage.
+ */
+function danar(c: Ctx, t: number, dano: number, op: { ef?: number; critico?: boolean; clave?: string; vars?: Record<string, string | number>; de?: number; mov?: string; acorralado?: boolean; bruto?: number } = {}): number {
   const u = act(c, t);
   const antes = u.ps;
   u.ps = Math.max(0, u.ps - dano);
   const real = antes - u.ps;
+  // A blow that did nothing (it left the userito at 1 HP already) has no gross damage worth showing.
+  const bruto = op.bruto !== undefined && real > 0 && op.bruto > real ? op.bruto : real;
   // Statistics: an attack from another player, or damage the userito brought on itself / the bar.
   if (op.de !== undefined && op.de !== t) {
     const a = st(c, op.de);
@@ -474,14 +488,15 @@ function danar(c: Ctx, t: number, dano: number, op: { ef?: number; critico?: boo
       v.por++;
     }
     if (op.mov === 'venganza') a.dv += real;
-    if (real > a.mx) {
-      a.mx = real;
+    if (bruto > a.mx) {
+      a.mx = bruto;
       a.mm = op.mov ?? '';
       a.mo = t;
     }
   } else st(c, t).dp += real;
   const ev: Extract<Evento, { k: 'golpe' }> = { k: 'golpe', j: t, dano: antes - u.ps, ps: u.ps, ef: op.ef ?? 1, critico: op.critico ?? false };
   if (op.acorralado) ev.acorralado = true;
+  if (bruto > real) ev.bruto = bruto;
   if (op.clave) {
     ev.clave = op.clave;
     ev.vars = op.vars ?? varsDe(c, t);
@@ -529,13 +544,13 @@ function revisarCaida(c: Ctx, j: number, por?: number) {
   const o = u.objeto;
   if (o?.id === 'llavero' && !o.gastado && por !== undefined && por !== j && act(c, por).ps > 0) {
     activarObjeto(c, j, true, 'objeto.llavero.activa', { otro: nom(act(c, por)) });
-    cambiarNivel(c, por, 'ata', -1, undefined, true);
-    cambiarNivel(c, por, 'esp', -1, undefined, true);
+    cambiarNivel(c, por, 'ata', -1, undefined, true, true);
+    cambiarNivel(c, por, 'esp', -1, undefined, true, true);
   }
   // Flipado (Ego-Ego): every userito it knocks out raises its Attack.
   if (por !== undefined && por !== j) {
     const a = act(c, por);
-    if (a.ps > 0 && habilidadDe(a) === 'flipado') {
+    if (a.ps > 0 && habilidadDe(a) === 'flipado' && a.niveles.ata < 6) {
       habilidad(c, por, 'flipado');
       cambiarNivel(c, por, 'ata', 1, por);
     }
@@ -547,25 +562,30 @@ function abrirMaleta(c: Ctx, j: number) {
   const u = act(c, j);
   if (habilidadDe(u) !== 'maleta' || u.habUsada || u.ps <= 0 || u.ps * 2 >= u.psMax) return;
   u.habUsada = true;
+  // It is spent either way, but it only speaks when the Attack can still go up.
+  if (u.niveles.ata >= 6) return;
   habilidad(c, j, 'maleta', 'hab.maleta.activa');
   cambiarNivel(c, j, 'ata', HAB_MALETA_ATA, j);
 }
 
 /** `por`: the player who causes the change (counts as a change on itself or on others). `deRival`: the change is a rival's doing (by default, when `por` is
- *  another player; the Llavero says it by itself): La espuma no baja blocks the drops, Mañico answers them. */
-function cambiarNivel(c: Ctx, t: number, stat: Stat, cambio: number, por?: number, deRival = por !== undefined && por !== t) {
+ *  another player; the Llavero says it by itself): La espuma no baja blocks the drops, Mañico answers them. `callar`: no «no puede subir / bajar más» line when
+ *  the stage is at the limit (for what abilities and objects do on their own: an effect that no longer changes anything is not announced). */
+function cambiarNivel(c: Ctx, t: number, stat: Stat, cambio: number, por?: number, deRival = por !== undefined && por !== t, callar = false) {
   const u = act(c, t);
   if (u.ps <= 0) return;
   const h = habilidadDe(u);
+  // La espuma no baja: it speaks only when the drop would have changed something (not when the stat was at −6 already).
   if (cambio < 0 && deRival && h === 'espuma') {
-    habilidad(c, t, 'espuma', 'hab.espuma.activa');
+    if (u.niveles[stat] > -6) habilidad(c, t, 'espuma', 'hab.espuma.activa');
     return;
   }
   const antes = u.niveles[stat];
   const nuevo = Math.max(-6, Math.min(6, antes + cambio));
   const real = nuevo - antes;
   if (real === 0) {
-    decir(c, cambio > 0 ? 'combate.tope_sube' : 'combate.tope_baja', varsDe(c, t), t);
+    // «can't go any further»: the lines of a move or of a suceso keep it; what an ability or an object does by itself (`callar`) says nothing.
+    if (!callar) decir(c, cambio > 0 ? 'combate.tope_sube' : 'combate.tope_baja', varsDe(c, t), t);
     return;
   }
   u.niveles[stat] = nuevo;
@@ -837,20 +857,23 @@ function efectosSecundarios(c: Ctx, j: number, t: number, m: Movimiento, danino:
  *  already final: after type, spread, Acorralado, random and critical). Chuchi «Llega tarde»: the
  *  first such hit each of his useritos receives does 20 % less (min 1). Guille «Mañico»: once per
  *  userito, a hit that would KO it from full HP leaves it at 1 HP. Each is spent once per battle. */
-function aplicarPerks(c: Ctx, t: number, dano: number): { dano: number; perk: 'chuchi' | 'guille' | null } {
+function aplicarPerks(c: Ctx, t: number, dano: number): { dano: number; bruto: number; perk: 'chuchi' | 'guille' | null } {
   const v = act(c, t);
   const ent = c.e.jugadores[t].entrenador;
   let perk: 'chuchi' | 'guille' | null = null;
+  // `bruto`: Chuchi's 20 % is a real cut of the blow (it stays); Guille's 1 HP is a cap, so the gross damage is the one before it.
+  let bruto = dano;
   if (ent === 'chuchi' && !v.perk?.tarde) {
     v.perk = { ...v.perk, tarde: true };
     dano = Math.max(1, Math.floor((dano * PERK_TARDE_CHUCHI) / 100));
+    bruto = dano;
     perk = 'chuchi';
   } else if (ent === 'guille' && !v.perk?.manico && v.ps === v.psMax && dano >= v.ps && habilidadDe(v) !== 'cajon') {
     v.perk = { ...v.perk, manico: true };
     dano = v.ps - 1;
     perk = 'guille';
   }
-  return { dano, perk };
+  return { dano, bruto, perk };
 }
 
 /** Duro como un cajón (Cajonazo): a hit that would knock it out from full HP leaves it at 1 HP (every time it is at full HP before the blow). */
@@ -877,6 +900,32 @@ function avisoAguante(c: Ctx, t: number) {
     c.dichoAguante[t] = true;
     decir(c, 'combate.aguanta', varsDe(c, t), t);
   }
+}
+
+/** Lines that go with the blow itself (what it did to its target), not with what comes after it. */
+const TEXTOS_DEL_GOLPE = new Set(['combate.critico', 'combate.muy_eficaz', 'combate.poco_eficaz', 'combate.veces', 'combate.no_afecta', 'combate.esconde_protege', 'combate.venganza', 'combate.aguanta']);
+
+/** Whether the event is the blow on a target (or its miss) and the lines about it, as opposed to its consequences. */
+function esDelGolpe(ev: Evento): boolean {
+  switch (ev.k) {
+    case 'golpe':
+    case 'falla':
+      return true;
+    case 'texto':
+      return ev.j === undefined || TEXTOS_DEL_GOLPE.has(ev.clave ?? '') || (ev.clave ?? '').startsWith('combate.perk.');
+    default:
+      return false;
+  }
+}
+
+/**
+ * The events of a move that hits several rivals, from index `desde`: first all the blows (and the lines about them), then everything else (statuses, stage changes,
+ * abilities, objects, falls...), each group in the order it had. The engine still resolves target by target (same dice, same state); only the story is reordered,
+ * so the screens play the damage on every target at once and then the effects. Online guests replay these same events.
+ */
+function golpesPrimero(c: Ctx, desde: number) {
+  const trozo = c.ev.splice(desde);
+  c.ev.push(...trozo.filter(esDelGolpe), ...trozo.filter((ev) => !esDelGolpe(ev)));
 }
 
 /** Runs move `m` for player `j` (already paid, announced and not skipped). */
@@ -950,6 +999,7 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
   const volumen = m.objetivo === 'todos' && !karaoke && habilidadDe(u) === 'volumen';
   // The targets that took a blow: the abilities that answer a hit (Buena chica, Indigesto...) work once the whole move is told.
   const golpeados: number[] = [];
+  const iniObjetivos = c.ev.length;
 
   for (const t of objetivos) {
     let v = act(c, t);
@@ -1055,8 +1105,8 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
             activarObjeto(c, t, true, 'objeto.posavasos.activa');
             dano0 = Math.max(1, Math.floor(dano0 / 2));
           }
-          const { dano, perk } = aplicarPerks(c, t, dano0);
-          totalDano += danar(c, t, topeAguante(c, t, topeCajon(c, t, dano)), { ef: r.ef, critico, de: j, mov: m.id, acorralado });
+          const { dano, bruto, perk } = aplicarPerks(c, t, dano0);
+          totalDano += danar(c, t, topeAguante(c, t, topeCajon(c, t, dano)), { ef: r.ef, critico, de: j, mov: m.id, acorralado, bruto });
           hechos++;
           if (critico) decir(c, 'combate.critico', varsDe(c, t), t);
           if (cosecha) decir(c, 'combate.perk.ari', varsDe(c, j), t);
@@ -1081,8 +1131,8 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
       }
       // «Devolvérsela»: 1.5 times what it took this turn, whatever the types (a fixed amount: no dice, no critical).
       if (ef.especial === 'devolver') {
-        const { dano, perk } = aplicarPerks(c, t, Math.max(1, Math.floor(c.recibido[j] * 1.5)));
-        totalDano += danar(c, t, topeAguante(c, t, topeCajon(c, t, dano)), { ef: 1, critico: false, de: j, mov: m.id });
+        const { dano, bruto, perk } = aplicarPerks(c, t, Math.max(1, Math.floor(c.recibido[j] * 1.5)));
+        totalDano += danar(c, t, topeAguante(c, t, topeCajon(c, t, dano)), { ef: 1, critico: false, de: j, mov: m.id, bruto });
         hechos++;
         if (perk) decir(c, `combate.perk.${perk}`, varsDe(c, t), t);
         avisoAguante(c, t);
@@ -1099,6 +1149,9 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
       efectosSecundarios(c, j, t, m, danina);
     }
   }
+
+  // A move on several rivals tells the blows on all of them first and what comes with them (statuses, stages, abilities, objects, falls) after.
+  if (m.objetivo === 'todos' && objetivos.length >= 2) golpesPrimero(c, iniObjetivos);
 
   // Whoever hit Aceituna, Roscochoco, Chupitochu or P pays for it (Buena chica, Indigesto, Ardiente, Pesadísimo), target by target once the move is told.
   for (const t of golpeados) reaccionAlGolpe(c, j, t, m);
@@ -1142,7 +1195,8 @@ function reaccionAlGolpe(c: Ctx, j: number, t: number, m: Movimiento) {
   switch (habilidadDe(v)) {
     case 'buena_chica':
       // Nobody can hit that little face: 30 % to lower the Attack of whoever hits it with an attack at one.
-      if (m.objetivo !== 'todos' && probar(c.e, HAB_PROB_REACCION)) {
+      // (The roll is always drawn; it only speaks when the attacker's Attack can still go down.)
+      if (m.objetivo !== 'todos' && probar(c.e, HAB_PROB_REACCION) && a.niveles.ata > -6) {
         habilidad(c, t, 'buena_chica', 'hab.buena_chica.activa', extra);
         cambiarNivel(c, j, 'ata', -1, t);
       }
@@ -1321,6 +1375,7 @@ function iniciarSuceso(c: Ctx) {
   if (id === 'cumple') sobre = [...enPie].sort((a, b) => act(c, a).ps / act(c, a).psMax - act(c, b).ps / act(c, b).psMax || a - b)[0] ?? -1;
   if (id === 'rosas' && enPie.length) sobre = elegir(e, enPie);
   const vars = sobre >= 0 ? varsDe(c, sobre) : {};
+  let barrio = false; // Vero's broom really swept some stage change
   c.ev.push({ k: 'suceso', id, turnos: dura, clave: `suceso.${id}.frase`, vars });
   if (dura > 0) e.sucesos.push(sobre >= 0 && id === 'pelea' ? { id, turnos: dura, j: sobre } : { id, turnos: dura });
 
@@ -1336,7 +1391,11 @@ function iniciarSuceso(c: Ctx) {
       break;
     case 'barre':
       // Vero sweeps away every stage change (no per-stat events: the phrase says it and the state carries the zeros).
-      for (const j of enPie) act(c, j).niveles = niveles0();
+      for (const j of enPie) {
+        const u = act(c, j);
+        if (Object.values(u.niveles).some((n) => n !== 0)) barrio = true;
+        u.niveles = niveles0();
+      }
       break;
     case 'premio': {
       const gastadas = e.jugadores.map((_q, j) => j).filter((j) => !eliminado(e, j) && !e.jugadores[j].cana);
@@ -1344,7 +1403,7 @@ function iniciarSuceso(c: Ctx) {
         const j = elegir(e, gastadas);
         e.jugadores[j].cana = true;
         c.ev.push({ k: 'texto', j, clave: 'suceso.premio.cana', vars: { jugador: e.jugadores[j].nombre } });
-      } else {
+      } else if (enPie.some((j) => act(c, j).ps < act(c, j).psMax)) {
         c.ev.push({ k: 'texto', clave: 'suceso.premio.cura' });
         for (const j of enPie) curar(c, j, octavo(act(c, j)));
       }
@@ -1377,6 +1436,8 @@ function iniciarSuceso(c: Ctx) {
     default:
       break; // luz, happy, pelea, karaoke, chinchin: rules that bend the turns they last (see usarMovimiento, finDeTurno)
   }
+  // An instant suceso that changed nothing (everybody at full HP, nobody with a stage to sweep, only Chispa and Petardo at the dodgems...) says so after its phrase.
+  if (dura === 0 && (id === 'barre' ? !barrio : c.ev.length === inicio + 1)) c.ev.push({ k: 'texto', clave: 'suceso.nada' });
   for (let i = inicio; i < c.ev.length; i++) c.ev[i].fin = true;
 }
 

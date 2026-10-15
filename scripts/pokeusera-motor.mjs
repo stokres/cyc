@@ -16,7 +16,7 @@ const tmp = mkdtempSync(join(tmpdir(), 'pokeusera-'));
 const salida = join(tmp, 'motor.mjs');
 await build({
   stdin: {
-    contents: `export * from './src/pokeusera/datos'; export * from './src/pokeusera/motor/combate'; export * from './src/pokeusera/motor/draft'; export * from './src/pokeusera/motor/bot'; export * from './src/pokeusera/motor/objetos'; export { OBJETOS, OBJ_TAPON_USOS, OBJ_BOCATA_CURA } from './src/pokeusera/tipos'; export { crearRnd, azar, entero, sacarAlAzar } from './src/pokeusera/motor/azar'; export { ENTRENADORES } from './src/pokeusera/tipos';`,
+    contents: `export * from './src/pokeusera/datos'; export * from './src/pokeusera/motor/combate'; export * from './src/pokeusera/motor/draft'; export * from './src/pokeusera/motor/bot'; export * from './src/pokeusera/motor/objetos'; export { OBJETOS, OBJ_TAPON_USOS, OBJ_BOCATA_CURA } from './src/pokeusera/tipos'; export { crearRnd, azar, entero, sacarAlAzar } from './src/pokeusera/motor/azar'; export { ENTRENADORES } from './src/pokeusera/tipos'; export { envolver2 } from './src/pokeusera/arte2/fuente2'; export { Recolector } from './src/pokeusera/estadisticas/resumen'; export { prepararCatalogo, normalizarResumen } from './src/pokeusera/estadisticas/agregado.mjs';`,
     resolveDir: raiz,
     loader: 'ts',
   },
@@ -141,7 +141,8 @@ function revisarStats(e, turnos, todos) {
       const s = S.u[j][i];
       if (u.psMax - u.ps !== s.dr + s.dp - s.cu) falla(`stats: PS de ${u.especie} (${u.psMax - u.ps}) != dr+dp-cu (${s.dr + s.dp - s.cu})`);
       if (s.tf > turnos) falla('stats: turnos en campo > turnos');
-      if (s.mx > s.dh) falla('stats: golpe máximo > daño total');
+      // The biggest hit counts the gross damage (`bruto` of the 'golpe' event), so it can be more than all the damage really done; but there is none without damage.
+      if (s.mx > 0 && s.dh === 0) falla('stats: golpe máximo sin daño hecho');
       if (s.cae > 1) falla('stats: cae más de una vez');
       if (Object.entries(s).some(([k, v]) => k !== 'mo' && typeof v === 'number' && (v < 0 || !Number.isFinite(v)))) falla('stats: valor negativo o no finito');
     }),
@@ -190,6 +191,7 @@ function jugar(semilla, verbose) {
       if (ev.clave && !textos.has(ev.clave)) falla(`clave sin texto: ${ev.clave}`);
       if (ev.clave && /\{\w+\}/.test(decir(ev) ?? '')) falla(`variable sin rellenar en ${ev.clave}: ${decir(ev)}`);
       if (ev.k === 'golpe' && (ev.ps < 0 || ev.dano < 0)) falla('golpe con valores negativos');
+      if (ev.k === 'golpe' && ev.bruto !== undefined && (!Number.isInteger(ev.bruto) || ev.bruto <= ev.dano || ev.dano <= 0)) falla(`golpe con bruto raro: dano ${ev.dano}, bruto ${ev.bruto}`);
       if (ev.k === 'objeto') {
         const u = e.jugadores[ev.j].equipo.find((x) => x.objeto?.id === ev.objeto);
         if (!u || !u.objeto.visto) falla(`turno ${e.turno - 1}: objeto ${ev.objeto} de ${ev.j} sin dueño o sin visto`);
@@ -2187,6 +2189,7 @@ revisarTanda7();
 revisarSalida();
 revisarTanda8();
 revisarTanda9();
+revisarTanda12();
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Tanda 8: the six new useritos (Nº 25-30), their 13 moves and the 29 abilities. Deterministic cases: every move (data and effect), each
@@ -3546,6 +3549,385 @@ function revisarTanda9() {
       if (e.ganador === null) falla(`tanda9: la batalla ${s} no acaba`);
     }
     void desvios;
+  }
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Tanda 12 (four touches-up of the combat requested by Jesús): (1) the hit event carries the gross damage (`bruto`) and only the biggest-hit record counts it;
+// (2) every suceso explains its effect in its phrase (and fits the text box); (3) effects that no longer change anything are not announced;
+// (4) a move on all rivals tells every blow before any effect.
+function revisarTanda12() {
+  const ENT = ['fran', 'pablo', 'chuchi', 'guille'];
+  const mk = (equipos, semilla = 3, escenario) => M.crearCombate(equipos.map((especies, i) => ({ entrenador: ENT[i], nombre: 'J' + i, bot: false, especies })), semilla, escenario);
+  const ataca = (mov, objetivo = 1) => ({ tipo: 'atacar', mov, objetivo });
+  const pasa = { tipo: 'pasar' };
+  const idx = (esp, mov) => M.ESPECIE[esp].movs.indexOf(mov);
+  const act0 = (e, j = 0) => e.jugadores[j].equipo[e.jugadores[j].activo];
+  const seguro = (e, j) => (act0(e, j).niveles.prec = 6);
+  const NEUTRO = 'gratinado';
+  const conHab = (esp, hab, fn) => {
+    const sp = M.ESPECIE[esp];
+    const antes = sp.habilidad;
+    sp.habilidad = hab;
+    try {
+      return fn();
+    } finally {
+      sp.habilidad = antes;
+    }
+  };
+  const habs = (r, id, j) => r.eventos.filter((ev) => ev.k === 'habilidad' && ev.id === id && (j === undefined || ev.j === j));
+  const golpes = (r, j) => r.eventos.filter((ev) => ev.k === 'golpe' && ev.j === j && !ev.fin && !ev.clave);
+  const niveles = (r, j) => act0(r.estado, j).niveles;
+  const nivelesEv = (r, j, stat) => r.eventos.filter((ev) => ev.k === 'nivel' && ev.j === j && (stat === undefined || ev.stat === stat));
+  const topes = (r) => r.eventos.filter((ev) => ev.clave === 'combate.tope_sube' || ev.clave === 'combate.tope_baja');
+  const stats = (r, j, i = 0) => r.estado.stats.u[j][i];
+
+  for (const k of ['suceso.nada']) if (!textos.has(k)) falla(`falta el texto ${k}`);
+
+  // --- 1. Gross damage. A blow that kills with HP left under its damage: the event carries the gross damage, the bar and dh/dr the real one, mx the gross one.
+  {
+    const e = mk([['tocinon', 'turito', 'cierzon'], ['turito', 'tocinon', 'cierzon']], 3);
+    act0(e, 1).ps = 5;
+    seguro(e, 0);
+    const r = M.resolverTurno(e, [ataca(idx('tocinon', 'barrigazo')), pasa]);
+    const g = golpes(r, 1);
+    if (g.length !== 1) falla(`golpe bruto: ${g.length} golpes`);
+    else {
+      if (g[0].dano !== 5 || g[0].ps !== 0) falla(`golpe bruto: daño real ${g[0].dano}, ps ${g[0].ps} (esperaba 5 y 0)`);
+      if (!(g[0].bruto > 5)) falla(`golpe bruto: el evento debe llevar el bruto (${g[0].bruto})`);
+      const s = stats(r, 0);
+      if (s.dh !== 5 || stats(r, 1).dr !== 5) falla(`golpe bruto: dh ${s.dh} y dr ${stats(r, 1).dr} deben ser el daño real (5)`);
+      if (s.mx !== g[0].bruto || s.mm !== 'barrigazo') falla(`golpe bruto: mx ${s.mx} (${s.mm}) debe ser el bruto ${g[0].bruto}`);
+      if (act0(r.estado, 1).ps !== 0) falla('golpe bruto: la barra debe bajar a 0');
+    }
+    // The same blow on a healthy target: nothing to add (bruto = real).
+    const e2 = mk([['tocinon', 'turito', 'cierzon'], ['turito', 'tocinon', 'cierzon']], 3);
+    seguro(e2, 0);
+    const r2 = M.resolverTurno(e2, [ataca(idx('tocinon', 'barrigazo')), pasa]);
+    const g2 = golpes(r2, 1)[0];
+    if (!g2 || g2.bruto !== undefined || g2.dano <= 0) falla(`golpe normal: no debe llevar bruto (${JSON.stringify(g2)})`);
+    else if (stats(r2, 0).mx !== g2.dano || stats(r2, 0).dh !== g2.dano) falla(`golpe normal: mx ${stats(r2, 0).mx} y dh ${stats(r2, 0).dh} deben ser ${g2.dano}`);
+    // Same damage, same hit: the gross one is exactly what the hit would have done to a target with HP to spare.
+    if (g.length && g2 && g[0].bruto !== g2.dano) falla(`golpe bruto: ${g[0].bruto} != ${g2.dano}, el golpe sin tope`);
+    // Duro como un cajón: from full HP it holds on at 1 HP, the number is the whole blow.
+    const e3 = mk([['tocinon', 'turito', 'cierzon'], ['cajonazo', 'tocinon', 'cierzon']], 3);
+    act0(e3, 1).psMax = act0(e3, 1).ps = 20;
+    seguro(e3, 0);
+    const r3 = M.resolverTurno(e3, [ataca(idx('tocinon', 'barrigazo')), pasa]);
+    const g3 = golpes(r3, 1)[0];
+    if (!g3 || g3.dano !== 19 || !(g3.bruto > 19) || act0(r3.estado, 1).ps !== 1) falla(`Duro como un cajón: ${JSON.stringify(g3)}`);
+    else if (stats(r3, 0).dh !== 19 || stats(r3, 0).mx !== g3.bruto) falla(`Duro como un cajón: dh ${stats(r3, 0).dh}, mx ${stats(r3, 0).mx}`);
+    // Aguantar el tipo: the blow leaves 1 HP and shows its whole damage.
+    const e4 = mk([['tocinon', 'turito', 'cierzon'], ['cajonazo', 'tocinon', 'cierzon']], 3);
+    conHab('cajonazo', NEUTRO, () => {
+      act0(e4, 1).ps = 20;
+      seguro(e4, 0);
+      const r4 = M.resolverTurno(e4, [ataca(idx('tocinon', 'barrigazo')), ataca(idx('cajonazo', 'aguantar'), 1)]);
+      const g4 = golpes(r4, 1)[0];
+      if (!g4 || g4.dano !== 19 || !(g4.bruto > 19) || act0(r4.estado, 1).ps !== 1) falla(`Aguantar el tipo: ${JSON.stringify(g4)}`);
+      else if (stats(r4, 0).dh !== 19 || stats(r4, 0).mx !== g4.bruto) falla(`Aguantar el tipo: dh ${stats(r4, 0).dh}, mx ${stats(r4, 0).mx}`);
+    });
+    // Guille's Mañico (player 3): full HP, a blow that would knock it out leaves 1 HP; the gross damage is the one before it.
+    const e5 = mk([['tocinon', 'turito', 'cierzon'], ['turito', 'tocinon', 'cierzon'], ['turito', 'tocinon', 'cierzon'], ['turito', 'tocinon', 'cierzon']], 3);
+    act0(e5, 3).psMax = act0(e5, 3).ps = 20;
+    seguro(e5, 0);
+    const r5 = M.resolverTurno(e5, [ataca(idx('tocinon', 'barrigazo'), 3), pasa, pasa, pasa]);
+    const g5 = golpes(r5, 3)[0];
+    if (!g5 || g5.dano !== 19 || !(g5.bruto > 19) || stats(r5, 0).mx !== g5.bruto) falla(`Mañico de Guille: ${JSON.stringify(g5)}`);
+    // A hit that leaves nothing to take off (1 HP and Aguantar el tipo): no number to show, and it does not count as the biggest blow.
+    const e6 = mk([['tocinon', 'turito', 'cierzon'], ['cajonazo', 'tocinon', 'cierzon']], 3);
+    conHab('cajonazo', NEUTRO, () => {
+      act0(e6, 1).ps = 1;
+      seguro(e6, 0);
+      const r6 = M.resolverTurno(e6, [ataca(idx('tocinon', 'barrigazo')), ataca(idx('cajonazo', 'aguantar'), 1)]);
+      const g6 = golpes(r6, 1)[0];
+      if (!g6 || g6.dano !== 0 || g6.bruto !== undefined || stats(r6, 0).mx !== 0) falla(`Aguantar con 1 PS: ${JSON.stringify(g6)}, mx ${stats(r6, 0).mx}`);
+    });
+    // The summary: the record is the gross damage, the damage and the damage per move the real one; the server accepts a biggest hit above any max HP.
+    const rec = new M.Recolector();
+    rec.inicio(e);
+    rec.eventos(r.eventos);
+    const res = rec.resumen(r.estado, [false, false], 'maquina');
+    const u0 = res.ju[0].us[0];
+    if (g.length && (u0.mx !== g[0].bruto || u0.dh !== 5 || u0.mv.barrigazo?.[1] !== 5)) falla(`resumen: mx ${u0.mx}, dh ${u0.dh}, mv ${JSON.stringify(u0.mv)}`);
+  }
+
+  // --- 1b. Whole bot battles: the real damage still adds up (Σ dh = Σ dr = Σ per move), the biggest hit is the biggest `bruto ?? dano`.
+  {
+    const cat = M.prepararCatalogo({ especies: M.ESPECIES.map((x) => x.id), movs: Object.keys(M.MOVS), objetos: Object.keys(M.OBJETOS), entrenadores: M.ENTRENADORES.map((x) => (typeof x === 'string' ? x : x.id)), escenarios: ['brio', 'terraza', 'rural', 'juan', 'feria'], sucesos: Object.keys(M.SUCESOS) });
+    for (let sem = 1; sem <= 6; sem++) {
+      const rnd = M.crearRnd(sem * 31 + 7);
+      let d = M.crearDraft(4, sem % 4);
+      while (M.turnoDraft(d) !== null) d = M.elegir(d, M.pickBot(d, rnd));
+      const eq = M.equipos(d, 4);
+      let e = M.crearCombate(eq.map((especies, i) => ({ entrenador: ['fran', 'pablo', 'chuchi', 'guille'][i], nombre: 'J' + i, bot: true, especies })), sem);
+      const rec = new M.Recolector();
+      rec.inicio(e);
+      const maximos = new Map();
+      for (let t = 0; t < 200 && e.ganador === null; t++) {
+        const r = M.resolverTurno(e, e.jugadores.map((_, j) => (M.eliminado(e, j) ? null : M.eleccionBot(e, j, rnd))));
+        e = r.estado;
+        rec.eventos(r.eventos);
+        let atacante = -1;
+        for (const ev of r.eventos) {
+          if (ev.k === 'usa') atacante = ev.j;
+          if (ev.k === 'golpe' && !ev.fin && !ev.clave && atacante >= 0 && ev.j !== atacante) maximos.set(atacante, Math.max(maximos.get(atacante) ?? 0, ev.bruto ?? ev.dano));
+        }
+        if (e.ganador === null && e.reemplazos.length) {
+          const r2 = M.reemplazar(e, Object.fromEntries(e.reemplazos.map((j) => [j, M.reemplazoBot(e, j)])));
+          e = r2.estado;
+          rec.eventos(r2.eventos);
+        }
+      }
+      const res = rec.resumen(e, [false, false, false, false], 'maquina');
+      // The server takes the summary as it is; a biggest hit above any userito's max HP (gross damage) is valid, a real damage that big is not.
+      const ok = M.normalizarResumen(JSON.parse(JSON.stringify(res)), cat);
+      if (!('resumen' in ok)) falla(`resumen ${sem}: el servidor lo rechaza (${ok.error})`);
+      else if (sem === 1) {
+        const grande = JSON.parse(JSON.stringify(res));
+        grande.ju[0].us[0].mx = 20000;
+        grande.ju[0].us[0].mm = Object.keys(M.MOVS)[0];
+        const v1 = M.normalizarResumen(grande, cat);
+        if (!('resumen' in v1)) falla(`resumen: un golpe más fuerte de 20000 (bruto) debe valer (${v1.error})`);
+        grande.ju[0].us[0].dh = 20000;
+        if ('resumen' in M.normalizarResumen(grande, cat)) falla('resumen: un daño hecho de 20000 no debe valer');
+      }
+      const dh = res.ju.flatMap((q) => q.us).reduce((n, u) => n + u.dh, 0);
+      const porMov = res.ju.flatMap((q) => q.us).reduce((n, u) => n + Object.values(u.mv).reduce((x, [, dd]) => x + dd, 0), 0);
+      if (dh !== porMov) falla(`resumen ${sem}: daño por movimiento ${porMov} != daño hecho ${dh}`);
+      res.ju.forEach((q, j) => {
+        const mejor = Math.max(...q.us.map((u) => u.mx));
+        if (mejor !== (maximos.get(j) ?? 0)) falla(`resumen ${sem}: golpe más fuerte de ${j} = ${mejor}, esperaba ${maximos.get(j) ?? 0}`);
+      });
+    }
+  }
+
+  // --- 2. Every phrase of a suceso says its effect, fits 3 lines of the text box (206 px) and the lines that go with it too.
+  {
+    for (const id of Object.keys(M.SUCESOS)) {
+      for (const k of ['frase', 'nombre', 'desc']) if (!textos.has(`suceso.${id}.${k}`)) falla(`falta suceso.${id}.${k}`);
+      const frase = (textos.get(`suceso.${id}.frase`) ?? '').replace(/\{quien\}/g, 'Papiroflexeon').replace(/\{jugador\}/g, 'Guillermo');
+      const n = M.envolver2(frase, 206).length;
+      if (n > 3) falla(`suceso.${id}.frase ocupa ${n} líneas (caben 3)`);
+      // The effect is in the phrase: some figure or rule word (1/8, 1 su, 50 %, fallan, pegan, recupera, bajadas...).
+      if (!/\d|fallan|pega|enteros|curan|recuper|baj|sube|borr|caña/.test(frase)) falla(`suceso.${id}.frase no explica su efecto: «${frase}»`);
+    }
+    for (const k of ['suceso.premio.cana', 'suceso.premio.cura', 'suceso.nada']) if (M.envolver2(textos.get(k).replace(/\{jugador\}/g, 'Guillermo'), 206).length > 3) falla(`${k} no cabe en 3 líneas`);
+  }
+
+  // --- 2b. A suceso that changes nothing says so (and one that does, does not).
+  {
+    const brio = (sem, tocar) => {
+      const e = mk([['tocinon', 'turito', 'cierzon'], ['turito', 'tocinon', 'cierzon'], ['aceituna', 'tocinon', 'cierzon'], ['espumarro', 'turito', 'cierzon']], sem, 'brio');
+      e.turno = 4;
+      tocar?.(e);
+      return M.resolverTurno(e, [pasa, pasa, pasa, pasa]);
+    };
+    const suceso = (r) => r.eventos.find((ev) => ev.k === 'suceso');
+    const cuenta = { ronda: 0, rondaHerido: 0, barre: 0, barreConNivel: 0, premio: 0 };
+    for (let sem = 1; sem <= 400; sem++) {
+      const r = brio(sem);
+      const sc = suceso(r);
+      if (!sc) continue;
+      const nada = r.eventos.filter((ev) => ev.clave === 'suceso.nada');
+      if (sc.id === 'ronda') {
+        cuenta.ronda++;
+        if (nada.length !== 1 || r.eventos.some((ev) => ev.k === 'cura')) falla(`Ronda gratis con todos sanos (semilla ${sem}): debe decir que no cambia nada y no curar`);
+        const rh = brio(sem, (e) => (act0(e, 1).ps -= 30));
+        cuenta.rondaHerido++;
+        if (rh.eventos.some((ev) => ev.clave === 'suceso.nada') || !rh.eventos.some((ev) => ev.k === 'cura' && ev.j === 1)) falla(`Ronda gratis con uno herido (semilla ${sem}): debe curarle y no decir «nada»`);
+      } else if (sc.id === 'barre') {
+        cuenta.barre++;
+        if (nada.length !== 1) falla(`Vero barre sin nada que barrer (semilla ${sem}): debe decirlo`);
+        const rn = brio(sem, (e) => (act0(e, 2).niveles.ata = 2));
+        cuenta.barreConNivel++;
+        if (rn.eventos.some((ev) => ev.clave === 'suceso.nada') || niveles(rn, 2).ata !== 0) falla(`Vero barre con una subida (semilla ${sem}): no debe decir «nada» y debe borrarla`);
+      } else if (sc.id === 'premio') {
+        cuenta.premio++;
+        const sinCura = r.eventos.some((ev) => ev.clave === 'suceso.premio.cura');
+        if (sinCura) falla(`La tragaperras con todos sanos y la caña sin gastar (semilla ${sem}): no debe decir que curan`);
+        if (nada.length !== 1) falla(`La tragaperras sin efecto (semilla ${sem}): debe decirlo`);
+        const rh = brio(sem, (e) => (act0(e, 1).ps -= 30));
+        if (!rh.eventos.some((ev) => ev.clave === 'suceso.premio.cura') || !rh.eventos.some((ev) => ev.k === 'cura' && ev.j === 1) || rh.eventos.some((ev) => ev.clave === 'suceso.nada')) falla(`La tragaperras con uno herido (semilla ${sem}): debe curar`);
+      }
+    }
+    for (const [k, n] of Object.entries(cuenta)) if (n < 3) falla(`sucesos «nada»: solo ${n} casos de ${k} (400 semillas)`);
+    // ¡Coches de choque! with only Chispa and Petardo useritos on the field: nobody gets hurt, and it says so.
+    let choques = 0;
+    for (let sem = 1; sem <= 600 && choques < 3; sem++) {
+      const e = mk([['choquechu', 'turito', 'cierzon'], ['draguserin', 'tocinon', 'cierzon']], sem, 'feria');
+      e.turno = 4;
+      const r = M.resolverTurno(e, [pasa, pasa]);
+      if (suceso(r)?.id !== 'choque') continue;
+      choques++;
+      if (r.eventos.some((ev) => ev.k === 'golpe') || r.eventos.filter((ev) => ev.clave === 'suceso.nada').length !== 1) falla(`Coches de choque entre conductores (semilla ${sem}): debe decir que no cambia nada`);
+    }
+    if (choques < 3) falla(`Coches de choque: solo ${choques} casos`);
+  }
+
+  // --- 3. Effects that no longer change anything are not announced.
+  {
+    const equipo3 = () => [['pulpino', 'turito', 'tocinon'], ['tocinon', 'turito', 'cierzon'], ['turito', 'tocinon', 'cierzon']];
+    // Mala leche: with +5 it announces and reaches +6; at +6 it says nothing (no tag, no stage, no «no puede subir más»).
+    conHab('turito', NEUTRO, () => {
+      const e = mk(equipo3(), 3);
+      act0(e).niveles.ata = 5;
+      const r = M.resolverTurno(e, [pasa, ataca(idx('tocinon', 'barrigazo'), 0), pasa]);
+      if (habs(r, 'malaleche', 0).length !== 1 || niveles(r, 0).ata !== 6 || nivelesEv(r, 0, 'ata').length !== 1) falla(`Mala leche +5: ${habs(r, 'malaleche', 0).length} avisos, Ata ${niveles(r, 0).ata}`);
+      const r2 = M.resolverTurno(r.estado, [pasa, ataca(idx('tocinon', 'barrigazo'), 0), pasa]);
+      if (!golpes(r2, 0).length) falla('Mala leche +6: debía recibir el golpe');
+      if (habs(r2, 'malaleche').length || nivelesEv(r2, 0).length || topes(r2).length || niveles(r2, 0).ata !== 6) falla(`Mala leche +6: no debe anunciar nada (${habs(r2, 'malaleche').length} avisos, ${nivelesEv(r2, 0).length} niveles, ${topes(r2).length} topes)`);
+    });
+    // Flipado (Ego-Ego): +1 Attack on a knock-out; at +6 it says nothing.
+    for (const ata of [0, 6]) conHab('turito', NEUTRO, () => {
+      const e = mk([['ego-ego', 'turito', 'tocinon'], ['turito', 'tocinon', 'cierzon']], 3);
+      act0(e, 1).ps = 1;
+      act0(e).niveles.ata = ata;
+      seguro(e, 0);
+      const r = M.resolverTurno(e, [ataca(idx('ego-ego', 'chuleria')), pasa]);
+      if (!r.eventos.some((ev) => ev.k === 'cae' && ev.j === 1)) falla('Flipado: debía tumbarlo');
+      const n = habs(r, 'flipado', 0).length;
+      if (ata === 0 && (n !== 1 || niveles(r, 0).ata !== 1)) falla(`Flipado con Ata 0: ${n} avisos, Ata ${niveles(r, 0).ata}`);
+      if (ata === 6 && (n || nivelesEv(r, 0).length || topes(r).length || niveles(r, 0).ata !== 6)) falla(`Flipado con Ata +6: no debe anunciar nada (${n} avisos, ${topes(r).length} topes)`);
+    });
+    // Se abre la maleta: the first time it drops under half, +2 Attack; with +6 it is spent (same state) but silent.
+    for (const ata of [0, 6]) {
+      const e2 = mk([['tocinon', 'turito', 'cierzon'], ['maletrio', 'tocinon', 'cierzon']], 3);
+      const m2 = act0(e2, 1);
+      m2.ps = Math.floor(m2.psMax / 2) + 1;
+      m2.niveles.ata = ata;
+      seguro(e2, 0);
+      const r2 = M.resolverTurno(e2, [ataca(idx('tocinon', 'pringue')), pasa]);
+      if (act0(r2.estado, 1).ps <= 0 || act0(r2.estado, 1).ps * 2 >= act0(r2.estado, 1).psMax) falla(`Maleta: el golpe debía dejarlo vivo y bajo la mitad (${act0(r2.estado, 1).ps}/${act0(r2.estado, 1).psMax})`);
+      const n = habs(r2, 'maleta', 1).length;
+      if (!act0(r2.estado, 1).habUsada) falla('Maleta: debe quedar gastada');
+      if (ata === 0 && (n !== 1 || niveles(r2, 1).ata !== 2)) falla(`Maleta con Ata 0: ${n} avisos, Ata ${niveles(r2, 1).ata}`);
+      if (ata === 6 && (n || nivelesEv(r2, 1, 'ata').length || topes(r2).length)) falla(`Maleta con Ata +6: no debe anunciar nada (${n} avisos)`);
+    }
+    // Coñazo (Turito, turn 1): it speaks when some rival's Attack can still go down; if all are at −6, nothing (no tag, no «no puede bajar más»).
+    {
+      const mkc = (a1, a2) => {
+        const e = mk([['turito', 'tocinon', 'cierzon'], ['tocinon', 'turito', 'cierzon'], ['aceituna', 'turito', 'cierzon']], 3);
+        act0(e, 1).niveles.ata = a1;
+        act0(e, 2).niveles.ata = a2;
+        return M.resolverTurno(e, [pasa, pasa, pasa]);
+      };
+      const rTodos = mkc(-6, -6);
+      if (habs(rTodos, 'conazo').length || nivelesEv(rTodos, 1).length || nivelesEv(rTodos, 2).length || topes(rTodos).length) falla('Coñazo con todos a −6: no debe anunciar nada');
+      const rUno = mkc(-6, 0);
+      if (habs(rUno, 'conazo').length !== 1 || nivelesEv(rUno, 2, 'ata').length !== 1 || nivelesEv(rUno, 1).length || topes(rUno).length) falla(`Coñazo con uno a −6: ${habs(rUno, 'conazo').length} avisos, ${topes(rUno).length} topes (esperaba 1 y 0)`);
+      const rNormal = mkc(0, 0);
+      if (habs(rNormal, 'conazo').length !== 1 || nivelesEv(rNormal, 1, 'ata').length !== 1 || nivelesEv(rNormal, 2, 'ata').length !== 1) falla('Coñazo normal: debe bajar el Ataque a los dos');
+    }
+    // A favor del viento (Papiroflexeon, turn 1): +1 Speed, announced (nothing is at the limit when it comes out).
+    {
+      const e = mk([['papiroflexeon', 'turito', 'cierzon'], ['tocinon', 'turito', 'cierzon']], 3);
+      const r = M.resolverTurno(e, [pasa, pasa]);
+      if (habs(r, 'viento', 0).length !== 1 || niveles(r, 0).vel !== 1) falla('A favor del viento: debe avisar y dar +1');
+    }
+    // Buena chica: a 30 % roll that is always drawn, but it only speaks when the attacker's Attack can still go down. Same final state either way (the dice are the same).
+    {
+      let conAviso = 0;
+      let sinAviso = 0;
+      for (let sem = 1; sem <= 150; sem++) {
+        const arma = (ata) => {
+          const e = mk([['tocinon', 'turito', 'cierzon'], ['aceituna', 'turito', 'cierzon']], sem);
+          act0(e).niveles.ata = ata;
+          seguro(e, 0);
+          return M.resolverTurno(e, [ataca(idx('tocinon', 'barrigazo')), pasa]);
+        };
+        conAviso += habs(arma(0), 'buena_chica').length;
+        const r6 = arma(-6);
+        sinAviso += habs(r6, 'buena_chica').length + topes(r6).length;
+      }
+      if (conAviso < 15 || sinAviso) falla(`Buena chica: ${conAviso} avisos con Ata 0 (esperaba bastantes) y ${sinAviso} con Ata −6 (esperaba 0)`);
+    }
+    // La espuma no baja: it blocks a drop and says so; with the stat at −6 there was nothing to block.
+    {
+      let conAviso = 0;
+      let sinAviso = 0;
+      for (let sem = 1; sem <= 150; sem++) {
+        const arma = (esp) => {
+          const e = mk([['aceituna', 'turito', 'cierzon'], ['espumarro', 'turito', 'cierzon']], sem);
+          act0(e, 1).niveles.esp = esp;
+          seguro(e, 0);
+          return M.resolverTurno(e, [ataca(idx('aceituna', 'vacile')), pasa]);
+        };
+        conAviso += habs(arma(0), 'espuma').length;
+        sinAviso += habs(arma(-6), 'espuma').length;
+      }
+      if (conAviso < 10 || sinAviso) falla(`La espuma no baja: ${conAviso} avisos con Esp 0 y ${sinAviso} con Esp −6 (esperaba muchos y 0)`);
+    }
+  }
+
+  // --- 4. A move on all rivals: first the blows on everybody, then the effects.
+  {
+    const equipo = () => [['tocinon', 'turito', 'cierzon'], ['turito', 'tocinon', 'cierzon'], ['aceituna', 'tocinon', 'cierzon'], ['espumarro', 'turito', 'cierzon']];
+    const orden = (r, ctx) => {
+      const iUsa = r.eventos.findIndex((ev) => ev.k === 'usa' && (ev.obj?.length ?? 0) >= 2);
+      if (iUsa < 0) return { vacio: true };
+      const resto = r.eventos.slice(iUsa + 1);
+      const iFin = resto.findIndex((ev) => ev.k === 'usa' || ev.fin || ev.clave === 'combate.achispado_golpe');
+      const mov = iFin < 0 ? resto : resto.slice(0, iFin);
+      const ultimoGolpe = mov.reduce((u, ev, i) => (ev.k === 'golpe' && !ev.clave ? i : u), -1);
+      const primerEfecto = mov.findIndex((ev) => ['estado', 'nivel', 'cae', 'habilidad', 'objeto', 'cura', 'sale'].includes(ev.k) || (ev.k === 'texto' && ev.j !== undefined && !/^combate\.(critico|muy_eficaz|poco_eficaz|veces|no_afecta|esconde_protege|venganza|aguanta|perk\.)/.test(ev.clave ?? '')));
+      const golpes = mov.filter((ev) => ev.k === 'golpe' && !ev.clave).length;
+      if (primerEfecto >= 0 && ultimoGolpe > primerEfecto) falla(`${ctx}: un golpe (posición ${ultimoGolpe}) sale después de un efecto (posición ${primerEfecto}): ${mov.map((ev) => ev.k).join(',')}`);
+      return { vacio: false, golpes, conEfecto: primerEfecto >= 0 };
+    };
+    let conEfecto = 0;
+    let probados = 0;
+    // Pringue (20 % of lowering the Speed of each target): usually one of the three gets it.
+    for (let sem = 1; sem <= 150; sem++) {
+      const e = mk(equipo(), sem);
+      seguro(e, 0);
+      const r = M.resolverTurno(e, [ataca(idx('tocinon', 'pringue')), pasa, pasa, pasa]);
+      const o = orden(r, `Pringue (semilla ${sem})`);
+      if (o.vacio) continue;
+      probados++;
+      if (o.golpes !== 3) falla(`Pringue (semilla ${sem}): ${o.golpes} golpes en vez de 3`);
+      if (o.conEfecto) conEfecto++;
+    }
+    if (probados < 140 || conEfecto < 40) falla(`orden de los ataques a todos: ${probados} probados, ${conEfecto} con efecto (esperaba casi todos y muchos)`);
+    // A fall and a stat drop in the same move: the three blows first, the fall and the drop after.
+    let caidas = 0;
+    for (let sem = 1; sem <= 150; sem++) {
+      const e = mk(equipo(), sem);
+      act0(e, 1).ps = 1;
+      seguro(e, 0);
+      const r = M.resolverTurno(e, [ataca(idx('tocinon', 'pringue')), pasa, pasa, pasa]);
+      const o = orden(r, `Pringue con caída (semilla ${sem})`);
+      if (o.vacio) continue;
+      if (r.eventos.some((ev) => ev.k === 'cae' && ev.j === 1)) caidas++;
+    }
+    if (caidas < 100) falla(`orden de los ataques a todos: solo ${caidas} caídas`);
+    // Whatever the move, the turn, the trainer or the scene: bot battles keep the order (and the number of events per target is untouched).
+    for (let sem = 1; sem <= 25; sem++) {
+      const rnd = M.crearRnd(sem * 17 + 5);
+      let d = M.crearDraft(4, sem % 4);
+      while (M.turnoDraft(d) !== null) d = M.elegir(d, M.pickBot(d, rnd));
+      const eq = M.equipos(d, 4);
+      let e = M.crearCombate(eq.map((especies, i) => ({ entrenador: ['fran', 'pablo', 'chuchi', 'guille'][i], nombre: 'J' + i, bot: true, especies })), sem);
+      for (let t = 0; t < 200 && e.ganador === null; t++) {
+        const r = M.resolverTurno(e, e.jugadores.map((_, j) => (M.eliminado(e, j) ? null : M.eleccionBot(e, j, rnd))));
+        e = r.estado;
+        // Every move on 2+ rivals in the turn.
+        const usos = r.eventos.map((ev, i) => (ev.k === 'usa' && (ev.obj?.length ?? 0) >= 2 ? i : -1)).filter((i) => i >= 0);
+        for (const i of usos) {
+          const resto = r.eventos.slice(i + 1);
+          const iFin = resto.findIndex((ev) => ev.k === 'usa' || ev.fin || ev.clave === 'combate.achispado_golpe');
+          const mov = iFin < 0 ? resto : resto.slice(0, iFin);
+          let visto = false;
+          mov.forEach((ev, k) => {
+            const efecto = ['estado', 'nivel', 'cae', 'habilidad', 'objeto', 'sale'].includes(ev.k);
+            if (efecto) visto = true;
+            // A blow on a target after an effect (the recoil of the user on itself is not one of them: it carries its line).
+            if (ev.k === 'golpe' && !ev.clave && visto) falla(`semilla ${sem} turno ${e.turno - 1}: golpe ${k} después de un efecto en ${mov.map((x) => x.k).join(',')}`);
+          });
+        }
+        if (e.ganador === null && e.reemplazos.length) e = M.reemplazar(e, Object.fromEntries(e.reemplazos.map((j) => [j, M.reemplazoBot(e, j)]))).estado;
+      }
+    }
   }
 }
 

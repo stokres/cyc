@@ -402,9 +402,6 @@ function anilloCacheado(rx: number, ry: number, color: string): HTMLCanvasElemen
 /** Text lines that only comment on a hit that the screen already shows (tags, numbers). */
 const REACCIONES = new Set(['combate.critico', 'combate.muy_eficaz', 'combate.poco_eficaz', 'combate.veces']);
 
-/** Lines that tell what happened to ONE target of an area move; they travel with the hits of that move (see `grupoArea`). */
-const TEXTOS_DE_GRUPO = new Set([...REACCIONES, 'combate.no_afecta', 'combate.esconde_protege', 'combate.sin_efecto', 'combate.tope_sube', 'combate.tope_baja', 'combate.atrapa', 'combate.bostezo', 'combate.cizana', 'combate.venganza', 'combate.aguanta']);
-
 type EvGolpe = Extract<Evento, { k: 'golpe' }>;
 
 /** The sound of a hit: the more notable the better (critical, super effective, normal, weak). */
@@ -709,6 +706,7 @@ export class VistaCombate implements Escena {
     } else if (conOrden) this.orden = orden.lista.length ? orden : null;
     // The targets of the area move being played (two or more): their results play all at once (`grupoArea`).
     let area: number[] | null = null;
+    let actor = -1;
     for (let i = 0; i < eventos.length; i++) {
       const ev = eventos[i];
       if (ev.k === 'suceso') {
@@ -719,10 +717,12 @@ export class VistaCombate implements Escena {
         i = k - 1;
         continue;
       }
-      if (ev.k === 'usa') area = (ev.obj?.length ?? 0) >= 2 ? ev.obj! : null;
-      else if (area && this.deGrupo(ev, area)) {
+      if (ev.k === 'usa') {
+        area = (ev.obj?.length ?? 0) >= 2 ? ev.obj! : null;
+        actor = ev.j;
+      } else if (area && this.deGrupo(ev, area, actor)) {
         let k = i + 1;
-        while (k < eventos.length && this.deGrupo(eventos[k], area)) k++;
+        while (k < eventos.length && this.deGrupo(eventos[k], area, actor)) k++;
         await this.grupoArea(eventos.slice(i, k));
         i = k - 1;
         continue;
@@ -764,19 +764,26 @@ export class VistaCombate implements Escena {
     return false;
   }
 
-  /** Whether `ev` is a result of the area move on one of its targets `area` (a hit, a miss, a status, a fall, or the line about one). */
-  private deGrupo(ev: Evento, area: number[]): boolean {
+  /**
+   * Whether `ev` is a result of the area move (by `actor`) on one of its targets `area`: a hit, a miss, a fall, a status, a stage change, an ability, an object,
+   * a heal (also the attacker's own: a drain, a recoil answer, an ability it shows) or any line about one target. The engine already tells all the blows
+   * before the rest (`golpesPrimero`), so the whole run plays as one group: every bar first, then what came with the blows.
+   */
+  private deGrupo(ev: Evento, area: number[], actor: number): boolean {
     if (ev.fin) return false;
     switch (ev.k) {
       case 'golpe':
       case 'falla':
+      case 'cae':
+        return area.includes(ev.j);
       case 'estado':
       case 'nivel':
-      case 'cae':
+      case 'cura':
       case 'habilidad':
-        return area.includes(ev.j);
+      case 'objeto':
+        return area.includes(ev.j) || ev.j === actor;
       case 'texto':
-        return ev.j !== undefined && area.includes(ev.j) && (TEXTOS_DE_GRUPO.has(ev.clave ?? '') || (ev.clave ?? '').startsWith('combate.perk.'));
+        return ev.j !== undefined && area.includes(ev.j);
       default:
         return false;
     }
@@ -792,7 +799,7 @@ export class VistaCombate implements Escena {
       case 'nivel':
         return !ev.clave || ev.clave.startsWith('combate.');
       case 'texto':
-        return (ev.clave ?? '').startsWith('suceso.premio.') || (ev.clave ?? '').startsWith('combate.tope_');
+        return (ev.clave ?? '').startsWith('suceso.premio.') || ev.clave === 'suceso.nada' || (ev.clave ?? '').startsWith('combate.tope_');
       default:
         return false;
     }
@@ -813,10 +820,32 @@ export class VistaCombate implements Escena {
     // itself: three times the turn-order strip (about 4 s at the normal pace), and the phrase waits twice its usual pause.
     const minimo = cfg.rapido ? 0 : Math.max(2700, ritmo().orden * 3);
     const espera = ritmo().espera < 0 ? undefined : ritmo().espera * 2;
-    await Promise.all([ev.clave ? this.decir(t(ev.clave, ev.vars), espera) : Promise.resolve(), dormir(minimo)]);
+    await Promise.all([this.decirPartes(ev.clave ? this.partirFrase(t(ev.clave, ev.vars)) : [], espera), dormir(minimo)]);
     this.cartelSuceso = null;
     pantalla().redibujar();
     if (efectos.length) await this.grupoArea(efectos);
+  }
+
+  /** A long phrase in sentences that each fit the text box (3 lines; 2 on small screens), so none is cut. A phrase that fits stays whole. */
+  private partirFrase(frase: string): string[] {
+    const lineas = this.lineasCaja();
+    if (this.caja.cabe(frase, lineas)) return [frase];
+    const partes: string[] = [];
+    let actual = '';
+    for (const oracion of frase.split(/(?<=[.!?])\s+/)) {
+      const junto = actual ? `${actual} ${oracion}` : oracion;
+      if (actual && !this.caja.cabe(junto, lineas)) {
+        partes.push(actual);
+        actual = oracion;
+      } else actual = junto;
+    }
+    if (actual) partes.push(actual);
+    return partes;
+  }
+
+  /** Says the pieces one after the other (each waits `espera`). */
+  private async decirPartes(partes: string[], espera?: number) {
+    for (const p of partes) await this.decir(p, espera);
   }
 
   private userito(j: number): Userito {
@@ -1007,7 +1036,8 @@ export class VistaCombate implements Escena {
     if (ev.dano > 0) {
       if (sonar) sonido.efecto(sonidoGolpe(ev));
       tareas.push(this.parpadea(ev.j, corto));
-      this.flota(ev.j, `-${ev.dano}`, PS_ROJO, 'num', ev.acorralado);
+      // The number is the blow's gross damage when the HP left cut it short (the bar and everything else use the real one).
+      this.flota(ev.j, `-${ev.bruto ?? ev.dano}`, PS_ROJO, 'num', ev.acorralado);
       if (ev.critico) this.flota(ev.j, t('batalla.tag.critico'), TAG_ORO, 'tag');
       if (ev.ef > 1) this.flota(ev.j, t('batalla.tag.muy'), TAG_ORO, 'tag');
       else if (ev.ef < 1 && ev.ef > 0) this.flota(ev.j, t('batalla.tag.poco'), TAG_GRIS, 'tag');
@@ -1046,10 +1076,14 @@ export class VistaCombate implements Escena {
     const curas: Extract<Evento, { k: 'cura' }>[] = [];
     const efectos: EvEfecto[] = [];
     const habs: Extract<Evento, { k: 'habilidad' }>[] = [];
+    const objetos: Extract<Evento, { k: 'objeto' }>[] = [];
     for (const ev of evs) {
       switch (ev.k) {
         case 'habilidad':
           habs.push(ev);
+          break;
+        case 'objeto':
+          objetos.push(ev);
           break;
         case 'cura':
           curas.push(ev);
@@ -1090,9 +1124,14 @@ export class VistaCombate implements Escena {
     }
     if (fallas.length) sonido.efecto('falla');
     // The abilities that work on these targets (an immunity, a blocked drop...): their name over the userito, all at once.
-    if (habs.length) {
+    if (habs.length || objetos.length) {
       sonido.efecto('estado');
       for (const h of habs) this.flota(h.j, t(`hab.${h.id}.nombre`).toUpperCase(), TAG_ORO, 'tag');
+      // An object that works (a Mechero, a Posavasos...): from now on everybody sees it on the panel, and its name flashes over the userito.
+      for (const o of objetos) {
+        this.userito(o.j).objeto = { id: o.objeto, visto: true, ...(OBJETO_PERMANENTE[o.objeto] ? {} : { gastado: true as const }) };
+        this.flota(o.j, t(`objeto.${o.objeto}.nombre`).toUpperCase(), TAG_ORO, 'tag');
+      }
     }
     const listas = [...golpes.values()];
     const rondas = Math.max(0, ...listas.map((l) => l.length));
@@ -1119,7 +1158,9 @@ export class VistaCombate implements Escena {
     }
 
     // 2. What the hits left to say about one target (a perk, a cap, an ability...).
+    for (const c of curas) if (c.clave) await this.decir(t(c.clave, c.vars));
     for (const h of habs) if (h.clave) await this.decir(t(h.clave, h.vars));
+    for (const o of objetos) if (o.clave) await this.decir(t(o.clave, o.vars));
     for (const l of lineas) await this.decir(t(l.clave!, l.vars));
 
     // 3. Everyone who fell, together.

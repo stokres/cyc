@@ -139,6 +139,8 @@ export function prepararCatalogo(c) {
 const FECHA_MIN = 1767225600000;
 const MAX_TURNOS = 300;
 const MAX_DANO = 6000;
+/** The biggest single hit counts its gross damage (what it would have done without the cap of the HP left), which can be far above any userito's max HP. */
+const MAX_GOLPE = 100000;
 const MAX_CUENTA = 24;
 const MODOS = new Set(['maquina', 'online', 'aventura']);
 const VENTAJAS = new Set(['cana', 'labia', 'tarde', 'manico', 'verso', 'cosecha', 'ruido']);
@@ -170,7 +172,7 @@ function normalizarUserito(u, cat) {
     exigir(Array.isArray(par) && par.length === 2, 'userito.mv.par');
     mv[id] = [exigir(entero(par[0], MAX_TURNOS), 'userito.mv.usos'), exigir(entero(par[1], MAX_DANO), 'userito.mv.daño')];
   }
-  const mx = exigir(entero(u.mx, MAX_DANO), 'userito.mx');
+  const mx = exigir(entero(u.mx, MAX_GOLPE), 'userito.mx');
   const mm = mx > 0 ? exigir(typeof u.mm === 'string' && cat.movs.has(u.mm) && u.mm, 'userito.mm') : '';
   return {
     e: u.e,
