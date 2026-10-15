@@ -17,6 +17,8 @@ import { eleccionBot, pickBot, reemplazoBot, salidaBot } from '../motor/bot';
 import { objetoBot, ocultarObjetos } from '../motor/objetos';
 import { conEstadisticas } from '../estadisticas/resumen';
 import { registrarBatalla } from '../estadisticas/almacen';
+import { nombreLocal, tokenLocal } from '../cuentas/almacen';
+import { nombreDeCuenta } from '../cuentas/sala';
 import { Partida, esCancelada, type Asiento, type Ganchos } from '../partida';
 import { pantalla } from '../pantalla';
 import { sonido } from '../sonido';
@@ -125,7 +127,9 @@ export async function jugarAnfitrion(con: Conexion, relleno: boolean): Promise<F
   const idDe: number[] = [];
   for (const h of humanos) {
     const pj = h.pj as EntrenadorId;
-    asientos.push({ tipo: h.id === con.id ? 'local' : 'remoto', entrenador: pj, nombre: nombreEnt(pj) });
+    // The player's account name fills in the seat's name (the guests sent theirs on entering); without one, the trainer's.
+    const propio = h.id === con.id ? nombreLocal() : (con.cuentas.get(h.id)?.nombre ?? null);
+    asientos.push({ tipo: h.id === con.id ? 'local' : 'remoto', entrenador: pj, nombre: nombreDeCuenta(propio) ?? nombreEnt(pj) });
     idDe.push(h.id);
   }
   if (relleno) {
@@ -287,7 +291,7 @@ async function unaPartida(
   };
   // The bar of the battles is the host's setting (AJUSTES → ESCENARIO; at random by default).
   // Statistics (docs/POKEUSERA.md): only the host sends the summary, once per battle.
-  const partida = new Partida(asientos, conEstadisticas(ganchos, asientos, 'online', registrarBatalla), { escenario: escenarioElegido() });
+  const partida = new Partida(asientos, conEstadisticas(ganchos, asientos, 'online', registrarBatalla, () => asientos.map((a, j) => (a.tipo === 'local' ? tokenLocal() : a.tipo === 'remoto' ? (con.cuentas.get(idDe[j])?.token ?? null) : null))), { escenario: escenarioElegido() });
   vd.escenario = partida.escenario;
   (window as unknown as { __pokeusera?: unknown }).__pokeusera = { partida, vc, vd, vb, vs };
   vd.alAbandonar = vb.alAbandonar = vs.alAbandonar = vc.alAbandonar = () => {

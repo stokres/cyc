@@ -7,6 +7,8 @@ import { ESPECIES } from './datos';
 import { crearRnd } from './motor/azar';
 import { conEstadisticas } from './estadisticas/resumen';
 import { registrarBatalla } from './estadisticas/almacen';
+import { cuentaLocal, tokenLocal } from './cuentas/almacen';
+import { pantallaNombre } from './pantallas/cuenta';
 import { Partida, esCancelada, type Asiento, type Ganchos } from './partida';
 import { actualizarApp, hayConexion, instalarApp } from './aplicacion';
 import { pantalla } from './pantalla';
@@ -104,7 +106,7 @@ export async function jugarSolo(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combat
     alReemplazo: (ev, estado) => vc.alReemplazo(ev, estado),
     alFin: (estado) => vc.alFin(estado),
   };
-  const partida = new Partida(asientos, conEstadisticas(ganchos, asientos, 'maquina', registrarBatalla), { semilla: o.semilla, rapido: o.auto, equipos, escenario: o.escenario ?? escenarioElegido(), barra: o.barra });
+  const partida = new Partida(asientos, conEstadisticas(ganchos, asientos, 'maquina', registrarBatalla, () => asientos.map((a) => (a.tipo === 'local' ? tokenLocal() : null))), { semilla: o.semilla, rapido: o.auto, equipos, escenario: o.escenario ?? escenarioElegido(), barra: o.barra });
   vd.escenario = partida.escenario;
   vd.alAbandonar = vb.alAbandonar = vs.alAbandonar = vc.alAbandonar = () => partida.cancelar();
   (window as unknown as { __pokeusera?: unknown }).__pokeusera = { partida, vc, vd, vb, vs };
@@ -132,8 +134,12 @@ export async function ejecutar(o: OpcionesFlujo): Promise<void> {
     }
     await jugarVarias(yo, o);
   }
+  /** «MÁS TARDE» in the name screen: not asked again until the game is opened anew. */
+  let nombreAplazado = false;
   for (;;) {
     await pantallaTitulo();
+    // First time (no account on this phone): «¿Cómo te llamas?» after the title, before the menu (docs/POKEUSERA.md, «Cuentas»).
+    if (!cuentaLocal() && !nombreAplazado && (await pantallaNombre()) === 'luego') nombreAplazado = true;
     let ultima: OpcionMenu = 'solo';
     for (;;) {
       const m = await pantallaMenu(ultima);

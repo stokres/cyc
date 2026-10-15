@@ -3,12 +3,13 @@
 //  - sin red (el juego es instalable y funciona sin conexión) los resúmenes esperan en localStorage, con tope, y se reenvían cuando vuelve;
 //  - la pantalla pide los agregados de todos al servidor (con la última copia guardada por si no hay red) y los de este móvil a la copia local.
 // Nada de esto toca el dibujo ni bloquea: la suma local se hace un momento después, y el envío es un fetch.
-import { FORMATO, type Agregado, type ResumenBatalla } from './tipos';
+import { FORMATO, type Agregado, type ResumenBatalla, type ResumenCuenta } from './tipos';
 import { agregadoVacio, agregadoValido, sumarResumen } from './agregado.mjs';
 
 const CLAVE_LOCAL = 'pokeusera.est.local';
 const CLAVE_PENDIENTES = 'pokeusera.est.pend';
 const CLAVE_TODOS = 'pokeusera.est.todos';
+const CLAVE_CUENTAS = 'pokeusera.est.cuentas';
 /** Summaries kept waiting for the network: the oldest go when there are more (about 3 KB each). */
 export const TOPE_PENDIENTES = 40;
 const REINTENTO_MS = 90_000;
@@ -96,8 +97,16 @@ export function iniciarEstadisticas(): void {
 
 export interface DeTodos {
   ag: Agregado;
+  /** What each account (with battles) has done, for the ENTRENADORES table; empty when there are no accounts. */
+  cuentas: ResumenCuenta[];
   /** True when it is the last copy saved (the server could not be reached now). */
   copia: boolean;
+}
+
+/** The accounts list from the server (or from a saved copy), cleaned: only what is well formed. */
+function cuentasValidas(x: unknown): ResumenCuenta[] {
+  if (!Array.isArray(x)) return [];
+  return x.filter((c): c is ResumenCuenta => !!c && typeof c.id === 'string' && typeof c.nombre === 'string' && [c.n, c.g, c.pu, c.dh, c.dr, c.ko].every(Number.isFinite) && c.n > 0);
 }
 
 /** Everybody's aggregates from the server; if it cannot be reached, the last copy saved; null if there is none. */
@@ -105,16 +114,18 @@ export async function agregadoDeTodos(): Promise<DeTodos | null> {
   try {
     const res = await fetch('api/estadisticas', { cache: 'no-store' });
     if (res.ok) {
-      const cuerpo = (await res.json()) as { v?: number; ag?: unknown };
+      const cuerpo = (await res.json()) as { v?: number; ag?: unknown; cuentas?: unknown };
       const ag = cuerpo.v === FORMATO ? agregadoValido(cuerpo.ag) : null;
       if (ag) {
+        const cuentas = cuentasValidas(cuerpo.cuentas);
         guardar(CLAVE_TODOS, ag);
-        return { ag, copia: false };
+        guardar(CLAVE_CUENTAS, cuentas);
+        return { ag, cuentas, copia: false };
       }
     }
   } catch {
     /* no network */
   }
   const guardado = agregadoValido(leer(CLAVE_TODOS));
-  return guardado ? { ag: guardado, copia: true } : null;
+  return guardado ? { ag: guardado, cuentas: cuentasValidas(leer(CLAVE_CUENTAS)), copia: true } : null;
 }

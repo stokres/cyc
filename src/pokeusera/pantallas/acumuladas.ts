@@ -1,6 +1,6 @@
 // PokéUsera · ESTADÍSTICAS del menú: lo acumulado de todas las batallas (docs/POKEUSERA.md, «Estadísticas acumuladas»). No es la pantalla del final de
 // una batalla (estadisticas.ts): esta suma las de todos (las que guarda el servidor) o las de este móvil, y se pasa por páginas como aquella:
-// USERITOS, MOVIMIENTOS, TIPOS, OBJETOS, ESCENARIOS, ENTRENADORES y RÉCORDS. Arriba, fijo: ◀ página ▶, «DE TODOS / EN ESTE MÓVIL», «TODAS / SOLO PERSONAS»,
+// USERITOS, MOVIMIENTOS, TIPOS, OBJETOS, ESCENARIOS, ENTRENADORES, RÉCORDS y YO (lo de mi cuenta, docs/POKEUSERA.md, «Cuentas»). Arriba, fijo: ◀ página ▶, «DE TODOS / EN ESTE MÓVIL», «TODAS / SOLO PERSONAS»,
 // el total de batallas y, en las páginas con ranking, los botones de orden (tocar el que ya está elegido lo invierte).
 // Rendimiento (como la Useritopedia): `estatica`, y `paso` solo devuelve true mientras se desliza, mientras se hornean filas y al hornear de fondo.
 // La cabecera es un lienzo horneado por estado; cada fila, otro (240×alto), horneado al hacerse visible (4 por fotograma como mucho) y el resto en
@@ -8,8 +8,10 @@
 import { ENTRENADORES, OBJETOS, type EntrenadorId, type EscenarioId, type ObjetoId, type SucesoId, type Tipo } from '../tipos';
 import { ESPECIE, ESPECIES, MOVS, SUCESOS, TIPOS } from '../datos';
 import { agregadoDeTodos, agregadoLocal, type DeTodos } from '../estadisticas/almacen';
+import { cuentaLocal, estadisticasDeCuenta, type DeCuenta } from '../cuentas/almacen';
+import { cargarAventura, ZONAS } from '../caza/modelo';
 import { RECORDS, seccionDe } from '../estadisticas/agregado.mjs';
-import type { Agregado, Marca, Seccion } from '../estadisticas/tipos';
+import type { Agregado, Marca, ResumenCuenta, Seccion } from '../estadisticas/tipos';
 import { anchoTexto2 } from '../arte2/fuente2';
 import { TINTA2, TINTA_SUAVE } from '../arte2/paleta2';
 import { hornear, panelCacheado, relleno } from '../arte2/ui2';
@@ -23,8 +25,8 @@ import { barraArriba, barraValor, boton, chipTipo, colorEnt, envolver, ficha, fo
 
 // ------------------------------------------------------------------ the pages and what they list
 
-type Pagina = 'useritos' | 'movs' | 'tipos' | 'objetos' | 'escenarios' | 'entrenadores' | 'records';
-const PAGINAS: Pagina[] = ['useritos', 'movs', 'tipos', 'objetos', 'escenarios', 'entrenadores', 'records'];
+type Pagina = 'useritos' | 'movs' | 'tipos' | 'objetos' | 'escenarios' | 'entrenadores' | 'records' | 'yo';
+const PAGINAS: Pagina[] = ['useritos', 'movs', 'tipos', 'objetos', 'escenarios', 'entrenadores', 'records', 'yo'];
 type Fuente = 'todos' | 'movil';
 type Filtro = 'todas' | 'personas';
 
@@ -205,19 +207,33 @@ function vistaEscenarios(s: Seccion): Vista {
   };
 }
 
-function vistaEntrenadores(s: Seccion): Vista {
-  const items = ENTRENADORES.map((id: EntrenadorId): Item => {
-    const a = s.ent[id];
-    const n = a?.n ?? 0;
+/** With accounts (everybody's, from the server) the table lists the players by their account names; without them, the four trainers. */
+function vistaEntrenadores(s: Seccion, cuentas: ResumenCuenta[]): Vista {
+  const deCuentas = cuentas.map((c): Item => {
+    const fav = ENTRENADORES.includes(c.fav as EntrenadorId) ? (c.fav as EntrenadorId) : null;
     return {
-      id,
-      nombre: t(`entrenador.${id}`),
-      n,
-      color: colorEnt(id),
-      m: a ? { part: n, vict: pct(a.g, n), puesto: media(a.pu, n), dano: media(a.dh, n), ko: media(a.ko, n), reci: media(a.dr, n) } : {},
-      icono: (cx, x, y) => ficha(cx, id, x + 4, y + 4, 24),
+      id: c.id,
+      nombre: c.nombre,
+      n: c.n,
+      color: fav ? colorEnt(fav) : COLOR_BARRA,
+      m: { part: c.n, vict: pct(c.g, c.n), puesto: media(c.pu, c.n), dano: media(c.dh, c.n), ko: media(c.ko, c.n), reci: media(c.dr, c.n) },
+      icono: fav ? (cx, x, y) => ficha(cx, fav, x + 4, y + 4, 24) : undefined,
     };
   });
+  const items = cuentas.length
+    ? deCuentas
+    : ENTRENADORES.map((id: EntrenadorId): Item => {
+        const a = s.ent[id];
+        const n = a?.n ?? 0;
+        return {
+          id,
+          nombre: t(`entrenador.${id}`),
+          n,
+          color: colorEnt(id),
+          m: a ? { part: n, vict: pct(a.g, n), puesto: media(a.pu, n), dano: media(a.dh, n), ko: media(a.ko, n), reci: media(a.dr, n) } : {},
+          icono: (cx, x, y) => ficha(cx, id, x + 4, y + 4, 24),
+        };
+      });
   return {
     grupos: [{ items }],
     chips: ['part', 'vict', 'puesto', 'dano', 'ko'],
@@ -256,6 +272,65 @@ function tarjetas(s: Seccion, orden: readonly string[]): Tarjeta[] {
       icono: e ? (cx, x, y) => cx.drawImage(miniatura(e), x, y) : r.en ? (cx, x, y) => ficha(cx, r.en!, x + 4, y + 4, 24) : undefined,
     });
   }
+  return out;
+}
+
+/** The YO page: my numbers as cards (the same rows as the records). `yo`: what the server has of my account; the Aventura is read from this phone. */
+function tarjetasYo(yo: DeCuenta): Tarjeta[] {
+  const s = seccionDe(yo.ag, true);
+  const n = s.n;
+  let g = 0;
+  let dh = 0;
+  let ko = 0;
+  for (const e of Object.values(s.ent)) {
+    g += e.g;
+    dh += e.dh;
+    ko += e.ko;
+  }
+  const out: Tarjeta[] = [];
+  const tj = (clave: string, valor: string, vars: Record<string, string | number>, icono?: Tarjeta['icono'], pie = ''): void => {
+    out.push({ titulo: t(`acum.yo.${clave}`), valor, detalle: t(`acum.yo.${clave}.d`, vars), pie, icono });
+  };
+  out.push({ titulo: t('acum.yo.bat'), valor: entero(n), detalle: t('acum.yo.bat.d', { g, p: n - g }), pie: t('acum.yo.bat.pie', { fecha: fecha(yo.ag.desde) }) });
+  tj('vict', `${Math.round(pct(g, n))}%`, { g, n });
+  tj('racha', entero(yo.racha.a), { m: yo.racha.m });
+  // Favourite: the most picked; the one that wins most: best win rate among those picked at least twice (any, if there are none).
+  const lista = Object.entries(s.esp).filter(([id]) => ESPECIE[id]);
+  const fav = [...lista].sort((a, b) => b[1].n - a[1].n)[0];
+  if (fav) {
+    const [id, e] = fav;
+    out.push({
+      titulo: t('acum.yo.fav'),
+      valor: `x${entero(e.n)}`,
+      detalle: t('acum.yo.fav.d', { userito: ESPECIE[id].nombre, v: entero(e.n) }),
+      pie: t('acum.yo.fav.pie', { pct: Math.round(pct(e.n, n)) }),
+      icono: (cx, x, y) => cx.drawImage(miniatura(id), x, y),
+    });
+  }
+  const repetidos = lista.filter(([, e]) => e.n >= 2 && e.g > 0);
+  const gana = [...(repetidos.length ? repetidos : lista.filter(([, e]) => e.g > 0))].sort((a, b) => b[1].g / b[1].n - a[1].g / a[1].n || b[1].g - a[1].g)[0];
+  if (gana) {
+    const [id, e] = gana;
+    out.push({
+      titulo: t('acum.yo.gana'),
+      valor: `${Math.round(pct(e.g, e.n))}%`,
+      detalle: t('acum.yo.gana.d', { userito: ESPECIE[id].nombre }),
+      pie: t('acum.yo.gana.pie', { g: e.g, n: e.n }),
+      icono: (cx, x, y) => cx.drawImage(miniatura(id), x, y),
+    });
+  }
+  tj('dano', entero(dh), { media: entero(media(dh, n)) });
+  tj('ko', entero(ko), { media: escribir(media(ko, n), 'dec') });
+  // The Aventura: read from this phone (the key the hunting mode writes).
+  const av = cargarAventura();
+  if (av) {
+    out.push({
+      titulo: t('acum.yo.aventura'),
+      valor: `${av.cazados.length}/${ESPECIES.length}`,
+      detalle: t('acum.yo.aventura.d', { bares: av.jefes.filter(Boolean).length, total: ZONAS.length }),
+      pie: av.campeon ? t('acum.yo.aventura.campeon') : '',
+    });
+  } else out.push({ titulo: t('acum.yo.aventura'), valor: '-', detalle: t('acum.yo.aventura.sin'), pie: '' });
   return out;
 }
 
@@ -323,10 +398,12 @@ export function abrirAcumuladas(): Promise<void> {
     let hornos: (HTMLCanvasElement | undefined)[] = [];
     let faltan = false;
     let chipsPag: string[] = [];
-    let nota: 'copia' | 'sinred' | 'cargando' | null = null;
+    let nota: 'copia' | 'sinred' | 'cargando' | 'copiayo' | null = null;
     let textoVacio: string | null = null;
     let totalN = 0;
     let totalTurnos = 0;
+    /** My numbers (page YO): not asked for until the page is opened. */
+    let yo: DeCuenta | 'cargando' | 'fallo' | null = null;
 
     const volver = () => {
       sonido.efecto('atras');
@@ -419,6 +496,7 @@ export function abrirAcumuladas(): Promise<void> {
       nota = null;
       totalN = 0;
       totalTurnos = 0;
+      if (PAGINAS[pag] === 'yo') return recalcularYo();
       if (remoto === 'fallo') nota = 'sinred';
       else if (fuente === 'todos') {
         if (remoto === 'cargando') nota = 'cargando';
@@ -443,11 +521,13 @@ export function abrirAcumuladas(): Promise<void> {
         plan.push(f);
         y += f.h + 3;
       };
+      if (id === 'yo') return;
       if (id === 'records') {
         for (const c of tarjetas(s, RECORDS)) poner(filaTarjeta(c));
         if (!plan.length) mensajeVacio('acum.vacio');
       } else {
-        const v = { useritos: vistaUseritos, movs: vistaMovs, tipos: vistaTipos, objetos: vistaObjetos, escenarios: vistaEscenarios, entrenadores: vistaEntrenadores }[id](s);
+        const cuentas = fuente === 'todos' && remoto !== 'cargando' && remoto !== 'fallo' ? remoto.cuentas : [];
+        const v = { useritos: vistaUseritos, movs: vistaMovs, tipos: vistaTipos, objetos: vistaObjetos, escenarios: vistaEscenarios, entrenadores: (x: Seccion) => vistaEntrenadores(x, cuentas) }[id](s);
         chipsPag = v.chips;
         const o = (orden[id] ??= { k: v.chips[0], asc: !!MEDIDAS[v.chips[0]].asc });
         for (const g of v.grupos) {
@@ -464,6 +544,33 @@ export function abrirAcumuladas(): Promise<void> {
           for (const it of con) poner(filaItem(it, v, k, max, min));
           for (const it of g.items.filter((x) => x.n <= 0)) poner(filaItem(it, v, k, 0, 0));
         }
+      }
+      altoPlan = y + 4;
+    };
+
+    /** The YO page: my account's numbers (loaded the first time the page is opened). */
+    const recalcularYo = () => {
+      if (!cuentaLocal()) return mensajeVacio('acum.yo.sincuenta');
+      if (yo === null) {
+        yo = 'cargando';
+        void estadisticasDeCuenta().then((r) => {
+          yo = r ?? 'fallo';
+          if (PAGINAS[pag] === 'yo') nuevoDato();
+        });
+      }
+      if (yo === 'cargando') return mensajeVacio('acum.cargando');
+      if (yo === 'fallo') return mensajeVacio('acum.yo.sinred');
+      if (yo.copia) nota = 'copiayo';
+      const s = seccionDe(yo.ag, true);
+      totalN = s.n;
+      totalTurnos = s.n > 0 ? s.tu / s.n : 0;
+      if (s.n === 0) return mensajeVacio('acum.yo.vacio');
+      let y = 3;
+      for (const c of tarjetasYo(yo)) {
+        const f = filaTarjeta(c);
+        f.y = y;
+        plan.push(f);
+        y += f.h + 3;
       }
       altoPlan = y + 4;
     };
@@ -517,15 +624,25 @@ export function abrirAcumuladas(): Promise<void> {
     // ---- the fixed top, baked once per state
     const cabecera = (): HTMLCanvasElement => {
       const o = orden[PAGINAS[pag]];
-      const llave = `acum|${PAGINAS[pag]}|${fuente}|${filtro}|${totalN}|${Math.round(totalTurnos * 10)}|${nota ?? ''}|${chipsPag.length ? `${o?.k}${o?.asc ? 'a' : 'd'}` : ''}`;
+      const esYo = PAGINAS[pag] === 'yo';
+      const nombreYo = esYo ? (cuentaLocal()?.nombre ?? '') : '';
+      const llave = `acum|${PAGINAS[pag]}|${nombreYo}|${fuente}|${filtro}|${totalN}|${Math.round(totalTurnos * 10)}|${nota ?? ''}|${chipsPag.length ? `${o?.k}${o?.asc ? 'a' : 'd'}` : ''}`;
       return hornear(llave, ANCHO, altoCabecera(), (cx) => {
         barraArriba(cx);
         const titulo = t('acum.pagina', { n: pag + 1, total: PAGINAS.length, nombre: t(`acum.pag.${PAGINAS[pag]}`) });
         texto2(cx, titulo, Math.floor((ANCHO - anchoTexto2(titulo)) / 2), 6, TINTA2);
         flecha(cx, 6, 5, -1, pag > 0 ? TINTA2 : '#a898a8');
         flecha(cx, ANCHO - 11, 5, 1, pag < PAGINAS.length - 1 ? TINTA2 : '#a898a8');
-        segmentos(cx, Y_FUENTE, [t('acum.fuente.todos'), t('acum.fuente.movil')], fuente === 'todos' ? 0 : 1);
-        segmentos(cx, Y_FILTRO, [t('acum.filtro.todas'), t('acum.filtro.personas')], filtro === 'todas' ? 0 : 1);
+        if (esYo) {
+          // My page: no «de todos / en este móvil» here, just whose numbers they are.
+          relleno(cx, TINTA2, X0, Y_FUENTE, AN - 2, 30);
+          relleno(cx, '#fbe19a', X0 + 1, Y_FUENTE + 1, AN - 4, 28);
+          const nm = t('acum.yo.cabecera', { nombre: nombreYo });
+          texto2(cx, nm, X0 + Math.floor((AN - 2 - anchoTexto2(nm)) / 2), Y_FUENTE + 11, TINTA2, null);
+        } else {
+          segmentos(cx, Y_FUENTE, [t('acum.fuente.todos'), t('acum.fuente.movil')], fuente === 'todos' ? 0 : 1);
+          segmentos(cx, Y_FILTRO, [t('acum.filtro.todas'), t('acum.filtro.personas')], filtro === 'todas' ? 0 : 1);
+        }
         const tot = totalN === 1 ? t('acum.total.una', { t: escribir(totalTurnos, 'dec') }) : t('acum.total.turnos', { n: entero(totalN), t: escribir(totalTurnos, 'dec') });
         const lineaTotal = totalN > 0 ? tot : '';
         if (lineaTotal) texto2(cx, lineaTotal, Math.floor((ANCHO - anchoTexto2(lineaTotal)) / 2), Y_TOTAL, TINTA2, null);
@@ -664,11 +781,13 @@ export function abrirAcumuladas(): Promise<void> {
         // Top zones.
         entrada.zona(0, 0, 44, 18, () => irPagina(-1));
         entrada.zona(ANCHO - 44, 0, 44, 18, () => irPagina(1));
-        const wf = Math.floor(AN / 2);
-        entrada.zona(X0, Y_FUENTE, wf, 15, () => cambiarFuente('todos'));
-        entrada.zona(X0 + wf, Y_FUENTE, wf, 15, () => cambiarFuente('movil'));
-        entrada.zona(X0, Y_FILTRO, wf, 15, () => cambiarFiltro('todas'));
-        entrada.zona(X0 + wf, Y_FILTRO, wf, 15, () => cambiarFiltro('personas'));
+        if (PAGINAS[pag] !== 'yo') {
+          const wf = Math.floor(AN / 2);
+          entrada.zona(X0, Y_FUENTE, wf, 15, () => cambiarFuente('todos'));
+          entrada.zona(X0 + wf, Y_FUENTE, wf, 15, () => cambiarFuente('movil'));
+          entrada.zona(X0, Y_FILTRO, wf, 15, () => cambiarFiltro('todas'));
+          entrada.zona(X0 + wf, Y_FILTRO, wf, 15, () => cambiarFiltro('personas'));
+        }
         if (chipsPag.length) {
           const cw = Math.floor(AN / chipsPag.length);
           chipsPag.forEach((k, i) => entrada.zona(X0 + i * cw, yChips(), cw, 15, () => elegirOrden(k)));

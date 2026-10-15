@@ -4,6 +4,7 @@ import { envolver } from '../pantallas/ui';
 import { pantalla } from '../pantalla';
 import { mensaje } from '../pantallas/modal';
 import { t } from '../pantallas/ui';
+import { mensajeCuenta } from '../cuentas/sala';
 import { jugarAnfitrion } from './anfitrion';
 import { jugarInvitado } from './invitado';
 import { pantallaClave, pantallaSala } from './sala';
@@ -14,6 +15,9 @@ const avisoCerrada = () => mensaje(pantalla().escena, envolver(t('online.cerrada
 export async function jugarOnline(): Promise<void> {
   const con = await pantallaClave();
   if (!con) return;
+  // A guest tells the host whose account this is (the host reads it in Conexion); the host's own is its own.
+  const cuenta = mensajeCuenta();
+  if (cuenta && !con.anfitrion) con.juego('anfitrion', cuenta);
   for (;;) {
     const s = await pantallaSala(con);
     if (s.r === 'salir') return;

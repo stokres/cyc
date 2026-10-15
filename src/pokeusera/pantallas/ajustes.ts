@@ -9,6 +9,7 @@ import { entrada, type Accion } from '../entrada';
 import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
 import { dibujarFondoBar } from './fondos';
+import { pantallaCuenta } from './cuenta';
 import { abrirGuia } from './guia';
 import { sobre } from './modal';
 import { VELOCIDADES, boton, centrado, cfg, flecha, mover, oscurecer, realce, rect, t, texto2, type Velocidad } from './ui';
@@ -192,6 +193,12 @@ export function pantallaAjustes(): Promise<void> {
       sonido.efecto('atras');
       res();
     };
+    /** AJUSTES → MI CUENTA (docs/POKEUSERA.md, «Cuentas»); comes back to this screen. */
+    const miCuenta = async () => {
+      sonido.efecto('aceptar');
+      await pantallaCuenta();
+      p.poner(e);
+    };
     const e: Escena = {
       // Nothing here moves by itself: redrawn only when a key or a tap changes something.
       estatica: true,
@@ -214,20 +221,24 @@ export function pantallaAjustes(): Promise<void> {
         entrada.zona(x, y0 + 42, 80, 34, () => (sel = 1));
         entrada.zona(x, y0 + 76, w, 18, () => (sel = 2));
         entrada.zona(x, y0 + 120, w, 18, () => (sel = 3));
-        const yb = Math.min(H - 44, y0 + 172 + 24);
-        boton(ctx, Math.floor((ANCHO - 100) / 2), yb, 100, 28, t('ajustes.volver'), sel === 4);
+        const yc = y0 + 172 + 12;
+        boton(ctx, Math.floor((ANCHO - 140) / 2), yc, 140, 28, t('ajustes.cuenta'), sel === 4);
+        entrada.zona(Math.floor((ANCHO - 140) / 2), yc, 140, 28, () => void miCuenta());
+        const yb = Math.min(H - 44, yc + 28 + 8);
+        boton(ctx, Math.floor((ANCHO - 100) / 2), yb, 100, 28, t('ajustes.volver'), sel === 5);
         entrada.zona(Math.floor((ANCHO - 100) / 2), yb, 100, 28, salir);
       },
       accion(a) {
         if (a === 'atras') salir();
         else if (a === 'arriba' || a === 'abajo') {
-          sel = mover(sel, 5, a);
+          sel = mover(sel, 6, a);
           sonido.efecto('cursor');
         } else if (a === 'izq' || a === 'der') {
           if (sel < 2) ajustarCanal(sel === 0 ? 'musica' : 'efectos', a);
           else if (sel === 2) ajustarVelocidad(a);
           else if (sel === 3) ajustarEscenario(a);
-        } else if (a === 'aceptar' && sel === 4) salir();
+        } else if (a === 'aceptar' && sel === 4) void miCuenta();
+        else if (a === 'aceptar' && sel === 5) salir();
         else if (a === 'aceptar' && sel === 3) cambiarEscenario(ESCENARIOS_FILA[(ESCENARIOS_FILA.indexOf(escenarioElegido()) + 1) % ESCENARIOS_FILA.length]);
         return true;
       },

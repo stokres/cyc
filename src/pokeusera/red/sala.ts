@@ -10,6 +10,7 @@ import { panelCacheado, relleno } from '../arte2/ui2';
 import { entrada, type Accion } from '../entrada';
 import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
+import { Campo } from '../pantallas/campo';
 import { dibujarFondoBar } from '../pantallas/fondos';
 import { mensaje } from '../pantallas/modal';
 import { barraArriba, boton, centrado, colorEnt, envolver, fondoPapel, nombreEnt, rect, t, texto2, velo } from '../pantallas/ui';
@@ -34,58 +35,12 @@ const guardarClave = (v: string) => {
 
 // ---------------------------------------------------------------- password screen
 
-/** A real text field laid over the canvas, styled like a Game Boy one. */
-class Campo {
-  readonly el: HTMLInputElement;
-  private ultimo = '';
-
-  constructor(valor: string) {
-    const el = document.createElement('input');
-    el.type = 'text';
-    el.value = valor;
-    el.maxLength = 64;
-    el.autocomplete = 'off';
-    el.setAttribute('autocapitalize', 'none');
-    el.setAttribute('autocorrect', 'off');
-    el.setAttribute('spellcheck', 'false');
-    el.setAttribute('enterkeyhint', 'go');
-    el.setAttribute('aria-label', t('online.clave'));
-    el.style.cssText = `position:fixed;z-index:20;box-sizing:border-box;margin:0;padding:0 6px;border:3px solid ${TINTA2};border-radius:4px;background:${PAPEL_ALTO};color:${TINTA2};font-family:ui-monospace,Menlo,Consolas,"Courier New",monospace;font-weight:700;letter-spacing:1px;outline:none;box-shadow:inset 0 0 0 2px #e0a83a;user-select:text;-webkit-user-select:text;touch-action:manipulation;caret-color:${TINTA2};`;
-    document.body.appendChild(el);
-    this.el = el;
-  }
-
-  /** Puts the field over the logical rectangle (x, y, w, h) of the canvas. */
-  colocar(x: number, y: number, w: number, h: number) {
-    const r = pantalla().canvas.getBoundingClientRect();
-    const s = r.width / ANCHO;
-    const clave = [r.left, r.top, r.width, x, y, w, h].join(',');
-    if (clave === this.ultimo) return;
-    this.ultimo = clave;
-    const st = this.el.style;
-    st.left = `${r.left + x * s}px`;
-    st.top = `${r.top + y * s}px`;
-    st.width = `${w * s}px`;
-    st.height = `${h * s}px`;
-    // 16 px or more, so phones do not zoom in when the field gets the focus.
-    st.fontSize = `${Math.max(16, Math.round(10 * s))}px`;
-  }
-
-  mostrar(v: boolean) {
-    this.el.style.visibility = v ? 'visible' : 'hidden';
-  }
-
-  quitar() {
-    this.el.remove();
-  }
-}
-
 /** The password screen. Resolves with an open connection, or null if the player goes back. */
 export function pantallaClave(): Promise<Conexion | null> {
   return new Promise((res) => {
     const p = pantalla();
     sonido.musica('titulo');
-    const campo = new Campo(leerClave());
+    const campo = new Campo(leerClave(), 'online.clave');
     let ocupado = false;
     let hecho = false;
     const cerrar = (c: Conexion | null) => {

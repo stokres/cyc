@@ -18,6 +18,7 @@
 //   node scripts/rendimiento-pokeusera.mjs 5174 combate-juega     (a bare number is the port)
 //   screens: titulo, menu, ajustes, entrenador, draft, draft-flujo, barra, salida, combate-elige, combate-juega, combate-ritmo (+ the four bars: combate-elige-<bar> and combate-juega-<bar>,
 //            with <bar> = rural, terraza, juan; the default combate-* ones are the Bar del Brío), podio, estadisticas, useritopedia, useritopedia-ficha, acumuladas, acumuladas-records, guia, guia-objetos, salida,
+//            nombre (la pantalla «¿Cómo te llamas?», sin cuenta), cuenta (AJUSTES → MI CUENTA), acumuladas-yo (ESTADÍSTICAS, página YO, con una copia guardada de 80 batallas),
 //            aventura-inicial, aventura-mapa, aventura-zona, aventura-equipo, aventura-salvaje (AVENTURA, src/pokeusera/caza/: ?aventura&demo=nueva&pj=fran and ?aventura&demo)
 // Environment: SEG=4 (seconds measured per screen), CPU=4 (throttling rate; 1 = none, budgets then do not apply),
 //   VOLCAR=carpeta (also write a PNG of every screen there, to compare looks before/after).
@@ -67,6 +68,11 @@ const PRESUPUESTOS = {
   // ESTADÍSTICAS del menú (lo acumulado de todas las partidas; 80 batallas inventadas en el móvil): como la Useritopedia, solo redibuja al tocar o al hornear filas de fondo.
   acumuladas: { redibujos: 2, ms: 3, pico: 10, cb: 3, di: 45, lienzos: 0, largas: 0, primer: 1500 },
   'acumuladas-records': { redibujos: 2, ms: 3, pico: 10, cb: 3, di: 45, lienzos: 0, largas: 0, primer: 1500 },
+  // La página YO de ESTADÍSTICAS (cuentas, docs/POKEUSERA.md): como los récords (tarjetas horneadas al verse); datos de la copia guardada, sin servidor.
+  'acumuladas-yo': { redibujos: 2, ms: 3, pico: 10, cb: 3, di: 45, lienzos: 0, largas: 0, primer: 1500 },
+  // Las pantallas de la cuenta (pantallas/cuenta.ts): estáticas, con un campo de texto real encima del lienzo. Mismo presupuesto que la Useritopedia.
+  nombre: { redibujos: 2, ms: 3, pico: 10, cb: 3, di: 45, lienzos: 0, largas: 0, primer: 1500 },
+  cuenta: { redibujos: 2, ms: 3, pico: 10, cb: 3, di: 45, lienzos: 0, largas: 0, primer: 1500 },
   guia: { redibujos: 8, ms: 3, pico: 20, cb: 4, di: 70, lienzos: 0, largas: 0, primer: 1000 },
   'guia-objetos': { redibujos: 8, ms: 3.5, pico: 20, cb: 4, di: 95, lienzos: 0, largas: 0, primer: 1000 },
   ajustes: { redibujos: 2, ms: 1, pico: 10, cb: 2, di: 15, lienzos: 0, largas: 0, primer: 1000 },
@@ -113,6 +119,12 @@ const PANTALLAS = {
   acumuladas: { url: '', ir: async (p) => { await sembrarEstadisticas(p); await tecla(p, 'Enter'); for (let i = 0; i < 4; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); await dormir(800); } },
   // The same on its last page (RÉCORDS: ▶ six times).
   'acumuladas-records': { url: '', ir: async (p) => { await sembrarEstadisticas(p); await tecla(p, 'Enter'); for (let i = 0; i < 4; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); await dormir(800); for (let i = 0; i < 6; i++) await tecla(p, 'ArrowRight', false); }, esperar: 1000 },
+  // The YO page (the eighth, after RÉCORDS: ▶ seven times). The phone's copy of «my numbers» is made up first (the dev server has no such account: the request is answered from the page).
+  'acumuladas-yo': { url: '', ir: async (p) => { await sembrarYo(p); await tecla(p, 'Enter'); for (let i = 0; i < 4; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); await dormir(800); for (let i = 0; i < 7; i++) await tecla(p, 'ArrowRight', false); }, esperar: 1500 },
+  // «¿Cómo te llamas?»: the title, then a tap: with no account on the phone the name screen comes before the menu (the other screens start with an account made up).
+  nombre: { url: '', sinCuenta: true, ir: async (p) => { await tecla(p, 'Enter'); } },
+  // AJUSTES → MI CUENTA (the settings' fifth row: ▼ four times).
+  cuenta: { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 6; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); for (let i = 0; i < 4; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
   // The guide: menu → GUÍA (sixth entry).
   guia: { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 5; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
   // The guide on its OBJETOS tab (the last one: ▶ five times).
@@ -178,6 +190,18 @@ async function sembrarEstadisticas(p) {
   });
 }
 
+/** Makes up the phone's copy of «my numbers» (page YO) from 80 made-up battles (as the aggregates of the account would be). */
+async function sembrarYo(p) {
+  await sembrarEstadisticas(p);
+  await p.evaluate(() => {
+    const ag = JSON.parse(localStorage.getItem('pokeusera.est.local'));
+    localStorage.setItem('pokeusera.est.yo', JSON.stringify({ v: 1, id: 'uperf000000', n: ag.personas.n, nombre: 'Pablito', racha: { a: 3, m: 9 }, ag }));
+  });
+  // The dev server has no such account: the page's request for it is answered with that same copy (as the server would).
+  const cuerpo = await p.evaluate(() => localStorage.getItem('pokeusera.est.yo'));
+  await p.route('**/api/estadisticas?cuenta=*', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: cuerpo }));
+}
+
 /** Waits until the background baking is over: no canvas created for 1.5 s (at most `max` ms). */
 async function esperarQuieto(p, max = 45000) {
   const t0 = Date.now();
@@ -223,8 +247,10 @@ for (const nombre of Object.keys(PANTALLAS)) {
   const errores = [];
   page.on('pageerror', (e) => errores.push(String(e)));
   page.on('console', (m) => { if (m.type() === 'error') errores.push(m.text()); });
-  await page.addInitScript(() => {
+  await page.addInitScript((sinCuenta) => {
     try { localStorage.clear(); } catch {}
+    // Every screen but «nombre» starts with an account on the phone (otherwise the name screen would come between the title and the menu).
+    try { if (!sinCuenta) localStorage.setItem('pokeusera.cuenta', JSON.stringify({ token: '0'.repeat(40), codigo: 'K7MZ4Q', nombre: 'Pablito', id: 'uperf000000' })); } catch {}
     const w = window;
     w.__lienzos = 0;
     w.__di = 0;
@@ -244,7 +270,7 @@ for (const nombre of Object.keys(PANTALLAS)) {
     // Time spent inside animation-frame callbacks (every wake-up of the loop, drawn or not).
     const raf = window.requestAnimationFrame.bind(window);
     window.requestAnimationFrame = (cb) => raf((t) => { const t0 = performance.now(); cb(t); const d = performance.now() - t0; w.__raf.n++; w.__raf.ms += d; if (d > w.__raf.max) w.__raf.max = d; });
-  });
+  }, def.sinCuenta === true);
   const cdp = await ctx.newCDPSession(page);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU });
   await page.goto(BASE + (def.url ? def.url + '&medir' : '?medir'));

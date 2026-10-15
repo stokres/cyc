@@ -13,6 +13,7 @@ import { cargarTextos } from '../juego/textos';
 import { ENTRENADORES, ESCENARIOS, type EntrenadorId, type EscenarioId } from './tipos';
 import { iniciarApp } from './aplicacion';
 import { entrada } from './entrada';
+import { iniciarCuentas } from './cuentas/almacen';
 import { iniciarEstadisticas } from './estadisticas/almacen';
 import { ejecutar } from './flujo';
 import { Pantalla } from './pantalla';
@@ -30,6 +31,8 @@ aplicarAjustes();
 iniciarApp();
 // Accumulated statistics: sends the battle summaries that were waiting for the network.
 iniciarEstadisticas();
+// Accounts: copies the Aventura's progress to the profile when it changes.
+iniciarCuentas();
 
 // The first tap asks for fullscreen where the browser allows it.
 entrada.primerToque = () => {

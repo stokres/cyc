@@ -109,8 +109,9 @@ export class Recolector {
 /**
  * `ganchos` with the statistics collected on the way: when the battle ends, `alResumen` gets its summary (it must not block: the final animation goes on).
  * The seats that are not machines are people (the local player and the online guests).
+ * `tokens`: asked when the battle ends, the account token of each seat (null: none); it goes into the summary's `cu` and the server swaps it for the public id.
  */
-export function conEstadisticas(ganchos: Ganchos, asientos: Asiento[], modo: ModoBatalla, alResumen: (r: ResumenBatalla) => void): Ganchos {
+export function conEstadisticas(ganchos: Ganchos, asientos: Asiento[], modo: ModoBatalla, alResumen: (r: ResumenBatalla) => void, tokens?: () => (string | null)[]): Ganchos {
   const rec = new Recolector();
   const personas = asientos.map((a) => a.tipo !== 'bot');
   return {
@@ -129,7 +130,10 @@ export function conEstadisticas(ganchos: Ganchos, asientos: Asiento[], modo: Mod
     },
     alFin: (estado) => {
       try {
-        alResumen(rec.resumen(estado, personas, modo));
+        const r = rec.resumen(estado, personas, modo);
+        const cs = tokens?.();
+        if (cs) r.ju.forEach((q, j) => (q.cu = q.pe && cs[j] ? cs[j] : null));
+        alResumen(r);
       } catch (e) {
         console.warn('PokéUsera: no se pudo armar el resumen de la batalla', e);
       }

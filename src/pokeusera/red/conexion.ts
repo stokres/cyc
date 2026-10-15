@@ -1,6 +1,7 @@
 // PokéUsera's online connection (docs/POKEUSERA.md, «Online»; copied from the Pang's): a thin wrapper over the room's WebSocket.
 // It only carries messages; the game itself is run by the host's browser.
 import type { EntrenadorId as PjId } from '../tipos';
+import { leerMensajeCuenta } from '../cuentas/sala';
 
 // ---------------------------------------------------------------- messages
 
@@ -75,6 +76,8 @@ export class Conexion {
   /** The latest `sala` message. */
   jugadores: JugadorSala[] = [];
   enPartida = false;
+  /** Host only: the account (token and name) each guest told us about on entering, by room id (docs/POKEUSERA.md, «Cuentas»). Never shown. */
+  readonly cuentas = new Map<number, { token: string; nombre: string }>();
 
   private ws: WebSocket | null = null;
   private oyentes = new Map<string, Set<(m: never) => void>>();
@@ -170,6 +173,11 @@ export class Conexion {
       this.enPartida = m.enPartida;
     } else if (m.tipo === 'cerrada') {
       this.terminada = true;
+    } else if (m.tipo === 'juego') {
+      const c = leerMensajeCuenta(m.datos);
+      if (c) this.cuentas.set(m.de, c);
+    } else if (m.tipo === 'salio') {
+      this.cuentas.delete(m.id);
     }
     this.emitir(m);
   }

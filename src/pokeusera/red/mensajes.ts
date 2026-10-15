@@ -35,6 +35,8 @@ export type MsgAnfitrion =
 
 /** Guest → host (`juego`, `a: 'anfitrion'`). */
 export type MsgInvitado =
+  /** On entering the room: the guest's account (token for the statistics, name for the seat); the host never shows the token. See cuentas/sala.ts. */
+  | { k: 'cuenta'; token: string; nombre: string }
   /** «I have finished playing» the `n`-th 'inicio' / 'turno' / 'reemplazo' message of game `g`: the host waits for these (up to a cap) before opening the next turn. */
   | { k: 'listo'; g: number; n: number }
   | { k: 'pick'; n: number; especie: string }

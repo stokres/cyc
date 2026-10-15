@@ -49,7 +49,10 @@ export interface ResumenJugador {
   pu: number;
   /** Ventaja de entrenador: `cana` (Fran), `labia` (Pablo), `tarde` (Chuchi), `manico` (Guille). */
   ve: string;
-  /** Cuenta de usuario (aún no hay cuentas: null). */
+  /**
+   * Cuenta de usuario (docs/POKEUSERA.md, «Cuentas»). El móvil pone aquí el TOKEN secreto de la persona (null: máquina o sin cuenta); el servidor lo cambia
+   * por el id público de la cuenta antes de guardar, así que en batallas.jsonl y en las respuestas solo hay ids públicos.
+   */
   cu: string | null;
   us: ResumenUserito[];
 }
@@ -161,4 +164,19 @@ export interface Catalogo {
   entrenadores: string[];
   escenarios: string[];
   sucesos: string[];
+}
+
+/** Lo acumulado de una cuenta, para la tabla de ENTRENADORES cuando hay cuentas (`GET /api/estadisticas`, campo `cuentas`). */
+export interface ResumenCuenta {
+  id: string;
+  nombre: string;
+  /** Batallas, victorias, suma de puestos, daño hecho, daño recibido y derribos. */
+  n: number;
+  g: number;
+  pu: number;
+  dh: number;
+  dr: number;
+  ko: number;
+  /** El entrenador que más usa ('' si ninguno). */
+  fav: string;
 }
