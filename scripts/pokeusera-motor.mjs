@@ -2000,11 +2000,11 @@ function revisarTanda8() {
     if (M.ESPECIES.slice(0, 24).map((s) => s.id).join() !== viejos) falla('los Nº 1-24 han cambiado de sitio');
     const nuevos = [
       ['maletrio', ['bronca', 'fantasma'], [90, 100, 105, 55, 70], 'maletazo,embarque,cinturones,venganza', 'maleta'],
-      ['teloneon', ['chanza', 'fantasma'], [70, 65, 70, 115, 100], 'improvisa,monologo,zasca,susto', 'publico'],
+      ['teloneon', ['chanza', 'fantasma'], [70, 75, 65, 110, 100], 'improvisa,monologo,zasca,susto', 'publico'],
       ['choquechu', ['chispa', 'petardo'], [80, 80, 80, 100, 80], 'carambola,ficha,chispazo,fogonazo', 'corriente'],
-      ['torrezmon', ['grasa', 'droga'], [90, 65, 75, 90, 100], 'crujiente,limon,fritanga,pringue', 'grasiento'],
+      ['torrezmon', ['grasa', 'droga'], [85, 65, 70, 100, 100], 'crujiente,limon,fritanga,pringue', 'grasiento'],
       ['papiroflexeon', ['ventolera'], [85, 110, 75, 100, 50], 'cortepapel,papiroflexia,rebufo,chuleria', 'viento'],
-      ['ceceseta', ['juerga', 'alcohol'], [90, 95, 75, 90, 70], 'pasodoble,mancha,cancion,ronda', 'fan'],
+      ['ceceseta', ['juerga', 'chanza'], [95, 95, 80, 85, 65], 'pasodoble,mancha,cancion,zasca', 'fan'],
     ];
     nuevos.forEach(([id, tipos, b, movs, hab], i) => {
       const sp = M.ESPECIES[24 + i];
@@ -2950,7 +2950,7 @@ function revisarTanda9() {
     const antes = 'draguserin,goudazard,aceituna,cierzon,turroncho,tocinon,roscochoco,espumarro,cajonazo,lentejasur,tragaperras,turito,resacon,evoscar,chupitochu,caravaner,camioner,criaturitah,ego-ego,kbronero,cubatillo,p,jesuspelo,pantaloneto,maletrio,teloneon,choquechu,torrezmon,papiroflexeon,ceceseta';
     if (M.ESPECIES.slice(0, 30).map((x) => x.id).join() !== antes) falla('los Nº 1-30 han cambiado de sitio');
     const nuevos = [
-      ['mariachi', ['juerga', 'petardo'], [85, 95, 75, 95, 70], 'ayayay,serenata,picante,taconeo', 'cantaynollores'],
+      ['mariachi', ['juerga', 'petardo'], [100, 100, 85, 80, 55], 'ayayay,serenata,picante,taconeo', 'cantaynollores'],
       ['pulpino', ['bronca', 'grasa'], [95, 105, 85, 65, 70], 'ochotortas,tinta,morrina,adoquin', 'malaleche'],
     ];
     nuevos.forEach(([id, tipos, b, movs, hab], i) => {

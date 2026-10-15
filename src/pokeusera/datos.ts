@@ -79,23 +79,23 @@ export const ESPECIES: Especie[] = [
   e('chupitochu', 'Chupitochu', ['alcohol', 'petardo'], 75, 55, 75, 90, 125, ['chupitazo', 'fogonazo', 'garrafon', 'esconderse'], 'ardiente'),
   e('caravaner', 'Caravaner', ['bronca', 'juerga'], 85, 85, 70, 95, 85, ['cancion', 'temblor', 'caparazon', 'siesta'], 'pareja'),
   e('camioner', 'Camioner', ['mindundi', 'bronca'], 105, 125, 100, 35, 55, ['trompazo', 'adoquin', 'bocinazo', 'cancion'], 'pareja'),
-  e('criaturitah', 'Criaturitah', ['droga', 'chanza'], 75, 70, 75, 100, 100, ['esporas', 'raices', 'colleja', 'monada'], 'fotosintesis'),
+  e('criaturitah', 'Criaturitah', ['droga', 'chanza'], 70, 80, 70, 100, 100, ['esporas', 'raices', 'colleja', 'monada'], 'fotosintesis'),
   e('ego-ego', 'Ego-Ego', ['fantasma'], 80, 100, 75, 95, 70, ['eco', 'chuleria', 'flipada', 'quepague'], 'flipado'),
   e('kbronero', 'Kbronero', ['chispa', 'juerga'], 80, 90, 70, 85, 95, ['solo', 'distorsion', 'pogo', 'compas'], 'volumen'),
   // Batch 4 (13-oct): the four new ones go at the end, so the Nº of the others does not change.
   e('cubatillo', 'Cubatillo', ['alcohol', 'chispa'], 70, 55, 70, 115, 110, ['burbujeo', 'ronda', 'chispazo', 'unamas'], 'hielo'),
   e('p', 'P', ['mindundi', 'chanza'], 95, 90, 100, 60, 75, ['pesao', 'chapa', 'quepague', 'cara_de_pena'], 'pesadisimo'),
-  e('jesuspelo', 'JesúsPelo', ['droga', 'ventolera'], 85, 90, 75, 95, 75, ['tubo', 'setas', 'raices', 'planeo'], 'ola'),
+  e('jesuspelo', 'JesúsPelo', ['droga', 'ventolera'], 85, 95, 80, 95, 65, ['tubo', 'setas', 'raices', 'planeo'], 'ola'),
   e('pantaloneto', 'Pantaloneto', ['mindundi', 'ventolera'], 95, 120, 90, 75, 40, ['pantalones', 'tendedero', 'chapa', 'mecuelo'], 'lavado'),
   // Batch 8 (14-oct): six more, Nº 25-30, again at the end so the Nº of the others does not change. Each one has an ability (docs/POKEUSERA.md, «Habilidades»).
   e('maletrio', 'Maletrio', ['bronca', 'fantasma'], 90, 100, 105, 55, 70, ['maletazo', 'embarque', 'cinturones', 'venganza'], 'maleta'),
-  e('teloneon', 'Teloneon', ['chanza', 'fantasma'], 70, 65, 70, 115, 100, ['improvisa', 'monologo', 'zasca', 'susto'], 'publico'),
+  e('teloneon', 'Teloneon', ['chanza', 'fantasma'], 70, 75, 65, 110, 100, ['improvisa', 'monologo', 'zasca', 'susto'], 'publico'),
   e('choquechu', 'Choquechu', ['chispa', 'petardo'], 80, 80, 80, 100, 80, ['carambola', 'ficha', 'chispazo', 'fogonazo'], 'corriente'),
-  e('torrezmon', 'Torrezmón', ['grasa', 'droga'], 90, 65, 75, 90, 100, ['crujiente', 'limon', 'fritanga', 'pringue'], 'grasiento'),
+  e('torrezmon', 'Torrezmón', ['grasa', 'droga'], 85, 65, 70, 100, 100, ['crujiente', 'limon', 'fritanga', 'pringue'], 'grasiento'),
   e('papiroflexeon', 'Papiroflexeon', ['ventolera'], 85, 110, 75, 100, 50, ['cortepapel', 'papiroflexia', 'rebufo', 'chuleria'], 'viento'),
-  e('ceceseta', 'Ceceseta', ['juerga', 'alcohol'], 90, 95, 75, 90, 70, ['pasodoble', 'mancha', 'cancion', 'ronda'], 'fan'),
+  e('ceceseta', 'Ceceseta', ['juerga', 'chanza'], 95, 95, 80, 85, 65, ['pasodoble', 'mancha', 'cancion', 'zasca'], 'fan'),
   // Batch 9 (15-oct): Nº 31-32, again at the end.
-  e('mariachi', 'Mariachi', ['juerga', 'petardo'], 85, 95, 75, 95, 70, ['ayayay', 'serenata', 'picante', 'taconeo'], 'cantaynollores'),
+  e('mariachi', 'Mariachi', ['juerga', 'petardo'], 100, 100, 85, 80, 55, ['ayayay', 'serenata', 'picante', 'taconeo'], 'cantaynollores'),
   e('pulpino', 'Pulpiño', ['bronca', 'grasa'], 95, 105, 85, 65, 70, ['ochotortas', 'tinta', 'morrina', 'adoquin'], 'malaleche'),
 ];
 

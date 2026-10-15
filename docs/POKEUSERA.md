@@ -357,23 +357,23 @@ Todos suman lo mismo en estadísticas (420), para que no haya ninguno roto de sa
 | 15 | **Chupitochu**: chupito muy fuerte y ardiente | Alcohol / Petardo | 75 | 55 | 75 | 90 | 125 | Chupitazo, Fogonazo, Garrafón, Esconderse |
 | 16 | **Caravaner**: una caravana | Bronca / Juerga | 85 | 85 | 70 | 95 | 85 | ¡Camioneees y caravanaaas!, Temblor, Caparazón, Siesta |
 | 17 | **Camioner**: un camión | Mindundi / Bronca | 105 | 125 | 100 | 35 | 55 | Trompazo, Adoquín, Bocinazo, ¡Camioneees y caravanaaas! |
-| 18 | **Criaturitah**: pequeña criaturita del bosque | Droga / Chanza | 75 | 70 | 75 | 100 | 100 | Esporas, Raíces, Colleja, Monada |
+| 18 | **Criaturitah**: pequeña criaturita del bosque | Droga / Chanza | 70 | 80 | 70 | 100 | 100 | Esporas, Raíces, Colleja, Monada |
 | 19 | **Ego-Ego**: fantasma muy flipado | Fantasma | 80 | 100 | 75 | 95 | 70 | Eco, Chulería, Flipada, ¡Que pague otro! |
 | 20 | **Kbronero**: teclado heavy | Chispa / Juerga | 80 | 90 | 70 | 85 | 95 | Solo de teclado, Distorsión, Pogo, Compás |
 | 21 | **Cubatillo**: un cubata (ron con cola) con hielos y pajita, con burbujas que chisporrotean | Alcohol / Chispa | 70 | 55 | 70 | 115 | 110 | Burbujeo, Ronda, Chispazo, ¡Una más! |
 | 22 | **P**: una P mayúscula gordita con ojos y patitas, muy pesada | Mindundi / Chanza | 95 | 90 | 100 | 60 | 75 | P de Pesao, Dar la chapa, ¡Que pague otro!, Cara de pena |
-| 23 | **JesúsPelo**: surfero de pelo blanco corto con su tabla, muy tranquilo | Droga / Ventolera | 85 | 90 | 75 | 95 | 75 | Tubo perfecto, Setas, Raíces, Planeo |
+| 23 | **JesúsPelo**: surfero de pelo blanco corto con su tabla, muy tranquilo | Droga / Ventolera | 85 | 95 | 80 | 95 | 65 | Tubo perfecto, Setas, Raíces, Planeo |
 | 24 | **Pantaloneto**: unos pantalones escapados del tendedero que van solos | Mindundi / Ventolera | 95 | 120 | 90 | 75 | 40 | Bajarse los pantalones, Al tendedero, Dar la chapa, ¡Me cuelo! |
 | 25 | **Maletrio**: tres maletas blancas apiladas, el equipaje perdido de «Impropios Airlines» | Bronca / Fantasma | 90 | 100 | 105 | 55 | 70 | Maletazo, Embarque prioritario, Abróchense los cinturones, Venganza |
-| 26 | **Teloneon**: un telón rojo de teatro con careta, que improvisa | Chanza / Fantasma | 70 | 65 | 70 | 115 | 100 | ¡Improvisa!, Monólogo, Zasca, Susto |
+| 26 | **Teloneon**: un telón rojo de teatro con careta, que improvisa | Chanza / Fantasma | 70 | 75 | 65 | 110 | 100 | ¡Improvisa!, Monólogo, Zasca, Susto |
 | 27 | **Choquechu**: un coche de choque de feria con su pértiga echando chispas | Chispa / Petardo | 80 | 80 | 80 | 100 | 80 | Carambola, Otra ficha, Chispazo, Fogonazo |
-| 28 | **Torrezmón**: un torrezno grasiento con su corteza crujiente y su limón | Grasa / Droga | 90 | 65 | 75 | 90 | 100 | Crujiente, Con limón, Fritanga, Pringue |
+| 28 | **Torrezmón**: un torrezno grasiento con su corteza crujiente y su limón | Grasa / Droga | 85 | 65 | 70 | 100 | 100 | Crujiente, Con limón, Fritanga, Pringue |
 | 29 | **Papiroflexeon**: un avión de papel turquesa | Ventolera | 85 | 110 | 75 | 100 | 50 | Corte de papel, Papiroflexia, Rebufo, Chulería |
-| 30 | **Ceceseta**: la camiseta blanca de Camiones y Caravanas | Juerga / Alcohol | 90 | 95 | 75 | 90 | 70 | Pasodoble, Mancha de cerveza, ¡Camioneees y caravanaaas!, Ronda |
-| 31 | **Mariachi**: un mariachi con sombrero y guitarra que llega a la fiesta sin avisar (tanda 9) | Juerga / Petardo | 85 | 95 | 75 | 95 | 70 | ¡Ay, ay, ay!, Serenata, Salsa picante, Taconeo |
+| 30 | **Ceceseta**: la camiseta blanca de Camiones y Caravanas | Juerga / Chanza | 95 | 95 | 80 | 85 | 65 | Pasodoble, Mancha de cerveza, ¡Camioneees y caravanaaas!, Zasca |
+| 31 | **Mariachi**: un mariachi con sombrero y trompeta que llega a la fiesta sin avisar (tanda 9) | Juerga / Petardo | 100 | 100 | 85 | 80 | 55 | ¡Ay, ay, ay!, Serenata, Salsa picante, Taconeo |
 | 32 | **Pulpiño**: un pulpo gallego con muy mala leche (tanda 9) | Bronca / Grasa | 95 | 105 | 85 | 65 | 70 | Ocho tortas, Chorro de tinta, Morriña, Adoquín |
 
-Reparto por tipos (contando los dobles, con los 8 de las tandas 8 y 9): Mindundi 8, Petardo 5, Droga 5, Bronca 6, Ventolera 5, Chispa 4, Alcohol 5, Juerga 6, Chanza 5, Grasa 5, Fantasma 5. Los ids nuevos (`maletrio`, `teloneon`, `choquechu`, `torrezmon`, `papiroflexeon`, `ceceseta`, `mariachi`, `pulpino`) van al final de `ESPECIES`. Las habilidades de los 32 están en «Habilidades». La tanda 9 no se ha pasado por la simulación de equilibrio todavía.
+Reparto por tipos (contando los dobles, con los 8 de las tandas 8 y 9): Mindundi 8, Petardo 5, Droga 5, Bronca 6, Ventolera 5, Chispa 4, Alcohol 4, Juerga 6, Chanza 6, Grasa 5, Fantasma 5. Los ids nuevos (`maletrio`, `teloneon`, `choquechu`, `torrezmon`, `papiroflexeon`, `ceceseta`, `mariachi`, `pulpino`) van al final de `ESPECIES`. Las habilidades de los 32 están en «Habilidades». La tanda 9 no se ha pasado por la simulación de equilibrio todavía.
 
 Cosas a tener en cuenta del equilibrio:
 
@@ -387,6 +387,7 @@ Cosas a tener en cuenta del equilibrio:
 - **Tanda 7** (14-oct): Turroncho, Turito y Cajonazo cambian de estadísticas (siguen sumando 420), Cajonazo y Pantaloneto cambian un movimiento cada uno (Remate por bulerías y Al tendedero) y Rumba se queda sin dueño (sigue en los datos, pero ningún userito la lleva). Detalle y motivos en «Equilibrio de la tanda 6».
 - **Repaso tras la tanda 7** (14-oct, 8000 batallas): Draguserín 75/80/70/105/90 y Caravaner 85/85/70/95/85 (bajan Especial y Defensa a cambio de Velocidad) y Al tendedero de 70 a 80. Queda: useritos de ×0,76 (Pantaloneto) a ×1,21 (Caravaner) y tipos de ×0,96 a ×1,04 (antes de la tanda 6: ×0,70–1,34 y ×0,87–1,13). Pantaloneto sigue abajo con la máquina, que no aprovecha bien la ida y vuelta: mirarlo jugando.
 - **Equilibrio de la tanda 8** (14-oct, 8000 batallas con los 30 y sus habilidades): al entrar salía de ×0,72 (Papiroflexeon) a ×1,46 (Teloneon), con Torrezmón ×1,37 y Turroncho ×1,34. Retoques: Duro de roer pasa de anular los críticos a dejarlos en ×1,5 (anularlos valía +0,2 por sí solo), Público entregado una vez por turno y hasta +2, Grasiento del 20 % al 10 %, Monólogo de 65 a 55, Corte de papel de 70 a 80, Torrezmón cambia Raíces por Pringue, y estadísticas (todas suman 420) de Teloneon, Choquechu, Torrezmón, Papiroflexeon, Ceceseta, Turroncho y Criaturitah. Queda: useritos de ×0,76 (Pantaloneto) a ×1,20 (Teloneon) y tipos de ×0,90 (Juerga) a ×1,10 (Chanza).
+- **Equilibrio de la tanda 9** (15-oct, 8000 batallas con los 32): Ceceseta pasa de Juerga / Alcohol a **Juerga / Chanza** y cambia Ronda por Zasca (Grasa le pegaba ×4 y se quedaba en ×0,66 con cualquier estadística); Mariachi 100/100/85/80/55, JesúsPelo 85/95/80/95/65, Teloneon 70/75/65/110/100, Torrezmón 85/65/70/100/100 y Criaturitah 70/80/70/100/100 (todos suman 420). Queda: useritos de ×0,83 (Pantaloneto) a ×1,17 (JesúsPelo, Turroncho) y tipos de ×0,93 (Juerga) a ×1,08 (Droga), lo más igualado hasta ahora.
 
 ### Habilidades (tandas 8 y 9)
 

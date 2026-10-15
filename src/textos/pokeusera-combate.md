@@ -192,7 +192,7 @@ userito.choquechu.desc = Coche de choque de feria, con la pértiga echando chisp
 userito.torrezmon.desc = Un torrezno grasiento y crujiente, con su limón.
 userito.papiroflexeon.desc = Avión de papel turquesa. Rápido, y corta como un papel.
 userito.ceceseta.desc = La camiseta de Camiones y Caravanas. La fan número uno.
-userito.mariachi.desc = Sombrero, bigote y guitarra. Llega a tu fiesta sin avisar y no se va hasta que cantes con él.
+userito.mariachi.desc = Sombrero, bigote y trompeta. Llega a tu fiesta sin avisar y no se va hasta que cantes con él.
 userito.pulpino.desc = Pulpo gallego con una mala leche de campeonato. Si le tocas, se enfada. Si no le tocas, también, pero menos.
 
 // ---- movimientos: efecto corto para el menú
