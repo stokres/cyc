@@ -8,6 +8,8 @@
 //  - 'juan':    Bar Donde Juan: brown brick wall with the big abstract painting, black pendant lamps, a wine
 //               rack, a yellow wall, terracotta floor tiles on the diagonal, dark wooden chairs with cream
 //               seats, white tablecloths and hearty dishes (torreznos, croquetas, cocido, huevos rotos, chuletón).
+//  - 'feria':   a fair at night: a big wheel with lights behind a shooting gallery and a candy-floss stall, bunting, and the
+//               steel floor of a dodgem rink in front (a rubber barrier, little cars with their poles sparking).
 //
 // Same layout rule as the Bar: the top band (under the HUD) and the strips beside the panels carry the
 // detail; the floor is calm and low-contrast so the sprites and plates read first (a veil is laid on at the
@@ -1091,6 +1093,290 @@ function fondoJuan(ancho: number, alto: number): HTMLCanvasElement {
 }
 
 // ================================================================================================
+//  LA FERIA
+// ================================================================================================
+
+/** A 1-pixel line (Bresenham): wheel spokes, struts and poles. */
+function linea(cx: Cx, color: string, x0: number, y0: number, x1: number, y1: number): void {
+  cx.fillStyle = color;
+  const dx = Math.abs(x1 - x0);
+  const dy = -Math.abs(y1 - y0);
+  const sx = x0 < x1 ? 1 : -1;
+  const sy = y0 < y1 ? 1 : -1;
+  let err = dx + dy;
+  for (;;) {
+    cx.fillRect(x0, y0, 1, 1);
+    if (x0 === x1 && y0 === y1) break;
+    const e2 = 2 * err;
+    if (e2 >= dy) {
+      err += dy;
+      x0 += sx;
+    }
+    if (e2 <= dx) {
+      err += dx;
+      y0 += sy;
+    }
+  }
+}
+
+const BOMBILLAS = ['#ffe27a', '#ff6ab8', '#6ae8ff', '#8cf07a', '#ffb04a'];
+
+/** A fairground bulb: a bright 2×2 core with a soft halo of its own colour. */
+function bombilla(cx: Cx, x: number, y: number, color: string, halo_ = 0.3): void {
+  const c = rgb(color);
+  halo(cx, c, x, y, 5, 5, halo_, 2);
+  r(cx, color, x - 1, y - 1, 2, 2);
+  r(cx, '#ffffff', x - 1, y - 1, 1, 1);
+}
+
+/** The big wheel: dark steel rim and spokes, two struts to the ground, cabins that hang straight down and bulbs all along the rim. */
+function noria(cx: Cx, xc: number, yc: number, rad: number, ySuelo: number): void {
+  const ACERO = '#4a5498';
+  const ACERO_CLARO = '#8a94d8';
+  // struts first (behind the wheel)
+  linea(cx, ACERO, xc - 1, yc, xc - 26, ySuelo);
+  linea(cx, ACERO, xc, yc, xc - 25, ySuelo);
+  linea(cx, ACERO, xc + 1, yc, xc + 26, ySuelo);
+  linea(cx, ACERO, xc, yc, xc + 25, ySuelo);
+  linea(cx, ACERO_CLARO, xc - 1, yc + 1, xc - 26, ySuelo);
+  // a soft wash of the lights behind it
+  halo(cx, [255, 190, 255], xc, yc, rad + 10, rad + 10, 0.22, 4);
+  // rim (two rings) and spokes
+  for (let a = 0; a < 720; a++) {
+    const t = (a / 720) * Math.PI * 2;
+    cx.fillStyle = ACERO;
+    cx.fillRect(Math.round(xc + Math.cos(t) * rad), Math.round(yc + Math.sin(t) * rad), 1, 1);
+    cx.fillRect(Math.round(xc + Math.cos(t) * (rad - 2)), Math.round(yc + Math.sin(t) * (rad - 2)), 1, 1);
+  }
+  for (let k = 0; k < 12; k++) {
+    const t = (k / 12) * Math.PI * 2 + 0.2;
+    linea(cx, k % 2 ? ACERO : ACERO_CLARO, xc, yc, Math.round(xc + Math.cos(t) * rad), Math.round(yc + Math.sin(t) * rad));
+  }
+  // cabins: they hang from 12 points of the rim
+  const COL = ['#ff6ab8', '#6ae8ff', '#ffe27a', '#8cf07a', '#ff9a4a', '#b08cff'];
+  for (let k = 0; k < 12; k++) {
+    const t = (k / 12) * Math.PI * 2 + 0.2;
+    const x = Math.round(xc + Math.cos(t) * rad);
+    const y = Math.round(yc + Math.sin(t) * rad);
+    const c = COL[k % COL.length];
+    r(cx, ACERO_CLARO, x, y, 1, 3);
+    r(cx, '#12163a', x - 3, y + 3, 7, 6);
+    r(cx, c, x - 2, y + 4, 5, 4);
+    r(cx, mezcla(c, '#ffffff', 0.45), x - 2, y + 4, 5, 1);
+    r(cx, mezcla(c, '#1a1040', 0.4), x - 2, y + 7, 5, 1);
+  }
+  // bulbs on the rim, in turns
+  for (let k = 0; k < 24; k++) {
+    const t = (k / 24) * Math.PI * 2;
+    bombilla(cx, Math.round(xc + Math.cos(t) * (rad + 1)), Math.round(yc + Math.sin(t) * (rad + 1)), BOMBILLAS[k % BOMBILLAS.length], 0.34);
+  }
+  halo(cx, [255, 240, 200], xc, yc, 9, 9, 0.45, 3);
+  r(cx, '#12163a', xc - 3, yc - 3, 7, 7);
+  r(cx, '#ffe27a', xc - 2, yc - 2, 5, 5);
+  r(cx, '#ffffff', xc - 1, yc - 1, 2, 2);
+}
+
+/** A bull's-eye target (red and white rings). */
+function diana(cx: Cx, x: number, y: number, rad: number): void {
+  elip(cx, '#3a1220', x, y, rad + 1, rad + 1);
+  elip(cx, '#f4ecdc', x, y, rad, rad);
+  elip(cx, '#d83a3a', x, y, Math.max(1, rad - 2), Math.max(1, rad - 2));
+  elip(cx, '#f4ecdc', x, y, Math.max(1, rad - 4), Math.max(1, rad - 4));
+  elip(cx, '#d83a3a', x, y, 1, 1);
+}
+
+/** A prize teddy for the shelf. */
+function peluche(cx: Cx, x: number, y: number, c: string): void {
+  r(cx, mezcla(c, '#2a1030', 0.5), x - 4, y + 2, 9, 7);
+  r(cx, c, x - 3, y + 2, 7, 6);
+  r(cx, mezcla(c, '#ffffff', 0.3), x - 3, y + 2, 7, 1);
+  r(cx, mezcla(c, '#2a1030', 0.5), x - 3, y - 3, 3, 3);
+  r(cx, mezcla(c, '#2a1030', 0.5), x + 1, y - 3, 3, 3);
+  r(cx, mezcla(c, '#2a1030', 0.5), x - 3, y - 1, 7, 4);
+  r(cx, c, x - 2, y - 1, 5, 3);
+  r(cx, '#2a1030', x - 1, y, 1, 1);
+  r(cx, '#2a1030', x + 1, y, 1, 1);
+}
+
+/** Bunting: a drooping wire with flags in turns. */
+function banderines(cx: Cx, x0: number, x1: number, y: number, caida: number, fase: number): void {
+  const COL = ['#ff5a7a', '#ffe27a', '#5ad0ff', '#8cf07a', '#ff9a4a', '#b08cff'];
+  const n = x1 - x0;
+  const yAt = (x: number) => y + Math.round(caida * Math.sin(((x - x0) / n) * Math.PI) + fase);
+  for (let x = x0; x <= x1; x++) r(cx, '#0e1228', x, yAt(x), 1, 1);
+  for (let x = x0 + 3, k = 0; x < x1 - 2; x += 6, k++) {
+    const c = COL[k % COL.length];
+    const y0 = yAt(x) + 1;
+    r(cx, c, x - 2, y0, 5, 1);
+    r(cx, c, x - 1, y0 + 1, 3, 1);
+    r(cx, c, x, y0 + 2, 1, 1);
+    r(cx, mezcla(c, '#ffffff', 0.4), x - 2, y0, 2, 1);
+  }
+}
+
+/** A striped fairground awning (red and cream) with a row of bulbs under its edge. */
+function toldoFeria(cx: Cx, x: number, y: number, w: number, h: number, a: string, b: string): void {
+  for (let i = 0; i < w; i += 6) {
+    const par = (i / 6) % 2 === 0;
+    const c = par ? a : b;
+    r(cx, c, x + i, y, Math.min(6, w - i), h);
+    r(cx, mezcla(c, '#ffffff', 0.25), x + i, y, 1, h);
+    r(cx, mezcla(c, '#1a1030', 0.3), x + Math.min(6, w - i) - 1 + i, y, 1, h);
+  }
+  r(cx, '#3a1830', x, y + h, w, 1);
+  for (let i = 4; i < w; i += 9) bombilla(cx, x + i, y + h + 2, BOMBILLAS[(i / 9) % BOMBILLAS.length | 0], 0.3);
+}
+
+/** A tiny dodgem car, seen from the front-above: black rubber bumper all around, painted body, the seat and the pole that goes up with a spark. */
+function cocheChoque(cx: Cx, x: number, y: number, c: string, chispa: boolean, espejo: boolean, largo = 15): void {
+  const d = espejo ? -1 : 1;
+  // shadow
+  r(cx, 'rgba(10,14,34,0.35)', x + 1, y + 14, 24, 2);
+  // pole up and back, with its spark
+  const px = espejo ? x + 4 : x + 20;
+  const top = y + 3 - largo;
+  linea(cx, '#9aa4c8', px, y + 3, px + 5 * d, top);
+  linea(cx, '#5a6494', px + 1, y + 3, px + 1 + 5 * d, top);
+  if (chispa) {
+    const sx = px + 5 * d;
+    const sy = top - 1;
+    halo(cx, [140, 230, 255], sx, sy, 7, 7, 0.4, 3);
+    r(cx, '#ffffff', sx - 1, sy - 3, 2, 7);
+    r(cx, '#ffffff', sx - 3, sy - 1, 7, 2);
+    r(cx, '#7aeaff', sx - 4, sy, 1, 1);
+    r(cx, '#7aeaff', sx + 4, sy, 1, 1);
+    r(cx, '#ffe27a', sx - 2, sy - 2, 1, 1);
+    r(cx, '#ffe27a', sx + 2, sy + 2, 1, 1);
+  } else {
+    r(cx, '#cfd6f0', px + 5 * d, top - 1, 2, 2);
+  }
+  // rubber bumper ring (rounded corners) and the painted body inside it, with its corners cut
+  const anillo: [number, number][] = [[3, 20], [1, 24], [0, 26], [0, 26], [0, 26], [0, 26], [0, 26], [0, 26], [0, 26], [1, 24], [3, 20]];
+  anillo.forEach(([dx, w], i) => r(cx, '#161826', x + dx, y + 3 + i, w, 1));
+  r(cx, '#3a3f60', x + 3, y + 3, 20, 1);
+  r(cx, '#2a2e44', x + 1, y + 4, 24, 1);
+  const cuerpo: [number, number][] = [[4, 18], [2, 22], [2, 22], [2, 22], [2, 22], [2, 22], [3, 20], [4, 18]];
+  cuerpo.forEach(([dx, w], i) => {
+    const tono_ = i === 0 ? mezcla(c, '#ffffff', 0.4) : i >= 6 ? mezcla(c, '#1a1030', 0.4) : i >= 4 ? mezcla(c, '#1a1030', 0.18) : c;
+    r(cx, tono_, x + dx, y + 5 + i, w, 1);
+  });
+  // seat back (rises behind the driver), cockpit and steering wheel
+  r(cx, mezcla(c, '#1a1030', 0.6), x + 8, y + 1, 10, 5);
+  r(cx, mezcla(c, '#ffffff', 0.25), x + 9, y + 2, 8, 2);
+  elip(cx, mezcla(c, '#1a1030', 0.55), x + 13, y + 8, 5, 2);
+  r(cx, '#1a1c2c', x + 11, y + 9, 5, 1);
+  r(cx, '#ffffff', x + 12, y + 8, 2, 1);
+  // headlights
+  r(cx, '#fff2b8', x + 4, y + 10, 3, 2);
+  r(cx, '#fff2b8', x + 19, y + 10, 3, 2);
+}
+
+function fondoFeria(ancho: number, alto: number): HTMLCanvasElement {
+  const [cv, cx] = lienzo(ancho, alto);
+  const yB = 112; // base of the booths
+  const yP = 128; // where the dodgem floor starts
+  // ---- night sky: deep blue to violet at the horizon
+  for (let y = 0; y < yB; y++) r(cx, mezcla('#10153a', '#4a2a78', y / yB), 0, y, ancho, 1);
+  for (let i = 0; i < 26; i++) {
+    const h = hash(i, 5);
+    r(cx, h % 3 ? '#9aa0d8' : '#f0f0ff', h % ancho, 18 + ((h >>> 8) % 60), 1, 1);
+  }
+  // far silhouettes of the fairground (a roller-coaster track and a tent) in a hazy blue
+  for (let x = 0; x < ancho; x++) {
+    const y = 84 + Math.round(10 * Math.sin(x / 13) + 6 * Math.sin(x / 5.3));
+    r(cx, '#2a2a66', x, y, 1, 1);
+    if (x % 9 === 0) r(cx, '#2a2a66', x, y, 1, yB - y);
+  }
+  trap(cx, '#262660', 78, yB, 14, 14, 0, 34);
+  trap(cx, '#262660', 78, yB, 14, 14, 28, 0);
+  // ---- the big wheel, behind everything else
+  noria(cx, 146, 62, 42, yB);
+  // ---- bunting across the top band
+  banderines(cx, 0, ancho, 20, 4, 0);
+  banderines(cx, 0, 130, 27, 3, 1);
+  // ---- left: the shooting gallery (tiro al blanco): counter, targets, a shelf of prizes
+  r(cx, '#12122c', 0, 70, 92, yB - 70);
+  r(cx, '#3a2a58', 2, 78, 88, 34);
+  r(cx, '#4e3a74', 2, 78, 88, 2);
+  for (let x = 6; x < 88; x += 10) diana(cx, x + 4, 93, 4);
+  r(cx, '#2a1a40', 2, 104, 88, 3);
+  for (const [px, c] of [[10, '#d89a5a'], [28, '#ff8aa8'], [46, '#8ac8ff'], [64, '#b8f08a'], [80, '#ffd24a']] as [number, string][]) peluche(cx, px, 98, c);
+  r(cx, '#2a1a40', 2, 106, 88, 1);
+  toldoFeria(cx, 0, 70, 92, 7, '#d8383a', '#f6e8d0');
+  // the counter with a toy rifle
+  r(cx, '#6a3a22', 0, 106, 94, yB - 106);
+  r(cx, '#8a4e2e', 0, 106, 94, 2);
+  r(cx, '#4a2616', 0, yB - 1, 94, 1);
+  r(cx, '#2a2a30', 58, 103, 22, 2);
+  r(cx, '#6a3a22', 52, 104, 8, 3);
+  for (let x = 6; x < 92; x += 9) bombilla(cx, x, 80, BOMBILLAS[(x / 9) % BOMBILLAS.length | 0], 0.28);
+  // ---- right: a candy-floss and churros stall
+  r(cx, '#12122c', 178, 76, 62, yB - 76);
+  r(cx, '#5a2a4a', 180, 86, 58, yB - 86);
+  r(cx, '#7a3a60', 180, 86, 58, 2);
+  toldoFeria(cx, 176, 76, 64, 8, '#4a9ae8', '#f6e8d0');
+  // candy floss cones: a pink cloud on a stick
+  for (const [x, c] of [[190, '#ff9ac8'], [206, '#9ad8ff'], [222, '#ff9ac8']] as [number, string][]) {
+    r(cx, '#e8d8b8', x, 98, 2, 12);
+    elip(cx, c, x + 1, 95, 6, 5);
+    elip(cx, mezcla(c, '#ffffff', 0.5), x - 1, 93, 3, 2);
+  }
+  r(cx, '#6a3a22', 178, 106, 62, yB - 106);
+  r(cx, '#8a4e2e', 178, 106, 62, 2);
+  // ---- a pole with a lamp between the stalls
+  r(cx, '#0e1228', 95, 70, 2, yB - 70);
+  bombilla(cx, 96, 70, '#ffe27a', 0.45);
+  // ---- the dodgem barrier: padded rubber wall with a hazard stripe on top
+  r(cx, '#0e1020', 0, yB, ancho, yP - yB);
+  r(cx, '#2a2e48', 0, yB + 1, ancho, 9);
+  r(cx, '#3a3f60', 0, yB + 1, ancho, 1);
+  for (let x = 0; x < ancho; x += 8) {
+    r(cx, '#e8c23a', x, yB + 11, 4, 3);
+    r(cx, '#161826', x + 4, yB + 11, 4, 3);
+  }
+  r(cx, '#9aa4c8', 0, yB + 10, ancho, 1);
+  r(cx, '#1a1c2c', 0, yB + 14, ancho, 2);
+  // ---- the dodgem floor: dark steel plates in perspective, with their joints and a cold sheen
+  suelo(cx, {
+    ancho,
+    alto,
+    y0: yP,
+    vy: 40,
+    K: 3550,
+    fw: 0.2,
+    id: (X, Z) => Math.imul(Math.floor(X * 0.5), 7919) ^ Math.floor(Z * 0.5),
+    color: (id, X, _Z, x, y) => {
+      const v = hash(x >> 1, y >> 1) % 19 === 0 ? -8 : 0;
+      const placa = (id >>> 1) & 3;
+      const base: RGB = placa === 0 ? [74, 84, 112] : placa === 1 ? [68, 78, 106] : [72, 82, 110];
+      // a long cold streak of light across the floor
+      const brillo = Math.max(0, 14 - Math.abs(X - 0.35) * 22) + Math.max(0, 9 - Math.abs(X + 0.9) * 18);
+      return tono(base, v + brillo);
+    },
+    junta: [44, 52, 78],
+    bruma: [60, 52, 100],
+    brumaH: 60,
+    brumaF: 0.5,
+  });
+  // pools of coloured light on the steel from the stalls and the wheel
+  halo(cx, [255, 120, 200], 30, yP + 40, 60, 18, 0.16, 4);
+  halo(cx, [110, 220, 255], 150, yP + 90, 80, 22, 0.13, 4);
+  halo(cx, [255, 220, 120], 210, yP + 150, 60, 20, 0.12, 4);
+  // ---- three little dodgem cars in the strips the panels leave free; two of them have just bumped (a spark between them)
+  cocheChoque(cx, 12, 166, '#e8483a', true, false);
+  cocheChoque(cx, 52, 169, '#f2c230', false, true);
+  halo(cx, [255, 240, 160], 42, 176, 9, 7, 0.45, 3);
+  r(cx, '#ffffff', 41, 174, 2, 5);
+  r(cx, '#ffffff', 39, 176, 6, 2);
+  r(cx, '#ffe27a', 38, 175, 1, 1);
+  r(cx, '#ffe27a', 45, 177, 1, 1);
+  cocheChoque(cx, 106, 230, '#3a9ae8', true, true, 8);
+  // ---- low veil: keeps the contrast down so the panels and the useritos read first
+  r(cx, 'rgba(26,20,60,0.10)', 0, 0, ancho, alto);
+  return cv;
+}
+
+// ================================================================================================
 
 /** The battle backdrop for a scene, ancho × alto, baked once (the caller keeps it). */
 export function fondoEscenario(id: EscenarioId, ancho = 240, alto = 360): HTMLCanvasElement {
@@ -1101,6 +1387,8 @@ export function fondoEscenario(id: EscenarioId, ancho = 240, alto = 360): HTMLCa
       return fondoRural(ancho, alto);
     case 'juan':
       return fondoJuan(ancho, alto);
+    case 'feria':
+      return fondoFeria(ancho, alto);
     default:
       return fondoBar(ancho, alto);
   }

@@ -5,7 +5,7 @@
 // Rendimiento (como la Useritopedia): `estatica`, y `paso` solo devuelve true mientras se desliza, mientras se hornean filas y al hornear de fondo.
 // La cabecera es un lienzo horneado por estado; cada fila, otro (240×alto), horneado al hacerse visible (4 por fotograma como mucho) y el resto en
 // los fotogramas libres, así que un fotograma son unos pocos drawImage. Nada se mide ni se envuelve por fotograma.
-import { ENTRENADORES, OBJETOS, type EntrenadorId, type EscenarioId, type ObjetoId, type SucesoId, type Tipo } from '../tipos';
+import { ENTRENADORES, ESCENARIOS, OBJETOS, type EntrenadorId, type EscenarioId, type ObjetoId, type SucesoId, type Tipo } from '../tipos';
 import { ESPECIE, ESPECIES, MOVS, SUCESOS, TIPOS } from '../datos';
 import { agregadoDeTodos, agregadoLocal, type DeTodos } from '../estadisticas/almacen';
 import { cuentaLocal, estadisticasDeCuenta, type DeCuenta } from '../cuentas/almacen';
@@ -188,7 +188,7 @@ function vistaObjetos(s: Seccion): Vista {
 }
 
 function vistaEscenarios(s: Seccion): Vista {
-  const bares = (['brio', 'terraza', 'rural', 'juan'] as EscenarioId[]).map((id): Item => {
+  const bares = ESCENARIOS.map((id: EscenarioId): Item => {
     const a = s.esc[id];
     const n = a?.n ?? 0;
     return { id, nombre: t(`escenario.${id}`), n, color: COLOR_BARRA, m: a ? { bat: n, tur: media(a.tu, n), pct: pct(n, s.n) } : {} };

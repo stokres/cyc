@@ -11,7 +11,7 @@ declare const __POKEUSERA_VERSION__: string | undefined;
 declare const __POKEUSERA_LANZAMIENTO__: string | undefined;
 
 /** Ventaja de entrenador (docs/POKEUSERA.md, «Ventajas de entrenador»): la que lleva cada uno. */
-const VENTAJA: Record<EntrenadorId, string> = { fran: 'cana', pablo: 'labia', chuchi: 'tarde', guille: 'manico' };
+const VENTAJA: Record<EntrenadorId, string> = { fran: 'cana', pablo: 'labia', chuchi: 'tarde', guille: 'manico', vinas: 'verso', ari: 'cosecha', fer: 'ruido' };
 
 /** Version of the game that played the battle (the build's commit; `dev` on the dev server and in scripts). */
 export const versionJuego = (): string => (typeof __POKEUSERA_VERSION__ === 'string' && __POKEUSERA_VERSION__ ? __POKEUSERA_VERSION__ : 'dev');

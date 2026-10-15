@@ -11,7 +11,7 @@
 // have not worked yet (`ocultarObjetos`); the 'objeto' event reveals one when it works. The host's own browser holds the whole state
 // (it runs the game) but its screens only draw the objects that were revealed.
 import { ENTRENADORES, OBJETOS, type Eleccion, type EntrenadorId, type EstadoCombate, type ObjetoId } from '../tipos';
-import { crearRnd } from '../motor/azar';
+import { crearRnd, sacarAlAzar } from '../motor/azar';
 import { equipos as equiposDraft } from '../motor/draft';
 import { eleccionBot, pickBot, reemplazoBot, salidaBot } from '../motor/bot';
 import { objetoBot, ocultarObjetos } from '../motor/objetos';
@@ -133,8 +133,9 @@ export async function jugarAnfitrion(con: Conexion, relleno: boolean): Promise<F
     idDe.push(h.id);
   }
   if (relleno) {
-    for (const pj of ENTRENADORES.filter((e) => !asientos.some((a) => a.entrenador === e))) {
-      if (asientos.length >= 4) break;
+    // The empty seats get machines with trainers nobody has picked, drawn at random (there are seven trainers and at most four seats).
+    const libres = ENTRENADORES.filter((e) => !asientos.some((a) => a.entrenador === e));
+    for (const pj of sacarAlAzar(libres, Math.max(0, 4 - asientos.length), crearRnd((Date.now() ^ 0x3c6ef372) & 0x7fffffff))) {
       asientos.push({ tipo: 'bot', entrenador: pj, nombre: nombreEnt(pj) });
       idDe.push(-1);
     }

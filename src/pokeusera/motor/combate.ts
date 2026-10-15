@@ -24,8 +24,8 @@
 //             phrase in `clave`. The heals / stage changes it causes follow as ordinary 'cura' / 'nivel' events (all flagged `fin`).
 // Every event may carry `clave` + `vars` (quien = userito name, jugador = player name, mov, ...).
 import type { Eleccion, EscenarioId, EstadoCombate, Estadisticas, EntrenadorId, Estado, Evento, HabilidadId, Jugador, Movimiento, ObjetoId, Stat, StatsUserito, SucesoId, Tipo, Userito } from '../tipos';
-import { ESCENARIOS, HAB_CANTA_MULT, HAB_FOTOSINTESIS, HAB_GRASIENTO, HAB_LAVADO_CURA, HAB_MALETA_ATA, HAB_MANICO_ATA, HAB_PAREJA, HAB_PROB_REACCION, OBJ_BOCATA_CURA, OBJ_GAFAS_PREC, OBJ_MECHERO_QUEMA, OBJ_PALILLO_CRIT, OBJ_PANUELO, OBJ_TAPON_USOS, PERK_CANA_FRAN, PERK_PRECISION_PABLO, PERK_TARDE_CHUCHI, TIPOS_FISICOS } from '../tipos';
-import { DESESPERADA, EFECTOS, ESPECIE, MOVS, MOVS_IMPROVISA, SUCESOS, TURNOS_SUCESO, eficacia, potenciaRemate, sucesosDe } from '../datos';
+import { ESCENARIOS, HAB_CANTA_MULT, HAB_FOTOSINTESIS, HAB_GRASIENTO, HAB_LAVADO_CURA, HAB_MALETA_ATA, HAB_MANICO_ATA, HAB_PAREJA, HAB_PROB_REACCION, OBJ_BOCATA_CURA, OBJ_GAFAS_PREC, OBJ_MECHERO_QUEMA, OBJ_PALILLO_CRIT, OBJ_PANUELO, OBJ_TAPON_USOS, PERK_CANA_FRAN, PERK_COSECHA_ARI, PERK_PRECISION_PABLO, PERK_TARDE_CHUCHI, PERK_VERSO_VINAS, TIPOS_FISICOS } from '../tipos';
+import { DESESPERADA, EFECTOS, ESPECIE, MOVS, MOVS_IMPROVISA, SUCESOS, TURNOS_SUCESO, eficacia, esSonido, potenciaRemate, sucesosDe } from '../datos';
 import { azar, elegir, entero, probar, type ConSemilla } from './azar';
 
 /** Turn from which Vero closes the bar (1/8 of max HP at the end of every turn). */
@@ -214,6 +214,11 @@ export function multObjeto(u: Userito, mov: Movimiento): number {
  *  `turno` is the turn being resolved or about to be chosen (`estado.turno`). */
 export const recienDespierto = (e: EstadoCombate, u: Userito): boolean => u.sinSuenoHasta !== undefined && e.turno <= u.sinSuenoHasta;
 
+/** Viñas «Verso libre»: ×1.1 on his attacks of type Chanza or Juerga (1 for everybody and everything else). */
+export function multVerso(e: EstadoCombate, j: number, mov: Movimiento): number {
+  return e.jugadores[j].entrenador === 'vinas' && (mov.tipo === 'chanza' || mov.tipo === 'juerga') ? PERK_VERSO_VINAS / 100 : 1;
+}
+
 /** The power move `m` has when `u` uses it now: «Remate por bulerías» depends on its HP, the rest is fixed (0 for status moves). */
 export const potenciaDe = (u: Userito, m: Movimiento): number => (EFECTOS[m.id]?.especial === 'remate' ? potenciaRemate(u.ps, u.psMax) : (m.pot ?? 0));
 
@@ -254,12 +259,13 @@ export function multHabilidad(e: EstadoCombate, j: number, a: Userito, d: Userit
 /** Whether suceso `id` is on now. */
 export const hayDeSuceso = (e: EstadoCombate, id: SucesoId): boolean => e.sucesos.some((s) => s.id === id);
 
-/** ×1.5 on the damage of a move of this type while Happy hour (Alcohol), Cierzo de golpe (Ventolera) or Desfile Drag (Juerga, Chanza) is on. */
+/** ×1.5 on the damage of a move of this type while Happy hour (Alcohol), Cierzo de golpe (Ventolera), Desfile Drag (Juerga, Chanza) or Se enchufa la pista (Chispa) is on. */
 export function multSuceso(e: EstadoCombate, tipo: Tipo): number {
   let m = 1;
   if (tipo === 'alcohol' && hayDeSuceso(e, 'happy')) m *= 1.5;
   if (tipo === 'ventolera' && hayDeSuceso(e, 'cierzo')) m *= 1.5;
   if ((tipo === 'juerga' || tipo === 'chanza') && hayDeSuceso(e, 'desfile')) m *= 1.5;
+  if (tipo === 'chispa' && hayDeSuceso(e, 'pista')) m *= 1.5;
   return m;
 }
 
@@ -954,6 +960,13 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
       decir(c, 'combate.esconde_protege', varsDe(c, t), t);
       continue;
     }
+    // Fer «Cancelación de ruido»: a rival's sound move does not reach any of his useritos (no damage, no effect), and the line says why.
+    if (esSonido(m.id) && e.jugadores[t].entrenador === 'fer') {
+      st(c, j).fal++;
+      st(c, t).esq++;
+      decir(c, 'combate.perk.fer', varsDe(c, t), t);
+      continue;
+    }
     if (danina && ef.especial !== 'devolver' && eficacia(m.tipo, ESPECIE[v.especie].tipos) === 0) {
       st(c, j).fal++;
       st(c, t).esq++;
@@ -1016,6 +1029,7 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
         const panuelo = multObjeto(u, m); // Pañuelo de la peña: ×1.2 on attacks of its own type
         const bote = habilidadDe(u) === 'bote' ? 2 : 1; // Bote acumulado: twice the critical hits
         const papel = ef.critico ?? 1; // Corte de papel: three times
+        const verso = multVerso(e, j, m); // Viñas «Verso libre»: his Chanza and Juerga attacks hit 10 % harder
         const multH = multHabilidad(e, j, u, v, m); // Pareja de carretera / Fan de la gira: +20 %; Con hielo: Petardo ×½
         if (bonusCompania(e, j, u)) habilidad(c, j, habilidadDe(u));
         if (bonusCanta(u, m)) habilidad(c, j, 'cantaynollores');
@@ -1023,13 +1037,17 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
         if (volumen) habilidad(c, j, 'volumen');
         for (let h = 0; h < n && v.ps > 0; h++) {
           const tirada = azar(e) * 512;
-          const critico = tirada < ESPECIE[u.especie].base.vel * palillo * bote * papel;
+          const critNatural = tirada < ESPECIE[u.especie].base.vel * palillo * bote * papel;
+          // Ari «De su cosecha»: 10 % of her blows are critical on top of the usual chance. The extra number is drawn only when SHE attacks
+          // and the blow is not critical already, so the battles without Ari draw exactly the same numbers as before.
+          const cosecha = !critNatural && e.jugadores[j].entrenador === 'ari' && probar(e, PERK_COSECHA_ARI);
+          const critico = critNatural || cosecha;
           // Duro de roer (Turroncho): a critical blow hits it ×1.5 instead of ×2.
           const roer = critico && habilidadDe(v) === 'duro_de_roer' ? 0.75 : 1;
           if (roer < 1) {
             habilidad(c, t, 'duro_de_roer', 'hab.duro_de_roer.activa');
-          } else if (critico && bote > 1 && tirada >= ESPECIE[u.especie].base.vel * palillo * papel) habilidad(c, j, 'bote');
-          const r = calcularDano(u, v, m, { pot, azar: 0.85 + azar(e) * 0.15, critico, todos: m.objetivo === 'todos' && !karaoke && !volumen, acorralado, mult: multS * panuelo * multH * roer });
+          } else if (critNatural && bote > 1 && tirada >= ESPECIE[u.especie].base.vel * palillo * papel) habilidad(c, j, 'bote');
+          const r = calcularDano(u, v, m, { pot, azar: 0.85 + azar(e) * 0.15, critico, todos: m.objetivo === 'todos' && !karaoke && !volumen, acorralado, mult: multS * panuelo * multH * roer * verso });
           efi = r.ef;
           let dano0 = r.dano;
           // Posavasos: the first very effective blow (×2 or more) does half.
@@ -1041,10 +1059,11 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
           totalDano += danar(c, t, topeAguante(c, t, topeCajon(c, t, dano)), { ef: r.ef, critico, de: j, mov: m.id, acorralado });
           hechos++;
           if (critico) decir(c, 'combate.critico', varsDe(c, t), t);
+          if (cosecha) decir(c, 'combate.perk.ari', varsDe(c, j), t);
           if (perk) decir(c, `combate.perk.${perk}`, varsDe(c, t), t);
           avisoAguante(c, t);
           // The attacker's permanent objects show themselves the first time they matter.
-          if (u.objeto && !u.objeto.visto && ((critico && palillo > 1) || panuelo > 1)) activarObjeto(c, j, false, critico && palillo > 1 ? 'objeto.palillo.activa' : 'objeto.panuelo.activa');
+          if (u.objeto && !u.objeto.visto && ((critNatural && palillo > 1) || panuelo > 1)) activarObjeto(c, j, false, critNatural && palillo > 1 ? 'objeto.palillo.activa' : 'objeto.panuelo.activa');
           // Mechero: the first rival that hits the holder may get burnt.
           if (v.ps > 0 && u.ps > 0 && v.objeto?.id === 'mechero' && !v.objeto.gastado) {
             const prende = probar(e, OBJ_MECHERO_QUEMA) && !u.estado;
@@ -1109,6 +1128,8 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
 function reaccionAlGolpe(c: Ctx, j: number, t: number, m: Movimiento) {
   const a = act(c, j);
   const v = act(c, t);
+  // Se enchufa la pista: every attack that hits a userito that is not Chispa lowers its Speed 1 (no dice).
+  if (v.ps > 0 && v.niveles.vel > -6 && hayDeSuceso(c.e, 'pista') && !ESPECIE[v.especie].tipos.includes('chispa')) cambiarNivel(c, t, 'vel', -1);
   // Mala leche (Pulpiño): every time an attack hits it, its Attack goes up 1 (at most once a turn), whoever hit it and whatever its state.
   if (v.ps > 0 && habilidadDe(v) === 'malaleche' && !c.malaleche[t] && v.niveles.ata < 6) {
     c.malaleche[t] = true;
@@ -1270,6 +1291,9 @@ function actuar(c: Ctx, a: Extract<Accion, { tipo: 'atacar' }>) {
 
 // ------------------------------------------------------------------ sucesos del bar
 
+/** Chispa and Petardo useritos drive the dodgems: ¡Coches de choque! does not touch them. */
+const conduce = (u: Userito): boolean => ESPECIE[u.especie].tipos.some((t) => t === 'chispa' || t === 'petardo');
+
 /** 1/8 of the max HP, at least 1 (the heal of most sucesos). */
 const octavo = (u: Userito): number => Math.max(1, Math.floor(u.psMax / 8));
 
@@ -1334,6 +1358,15 @@ function iniciarSuceso(c: Ctx) {
       break;
     case 'peluca':
       for (const j of enPie) if (!ESPECIE[act(c, j).especie].tipos.includes('juerga')) cambiarNivel(c, j, 'prec', -1);
+      break;
+    case 'choque':
+      // ¡Coches de choque!: everybody on the field bumps into everybody and loses 1/10 of its max HP, except the Chispa and Petardo ones
+      // (they are driving). It never knocks anybody out (it leaves 1 HP at least): it comes after the turn's falls were settled.
+      for (const j of enPie) {
+        const u = act(c, j);
+        const dano = Math.min(u.ps - 1, Math.max(1, Math.floor(u.psMax / 10)));
+        if (!conduce(u) && dano > 0) danar(c, j, dano);
+      }
       break;
     case 'comanda':
       for (const j of enPie) {

@@ -1,12 +1,13 @@
 // PokéUsera · the draft (snake order): who is choosing, every player's picks so far, the sheet of the userito being looked at and the
 // grid of the 32 useritos. The sheet lives in the screen itself (between the players' panels and the grid; no window): tapping a cell
-// of the grid shows that userito's sheet, tapping another one swaps it, and ELEGIR (on your turn only) takes it. The top bar with the
+// of the grid shows that userito's sheet, tapping another one swaps it, and tapping the selected one again takes it: on your turn, a
+// gold ELEGIR label sits on the selected cell itself (the double tap), not on the sheet, which is information only. The top bar with the
 // clock and whose turn it is never goes away. It draws only from what it is told (`alDraft`: the draft state, whose turn and for how
 // long), so a guest can feed it from network messages too.
 //
 // Performance (docs/ESTILO.md, T5/T6): the sheet (panel, name, types, bars, moves, text) is baked once per userito, layout and view
-// (`ficha`); the grid is one canvas that is redrawn only when a pick changes it; per frame there are a few blits, the breathing sprite
-// and the frames of the cursors. A tall screen gets the full sheet (sprite beside the stats); a short one the compact sheet.
+// (`ficha`); the grid is one canvas that is redrawn only when a pick changes it; per frame there are a few blits, the breathing sprite,
+// the baked ELEGIR label and the frames of the cursors. A tall screen gets the full sheet (sprite beside the stats); a short one the compact sheet.
 import type { EntrenadorId, EscenarioId, EstadoDraft, Tipo } from '../tipos';
 import { ESPECIE, ESPECIES, MOVS, TIPOS, eficacia } from '../datos';
 import { icono2 } from '../arte2/entrenadores2';
@@ -26,7 +27,6 @@ import {
   Animador,
   barraArriba,
   barraValor,
-  boton,
   centrado,
   chipTiempo,
   colorEnt,
@@ -65,14 +65,13 @@ const STATS: { clave: 'ps' | 'ata' | 'def' | 'vel' | 'esp'; nombre: string }[] =
 
 /** The sheet's panel: width, and the height from which the full sheet (sprite beside the stats) fits; below it the compact one is used. */
 const W_FICHA = ANCHO - 2;
-const ALTO_FICHA_COMPLETA = 183;
-const ALTO_BOTON = 28;
+const ALTO_FICHA_COMPLETA = 176;
 
-/** The sheet's blocks, in the sheet's own coordinates (the panel's top-left is 0,0). Compact: header with ELEGIR at the right, the five stats in a row, moves, ability, text. Full: sprite and ELEGIR on the left. */
+/** The sheet's blocks, in the sheet's own coordinates (the panel's top-left is 0,0). Compact: header, the five stats in a row, moves, ability, text. Full: sprite on the left, the stats on the right. No button: ELEGIR is on the grid's selected cell (`etiquetaElegir`). */
 const G = {
   x0: 8,
-  compacta: { btnW: 76, btnY: 4, statsY: 34, movsY: 54, movsFila: 12, habY: 78, textoY: 93 },
-  completa: { btnW: 74, btnY: 74, spriteX: 10, spriteY: 6, colX: 90, nombreY: 9, tiposY: 22, statsY: 38, statsFila: 11, movsY: 104, movsFila: 15, habY: 134, textoY: 155 },
+  compacta: { statsY: 34, movsY: 54, movsFila: 12, habY: 78, textoY: 93 },
+  completa: { spriteX: 10, spriteY: 6, colX: 90, nombreY: 9, tiposY: 22, statsY: 38, statsFila: 11, movsY: 97, movsFila: 15, habY: 127, textoY: 148 },
 };
 const COL_MOV = 116;
 
@@ -94,7 +93,7 @@ function celdaMov(completa: boolean, i: number): { x: number; y: number; h: numb
 /** How many 12 px lines of text fit under the moves. */
 const lineasTexto = (completa: boolean, h: number): number => Math.max(1, Math.floor((h - 4 - (completa ? G.completa.textoY : G.compacta.textoY)) / 12));
 
-/** The sheet of a userito, baked without the sprite, the owner mark and the button: panel, name, types, bars, moves and the text strip for `vista`. */
+/** The sheet of a userito, baked without the sprite and the owner mark: panel, name, types, bars, moves and the text strip for `vista`. */
 function fichaBase(id: string, completa: boolean, h: number, vista: Vista): HTMLCanvasElement {
   return hornear(`draft|ficha|${id}|${completa ? 1 : 0}|${h}|${vista}`, W_FICHA, h + 2, (cx) => {
     const sp = ESPECIE[id];
@@ -198,6 +197,20 @@ function fichaBase(id: string, completa: boolean, h: number, vista: Vista): HTML
       } else lineas = envolver(t(`userito.${id}.desc`), ancho);
       lineas.slice(0, n).forEach((l, i) => texto2(cx, l, x0, ty + i * 12));
     }
+  });
+}
+
+/** The ELEGIR label that sits on the selected cell on your turn (the second tap of the double tap), baked once: gold plate, dark outline, `LAB_ALTO` px tall. */
+const LAB_ALTO = 11;
+function etiquetaElegir(): HTMLCanvasElement {
+  const s = t('draft.elegir');
+  const w = Math.max(CELDA_W, anchoTexto2(s) + 8);
+  return hornear(`draft|etiqueta|${s}|${w}`, w, LAB_ALTO, (cx) => {
+    relleno(cx, TINTA2, 0, 0, w, LAB_ALTO);
+    relleno(cx, ORO_UI_OSC, 1, 1, w - 2, LAB_ALTO - 2);
+    relleno(cx, '#f0c860', 1, 1, w - 2, LAB_ALTO - 3);
+    rect(cx, '#fff3c8', 2, 1, w - 4, 1);
+    texto2(cx, s, Math.floor((w - anchoTexto2(s)) / 2), 2, TINTA2, null);
   });
 }
 
@@ -543,7 +556,6 @@ export class VistaDraft implements Escena {
     const vista = this.vista;
     ctx.drawImage(fichaBase(sp.id, completa, h, vista), x, y);
     const d = this.dueno(sp.id);
-    const mio = this.miTurno && d < 0;
     // Hit zones: the type badges and the moves (the text strip changes), the statistics (the guide).
     for (let i = 0; i < 4; i++) {
       const c = celdaMov(completa, i);
@@ -563,20 +575,16 @@ export class VistaDraft implements Escena {
       entrada.zona(x + c.colX - 2, y + c.statsY - 3, W_FICHA - c.colX - 6, STATS.length * c.statsFila + 2, () => this.abrirGuiaStats());
       ctx.drawImage(spriteFrente2(sp.id, reposo(ahora)), x + c.spriteX, y + c.spriteY);
       if (d >= 0) ctx.drawImage(icono2(this.plazas[d].entrenador), x + W_FICHA - 11 - 16, y + 6);
-      this.botonElegir(ctx, x + G.x0, y + c.btnY, c.btnW, mio);
     } else {
       const c = G.compacta;
       entrada.zona(x + 4, y + c.statsY - 3, W_FICHA - 8, 21, () => this.abrirGuiaStats());
-      const bx = x + W_FICHA - 8 - c.btnW;
-      if (d >= 0) ctx.drawImage(icono2(this.plazas[d].entrenador), bx - 20, y + 6);
-      this.botonElegir(ctx, bx, y + c.btnY, c.btnW, mio);
+      if (d >= 0) ctx.drawImage(icono2(this.plazas[d].entrenador), x + W_FICHA - 8 - 16, y + 6);
     }
   }
 
-  /** ELEGIR: live on your turn (for a free userito), greyed out otherwise (you can still look). */
-  private botonElegir(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, activo: boolean) {
-    boton(ctx, x, y, w, ALTO_BOTON, t('draft.elegir'), activo, activo);
-    if (activo) entrada.zona(x, y, w, ALTO_BOTON, () => this.confirmar());
+  /** Whether the selected userito can be taken right now: your turn and it is free. */
+  private get puedeElegir(): boolean {
+    return this.miTurno && this.dueno(ESPECIES[this.sel].id) < 0;
   }
 
   // ------------------------------------------------------------------ the grid
@@ -622,12 +630,18 @@ export class VistaDraft implements Escena {
     ESPECIES.forEach((_sp, k) => {
       const x = X_REJ + (k % COLS) * CELDA_W;
       const y = L.yGrid + Math.floor(k / COLS) * L.cellH;
-      entrada.zona(x, y, CELDA_W, L.cellH, () => this.mirar(k));
+      // The selected cell is also ELEGIR on your turn (double tap): a second tap on it takes the userito; any other cell just shows its sheet.
+      entrada.zona(x, y, CELDA_W, L.cellH, () => (k === this.sel && this.puedeElegir ? this.confirmar() : this.mirar(k)));
     });
     // The machine's cursor (gold) while it thinks or picks, and the cell whose sheet is open (the player's colour, blinking, on their turn).
     if (!this.cursorOculto && this.hx >= 0) this.marco(ctx, Math.round(this.hx), Math.round(this.hy), L.cellH, ORO_UI);
     const [sx, sy] = this.celda(this.sel);
     this.marco(ctx, sx, sy, L.cellH, this.miTurno ? (parpadea(ahora, 400) ? colorEnt(this.plazas[this.miSeat!].entrenador) : TINTA2) : TINTA2);
+    // ELEGIR over the bottom of the selected cell, centred (it may overhang the neighbours' plates by a pixel or two; their tap zones are the cells themselves, so none is lost).
+    if (this.puedeElegir) {
+      const lab = etiquetaElegir();
+      ctx.drawImage(lab, sx + Math.floor((CELDA_W - lab.width) / 2), sy + L.cellH - LAB_ALTO - 2);
+    }
   }
 
   private marco(ctx: CanvasRenderingContext2D, x: number, y: number, cellH: number, c: string) {

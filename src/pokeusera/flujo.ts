@@ -4,7 +4,7 @@
 // drives the same screens (VistaDraft, VistaCombate, pantallaPodio) from network messages.
 import { ENTRENADORES, type EntrenadorId, type EscenarioId } from './tipos';
 import { ESPECIES } from './datos';
-import { crearRnd } from './motor/azar';
+import { crearRnd, sacarAlAzar } from './motor/azar';
 import { conEstadisticas } from './estadisticas/resumen';
 import { registrarBatalla } from './estadisticas/almacen';
 import { cuentaLocal, tokenLocal } from './cuentas/almacen';
@@ -45,7 +45,7 @@ export interface OpcionesFlujo {
   auto: boolean;
   semilla?: number;
   pj?: EntrenadorId;
-  /** `?escenario=brio|terraza|rural|juan`: the bar of the battle (default: drawn from the seed). */
+  /** `?escenario=brio|terraza|rural|juan|feria`: the bar of the battle (default: drawn from the seed). */
   escenario?: EscenarioId;
   /** `?barra`: with `?combate`, «La barra» and «¿Quién sale primero?» are played too (otherwise the machine gives out the objects and picks the openers). */
   barra?: boolean;
@@ -55,7 +55,10 @@ export interface OpcionesFlujo {
 
 /** Plays one solo game (you + three machines) and shows the podium. */
 export async function jugarSolo(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combate' | 'auto' | 'semilla' | 'escenario' | 'barra'>): Promise<SalidaPodio> {
-  const otros = ENTRENADORES.filter((e) => e !== yo);
+  // With seven trainers, you pick one and the other three seats get three of the six left, at random (docs/POKEUSERA.md, «Ventajas de entrenador»).
+  // The seed is fixed here so `?semilla=N` repeats the whole game; it has its own generator, so the rest of the battle draws the same numbers as ever.
+  const semilla = o.semilla ?? Math.floor(Math.random() * 2 ** 31);
+  const otros = sacarAlAzar(ENTRENADORES.filter((e) => e !== yo), 3, crearRnd(semilla ^ 0x3c6ef372));
   const asientos: Asiento[] = [
     { tipo: o.auto ? 'bot' : 'local', entrenador: yo, nombre: nombreEnt(yo) },
     ...otros.map((e): Asiento => ({ tipo: 'bot', entrenador: e, nombre: nombreEnt(e) })),
@@ -68,7 +71,7 @@ export async function jugarSolo(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combat
   let equipos: string[][] | undefined;
   if (o.combate) {
     // A random team of three each, from all of them.
-    const rnd = crearRnd(o.semilla ?? Math.floor(Math.random() * 2 ** 31));
+    const rnd = crearRnd(semilla);
     const ids = ESPECIES.map((s) => s.id);
     for (let i = ids.length - 1; i > 0; i--) {
       const k = Math.floor(rnd() * (i + 1));
@@ -106,7 +109,7 @@ export async function jugarSolo(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combat
     alReemplazo: (ev, estado) => vc.alReemplazo(ev, estado),
     alFin: (estado) => vc.alFin(estado),
   };
-  const partida = new Partida(asientos, conEstadisticas(ganchos, asientos, 'maquina', registrarBatalla, () => asientos.map((a) => (a.tipo === 'local' ? tokenLocal() : null))), { semilla: o.semilla, rapido: o.auto, equipos, escenario: o.escenario ?? escenarioElegido(), barra: o.barra });
+  const partida = new Partida(asientos, conEstadisticas(ganchos, asientos, 'maquina', registrarBatalla, () => asientos.map((a) => (a.tipo === 'local' ? tokenLocal() : null))), { semilla, rapido: o.auto, equipos, escenario: o.escenario ?? escenarioElegido(), barra: o.barra });
   vd.escenario = partida.escenario;
   vd.alAbandonar = vb.alAbandonar = vs.alAbandonar = vc.alAbandonar = () => partida.cancelar();
   (window as unknown as { __pokeusera?: unknown }).__pokeusera = { partida, vc, vd, vb, vs };

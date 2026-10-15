@@ -10,7 +10,7 @@ const PING_MS = 20_000;
 const ESPERA_ENTRAR_MS = 10_000;
 /** Do not pile up game messages for a client that cannot keep up. */
 const MAX_PENDIENTE = 1024 * 1024;
-const PJS = ['fran', 'pablo', 'chuchi', 'guille'];
+const PJS = ['fran', 'pablo', 'chuchi', 'guille', 'vinas', 'ari', 'fer'];
 
 /** Attaches the room to an existing HTTP server. */
 export function adjuntarSala(servidor) {

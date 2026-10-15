@@ -3,6 +3,7 @@
 // Usage: node scripts/pokeusera-motor.mjs [seed] [seed...]   (default seed 1; keep it to a few runs)
 //        node scripts/pokeusera-motor.mjs --sim=200   (balance: N bot battles with different seeds; turns, hits per fall)
 //        node scripts/pokeusera-motor.mjs --especies=400   (balance per userito: N bot battles with RANDOM drafts, objects given out like the machines do and random bars; win rate and average place of each userito)
+//        node scripts/pokeusera-motor.mjs --entrenadores=6000   (balance per TRAINER: N bot battles with random drafts and four trainers drawn at random among the seven, no repeats; win rate of each one against the 25 % par; ~6000 take a couple of minutes)
 //        node scripts/pokeusera-motor.mjs --informe=2000   (the same N battles, as a report: win rate by TYPE and by OBJECT carried, mean turns per bar, how often each suceso comes out; 8000 take under two minutes)
 import { build } from 'esbuild';
 import { readFileSync, mkdtempSync } from 'node:fs';
@@ -15,7 +16,7 @@ const tmp = mkdtempSync(join(tmpdir(), 'pokeusera-'));
 const salida = join(tmp, 'motor.mjs');
 await build({
   stdin: {
-    contents: `export * from './src/pokeusera/datos'; export * from './src/pokeusera/motor/combate'; export * from './src/pokeusera/motor/draft'; export * from './src/pokeusera/motor/bot'; export * from './src/pokeusera/motor/objetos'; export { OBJETOS, OBJ_TAPON_USOS, OBJ_BOCATA_CURA } from './src/pokeusera/tipos'; export { crearRnd, azar, entero } from './src/pokeusera/motor/azar';`,
+    contents: `export * from './src/pokeusera/datos'; export * from './src/pokeusera/motor/combate'; export * from './src/pokeusera/motor/draft'; export * from './src/pokeusera/motor/bot'; export * from './src/pokeusera/motor/objetos'; export { OBJETOS, OBJ_TAPON_USOS, OBJ_BOCATA_CURA } from './src/pokeusera/tipos'; export { crearRnd, azar, entero, sacarAlAzar } from './src/pokeusera/motor/azar'; export { ENTRENADORES } from './src/pokeusera/tipos';`,
     resolveDir: raiz,
     loader: 'ts',
   },
@@ -112,8 +113,10 @@ function revisarSucesos(eventos, e, vistos) {
     if (ev.turnos !== M.SUCESOS[ev.id].dura) falla(`suceso ${ev.id}: turnos ${ev.turnos}`);
     if (!textos.has(`suceso.${ev.id}.nombre`) || !textos.has(`suceso.${ev.id}.desc`)) falla(`suceso ${ev.id}: faltan textos`);
   }
-  if (e.sucesos.some((x) => x.turnos < 1 || x.turnos > 2)) falla(`sucesos con turnos raros: ${JSON.stringify(e.sucesos)}`);
-  if (e.turno >= 27 && e.sucesos.length) falla(`quedan sucesos en el turno ${e.turno}`);
+  // The longest one (Se enchufa la pista, 3 turns) drawn on turn 25 is over when turn 28 begins.
+  const maxDura = Math.max(...Object.values(M.SUCESOS).map((x) => x.dura));
+  if (e.sucesos.some((x) => x.turnos < 1 || x.turnos > maxDura)) falla(`sucesos con turnos raros: ${JSON.stringify(e.sucesos)}`);
+  if (e.turno >= 25 + maxDura && e.sucesos.length) falla(`quedan sucesos en el turno ${e.turno}`);
 }
 
 function revisarStats(e, turnos, todos) {
@@ -239,7 +242,7 @@ function jugar(semilla, verbose) {
 
 // ---- random-draft battles shared by `--especies` and `--informe`: every pick is any free userito, each seat takes the object the machine
 // would take from its three offers (`objetoBot`, as `Partida` does for the machines), and the bar is the seed's (a random one).
-function batallaAlAzar(s) {
+function batallaAlAzar(s, ents = ['fran', 'pablo', 'chuchi', 'guille']) {
   const rnd = M.crearRnd(s * 15485863 + 11);
   let d = M.crearDraft(4, s % 4);
   while (M.turnoDraft(d) !== null) {
@@ -253,7 +256,7 @@ function batallaAlAzar(s) {
     return { ...el, lista: [0, 1, 2].map((i) => (i === el.idx ? el.objeto : null)) };
   });
   let e = M.crearCombate(
-    eq.map((especies, i) => ({ entrenador: ['fran', 'pablo', 'chuchi', 'guille'][i], nombre: 'J' + i, bot: true, especies, objetos: objetos[i].lista })),
+    eq.map((especies, i) => ({ entrenador: ents[i], nombre: 'J' + i, bot: true, especies, objetos: objetos[i].lista })),
     semillaCombate,
   );
   const escenario = e.escenario;
@@ -306,6 +309,43 @@ if (espArg) {
   console.log('Nº  userito       tipos               apar.  victoria  x media  puesto medio');
   for (const f of [...filas].sort((a, b) => b.victoria - a.victoria))
     console.log(`${String(f.Nº).padStart(2)}  ${f.id.padEnd(12)}  ${f.tipos.padEnd(18)}  ${String(f.n).padStart(5)}  ${(f.victoria * 100).toFixed(1).padStart(7)} %  ${(f.victoria / total).toFixed(2).padStart(6)}  ${f.puesto.toFixed(2).padStart(10)}`);
+  process.exit(0);
+}
+
+// ---- balance per TRAINER: `--entrenadores=N` plays N bot battles (random drafts, objects like the machines, random bars) with four trainers drawn
+// at random among the seven (no repeats, random seats) and prints each one's win rate against the 25 % par. The perks are not part of the machines'
+// decisions, so this measures what each perk is worth. The margin the tuning aims for is 0.90-1.10 of the mean (docs/POKEUSERA.md, «Equilibrio»).
+const entArg = process.argv.find((a) => a.startsWith('--entrenadores'));
+if (entArg) {
+  const N = Number(entArg.split('=')[1]) || 6000;
+  const t0 = Date.now();
+  const res = Object.fromEntries(M.ENTRENADORES.map((id) => [id, { n: 0, gana: 0, puesto: 0 }]));
+  let sinAcabar = 0;
+  for (let s = 1; s <= N; s++) {
+    const ents = M.sacarAlAzar(M.ENTRENADORES, 4, M.crearRnd(s * 7919 + 5));
+    const b = batallaAlAzar(s, ents);
+    if (!b.acabo) {
+      sinAcabar++;
+      continue;
+    }
+    b.e.jugadores.forEach((q, j) => {
+      const r = res[ents[j]];
+      r.n++;
+      r.puesto += q.puesto;
+      if (q.puesto === 1) r.gana++;
+    });
+  }
+  const media = Object.values(res).reduce((a, x) => a + x.gana, 0) / Math.max(1, Object.values(res).reduce((a, x) => a + x.n, 0));
+  console.log(`Balance por entrenador: ${N} batallas de 4 bots (sin acabar: ${sinAcabar}), ${((Date.now() - t0) / 1000).toFixed(0)} s. Victoria media ${(media * 100).toFixed(1)} % (el margen es x 0,90-1,10 de la media)`);
+  console.log('entrenador   apar.  victoria  x media  puesto medio');
+  let fuera = 0;
+  for (const [id, x] of Object.entries(res).sort((a, b) => b[1].gana / b[1].n - a[1].gana / a[1].n)) {
+    const v = x.gana / Math.max(1, x.n);
+    const k = v / media;
+    if (k < 0.9 || k > 1.1) fuera++;
+    console.log(`${id.padEnd(10)}  ${String(x.n).padStart(5)}  ${(v * 100).toFixed(1).padStart(7)} %  ${k.toFixed(2).padStart(7)}  ${(x.puesto / Math.max(1, x.n)).toFixed(2).padStart(10)}${k < 0.9 || k > 1.1 ? '   <- FUERA DEL MARGEN' : ''}`);
+  }
+  console.log(fuera ? `${fuera} entrenador(es) fuera del margen.` : 'Todos dentro del margen.');
   process.exit(0);
 }
 
@@ -538,6 +578,114 @@ function revisarPerks() {
 }
 revisarPerks();
 
+// ---- tanda 11, new trainers: Viñas «Verso libre» (×1.1 on Chanza and Juerga), Ari «De su cosecha» (10 % extra critical, one extra random number only when SHE
+// attacks) and Fer «Cancelación de ruido» (the sound moves of a rival do not reach his useritos). Deterministic cases plus a few hundred seeds.
+function revisarPerksNuevos() {
+  const eq = (ents, esp) => ents.map((entrenador, i) => ({ entrenador, nombre: entrenador, bot: false, especies: esp[i] }));
+  const cana = { tipo: 'cana' };
+  const ataca = (mov, objetivo = 1) => ({ tipo: 'atacar', mov, objetivo });
+  const golpes = (r, j) => r.eventos.filter((ev) => ev.k === 'golpe' && ev.j === j && !ev.clave);
+
+  // Verso libre: the helper says ×1.1 only for his Chanza / Juerga; the damage of the engine follows it.
+  {
+    const e = { jugadores: [{ entrenador: 'vinas' }, { entrenador: 'fran' }] };
+    for (const [tipo, k] of [['chanza', 1.1], ['juerga', 1.1], ['alcohol', 1], ['petardo', 1], ['mindundi', 1]]) if (M.multVerso(e, 0, { tipo }) !== k) falla(`Verso libre: ×${M.multVerso(e, 0, { tipo })} en ${tipo}, esperaba ×${k}`);
+    if (M.multVerso(e, 1, { tipo: 'chanza' }) !== 1) falla('Verso libre: lo tiene Fran');
+    // Ceceseta: Pasodoble (Juerga, 0), Mancha de cerveza (Alcohol, 1), Zasca (Chanza, 3), all against a Tocinón.
+    const esp = [['ceceseta', 'turito', 'cierzon'], ['tocinon', 'turito', 'cierzon']];
+    let mas = 0;
+    let razonMala = 0;
+    for (let semilla = 1; semilla <= 60; semilla++) {
+      const dano = (ent, mov) => {
+        const r = M.resolverTurno(M.crearCombate(eq([ent, 'pablo'], esp), semilla), [ataca(mov), cana]);
+        return golpes(r, 1).reduce((n, ev) => n + ev.dano, 0);
+      };
+      for (const mov of [0, 3]) {
+        const a = dano('vinas', mov);
+        const b = dano('fran', mov);
+        if (b > 0 && a < b) falla(`Verso libre: pega menos que otro (${a} < ${b}), mov ${mov}, semilla ${semilla}`);
+        if (a > b) mas++;
+        if (b >= 20 && (a / b < 1.05 || a / b > 1.16)) razonMala++;
+      }
+      if (dano('vinas', 1) !== dano('fran', 1)) falla(`Verso libre: cambia un ataque de Alcohol (semilla ${semilla})`);
+    }
+    if (!mas) falla('Verso libre: nunca pega más en Chanza/Juerga');
+    if (razonMala) falla(`Verso libre: la razón con otro entrenador sale de 1,05-1,16 en ${razonMala} casos`);
+  }
+
+  // De su cosecha: more critical hits than another trainer (about +10 points of the non-critical ones), the line only on those, and the random stream
+  // untouched when she does not attack (she only receives: same state afterwards as with another trainer).
+  {
+    const esp = [['tocinon', 'turito', 'cierzon'], ['tocinon', 'turito', 'cierzon']];
+    const turno = (ent, semilla, ataque = ataca(0)) => M.resolverTurno(M.crearCombate(eq([ent, 'pablo'], esp), semilla), [ataque, cana]);
+    let criAri = 0;
+    let criRef = 0;
+    let mal = 0;
+    const N = 800;
+    for (let semilla = 1; semilla <= N; semilla++) {
+      const a = turno('ari', semilla);
+      const f = turno('fran', semilla);
+      const ca = golpes(a, 1).filter((ev) => ev.critico).length;
+      const cf = golpes(f, 1).filter((ev) => ev.critico).length;
+      criAri += ca;
+      criRef += cf;
+      const avisos = a.eventos.filter((ev) => ev.clave === 'combate.perk.ari').length;
+      if (cf > ca) mal++; // a natural critical is never lost
+      if (avisos > ca) mal++;
+      if (f.eventos.some((ev) => ev.clave === 'combate.perk.ari')) mal++;
+    }
+    if (mal) falla(`De su cosecha: ${mal} incoherencias (crítico perdido o aviso que no toca)`);
+    const extra = (criAri - criRef) / N;
+    if (extra < 0.06 || extra > 0.14) falla(`De su cosecha: ${(extra * 100).toFixed(1)} críticos extra por cada 100 golpes, esperaba ~9`);
+    let distinto = 0;
+    for (let semilla = 1; semilla <= 50; semilla++) {
+      // Ari defends (no attack of hers): the random stream ends where it does with any other trainer.
+      const a = M.resolverTurno(M.crearCombate(eq(['pablo', 'ari'], esp), semilla), [ataca(0), cana]);
+      const f = M.resolverTurno(M.crearCombate(eq(['pablo', 'fran'], esp), semilla), [ataca(0), cana]);
+      if (a.estado.semilla !== f.estado.semilla) falla(`De su cosecha: gasta azar sin atacar (semilla ${semilla})`);
+      // Ari attacks: it draws one more number each blow that is not critical already.
+      if (turno('ari', semilla).estado.semilla !== turno('fran', semilla).estado.semilla) distinto++;
+    }
+    if (!distinto) falla('De su cosecha: atacando no gasta ningún número de azar extra');
+  }
+
+  // Cancelación de ruido: ¡Ay, ay, ay! (sound, all rivals) and Serenata (sound, one) do nothing to Fer, a normal move and a Petardo hit him as usual; Bocinazo
+  // does not lower his Attack. Camioner: Trompazo 0 (normal), Bocinazo 2 (sound); Mariachi: ¡Ay, ay, ay! 0, Serenata 1, Salsa picante 2 (normal).
+  {
+    const sonidos = ['bocinazo', 'ayayay', 'serenata', 'distorsion', 'solo', 'pasodoble'];
+    if (sonidos.some((id) => !M.esSonido(id)) || M.esSonido('trompazo') || M.esSonido('picante') || M.esSonido('zasca')) falla('Cancelación de ruido: la lista de sonido no es la esperada');
+    const vs = (esp, ent, mov, objetivo = 1) => {
+      const e = M.crearCombate(eq(['pablo', ent], [esp, ['tocinon', 'turito', 'cierzon']]), 21);
+      return { e, r: M.resolverTurno(e, [ataca(mov, objetivo), cana]) };
+    };
+    for (const mov of [0, 1]) {
+      const fer = vs(['mariachi', 'turito', 'cierzon'], 'fer', mov);
+      const ref = vs(['mariachi', 'turito', 'cierzon'], 'fran', mov);
+      if (fer.r.estado.jugadores[1].equipo[0].ps !== fer.r.estado.jugadores[1].equipo[0].psMax) falla(`Fer: le llega el movimiento de sonido ${mov}`);
+      const avisos = fer.r.eventos.filter((ev) => ev.clave === 'combate.perk.fer');
+      if (avisos.length !== 1 || avisos[0].j !== 1 || !avisos[0].vars?.quien) falla(`Fer: aviso mal (${avisos.length}) con el movimiento ${mov}`);
+      if (ref.r.eventos.some((ev) => ev.clave === 'combate.perk.fer')) falla('Fer: lo ha activado otro entrenador');
+      if (mov === 0 && ref.r.estado.jugadores[1].equipo[0].ps >= ref.r.estado.jugadores[1].equipo[0].psMax) falla('Fer (referencia): ¡Ay, ay, ay! no hace daño a Fran');
+      if (mov === 1 && ref.r.estado.jugadores[1].equipo[0].vol.embobado <= 0) falla('Fer (referencia): Serenata no embobaba a Fran');
+      if (mov === 1 && fer.r.estado.jugadores[1].equipo[0].vol.embobado > 0) falla('Fer: Serenata le embobó');
+    }
+    const normal = vs(['mariachi', 'turito', 'cierzon'], 'fer', 2);
+    if (normal.r.estado.jugadores[1].equipo[0].ps >= normal.r.estado.jugadores[1].equipo[0].psMax || normal.r.eventos.some((ev) => ev.clave === 'combate.perk.fer')) falla('Fer: Salsa picante (no es de sonido) no le hace daño normal');
+    const boc = vs(['camioner', 'turito', 'cierzon'], 'fer', 2);
+    if (boc.r.estado.jugadores[1].equipo[0].niveles.ata !== 0) falla('Fer: Bocinazo le baja el Ataque');
+    const boc2 = vs(['camioner', 'turito', 'cierzon'], 'fran', 2);
+    if (boc2.r.estado.jugadores[1].equipo[0].niveles.ata !== -1) falla('Fer (referencia): Bocinazo no baja el Ataque a Fran');
+    const tromp = vs(['camioner', 'turito', 'cierzon'], 'fer', 0);
+    if (tromp.r.estado.jugadores[1].equipo[0].ps >= tromp.r.estado.jugadores[1].equipo[0].psMax) falla('Fer: Trompazo (normal) no le hace daño');
+    // His own sound moves work as ever, and the userito that comes in after a fall is covered too.
+    const suyo = M.resolverTurno(M.crearCombate(eq(['fer', 'pablo'], [['mariachi', 'turito', 'cierzon'], ['tocinon', 'turito', 'cierzon']]), 21), [ataca(0), cana]);
+    if (suyo.estado.jugadores[1].equipo[0].ps >= suyo.estado.jugadores[1].equipo[0].psMax) falla('Fer: sus propios movimientos de sonido no funcionan');
+    const banco = M.resolverTurno(M.crearCombate(eq(['pablo', 'fer'], [['mariachi', 'turito', 'cierzon'], ['tocinon', 'camioner', 'cierzon']]), 21), [ataca(0), { tipo: 'cambiar', a: 1 }]);
+    if (banco.estado.jugadores[1].equipo[1].ps !== banco.estado.jugadores[1].equipo[1].psMax) falla('Fer: el userito que entra recibe el ruido');
+  }
+}
+revisarPerksNuevos();
+
 // ---- batch 4 moves: Tubo perfecto (+1 Vel to the user after a hit), P de Pesao (−1 Vel to the target, always), Bajarse los pantalones.
 {
   const cana = { tipo: 'cana' };
@@ -711,11 +859,11 @@ function revisarTanda6() {
       const a = M.crearCombate(equipo(['p', 'turito']), semilla);
       const b = M.crearCombate(equipo(['p', 'turito']), semilla);
       if (a.escenario !== b.escenario) falla('el escenario sorteado no es determinista');
-      if (!['brio', 'terraza', 'rural', 'juan'].includes(a.escenario)) falla(`escenario raro: ${a.escenario}`);
+      if (!['brio', 'terraza', 'rural', 'juan', 'feria'].includes(a.escenario)) falla(`escenario raro: ${a.escenario}`);
       vistos.add(a.escenario);
       if (JSON.parse(JSON.stringify(a)).escenario !== a.escenario) falla('el escenario no sobrevive a JSON');
     }
-    if (vistos.size !== 4) falla(`el sorteo del escenario no sale en los cuatro (${[...vistos]})`);
+    if (vistos.size !== 5) falla(`el sorteo del escenario no sale en los cinco (${[...vistos]})`);
     if (M.crearCombate(equipo(['p', 'turito']), 1, 'juan').escenario !== 'juan') falla('crearCombate ignora el escenario pedido');
     // The draw does not touch the battle's own random stream.
     if (M.crearCombate(equipo(['p', 'turito']), 7).semilla !== M.crearCombate(equipo(['p', 'turito']), 7, 'rural').semilla) falla('el escenario consume la semilla');
@@ -875,6 +1023,111 @@ function revisarTanda6() {
     }
   }
   {
+    // La feria. Its two sucesos are only there: no other place can draw them (so no other battle changes, nor spends one more random number).
+    for (const esc of ['brio', 'terraza', 'rural', 'juan']) if (M.sucesosDe(esc).some((id) => id === 'choque' || id === 'pista')) falla(`${esc}: sale un suceso de La feria`);
+    const generales = M.sucesosDe('brio').filter((id) => M.SUCESOS[id].escenario === null);
+    if (M.sucesosDe('feria').slice().sort().join() !== [...generales, 'choque', 'pista'].sort().join()) falla('La feria: sus sucesos no son los generales y sus dos');
+    if (M.SUCESOS.choque.dura !== 0 || M.SUCESOS.pista.dura !== 3) falla('La feria: ¡Coches de choque! es al momento y Se enchufa la pista dura 3 turnos');
+    const conduce = (u) => M.ESPECIE[u.especie].tipos.some((t) => t === 'chispa' || t === 'petardo');
+    const decimo = (u) => Math.max(1, Math.floor(u.psMax / 10));
+    const sinSuceso = (e) => {
+      // The same state with every suceso of the place already «seen»: nothing is drawn (and nothing random is spent on it).
+      const c = structuredClone(e);
+      c.sucesosVistos = M.sucesosDe(c.escenario);
+      return c;
+    };
+    // ¡Coches de choque!: everybody on the field loses 1/10 of its max HP, except Chispa and Petardo (they drive); it never knocks anybody out.
+    const f = forzar('choque', 'feria', ['cajonazo', 'kbronero', 'draguserin', 'p'], (e) => {
+      e.jugadores[3].equipo[0].ps = 4; // a tiny one: the bump leaves it at 1 HP, it does not knock it out
+    });
+    if (f) {
+      const ev = f.r.eventos.find((x) => x.k === 'suceso');
+      if (!ev.fin || ev.turnos !== 0 || f.r.estado.sucesos.length) falla('¡Coches de choque!: es instantáneo y de fin de turno');
+      if (f.r.estado.sucesosVistos.join() !== 'choque') falla('¡Coches de choque!: no se apunta como visto');
+      const ctl = M.resolverTurno(sinSuceso(f.e0), pasivas(f.e0));
+      if (ctl.eventos.some((x) => x.k === 'suceso')) falla('control de ¡Coches de choque!: el estado sin suceso saca uno');
+      activos(f.r.estado).forEach((u, j) => {
+        const c = activos(ctl.estado)[j];
+        const pierde = conduce(u) ? 0 : Math.min(c.ps - 1, decimo(u));
+        if (u.ps !== c.ps - pierde) falla(`¡Coches de choque!: ${u.especie} ${u.ps} != ${c.ps} - ${pierde}`);
+        if (conduce(u) && f.r.eventos.some((x) => x.k === 'golpe' && x.j === j && x.fin)) falla(`¡Coches de choque!: ${u.especie} (Chispa/Petardo) recibe un golpe`);
+        if (!conduce(u) && c.ps > 1 && !f.r.eventos.some((x) => x.k === 'golpe' && x.j === j && x.fin && x.dano === pierde)) falla(`¡Coches de choque!: falta el golpe de ${u.especie}`);
+      });
+      if (activos(f.r.estado)[3].ps !== 1) falla(`¡Coches de choque!: el de 4 PS queda en ${activos(f.r.estado)[3].ps} (debía quedar en 1, sin tumbarlo)`);
+      if (f.r.eventos.some((x) => x.k === 'cae' && x.fin)) falla('¡Coches de choque! tumba a alguien');
+    }
+    // A full 1/10 on a big userito (a Mindundi/Grasa one at full health), and never less than 1.
+    {
+      const e = M.crearCombate(equipo(['tocinon', 'tocinon', 'turito', 'cajonazo']), 3, 'feria');
+      e.turno = 4;
+      e.sucesosVistos = M.sucesosDe('feria').filter((id) => id !== 'choque');
+      let visto = false;
+      for (let semilla = 1; semilla <= 400 && !visto; semilla++) {
+        const x = structuredClone(e);
+        x.semilla = semilla;
+        const r = M.resolverTurno(x, [{ tipo: 'cana' }, { tipo: 'cana' }, { tipo: 'cana' }, { tipo: 'cana' }]);
+        if (!r.eventos.some((q) => q.k === 'suceso' && q.id === 'choque')) continue;
+        visto = true;
+        const ctl = M.resolverTurno(sinSuceso(x), [{ tipo: 'cana' }, { tipo: 'cana' }, { tipo: 'cana' }, { tipo: 'cana' }]);
+        activos(r.estado).forEach((u, j) => {
+          if (u.ps !== activos(ctl.estado)[j].ps - decimo(u)) falla(`¡Coches de choque!: ${u.especie} pierde ${activos(ctl.estado)[j].ps - u.ps}, esperaba ${decimo(u)}`);
+        });
+      }
+      if (!visto) falla('¡Coches de choque!: ninguna semilla lo saca en el caso grande');
+    }
+    // Se enchufa la pista: Chispa ×1.5 for three turns; whoever is not Chispa loses 1 Speed each time it takes a blow.
+    const g = forzar('pista', 'feria', ['tragaperras', 'cajonazo', 'kbronero', 'draguserin']);
+    if (g) {
+      if (g.r.estado.sucesos.length !== 1 || g.r.estado.sucesos[0].id !== 'pista' || g.r.estado.sucesos[0].turnos !== 3) falla('Se enchufa la pista: debe durar 3 turnos');
+      const comp = (limpio, atacante, mov, objetivo = 1) => {
+        const e = structuredClone(g.r.estado);
+        if (limpio) e.sucesos = [];
+        e.jugadores[0].equipo[0] = { ...e.jugadores[0].equipo[0], especie: atacante, pp: [9, 9, 9, 9], niveles: { ata: 0, def: 0, vel: 0, esp: 0, prec: 0 } };
+        blindar(e, objetivo);
+        const r = M.resolverTurno(e, [ataca(idx(atacante, mov), objetivo), ...pasivas(e).slice(1)]);
+        return { r, d: dano(r, objetivo), vel: activos(r.estado)[objetivo].niveles.vel };
+      };
+      // Chispa moves hit ×1.5; others do not change.
+      for (const [esp, mov] of [['tragaperras', 'chispazo'], ['cubatillo', 'chispazo'], ['choquechu', 'chispazo']]) {
+        const a = comp(false, esp, mov);
+        const b = comp(true, esp, mov);
+        if (!b.d || Math.abs(a.d - b.d * 1.5) > 2) falla(`Se enchufa la pista: ${mov} de ${esp} ${a.d} vs ${b.d} sin suceso (×1,5)`);
+      }
+      const noChispa = comp(false, 'tocinon', 'barrigazo');
+      const noChispaCtl = comp(true, 'tocinon', 'barrigazo');
+      if (noChispa.d !== noChispaCtl.d) falla(`Se enchufa la pista cambia un ataque que no es de Chispa (${noChispa.d} vs ${noChispaCtl.d})`);
+      // The Speed of whoever takes a blow and is not Chispa: −1 (cajonazo, juerga) with the track, 0 without it; a Chispa userito (kbronero) keeps it.
+      if (comp(false, 'tocinon', 'barrigazo', 1).vel !== -1) falla(`Se enchufa la pista: Cajonazo recibe un ataque y queda con Velocidad ${comp(false, 'tocinon', 'barrigazo', 1).vel}`);
+      if (noChispaCtl.vel !== 0) falla('control de la pista: sin suceso baja la Velocidad');
+      if (comp(false, 'tocinon', 'barrigazo', 2).vel !== 0) falla('Se enchufa la pista: baja la Velocidad a un userito de tipo Chispa');
+      if (comp(false, 'tragaperras', 'chispazo', 1).vel !== -1) falla('Se enchufa la pista: un ataque de Chispa tampoco baja la Velocidad al que no es de Chispa?');
+      // Each attack that lands counts once: two blows on the same target in one turn, −2.
+      {
+        const e = structuredClone(g.r.estado);
+        e.jugadores[0].equipo[0] = { ...e.jugadores[0].equipo[0], especie: 'tocinon', pp: [9, 9, 9, 9] };
+        e.jugadores[2].equipo[0] = { ...e.jugadores[2].equipo[0], especie: 'tocinon', pp: [9, 9, 9, 9] };
+        blindar(e, 1);
+        const r = M.resolverTurno(e, [ataca(0, 1), { tipo: 'cana' }, ataca(0, 1), { tipo: 'cana' }]);
+        if (activos(r.estado)[1].niveles.vel !== -2) falla(`Se enchufa la pista: dos ataques dejan la Velocidad en ${activos(r.estado)[1].niveles.vel}, esperaba -2`);
+      }
+      // A status move that does not hit does not count; a miss neither (the blow must land).
+      {
+        const e = structuredClone(g.r.estado);
+        e.jugadores[0].equipo[0] = { ...e.jugadores[0].equipo[0], especie: 'tocinon', pp: [9, 9, 9, 9] };
+        blindar(e, 1);
+        const r = M.resolverTurno(e, [ataca(idx('tocinon', 'siesta')), ...pasivas(e).slice(1)]);
+        if (activos(r.estado)[1].niveles.vel !== 0) falla('Se enchufa la pista: baja la Velocidad sin recibir un ataque');
+      }
+      // Three turns: 3 → 2 → 1 → gone.
+      const t1 = M.resolverTurno(g.r.estado, pasivas(g.r.estado));
+      if (t1.estado.sucesos[0]?.turnos !== 2) falla('Se enchufa la pista: no le quedan 2 turnos');
+      const t2 = M.resolverTurno(t1.estado, pasivas(t1.estado));
+      if (t2.estado.sucesos[0]?.turnos !== 1) falla('Se enchufa la pista: no le queda 1 turno');
+      const t3 = M.resolverTurno(t2.estado, pasivas(t2.estado));
+      if (t3.estado.sucesos.length) falla('Se enchufa la pista: no se acaba a los 3 turnos');
+    }
+  }
+  {
     // Se va la luz: −20 accuracy (100 → 80 %), except for Fantasma attackers.
     const f = forzar('luz', 'brio', ['tocinon', 'cajonazo', 'ego-ego', 'cajonazo']);
     if (f) {
@@ -952,7 +1205,7 @@ function revisarTanda6() {
   }
 
   // --- A whole battle on each stage: the sucesos stay in their place and the invariants hold (the general `jugar` does the rest).
-  for (const esc of ['brio', 'terraza', 'rural', 'juan']) {
+  for (const esc of ['brio', 'terraza', 'rural', 'juan', 'feria']) {
     const lista = new Set();
     for (let semilla = 1; semilla <= 12; semilla++) {
       const rnd = M.crearRnd(semilla * 31 + 5);

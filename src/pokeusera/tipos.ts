@@ -11,13 +11,15 @@ export const TIPOS_FISICOS: readonly Tipo[] = ['mindundi', 'bronca', 'ventolera'
 /** Main status: one at a time. «Achispado» (confusion) is separate and can stack with it. */
 export type Estado = 'dormido' | 'paralizado' | 'quemado' | 'empachado';
 
-export type EntrenadorId = 'fran' | 'pablo' | 'chuchi' | 'guille';
-export const ENTRENADORES: readonly EntrenadorId[] = ['fran', 'pablo', 'chuchi', 'guille'];
+export type EntrenadorId = 'fran' | 'pablo' | 'chuchi' | 'guille' | 'vinas' | 'ari' | 'fer';
+export const ENTRENADORES: readonly EntrenadorId[] = ['fran', 'pablo', 'chuchi', 'guille', 'vinas', 'ari', 'fer'];
 
 /** One mild perk per trainer (docs/POKEUSERA.md, «Ventajas de entrenador»); the engine applies it by `Jugador.entrenador`. */
 export const PERK_CANA_FRAN = 60; // Fran: his caña heals 60 % of max HP instead of 50 %
 export const PERK_PRECISION_PABLO = 10; // Pablo: status moves +10 accuracy points
 export const PERK_TARDE_CHUCHI = 80; // Chuchi: first hit each userito receives does 20 % less (80 % of the damage)
+export const PERK_VERSO_VINAS = 110; // Viñas: his Chanza and Juerga attacks hit 10 % harder (110 % of the damage)
+export const PERK_COSECHA_ARI = 10; // Ari: % chance that each blow of her attacks is critical, on top of the usual chance
 // Guille: once per userito, a hit from full HP that would KO leaves it at 1 HP.
 
 /** The objects of «La barra» (docs/POKEUSERA.md, «Objetos de la barra»): one per player, held by one of the three useritos. */
@@ -244,11 +246,11 @@ export interface Estadisticas {
 }
 
 /** The bars the battle can be played in (the background, the music and the events of the place; docs/POKEUSERA.md, «Sucesos del bar»). */
-export type EscenarioId = 'brio' | 'terraza' | 'rural' | 'juan';
-export const ESCENARIOS: readonly EscenarioId[] = ['brio', 'terraza', 'rural', 'juan'];
+export type EscenarioId = 'brio' | 'terraza' | 'rural' | 'juan' | 'feria';
+export const ESCENARIOS: readonly EscenarioId[] = ['brio', 'terraza', 'rural', 'juan', 'feria'];
 
 /** Things that happen in the bar on turns 5, 10, 15, 20 and 25 (datos.ts: `SUCESOS`). */
-export type SucesoId = 'ronda' | 'luz' | 'happy' | 'cumple' | 'pelea' | 'karaoke' | 'barre' | 'premio' | 'cierzo' | 'rosas' | 'desfile' | 'peluca' | 'comanda' | 'chinchin';
+export type SucesoId = 'ronda' | 'luz' | 'happy' | 'cumple' | 'pelea' | 'karaoke' | 'barre' | 'premio' | 'cierzo' | 'rosas' | 'desfile' | 'peluca' | 'comanda' | 'chinchin' | 'choque' | 'pista';
 
 /** A suceso that lasts: `turnos` = turns it still counts for, including the one about to be chosen (2 at the start of its first turn).
  *  `j`: the player it is about, when it picks one (Pelea en la barra: the leader, who is not «acorralado»). */

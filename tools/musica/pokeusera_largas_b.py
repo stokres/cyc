@@ -9,6 +9,7 @@
 #   python3 pokeusera_largas_b.py combate-terraza   D minor / F major, 120 bpm rumba with a palmas bridge, 88 bars
 #   python3 pokeusera_largas_b.py combate-rural     G minor, 138 bpm techno with two breakdowns and a key change, 104 bars
 #   python3 pokeusera_largas_b.py combate-juan      E minor / G major, 130 bpm bachata with a «mambo», 96 bars
+#   python3 pokeusera_largas_b.py combate-feria     A minor / C major, 140 bpm fairground organ and dodgem eurodance, 104 bars
 #   python3 pokeusera_largas_b.py todas             all of them
 #
 # MP3 at 24 kHz, 64 kbps, mono, in src/sonido/pokeusera-<name>.mp3 (the same paths as before). Each run prints the
@@ -1000,9 +1001,240 @@ def combate_juan():
     return C, ronda, beats, bpm, m
 
 
+# --- Combate 8: «Coches de choque» (La feria) ----------------------------------------------------
+# Two more sounds for the noise channel, made like the drums of pokeusera.py (the register's clock and the volume steps): the crackle of
+# a sparking pole and the long hiss of an electric arc. Any other sound goes to the kit that was already installed.
+_golpe_antes_feria = sinte.golpe
+
+
+def golpe_feria(tipo, vel, semilla=0):
+    a = (vel / 127) ** 1.3
+    if tipo == 'gb_chispa':  # a crackle: four short bursts of bright noise
+        nm = int(0.14 * SR)
+        w = base._lfsr_gb(nm, 44100, 44100, 1.0, semilla=semilla)
+        t = np.arange(nm) / SR
+        e = np.zeros(nm)
+        for d, g, tau in ((0.0, 1.0, 0.010), (0.022, 0.7, 0.008), (0.047, 0.85, 0.009), (0.083, 0.5, 0.012)):
+            i = int(d * SR)
+            e[i:] += g * np.exp(-t[:nm - i] / tau)
+        w = sinte._filtro(w, 'highpass', 3200, 3) * 1.5 * np.minimum(1, e)
+    elif tipo == 'gb_arco':  # an electric arc: a long hiss whose clock falls, flickering like mains current
+        nm = int(0.42 * SR)
+        w = base._lfsr_gb(nm, 44100, 9000, 0.12, semilla=semilla)
+        t = np.arange(nm) / SR
+        parpadeo = 0.55 + 0.45 * np.sign(np.sin(2 * np.pi * 48 * t))
+        w = sinte._filtro(w, 'highpass', 1800, 2) * 1.3 * base._env4(nm, 0.16) * parpadeo
+    else:
+        return _golpe_antes_feria(tipo, vel, semilla)
+    k = min(48, len(w))
+    w[-k:] *= np.linspace(1, 0, k)
+    return w * a
+
+
+sinte.golpe = golpe_feria
+
+
+def combate_feria():
+    """A minor / C major, 140 bpm, 104 bars: the fair at night. A fairground barrel organ plays alone (oom-pah, bass drum and
+    snare, like the real ones) until somebody plugs the track in: a power-up riser and the eurodance comes in. Groove; the
+    dodgem hook (A) over A minor; the hook again on the 50 % twin with a second voice (A'); a verse of chopped stabs on the
+    12.5 % lead; the sing-along chorus (B) on F, G, Am, Em; a breakdown where the organ comes back by itself; a build-up;
+    the drop with the hook on a wobbling pulse (width modulation); «Coches de choque», a half-time bridge of bouncing
+    bumps on the pitch-blip lead, buzzing pole and sparks; a second build-up a tone up; the chorus in B minor / D major; the
+    last hook in B minor; and an outro in which the track is unplugged and the organ goes back to C major on Am, F, Dm and
+    G7, so the loop falls on its own beginning."""
+    bpm = tempo(140)
+    beats = 104 * L
+    C = Cancion(bpm)
+    c = voces(C, vol_lead=-5, vol_seg=-1, vol_bajo=-1, vol_rui=-13, duty_lead=0.25)
+    # The organ: the 50 % lead with a quick vibrato (the pipes' tremolo) and chords on the 50 % second pulse arpeggiated faster than usual.
+    c['lead2'].inst = Inst('pulso', duty=0.5, adsr=(0.003, 0.06, 0.8, 0.04), vib=(16, 6.6, 0.0))
+    c['seg2'].inst = Inst('pulso', duty=0.5, adsr=(0.002, 0.06, 0.6, 0.03), arp_hz=84)
+    # Eurodance colours: a wobbling pulse (width modulation), the bumper's pitch blip, and two zap voices (one per pulse).
+    c['pwm'] = C.pista('lead pwm', Inst('pulso', duty=0.3, pwm=(0.17, 3.3), adsr=(0.002, 0.12, 0.7, 0.05), vib=(14, 6.0, 0.2)), vol=-6, reverb=0)
+    c['boing'] = C.pista('lead boing', Inst('pulso', duty=0.5, adsr=(0.001, 0.09, 0.25, 0.03), ataque=(14, 0.05)), vol=-5, reverb=0)
+    c['zap'] = C.pista('lead zap', Inst('pulso', duty=0.125, adsr=(0.001, 0.2, 0.5, 0.03)), vol=-7, reverb=0)
+    c['zap2'] = C.pista('pulso 2 zap', Inst('pulso', duty=0.25, adsr=(0.001, 0.2, 0.55, 0.03)), vol=-5, reverb=0)
+    m = Mapa(beats)
+    s_beat = 60.0 / bpm
+    MENOR, MAYOR = escala('A', 'menor'), escala('C', 'mayor')
+    ARM = armonica('A')
+
+    def zap(P, t0, arriba='C8', abajo='C6', dur=0.5, vel=96):
+        """A falling electric zap: a short note that drops from `arriba` to `abajo`."""
+        P.nota(t0, dur, abajo, vel, desde=arriba, deslizar=dur * s_beat * 0.9)
+
+    def sube_zap(P, t0, dur, desde, hasta, vel=100):
+        """A power-up: one long note that climbs from `desde` to `hasta` over `dur` beats."""
+        P.nota(t0, dur, hasta, vel, desde=desde, deslizar=dur * s_beat * 0.95)
+
+    CH_IN = ['C', 'G7', 'C', 'F', 'C', 'Am', 'Dm', 'G7']
+    CH_SE = ['Am', 'Am', 'E7', 'E7']
+    CH_A = ['Am', 'F', 'C', 'G', 'Am', 'F', 'G', 'E7']
+    CH_V = ['Am', 'Am', 'F', 'F', 'C', 'G', 'Am', 'E7']
+    CH_B = ['F', 'G', 'Am', 'Em', 'F', 'G', 'C', 'E7']
+    CH_BD = ['Am', 'E7', 'Am', 'Dm', 'F', 'G', 'E7', 'E7']
+    CH_BU = ['Am', 'F', 'G', 'E7']
+    CH_CH = ['Em', 'Em', 'Am', 'Am', 'F', 'F', 'E7', 'E7']
+    CH_BU2 = ['Bm', 'G', 'A', 'F#7']
+    CH_B2 = ['G', 'A', 'Bm', 'F#m', 'G', 'A', 'D', 'F#7']
+    CH_A2 = ['Bm', 'G', 'D', 'A', 'Bm', 'G', 'A', 'F#7']
+    CH_OU = ['Am', 'F', 'Dm', 'G7']
+    INTRO = frase('C6:4 G5:2 E5:2 G5:4 E5:2 C5:2 | D6:4 B5:2 G5:2 B5:4 D6:4 | E6:4 C6:2 E6:2 G6:4 E6:2 C6:2 | A5:2 C6:2 F6:4 A6:2 G6:2 F6:4 |'
+                  'C6:2 E6:2 G6:4 E6:2 C6:2 G5:4 | A5:2 C6:2 E6:4 A6:4 G6:2 E6:2 | D6:4 F6:2 A6:2 F6:4 D6:2 F6:2 | G6:2 F6:2 D6:2 B5:2 G5:4 G5:2 B5:2')
+    ENCHUFA = frase('E6:6 -:2 C6:6 -:2 | A5:6 -:2 E5:8')
+    A = frase('E6:2 -:2 E6:2 A6:2 -:2 G6:2 E6:4 | F6:2 -:2 F6:2 A6:2 -:2 G6:2 F6:4 | E6:2 -:2 E6:2 G6:2 -:2 C7:2 G6:4 | D6:2 -:2 D6:2 G6:2 B6:4 A6:2 G6:2 |'
+              'E6:2 -:2 E6:2 A6:2 -:2 C7:2 B6:2 A6:2 | A6:4 F6:2 A6:2 C7:4 A6:4 | B6:2 D7:2 B6:2 G6:2 D6:4 G6:4 | G#6:2 B6:2 E7:4 D7:2 B6:2 G#6:4')
+    V = frase('A5:1 -:1 A5:1 -:1 C6:2 -:2 A5:2 E6:2 D6:2 C6:2 | A5:1 -:1 A5:1 -:1 C6:2 -:2 A5:2 E6:2 G6:2 E6:2 | F5:1 -:1 F5:1 -:1 A5:2 -:2 F5:2 C6:2 A5:2 C6:2 |'
+              'F5:1 -:1 F5:1 -:1 A5:2 -:2 F5:2 C6:2 D6:2 C6:2 | E5:1 -:1 E5:1 -:1 G5:2 -:2 E5:2 C6:2 G5:2 E6:2 | D5:1 -:1 D5:1 -:1 G5:2 -:2 D5:2 B5:2 D6:2 G6:2 |'
+              'A5:1 -:1 A5:1 -:1 C6:2 -:2 E6:2 A6:2 E6:2 C6:2 | B5:4 G#5:2 B5:2 E6:4 D6:2 B5:2')
+    B = frase('C7:4 A6:4 F6:4 A6:4 | B6:4 G6:4 D6:4 G6:4 | C7:6 B6:2 A6:4 E6:4 | G6:4 E6:4 B5:4 E6:4 |'
+              'F6:2 A6:2 C7:4 A6:2 F6:2 C7:4 | D7:4 B6:4 G6:2 B6:2 D7:4 | E7:6 D7:2 C7:4 G6:4 | G#6:2 B6:2 E7:6 D7:2 B6:2 G#6:2')
+    BD = frase('A5:4 C6:4 E6:8 | D6:4 B5:4 G#5:8 | A5:4 C6:4 A6:8 | F6:4 D6:4 A5:4 D6:4 | C6:4 F6:4 A6:4 F6:4 | B5:4 D6:4 G6:4 D6:4 | G#5:4 B5:4 D6:4 B5:4 | E6:8 B5:4 G#5:4')
+    BU = frase('A5:16 | C6:8 F6:8 | D6:8 G6:8 | B6:6 E7:4 G#6:2 B6:4')
+    CHQ = frase('E5:2 -:2 E5:2 -:2 B5:2 E6:2 -:4 | E5:2 -:2 E5:2 -:2 G5:2 B5:2 E6:4 | A5:2 -:2 A5:2 -:2 E6:2 A6:2 -:4 | A5:2 -:2 A5:2 -:2 C6:2 E6:2 A6:4 |'
+                'F5:2 -:2 F5:2 -:2 C6:2 F6:2 -:4 | F5:2 -:2 F5:2 -:2 A5:2 C6:2 F6:4 | E6:2 -:2 E6:2 -:2 G#6:2 B6:2 -:2 E7:2 | D7:2 B6:2 G#6:2 E6:2 B5:2 G#5:2 E5:4')
+    BU2 = frase('B5:16 | D6:8 G6:8 | E6:8 A6:8 | C#7:6 F#7:4 A#6:2 C#7:4')
+    B2 = sube(B, 2)
+    A2 = sube(A, 2)
+    OUT = frase('-:8 E6:4 C6:4 | F6:4 A6:4 C7:4 A6:4 | D6:4 F6:4 A6:4 F6:4 | B5:4 D6:4 G6:4 D6:4')
+    for nombre, notas, ch in (('intro', INTRO, CH_IN), ('A', A, CH_A), ('V', V, CH_V), ('B', B, CH_B), ('BD', BD, CH_BD), ('CHQ', CHQ, CH_CH),
+                              ('OUT', OUT, CH_OU)):
+        revisa(f'feria {nombre}', notas, [[a] for a in ch])
+
+    K4, CLAP, HAT8, HAT16 = 'X...X...X...X...', '....x.......x...', '..x...x...x...x.', '.o.o.o.o.o.o.o.o'
+    OOMPAH = '0-......5-......'
+    OFFB = '..0-..0-..0-..0-'
+    SINC = '0..0..0.0..0..0.'
+    SALTO = '0.0.8.0.0.0.8.0.'
+    RUEDA = '.0.0.0.0.0.0.0.0'
+    # Sparks: a crackle that takes the place of a hat on a few steps (listed before the hats, so it wins the step).
+    CH1, CH2 = '...........x....', '.....x.......x.x'
+
+    def ronda(t):
+        # Intro: the barrel organ alone. The tune on the 50 % lead, chords chopped on the second beats, oom-pah bass, a soft bass
+        # drum on one and three and a snare on two and four, like the cardboard-book organs of a fair.
+        m('Intro (organillo)', t, 8, 'Do mayor')
+        tocar(c['lead2'], t, INTRO, 98)
+        sacudida(c['seg2'], t, CH_IN, '....x.......x...', desde='C4', vel=72, caida=0.55)
+        bajo(c['bajo'], t, CH_IN, OOMPAH, vel=94, caida=0.8)
+        bat(c['rui'], t, 8, [('X.......X.......', 'gb_bombo'), ('....o.......o...', 'gb_caja')], 'redoble4', vel=84, crash=90)
+        t += 8 * L
+        # Se enchufa: the organ runs down (two slow bars), a zap, and the power-up climbs over a snare roll into the groove.
+        m('Se enchufa la pista', t, 4, 'La menor')
+        tocar(c['lead2'], t, ENCHUFA, 92)
+        bajo(c['bajo'], t, CH_SE[:2], '0---------------', vel=88, caida=0.95)
+        zap(c['zap'], t + 2 * L, 'C8', 'A5', 2, 96)
+        sube_zap(c['zap2'], t + 2 * L + 2, 6, 'A3', 'A6', 104)
+        c['rui'].golpe(t + 2 * L, 'gb_arco', 100)
+        redoble(c['rui'], t + 2 * L + 2, 40, 100, 8)
+        redoble(c['rui'], t + 3 * L, 70, 124, 16)
+        bajo(c['bajo'], t + 2 * L, CH_SE[2:], ['....0-0-0-0-0-0-', '0.0.0.0.0.0.0.0.'], vel=96, caida=0.8)
+        t += 4 * L
+        # Groove: four to the floor, claps, off-beat hats, chopped stabs, the bumping bass; the hook shows its first four bars.
+        m('Groove', t, 8, 'La menor')
+        tocar(c['lead'], t + 4 * L, corta(A, 0, 4), 100)
+        sacudida(c['seg'], t, CH_A, 'x..x..x.x..x..x.', desde='A3', vel=70, caida=0.5)
+        bajo(c['bajo'], t, CH_A, [OFFB] * 3 + [SINC], vel=98, caida=0.9)
+        bat(c['rui'], t, 8, [(K4, 'gb_bombo'), (CLAP, 'gb_palma'), (HAT8, 'gb_hatab'), (['', '', '', CH1] * 2, 'gb_chispa'), (HAT16, 'gb_hat')], 'redoble4', crash=96)
+        t += 8 * L
+        # A: the dodgem hook over Am, F, C, G; sixteenth arpeggios under it.
+        m('A (gancho)', t, 8, 'La menor')
+        tocar(c['lead'], t, A, 104)
+        arpegio(c['seg'], t, CH_A, patron=(0, 1, 2, 3, 2, 1, 2, 1), desde='A4', vel=62, dur=0.2)
+        bajo(c['bajo'], t, CH_A, [OFFB, OFFB, OFFB, SINC, OFFB, OFFB, SALTO, SINC], vel=100, caida=0.9)
+        bat(c['rui'], t, 8, [(K4, 'gb_bombo'), (CLAP, 'gb_caja'), (HAT8, 'gb_hatab'), (['', CH1, '', CH2], 'gb_chispa'), (HAT16, 'gb_hat')], 'redoble4', crash=100)
+        t += 8 * L
+        # A': the hook on the 50 % twin with mordents and a second voice in thirds, the bass jumping octaves.
+        m("A' (segunda voz)", t, 8, 'La menor')
+        tocar(c['lead2'], t, mordentes(A, ARM, 1.0, 2), 104)
+        segunda_voz(c['seg'], t, A, CH_A, MENOR, vel=80)
+        bajo(c['bajo'], t, CH_A, [SALTO, SALTO, SALTO, SINC, SALTO, SALTO, RUEDA, SINC], vel=100, caida=0.9)
+        bat(c['rui'], t, 8, [(K4, 'gb_bombo'), (CLAP, 'gb_palma'), ('....X.......X..x', 'gb_caja'), (HAT8, 'gb_hatab'), (HAT16, 'gb_hat')], 'toms', crash=100)
+        t += 8 * L
+        # Verse: the 12.5 % lead chops a short tune under the heavy bass, claps on two and four, a spark now and then.
+        m('Estrofa (picada)', t, 8, 'La menor')
+        tocar(c['lead3'], t, V, 98)
+        sacudida(c['seg'], t, CH_V, '..x...x...x...x.', desde='A3', vel=64, caida=0.5)
+        bajo(c['bajo'], t, CH_V, [SINC, SINC, SINC, SINC, SINC, SINC, SALTO, SINC], vel=102, caida=0.85)
+        bat(c['rui'], t, 8, [('X.......X.......', 'gb_bombo'), (CLAP, 'gb_caja'), (['', CH2], 'gb_chispa'), (HAT8, 'gb_hatab'), (HAT16, 'gb_hat')], 'caja', crash=92)
+        t += 8 * L
+        # B: the sing-along chorus on F, G, Am, Em, long notes high on the 25 % lead, a second voice, everything playing.
+        m('B (estribillo)', t, 8, 'Do mayor')
+        tocar(c['lead'], t, B, 106)
+        segunda_voz(c['seg'], t, B, CH_B, MAYOR, vel=80)
+        bajo(c['bajo'], t, CH_B, [SALTO, SALTO, SALTO, SINC, SALTO, SALTO, SALTO, SINC], vel=104, caida=0.9)
+        bat(c['rui'], t, 8, [(K4, 'gb_bombo'), (CLAP, 'gb_palma'), ('....X.......X..x', 'gb_caja'), (HAT8, 'gb_hatab'), (HAT16, 'gb_hat')], 'redoble4', crash=110)
+        t += 8 * L
+        # Breakdown: no kick; the organ comes back by itself with a sad tune in A minor, oom-pah under it, a spark from the pole.
+        m('Puente (el organillo solo)', t, 8, 'La menor')
+        tocar(c['lead2'], t, BD, 94)
+        sacudida(c['seg2'], t, CH_BD, '....x.......x...', desde='A3', vel=68, caida=0.55)
+        bajo(c['bajo'], t, CH_BD, OOMPAH, vel=92, caida=0.8)
+        bat(c['rui'], t, 4, [('....o.......o...', 'gb_caja'), (['', CH1], 'gb_chispa'), ('o.o.o.o.o.o.o.o.', 'gb_hat')], vel=84, crash=86)
+        bat(c['rui'], t + 4 * L, 2, [('X.......X.......', 'gb_bombo'), ('....o.......o...', 'gb_caja')], vel=88)
+        bat(c['rui'], t + 6 * L, 2, [('x.x.x.x.x.x.x.x.', 'gb_caja')], 'redoble', vel=88, crash=84)
+        t += 8 * L
+        # Build-up: the kick returns, the 12.5 % lead climbs in long notes, the stabs speed up and the snare doubles twice before the stop.
+        m('Subida (build-up)', t, 4, 'La menor')
+        tocar(c['lead3'], t, BU, 98)
+        sacudida(c['seg'], t, CH_BU, ['x-------x-------', 'x---x---x---x---', 'x-x-x-x-x-x-x-x-', 'xxxxxxxxxxxx....'], desde='A3', vel=66, caida=0.5)
+        bajo(c['bajo'], t, CH_BU, [OFFB, RUEDA, '0.0.0.0.0.0.0.0.', '0.0.0.0.0.0.....'], vel=98, caida=0.8)
+        bat(c['rui'], t, 4, [([K4, K4, K4, 'X...X...X...'], 'gb_bombo'), (['', 'x...x...x...x...', 'x.x.x.x.x.x.x.x.', 'xxxxxxxxxxxx'], 'gb_caja')], vel=94)
+        t += 4 * L
+        # Drop: the hook on the wobbling pulse (width modulation), arpeggios, jumping bass and every drum.
+        m('Drop (gancho ondulante)', t, 8, 'La menor')
+        tocar(c['pwm'], t, A, 106)
+        arpegio(c['seg'], t, CH_A, patron=(0, 1, 2, 3, 4, 3, 2, 1), desde='A4', vel=64, dur=0.2)
+        bajo(c['bajo'], t, CH_A, [SALTO, SALTO, SALTO, SINC, SALTO, SALTO, RUEDA, SALTO], vel=104, caida=0.9)
+        bat(c['rui'], t, 8, [(K4, 'gb_bombo'), ('....X.......X..x', 'gb_caja'), (HAT8, 'gb_hatab'), (['', CH1, '', CH2], 'gb_chispa'), (HAT16, 'gb_hat')], 'redoble4', crash=112)
+        t += 8 * L
+        # Coches de choque: half time. The pitch-blip lead bumps on the off-beats, the pole buzzes in a held chord, the bass thuds
+        # and sparks crackle on the off-beat eighths; the last bars climb on E7.
+        m('Coches de choque (puente)', t, 8, 'Mi menor / La menor')
+        tocar(c['boing'], t, CHQ, 100)
+        sacudida(c['seg3'], t, CH_CH, 'x---------------', desde='E4', vel=56, caida=0.97)
+        bajo(c['bajo'], t, CH_CH, ['0-----..0-0-....', '0-----..0-0-0-..', '0-----..0-0-....', '0-----..0-0-0-..', '0-----..0-0-....', '0-----..0-0-0-..', '0.0.0.0.0.0.0.0.', '0.0.0.0.0.0.8.8.'], vel=104, caida=0.8)
+        bat(c['rui'], t, 8, [(['X.....x...X.x...'] * 7 + ['X.....x...X.xxxx'], 'gb_bombo'), (CLAP, 'gb_caja'), ('..x...x...x...x.', 'gb_chispa'), ('o.o.o.o.o.o.o.o.', 'gb_hat')], 'redoble', vel=100, crash=100)
+        t += 8 * L
+        # Second build-up, a tone higher (B minor): the pad climbs on B, G, A and F sharp.
+        m('Subida 2 (un tono arriba)', t, 4, 'Si menor')
+        tocar(c['lead3'], t, BU2, 100)
+        sacudida(c['seg'], t, CH_BU2, ['x-------x-------', 'x---x---x---x---', 'x-x-x-x-x-x-x-x-', 'xxxxxxxxxxxx....'], desde='B3', vel=68, caida=0.5)
+        bajo(c['bajo'], t, CH_BU2, [OFFB, OFFB, '0.0.0.0.0.0.0.0.', '0.0.0.0.0.0.....'], vel=100, caida=0.8)
+        bat(c['rui'], t, 4, [([K4, K4, K4, 'X...X...X...'], 'gb_bombo'), (['....x...', 'x...x...x...x...', 'x.x.x.x.x.x.x.x.', 'xxxxxxxxxxxx'], 'gb_caja')], vel=96)
+        t += 4 * L
+        # B+2: the chorus in B minor / D major on the 50 % twin with its second voice.
+        m('B+2 (estribillo, un tono arriba)', t, 8, 'Si menor / Re mayor')
+        tocar(c['lead2'], t, B2, 108)
+        segunda_voz(c['seg'], t, B2, CH_B2, escala('D', 'mayor'), vel=82)
+        bajo(c['bajo'], t, CH_B2, [SALTO, SALTO, SALTO, SINC, SALTO, SALTO, SALTO, SINC], vel=106, caida=0.9)
+        bat(c['rui'], t, 8, [(K4, 'gb_bombo'), (CLAP, 'gb_palma'), ('....X.......X..x', 'gb_caja'), (HAT8, 'gb_hatab'), (['', CH1, '', CH2], 'gb_chispa'), (HAT16, 'gb_hat')], 'toms', crash=114)
+        t += 8 * L
+        # The last hook in B minor on the wobbling pulse, with a harmony, ending on F sharp 7.
+        m('A+2 (gancho final)', t, 8, 'Si menor')
+        tocar(c['pwm'], t, A2, 108)
+        segunda_voz(c['seg'], t, A2, CH_A2, escala('B', 'menor'), vel=78)
+        bajo(c['bajo'], t, CH_A2, [SALTO, SALTO, SALTO, SINC, SALTO, SALTO, RUEDA, SALTO], vel=106, caida=0.9)
+        bat(c['rui'], t, 8, [(K4, 'gb_bombo'), (CLAP, 'gb_palma'), ('....X.......X..x', 'gb_caja'), (HAT8, 'gb_hatab'), (['', CH1, '', CH2], 'gb_chispa'), (HAT16, 'gb_hat')], 'redoble', crash=116)
+        t += 8 * L
+        # Outro: somebody pulls the plug (a falling zap and an arc), and the organ plays on in C major over Am, F, Dm and G7,
+        # which pulls back to the intro.
+        m('Salida (se desenchufa)', t, 4, 'Do mayor')
+        zap(c['zap'], t, 'E7', 'E5', 2, 98)
+        c['rui'].golpe(t, 'gb_arco', 104)
+        tocar(c['lead2'], t, OUT, 96)
+        sacudida(c['seg2'], t, CH_OU, '....x.......x...', desde='A3', vel=70, caida=0.55)
+        bajo(c['bajo'], t, CH_OU, OOMPAH, vel=94, caida=0.8)
+        bat(c['rui'], t + L, 3, [('X.......X.......', 'gb_bombo'), ('....o.......o...', 'gb_caja')], vel=84)
+        return t + 4 * L
+
+    return C, ronda, beats, bpm, m
+
+
 # @@CANCIONES@@
 
-CANCIONES = {'combate-verbena': combate_verbena, 'combate-electro': combate_electro, 'combate-terraza': combate_terraza, 'combate-rural': combate_rural, 'combate-juan': combate_juan}
+CANCIONES = {'combate-verbena': combate_verbena, 'combate-electro': combate_electro, 'combate-terraza': combate_terraza, 'combate-rural': combate_rural, 'combate-juan': combate_juan, 'combate-feria': combate_feria}
 
 if __name__ == '__main__':
     pedidas = sys.argv[1:2] or ['todas']

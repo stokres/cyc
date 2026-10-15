@@ -5,7 +5,7 @@
 //   pedirEleccion(j, estado, ms) / pedirReemplazo(j, estado, ms)   the local player decides (promises)
 //   alTurno(eventos, estado) / alReemplazo(eventos, estado)       play the events, then adopt `estado`
 // so a guest can drive it from network messages exactly like the host does from Partida.
-import { ENTRENADORES, type Eleccion, type Estado, type EstadoCombate, type Evento, type HabilidadId, type ObjetoId, type ObjetoLlevado, type Stat, type SucesoId, type Tipo, type Userito } from '../tipos';
+import { ENTRENADORES, type Eleccion, type EscenarioId, type Estado, type EstadoCombate, type Evento, type HabilidadId, type ObjetoId, type ObjetoLlevado, type Stat, type SucesoId, type Tipo, type Userito } from '../tipos';
 import { COLOR_TIPO } from '../arte/paleta';
 import { hayTexto } from '../../juego/textos';
 import { ESPECIE, MOVS, DESESPERADA, OBJETO_PERMANENTE, SUCESOS, eficacia, potenciaRemate } from '../datos';
@@ -269,15 +269,18 @@ const ALTO_CHAPA = 13;
 /** The colour of the line «dura N turnos más» in the card of a suceso. */
 const colorAyuda = '#a8501c';
 
+/** The heading of the banner and of the card of a suceso: «SUCESO EN EL BAR», or «SUCESO EN LA FERIA» at the fair. */
+const tituloSuceso = (esc: EscenarioId): string => t(esc === 'feria' ? 'suceso.titulo.feria' : 'suceso.titulo');
+
 /** The big banner of a suceso of the bar («SUCESO EN EL BAR», its name in big letters, how long it lasts), baked once per suceso: a blit per frame while it is up. */
-function cartelSucesoImg(id: SucesoId): HTMLCanvasElement {
+function cartelSucesoImg(id: SucesoId, esc: EscenarioId): HTMLCanvasElement {
   const nombre = t(`suceso.${id}.nombre`).toUpperCase();
+  const cab = tituloSuceso(esc);
   const w = ANCHO_CARTEL_SUCESO;
   const h = ALTO_CARTEL_SUCESO;
-  return hornear(`suceso-cartel|${id}|${nombre}`, w, h, (cx) => {
+  return hornear(`suceso-cartel|${id}|${nombre}|${cab}`, w, h, (cx) => {
     panel(cx, 0, 0, w, h);
     // The ribbon with the heading.
-    const cab = t('suceso.titulo');
     const rw = anchoTexto2(cab) + 20;
     const rx = Math.floor((w - rw) / 2);
     relleno(cx, TINTA2, rx, 6, rw, 12);
@@ -779,10 +782,12 @@ export class VistaCombate implements Escena {
     }
   }
 
-  /** Whether `ev` is an effect of the suceso just announced (a heal, a stage change, or a line about them). */
+  /** Whether `ev` is an effect of the suceso just announced (a heal, a bump, a stage change, or a line about them). */
   private deSuceso(ev: Evento): boolean {
     if (!ev.fin) return false;
     switch (ev.k) {
+      case 'golpe': // ¡Coches de choque!: the bump takes HP off everybody (no text of its own: the phrase says it)
+        return !ev.clave;
       case 'cura':
       case 'nivel':
         return !ev.clave || ev.clave.startsWith('combate.');
@@ -2151,7 +2156,7 @@ export class VistaCombate implements Escena {
     // The banner of the one being announced, in the middle of the field.
     if (this.cartelSuceso) {
       const y = G.hud + Math.max(4, Math.floor((G.campo - G.hud - ALTO_CARTEL_SUCESO) / 2));
-      ctx.drawImage(cartelSucesoImg(this.cartelSuceso), Math.floor((ANCHO - ANCHO_CARTEL_SUCESO) / 2), y);
+      ctx.drawImage(cartelSucesoImg(this.cartelSuceso, this.disp.escenario), Math.floor((ANCHO - ANCHO_CARTEL_SUCESO) / 2), y);
     }
   }
 
@@ -2177,7 +2182,7 @@ export class VistaCombate implements Escena {
           entrada.zona(0, 0, ANCHO, H, cierra);
           entrada.zona(x, y, w, h, () => undefined);
           panelCacheado(ctx, x, y, w, h);
-          texto2(ctx, t('suceso.titulo'), x + 12, y + 11, TINTA_SUAVE, null);
+          texto2(ctx, tituloSuceso(this.disp.escenario), x + 12, y + 11, TINTA_SUAVE, null);
           const dos = anchoTexto2(nombre) * 2 <= w - 24;
           if (dos) textoGrande(ctx, nombre, x + 12, y + 24, TINTA2, 2);
           else texto2(ctx, recortar(nombre, w - 24), x + 12, y + 27);

@@ -179,7 +179,7 @@ async function retarJefe(a: Aventura, i: number, guardar: (a: Aventura) => void)
 
 /** The final: the three friends at once, all against all. */
 async function jugarFinal(a: Aventura, guardar: (a: Aventura) => void): Promise<void> {
-  const otros = ENTRENADORES.filter((e) => e !== a.entrenador);
+  const otros = ENTRENADORES.filter((e) => e !== a.entrenador).slice(0, 3); // the final is always against three (see `jefeDe`)
   const equipos = equiposFinal(a);
   const { resultado, vista } = await batallaCaza({
     yo: a.entrenador,

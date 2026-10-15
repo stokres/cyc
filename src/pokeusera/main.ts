@@ -1,7 +1,7 @@
 // PokéUsera · Edición Jarra: entry point (pokeusera.html). Canvas, texts, input, sound, flow.
 // Test shortcuts: ?combate (random team, straight to battle), ?draft, ?auto (a machine plays your
-// seat, fast), ?rapido (fast animations only: for testing online play by hand), ?semilla=N, ?pj=fran|pablo|chuchi|guille,
-// ?escenario=brio|terraza|rural|juan (the bar of the battle; otherwise AJUSTES' ESCENARIO, which is at random by default),
+// seat, fast), ?rapido (fast animations only: for testing online play by hand), ?semilla=N, ?pj=fran|pablo|chuchi|guille|vinas|ari|fer,
+// ?escenario=brio|terraza|rural|juan|feria (the bar of the battle; otherwise AJUSTES' ESCENARIO, which is at random by default),
 // ?barra (with ?combate: «La barra» is played too, instead of the machine choosing the objects),
 // ?aventura (no title or menu: straight into AVENTURA, the one-player hunting mode; its saved adventure, or the trainer pick if there is none),
 // ?aventura&demo (a test adventure in memory, never saved: the starter plus seven caught, bar 2 open; ?pj=... picks the trainer, Fran by default),

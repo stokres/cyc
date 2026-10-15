@@ -10,7 +10,7 @@
 //                                'combate' is four tunes: each new battle takes another one than the last, at random,
 //                                and asking again during the same battle (also after 'final') keeps the same one.
 //   sonido.elegirCombate('rural')  the next battle's tune is the one of that scenario ('terraza' rumba, 'rural' techno,
-//                                'juan' bachata); 'brio' or nothing = the rotation of the four. Call it before the
+//                                'juan' bachata, 'feria' fairground organ and dodgem eurodance); 'brio' or nothing = the rotation of the four. Call it before the
 //                                `musica('combate')` (and the `precargar('combate')`) of the battle; it counts once.
 //   sonido.efecto('golpeFuerte') one of EFECTOS, 0.6 s at most.
 //   sonido.grito('aceituna')     the cry of a userito, always the same for the same id.
@@ -25,16 +25,17 @@ import urlCombateElectro from '../sonido/pokeusera-combate-electro.mp3?url';
 import urlCombateTerraza from '../sonido/pokeusera-combate-terraza.mp3?url';
 import urlCombateRural from '../sonido/pokeusera-combate-rural.mp3?url';
 import urlCombateJuan from '../sonido/pokeusera-combate-juan.mp3?url';
+import urlCombateFeria from '../sonido/pokeusera-combate-feria.mp3?url';
 import urlFinal from '../sonido/pokeusera-final.mp3?url';
 import urlVictoria from '../sonido/pokeusera-victoria.mp3?url';
 
 export type Musica = 'titulo' | 'draft' | 'combate' | 'final' | 'victoria';
 /** The files behind `Musica`: 'combate' is one of these (see `elegirCombate`). */
-type Pista = Musica | 'combateRock' | 'combateVerbena' | 'combateElectro' | 'combateTerraza' | 'combateRural' | 'combateJuan';
+type Pista = Musica | 'combateRock' | 'combateVerbena' | 'combateElectro' | 'combateTerraza' | 'combateRural' | 'combateJuan' | 'combateFeria';
 /** The rotation of the Bar del Brío. */
 const COMBATES: readonly Pista[] = ['combate', 'combateRock', 'combateVerbena', 'combateElectro'];
 /** The tune of each scenario that has one of its own. */
-const COMBATE_DE: Record<Exclude<EscenarioId, 'brio'>, Pista> = { terraza: 'combateTerraza', rural: 'combateRural', juan: 'combateJuan' };
+const COMBATE_DE: Record<Exclude<EscenarioId, 'brio'>, Pista> = { terraza: 'combateTerraza', rural: 'combateRural', juan: 'combateJuan', feria: 'combateFeria' };
 const ES_COMBATE: ReadonlySet<Pista> = new Set<Pista>([...COMBATES, ...Object.values(COMBATE_DE)]);
 export const EFECTOS = [
   'cursor', 'aceptar', 'atras', 'golpe', 'golpeFuerte', 'golpeFlojo', 'critico', 'falla', 'cae', 'sube', 'baja', 'cura',
@@ -64,6 +65,7 @@ const PISTAS: Record<Pista, { url: string; inicio: number; fin: number | null }>
   combateTerraza: { url: urlCombateTerraza, inicio: 0.5, fin: 176.484036 },
   combateRural: { url: urlCombateRural, inicio: 0.5, fin: 181.351519 },
   combateJuan: { url: urlCombateJuan, inicio: 0.5, fin: 177.714694 },
+  combateFeria: { url: urlCombateFeria, inicio: 0.5, fin: 178.785714 },
   final: { url: urlFinal, inicio: 0.5, fin: 167.944898 },
   victoria: { url: urlVictoria, inicio: 0, fin: null },
 };
@@ -248,7 +250,7 @@ export class Sonido {
   }
 
   /**
-   * Chooses the tune of the next battle by its scenario: 'terraza' (rumba), 'rural' (techno) and 'juan' (bachata) have one
+   * Chooses the tune of the next battle by its scenario: 'terraza' (rumba), 'rural' (techno), 'juan' (bachata) and 'feria' (organ and eurodance) have one
    * of their own; 'brio' or no argument is the rotation of the four (a new draw, never the last battle's). It counts for
    * one battle (the next `musica('combate')` that starts one), so a scenario without a call falls back to the rotation.
    * Call it before `precargar('combate')`, which then loads just that tune. A battle in course keeps its own. It can be called

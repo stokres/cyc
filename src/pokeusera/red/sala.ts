@@ -254,12 +254,13 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
           if (j.id === con.id) pastilla(ctx, t('sala.tu'), xf, py, j.pj ? colorEnt(j.pj) : TINTA_SUAVE, '#ffffff');
         }
 
-        // Pick your trainer: 2×2.
+        // Pick your trainer: seven in two columns (a face icon and two lines on a short phone, the 40×40 portrait when there is room).
         let y = 23 + 4 * (hf + 2) + 3;
         texto2(ctx, t('sala.elige'), Math.floor((ANCHO - anchoTexto2(t('sala.elige'))) / 2), y + 2, TINTA2, '#f0e6c8');
         y += 15;
         const mio = miPj();
-        const ch = 50 + Math.min(8, Math.floor(extra / 16));
+        const ch = 30 + Math.min(18, Math.floor(extra / 8));
+        const comp = ch < 44;
         ENTRENADORES.forEach((id, i) => {
           const x = 4 + (i % 2) * 118;
           const yy = y + Math.floor(i / 2) * (ch + 4);
@@ -271,15 +272,21 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
             rect(ctx, col, x - 2, yy - 2, 116 + 4, ch + 4);
           }
           panelCacheado(ctx, x, yy, 116, ch, col);
-          ctx.drawImage(retrato2(id), x + 6, yy + Math.floor((ch - 40) / 2));
-          texto2(ctx, nombreEnt(id), x + 52, yy + Math.floor(ch / 2) - 10, TINTA2);
           const estado = mia ? t('sala.tuyo') : ajena ? t('sala.ocupado') : t('sala.libre');
-          texto2(ctx, estado, x + 52, yy + Math.floor(ch / 2) + 4, mia ? col : TINTA_SUAVE, null);
+          if (comp) {
+            ctx.drawImage(icono2(id), x + 6, yy + Math.floor((ch - 16) / 2));
+            texto2(ctx, nombreEnt(id), x + 28, yy + Math.floor(ch / 2) - 8, TINTA2);
+            texto2(ctx, estado, x + 28, yy + Math.floor(ch / 2) + 3, mia ? col : TINTA_SUAVE, null);
+          } else {
+            ctx.drawImage(retrato2(id), x + 6, yy + Math.floor((ch - 40) / 2));
+            texto2(ctx, nombreEnt(id), x + 52, yy + Math.floor(ch / 2) - 10, TINTA2);
+            texto2(ctx, estado, x + 52, yy + Math.floor(ch / 2) + 4, mia ? col : TINTA_SUAVE, null);
+          }
           if (ajena) velo(ctx, x + 2, yy + 2, 112, ch - 4, '#f0e2c0', 0.62);
           const k = ctl.length;
           ctl.push({ x, y: yy, w: 116, h: ch, fn: () => ((sel = k), elegir(id)) });
         });
-        y += 2 * (ch + 4);
+        y += Math.ceil(ENTRENADORES.length / 2) * (ch + 4);
 
         // Host: fill with machines?
         if (con.anfitrion) {
@@ -321,14 +328,15 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
       accion(a: Accion) {
         teclado = true;
         const n = ctl.length;
+        const NT = ENTRENADORES.length;
         if (!n || empezando) return true;
         sel = Math.min(sel, n - 1);
         if (a === 'atras') salir();
         else if (a === 'aceptar') ctl[sel].fn();
         else if (a === 'der') sel = (sel + 1) % n;
         else if (a === 'izq') sel = (sel + n - 1) % n;
-        else if (a === 'abajo') sel = sel < 2 ? sel + 2 : sel === 2 || sel === 3 ? 4 % n : (sel + 1) % n;
-        else if (a === 'arriba') sel = sel >= 2 && sel < 4 ? sel - 2 : sel === 4 % n ? 2 : (sel + n - 1) % n;
+        else if (a === 'abajo') sel = sel + 2 < NT ? sel + 2 : sel < NT ? NT % n : (sel + 1) % n;
+        else if (a === 'arriba') sel = sel >= 2 && sel < NT ? sel - 2 : sel === NT % n ? NT - 1 : (sel + n - 1) % n;
         if (a !== 'aceptar' && a !== 'atras') sonido.efecto('cursor');
         return true;
       },

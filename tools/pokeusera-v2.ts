@@ -22,7 +22,7 @@ import { fondoBar } from '../src/pokeusera/arte2/escena2';
 import { ESCENARIOS, fondoEscenario, type EscenarioId } from '../src/pokeusera/arte2/escenarios2';
 import { EfectosMov, MOVS_CON_EFECTO, precalentarEfectos, semillaFx, type PuntoFx } from '../src/pokeusera/pantallas/efectosMov';
 import { MOVS } from '../src/pokeusera/datos';
-import type { EntrenadorId } from '../src/pokeusera/tipos';
+import { ENTRENADORES, type EntrenadorId } from '../src/pokeusera/tipos';
 import raw from '../src/textos/pokeusera.md?raw';
 import rawCombate from '../src/textos/pokeusera-combate.md?raw';
 import { cargarTextos } from '../src/juego/textos';
@@ -164,10 +164,10 @@ if (vista === 'fuente') {
 // ---------------------------------------------------------------------------------------------
 if (vista === 'entrenadores') {
   document.getElementById('entrenadores-w')!.style.display = 'inline-block';
-  const ids: EntrenadorId[] = ['fran', 'pablo', 'chuchi', 'guille'];
+  const ids: EntrenadorId[] = [...ENTRENADORES];
   const CW = 64,
     CH = 88;
-  const ancho = Math.max(CW * 4, 240);
+  const ancho = Math.max(CW * ids.length, 240);
   const alto = CH * 2 + 30 + 52 + 100;
   const ctx = lienzo('entrenadores', ancho, alto, ZOOM);
   ctx.fillStyle = '#e9dfc6';

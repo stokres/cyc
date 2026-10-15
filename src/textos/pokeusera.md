@@ -212,6 +212,7 @@ escenario.brio = BAR DEL BRÍO
 escenario.terraza = LA TERRAZA
 escenario.rural = CASA RURAL DRAG QUEEN
 escenario.juan = BAR DONDE JUAN
+escenario.feria = LA FERIA
 
 pausa.titulo = PAUSA
 pausa.abandonar = ABANDONAR
@@ -225,6 +226,9 @@ entrenador.fran = Fran
 entrenador.pablo = Pablo
 entrenador.chuchi = Chuchi
 entrenador.guille = Guille
+entrenador.vinas = Viñas
+entrenador.ari = Ari
+entrenador.fer = Fer
 entrenador.titulo = ¿QUIÉN ERES?
 entrenador.volver = VOLVER
 
@@ -237,6 +241,12 @@ entrenador.chuchi.perk = Llega tarde
 entrenador.chuchi.perk_d = El primer golpe que recibe cada userito le hace un 20 % menos.
 entrenador.guille.perk = Mañico
 entrenador.guille.perk_d = Una vez por userito, aguanta con 1 PS un golpe mortal a vida llena.
+entrenador.vinas.perk = Verso libre
+entrenador.vinas.perk_d = Sus ataques de Chanza y Juerga pegan un 10 % más.
+entrenador.ari.perk = De su cosecha
+entrenador.ari.perk_d = Cada golpe que da tiene un 10 % más de salir crítico.
+entrenador.fer.perk = Cancelación de ruido
+entrenador.fer.perk_d = Los movimientos con la etiqueta SONIDO (bocinas, gritos, música…) no le afectan.
 entrenador.elegir = ELEGIR
 
 // ---- draft
@@ -463,6 +473,7 @@ guia.sucesos.sitio.brio = el Bar del Brío
 guia.sucesos.sitio.terraza = la terraza
 guia.sucesos.sitio.rural = la Casa Rural Drag Queen
 guia.sucesos.sitio.juan = el Bar Donde Juan
+guia.sucesos.sitio.feria = la feria
 guia.objetos.nota = Tras el draft, la barra te ofrece 3 objetos al azar: eliges uno y a cuál de tus useritos se lo das. Los rivales no ven qué llevas hasta que funciona; entonces sale un cartel. Casi todos se gastan al usarse; los permanentes lo dicen.
 guia.perks.nota = Cada entrenador trae una ventaja pequeña. Vale para todos, también para la máquina.
 
@@ -502,6 +513,7 @@ useritopedia.pot.remate = 20-200
 useritopedia.prio.rapido = RÁPIDO (+1)
 useritopedia.prio.proteccion = PROTECCIÓN (+2)
 useritopedia.prio.lento = LENTO (-1)
+useritopedia.sonido = SONIDO
 useritopedia.cat.fisico = FÍSICO
 useritopedia.cat.especial = ESPECIAL
 useritopedia.cat.estado = ESTADO

@@ -16,7 +16,7 @@
 // stat-explanation bubble). A frame is a few drawImage calls. When idle, `paso` bakes the next row / the neighbours
 // of the open ficha, one per frame, so scrolling and ◀ ▶ never hitch. No text is wrapped or measured per frame.
 import { TIPOS_FISICOS, type Tipo } from '../tipos';
-import { ESPECIES, MOVS, TIPOS, eficacia } from '../datos';
+import { ESPECIES, MOVS, TIPOS, eficacia, esSonido } from '../datos';
 import { anchoTexto2 } from '../arte2/fuente2';
 import { ORO_UI_OSC, PAPEL_MEDIO, TINTA2, TINTA_SUAVE } from '../arte2/paleta2';
 import { spriteEspalda2, spriteFrente2 } from '../arte2/sprites2';
@@ -251,6 +251,8 @@ function maquetar(cx: CanvasRenderingContext2D | null, i: number): Omit<Ficha, '
         cx.drawImage(iconoPrioridad(clase), X0 + 10 + wc + 10, y + 36);
         texto2(cx, t(`useritopedia.prio.${clase}`), X0 + 10 + wc + 10 + LADO_ICONO_PRIO + 4, y + 37, ORO_UI_OSC, null);
       }
+      // Sound moves (Fer's «Cancelación de ruido» does not let them through): a label next to the category.
+      if (esSonido(m.id)) texto2(cx, t('useritopedia.sonido'), X0 + 10 + wc + 10, y + 37, ORO_UI_OSC, null);
       rect(cx, '#d6c08a', X0 + 10, y + 49, AN - 20, 1);
       dm.forEach((l, j) => texto2(cx, l, X0 + 12, y + 53 + j * 12, TINTA2, null));
     }

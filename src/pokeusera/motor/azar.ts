@@ -35,3 +35,11 @@ export function crearRnd(semilla: number): () => number {
   const s: ConSemilla = { semilla: semilla | 0 };
   return () => azar(s);
 }
+
+/** `n` different elements of `lista` picked at random (a partial Fisher-Yates shuffle of a copy), with a standalone generator. */
+export function sacarAlAzar<T>(lista: readonly T[], n: number, rnd: () => number): T[] {
+  const copia = [...lista];
+  const fuera: T[] = [];
+  for (let i = 0; i < n && copia.length; i++) fuera.push(copia.splice(Math.floor(rnd() * copia.length), 1)[0]);
+  return fuera;
+}

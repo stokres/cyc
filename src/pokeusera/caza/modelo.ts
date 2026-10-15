@@ -103,7 +103,7 @@ export const finalAbierta = (a: Aventura): boolean => a.jefes.every(Boolean);
 
 /** The boss of bar i: the other three friends in a fixed order, and the fourth bar's boss is the first one again (with a stronger team). */
 export function jefeDe(a: Aventura, i: number): EntrenadorId {
-  const otros = ENTRENADORES.filter((e) => e !== a.entrenador);
+  const otros = ENTRENADORES.filter((e) => e !== a.entrenador).slice(0, 3); // Aventura keeps its three rivals (the first three others) whatever the number of trainers
   return otros[i % otros.length];
 }
 

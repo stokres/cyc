@@ -47,7 +47,7 @@ export interface ResumenJugador {
   pe: 0 | 1;
   /** Puesto final (1 a 4). */
   pu: number;
-  /** Ventaja de entrenador: `cana` (Fran), `labia` (Pablo), `tarde` (Chuchi), `manico` (Guille). */
+  /** Ventaja de entrenador: `cana` (Fran), `labia` (Pablo), `tarde` (Chuchi), `manico` (Guille), `verso` (Viñas), `cosecha` (Ari), `ruido` (Fer). */
   ve: string;
   /**
    * Cuenta de usuario (docs/POKEUSERA.md, «Cuentas»). El móvil pone aquí el TOKEN secreto de la persona (null: máquina o sin cuenta); el servidor lo cambia

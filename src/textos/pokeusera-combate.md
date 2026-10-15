@@ -405,9 +405,11 @@ hab.malaleche.nombre = Mala leche
 hab.malaleche.desc = Cada vez que le pegan con un ataque, sube 1 su Ataque (como mucho una vez por turno).
 hab.malaleche.activa = ¡{quien} se pone de mala leche!
 
-// ---- ventajas de entrenador (motor/combate.ts: Chuchi «Llega tarde», Guille «Mañico»)
+// ---- ventajas de entrenador (motor/combate.ts: Chuchi «Llega tarde», Guille «Mañico», Ari «De su cosecha», Fer «Cancelación de ruido»)
 combate.perk.chuchi = {quien} llegaba tarde: el golpe le pilla a medias.
 combate.perk.guille = ¡{quien} aguanta como un buen mañico!
+combate.perk.ari = ¡{quien} improvisa y el golpe sale mejor de lo previsto!
+combate.perk.fer = {quien} lleva los cascos puestos: el ruido no le llega.
 
 // ---- un movimiento a todos los rivales: una sola línea para todos los que lo sufren ({quienes}: «A, B y C»)
 combate.todos.y = y
@@ -440,6 +442,7 @@ combate.todos.baja2.prec = ¡La precisión de {quienes} baja mucho!
 // ---- sucesos del bar (turnos 5, 10, 15, 20 y 25; motor/combate.ts: iniciarSuceso). Por cada uno:
 //      .nombre = el cartel y la chapita · .frase = lo que se dice al salir · .desc = lo que explica al tocar la chapita
 suceso.titulo = SUCESO EN EL BAR
+suceso.titulo.feria = SUCESO EN LA FERIA
 suceso.al_momento = AL MOMENTO
 suceso.dura1 = ESTE TURNO
 suceso.dura = {n} TURNOS
@@ -505,6 +508,14 @@ suceso.chinchin.nombre = Chin chin
 suceso.chinchin.frase = ¡Chin chin! Juan invita a los que van peor.
 suceso.chinchin.desc = Los 2 jugadores con menos vida en total curan 1/8 a su userito al final de cada turno.
 suceso.chinchin.cura = ¡{quien} brinda y se anima!
+
+suceso.choque.nombre = ¡Coches de choque!
+suceso.choque.frase = ¡Coches de choque! Todos se estampan con todos y pierden 1/10 de sus PS, menos los de Chispa y Petardo, que ya tienen el carné.
+suceso.choque.desc = Todos los useritos en combate chocan entre sí y pierden 1/10 de sus PS máximos, aunque sin llegar a tumbarlos. Los de tipo Chispa y Petardo no, porque van conduciendo.
+
+suceso.pista.nombre = Se enchufa la pista
+suceso.pista.frase = ¡Se enchufa la pista! Chispa pega un 50 % más y quien no es de Chispa pierde 1 de Velocidad al ser golpeado.
+suceso.pista.desc = Los ataques de tipo Chispa pegan un 50 % más y todos los useritos que no son de tipo Chispa bajan 1 su Velocidad cada vez que reciben un ataque.
 
 // ---- objetos de la barra (motor/combate.ts, pantallas/barra.ts, guía y ficha)
 objeto.unico = UN USO

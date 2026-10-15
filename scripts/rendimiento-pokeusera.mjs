@@ -17,7 +17,7 @@
 //   node scripts/rendimiento-pokeusera.mjs [pantalla...]     (default: all)  [PUERTO=5173]
 //   node scripts/rendimiento-pokeusera.mjs 5174 combate-juega     (a bare number is the port)
 //   screens: titulo, menu, ajustes, entrenador, draft, draft-flujo, barra, salida, combate-elige, combate-juega, combate-ritmo (+ the four bars: combate-elige-<bar> and combate-juega-<bar>,
-//            with <bar> = rural, terraza, juan; the default combate-* ones are the Bar del Brío), podio, estadisticas, useritopedia, useritopedia-ficha, acumuladas, acumuladas-records, guia, guia-objetos, salida,
+//            with <bar> = rural, terraza, juan, feria; the default combate-* ones are the Bar del Brío), podio, estadisticas, useritopedia, useritopedia-ficha, acumuladas, acumuladas-records, guia, guia-objetos, salida,
 //            nombre (la pantalla «¿Cómo te llamas?», sin cuenta), cuenta (AJUSTES → MI CUENTA), acumuladas-yo (ESTADÍSTICAS, página YO, con una copia guardada de 80 batallas),
 //            aventura-inicial, aventura-mapa, aventura-zona, aventura-equipo, aventura-salvaje (AVENTURA, src/pokeusera/caza/: ?aventura&demo=nueva&pj=fran and ?aventura&demo)
 // Environment: SEG=4 (seconds measured per screen), CPU=4 (throttling rate; 1 = none, budgets then do not apply),
@@ -53,11 +53,13 @@ const PRESUPUESTOS = {
   // ?auto plays ten times faster than a person sees (the animations last a tenth): nearly always something moves. It also sets off the move effects (≈ 10 drawImage while one flies).
   // «Lienzos» here are the screen's own (the text lines, damage numbers, badges); the background baking of precalentar.ts is not counted.
   'combate-juega': { redibujos: 60, ms: 6, pico: 50, cb: 30, di: 120, lienzos: 200, largas: 6, primer: 600 },
-  // The same battle in each of the other three bars (backdrop, music and the bar's own sucesos): same budget as the Brío.
+  // The same battle in each of the other four bars (backdrop, music and the bar's own sucesos): same budget as the Brío.
   'combate-elige-rural': { redibujos: 8, ms: 4, pico: 25, cb: 5, di: 85, lienzos: 0, largas: 0, primer: 600 },
   'combate-elige-terraza': { redibujos: 8, ms: 4, pico: 25, cb: 5, di: 85, lienzos: 0, largas: 0, primer: 600 },
   'combate-elige-juan': { redibujos: 8, ms: 4, pico: 25, cb: 5, di: 85, lienzos: 0, largas: 0, primer: 600 },
   'combate-juega-rural': { redibujos: 60, ms: 6, pico: 50, cb: 30, di: 120, lienzos: 200, largas: 6, primer: 600 },
+  'combate-elige-feria': { redibujos: 8, ms: 4, pico: 25, cb: 5, di: 85, lienzos: 0, largas: 0, primer: 600 },
+  'combate-juega-feria': { redibujos: 60, ms: 6, pico: 50, cb: 30, di: 120, lienzos: 200, largas: 6, primer: 600 },
   'combate-juega-terraza': { redibujos: 60, ms: 6, pico: 50, cb: 30, di: 120, lienzos: 200, largas: 6, primer: 600 },
   'combate-juega-juan': { redibujos: 60, ms: 6, pico: 50, cb: 30, di: 120, lienzos: 200, largas: 6, primer: 600 },
   'combate-ritmo': { redibujos: 40, ms: 5, pico: 50, cb: 16, di: 100, lienzos: 60, largas: 4, primer: 600 },
@@ -100,11 +102,11 @@ const PANTALLAS = {
   // The draft as a player reaches it: title, menu, trainer pick, one and a half seconds on each (the background baking
   // gets only that long). «1.º pico» is then the worst frame from the moment ELEGIR is pressed: how much the draft stalls.
   'draft-flujo': { url: '', ir: async (p, marca) => { await tecla(p, 'Enter'); await dormir(1500); await tecla(p, 'Enter'); await dormir(1500); await marca(); await tecla(p, 'Enter'); }, quieto: false },
-  'combate-elige': { url: '?combate&semilla=7', ir: async () => {}, esperar: 2500 },
+  'combate-elige': { url: '?combate&semilla=7&escenario=brio', ir: async () => {}, esperar: 2500 },
   // The battle plays by itself (and writes new lines of text all the time): there is no quiet moment to wait for.
-  'combate-juega': { url: '?combate&auto&semilla=7', ir: async () => {}, esperar: 1500, quieto: false },
+  'combate-juega': { url: '?combate&auto&semilla=7&escenario=brio', ir: async () => {}, esperar: 1500, quieto: false },
   // The same battle at the pace a player sees (the speed setting NORMAL, no ?auto shortcut speed-up): `cfg` is changed in the page (dev server only).
-  'combate-ritmo': { url: '?combate&auto&semilla=7', ir: async (p) => { await p.evaluate(async () => { const ui = await import('/src/pokeusera/pantallas/ui.ts'); ui.cfg.rapido = false; ui.cfg.velocidad = 'normal'; }); }, esperar: 3000, quieto: false },
+  'combate-ritmo': { url: '?combate&auto&semilla=7&escenario=brio', ir: async (p) => { await p.evaluate(async () => { const ui = await import('/src/pokeusera/pantallas/ui.ts'); ui.cfg.rapido = false; ui.cfg.velocidad = 'normal'; }); }, esperar: 3000, quieto: false },
   // «La barra»: ?combate&barra goes straight to it (no draft). Its 20 s clock is stretched so it does not end while measuring; an object and a userito are chosen.
   barra: { url: '?combate&barra&semilla=7', ir: async (p) => { await entraBarra(p); await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter', false); }, esperar: 1500 },
   // «¿Quién sale primero?»: the step after La barra (?combate&barra goes through both). Its 15 s clock is stretched as well; a userito is marked.
@@ -142,7 +144,7 @@ const PANTALLAS = {
   'aventura-salvaje': { url: '?aventura&demo', ir: async (p) => { await tecla(p, 'ArrowUp', false); await tecla(p, 'Enter'); await tecla(p, 'Enter'); }, esperar: 2500 },
 };
 // The battle screens in each other bar (the Bar del Brío is the default one above).
-for (const esc of ['rural', 'terraza', 'juan']) {
+for (const esc of ['rural', 'terraza', 'juan', 'feria']) {
   PANTALLAS[`combate-elige-${esc}`] = { ...PANTALLAS['combate-elige'], url: `?combate&semilla=7&escenario=${esc}` };
   PANTALLAS[`combate-juega-${esc}`] = { ...PANTALLAS['combate-juega'], url: `?combate&auto&semilla=7&escenario=${esc}` };
 }
@@ -183,7 +185,7 @@ async function sembrarEstadisticas(p) {
           return { e, o, ob, oa: ob && rnd() < 0.7 ? 1 : 0, ini: o === 0 ? 1 : 0, dh: Math.floor(rnd() * 500), dr: Math.floor(rnd() * 500), dp: Math.floor(rnd() * 40), cu: Math.floor(rnd() * 100), ko: Math.floor(rnd() * 3), ca: rnd() < 0.8 ? 1 : 0, tf: 1 + Math.floor(rnd() * 20), cr: Math.floor(rnd() * 4), ha: Math.floor(rnd() * 3), mx: 40 + Math.floor(rnd() * 200), mm: Object.keys(mv)[0] ?? movs[0], mv };
         }),
       }));
-      sumarResumen(ag, { v: 1, id: 'x' + b, ver: 'dev', f: 1792000000000 + b * 60000, mo: 'maquina', es: ['brio', 'terraza', 'rural', 'juan'][b % 4], tu: 10 + Math.floor(rnd() * 30), su: Object.keys(SUCESOS).sort(() => rnd() - 0.5).slice(0, 1 + (b % 4)), ju });
+      sumarResumen(ag, { v: 1, id: 'x' + b, ver: 'dev', f: 1792000000000 + b * 60000, mo: 'maquina', es: ['brio', 'terraza', 'rural', 'juan', 'feria'][b % 5], tu: 10 + Math.floor(rnd() * 30), su: Object.keys(SUCESOS).sort(() => rnd() - 0.5).slice(0, 1 + (b % 4)), ju });
     }
     localStorage.setItem('pokeusera.est.local', JSON.stringify(ag));
     localStorage.setItem('pokeusera.est.vista', JSON.stringify({ fuente: 'movil', filtro: 'todas' }));

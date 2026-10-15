@@ -365,11 +365,239 @@ function guille(P: Pintor): void {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Fer · bald, neat short beard, strong brows, plain black tee, thin necklace and ALWAYS the headphones on.
+// ---------------------------------------------------------------------------------------------
+const R_PIEL = mat(['#c98262', '#eab08e', '#fbd6b6'], '#7a3c38');
+const R_BARBA = mat(['#1f1720', '#3a2c32', '#5a4a50']);
+const R_CASCO = mat(['#3a3142', '#6e6788', '#aaa4c6']);
+const R_ARO = '#18b4b4';
+
+function fer(P: Pintor): void {
+  const u = P.f;
+  const Y = (v: number): number => v + u;
+  // Dark jeans and dark trainers with a pale sole.
+  P.forma(par2(rr(19, 50, 8.5, 25, 3)), C_VAQ, { rad: 4.5 });
+  P.pxs(C_VAQ.r[2], [21, 58], [21, 59], [22, 66], [34, 58], [34, 66]);
+  P.forma(par2(rr(17, 72, 10, 6, 3)), P_CHAQ, { rad: 3 });
+  P.llenar(par2(rc(18, 77, 8, 1)), GRIS);
+  P.llenar(par2(rc(18, 74, 3, 1)), P_CHAQ.r[2]);
+  // Arms: bare below the short black sleeves.
+  for (const lado of [1, -1] as const) {
+    const X = (x: number): number => (lado === 1 ? x : 55 - x);
+    const T = (m: Mascara): Mascara => (lado === 1 ? m : esp2(m));
+    P.forma(T(trazo([[14, Y(33)], [12.4, Y(47)]], 3.6, 3.1)), R_PIEL, { modo: 'cil', eje: X(13.2), semi: 3.6 });
+    P.pxs(R_PIEL.r[2], [X(12), Y(41)], [X(12), Y(42)]);
+    mano(P, X(12.2), Y(50.5), R_PIEL, lado);
+  }
+  // Plain black tee.
+  P.forma(rr(16, Y(27), 24, 25, 5), P_CHAQ, { rad: 7, grad: 0.3 });
+  P.forma(par2(el(15.6, Y(32), 4.2, 5)), P_CHAQ, { rad: 4, grad: 0.3 });
+  P.llenar(par2(rc(11, Y(36), 8, 1)), INK);
+  P.llenar(rc(17, Y(51), 22, 1), INK);
+  P.pxs(P_CHAQ.r[2], [21, Y(34)], [22, Y(34)], [21, Y(35)], [36, Y(38)], [35, Y(39)]);
+  P.pxs(INK, [24, Y(44)], [25, Y(45)], [31, Y(42)], [30, Y(43)]);
+  // Neck, crew collar and the thin necklace.
+  P.forma(rc(24, Y(21), 8, 8), R_PIEL, { rad: 3, borde: false, sesgo: -0.3 });
+  P.forma(el(28, Y(28.2), 6.4, 2.2), P_CHAQ, { rad: 1.4, sesgo: -0.5 });
+  P.llenar(rc(24, Y(28), 8, 1), INK);
+  P.pxs('#4a3a2e', [25, Y(26)], [26, Y(27)], [27, Y(28)], [28, Y(28)], [29, Y(28)], [30, Y(27)], [31, Y(26)]);
+
+  // Head: bald dome with a shine, ears hidden behind the headphones.
+  P.forma(un(el(28, Y(14.5), 11.8, 12), rr(18, Y(18), 20, 9, 4)), R_PIEL, { rad: 7, grad: 0.15 });
+  P.pxs(BLANCO, [20, Y(8)], [21, Y(7)], [22, Y(6)], [19, Y(10)]);
+  P.pxs(R_PIEL.r[2], [23, Y(6)], [24, Y(6)], [21, Y(8)], [20, Y(9)], [19, Y(11)]);
+  P.pxs(R_PIEL.r[0], [37, Y(9)], [38, Y(12)]);
+  // Short, neat beard: a band along the jaw and a moustache.
+  const aro = men(el(28, Y(15), 12.4, 12.6), el(28, Y(12.6), 9.6, 10));
+  const barba = un(inter(aro, rc(0, Y(20), 56, 20)), el(28, Y(23.4), 6.2, 1.7), el(28, Y(26.2), 4.6, 1.8));
+  P.forma(barba, R_BARBA, { rad: 3.4, sesgo: -0.1, grad: 0.1 });
+  motas(P, barba, R_BARBA.r[2], 5, 2, R_BARBA);
+  motas(P, barba, GRIS, 19, 4, R_BARBA);
+  // Serious face: heavy brows, a half smile.
+  P.llenar(un(rc(19, Y(11), 5, 1), rc(21, Y(12), 5, 1)), R_BARBA.r[0]);
+  P.llenar(un(rc(32, Y(11), 5, 1), rc(30, Y(12), 5, 1)), R_BARBA.r[0]);
+  ojo(P, 21, Y(14), 3);
+  ojo(P, 32, Y(14), 3);
+  P.pxs(R_PIEL.r[0], [28, Y(18)], [27, Y(19)], [28, Y(19)], [29, Y(19)]);
+  P.llenar(rc(25, Y(25), 5, 1), R_PIEL.r[0]);
+  P.llenar(rc(30, Y(24), 2, 1), R_PIEL.r[0]);
+  // The headphones, always on: band over the dome and big cups on the ears.
+  const banda = inter(men(el(28, Y(14.5), 13.8, 14.2), el(28, Y(14.5), 11.6, 12)), rc(0, 0, 56, Y(18)));
+  P.forma(banda, R_CASCO, { rad: 2, grad: 0.2 });
+  P.forma(par2(rr(10, Y(12), 7, 11, 3)), R_CASCO, { rad: 3.4, grad: 0.25 });
+  P.llenar(par2(un(rc(12, Y(16), 3, 3), rc(12, Y(15), 3, 1))), R_ARO);
+  P.pxs(R_CASCO.r[2], [12, Y(13)], [13, Y(13)], [43, Y(13)], [42, Y(13)]);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Viñas · long dark curls, a huge black beard, a white Impropios tee under an old faded Adidas jacket.
+// ---------------------------------------------------------------------------------------------
+const V_PIEL = mat(['#b06c46', '#d99668', '#f1c394'], '#4a3228');
+const V_PELO = mat([INK, '#30253a', '#4c3c58']);
+const V_CHAQ = mat(['#2a3a70', '#4a64a4', '#8aa2d2']);
+const V_TEE = mat([GRIS, BLANCO], '#544b66');
+const V_LOGO = '#34aed2';
+
+/** A little curl: a «v» of dark pixels with a light one above it, drawn on top of the mass of hair. */
+function rizo(P: Pintor, x: number, y: number, luz: string): void {
+  P.pxs(INK, [x, y + 1], [x + 1, y + 2], [x + 2, y + 1]);
+  P.px(x + 1, y, luz);
+}
+
+function vinas(P: Pintor): void {
+  const u = P.f;
+  const Y = (v: number): number => v + u;
+  // Black jeans and worn brown boots.
+  P.forma(par2(rr(18, 50, 9, 25, 3)), C_VAQ, { rad: 4.5 });
+  P.pxs(C_VAQ.r[2], [20, 58], [20, 59], [21, 66], [35, 58], [35, 66]);
+  P.forma(par2(rr(16, 72, 11, 6, 3)), G_ZAP, { rad: 3 });
+  P.llenar(par2(rc(17, 77, 9, 1)), INK);
+  P.llenar(par2(rc(17, 74, 3, 1)), G_ZAP.r[2]);
+  // White tee under the jacket.
+  P.forma(rr(15, Y(28), 26, 25, 4), V_TEE, { rad: 7, grad: 0.2 });
+  P.llenar(rc(16, Y(52), 24, 1), V_TEE.r[0]);
+  P.est(27, Y(37), ['.bbb.', 'bwbbb', 'bwwbb', 'bwwwb', '.bbb.'], { b: V_LOGO, w: BLANCO });
+  P.pxs(V_TEE.r[0], [24, Y(44)], [25, Y(45)], [31, Y(47)], [30, Y(48)]);
+  // Jacket sleeves, faded, with the three stripes and ribbed cuffs.
+  for (const lado of [1, -1] as const) {
+    const X = (x: number): number => (lado === 1 ? x : 55 - x);
+    P.forma(trazo([[X(14.2), Y(33)], [X(11.4), Y(47)]], 4.6, 4.1), V_CHAQ, { rad: 4.5 });
+    for (let k = 0; k < 3; k++) {
+      for (let y = Y(32); y < Y(46); y++) {
+        if ((y + k) % 6 === 0) continue; // worn: a few stripe pixels have worn away
+        P.px(Math.round(X(14.2 - (y - Y(33)) * 0.2 - 3 + k * 2)), y, BLANCO);
+      }
+    }
+    P.llenar(lado === 1 ? rc(7, Y(46), 9, 2) : rc(40, Y(46), 9, 2), V_CHAQ.r[0]);
+    P.pxs(V_CHAQ.r[2], [X(11), Y(36)], [X(12), Y(37)], [X(15), Y(40)], [X(10), Y(43)]);
+    mano(P, X(11.2), Y(51), V_PIEL, lado);
+  }
+  // Open jacket panels with the zip edge and a ribbed hem.
+  P.forma(par2(rr(14, Y(29), 8, 24, 3)), V_CHAQ, { rad: 4.5 });
+  P.llenar(par2(rc(15, Y(51), 7, 2)), V_CHAQ.r[0]);
+  for (let y = Y(33); y < Y(51); y += 2) {
+    P.px(22, y, BLANCO);
+    P.px(33, y, BLANCO);
+  }
+  P.pxs(V_CHAQ.r[2], [16, Y(34)], [17, Y(35)], [16, Y(44)], [18, Y(46)], [38, Y(36)], [39, Y(45)], [36, Y(49)]);
+  P.pxs(V_CHAQ.r[0], [18, Y(40)], [19, Y(41)], [37, Y(42)], [36, Y(43)]);
+
+  // One mass of black: a round mane of curls around the head and the huge beard down to the chest.
+  let masa = un(el(28, Y(11.5), 14.2, 11.2), par2(el(14.6, Y(19), 3.4, 5)));
+  for (let a = 0; a < 19; a++) {
+    const ang = Math.PI * (0.92 + (a / 18) * 1.16);
+    const k = a % 3 === 0 ? 1.04 : a % 3 === 1 ? 0.9 : 0.98;
+    masa = un(masa, el(28 + Math.cos(ang) * 14.4 * k, Y(12.5) + Math.sin(ang) * 12.2 * k, 3.1 + (a % 2) * 0.5, 3 + (a % 2) * 0.5));
+  }
+  masa = un(masa, par2(el(13.6, Y(16), 3, 3.4)));
+  const arriba = poli([[0, 0], [56, 0], [56, Y(16)], [41.5, Y(16)], [39, Y(19.5)], [35, Y(22.4)], [31, Y(23.4)], [28, Y(22.8)], [25, Y(23.4)], [21, Y(22.4)], [17, Y(19.5)], [14.5, Y(16)], [0, Y(16)]]);
+  const barba = men(un(inter(el(28, Y(21.5), 14.4, 14.5), rc(0, Y(14), 56, 40)), el(28, Y(29.5), 11.5, 6.8), el(28, Y(34.5), 7.2, 3.8)), arriba);
+  const todo = un(masa, barba);
+  P.forma(todo, V_PELO, { rad: 6, grad: 0.22 });
+  motas(P, todo, V_PELO.r[2], 6, 1, V_PELO);
+  // Curl marks all over the mane and the beard.
+  for (const [x, y] of [[19, 1], [27, 0], [35, 1], [14, 6], [40, 6], [12, 12], [42, 12], [17, 25], [37, 25], [21, 31], [33, 31], [27, 35], [14, 20], [41, 20]]) rizo(P, x, Y(y), V_PELO.r[2]);
+  // Face: a window in the black mass; the fringe and the beard stay in front.
+  const flequillo = un(inter(el(28, Y(7.5), 13, 5.8), rc(0, 0, 56, Y(9.5))), par2(rc(16, Y(9), 2, 6)));
+  const cara = men(el(28, Y(19), 11.6, 11.4), un(flequillo, barba));
+  P.forma(cara, V_PIEL, { rad: 7, grad: 0.2 });
+  // Wide-open happy mouth with teeth and tongue.
+  P.llenar(un(rc(24, Y(25), 8, 4), rc(25, Y(29), 6, 1)), INK);
+  P.llenar(rc(25, Y(25), 6, 1), BLANCO);
+  P.llenar(rc(26, Y(28), 4, 1), '#e0607a');
+  // Nose, big eyes with white all round and arched brows.
+  P.forma(el(28, Y(20.5), 3.4, 2.8), V_PIEL, { rad: 2.4, borde: false, sesgo: 0.2 });
+  P.pxs(V_PIEL.r[0], [25, Y(22)], [26, Y(23)], [27, Y(23)], [29, Y(23)], [30, Y(23)], [31, Y(22)]);
+  P.pxs(V_PIEL.r[2], [27, Y(19)], [28, Y(19)]);
+  for (const x of [20, 32]) {
+    P.llenar(un(rc(x, Y(14), 4, 5), rc(x - 1, Y(15), 6, 3)), BLANCO);
+    P.llenar(rc(x + 1, Y(15), 2, 3), INK);
+    P.px(x + 1, Y(15), BLANCO);
+  }
+  P.llenar(un(rc(18, Y(12), 3, 1), rc(20, Y(11), 4, 1), rc(23, Y(12), 2, 1)), V_PELO.r[1]);
+  P.llenar(un(rc(31, Y(12), 2, 1), rc(32, Y(11), 4, 1), rc(35, Y(12), 3, 1)), V_PELO.r[1]);
+  }
+
+// ---------------------------------------------------------------------------------------------
+// Ari · shoulder-length blonde hair with lighter streaks in the fringe, a nose piercing, white tee, jeans.
+// ---------------------------------------------------------------------------------------------
+const A_PIEL = mat(['#d4906e', '#f1bd9c', '#ffe0c6'], '#7e4036');
+const A_PELO = mat(['#8c6a36', '#c89c54', '#efd088']);
+const A_MECHA = '#fbe8a8';
+const A_TEE = mat([GRIS, BLANCO], '#544b66');
+const A_VAQ = mat(['#4a72ac', '#7ba4d6', '#b0cdf0']);
+const A_LOGO = '#2fae96';
+const A_CINTO = '#7a4a2a';
+const A_LABIO = '#c4535f';
+const A_ZAP = mat([INK, '#544b66']);
+
+function ari(P: Pintor): void {
+  const u = P.f;
+  const Y = (v: number): number => v + u;
+  // Light jeans and dark trainers with a white toe.
+  P.forma(par2(rr(19, 47, 8, 28, 3)), A_VAQ, { rad: 4.5 });
+  P.pxs(A_VAQ.r[0], [22, 60], [22, 61], [34, 60], [33, 61], [24, 66], [32, 66]);
+  P.pxs(A_VAQ.r[2], [21, 54], [21, 55], [34, 54], [22, 69], [33, 69]);
+  P.forma(par2(rr(17, 72, 10, 6, 3)), A_ZAP, { rad: 3 });
+  P.llenar(par2(rc(18, 77, 8, 1)), BLANCO);
+  P.llenar(par2(rc(17, 75, 3, 2)), BLANCO);
+  // Slim bare arms, short tee sleeves.
+  for (const lado of [1, -1] as const) {
+    const X = (x: number): number => (lado === 1 ? x : 55 - x);
+    const T = (m: Mascara): Mascara => (lado === 1 ? m : esp2(m));
+    P.forma(T(trazo([[16, Y(34)], [14.4, Y(46)]], 3, 2.6)), A_PIEL, { modo: 'cil', eje: X(15.3), semi: 3 });
+    mano(P, X(14.2), Y(49.5), A_PIEL, lado);
+  }
+  // White tee tucked in, brown belt with a gold buckle.
+  P.forma(rr(17, Y(28), 22, 22, 5), A_TEE, { rad: 7, grad: 0.25 });
+  P.forma(par2(el(16.4, Y(32.5), 3.8, 4.6)), A_TEE, { rad: 3.5, grad: 0.2 });
+  P.llenar(par2(rc(13, Y(36), 6, 1)), A_TEE.r[0]);
+  P.pxs(A_TEE.r[0], [22, Y(41)], [23, Y(42)], [24, Y(43)], [34, Y(44)], [33, Y(45)]);
+  P.llenar(rc(17, Y(48), 22, 2), A_CINTO);
+  P.llenar(rc(31, Y(47), 3, 3), ORO_HOP);
+  P.px(32, Y(48), A_CINTO);
+  P.est(33, Y(36), ['.gg.', 'gwgg', 'gwwg', '.gg.'], { g: A_LOGO, w: BLANCO });
+  // Neck.
+  P.forma(rc(25, Y(25), 6, 6), A_PIEL, { rad: 2.4, borde: false, sesgo: -0.3 });
+  P.llenar(rc(24, Y(29), 8, 1), A_TEE.r[0]);
+  // Hair behind: shoulder length.
+  const atras = un(el(28, Y(15), 13.4, 12.8), par2(rr(14, Y(16), 5, 17, 2)));
+  P.forma(atras, A_PELO, { rad: 5, grad: 0.35 });
+  motas(P, atras, A_PELO.r[2], 5, 1, A_PELO);
+  // Face: narrower jaw than the guys.
+  const cara = un(el(28, Y(17), 10.2, 11.2), poli([[18.5, Y(21)], [37.5, Y(21)], [34, Y(27.6)], [22, Y(27.6)]]));
+  P.forma(cara, A_PIEL, { rad: 7, grad: 0.2 });
+  P.pxs(A_PIEL.r[2], [19, Y(22)], [37, Y(22)]);
+  // Brows, eyes with a little liner wing, nose with the piercing, lips.
+  P.llenar(un(rc(20, Y(12), 5, 1), rc(19, Y(13), 1, 1)), A_PELO.r[0]);
+  P.llenar(un(rc(32, Y(12), 5, 1), rc(37, Y(13), 1, 1)), A_PELO.r[0]);
+  ojo(P, 21, Y(14), 3);
+  ojo(P, 33, Y(14), 3);
+  P.pxs(INK, [20, Y(14)], [36, Y(14)]);
+  P.pxs(A_PIEL.r[0], [28, Y(19)], [27, Y(20)], [28, Y(20)]);
+  P.pxs(GRIS, [30, Y(20)]);
+  P.pxs(BLANCO, [30, Y(21)]);
+  P.llenar(rc(25, Y(24), 6, 1), A_LABIO);
+  P.llenar(rc(26, Y(25), 4, 1), A_LABIO);
+  P.px(31, Y(23), A_LABIO);
+  P.px(24, Y(24), A_PIEL.ol);
+  // Fringe swept across the forehead with the lighter streaks, and the strands in front of the shoulders.
+  const casco = inter(el(28, Y(13.5), 13.4, 10.2), rc(0, 0, 56, Y(11)));
+  const flequillo = poli([[17, Y(8)], [39, Y(8)], [40, Y(12)], [34, Y(11)], [28, Y(11.6)], [23, Y(12.6)], [19.6, Y(14)], [18.2, Y(17)], [17.6, Y(21)], [16, Y(21)], [15.5, Y(14)]]);
+  const mechones = par2(rr(14, Y(14), 4, 15, 2));
+  const pelo = un(casco, flequillo, mechones);
+  P.forma(pelo, A_PELO, { rad: 4.5, grad: 0.35 });
+  motas(P, pelo, A_PELO.r[2], 6, 3, A_PELO);
+  P.pxs(A_MECHA, [19, Y(12)], [20, Y(12)], [21, Y(11)], [22, Y(11)], [24, Y(10)], [25, Y(10)], [27, Y(10)], [18, Y(16)], [17, Y(20)], [38, Y(22)], [38, Y(25)], [17, Y(27)], [16, Y(24)]);
+  P.pxs(A_PELO.r[0], [27, Y(5)], [30, Y(6)], [34, Y(9)], [24, Y(6)]);
+}
+
+// ---------------------------------------------------------------------------------------------
 // Baking, cache, public API.
 // ---------------------------------------------------------------------------------------------
-const DIBUJOS: Record<EntrenadorId, (P: Pintor) => void> = { fran, pablo, chuchi, guille };
+const DIBUJOS: Record<EntrenadorId, (P: Pintor) => void> = { fran, pablo, chuchi, guille, vinas, ari, fer };
 /** First row of the 40×40 bust crop (head top minus a bit). */
-const RECORTE_Y: Record<EntrenadorId, number> = { fran: 5, pablo: 2, chuchi: 0, guille: 0 };
+const RECORTE_Y: Record<EntrenadorId, number> = { fran: 5, pablo: 2, chuchi: 0, guille: 0, vinas: 0, ari: 0, fer: 0 };
 
 const retratos = new Map<EntrenadorId, HTMLCanvasElement>();
 const iconos = new Map<EntrenadorId, HTMLCanvasElement>();
@@ -505,6 +733,69 @@ const ICONOS: Record<EntrenadorId, { filas: string[]; ley: Record<string, string
       '..oYYyoddoyyyo..',
       '.oYyyyyoddoyyyo.',
       '.oyyryyyooyyyro.',
+    ],
+  },
+  vinas: {
+    ley: { o: INK, m: INK, h: V_PELO.r[1], H: V_PELO.r[2], ...I_PIEL(V_PIEL), w: BLANCO, r: '#e0607a', J: V_CHAQ.r[2], j: V_CHAQ.r[1], k: V_CHAQ.r[0], T: BLANCO, L: V_LOGO },
+    filas: [
+      '................',
+      '....oooooooo....',
+      '..ooHhhHhhhHoo..',
+      '.ohhHhhhhhhhhho.',
+      '.ohhhsssssshhho.',
+      '.ohhsmmssmmshho.',
+      '.ohhswosswoshho.',
+      '.ohhsssddssshho.',
+      '.ohhmmssssmmhho.',
+      '.ohmmmwwwwmmmho.',
+      '.ohmmmmrrmmmmho.',
+      '..ommmmmmmmmmo..',
+      '...ommmmmmmmo...',
+      '..oJjjkommokjjJo',
+      '.oJjjjkTTTTkjjjo',
+      '.ojjjjkTLTTkjjjo',
+    ],
+  },
+  ari: {
+    ley: { o: INK, m: A_PELO.r[0], h: A_PELO.r[1], H: A_PELO.r[2], q: A_MECHA, ...I_PIEL(A_PIEL), w: BLANCO, p: A_LABIO, g: GRIS, T: BLANCO, t: BLANCO, u: GRIS, L: A_LOGO },
+    filas: [
+      '................',
+      '....oooooooo....',
+      '..ooHHqqhhhhoo..',
+      '.ohHqqqhhhhhhho.',
+      '.ohqqqhhhhhhhho.',
+      '.ohqqhhhsssshho.',
+      '.ohhsmmsssmmsho.',
+      '.ohhsosssssosho.',
+      '.ohhsosssddosho.',
+      '.ohqssssDgdsqho.',
+      '.ohhsspppppsqho.',
+      '.oqhhsssssshhho.',
+      '..ohhhsddsshho..',
+      '..ohhTTTTTThho..',
+      '.oTTttttttttTuo.',
+      '.otttttttLLtttuo',
+    ],
+  },
+  fer: {
+    ley: { o: INK, m: R_BARBA.r[0], h: R_BARBA.r[2], ...I_PIEL(R_PIEL), w: BLANCO, c: R_CASCO.r[1], C: R_CASCO.r[2], k: R_CASCO.r[0], t: R_ARO, b: P_CHAQ.r[1], B: P_CHAQ.r[2] },
+    filas: [
+      '................',
+      '....oooooooo....',
+      '...ooCCCCCCoo...',
+      '..oCcsllllsscCo.',
+      '.oCcsllllssscco.',
+      '.oCcsmmssmmscco.',
+      '.otcsosssosscto.',
+      '.otcsosssosscto.',
+      '.oCcsssdDssscco.',
+      '.occmmmddmmmcco.',
+      '..ocmmwwwwmmco..',
+      '...ommmmmmmmo...',
+      '....ommhhmmo....',
+      '..obbBbsssbbbbo.',
+      '.obbbbbbbbbbbbo.',
+      '.obbbbbbbbbbbbo.',
     ],
   },
 };
