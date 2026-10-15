@@ -39,7 +39,7 @@ function filaInicial(a: Aventura): number {
   return finalAbierta(a) && !a.campeon ? ZONAS.length : 0;
 }
 
-/** How many of the 30 useritos the player has caught in bar `i` (x of «x/7»). */
+/** How many of the useritos of bar `i` the player has caught (x of «x/7», or 8 in La Terraza). */
 export const cazadosDeZona = (a: Aventura, i: number): number => ZONAS[i].salvajes.filter((id) => a.cazados.includes(id)).length;
 
 export function pantallaMapa(a: Aventura, fila0 = -1): Promise<EleccionMapa> {

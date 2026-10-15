@@ -1,6 +1,6 @@
-// PokéUsera · the USERITOPEDIA: the encyclopedia of the 30 useritos. It opens over whatever is on screen (or over
+// PokéUsera · the USERITOPEDIA: the encyclopedia of the 32 useritos. It opens over whatever is on screen (or over
 // nothing) like the guide and gives it back when closed. Two views:
-//   LISTA   – the 30 useritos in their numeric order (Nº01…Nº30): number, thumbnail, name, type chips and best stat.
+//   LISTA   – the 32 useritos in their numeric order (Nº01…Nº32): number, thumbnail, name, type chips and best stat.
 //             Drag to scroll (with inertia), ↑↓ to move, Enter/tap to open one, VOLVER to leave.
 //   FICHA   – one userito: big front sprite and small back sprite (both with their 2-frame idle), Nº, name, types,
 //             description, its ability (name and what it does), the five base stats (tap one for its explanation), the four moves (type, power, accuracy,

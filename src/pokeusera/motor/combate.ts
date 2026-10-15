@@ -24,7 +24,7 @@
 //             phrase in `clave`. The heals / stage changes it causes follow as ordinary 'cura' / 'nivel' events (all flagged `fin`).
 // Every event may carry `clave` + `vars` (quien = userito name, jugador = player name, mov, ...).
 import type { Eleccion, EscenarioId, EstadoCombate, Estadisticas, EntrenadorId, Estado, Evento, HabilidadId, Jugador, Movimiento, ObjetoId, Stat, StatsUserito, SucesoId, Tipo, Userito } from '../tipos';
-import { ESCENARIOS, HAB_FOTOSINTESIS, HAB_GRASIENTO, HAB_LAVADO_CURA, HAB_MALETA_ATA, HAB_MANICO_ATA, HAB_PAREJA, HAB_PROB_REACCION, OBJ_BOCATA_CURA, OBJ_GAFAS_PREC, OBJ_MECHERO_QUEMA, OBJ_PALILLO_CRIT, OBJ_PANUELO, OBJ_TAPON_USOS, PERK_CANA_FRAN, PERK_PRECISION_PABLO, PERK_TARDE_CHUCHI, TIPOS_FISICOS } from '../tipos';
+import { ESCENARIOS, HAB_CANTA_MULT, HAB_FOTOSINTESIS, HAB_GRASIENTO, HAB_LAVADO_CURA, HAB_MALETA_ATA, HAB_MANICO_ATA, HAB_PAREJA, HAB_PROB_REACCION, OBJ_BOCATA_CURA, OBJ_GAFAS_PREC, OBJ_MECHERO_QUEMA, OBJ_PALILLO_CRIT, OBJ_PANUELO, OBJ_TAPON_USOS, PERK_CANA_FRAN, PERK_PRECISION_PABLO, PERK_TARDE_CHUCHI, TIPOS_FISICOS } from '../tipos';
 import { DESESPERADA, EFECTOS, ESPECIE, MOVS, MOVS_IMPROVISA, SUCESOS, TURNOS_SUCESO, eficacia, potenciaRemate, sucesosDe } from '../datos';
 import { azar, elegir, entero, probar, type ConSemilla } from './azar';
 
@@ -47,7 +47,7 @@ export const PS_SUMA = 80;
 // ------------------------------------------------------------------ construction
 
 const niveles0 = (): Record<Stat, number> => ({ ata: 0, def: 0, vel: 0, esp: 0, prec: 0 });
-const vol0 = (): Userito['vol'] => ({ atrapado: 0, atrapadoPor: -1, cizana: 0, bostezo: -1, recarga: false, sinCambio: false, protegidoAntes: false, sorpresa: false, escondido: false, desvia: false, aguanta: false });
+const vol0 = (): Userito['vol'] => ({ atrapado: 0, atrapadoPor: -1, cizana: 0, embobado: 0, embobadoPor: -1, bostezo: -1, recarga: false, sinCambio: false, protegidoAntes: false, sorpresa: false, escondido: false, desvia: false, aguanta: false });
 
 function crearUserito(especie: string, objeto?: ObjetoId | null): Userito {
   const sp = ESPECIE[especie];
@@ -240,9 +240,13 @@ export function bonusCompania(e: EstadoCombate, j: number, a: Userito): boolean 
   return e.jugadores.some((_q, k) => k !== j && !eliminado(e, k) && activo(e, k).ps > 0 && socios.includes(activo(e, k).especie));
 }
 
-/** The damage multiplier the abilities put on an attack of player `j`'s userito `a` against `d`: +20 % with the partner on the field, ×½ of Petardo against Con hielo. */
+/** Canta y no llores (Mariachi): with less than 1/3 of its HP, its Juerga attacks hit 50 % harder. */
+export const bonusCanta = (a: Userito, mov: Movimiento): boolean => habilidadDe(a) === 'cantaynollores' && mov.tipo === 'juerga' && a.ps > 0 && a.ps * 3 < a.psMax;
+
+/** The damage multiplier the abilities put on an attack of player `j`'s userito `a` against `d`: +20 % with the partner on the field, +50 % of Canta y no llores,
+ *  ×½ of Petardo against Con hielo. */
 export function multHabilidad(e: EstadoCombate, j: number, a: Userito, d: Userito, mov: Movimiento): number {
-  return (bonusCompania(e, j, a) ? 1 + HAB_PAREJA / 100 : 1) * (habilidadDe(d) === 'hielo' && mov.tipo === 'petardo' ? 0.5 : 1);
+  return (bonusCompania(e, j, a) ? 1 + HAB_PAREJA / 100 : 1) * (bonusCanta(a, mov) ? HAB_CANTA_MULT / 100 : 1) * (habilidadDe(d) === 'hielo' && mov.tipo === 'petardo' ? 0.5 : 1);
 }
 
 // ------------------------------------------------------------------ sucesos (queries)
@@ -315,8 +319,11 @@ interface Ctx {
   tendedero: boolean[];
   /** «Público entregado» already worked for this player this turn (at most once a turn). */
   publico: boolean[];
+  /** «Mala leche» already worked for this player this turn (at most once a turn). */
+  malaleche: boolean[];
   recargaIni: boolean[];
   cizanaIni: boolean[];
+  embobadoIni: boolean[];
   pctIni: number[];
   agresoresIni: number[][];
   cancionAntes: boolean;
@@ -641,6 +648,7 @@ function sacar(c: Ctx, j: number, idx: number) {
   c.agresoresIni[j] = [];
   c.recargaIni[j] = false;
   c.cizanaIni[j] = false;
+  c.embobadoIni[j] = false;
   c.usoProt[j] = false;
   c.recibido[j] = 0;
   c.ultimoAgresor[j] = -1;
@@ -778,6 +786,8 @@ function efectosSecundarios(c: Ctx, j: number, t: number, m: Movimiento, danino:
   if (ef.estado && (!danino || probar(e, prob))) ponerEstado(c, t, ef.estado.estado, danino, j, dragon ? () => habilidad(c, j, 'fuego_dragon') : undefined);
   // Grasiento (Torrezmón): its Grasa attacks give an empacho 20 % of the times (once per move and target, whatever the hits).
   if (danino && m.tipo === 'grasa' && ef.estado?.estado !== 'empachado' && habilidadDe(act(c, j)) === 'grasiento' && act(c, j).ps > 0 && probar(e, HAB_GRASIENTO)) ponerEstado(c, t, 'empachado', true, j, () => habilidad(c, j, 'grasiento'));
+  // «Morriña»: the line comes before the two drops.
+  if (ef.especial === 'morrina') decir(c, 'combate.morrina', varsDe(c, t), t);
   for (const n of ef.nivel ?? []) if (n.a === 'objetivo' && act(c, t).ps > 0 && (n.prob === undefined || probar(e, n.prob))) cambiarNivel(c, t, n.stat, n.cambio, j);
   if (ef.retrocede && !c.actuo[t] && probar(e, ef.retrocede)) {
     if (habilidadDe(v) === 'kilos') habilidad(c, t, 'kilos', 'hab.kilos.activa'); // 152 kilos: nothing makes it flinch
@@ -803,6 +813,15 @@ function efectosSecundarios(c: Ctx, j: number, t: number, m: Movimiento, danino:
     else {
       v.vol.cizana = 2;
       decir(c, 'combate.cizana', varsDe(c, t), t);
+    }
+  }
+  // «Serenata»: for two turns the rival is spellbound; if it aims a single-target attack at the Mariachi that sang, it goes to another rival.
+  if (ef.especial === 'serenata') {
+    if (v.vol.embobado > 0) decir(c, 'combate.sin_efecto', varsDe(c, t), t);
+    else {
+      v.vol.embobado = 2;
+      v.vol.embobadoPor = j;
+      decir(c, 'combate.serenata', varsDe(c, t, { otro: nom(act(c, j)) }), t);
     }
   }
   if (ef.especial === 'remolino') forzarCambio(c, t);
@@ -878,6 +897,15 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
       const antes = t;
       t = elegir(e, rivales);
       if (t !== antes) decir(c, 'combate.cizana_desvia', varsDe(c, j));
+    }
+    // «Serenata»: spellbound by the Mariachi, its blow at him goes to another rival (the area moves still reach him).
+    if (t >= 0 && u.vol.embobado > 0 && t === u.vol.embobadoPor && act(c, t).especie === 'mariachi') {
+      const otros = rivales.filter((r) => r !== t);
+      if (otros.length) {
+        const antes = t;
+        t = elegir(e, otros);
+        decir(c, 'combate.embobado_desvia', varsDe(c, j, { otro: nom(act(c, antes)) }));
+      }
     }
     if (t >= 0 && redirigir) {
       const otros = rivales.filter((r) => r !== t);
@@ -990,6 +1018,7 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
         const papel = ef.critico ?? 1; // Corte de papel: three times
         const multH = multHabilidad(e, j, u, v, m); // Pareja de carretera / Fan de la gira: +20 %; Con hielo: Petardo ×½
         if (bonusCompania(e, j, u)) habilidad(c, j, habilidadDe(u));
+        if (bonusCanta(u, m)) habilidad(c, j, 'cantaynollores');
         if (habilidadDe(v) === 'hielo' && m.tipo === 'petardo') habilidad(c, t, 'hielo');
         if (volumen) habilidad(c, j, 'volumen');
         for (let h = 0; h < n && v.ps > 0; h++) {
@@ -1080,6 +1109,12 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
 function reaccionAlGolpe(c: Ctx, j: number, t: number, m: Movimiento) {
   const a = act(c, j);
   const v = act(c, t);
+  // Mala leche (Pulpiño): every time an attack hits it, its Attack goes up 1 (at most once a turn), whoever hit it and whatever its state.
+  if (v.ps > 0 && habilidadDe(v) === 'malaleche' && !c.malaleche[t] && v.niveles.ata < 6) {
+    c.malaleche[t] = true;
+    habilidad(c, t, 'malaleche', 'hab.malaleche.activa');
+    cambiarNivel(c, t, 'ata', 1, t);
+  }
   if (v.ps <= 0 || a.ps <= 0) return;
   const fisico = TIPOS_FISICOS.includes(m.tipo);
   const extra = { otro: nom(a) };
@@ -1434,6 +1469,7 @@ function finDeTurno(c: Ctx, alInicio: number[]) {
     u.vol.aguanta = false;
     u.vol.protegidoAntes = c.usoProt[j];
     if (c.cizanaIni[j] && u.vol.cizana > 0) u.vol.cizana--;
+    if (c.embobadoIni[j] && u.vol.embobado > 0) u.vol.embobado--;
   }
   e.cancionAntes = c.cancionAhora;
   e.agresores = c.golpeado.map((l, j) => (act(c, j).ps > 0 ? [...l] : []));
@@ -1529,8 +1565,10 @@ export function resolverTurno(estado: EstadoCombate, elecciones: (Eleccion | nul
     tapon: e.jugadores.map(() => false),
     tendedero: e.jugadores.map(() => false),
     publico: e.jugadores.map(() => false),
+    malaleche: e.jugadores.map(() => false),
     recargaIni: [],
     cizanaIni: [],
+    embobadoIni: [],
     pctIni: e.jugadores.map(pctEquipo),
     agresoresIni: e.agresores.map((l) => [...l]),
     cancionAntes: e.cancionAntes,
@@ -1556,6 +1594,7 @@ export function resolverTurno(estado: EstadoCombate, elecciones: (Eleccion | nul
   // 2. Flags that last "the next turn" are read from the start of the turn; effects set during it survive.
   c.recargaIni = e.jugadores.map((_, j) => act(c, j).vol.recarga);
   c.cizanaIni = e.jugadores.map((_, j) => act(c, j).vol.cizana > 0);
+  c.embobadoIni = e.jugadores.map((_, j) => act(c, j).vol.embobado > 0);
   for (let j = 0; j < n; j++) {
     act(c, j).vol.recarga = false;
     act(c, j).vol.sinCambio = false;
@@ -1643,8 +1682,10 @@ export function reemplazar(estado: EstadoCombate, elegidos: Record<number, numbe
     tapon: e.jugadores.map(() => false),
     tendedero: e.jugadores.map(() => false),
     publico: e.jugadores.map(() => false),
+    malaleche: e.jugadores.map(() => false),
     recargaIni: [],
     cizanaIni: [],
+    embobadoIni: [],
     pctIni: [],
     agresoresIni: [],
     cancionAntes: false,

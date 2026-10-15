@@ -5,6 +5,7 @@
 //    the same rival, uses the caña when low, now and then buffs/inflicts statuses, rarely switches
 //    out of a ×4 weakness, and acts from the grada when eliminated.
 //    Objects: only the obvious (the Pañuelo's +20 % goes into its damage estimates); what to take in «La barra» is `objetoBot` (objetos.ts).
+//    Tanda 9: it sings Serenata when a rival that hit it has someone else to aim at, and Morriña at the hard or fast hitters.
 //    Tanda 8: abilities. It never throws Chispa at Choquechu or Ventolera at JesúsPelo (`calcularDano` gives 0 against an absorbing
 //    ability and the target is skipped), counts the +20 % of the partners and the ½ of Con hielo in its estimates, buffs itself when
 //    it is healthy (the generic stat-up branch), heals with Otra ficha when it is low and cleans itself with Con limón when it is ill.
@@ -166,6 +167,19 @@ function valorMovimiento(e: EstadoCombate, j: number, idx: number, rivales: numb
       break;
     case 'cizana':
       candidato((r) => (activo(e, r).vol.cizana > 0 ? 0 : 0.3));
+      break;
+    case 'serenata':
+      // Serenata: the rival that would hit it cannot (single-target attacks at it go to someone else for two turns): worth it when it needs rest from a rival that
+      // hit it last turn, and only with another rival to take the blow.
+      if (rivales.length >= 2) candidato((r) => (activo(e, r).vol.embobado > 0 ? 0 : 0.2 + (e.agresores[j].includes(r) ? 0.3 : 0) + (pres.peligro ? 0.3 : 0) + (hp < 0.5 ? 0.2 : 0)));
+      break;
+    case 'morrina':
+      // Morriña: −1 Attack and −1 Speed, so it pays against a hard hitter or a fast one that has not been lowered yet.
+      candidato((r) => {
+        const v = activo(e, r);
+        const libre = (1 - Math.max(0, -v.niveles.ata) / 6) * 0.5 + (1 - Math.max(0, -v.niveles.vel) / 6) * 0.5;
+        return (0.2 + (ataqueFisico(v) ? 0.1 : 0.02) + (v.vel > u.vel ? 0.06 : 0)) * libre;
+      });
       break;
     default:
       if (ef.estado) candidato((r) => (ef.estado!.estado === 'achispado' ? (activo(e, r).achispado > 0 ? 0 : 0.45) : sinEstado(r) ? (ef.estado!.estado === 'dormido' ? (recienDespierto(e, activo(e, r)) ? 0 : 0.65) : 0.5) : 0));

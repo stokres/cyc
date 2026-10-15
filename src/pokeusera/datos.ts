@@ -1,4 +1,4 @@
-// PokéUsera · Edición Jarra: all the data of docs/POKEUSERA.md (type chart, the 30 useritos,
+// PokéUsera · Edición Jarra: all the data of docs/POKEUSERA.md (type chart, the 32 useritos,
 // the move table and the engine-side effect of each move). Names are data; every sentence the
 // game says lives in src/textos/pokeusera-combate.md.
 import type { EscenarioId, Especie, Estado, HabilidadId, Movimiento, ObjetoId, Stat, SucesoId, Tipo } from './tipos';
@@ -94,6 +94,9 @@ export const ESPECIES: Especie[] = [
   e('torrezmon', 'Torrezmón', ['grasa', 'droga'], 90, 65, 75, 90, 100, ['crujiente', 'limon', 'fritanga', 'pringue'], 'grasiento'),
   e('papiroflexeon', 'Papiroflexeon', ['ventolera'], 85, 110, 75, 100, 50, ['cortepapel', 'papiroflexia', 'rebufo', 'chuleria'], 'viento'),
   e('ceceseta', 'Ceceseta', ['juerga', 'alcohol'], 90, 95, 75, 90, 70, ['pasodoble', 'mancha', 'cancion', 'ronda'], 'fan'),
+  // Batch 9 (15-oct): Nº 31-32, again at the end.
+  e('mariachi', 'Mariachi', ['juerga', 'petardo'], 85, 95, 75, 95, 70, ['ayayay', 'serenata', 'picante', 'taconeo'], 'cantaynollores'),
+  e('pulpino', 'Pulpiño', ['bronca', 'grasa'], 95, 105, 85, 65, 70, ['ochotortas', 'tinta', 'morrina', 'adoquin'], 'malaleche'),
 ];
 
 export const ESPECIE: Record<string, Especie> = Object.fromEntries(ESPECIES.map((s) => [s.id, s]));
@@ -199,6 +202,13 @@ const LISTA_MOVS: Movimiento[] = [
   m('papiroflexia', 'Papiroflexia', 'ventolera', null, null, 5, 'yo'),
   m('pasodoble', 'Pasodoble', 'juerga', 80, 100, 8, 'uno'),
   m('mancha', 'Mancha de cerveza', 'alcohol', 75, 100, 8, 'uno'),
+  // Tanda 9 (15-oct, Mariachi and Pulpiño): six moves, all with one owner.
+  m('ayayay', '¡Ay, ay, ay!', 'juerga', 70, 100, 5, 'todos'),
+  m('serenata', 'Serenata', 'juerga', null, 100, 5, 'uno'),
+  m('picante', 'Salsa picante', 'petardo', 90, 100, 8, 'uno'),
+  m('ochotortas', 'Ocho tortas', 'bronca', 12, 90, 5, 'uno'),
+  m('tinta', 'Chorro de tinta', 'grasa', 60, 100, 8, 'uno'),
+  m('morrina', 'Morriña', 'mindundi', null, 100, 8, 'uno'),
   // Used when no move has PP left (Mindundi, 50, never misses, recoil 1/4).
   m('desesperada', 'A la desesperada', 'mindundi', 50, null, 1, 'uno'),
 ];
@@ -212,7 +222,7 @@ export const DESESPERADA = 'desesperada';
 
 export interface Efecto {
   /** Fixed number of hits, or 'multi' for 2–5 (Gen 1 odds). */
-  golpes?: 2 | 'multi';
+  golpes?: 2 | 8 | 'multi';
   /** Status inflicted on the target (prob in percent; 100 on pure status moves). */
   estado?: { estado: Estado | 'achispado'; prob: number };
   /** Stage changes. `prob` defaults to 100. */
@@ -232,7 +242,7 @@ export interface Efecto {
   /** Critical-hit chance multiplier (Corte de papel: ×3). */
   critico?: number;
   /** Moves with their own logic. */
-  especial?: 'premio' | 'siy' | 'venganza' | 'cancion' | 'esconderse' | 'quepague' | 'aguantar' | 'devolver' | 'siesta' | 'remolino' | 'bostezo' | 'cizana' | 'tendedero' | 'remate' | 'improvisa' | 'ficha' | 'limon';
+  especial?: 'premio' | 'siy' | 'venganza' | 'cancion' | 'esconderse' | 'quepague' | 'aguantar' | 'devolver' | 'siesta' | 'remolino' | 'bostezo' | 'cizana' | 'tendedero' | 'remate' | 'improvisa' | 'ficha' | 'limon' | 'serenata' | 'morrina';
 }
 
 export const EFECTOS: Record<string, Efecto> = {
@@ -336,6 +346,19 @@ export const EFECTOS: Record<string, Efecto> = {
   },
   pasodoble: { nivel: [{ a: 'yo', stat: 'vel', cambio: 1, prob: 30 }] },
   mancha: { nivel: [{ a: 'objetivo', stat: 'prec', cambio: -1, prob: 30 }] },
+  // Tanda 9.
+  ayayay: { retrocede: 10 },
+  serenata: { especial: 'serenata' },
+  picante: { estado: { estado: 'quemado', prob: 20 } },
+  ochotortas: { golpes: 8 },
+  tinta: { nivel: [{ a: 'objetivo', stat: 'prec', cambio: -1 }] },
+  morrina: {
+    nivel: [
+      { a: 'objetivo', stat: 'ata', cambio: -1 },
+      { a: 'objetivo', stat: 'vel', cambio: -1 },
+    ],
+    especial: 'morrina',
+  },
 };
 
 /** The moves ¡Improvisa! can pick: every move that has not exactly one owner among the useritos (so not the ones made for one userito, like Al tendedero

@@ -21,12 +21,12 @@ export interface Zona {
   escalaJefe: number;
 }
 
-/** The four bars, in the order they open. 27 wild useritos (the 30 minus the three starters). */
+/** The four bars, in the order they open. 29 wild useritos (the 32 minus the three starters; Mariachi in La Terraza, Pulpiño in Bar Donde Juan). */
 export const ZONAS: readonly Zona[] = [
   { escenario: 'brio', salvajes: ['turito', 'aceituna', 'p', 'espumarro', 'tocinon', 'pantaloneto', 'evoscar'], escalaSalvaje: 0.72, jefeN: 2, escalaJefe: 0.85 },
-  { escenario: 'terraza', salvajes: ['cierzon', 'jesuspelo', 'papiroflexeon', 'lentejasur', 'cubatillo', 'turroncho', 'goudazard'], escalaSalvaje: 0.82, jefeN: 3, escalaJefe: 0.92 },
+  { escenario: 'terraza', salvajes: ['cierzon', 'jesuspelo', 'papiroflexeon', 'lentejasur', 'cubatillo', 'turroncho', 'goudazard', 'mariachi'], escalaSalvaje: 0.82, jefeN: 3, escalaJefe: 0.92 },
   { escenario: 'rural', salvajes: ['cajonazo', 'kbronero', 'caravaner', 'roscochoco', 'ego-ego', 'teloneon', 'ceceseta'], escalaSalvaje: 0.9, jefeN: 3, escalaJefe: 1 },
-  { escenario: 'juan', salvajes: ['tragaperras', 'chupitochu', 'resacon', 'torrezmon', 'choquechu', 'maletrio'], escalaSalvaje: 0.97, jefeN: 3, escalaJefe: 1.05 },
+  { escenario: 'juan', salvajes: ['tragaperras', 'chupitochu', 'resacon', 'torrezmon', 'choquechu', 'maletrio', 'pulpino'], escalaSalvaje: 0.97, jefeN: 3, escalaJefe: 1.05 },
 ];
 
 /** Strength of the three friends in the final battle (all against all). */

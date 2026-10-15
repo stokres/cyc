@@ -117,6 +117,9 @@ combate.tendedero_vuelve = ¡{quien} vuelve al tendedero a secarse!
 combate.ficha = ¡{quien} echa otra ficha y se recupera!
 combate.limon = ¡{quien} se echa un chorrito de limón!
 combate.improvisa = ¡{quien} improvisa {mov}!
+combate.serenata = ¡{quien} se queda embobado con la serenata de {otro}!
+combate.embobado_desvia = ¡Embobado con {otro}, {quien} ataca a otro lado!
+combate.morrina = ¡A {quien} le entra la morriña!
 combate.premio0 = ¡Tres limones! Sin premio.
 combate.premio40 = ¡Salen unas monedas!
 combate.premio80 = ¡Premio! ¡Lluvia de monedas!
@@ -189,6 +192,8 @@ userito.choquechu.desc = Coche de choque de feria, con la pértiga echando chisp
 userito.torrezmon.desc = Un torrezno grasiento y crujiente, con su limón.
 userito.papiroflexeon.desc = Avión de papel turquesa. Rápido, y corta como un papel.
 userito.ceceseta.desc = La camiseta de Camiones y Caravanas. La fan número uno.
+userito.mariachi.desc = Sombrero, bigote y guitarra. Llega a tu fiesta sin avisar y no se va hasta que cantes con él.
+userito.pulpino.desc = Pulpo gallego con una mala leche de campeonato. Si le tocas, se enfada. Si no le tocas, también, pero menos.
 
 // ---- movimientos: efecto corto para el menú
 mov.barrigazo.desc = Golpe fuerte. Puede paralizar.
@@ -277,6 +282,12 @@ mov.cortepapel.desc = Hace el triple de golpes críticos.
 mov.papiroflexia.desc = Sube el Ataque y la Velocidad.
 mov.pasodoble.desc = Pega. Puede subir tu Velocidad.
 mov.mancha.desc = Le pone perdida la camiseta. Puede bajar su Precisión.
+mov.ayayay.desc = Un grito de mariachi que pega a todos. Puede hacer que retrocedan.
+mov.serenata.desc = Dos turnos embobado: si ataca a Mariachi con un ataque a uno, el golpe va a otro rival.
+mov.picante.desc = Una salsa que pica. Puede quemar.
+mov.ochotortas.desc = Una tirada de precisión y, si acierta, pega 8 veces: una por tentáculo.
+mov.tinta.desc = Tinta en los ojos. Siempre baja 1 la Precisión.
+mov.morrina.desc = Le entra la morriña. Baja 1 el Ataque y 1 la Velocidad.
 
 // ---- habilidades (motor/combate.ts, evento «habilidad»). Por cada una: .nombre = el rótulo sobre el userito y la ficha ·
 //      .desc = lo que hace · .activa = la frase al activarse (si la tiene; {quien} = el que la tiene, {otro} = el otro userito)
@@ -386,6 +397,13 @@ hab.viento.desc = Al salir al combate, sube 1 su Velocidad.
 
 hab.fan.nombre = Fan de la gira
 hab.fan.desc = Si Camioner o Caravaner están en combate, sea de quien sea, sus ataques pegan un 20 % más.
+
+hab.cantaynollores.nombre = Canta y no llores
+hab.cantaynollores.desc = Con menos de un tercio de sus PS, sus ataques de Juerga pegan un 50 % más.
+
+hab.malaleche.nombre = Mala leche
+hab.malaleche.desc = Cada vez que le pegan con un ataque, sube 1 su Ataque (como mucho una vez por turno).
+hab.malaleche.activa = ¡{quien} se pone de mala leche!
 
 // ---- ventajas de entrenador (motor/combate.ts: Chuchi «Llega tarde», Guille «Mañico»)
 combate.perk.chuchi = {quien} llegaba tarde: el golpe le pilla a medias.

@@ -1,5 +1,5 @@
 // PokéUsera · the draft (snake order): who is choosing, every player's picks so far, the sheet of the userito being looked at and the
-// grid of the 30 useritos. The sheet lives in the screen itself (between the players' panels and the grid; no window): tapping a cell
+// grid of the 32 useritos. The sheet lives in the screen itself (between the players' panels and the grid; no window): tapping a cell
 // of the grid shows that userito's sheet, tapping another one swaps it, and ELEGIR (on your turn only) takes it. The top bar with the
 // clock and whose turn it is never goes away. It draws only from what it is told (`alDraft`: the draft state, whose turn and for how
 // long), so a guest can feed it from network messages too.
@@ -48,10 +48,12 @@ export interface PlazaDraft {
   nombre: string;
 }
 
-/** The grid: 6 columns × 5 rows for the 30 useritos (a 32×32 thumbnail per 40×36–43 cell, ≥ 65×58 CSS px on a 390 px phone). */
-const COLS = 6;
+/** The grid: 7 columns × 5 rows for the 32 useritos (a 32×32 thumbnail per 34×36–43 cell, ≥ 55×58 CSS px on a 390 px phone; the last row has room to spare).
+ *  The row is centred (X_REJ: 1 px of margin on a 240 px screen). */
+const COLS = 7;
 const FILAS = Math.ceil(ESPECIES.length / COLS);
-const CELDA_W = ANCHO / COLS;
+const CELDA_W = Math.floor(ANCHO / COLS);
+const X_REJ = Math.floor((ANCHO - CELDA_W * COLS) / 2);
 const MINI_X = Math.floor((CELDA_W - 32) / 2);
 const STATS: { clave: 'ps' | 'ata' | 'def' | 'vel' | 'esp'; nombre: string }[] = [
   { clave: 'ps', nombre: 'PS' },
@@ -332,7 +334,7 @@ export class VistaDraft implements Escena {
 
   private celda(k: number): [number, number] {
     const L = this.layout(pantalla().alto);
-    return [(k % COLS) * CELDA_W, L.yGrid + Math.floor(k / COLS) * L.cellH];
+    return [X_REJ + (k % COLS) * CELDA_W, L.yGrid + Math.floor(k / COLS) * L.cellH];
   }
 
   private dueno(id: string): number {
@@ -408,8 +410,8 @@ export class VistaDraft implements Escena {
     let k = this.sel;
     if (a === 'izq') k = (k + n - 1) % n;
     else if (a === 'der') k = (k + 1) % n;
-    else if (a === 'arriba') k = (k + n - COLS) % n;
-    else if (a === 'abajo') k = (k + COLS) % n;
+    else if (a === 'arriba') k = k >= COLS ? k - COLS : k + Math.floor((n - 1 - k) / COLS) * COLS;
+    else if (a === 'abajo') k = k + COLS < n ? k + COLS : k % COLS;
     else if (a === 'aceptar') {
       this.confirmar();
       return true;
@@ -579,7 +581,7 @@ export class VistaDraft implements Escena {
 
   // ------------------------------------------------------------------ the grid
 
-  /** The 30 cells on one canvas: plate, thumbnail and, for the taken ones, the owner's mark. Redone only when it changes. */
+  /** The 32 cells on one canvas: plate, thumbnail and, for the taken ones, the owner's mark. Redone only when it changes. */
   private rejillaLienzo(cellH: number): HTMLCanvasElement {
     if (!this.rej) {
       this.rej = document.createElement('canvas');
@@ -596,18 +598,18 @@ export class VistaDraft implements Escena {
       cx.imageSmoothingEnabled = false;
       cx.clearRect(0, 0, ANCHO, cellH * FILAS);
       ESPECIES.forEach((sp, k) => {
-        const x = (k % COLS) * CELDA_W;
+        const x = X_REJ + (k % COLS) * CELDA_W;
         const y = Math.floor(k / COLS) * cellH;
         const d = this.dueno(sp.id);
         const sy = y + Math.floor((cellH - 32) / 2);
         // The cell's plate.
-        relleno(cx, 'rgba(59,42,63,0.22)', x + 2, y + 1, CELDA_W - 4, cellH - 2);
+        relleno(cx, 'rgba(59,42,63,0.22)', x, y + 1, CELDA_W - 1, cellH - 2);
         if (d >= 0) {
           cx.save();
           cx.globalAlpha = 0.3;
           cx.drawImage(miniatura(sp.id), x + MINI_X, sy);
           cx.restore();
-          rect(cx, colorEnt(this.plazas[d].entrenador), x + 6, y + cellH - 5, CELDA_W - 12, 3);
+          rect(cx, colorEnt(this.plazas[d].entrenador), x + 4, y + cellH - 5, CELDA_W - 9, 3);
           cx.drawImage(icono2(this.plazas[d].entrenador), x + Math.floor((CELDA_W - 16) / 2), sy + 8);
         } else cx.drawImage(miniatura(sp.id), x + MINI_X, sy);
       });
@@ -618,7 +620,7 @@ export class VistaDraft implements Escena {
   private rejilla(ctx: CanvasRenderingContext2D, L: { yGrid: number; cellH: number }, ahora: number) {
     ctx.drawImage(this.rejillaLienzo(L.cellH), 0, L.yGrid);
     ESPECIES.forEach((_sp, k) => {
-      const x = (k % COLS) * CELDA_W;
+      const x = X_REJ + (k % COLS) * CELDA_W;
       const y = L.yGrid + Math.floor(k / COLS) * L.cellH;
       entrada.zona(x, y, CELDA_W, L.cellH, () => this.mirar(k));
     });

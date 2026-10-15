@@ -12,7 +12,7 @@
 // Movimientos con diseño propio (el resto usa una chispa genérica del color de su tipo; los de estado sobre uno
 // mismo, unos brillos). Sobre rivales (`FX`): lluvia, almendrazo, traca, fogonazo, petardazo, chispazo, cierzo, chupitazo,
 // garrafon, cancion, esporas, temblor, bocinazo, chapa, planeo, pringue, cara_de_pena, vacile, venganza, adoquin, barrigazo,
-// ronda, unamas, zasca, coz, raices, setas, burbujeo, pesao, tubo, goudamadre, tendedero, remate, maletazo, embarque, monologo, carambola, crujiente, cortepapel, pasodoble, mancha. Sobre uno mismo (`FX_YO`, `lanzar` los llama
+// ronda, unamas, zasca, coz, raices, setas, burbujeo, pesao, tubo, goudamadre, tendedero, remate, maletazo, embarque, monologo, carambola, crujiente, cortepapel, pasodoble, mancha, ayayay, serenata, picante, ochotortas, tinta, morrina. Sobre uno mismo (`FX_YO`, `lanzar` los llama
 // con la lista de objetivos vacía): siesta, esconderse, rebozado, caparazon, compas, pantalones, cinturones, improvisa, ficha, limon, papiroflexia. Los de «todos» llegan a
 // todos los rivales a la vez. Para añadir uno: función `(e, tipo, desde, a)` + entrada en `FX` o `FX_YO` + `LLEGA`/`LLEGA_YO`;
 // el precalentado (`tareasPrecalentarEfectos`) lo recoge solo.
@@ -1751,6 +1751,105 @@ function hManchaCerveza(): Hoja {
   });
 }
 
+// ---- Tanda 9: sombrero de charro, corazones, salsa, tentáculos, tinta, nube triste y lluvia fina -------------------
+/** Una mancha blanda con salpicaduras (como las de la cerveza y el aceite) en el material dado; tres tamaños. */
+function manchaBlanda(mat: Mat, rs: number[], brillo: string): Hoja {
+  const sat: [number, number, number][] = [[-0.95, -0.5, 0.36], [0.95, -0.3, 0.3], [0.2, 0.95, 0.32], [-0.6, 0.85, 0.28], [0.75, 0.7, 0.26]];
+  return rs.map((r) => {
+    const T = 2 * r + 10;
+    const c = T / 2;
+    const cv = sombrear(T, T, union(eli(c, c, r * 1.1, r * 0.85), ...sat.map(([dx, dy, rr]) => disco(c + dx * r, c + dy * r, rr * r))), mat);
+    const x = ctxDe(cv);
+    pix(x, brillo, Math.round(c - r * 0.5), Math.round(c - r * 0.4), 3, 1);
+    pix(x, brillo, Math.round(c - r * 0.5), Math.round(c - r * 0.4) + 1, 1, 2);
+    pix(x, brillo, Math.round(c + r * 0.3), Math.round(c + r * 0.2), 2, 1);
+    return cv;
+  });
+}
+
+// -- ¡Ay, ay, ay!: el sombrero de charro del cantante
+function hSombrero(): Hoja {
+  const c = sombrear(23, 14, union(caja(7, 1, 15, 8), eli(11, 10, 11, 3.2)), { ol: '#6a4a10', base: '#e8c050', luz: '#fff0a0', som: '#b08a28' });
+  const x = ctxDe(c);
+  pix(x, ROJO, 8, 6, 7, 2);
+  for (const i of [9, 11, 13]) pix(x, AMARILLO, i, 6, 1, 1);
+  pix(x, '#fff0a0', 2, 9, 3, 1);
+  pix(x, '#fff0a0', 18, 9, 3, 1);
+  return [esc(c, 1.5)];
+}
+
+// -- Serenata: un corazón rosa de buen tamaño
+function hCorazonSerenata(): Hoja {
+  const p = { k: TINTA, R: '#f0507c', w: '#ffc0d0' };
+  return [amp(filas(CORAZON_P, p)), esc(filas(CORAZON_P, p), 1.5)];
+}
+
+// -- Salsa picante: gotas y mancha rojas
+function hGotaSalsa(): Hoja {
+  return ampH([filas(['.a.', 'aaA', '.A.'], { a: '#e8402c', A: '#8c1c1c' }), filas(['aa', 'aA'], { a: '#e8402c', A: '#8c1c1c' })]).map((c) => esc(c, 1.5));
+}
+function hManchaSalsa(): Hoja {
+  return manchaBlanda({ ol: '#5a0f0f', base: '#d4382c', luz: '#ff8a5c', som: '#8c1c1c' }, [7, 10, 12], '#ffd0a0');
+}
+
+// -- Ocho tortas: un tentáculo morado con ventosas que se alza y se estampa (tres fotogramas), y su explosión morada
+const MAT_PULPO: Mat = { ol: '#3a1c5c', base: '#8a4ac8', luz: '#c89af0', som: '#5c2c94' };
+function tentaculo(curl: number): HTMLCanvasElement {
+  const W = 36;
+  const H = 28;
+  const eje = (u: number): [number, number] => [3 + u * 29, 22 - 18 * Math.sin(Math.PI * u * 0.92) + curl * 11 * u * u];
+  const ancho = (u: number): number => 4.4 * (1 - u) + 1.2;
+  // La máscara se estampa una vez (un disco por punto del eje) en vez de medir la distancia a todos los puntos desde cada píxel.
+  const masa = new Uint8Array(W * H);
+  for (let k = 0; k <= 40; k++) {
+    const u = k / 40;
+    const [px, py] = eje(u);
+    const r = ancho(u);
+    for (let j = Math.max(0, Math.floor(py - r)); j <= Math.min(H - 1, Math.ceil(py + r)); j++) for (let i = Math.max(0, Math.floor(px - r)); i <= Math.min(W - 1, Math.ceil(px + r)); i++) if ((i - px) ** 2 + (j - py) ** 2 <= r * r) masa[j * W + i] = 1;
+  }
+  const c = sombrear(W, H, (i, j) => i >= 0 && j >= 0 && i < W && j < H && masa[j * W + i] === 1, MAT_PULPO);
+  const x = ctxDe(c);
+  for (let k = 3; k <= 8; k++) {
+    const [px, py] = eje(k / 10 - 0.05);
+    pix(x, '#f4b8e0', Math.round(px), Math.round(py + ancho(k / 10) * 0.5), 1, 1);
+  }
+  return c;
+}
+function hTentaculo(dir: number): Hoja {
+  return [0, 0.6, 1.3].map((curl) => (dir > 0 ? tentaculo(curl) : espejo(tentaculo(curl))));
+}
+const hTentaculoD = (): Hoja => hTentaculo(1);
+const hTentaculoI = (): Hoja => hTentaculo(-1);
+function hPumMorado(): Hoja {
+  return [pum(7, 3, 8, { ol: '#3a1c5c', base: '#c89af0', luz: '#ffffff', som: '#8a4ac8' })];
+}
+
+// -- Chorro de tinta: gotas negras y una mancha que se extiende
+const MAT_TINTA: Mat = { ol: '#07050c', base: '#17132a', luz: '#6a6aa0', som: '#0a0814' };
+function hGotaTinta(): Hoja {
+  return ampH([filas(['.a.', 'aaA', '.A.'], { a: '#262040', A: '#0a0710' }), filas(['aa', 'aA'], { a: '#262040', A: '#0a0710' })]).map((c) => esc(c, 1.5));
+}
+function hManchaTinta(): Hoja {
+  return manchaBlanda(MAT_TINTA, [9, 14, 17], '#9a9ad0');
+}
+
+// -- Morriña: una nube gris con cara triste y lluvia fina
+function hNubeTriste(): Hoja {
+  const c = sombrear(42, 20, union(disco(10, 12, 6), disco(19, 9, 8), disco(29, 9, 8), disco(36, 12, 6), caja(10, 11, 36, 17)), { ol: '#4a5468', base: '#9aa4b8', luz: '#d0d8e8', som: '#6c778c' });
+  const x = ctxDe(c);
+  pix(x, TINTA, 15, 10, 2, 2);
+  pix(x, TINTA, 25, 10, 2, 2);
+  pix(x, TINTA, 18, 15, 5, 1);
+  pix(x, TINTA, 17, 16, 1, 1);
+  pix(x, TINTA, 23, 16, 1, 1);
+  pix(x, '#6ab4f4', 14, 12, 1, 2);
+  return [esc(c, 1.5)];
+}
+function hLluviaFina(): Hoja {
+  const p = { a: '#e4efff', A: '#7aa4e8' };
+  return [filas(['a', 'a', 'A', 'A', 'A', 'a'], p), filas(['a', 'A', 'A', 'A', 'a', 'a'], p)].map((c) => amp(c));
+}
+
 // ------------------------------------------------------------------------------------------------------------
 // Depósito de partículas
 // ------------------------------------------------------------------------------------------------------------
@@ -2740,12 +2839,110 @@ const mancha: Efecto = (e, tipo, d, a) => {
   }
 };
 
+// ---- Tanda 9 ----------------------------------------------------------------------------------------------------
+/** ¡Ay, ay, ay!: un sombrero de charro asoma sobre el cantante, su grito sale en ondas y arcos hacia cada rival, con notas ondulando. */
+const ayayay: Efecto = (e, tipo, d, a) => {
+  e.mk(memo('sombrero', hSombrero), d.x, alto(d.y - 28), d.x, alto(d.y - 32), 0, 400, 0, 0, 1, 0, 0, 120);
+  const hr = memo('anillo-sonido', hAnilloSonido);
+  for (let i = 0; i < 3; i++) e.mk(hr, d.x, d.y - 4, d.x, d.y - 4, i * 80, 320);
+  const notas = [unos('nota-a', hNotaA), unos('nota-b', hNotaB), unos('nota-c', hNotaC)];
+  a.forEach((t, k) => {
+    const dir = t.x >= d.x ? 1 : -1;
+    const arcos = dir > 0 ? unos('arcos+', hArcosD) : unos('arcos-', hArcosI);
+    for (let j = 0; j < 3; j++) e.mk(arcos[j], d.x, d.y - 6, t.x - dir * 14, t.y, 30 + j * 45, 190, 0, 0, 1, 0, 0, 60);
+    for (let j = 0; j < 2; j++) e.mk(notas[(j + k) % 3][j & 1], d.x, d.y - 12, t.x + (j - 0.5) * 12, t.y - 6, 40 + j * 70 + k * 15, 300, 0, 9, 1, 0, 0, 90);
+    golpe(e, tipo, t.x, t.y, 240, 2);
+  });
+};
+
+/** Serenata: dos notas vuelan hasta el rival y, a su alrededor, dan vueltas dos corazones y dos notas; al final suben corazoncitos. */
+const serenata: Efecto = (e, _tipo, d, a) => {
+  const hn = [unos('nota-b', hNotaB), unos('nota-c', hNotaC)];
+  const hc = unos('corazon-serenata', hCorazonSerenata);
+  const hp = unos('corazoncito', hCorazoncito);
+  for (const t of a) {
+    for (let j = 0; j < 2; j++) e.mk(hn[j][j], d.x, d.y - 10, t.x + (j - 0.5) * 16, alto(t.y - 20), j * 60, 190, 0, 5, 1, 0, 0, 80);
+    const cy = alto(t.y - 4);
+    const SEG = 8;
+    const paso = 50;
+    // Cuatro cosas que giran (corazón, nota, corazón, nota) una vuelta entera, en ocho tramos.
+    for (let s = 0; s < 4; s++) {
+      const h = s & 1 ? hn[(s >> 1) & 1] : hc;
+      for (let g = 0; g < SEG; g++) {
+        const a0 = (s * Math.PI) / 2 + (g * 2 * Math.PI) / SEG;
+        const a1 = a0 + (2 * Math.PI) / SEG;
+        const hoja = s & 1 ? h[(s >> 1) & 1] : h[s >> 1];
+        e.mk(hoja, t.x + Math.cos(a0) * 30, alto(cy + Math.sin(a0) * 16), t.x + Math.cos(a1) * 30, alto(cy + Math.sin(a1) * 16), 140 + g * paso, paso, 0, 0, 1, 0, 0, g === SEG - 1 ? 40 : 0);
+      }
+    }
+    for (let i = 0; i < 3; i++) e.mk(hp[0], t.x + (i - 1) * 13, cy + 4, t.x + (i - 1) * 17, alto(t.y - 34 - (i & 1) * 8), 520 + i * 70, 420, 0, 3, 1, 1, 0, 140);
+  }
+};
+
+/** Salsa picante: un chorro rojo cruza en arco, moja al rival y deja una mancha; brotan tres llamitas y brasas. */
+const picante: Efecto = (e, tipo, d, a) => {
+  const hg = unos('gota-salsa', hGotaSalsa);
+  const hf = memo('fuego-chico', hFuegoChico);
+  const hb = memo('brasa', hBrasa);
+  for (const t of a) {
+    for (let i = 0; i < 10; i++) e.mk(hg[i & 1], d.x + 8, d.y - 4, t.x + (i - 4.5) * 1.2, t.y - 6 + ((i % 3) - 1) * 2, i * 15, 150, -22, 0, 1, 0);
+    e.mk(memo('mancha-salsa', hManchaSalsa), t.x, t.y + 4, t.x, t.y + 4, 160, 560, 0, 0, 1, 0, 0, 160);
+    e.mk(memo('pum-rojo', hPumRojo), t.x, t.y, t.x, t.y, 160, 200);
+    for (let i = 0; i < 3; i++) e.mk(hf, t.x + (i - 1) * 14, t.y + 6, t.x + (i - 1) * 14, t.y - 14 - (i & 1) * 6, 180 + i * 60, 420, 0, 0, 1, 1, 70, 130);
+    for (let i = 0; i < 3; i++) e.mk(hb, t.x + entre(-8, 8), t.y, t.x + entre(-22, 22), t.y - entre(20, 32), 220 + i * 40, 280, -8, 0, 1, 1, 0, 90);
+    golpe(e, tipo, t.x, t.y, 160, 0);
+  }
+};
+
+/** Ocho tortas: ocho zarpazos rápidos de tentáculo morado, uno por un lado y otro por el otro, cada uno con su estallido; el último, más fuerte. */
+const ochotortas: Efecto = (e, tipo, _d, a) => {
+  const sitios: [number, number][] = [[-1, -8], [1, 6], [-1, 3], [1, -10], [-1, 9], [1, 0], [-1, -4], [1, 8]];
+  const hd = memo('tentaculo+', hTentaculoD);
+  const hi = memo('tentaculo-', hTentaculoI);
+  const hp = unos('pum-morado', hPumMorado)[0];
+  for (const t of a) {
+    sitios.forEach(([dir, dy], k) => {
+      const ret = k * 62;
+      const x = t.x - dir * 13;
+      e.mk(dir > 0 ? hd : hi, x, t.y + dy, x, t.y + dy, ret, 130);
+      e.mk(hp, t.x + dir * (k & 1 ? 3 : -3), t.y + dy, t.x + dir * (k & 1 ? 3 : -3), t.y + dy, ret + 60, 120);
+    });
+    golpe(e, tipo, t.x, t.y, 7 * 62 + 60, 3);
+  }
+};
+
+/** Chorro de tinta: un chorro negro cruza en arco, salpica al rival y deja una mancha que se extiende y gotea. */
+const tinta: Efecto = (e, tipo, d, a) => {
+  const hg = unos('gota-tinta', hGotaTinta);
+  for (const t of a) {
+    for (let i = 0; i < 10; i++) e.mk(hg[i & 1], d.x + 8, d.y - 4, t.x + (i - 4.5) * 1.2, t.y - 6 + ((i % 3) - 1) * 2, i * 14, 140, -20, 0, 1, 0);
+    e.mk(memo('mancha-tinta', hManchaTinta), t.x, t.y + 2, t.x, t.y + 2, 150, 700, 0, 0, 1, 0, 0, 200);
+    for (let i = 0; i < 4; i++) e.mk(hg[i & 1], t.x, t.y, t.x + (i - 1.5) * 12, t.y - 14 - (i & 1) * 6, 150, 230, -10, 0, 1, 1, 0, 70);
+    for (let i = 0; i < 3; i++) e.mk(hg[0], t.x + (i - 1) * 8, t.y + 6, t.x + (i - 1) * 8, t.y + 22, 300 + i * 90, 330, 0, 0, 1, 2, 0, 90);
+    golpe(e, tipo, t.x, t.y, 150, 2);
+  }
+};
+
+/** Morriña: una nube gris con cara triste se para encima del rival y le cae una lluvia fina. */
+const morrina: Efecto = (e, _tipo, _d, a) => {
+  const hl = unos('lluvia-fina', hLluviaFina);
+  for (const t of a) {
+    const cy = alto(t.y - 28);
+    e.mk(memo('nube-triste', hNubeTriste), t.x - 12, cy, t.x, cy + 2, 0, 1000, 0, 0, 0.3, 1, 0, 200);
+    for (let i = 0; i < 20; i++) {
+      const x = t.x - 21 + (i % 10) * 5 + (i < 10 ? 0 : 2);
+      e.mk(hl[i & 1], x, cy + 12, x - 1, t.y + 18 + (i % 3) * 3, 160 + i * 36, 230, 0, 0, 1, 2, 0, 70);
+    }
+  }
+};
+
 /** Efectos de los movimientos sobre rivales (y «todos»). */
 const FX: Record<string, Efecto> = {
   lluvia, almendrazo, traca, fogonazo, petardazo, chispazo, cierzo, chupitazo, garrafon, cancion, esporas, temblor, bocinazo,
   chapa, planeo, pringue, cara_de_pena, vacile, venganza, adoquin, barrigazo, ronda, unamas, zasca, coz, raices,
   setas, burbujeo, pesao, tubo, goudamadre, tendedero, remate,
   maletazo, embarque, monologo, carambola, crujiente, cortepapel, pasodoble, mancha,
+  ayayay, serenata, picante, ochotortas, tinta, morrina,
 };
 
 /** Efectos de los movimientos sobre uno mismo (objetivo «yo»: `lanzar` los llama sin objetivos). */
@@ -2797,6 +2994,12 @@ const LLEGA: Record<string, number> = {
   cortepapel: 80,
   pasodoble: 200,
   mancha: 160,
+  ayayay: 240,
+  serenata: 190,
+  picante: 165,
+  ochotortas: 70,
+  tinta: 150,
+  morrina: 330,
 };
 
 /** Lo mismo para los movimientos sobre uno mismo (cuándo se nota el efecto: el texto de lo que sube o baja viene detrás). */
