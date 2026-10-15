@@ -856,7 +856,7 @@ function efectosSecundarios(c: Ctx, j: number, t: number, m: Movimiento, danino:
 /** Trainer perks that change a hit from another player on player `t`'s active userito (`dano` is
  *  already final: after type, spread, Acorralado, random and critical). Chuchi «Llega tarde»: the
  *  first such hit each of his useritos receives does 20 % less (min 1). Guille «Mañico»: once per
- *  userito, a hit that would KO it from full HP leaves it at 1 HP. Each is spent once per battle. Fer «Cancelación de ruido»: a sound move does half (every time, not spent). */
+ *  userito, a hit that would KO it from full HP leaves it at 1 HP. Each is spent once per battle. Fer «Cancelación de ruido»: a sound move does 25 % less (every time, not spent). */
 function aplicarPerks(c: Ctx, t: number, dano: number, sonido = false): { dano: number; bruto: number; perk: 'chuchi' | 'guille' | 'fer' | null } {
   const v = act(c, t);
   const ent = c.e.jugadores[t].entrenador;
@@ -873,7 +873,7 @@ function aplicarPerks(c: Ctx, t: number, dano: number, sonido = false): { dano: 
     dano = v.ps - 1;
     perk = 'guille';
   } else if (ent === 'fer' && sonido) {
-    // Fer «Cancelación de ruido»: a sound move does half (a real cut, like Chuchi's).
+    // Fer «Cancelación de ruido»: a sound move does 25 % less (a real cut, like Chuchi's).
     dano = Math.max(1, Math.floor((dano * PERK_RUIDO_FER) / 100));
     bruto = dano;
     perk = 'fer';
@@ -1015,7 +1015,7 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
       decir(c, 'combate.esconde_protege', varsDe(c, t), t);
       continue;
     }
-    // Fer «Cancelación de ruido»: a rival's sound move does half to his useritos. A sound move without damage (Bocinazo, Serenata) gets through half the time:
+    // Fer «Cancelación de ruido»: a rival's sound move does 25 % less to his useritos. A sound move without damage (Bocinazo, Serenata) gets through 75 % of the time:
     // when it does not, nothing reaches him and the line says why. (The roll is only made when Fer is the target.)
     if (esSonido(m.id) && !danina && e.jugadores[t].entrenador === 'fer' && !probar(e, PERK_RUIDO_FER)) {
       st(c, j).fal++;

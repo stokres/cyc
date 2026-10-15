@@ -247,7 +247,7 @@ entrenador.vinas.perk_d = Sus ataques de Chanza y Juerga pegan un 10 % más.
 entrenador.ari.perk = De su cosecha
 entrenador.ari.perk_d = Cada golpe que da tiene un 10 % más de salir crítico.
 entrenador.fer.perk = Cancelación de ruido
-entrenador.fer.perk_d = Los movimientos con la etiqueta SONIDO (bocinas, gritos, música…) le hacen la mitad.
+entrenador.fer.perk_d = Los movimientos con la etiqueta SONIDO (bocinas, gritos, música…) le hacen un 25 % menos.
 entrenador.elegir = ELEGIR
 
 // ---- draft

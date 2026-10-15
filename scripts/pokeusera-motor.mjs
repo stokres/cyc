@@ -651,8 +651,8 @@ function revisarPerksNuevos() {
     if (!distinto) falla('De su cosecha: atacando no gasta ningún número de azar extra');
   }
 
-  // Cancelación de ruido: a sound move with damage (¡Ay, ay, ay!) does half to Fer (floor, min 1) and warns once; one without damage (Serenata, Bocinazo) gets through
-  // about half of the seeds (and when it does not, nothing reaches him and the line says why); a normal move and a Petardo hit him as usual.
+  // Cancelación de ruido: a sound move with damage (¡Ay, ay, ay!) does 25 % less to Fer (floor, min 1) and warns once; one without damage (Serenata, Bocinazo) gets through
+  // about 75 % of the seeds (and when it does not, nothing reaches him and the line says why); a normal move and a Petardo hit him as usual.
   // Camioner: Trompazo 0 (normal), Bocinazo 2 (sound); Mariachi: ¡Ay, ay, ay! 0, Serenata 1, Salsa picante 2 (normal).
   {
     const sonidos = ['bocinazo', 'ayayay', 'serenata', 'distorsion', 'solo', 'pasodoble', 'cancion', 'dosvoces', 'eco', 'monologo'];
@@ -662,10 +662,10 @@ function revisarPerksNuevos() {
       return { e, r: M.resolverTurno(e, [ataca(mov, objetivo), cana]) };
     };
     const perdido = (x) => x.r.estado.jugadores[1].equipo[0].psMax - x.r.estado.jugadores[1].equipo[0].ps;
-    // Damage: half of what Fran takes (same seed, same dice), one warning, and a normal move is not halved.
+    // Damage: 75 % of what Fran takes (same seed, same dice), one warning, and a normal move is not halved.
     const feroz = vs(['mariachi', 'turito', 'cierzon'], 'fer', 0);
     const refe = vs(['mariachi', 'turito', 'cierzon'], 'fran', 0);
-    if (perdido(refe) < 2 || perdido(feroz) !== Math.max(1, Math.floor((perdido(refe) * 50) / 100))) falla(`Fer: ¡Ay, ay, ay! no hace la mitad (${perdido(feroz)} contra ${perdido(refe)})`);
+    if (perdido(refe) < 2 || perdido(feroz) !== Math.max(1, Math.floor((perdido(refe) * 75) / 100))) falla(`Fer: ¡Ay, ay, ay! no hace un 25 % menos (${perdido(feroz)} contra ${perdido(refe)})`);
     const avisos = feroz.r.eventos.filter((ev) => ev.clave === 'combate.perk.fer');
     if (avisos.length !== 1 || avisos[0].j !== 1 || !avisos[0].vars?.quien) falla(`Fer: aviso mal (${avisos.length})`);
     if (refe.r.eventos.some((ev) => ev.clave === 'combate.perk.fer' || ev.clave === 'combate.perk.fer_nada')) falla('Fer: lo ha activado otro entrenador');
@@ -674,7 +674,7 @@ function revisarPerksNuevos() {
     if (perdido(normal) !== perdido(normalRef) || normal.r.eventos.some((ev) => ev.clave === 'combate.perk.fer')) falla('Fer: Salsa picante (no es de sonido) no le hace el daño normal');
     const tromp = vs(['camioner', 'turito', 'cierzon'], 'fer', 0);
     if (perdido(tromp) !== perdido(vs(['camioner', 'turito', 'cierzon'], 'fran', 0))) falla('Fer: Trompazo (normal) no le hace el daño normal');
-    // No damage: Serenata (embobado) and Bocinazo (−1 Attack) reach him about half of the seeds, and exactly when the warning is not given; always reach Fran.
+    // No damage: Serenata (embobado) and Bocinazo (−1 Attack) reach him about 75 % of the seeds, and exactly when the warning is not given; always reach Fran.
     for (const [esp, mov, llega, nombre] of [
       ['mariachi', 1, (x) => x.r.estado.jugadores[1].equipo[0].vol.embobado > 0, 'Serenata'],
       ['camioner', 2, (x) => x.r.estado.jugadores[1].equipo[0].niveles.ata === -1, 'Bocinazo'],
@@ -688,7 +688,7 @@ function revisarPerksNuevos() {
         if (llega(x)) paso++;
         if (!llega(vs([esp, 'turito', 'cierzon'], 'fran', mov, 1, sem))) falla(`Fer (referencia): ${nombre} no llega a Fran (semilla ${sem})`);
       }
-      if (paso < N * 0.35 || paso > N * 0.65) falla(`Fer: ${nombre} le llega ${paso} de ${N} veces (se esperaba la mitad)`);
+      if (paso < N * 0.65 || paso > N * 0.85) falla(`Fer: ${nombre} le llega ${paso} de ${N} veces (se esperaba el 75 %)`);
     }
     // His own sound moves work as ever, and the userito that comes in after a fall is covered too.
     const suyo = M.resolverTurno(M.crearCombate(eq(['fer', 'pablo'], [['mariachi', 'turito', 'cierzon'], ['tocinon', 'turito', 'cierzon']]), 21), [ataca(0), cana]);
@@ -698,7 +698,7 @@ function revisarPerksNuevos() {
     const bancoRef = M.resolverTurno(M.crearCombate(eq(['pablo', 'fran'], [['mariachi', 'turito', 'cierzon'], ['tocinon', 'camioner', 'cierzon']]), 21), [ataca(0), { tipo: 'cambiar', a: 1 }]);
     const c1 = banco.estado.jugadores[1].equipo[1];
     const c2 = bancoRef.estado.jugadores[1].equipo[1];
-    if (c2.psMax - c2.ps >= 2 && c1.psMax - c1.ps !== Math.max(1, Math.floor(((c2.psMax - c2.ps) * 50) / 100))) falla('Fer: el userito que entra no recibe la mitad del ruido');
+    if (c2.psMax - c2.ps >= 2 && c1.psMax - c1.ps !== Math.max(1, Math.floor(((c2.psMax - c2.ps) * 75) / 100))) falla('Fer: el userito que entra no recibe un 25 % menos del ruido');
   }
 }
 revisarPerksNuevos();
