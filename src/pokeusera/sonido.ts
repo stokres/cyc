@@ -1,4 +1,4 @@
-// Sound of PokéUsera: the eight tunes (src/sonido/pokeusera-*.mp3, made by tools/musica/pokeusera.py)
+// Sound of PokéUsera: the tunes (src/sonido/pokeusera-*.mp3, made by tools/musica/pokeusera.py; the long versions of ~3 minutes, by pokeusera_largas_a.py and pokeusera_largas_b.py)
 // and the effects and cries, which are synthesised live in the style of the first Game Boy games:
 // pulse waves with pitch sweeps and arpeggios, and noise from the console's 15-bit shift register.
 // Self-contained (it does not use src/core/audio.ts) and silent, never throwing, if there is no audio.
@@ -59,11 +59,11 @@ const PISTAS: Record<Pista, { url: string; inicio: number; fin: number | null }>
   draft: { url: urlDraft, inicio: 0.5, fin: 183.78381 },
   combate: { url: urlCombate, inicio: 0.5, fin: 172.792063 },
   combateRock: { url: urlCombateRock, inicio: 0.5, fin: 173.842766 },
-  combateVerbena: { url: urlCombateVerbena, inicio: 0.5, fin: 58.677596 },
-  combateElectro: { url: urlCombateElectro, inicio: 0.5, fin: 59.571565 },
-  combateTerraza: { url: urlCombateTerraza, inicio: 0.5, fin: 56.494921 },
-  combateRural: { url: urlCombateRural, inicio: 0.5, fin: 56.146621 },
-  combateJuan: { url: urlCombateJuan, inicio: 0.5, fin: 59.571565 },
+  combateVerbena: { url: urlCombateVerbena, inicio: 0.5, fin: 182.304989 },
+  combateElectro: { url: urlCombateElectro, inicio: 0.5, fin: 177.714694 },
+  combateTerraza: { url: urlCombateTerraza, inicio: 0.5, fin: 176.484036 },
+  combateRural: { url: urlCombateRural, inicio: 0.5, fin: 181.351519 },
+  combateJuan: { url: urlCombateJuan, inicio: 0.5, fin: 177.714694 },
   final: { url: urlFinal, inicio: 0.5, fin: 167.944898 },
   victoria: { url: urlVictoria, inicio: 0, fin: null },
 };
