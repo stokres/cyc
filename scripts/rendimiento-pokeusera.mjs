@@ -17,7 +17,7 @@
 //   node scripts/rendimiento-pokeusera.mjs [pantalla...]     (default: all)  [PUERTO=5173]
 //   node scripts/rendimiento-pokeusera.mjs 5174 combate-juega     (a bare number is the port)
 //   screens: titulo, menu, ajustes, entrenador, draft, draft-flujo, barra, salida, combate-elige, combate-juega, combate-ritmo (+ the four bars: combate-elige-<bar> and combate-juega-<bar>,
-//            with <bar> = rural, terraza, juan; the default combate-* ones are the Bar del Brío), podio, estadisticas, useritopedia, useritopedia-ficha, guia, guia-objetos, salida,
+//            with <bar> = rural, terraza, juan; the default combate-* ones are the Bar del Brío), podio, estadisticas, useritopedia, useritopedia-ficha, acumuladas, acumuladas-records, guia, guia-objetos, salida,
 //            aventura-inicial, aventura-mapa, aventura-zona, aventura-equipo, aventura-salvaje (AVENTURA, src/pokeusera/caza/: ?aventura&demo=nueva&pj=fran and ?aventura&demo)
 // Environment: SEG=4 (seconds measured per screen), CPU=4 (throttling rate; 1 = none, budgets then do not apply),
 //   VOLCAR=carpeta (also write a PNG of every screen there, to compare looks before/after).
@@ -42,7 +42,8 @@ const BASE = `http://localhost:${PUERTO}/pokeusera.html`;
 const PRESUPUESTOS = {
   //                  redibujos/s  ms/fotog.  pico  hilo cb %  drawImage  lienzos en reposo  tareas largas  1.º pico (arranque)
   titulo: { redibujos: 62, ms: 1.5, pico: 20, cb: 10, di: 25, lienzos: 0, largas: 0, primer: 1000 },
-  menu: { redibujos: 6, ms: 1, pico: 20, cb: 3, di: 5, lienzos: 0, largas: 0, primer: 1000 },
+  // The menu shares the title's street (bulbs, stars, neon, the useritos' breathing in two groups: ~9 redraws a second, no hop) plus the option panel: 26 blits a frame.
+  menu: { redibujos: 12, ms: 1.6, pico: 20, cb: 3, di: 40, lienzos: 0, largas: 0, primer: 1000 },
   entrenador: { redibujos: 15, ms: 2.5, pico: 20, cb: 5, di: 45, lienzos: 0, largas: 0, primer: 1000 },
   // The draft with the sheet inside it (the sheet and the grid are baked, 15 blits a frame; before: 61 blits, 2.2 ms).
   draft: { redibujos: 10, ms: 2.5, pico: 20, cb: 3, di: 30, lienzos: 0, largas: 0, primer: 1600 },
@@ -63,6 +64,9 @@ const PRESUPUESTOS = {
   estadisticas: { redibujos: 8, ms: 6, pico: 25, cb: 4, di: 150, lienzos: 0, largas: 0, primer: 1500 },
   useritopedia: { redibujos: 2, ms: 3, pico: 10, cb: 3, di: 45, lienzos: 0, largas: 0, primer: 1500 },
   'useritopedia-ficha': { redibujos: 6, ms: 3, pico: 10, cb: 4, di: 25, lienzos: 0, largas: 0, primer: 1500 },
+  // ESTADÍSTICAS del menú (lo acumulado de todas las partidas; 80 batallas inventadas en el móvil): como la Useritopedia, solo redibuja al tocar o al hornear filas de fondo.
+  acumuladas: { redibujos: 2, ms: 3, pico: 10, cb: 3, di: 45, lienzos: 0, largas: 0, primer: 1500 },
+  'acumuladas-records': { redibujos: 2, ms: 3, pico: 10, cb: 3, di: 45, lienzos: 0, largas: 0, primer: 1500 },
   guia: { redibujos: 8, ms: 3, pico: 20, cb: 4, di: 70, lienzos: 0, largas: 0, primer: 1000 },
   'guia-objetos': { redibujos: 8, ms: 3.5, pico: 20, cb: 4, di: 95, lienzos: 0, largas: 0, primer: 1000 },
   ajustes: { redibujos: 2, ms: 1, pico: 10, cb: 2, di: 15, lienzos: 0, largas: 0, primer: 1000 },
@@ -105,12 +109,16 @@ const PANTALLAS = {
   // The Useritopedia: menu → USERITOPEDIA (fourth entry, after JUGAR SOLO, AVENTURA and JUGAR ONLINE): the list, and a card (Enter on the first userito).
   useritopedia: { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 3; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
   'useritopedia-ficha': { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 3; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); await tecla(p, 'Enter', false); }, esperar: 1500 },
-  // The guide: menu → GUÍA (fifth entry).
-  guia: { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 4; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
+  // ESTADÍSTICAS: menu → ESTADÍSTICAS (fifth entry); the phone's own aggregates are made up first (80 battles), and the view set to «EN ESTE MÓVIL» (no server in the way).
+  acumuladas: { url: '', ir: async (p) => { await sembrarEstadisticas(p); await tecla(p, 'Enter'); for (let i = 0; i < 4; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); await dormir(800); } },
+  // The same on its last page (RÉCORDS: ▶ six times).
+  'acumuladas-records': { url: '', ir: async (p) => { await sembrarEstadisticas(p); await tecla(p, 'Enter'); for (let i = 0; i < 4; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); await dormir(800); for (let i = 0; i < 6; i++) await tecla(p, 'ArrowRight', false); }, esperar: 1000 },
+  // The guide: menu → GUÍA (sixth entry).
+  guia: { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 5; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
   // The guide on its OBJETOS tab (the last one: ▶ five times).
-  'guia-objetos': { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 4; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); for (let i = 0; i < 5; i++) await tecla(p, 'ArrowRight', false); }, esperar: 1000 },
-  // The settings: menu → AJUSTES (sixth entry), with the ESCENARIO row.
-  ajustes: { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 5; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
+  'guia-objetos': { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 5; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); for (let i = 0; i < 5; i++) await tecla(p, 'ArrowRight', false); }, esperar: 1000 },
+  // The settings: menu → AJUSTES (seventh entry), with the ESCENARIO row.
+  ajustes: { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 6; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
   // AVENTURA. The shortcuts skip the title and the menu (`?aventura`); `&demo` is a test adventure in memory (a starter and seven caught, bar 2 open, never saved).
   'aventura-inicial': { url: '?aventura&demo=nueva&pj=fran', ir: async () => {} },
   'aventura-mapa': { url: '?aventura&demo', ir: async () => {} },
@@ -137,6 +145,37 @@ async function tecla(p, k, cambia = true) {
     if (ok) break;
   }
   await dormir(250);
+}
+
+/** Makes up 80 battles of the phone's own statistics (the aggregates, as the game would have saved them) and sets the view to «EN ESTE MÓVIL». Dev server only. */
+async function sembrarEstadisticas(p) {
+  await p.evaluate(async () => {
+    const { ESPECIES, ESPECIE, SUCESOS } = await import('/src/pokeusera/datos.ts');
+    const { agregadoVacio, sumarResumen } = await import('/src/pokeusera/estadisticas/agregado.mjs');
+    let semilla = 7;
+    const rnd = () => (semilla = (semilla * 16807) % 2147483647) / 2147483647;
+    const ents = ['fran', 'pablo', 'chuchi', 'guille'];
+    const objs = ['mechero', 'chicle', 'bocata', 'posavasos', 'tapon', 'palillo', 'gafas', 'zapatillas', 'panuelo', 'llavero'];
+    const ag = agregadoVacio();
+    for (let b = 0; b < 80; b++) {
+      const ids = ESPECIES.map((s) => s.id).sort(() => rnd() - 0.5);
+      const puestos = [1, 2, 3, 4].sort(() => rnd() - 0.5);
+      const ju = ents.map((en, j) => ({
+        en, pe: j === 0 ? 1 : 0, pu: puestos[j], ve: ['cana', 'labia', 'tarde', 'manico'][j], cu: null,
+        us: [0, 1, 2].map((o) => {
+          const e = ids[j * 3 + o];
+          const movs = ESPECIE[e].movs;
+          const mv = {};
+          for (const m of movs) if (rnd() < 0.7) mv[m] = [1 + Math.floor(rnd() * 6), Math.floor(rnd() * 400)];
+          const ob = rnd() < 0.8 ? objs[Math.floor(rnd() * objs.length)] : null;
+          return { e, o, ob, oa: ob && rnd() < 0.7 ? 1 : 0, ini: o === 0 ? 1 : 0, dh: Math.floor(rnd() * 500), dr: Math.floor(rnd() * 500), dp: Math.floor(rnd() * 40), cu: Math.floor(rnd() * 100), ko: Math.floor(rnd() * 3), ca: rnd() < 0.8 ? 1 : 0, tf: 1 + Math.floor(rnd() * 20), cr: Math.floor(rnd() * 4), ha: Math.floor(rnd() * 3), mx: 40 + Math.floor(rnd() * 200), mm: Object.keys(mv)[0] ?? movs[0], mv };
+        }),
+      }));
+      sumarResumen(ag, { v: 1, id: 'x' + b, ver: 'dev', f: 1792000000000 + b * 60000, mo: 'maquina', es: ['brio', 'terraza', 'rural', 'juan'][b % 4], tu: 10 + Math.floor(rnd() * 30), su: Object.keys(SUCESOS).sort(() => rnd() - 0.5).slice(0, 1 + (b % 4)), ju });
+    }
+    localStorage.setItem('pokeusera.est.local', JSON.stringify(ag));
+    localStorage.setItem('pokeusera.est.vista', JSON.stringify({ fuente: 'movil', filtro: 'todas' }));
+  });
 }
 
 /** Waits until the background baking is over: no canvas created for 1.5 s (at most `max` ms). */

@@ -15,6 +15,8 @@ import { crearRnd } from '../motor/azar';
 import { equipos as equiposDraft } from '../motor/draft';
 import { eleccionBot, pickBot, reemplazoBot, salidaBot } from '../motor/bot';
 import { objetoBot, ocultarObjetos } from '../motor/objetos';
+import { conEstadisticas } from '../estadisticas/resumen';
+import { registrarBatalla } from '../estadisticas/almacen';
 import { Partida, esCancelada, type Asiento, type Ganchos } from '../partida';
 import { pantalla } from '../pantalla';
 import { sonido } from '../sonido';
@@ -284,7 +286,8 @@ async function unaPartida(
     },
   };
   // The bar of the battles is the host's setting (AJUSTES → ESCENARIO; at random by default).
-  const partida = new Partida(asientos, ganchos, { escenario: escenarioElegido() });
+  // Statistics (docs/POKEUSERA.md): only the host sends the summary, once per battle.
+  const partida = new Partida(asientos, conEstadisticas(ganchos, asientos, 'online', registrarBatalla), { escenario: escenarioElegido() });
   vd.escenario = partida.escenario;
   (window as unknown as { __pokeusera?: unknown }).__pokeusera = { partida, vc, vd, vb, vs };
   vd.alAbandonar = vb.alAbandonar = vs.alAbandonar = vc.alAbandonar = () => {

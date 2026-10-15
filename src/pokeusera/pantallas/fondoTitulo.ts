@@ -6,22 +6,29 @@ import { ANCHO } from '../pantalla';
 import { anchoTexto2, dibujarTexto2 } from '../arte2/fuente2';
 import { plataforma } from '../arte2/escena2';
 import { mezclar, r } from '../arte2/ui2';
-import { t } from './ui';
+import { spriteFrente2 } from '../arte2/sprites2';
+import { ESPECIES } from '../datos';
+import { cajaSprite, pieSprite } from './fondos';
+import { reposo, t } from './ui';
 
-/** Where things go for a screen height `H` (the logo ends at `finLogo`; the useritos' feet at `yPies`). */
-export function disenoTitulo(H: number) {
-  const logoY = 18 + Math.round((H - 384) * 0.08);
+/**
+ * Where things go for a screen height `H` (the logo ends at `finLogo`; the useritos' feet at `yPies`).
+ * `menu`: the same street packed higher (logo near the top, the bar's door right below it) so the menu's options
+ * fit on the road under the truck and the caravan.
+ */
+export function disenoTitulo(H: number, menu = false) {
+  const logoY = menu ? 8 : 18 + Math.round((H - 384) * 0.08);
   const finLogo = logoY + 90;
   const yR = finLogo + 14; // roof line of the bar
-  const yPies = Math.max(Math.round(H * 0.68), yR + 150);
+  const yPies = menu ? yR + 150 : Math.max(Math.round(H * 0.68), yR + 150);
   const yG = yPies - 26; // where the facade meets the pavement
   const yBordillo = yPies + 18;
   // Parked truck and caravan: their wheels touch yV; the prompt goes below them (never on top of them).
   const yCalzada = yBordillo + 5;
   const yV0 = yCalzada + 44;
   const yPrompt = Math.min(Math.max(Math.round(H * 0.8), yV0 + 22), H - 54);
-  const yV = Math.min(yV0, yPrompt - 4);
-  return { logoY, finLogo, yR, yG, yPies, yBordillo, yV, yPrompt, xs: [10, 62, 114, 166], dy: [0, 8, 0, 8] };
+  const yV = menu ? yV0 : Math.min(yV0, yPrompt - 4);
+  return { logoY, finLogo, yR, yG, yPies, yBordillo, yV, yPrompt, dy: [0, 8, 0, 8] };
 }
 
 export interface CapasTitulo {
@@ -189,8 +196,8 @@ function mesa(cx: CanvasRenderingContext2D, x: number, yBase: number): void {
   r(cx, '#fff0a0', x - 2, yBase - 30, 1, 5);
 }
 
-function construir(H: number): CapasTitulo {
-  const L = disenoTitulo(H);
+function construir(H: number, menu: boolean): CapasTitulo {
+  const L = disenoTitulo(H, menu);
   const { yR, yG, yPies } = L;
   const [fondo, cx] = lienzo(ANCHO, H);
   // ----- sky: a deep blue-plum gradient glowing orange-plum toward the rooftops
@@ -348,9 +355,6 @@ function construir(H: number): CapasTitulo {
   // ----- terrace tables at the two ends of the pavement
   mesa(cx, 26, yG + 24);
   mesa(cx, 214, yG + 24);
-  // ----- the useritos' mats (beer mats) on the pavement
-  const mat = plataforma(26, 5);
-  L.xs.forEach((x, i) => cx.drawImage(mat, x + 32 - Math.floor(mat.width / 2), yPies + L.dy[i] - 13));
   // ----- bulbs: dark ones in the backdrop, with the wire
   const yGu = yR + 30;
   const bomb = posicionesBombillas(yGu + 6);
@@ -389,13 +393,101 @@ function construir(H: number): CapasTitulo {
 
 const cache = new Map<number, CapasTitulo>();
 
-/** The title backdrop layers for the screen height `H`, baked once (the last two heights are kept). */
-export function capasTitulo(H: number): CapasTitulo {
-  let c = cache.get(H);
+/** The backdrop layers (the title's, or the menu's higher-packed `menu` version) for the screen height `H`, baked once (the last two of each are kept). */
+export function capasTitulo(H: number, menu = false): CapasTitulo {
+  const k = H * 2 + (menu ? 1 : 0);
+  let c = cache.get(k);
   if (!c) {
-    if (cache.size >= 2) cache.delete(cache.keys().next().value!);
-    c = construir(H);
-    cache.set(H, c);
+    if (cache.size >= 4) cache.delete(cache.keys().next().value!);
+    c = construir(H, menu);
+    cache.set(k, c);
   }
   return c;
+}
+
+/** A cheap integer hash for the neon's flicker pattern. */
+function hash32(n: number): number {
+  let h = Math.imul(n + 7, 374761393);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return (h ^ (h >>> 16)) >>> 0;
+}
+
+/** The neon now: 0 steady, 1 a 1 px tremor, 2 out (rare flickers, decided every 90 ms). */
+export function estadoNeon(ahora: number): number {
+  const h = hash32(Math.floor(ahora / 90)) % 40;
+  return h === 0 ? 2 : h <= 3 ? 1 : 0;
+}
+
+/** Draws the still backdrop and its lit layers: stars (650 ms), bulbs (a chase every 450 ms) and the neon. */
+export function dibujarCapasTitulo(ctx: CanvasRenderingContext2D, c: CapasTitulo, ahora: number): void {
+  ctx.drawImage(c.fondo, 0, 0);
+  ctx.drawImage(c.estrellas[Math.floor(ahora / 650) % 3], 0, 0);
+  ctx.drawImage(c.bombillas[Math.floor(ahora / 450) % 2], 0, c.yGuirnalda);
+  const n = estadoNeon(ahora);
+  if (n !== 2) ctx.drawImage(c.neon, c.xNeon + n, c.yNeon);
+}
+
+/** The four useritos at the door of the bar: who, and where (whole pixels), drawn by `dibujarFiesta`. */
+export interface Fiesta {
+  ids: string[];
+  /** Left of each sprite canvas. */
+  x: number[];
+  /** Left of each beer mat, and the mats themselves (baked once, here). */
+  xMat: number[];
+  mats: HTMLCanvasElement[];
+}
+
+/**
+ * Draws four different species at random (`Math.random`, not the engine's) and lays them out along the pavement by the width of
+ * what they actually draw. Most sprites fill their 64 px box, so four of them barely fit in 240: if the four drawn are too wide
+ * the widest is swapped for another species (at most twice); whatever is left over is shared out as the gaps, and if it still
+ * does not fit the neighbours overlap a few px at the corners (they stand on two rows, the odd ones in front).
+ */
+export function nuevaFiesta(): Fiesta {
+  const ids = ESPECIES.map((e) => e.id);
+  for (let i = ids.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+  }
+  const caja = (id: string) => cajaSprite(spriteFrente2(id, 0));
+  const ancho = (id: string) => {
+    const c = caja(id);
+    return c.x1 - c.x0;
+  };
+  const elegidos = ids.slice(0, 4);
+  let w = elegidos.map(ancho);
+  for (let intento = 0; intento < 2 && w.reduce((a, b) => a + b, 0) > ANCHO - 12; intento++) {
+    const ancha = w.indexOf(Math.max(...w));
+    elegidos[ancha] = ids[4 + intento];
+    w = elegidos.map(ancho);
+  }
+  const suma = w.reduce((a, b) => a + b, 0);
+  const hueco = Math.max(-8, Math.min(14, (ANCHO - 4 - suma) / 3));
+  let x = hueco >= 0 ? (ANCHO - suma - 3 * hueco) / 2 : 2;
+  const f: Fiesta = { ids: elegidos, x: [], xMat: [], mats: [] };
+  elegidos.forEach((id, k) => {
+    const xi = Math.round(x);
+    f.x.push(xi - caja(id).x0);
+    const am = Math.max(30, w[k] + 6);
+    const mat = plataforma(Math.round((am - 8) / 2), 5);
+    f.mats.push(mat);
+    f.xMat.push(xi + Math.round((w[k] - mat.width) / 2));
+    x += w[k] + hueco;
+  });
+  return f;
+}
+
+const ORDEN = [0, 2, 1, 3];
+
+/** Mats, then the useritos on them (idle frame by `desfase`, a hop when `salta`). */
+export function dibujarFiesta(ctx: CanvasRenderingContext2D, L: ReturnType<typeof disenoTitulo>, f: Fiesta, ahora: number, salta: boolean, desfase: (k: number) => number): void {
+  // Back row (0, 2) first, front row (1, 3) over it.
+  for (const k of ORDEN) {
+    ctx.drawImage(f.mats[k], f.xMat[k], L.yPies + L.dy[k] - 13);
+  }
+  for (const k of ORDEN) {
+    const salto = salta ? Math.abs(Math.sin(ahora / 230 + k * 1.7)) * 5 : 0;
+    const sp = spriteFrente2(f.ids[k], reposo(ahora, desfase(k)));
+    ctx.drawImage(sp, f.x[k], Math.round(L.yPies + L.dy[k] - pieSprite(sp) - 2 - salto));
+  }
 }

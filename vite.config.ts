@@ -1,7 +1,58 @@
 import { defineConfig, type Plugin, type ResolvedConfig } from 'vite';
 import { createHash } from 'node:crypto';
+import { execSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { ESPECIES, MOVS, SUCESOS } from './src/pokeusera/datos';
+import { ENTRENADORES, ESCENARIOS, OBJETOS } from './src/pokeusera/tipos';
+import { crearApiEstadisticas } from './scripts/api-estadisticas.mjs';
+import { prepararCatalogo } from './src/pokeusera/estadisticas/agregado.mjs';
+
+/** The game's lists the server needs to validate a battle summary (ids of useritos, moves, objects, trainers, bars and sucesos). */
+const catalogo = () => ({
+  especies: ESPECIES.map((s) => s.id),
+  movs: Object.keys(MOVS),
+  objetos: [...OBJETOS],
+  entrenadores: [...ENTRENADORES],
+  escenarios: [...ESCENARIOS],
+  sucesos: Object.keys(SUCESOS),
+});
+
+/** The version written into each battle summary: the commit being built (Railway gives it; otherwise git), or the date. */
+function versionJuego(): string {
+  const sha = process.env.RAILWAY_GIT_COMMIT_SHA || process.env.GITHUB_SHA;
+  if (sha) return sha.slice(0, 7);
+  try {
+    return execSync('git rev-parse --short=7 HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+  } catch {
+    return new Date().toISOString().slice(0, 10);
+  }
+}
+
+/**
+ * Accumulated statistics (docs/POKEUSERA.md, «Estadísticas acumuladas»): the build writes dist/pokeusera-catalogo.json for the server to validate with,
+ * and `npm run dev` answers /api/batallas and /api/estadisticas itself (data in ./datos-pokeusera or POKEUSERA_DATOS), so the section works while developing.
+ */
+function pokeuseraEstadisticas(): Plugin {
+  let config: ResolvedConfig;
+  return {
+    name: 'pokeusera-estadisticas',
+    configResolved(c) {
+      config = c;
+    },
+    async configureServer(server) {
+      const api = await crearApiEstadisticas({ catalogo: prepararCatalogo(catalogo()) });
+      server.middlewares.use((req, res, next) => {
+        if (!api.manejar(req, res)) next();
+      });
+    },
+    closeBundle() {
+      if (config.command !== 'build') return;
+      const dist = resolve(config.root, config.build.outDir);
+      if (existsSync(dist)) writeFileSync(resolve(dist, 'pokeusera-catalogo.json'), JSON.stringify(catalogo()));
+    },
+  };
+}
 
 /**
  * PokéUsera as an installable app: after the build, writes the version and the list of files of the game
@@ -58,7 +109,8 @@ function pokeuseraSw(): Plugin {
 export default defineConfig({
   // Relative paths: GitHub Pages serves the game from /<repositorio>/.
   base: './',
-  plugins: [pokeuseraSw()],
+  plugins: [pokeuseraSw(), pokeuseraEstadisticas()],
+  define: { __POKEUSERA_VERSION__: JSON.stringify(versionJuego()) },
   // Online room: `npm start` (PORT=8080) in another terminal serves /sala; POKEUSERA_SALA overrides the target.
   server: { proxy: { '/sala': { target: process.env.POKEUSERA_SALA ?? 'ws://localhost:8080', ws: true } } },
   build: {

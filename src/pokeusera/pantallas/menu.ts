@@ -7,14 +7,14 @@ import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
 import { ORO_UI, SOMBRA_TEXTO, TINTA2 } from '../arte2/paleta2';
 import { dibujarTexto2 } from '../arte2/fuente2';
-import { ALTO_LOGO2 } from '../arte2/logo2';
-import { dibujarFondoBar } from './fondos';
+import { iconoAcumuladas } from './acumuladas';
 import { iconoGuia } from './guia';
+import { capasTitulo, dibujarCapasTitulo, dibujarFiesta, disenoTitulo, estadoNeon, nuevaFiesta } from './fondoTitulo';
 import { dibujarLogo } from './titulo';
-import { mover, rect, t } from './ui';
+import { Firma, mover, rect, reposo, t } from './ui';
 
-export type OpcionMenu = 'solo' | 'aventura' | 'online' | 'useritopedia' | 'guia' | 'ajustes' | 'instalar' | 'actualizar' | 'titulo';
-const BASE: OpcionMenu[] = ['solo', 'aventura', 'online', 'useritopedia', 'guia', 'ajustes'];
+export type OpcionMenu = 'solo' | 'aventura' | 'online' | 'useritopedia' | 'estadisticas' | 'guia' | 'ajustes' | 'instalar' | 'actualizar' | 'titulo';
+const BASE: OpcionMenu[] = ['solo', 'aventura', 'online', 'useritopedia', 'estadisticas', 'guia', 'ajustes'];
 /** The rows now: the update notice on top, the install option at the end, each only while it applies. */
 const opciones = (): OpcionMenu[] => [...(app.hayActualizacion ? (['actualizar'] as const) : []), ...BASE, ...(instalable() ? (['instalar'] as const) : [])];
 const ICONOS: Record<string, string> = { solo: 'luchar', aventura: 'cana', online: 'online', useritopedia: 'userito', ajustes: 'ajustes' };
@@ -61,22 +61,36 @@ export function pantallaMenu(inicial: OpcionMenu = 'solo'): Promise<OpcionMenu> 
       res(o);
     };
     sonido.musica('titulo');
+    // The title's street (fondoTitulo.ts, packed higher), with four useritos drawn anew on every entry. It still only redraws when
+    // something changes: the bulbs (450 ms), the stars (650 ms), the neon (rare) and the useritos' breathing frame (two groups, 500 ms each).
+    const fiesta = nuevaFiesta();
+    const desfase = (k: number) => (k % 2) * 250;
+    const firma = new Firma(3 + 4);
     const e: Escena = {
       estatica: true,
-      dibujar(ctx) {
+      paso: (_dt, ahora) => {
+        const v = firma.v;
+        v[0] = Math.floor(ahora / 450) % 2;
+        v[1] = Math.floor(ahora / 650) % 3;
+        v[2] = estadoNeon(ahora);
+        for (let k = 0; k < 4; k++) v[3 + k] = reposo(ahora, desfase(k));
+        return firma.cambio();
+      },
+      dibujar(ctx, ahora) {
         const H = p.alto;
-        dibujarFondoBar(ctx, H, 0.12);
-        dibujarLogo(ctx, 18 + Math.round((H - 384) * 0.08));
+        const L = disenoTitulo(H, true);
+        dibujarCapasTitulo(ctx, capasTitulo(H, true), ahora);
+        dibujarLogo(ctx, L.logoY);
+        dibujarFiesta(ctx, L, fiesta, ahora, false, desfase);
         const w = 200;
         const x = Math.floor((ANCHO - w) / 2);
         const lista = opciones();
         if (!lista.includes(sel)) sel = 'solo';
-        // 34 px a row; with the update notice and the install row on top of the six it shrinks so the panel stays under the logo.
-        const bajoLogo = 18 + Math.round((H - 384) * 0.08) + ALTO_LOGO2 + 4;
-        const fila = Math.min(34, Math.floor((H - 8 - bajoLogo - 14) / lista.length));
+        // The panel lies on the road: 28 px a row, right under the truck's wheels. With more rows (the update notice, the install row) the rows
+        // shrink and the panel climbs over the truck, never over the pavement with the useritos.
+        const fila = Math.max(14, Math.min(28, Math.floor((H - 8 - (L.yBordillo + 8) - 14) / lista.length)));
         const h = fila * lista.length + 14;
-        // With the extra rows on a short screen the panel moves up instead of running off the bottom.
-        const y = Math.min(Math.round(H * 0.5) + Math.round((H - 384) * 0.05), H - h - 8);
+        const y = Math.min(L.yV + 8, H - h - 8);
         panelCacheado(ctx, x, y, w, h);
         lista.forEach((o, i) => {
           const yy = y + 8 + i * fila;
@@ -94,6 +108,11 @@ export function pantallaMenu(inicial: OpcionMenu = 'solo'): Promise<OpcionMenu> 
             filaMenu(ctx, x + 6, yy, w - 12, fila, '', null, activa);
             iconoInstalar(ctx, x + 6 + 17, yy + Math.floor((fila - 6 - 13) / 2));
             dibujarTexto2(ctx, t('menu.instalar'), x + 6 + 37, yy + Math.floor((fila - 6 - 7) / 2) + 1, TINTA2, activa ? '#f0c860' : SOMBRA_TEXTO);
+          } else if (o === 'estadisticas') {
+            // The bar-chart icon is drawn by the screen itself (the menu's icon set has no such one).
+            filaMenu(ctx, x + 6, yy, w - 12, fila, '', null, activa);
+            iconoAcumuladas(ctx, x + 6 + 17, yy + Math.floor((fila - 6 - 13) / 2));
+            dibujarTexto2(ctx, t('menu.estadisticas'), x + 6 + 37, yy + Math.floor((fila - 6 - 7) / 2) + 1, TINTA2, activa ? '#f0c860' : SOMBRA_TEXTO);
           } else if (o === 'guia') {
             // The «?» icon is drawn by the guide itself (the menu's icon set has no such one).
             filaMenu(ctx, x + 6, yy, w - 12, fila, '', null, activa);

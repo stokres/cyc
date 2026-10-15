@@ -5,6 +5,8 @@
 import { ENTRENADORES, type EntrenadorId, type EscenarioId } from './tipos';
 import { ESPECIES } from './datos';
 import { crearRnd } from './motor/azar';
+import { conEstadisticas } from './estadisticas/resumen';
+import { registrarBatalla } from './estadisticas/almacen';
 import { Partida, esCancelada, type Asiento, type Ganchos } from './partida';
 import { actualizarApp, hayConexion, instalarApp } from './aplicacion';
 import { pantalla } from './pantalla';
@@ -13,6 +15,7 @@ import { cargarAjustes, escenarioElegido, guardarAjustes, pantallaAjustes } from
 import { VistaBarra } from './pantallas/barra';
 import { VistaCombate } from './pantallas/combate';
 import { abrirGuia } from './pantallas/guia';
+import { abrirAcumuladas } from './pantallas/acumuladas';
 import { abrirUseritopedia } from './pantallas/useritopedia';
 import { VistaDraft } from './pantallas/draft';
 import { VistaSalida } from './pantallas/salida';
@@ -101,7 +104,7 @@ export async function jugarSolo(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combat
     alReemplazo: (ev, estado) => vc.alReemplazo(ev, estado),
     alFin: (estado) => vc.alFin(estado),
   };
-  const partida = new Partida(asientos, ganchos, { semilla: o.semilla, rapido: o.auto, equipos, escenario: o.escenario ?? escenarioElegido(), barra: o.barra });
+  const partida = new Partida(asientos, conEstadisticas(ganchos, asientos, 'maquina', registrarBatalla), { semilla: o.semilla, rapido: o.auto, equipos, escenario: o.escenario ?? escenarioElegido(), barra: o.barra });
   vd.escenario = partida.escenario;
   vd.alAbandonar = vb.alAbandonar = vs.alAbandonar = vc.alAbandonar = () => partida.cancelar();
   (window as unknown as { __pokeusera?: unknown }).__pokeusera = { partida, vc, vd, vb, vs };
@@ -139,6 +142,7 @@ export async function ejecutar(o: OpcionesFlujo): Promise<void> {
       if (m === 'ajustes') await pantallaAjustes();
       else if (m === 'guia') await abrirGuia(null);
       else if (m === 'useritopedia') await abrirUseritopedia(null);
+      else if (m === 'estadisticas') await abrirAcumuladas();
       else if (m === 'aventura') await jugarAventura({});
       else if (m === 'online') {
         // Without connection there is no room: say so (solo play, the Useritopedia and the guide work offline).

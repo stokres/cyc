@@ -6,6 +6,7 @@ import { stat } from 'node:fs/promises';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { adjuntarSala } from './sala-pokeusera.mjs';
+import { crearApiEstadisticas, leerCatalogo } from './api-estadisticas.mjs';
 
 // POKEUSERA_DIST: another build folder (to try a build without touching ./dist).
 const RAIZ = resolve(process.env.POKEUSERA_DIST ?? fileURLToPath(new URL('../dist', import.meta.url)));
@@ -62,7 +63,16 @@ async function buscar(ruta) {
   return null;
 }
 
+// Estadísticas acumuladas (scripts/api-estadisticas.mjs): POST /api/batallas y GET /api/estadisticas. POKEUSERA_DATOS: la carpeta de los datos (por defecto ./datos-pokeusera).
+let estadisticas = null;
+try {
+  estadisticas = await crearApiEstadisticas({ catalogo: await leerCatalogo(join(RAIZ, 'pokeusera-catalogo.json')) });
+} catch (e) {
+  console.error(`[estadisticas] desactivadas: ${e.code === 'ENOENT' ? 'falta pokeusera-catalogo.json en ' + RAIZ + ' (npm run build lo crea)' : e.message}`);
+}
+
 const servidor = createServer(async (req, res) => {
+  if (estadisticas?.manejar(req, res)) return;
   if (req.method !== 'GET' && req.method !== 'HEAD') return responder(res, 405, 'Method Not Allowed');
   const ruta = new URL(req.url ?? '/', 'http://localhost').pathname;
   const hallado = await buscar(ruta);

@@ -13,6 +13,7 @@ import { cargarTextos } from '../juego/textos';
 import { ENTRENADORES, ESCENARIOS, type EntrenadorId, type EscenarioId } from './tipos';
 import { iniciarApp } from './aplicacion';
 import { entrada } from './entrada';
+import { iniciarEstadisticas } from './estadisticas/almacen';
 import { ejecutar } from './flujo';
 import { Pantalla } from './pantalla';
 import { aplicarAjustes } from './pantallas/ajustes';
@@ -27,6 +28,8 @@ entrada.iniciar(pantalla);
 aplicarAjustes();
 // Installable app: service worker (production only), the install prompt and the «new version» notice.
 iniciarApp();
+// Accumulated statistics: sends the battle summaries that were waiting for the network.
+iniciarEstadisticas();
 
 // The first tap asks for fullscreen where the browser allows it.
 entrada.primerToque = () => {
