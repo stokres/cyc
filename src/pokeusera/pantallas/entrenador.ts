@@ -92,7 +92,7 @@ export function pantallaEntrenador(): Promise<EntrenadorId | null> {
         lin.forEach((l, k) => texto2(ctx, l, 13, yp + 8 + 12 + k * 12, TINTA2, null));
         const yv = yp + ph + 8;
         const bw = 106;
-        boton(ctx, 8, yv, bw, 26, t('entrenador.elegir'), true);
+        boton(ctx, 8, yv, bw, 26, t('entrenador.elegir'), true, true, 'principal');
         entrada.zona(8, yv, bw, 26, () => fin(ENTRENADORES[sel]));
         boton(ctx, ANCHO - 8 - bw, yv, bw, 26, t('entrenador.volver'), false);
         entrada.zona(ANCHO - 8 - bw, yv, bw, 26, () => fin(null));

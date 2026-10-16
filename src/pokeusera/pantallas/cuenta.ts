@@ -125,7 +125,7 @@ function formulario(f: Formulario): Promise<SalidaFormulario> {
         else lineasError.forEach((l, i) => texto2(ctx, l, 22, yAviso + 2 + i * 12, ROJO, null));
         botones().forEach((b, i) => {
           const y = yBot + i * (ALTO_BOTON + 8);
-          boton(ctx, 20, y, ANCHO - 40, ALTO_BOTON, b.texto, sel === i && !ocupado, !ocupado);
+          boton(ctx, 20, y, ANCHO - 40, ALTO_BOTON, b.texto, sel === i && !ocupado, !ocupado, i === 0 ? 'principal' : 'secundario');
           entrada.zona(20, y, ANCHO - 40, ALTO_BOTON, b.fn);
         });
       },

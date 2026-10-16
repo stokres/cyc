@@ -231,7 +231,7 @@ export class VistaAzar implements Escena {
     } else {
       const bw = 130;
       const bx = Math.floor((ANCHO - bw) / 2);
-      boton(ctx, bx, m.yBoton, bw, ALTO_BOTON, t('azar.apelear'), true);
+      boton(ctx, bx, m.yBoton, bw, ALTO_BOTON, t('azar.apelear'), true, true, 'principal');
       entrada.zona(bx, m.yBoton, bw, ALTO_BOTON, () => this.confirmar());
     }
   }

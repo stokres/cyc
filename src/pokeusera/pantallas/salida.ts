@@ -213,7 +213,7 @@ export class VistaSalida implements Escena {
       const bw = 130;
       const bx = Math.floor((ANCHO - bw) / 2);
       const listo = this.sel >= 0;
-      boton(ctx, bx, yBoton, bw, ALTO_BOTON, t('salida.salir'), listo, listo);
+      boton(ctx, bx, yBoton, bw, ALTO_BOTON, t('salida.salir'), listo, listo, 'principal');
       if (listo) entrada.zona(bx, yBoton, bw, ALTO_BOTON, () => this.confirmar());
     }
   }

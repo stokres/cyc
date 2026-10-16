@@ -271,7 +271,7 @@ export class VistaBarra implements Escena {
       boton(ctx, Math.floor((ANCHO - w) / 2), yBoton, w, ALTO_BOTON, s, false);
     } else {
       const listo = this.selObj >= 0 && this.selUser >= 0;
-      boton(ctx, bx, yBoton, bw, ALTO_BOTON, t('barra.elegir'), listo && this.seccion === 1, listo);
+      boton(ctx, bx, yBoton, bw, ALTO_BOTON, t('barra.elegir'), listo && this.seccion === 1, listo, 'principal');
       if (listo) entrada.zona(bx, yBoton, bw, ALTO_BOTON, () => this.confirmar());
     }
   }

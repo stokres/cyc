@@ -293,13 +293,13 @@ export function menuPausa(base: Escena | null): Promise<'seguir' | 'abandonar'> 
           entrada.zona(x, y + 90, w, 18, () => (sel = 2));
           boton(ctx, x + 14, y + 148, w - 28, 30, t('menu.guia'), sel === 3);
           entrada.zona(x + 14, y + 148, w - 28, 30, guia);
-          boton(ctx, x + 14, y + 190, w - 28, 30, t('pausa.abandonar'), sel === 4);
+          boton(ctx, x + 14, y + 190, w - 28, 30, t('pausa.abandonar'), sel === 4, true, 'salir');
           entrada.zona(x + 14, y + 190, w - 28, 30, () => {
             sel = 4;
             seguro = true;
             selSeguro = 1;
           });
-          boton(ctx, x + 14, y + 232, w - 28, 30, t('pausa.seguir'), sel === 5);
+          boton(ctx, x + 14, y + 232, w - 28, 30, t('pausa.seguir'), sel === 5, true, 'principal');
           entrada.zona(x + 14, y + 232, w - 28, 30, seguir);
         } else {
           const h = 96;
@@ -307,7 +307,7 @@ export function menuPausa(base: Escena | null): Promise<'seguir' | 'abandonar'> 
           panelCacheado(ctx, x, y, w, h);
           centrado(ctx, t('pausa.seguro'), y + 16);
           const bw = 80;
-          boton(ctx, x + 18, y + 46, bw, 30, t('pausa.si'), selSeguro === 0);
+          boton(ctx, x + 18, y + 46, bw, 30, t('pausa.si'), selSeguro === 0, true, 'salir');
           boton(ctx, x + w - 18 - bw, y + 46, bw, 30, t('pausa.no'), selSeguro === 1);
           entrada.zona(x + 18, y + 46, bw, 30, () => cerrar('abandonar'));
           entrada.zona(x + w - 18 - bw, y + 46, bw, 30, () => (seguro = false));

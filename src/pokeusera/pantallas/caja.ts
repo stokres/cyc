@@ -128,7 +128,8 @@ export class CajaTexto {
         this.espera -= dt * (cfg.rapido ? 10 : 1);
         if (this.espera <= 0) this.terminar();
       }
-      // Waiting only moves the blinking arrow: redraw when it blinks, not every frame.
+      // Waiting only moves the blinking arrow (shown only when the line waits for a tap): redraw when it blinks, not every frame.
+      if (this.espera >= 0) return false;
       const fase = Math.floor(performance.now() / 350) % 2;
       if (fase !== this.faseFlecha) {
         this.faseFlecha = fase;
@@ -152,6 +153,7 @@ export class CajaTexto {
       dibujarTextoParcial2(ctx, l, Math.min(n, resto), x + 11, y0 + i * paso, TINTA2, SOMBRA_TEXTO);
       resto -= n;
     });
-    if (this.fase === 'espera' && parpadea(ahora, 350)) flecha2(ctx, x + w - 17, y + h - 12);
+    // The ▼ only while the line really waits for a tap (LENTA, or a line said with −1): with NORMAL and RÁPIDA it moves on by itself.
+    if (this.fase === 'espera' && this.espera < 0 && parpadea(ahora, 350)) flecha2(ctx, x + w - 17, y + h - 12);
   }
 }

@@ -108,7 +108,7 @@ export function pantallaClave(): Promise<Conexion | null> {
           const s = t('online.conectando');
           if (Math.floor(ahora / 400) % 3 !== 2) texto2(ctx, s, Math.floor((ANCHO - anchoTexto2(s)) / 2), y0 + 70, TINTA_SUAVE);
         }
-        boton(ctx, 20, y0 + 88, ANCHO - 40, 30, t('online.entrar'), false, !ocupado);
+        boton(ctx, 20, y0 + 88, ANCHO - 40, 30, t('online.entrar'), false, !ocupado, 'principal');
         entrada.zona(20, y0 + 88, ANCHO - 40, 30, () => void entrar());
         boton(ctx, 20, y0 + 128, ANCHO - 40, 30, t('online.volver'), false);
         entrada.zona(20, y0 + 128, ANCHO - 40, 30, volver);
@@ -355,13 +355,13 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
         const yh = Math.min(yb - 6 - lp.length * 12, y + 4);
         if (yh >= y) lp.forEach((l, i) => centrado(ctx, l, yh + i * 12, TINTA_SUAVE, { sombra: null }));
         if (con.anfitrion) {
-          boton(ctx, 10, yb, 108, 28, t('sala.empezar'), false, puedeEmpezar());
-          boton(ctx, 122, yb, 108, 28, t('sala.salir'), false);
+          boton(ctx, 10, yb, 108, 28, t('sala.empezar'), false, puedeEmpezar(), 'principal');
+          boton(ctx, 122, yb, 108, 28, t('sala.salir'), false, true, 'salir');
           const k = ctl.length;
           ctl.push({ x: 10, y: yb, w: 108, h: 28, fn: () => ((sel = k), empezar()) });
           ctl.push({ x: 122, y: yb, w: 108, h: 28, fn: salir });
         } else {
-          boton(ctx, 66, yb, 108, 28, t('sala.salir'), false);
+          boton(ctx, 66, yb, 108, 28, t('sala.salir'), false, true, 'salir');
           ctl.push({ x: 66, y: yb, w: 108, h: 28, fn: salir });
         }
         for (const c of ctl) entrada.zona(c.x, c.y, c.w, c.h, () => !empezando && c.fn());

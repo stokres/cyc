@@ -139,7 +139,7 @@ export function pantallaPodio(estado: EstadoCombate, miSeat: number | null, sinB
             const w2 = 100;
             const gap = 10;
             const x1 = Math.floor((ANCHO - 2 * w2 - gap) / 2);
-            boton(ctx, x1, yb, w2, 28, t('podio.otra'), sel === 1);
+            boton(ctx, x1, yb, w2, 28, t('podio.otra'), sel === 1, true, 'principal');
             boton(ctx, x1 + w2 + gap, yb, w2, 28, t('podio.menu'), sel === 2);
             entrada.zona(x1, yb, w2, 28, () => fin('otra'));
             entrada.zona(x1 + w2 + gap, yb, w2, 28, () => fin('menu'));

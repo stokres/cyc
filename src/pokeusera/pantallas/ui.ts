@@ -222,20 +222,38 @@ export function realce(ctx: CanvasRenderingContext2D, x: number, y: number, w: n
   cursor2(ctx, x + 6, y + Math.floor((h - 7) / 2));
 }
 
-/** A framed button: the paper panel, gold highlight and ▶ when selected. `activo` false greys it out. */
-export function boton(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, s: string, sel: boolean, activo = true) {
-  panelCacheado(ctx, x, y, w, h);
-  if (sel) {
-    relleno(ctx, ORO_UI_OSC, x + 3, y + 3, w - 6, h - 6);
-    relleno(ctx, '#fbe19a', x + 4, y + 4, w - 8, h - 8);
-    rect(ctx, '#fff3c8', x + 6, y + 4, w - 12, 1);
-    rect(ctx, '#f0c860', x + 5, y + h - 8, w - 10, 3);
+/**
+ * What a button does, and so how it looks (the same meaning on every screen):
+ * `principal` (gold) moves the game forward (EMPEZAR, ELEGIR, ¡A PELEAR!, OTRA); `secundario` (paper) goes back or opens
+ * something aside (VOLVER, GUÍA, ESTADÍSTICAS); `salir` (dark) leaves the game or the room (SALIR DE LA SALA, ABANDONAR).
+ */
+export type EstiloBoton = 'principal' | 'secundario' | 'salir';
+
+/** A framed button in its style; `sel` adds the ▶ cursor (the keyboard's or the default choice). `activo` false greys it out. */
+export function boton(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, s: string, sel: boolean, activo = true, estilo: EstiloBoton = 'secundario') {
+  let tinta = activo ? TINTA2 : '#a898a8';
+  let sombra: string | null = activo ? SOMBRA_TEXTO : null;
+  if (estilo === 'salir') {
+    relleno(ctx, TINTA2, x, y, w, h);
+    relleno(ctx, '#5a4460', x + 2, y + 2, w - 4, h - 4);
+    rect(ctx, '#77607c', x + 4, y + 2, w - 8, 1);
+    tinta = activo ? '#f6e8c8' : '#a898a8';
+    sombra = activo ? '#2a1d2e' : null;
+  } else {
+    panelCacheado(ctx, x, y, w, h);
+    if (estilo === 'principal' && activo) {
+      relleno(ctx, ORO_UI_OSC, x + 3, y + 3, w - 6, h - 6);
+      relleno(ctx, '#fbe19a', x + 4, y + 4, w - 8, h - 8);
+      rect(ctx, '#fff3c8', x + 6, y + 4, w - 12, 1);
+      rect(ctx, '#f0c860', x + 5, y + h - 8, w - 10, 3);
+      sombra = '#f0c860';
+    }
   }
   const tw = anchoTexto2(s);
   const tx = x + Math.floor((w - tw) / 2) + (sel ? 4 : 0);
   const ty = y + Math.floor((h - 7) / 2) + 1;
-  dibujarTexto2(ctx, s, tx, ty, activo ? TINTA2 : '#a898a8', sel ? '#f0c860' : activo ? SOMBRA_TEXTO : null);
-  if (sel) cursor2(ctx, tx - 10, y + Math.floor((h - 7) / 2));
+  dibujarTexto2(ctx, s, tx, ty, tinta, sombra);
+  if (sel) cursor2(ctx, tx - 10, y + Math.floor((h - 7) / 2), estilo === 'salir' ? '#f6e8c8' : TINTA2);
 }
 
 /** Pill colours for the status tags (background, text). */
