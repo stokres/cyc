@@ -208,7 +208,7 @@ function fichaBase(id: string, completa: boolean, h: number, vista: Vista): HTML
 const LAB_ALTO = 11;
 function etiquetaElegir(): HTMLCanvasElement {
   const s = t('draft.elegir');
-  const w = Math.max(CELDA_W, anchoTexto2(s) + 8);
+  const w = anchoTexto2(s) + 6;
   return hornear(`draft|etiqueta|${s}|${w}`, w, LAB_ALTO, (cx) => {
     relleno(cx, TINTA2, 0, 0, w, LAB_ALTO);
     relleno(cx, ORO_UI_OSC, 1, 1, w - 2, LAB_ALTO - 2);
@@ -262,6 +262,10 @@ export class VistaDraft implements Escena {
   /** Set by the flow: the player chose ABANDONAR in the pause box. */
   alAbandonar: (() => void) | null = null;
   private precargado = false;
+  /** The top bar's two lines (see `barraSuperior`), remade only when what they say changes. */
+  private barraClave = '';
+  private barraL1 = '';
+  private barraL2 = '';
   private avisoTxt = '';
   private avisoHasta = 0;
   /** The bar of the battle that follows, when known: its tune is the one decoded during the draft. */
@@ -519,10 +523,37 @@ export class VistaDraft implements Escena {
     const col = colorEnt(q.entrenador);
     ctx.drawImage(icono2(q.entrenador), 24, 1, 16, 16);
     const mio = this.turnoDe === this.miSeat;
-    texto2(ctx, mio ? t('draft.tuturno') : t('draft.elige', { nombre: q.nombre }), 44, 6, mio ? col : TINTA2);
     const seg = Math.max(0, Math.ceil((this.fin - Date.now()) / 1000));
     const rojo = seg <= 5;
     if (!rojo || parpadea(ahora, 400)) chipTiempo(ctx, String(seg), rojo);
+    // Who picks after this one: «Luego» and their face, just before the clock (the snake order, 1-2-3-4, 4-3-2-1, is not obvious).
+    const k = this.elegidos.length;
+    const sig = this.orden[k + 1];
+    let xIzq = ANCHO - 6 - (anchoTexto2(String(seg)) + 14) - 4;
+    if (sig !== undefined && this.plazas[sig]) {
+      xIzq -= 16;
+      ctx.drawImage(icono2(this.plazas[sig].entrenador), xIzq, 1, 16, 16);
+      const luego = t('draft.luego');
+      xIzq -= 3 + anchoTexto2(luego);
+      texto2(ctx, luego, xIzq, 6, TINTA_SUAVE);
+    }
+    // Left: whose turn it is and, when it is somebody else's and you still have a pick coming, how many picks until yours (second line).
+    let falta = 0;
+    if (!mio && this.miSeat !== null) {
+      const d = this.orden.slice(k + 1).indexOf(this.miSeat);
+      if (d >= 0) falta = d + 1;
+    }
+    const cabe = xIzq - 5 - 44;
+    const marca = `${this.turnoDe}|${k}|${falta}|${cabe}`;
+    if (this.barraClave !== marca) {
+      this.barraClave = marca;
+      this.barraL1 = recortar(mio ? t('draft.tuturno') : t('draft.elige', { nombre: q.nombre }), cabe);
+      this.barraL2 = falta ? recortar(falta === 1 ? t('draft.tesigue') : t('draft.tetoca', { n: falta }), cabe) : '';
+    }
+    if (this.barraL2) {
+      texto2(ctx, this.barraL1, 44, 1, TINTA2);
+      texto2(ctx, this.barraL2, 44, 9, TINTA_SUAVE, null);
+    } else texto2(ctx, this.barraL1, 44, 6, mio ? col : TINTA2);
   }
 
   private jugadores(ctx: CanvasRenderingContext2D, y0: number, h: number, ahora: number) {
@@ -641,10 +672,12 @@ export class VistaDraft implements Escena {
     if (!this.cursorOculto && this.hx >= 0) this.marco(ctx, Math.round(this.hx), Math.round(this.hy), L.cellH, ORO_UI);
     const [sx, sy] = this.celda(this.sel);
     this.marco(ctx, sx, sy, L.cellH, this.miTurno ? (parpadea(ahora, 400) ? colorEnt(this.plazas[this.miSeat!].entrenador) : TINTA2) : TINTA2);
-    // ELEGIR over the bottom of the selected cell, centred (it may overhang the neighbours' plates by a pixel or two; their tap zones are the cells themselves, so none is lost).
+    // ELEGIR over the bottom of the selected cell, centred on it but never out of the screen (it is a pixel or three wider than a cell, so on the
+    // first and last columns it is pushed in; it may overhang the neighbours' plates, whose tap zones are the cells themselves, so none is lost).
     if (this.puedeElegir) {
       const lab = etiquetaElegir();
-      ctx.drawImage(lab, sx + Math.floor((CELDA_W - lab.width) / 2), sy + L.cellH - LAB_ALTO - 2);
+      const lx = Math.max(0, Math.min(ANCHO - lab.width, sx + Math.floor((CELDA_W - lab.width) / 2)));
+      ctx.drawImage(lab, lx, sy + L.cellH - LAB_ALTO - 2);
     }
   }
 

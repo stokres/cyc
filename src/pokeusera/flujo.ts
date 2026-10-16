@@ -97,6 +97,8 @@ export async function jugarSolo(yo: EntrenadorId, o: Pick<OpcionesFlujo, 'combat
       return vb.pedir(ofertas, especies, ms);
     },
     pedirSalida: (_j, especies, objetos, ms) => {
+      // AL AZAR: the opener was already marked on «TU EQUIPO AL AZAR» (no «¿Quién sale primero?»).
+      if (azar) return Promise.resolve(va.inicial);
       p.poner(vs);
       return vs.pedir(especies, objetos, ms);
     },

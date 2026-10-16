@@ -145,6 +145,7 @@ sala.anfitrion = ANFITRIÓN
 sala.tu = TÚ
 sala.libre = LIBRE
 sala.eligiendo = ELIGIENDO
+sala.eligiendo.nombre = eligiendo...
 sala.elige = ELIGE TU ENTRENADOR
 sala.tuyo = TUYO
 sala.ocupado = OCUPADO
@@ -154,7 +155,12 @@ sala.rellenar = RELLENAR CON MÁQUINA
 sala.si = SÍ
 sala.no = NO
 sala.empezar = EMPEZAR
-sala.salir = SALIR
+sala.salir = SALIR DE LA SALA
+sala.cerrar.aviso = Si sales, se cierra la sala para todos.
+sala.cerrar.salir = SALIR
+sala.cerrar.quedar = QUEDARME
+sala.config = MODO: {modo} · VELOCIDAD: {velocidad}
+sala.loElige = Lo elige el anfitrión.
 sala.esperando = Esperando al anfitrión...
 sala.pista.elige = Elige tu entrenador.
 sala.pista.faltan = Faltan jugadores.
@@ -256,6 +262,9 @@ draft.titulo = DRAFT
 draft.tuturno = ¡Tu turno!
 draft.elige = Elige {nombre}
 draft.elegir = ELEGIR
+draft.luego = Luego
+draft.tetoca = Te toca en {n}
+draft.tesigue = Sigues tú
 draft.movinfo = {nombre} (PP {pp}): {desc}
 draft.apelear = ¡A pelear!
 
@@ -274,10 +283,9 @@ barra.apelear = ¡A pelear!
 salida.titulo = ¿QUIÉN SALE PRIMERO?
 salida.pista = Toca uno. Otro toque lo confirma.
 salida.sale = Sale {nombre}.
-salida.salir = SALIR
+salida.apelear = ¡A PELEAR!
 salida.secreto = Nadie lo ve hasta que empiece el combate.
 salida.espera = ¡Listo! Esperando a los demás...
-salida.movs = MOVS
 salida.sinobjeto = Sin objeto
 
 // ---- modo de juego: NORMAL o AL AZAR (pantallas/modo.ts, la sala online)
@@ -292,7 +300,8 @@ modo.pista = Toca un modo para jugar.
 
 // ---- TU EQUIPO AL AZAR (pantallas/azar.ts): en el modo AL AZAR, en lugar del draft y de La barra
 azar.titulo = TU EQUIPO AL AZAR
-azar.pista = Esto es lo que te ha tocado.
+azar.pista = Toca a quien sale primero.
+azar.sale = SALE
 azar.lleva = Lo lleva {nombre}.
 azar.sinobjeto = Sin objeto
 azar.rivales = TUS RIVALES
@@ -345,6 +354,7 @@ estado.achispado = ACH
 
 // ---- podio
 podio.gana = ¡{nombre} gana!
+podio.tupuesto = Has quedado {n}.º
 podio.otra = OTRA
 podio.menu = MENÚ
 podio.stats = ESTADÍSTICAS

@@ -1643,12 +1643,12 @@ export class VistaCombate implements Escena {
     this.fila(ctx, this.yo);
     this.dibujarFoco(ctx, ahora);
     this.dibujarEleccionObjetivo(ctx, ahora);
-    this.dibujarOrdenGrande(ctx, G);
     this.dibujarFlotantes(ctx);
     this.dibujarSucesos(ctx, G);
-    // Bottom area.
+    // Bottom area. The big order strip goes on the tray, over the (empty) text box: it never covers a player's panel.
     dibujarBandeja(ctx, G.campo, G.H);
     this.zonaInferior(ctx, G, ahora);
+    this.dibujarOrdenGrande(ctx, G);
     this.hud(ctx, G, ahora);
   }
 
@@ -2150,7 +2150,7 @@ export class VistaCombate implements Escena {
     insignaTipo(ctx, m.tipo, x + Math.floor((w - bw) / 2), y2, bw, rotulo);
   }
 
-  // ---- the big «ORDEN DEL TURNO» strip
+  // ---- the big «ORDEN DEL TURNO» strip (on the tray, where the text box sits: it is empty while the strip shows)
 
   private dibujarOrdenGrande(ctx: CanvasRenderingContext2D, G: ReturnType<VistaCombate['geom']>) {
     const o = this.orden;
@@ -2161,7 +2161,7 @@ export class VistaCombate implements Escena {
     const x = 4;
     const w = ANCHO - 8;
     const h = 70;
-    const y = G.hud + 4;
+    const y = G.yBox;
     panelCacheado(ctx, x, y, w, h);
     const titulo = t('batalla.orden');
     texto2(ctx, titulo, Math.floor((ANCHO - anchoTexto2(titulo)) / 2), y + 9, TINTA_SUAVE);

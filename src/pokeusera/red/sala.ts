@@ -13,8 +13,8 @@ import { sonido } from '../sonido';
 import { guardarModo, modoElegido } from '../pantallas/ajustes';
 import { Campo } from '../pantallas/campo';
 import { dibujarFondoBar } from '../pantallas/fondos';
-import { mensaje } from '../pantallas/modal';
-import { VELOCIDADES, barraArriba, boton, cfg, centrado, colorEnt, envolver, fondoPapel, nombreEnt, rect, t, texto2, velo } from '../pantallas/ui';
+import { mensaje, sobre } from '../pantallas/modal';
+import { VELOCIDADES, barraArriba, boton, cfg, centrado, colorEnt, envolver, fondoPapel, nombreEnt, oscurecer, rect, t, texto2, velo } from '../pantallas/ui';
 import { Conexion } from './conexion';
 
 const CLAVE_GUARDADA = 'pokeusera.clave';
@@ -139,6 +139,8 @@ interface Control {
   w: number;
   h: number;
   fn: () => void;
+  /** What is drawn when the tap zone is bigger than the button (the selection ring goes around this). */
+  ver?: { x: number; y: number; w: number; h: number };
 }
 
 function pastilla(ctx: CanvasRenderingContext2D, s: string, xFin: number, y: number, fondo: string, texto: string): number {
@@ -185,10 +187,22 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
       con.on('sala', () => {
         if (con.anfitrion && con.jugadores.length !== jugadoresAnunciados) con.anunciarModo();
         jugadoresAnunciados = con.jugadores.length;
+        nombresAnunciados = firmaNombres();
         p.redibujar();
       }),
     );
-    offs.push(con.on('juego', () => p.redibujar()));
+    // The host's lobby learns a guest's account name a moment after he joins: the room is told the names again when they change.
+    const firmaNombres = () => con.jugadores.map((j) => con.nombreDe(j.id) ?? '').join('|');
+    let nombresAnunciados = firmaNombres();
+    offs.push(
+      con.on('juego', () => {
+        if (con.anfitrion && firmaNombres() !== nombresAnunciados) {
+          nombresAnunciados = firmaNombres();
+          con.anunciarModo();
+        }
+        p.redibujar();
+      }),
+    );
     offs.push(
       con.on('empezar', () => {
         ultimoRelleno = relleno_;
@@ -207,6 +221,53 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
       sonido.efecto('atras');
       con.cerrar();
       fin({ r: 'salir' });
+    };
+    /** The «are you sure?» box of the host (leaving closes the room for everybody); QUEDARME is the default. Resolves true to leave. */
+    let confirmando = false;
+    const confirmarCierre = (): Promise<boolean> =>
+      sobre<boolean>(e, (cerrar) => {
+        let sel = 1;
+        const lineas = envolver(t('sala.cerrar.aviso'), 176);
+        const quedarme = () => {
+          sonido.efecto('atras');
+          cerrar(false);
+        };
+        return {
+          dibujar(ctx) {
+            const x = 6;
+            const w = ANCHO - 12;
+            const h = 64 + lineas.length * 12;
+            const y = Math.round((p.alto - h) / 2);
+            oscurecer(ctx, p.alto);
+            panelCacheado(ctx, x, y, w, h);
+            lineas.forEach((l, i) => centrado(ctx, l, y + 14 + i * 12));
+            const bw = Math.floor((w - 28 - 8) / 2);
+            const by = y + h - 14 - 30;
+            boton(ctx, x + 14, by, bw, 30, t('sala.cerrar.salir'), sel === 0, true, 'salir');
+            boton(ctx, x + w - 14 - bw, by, bw, 30, t('sala.cerrar.quedar'), sel === 1);
+            entrada.zona(x + 14, by, bw, 30, () => cerrar(true));
+            entrada.zona(x + w - 14 - bw, by, bw, 30, quedarme);
+          },
+          accion(a) {
+            if (a === 'izq' || a === 'der' || a === 'arriba' || a === 'abajo') {
+              sel = 1 - sel;
+              sonido.efecto('cursor');
+            } else if (a === 'atras') quedarme();
+            else if (a === 'aceptar') {
+              if (sel === 0) cerrar(true);
+              else quedarme();
+            }
+          },
+        };
+      });
+    /** SALIR DE LA SALA: a guest goes at once; the host is asked first. */
+    const pedirSalida = async () => {
+      if (hecho || confirmando) return;
+      if (!con.anfitrion) return salir();
+      confirmando = true;
+      const ok = await confirmarCierre();
+      confirmando = false;
+      if (ok && !hecho) salir();
     };
     const elegir = (id: EntrenadorId) => {
       const dueno = con.jugadores.find((j) => j.pj === id);
@@ -252,9 +313,14 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
         ctl = [];
         // Header.
         barraArriba(ctx);
-        texto2(ctx, t('sala.titulo'), 8, 6);
-        const cuenta = `${con.jugadores.length}/4`;
-        texto2(ctx, cuenta, ANCHO - 8 - anchoTexto2(cuenta), 6);
+        const tit = t('sala.titulo');
+        texto2(ctx, tit, 8, 6);
+        texto2(ctx, `${con.jugadores.length}/4`, 8 + anchoTexto2(tit) + 8, 6, TINTA_SUAVE);
+        // SALIR DE LA SALA: small in the corner, with a tap zone as tall as the bar plus 10 px (≥ 28 logical px, ≥ 44 CSS px on a phone).
+        const ts = t('sala.salir');
+        const sw = anchoTexto2(ts) + 14;
+        const sx = ANCHO - 4 - sw;
+        boton(ctx, sx, 2, sw, 14, ts, false, true, 'salir');
 
         // Who is in.
         const hf = 26 + Math.min(4, Math.floor(extra / 30));
@@ -271,14 +337,19 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
           }
           const col = j.pj ? colorEnt(j.pj) : '#a898a8';
           rect(ctx, col, 5, y + 1, 4, hf - 2);
-          if (j.pj) {
-            ctx.drawImage(icono2(j.pj), 12, y + Math.floor((hf - 16) / 2));
-            texto2(ctx, nombreEnt(j.pj), 34, ty);
-          } else texto2(ctx, t('sala.eligiendo'), 34, ty, '#a898a8', null);
+          if (j.pj) ctx.drawImage(icono2(j.pj), 12, y + Math.floor((hf - 16) / 2));
           let xf = ANCHO - 10;
           const py = y + Math.floor((hf - 12) / 2);
           if (j.anfitrion) xf -= pastilla(ctx, t('sala.anfitrion'), xf, py, TINTA2, '#fdf0c0') + 3;
-          if (j.id === con.id) pastilla(ctx, t('sala.tu'), xf, py, j.pj ? colorEnt(j.pj) : TINTA_SUAVE, '#ffffff');
+          if (j.id === con.id) xf -= pastilla(ctx, t('sala.tu'), xf, py, j.pj ? colorEnt(j.pj) : TINTA_SUAVE, '#ffffff') + 3;
+          // The account name always; under it the trainer (or «eligiendo»). Without a name the trainer's, or ELIGIENDO, as before.
+          const nom = con.nombreDe(j.id);
+          if (nom) {
+            const l1 = recortar(nom, xf - 34 - 2);
+            texto2(ctx, l1, 34, y + Math.floor((hf - 17) / 2) + 1);
+            texto2(ctx, j.pj ? nombreEnt(j.pj) : t('sala.eligiendo.nombre'), 34, y + Math.floor((hf - 17) / 2) + 10, TINTA_SUAVE, null);
+          } else if (j.pj) texto2(ctx, nombreEnt(j.pj), 34, ty);
+          else texto2(ctx, t('sala.eligiendo'), 34, ty, '#a898a8', null);
         }
 
         // Pick your trainer: seven in two columns (a face icon and two lines on a short phone, the 40×40 portrait when there is room).
@@ -315,27 +386,30 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
         });
         y += Math.ceil(ENTRENADORES.length / 2) * (ch + 4);
 
-        // The mode (docs/POKEUSERA.md, «Modo AL AZAR»): everybody sees it, only the host changes it.
-        panelCacheado(ctx, 4, y, ANCHO - 8, 24);
-        texto2(ctx, t('sala.modo'), 14, y + 9);
-        const vm = t(`modo.${con.modo}`);
-        texto2(ctx, vm, ANCHO - 14 - anchoTexto2(vm), y + 9, con.modo === 'azar' ? colorEnt('vinas') : TINTA_SUAVE);
+        // The mode (docs/POKEUSERA.md, «Modo AL AZAR») and the battle speed: the host's, the same for everybody.
+        // The host taps them (two rows); a guest cannot, so for him they are plain text, not a button-looking panel.
         if (con.anfitrion) {
-          const k = ctl.length;
-          ctl.push({ x: 4, y, w: ANCHO - 8, h: 24, fn: () => ((sel = k), alternarModo()) });
-        }
-        y += 27;
+          panelCacheado(ctx, 4, y, ANCHO - 8, 24);
+          texto2(ctx, t('sala.modo'), 14, y + 9);
+          const vm = t(`modo.${con.modo}`);
+          texto2(ctx, vm, ANCHO - 14 - anchoTexto2(vm), y + 9, con.modo === 'azar' ? colorEnt('vinas') : TINTA_SUAVE);
+          const km = ctl.length;
+          ctl.push({ x: 4, y, w: ANCHO - 8, h: 24, fn: () => ((sel = km), alternarModo()) });
+          y += 27;
 
-        // The battle speed: also the host's, the same for everybody.
-        panelCacheado(ctx, 4, y, ANCHO - 8, 24);
-        texto2(ctx, t('sala.velocidad'), 14, y + 9);
-        const vv = t(`velocidad.${con.velocidad}`);
-        texto2(ctx, vv, ANCHO - 14 - anchoTexto2(vv), y + 9, TINTA_SUAVE);
-        if (con.anfitrion) {
-          const k = ctl.length;
-          ctl.push({ x: 4, y, w: ANCHO - 8, h: 24, fn: () => ((sel = k), alternarVelocidad()) });
+          panelCacheado(ctx, 4, y, ANCHO - 8, 24);
+          texto2(ctx, t('sala.velocidad'), 14, y + 9);
+          const vv = t(`velocidad.${con.velocidad}`);
+          texto2(ctx, vv, ANCHO - 14 - anchoTexto2(vv), y + 9, TINTA_SUAVE);
+          const kv = ctl.length;
+          ctl.push({ x: 4, y, w: ANCHO - 8, h: 24, fn: () => ((sel = kv), alternarVelocidad()) });
+          y += 27;
+        } else {
+          y += 2;
+          centrado(ctx, t('sala.config', { modo: t(`modo.${con.modo}`), velocidad: t(`velocidad.${con.velocidad}`) }), y, TINTA2, { sombra: null });
+          centrado(ctx, t('sala.loElige'), y + 11, TINTA_SUAVE, { sombra: null });
+          y += 32;
         }
-        y += 27;
 
         // Host: fill with machines?
         if (con.anfitrion) {
@@ -349,24 +423,21 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
         }
 
         // Hint and buttons (on a short phone the host's two rows leave no room for the hint: it is left out).
-        const yb = H - 36;
+        const yb = H - 32;
         const pista = con.anfitrion ? t(puedeEmpezar() ? 'sala.pista.listo' : mio ? 'sala.pista.faltan' : 'sala.pista.elige') : mio ? t('sala.esperando') : t('sala.pista.elige');
         const lp = envolver(pista, 200);
-        const yh = Math.min(yb - 6 - lp.length * 12, y + 4);
+        const yh = con.anfitrion ? Math.min(yb - 6 - lp.length * 12, y + 4) : y + 4;
         if (yh >= y) lp.forEach((l, i) => centrado(ctx, l, yh + i * 12, TINTA_SUAVE, { sombra: null }));
+        // Host: one wide EMPEZAR (grey until it can start). A guest has no button down here, only the hint. SALIR DE LA SALA is last in `ctl`.
         if (con.anfitrion) {
-          boton(ctx, 10, yb, 108, 28, t('sala.empezar'), false, puedeEmpezar(), 'principal');
-          boton(ctx, 122, yb, 108, 28, t('sala.salir'), false, true, 'salir');
+          boton(ctx, 20, yb, ANCHO - 40, 28, t('sala.empezar'), false, puedeEmpezar(), 'principal');
           const k = ctl.length;
-          ctl.push({ x: 10, y: yb, w: 108, h: 28, fn: () => ((sel = k), empezar()) });
-          ctl.push({ x: 122, y: yb, w: 108, h: 28, fn: salir });
-        } else {
-          boton(ctx, 66, yb, 108, 28, t('sala.salir'), false, true, 'salir');
-          ctl.push({ x: 66, y: yb, w: 108, h: 28, fn: salir });
+          ctl.push({ x: 20, y: yb, w: ANCHO - 40, h: 28, fn: () => ((sel = k), empezar()) });
         }
+        ctl.push({ x: sx - 6, y: 0, w: sw + 10, h: 28, fn: () => void pedirSalida(), ver: { x: sx, y: 2, w: sw, h: 14 } });
         for (const c of ctl) entrada.zona(c.x, c.y, c.w, c.h, () => !empezando && c.fn());
         if (teclado && ctl[sel]) {
-          const c = ctl[sel];
+          const c = ctl[sel].ver ?? ctl[sel];
           const col = parpadeo(ahora) ? TINTA2 : '#e0a83a';
           rect(ctx, col, c.x - 2, c.y - 2, c.w + 4, 2);
           rect(ctx, col, c.x - 2, c.y + c.h, c.w + 4, 2);
@@ -381,7 +452,7 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
         const NT = ENTRENADORES.length;
         if (!n || empezando) return true;
         sel = Math.min(sel, n - 1);
-        if (a === 'atras') salir();
+        if (a === 'atras') void pedirSalida();
         else if (a === 'aceptar') ctl[sel].fn();
         else if (a === 'der') sel = (sel + 1) % n;
         else if (a === 'izq') sel = (sel + n - 1) % n;
@@ -393,6 +464,13 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
     };
     p.poner(e);
   });
+}
+
+/** The text cut with «…»-less truncation so it fits `ancho` px (names are short, but never let one run under the badges). */
+function recortar(s: string, ancho: number): string {
+  let r = s;
+  while (r.length > 1 && anchoTexto2(r) > ancho) r = r.slice(0, -1);
+  return r;
 }
 
 const parpadeo = (ahora: number): boolean => Math.floor(ahora / 400) % 2 === 0;

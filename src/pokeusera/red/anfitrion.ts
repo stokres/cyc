@@ -240,6 +240,8 @@ async function unaPartida(
       return vb.pedir(ofertas, especies, ms);
     },
     pedirSalida: (_j, especies, objetos, ms) => {
+      // AL AZAR: the host already marked the opener on «TU EQUIPO AL AZAR» (no «¿Quién sale primero?»).
+      if (modo === 'azar') return Promise.resolve(va.inicial);
       p.poner(vs);
       return vs.pedir(especies, objetos, ms);
     },

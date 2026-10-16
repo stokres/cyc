@@ -1,10 +1,13 @@
 // PokéUsera · «TU EQUIPO AL AZAR» (mode AL AZAR, docs/POKEUSERA.md): where the draft and «La barra» would be, each player sees what the game dealt
 // them: their three useritos, the object and who carries it, and the others' teams for reference (the useritos of the rivals are public, as in the
-// draft; their objects are not). The only button is ¡A PELEAR!, which leads to «¿Quién sale primero?». The deal comes in from outside (`pedir`: the
-// host's own seat in the Partida, or a network message for a guest) and the screen hands back «seen».
+// draft; their objects are not). Tapping one of the three useritos marks it as the one that
+// comes out first (the default is the first; ← → move the mark): ¡A PELEAR! confirms the team and the opener at once, so «¿Quién sale primero?» is
+// not shown in this mode (the flow answers `pedirSalida` with `inicial`). The deal comes in from outside (`pedir`: the host's own seat in the
+// Partida, or a network message for a guest) and the screen hands back «seen»; `inicial` is the marked one (also when time runs out).
 //
-// Performance (docs/ESTILO.md, T5/T6): everything is baked once (the three cells with their sprites, the object card, the rivals' cells) and the
-// screen is `estatica`. Without a time limit (solo play) nothing ever asks for a redraw while it rests; with one (online) only the clock's second does.
+// Performance (docs/ESTILO.md, T5/T6): everything is baked once (the three cells with their sprites, the «SALE» tag, the object card, the rivals' cells)
+// and the screen is `estatica`. Without a time limit (solo play) nothing ever asks for a redraw while it rests (only a tap on a cell does); with one
+// (online) only the clock's second does.
 import type { EscenarioId, ObjetoId } from '../tipos';
 import { ESPECIE } from '../datos';
 import { anchoTexto2 } from '../arte2/fuente2';
@@ -89,6 +92,17 @@ function celdaRival(color: string, nombre: string, especies: string[]): HTMLCanv
   });
 }
 
+/** The small «SALE» tag that sits on the corner of the marked cell, in the trainer's colour. */
+function etiquetaSale(color: string): HTMLCanvasElement {
+  const s = t('azar.sale');
+  const w = anchoTexto2(s) + 8;
+  return hornear(`azar|sale|${color}|${s}`, w, 13, (cx) => {
+    relleno(cx, TINTA2, 0, 0, w, 13);
+    relleno(cx, color, 1, 1, w - 2, 11);
+    texto2(cx, s, 4, 3, TINTA2, null);
+  });
+}
+
 export class VistaAzar implements Escena {
   readonly estatica = true;
   private equipos: string[][] = [];
@@ -96,6 +110,8 @@ export class VistaAzar implements Escena {
   /** 0: no time limit (solo play), otherwise when the clock runs out. */
   private fin = 0;
   private hecho = false;
+  /** The userito marked to come out first (0..2; the first by default). */
+  private sel = 0;
   private resolver: (() => void) | null = null;
   private ultimoTic = -1;
   private firma = new Firma(2);
@@ -111,11 +127,17 @@ export class VistaAzar implements Escena {
     private miSeat: number | null,
   ) {}
 
+  /** The index (in this seat's team) of the userito marked to come out first: what `Decisor.pedirSalida` is answered with in this mode. */
+  get inicial(): number {
+    return this.sel;
+  }
+
   /** Shows the dealt team of this seat (`equipos[miSeat]`, with `objetos`: what each of its useritos carries) and resolves when the player presses ¡A PELEAR! (or time runs out). `plazoMs` ≤ 0: no limit. */
   pedir(equipos: string[][], objetos: (ObjetoId | null)[], plazoMs: number): Promise<void> {
     this.equipos = equipos;
     this.objetos = objetos;
     this.hecho = false;
+    this.sel = 0;
     this.ultimoTic = -1;
     this.firma = new Firma(2);
     this.fin = plazoMs > 0 ? Date.now() + Math.max(1000, plazoMs - MARGEN_PLAZO) : 0;
@@ -149,6 +171,14 @@ export class VistaAzar implements Escena {
     res();
   }
 
+  /** Marks the userito `k` as the one that comes out first. */
+  private marcar(k: number) {
+    if (this.hecho || !this.resolver || k === this.sel || k < 0 || k >= this.mio.length) return;
+    this.sel = k;
+    sonido.grito(this.mio[k]);
+    pantalla().redibujar();
+  }
+
   private async pausar() {
     sonido.efecto('aceptar');
     if ((await menuPausa(this)) === 'abandonar') this.alAbandonar?.();
@@ -157,6 +187,8 @@ export class VistaAzar implements Escena {
   accion(a: Accion): boolean {
     if (a === 'atras') void this.pausar();
     else if (a === 'aceptar') this.confirmar();
+    else if (a === 'izq' || a === 'arriba') this.marcar((this.sel + this.mio.length - 1) % Math.max(1, this.mio.length));
+    else if (a === 'der' || a === 'abajo') this.marcar((this.sel + 1) % Math.max(1, this.mio.length));
     return true;
   }
 
@@ -196,14 +228,18 @@ export class VistaAzar implements Escena {
     }
     centrado(ctx, t('azar.pista'), m.yPista, TINTA_SUAVE, { sombra: null });
 
-    // The three useritos, and the object on the one that carries it.
+    // The three useritos: the marked one (frame and tag) comes out first; the one that carries the object has its icon in the corner.
     const sep = Math.floor((AN - 3 * ANCHO_CELDA) / 2);
     const lleva = this.objetos.findIndex((o) => o !== null);
     this.mio.forEach((e, k) => {
       const x = X0 + k * (ANCHO_CELDA + sep);
       ctx.drawImage(celda(e, m.hCelda), x, m.yCeldas);
-      if (k === lleva) {
+      if (!esperando) entrada.zona(x, m.yCeldas, ANCHO_CELDA, m.hCelda, () => this.marcar(k));
+      if (k === this.sel) {
         this.marco(ctx, x, m.yCeldas, ANCHO_CELDA, m.hCelda, col);
+        ctx.drawImage(etiquetaSale(col), x + 3, m.yCeldas + 3);
+      }
+      if (k === lleva) {
         relleno(ctx, TINTA2, x + ANCHO_CELDA - 18, m.yCeldas + 4, 14, 14);
         relleno(ctx, PAPEL_ALTO, x + ANCHO_CELDA - 17, m.yCeldas + 5, 12, 12);
         ctx.drawImage(iconoObjeto(this.objetos[k] as ObjetoId), 0, 0, LADO_ICONO_OBJETO, LADO_ICONO_OBJETO, x + ANCHO_CELDA - 17, m.yCeldas + 5, LADO_ICONO_OBJETO, LADO_ICONO_OBJETO);

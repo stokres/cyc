@@ -64,16 +64,21 @@ export function pantallaPodio(estado: EstadoCombate, miSeat: number | null, sinB
         const extra = Math.max(0, H - 384);
         fondoPapel(ctx, H);
         const tit = t('podio.gana', { nombre: ganador.nombre });
-        const tw = anchoTexto2(tit) + 40;
-        panelCacheado(ctx, Math.floor((ANCHO - tw) / 2), 6, tw, 26);
-        centrado(ctx, tit, 16);
+        // How you came out, under the title (only when you are playing and did not win; the title already says it when you did).
+        const mio = miSeat !== null ? estado.jugadores[miSeat] : undefined;
+        const lineaMia = mio && mio !== ganador && mio.puesto > 1 ? t('podio.tupuesto', { n: mio.puesto }) : '';
+        const hTit = lineaMia ? 38 : 26;
+        const tw = Math.max(anchoTexto2(tit), anchoTexto2(lineaMia)) + 40;
+        panelCacheado(ctx, Math.floor((ANCHO - tw) / 2), 6, tw, hTit);
+        centrado(ctx, tit, lineaMia ? 13 : 16);
+        if (lineaMia) centrado(ctx, lineaMia, 25, TINTA2);
         const n = orden.length;
         const cw = Math.floor(ANCHO / n);
         // Vertical rhythm: title, trainers on their steps, the teams, the battle in a line, the buttons; equal gaps.
         const hc = 36 + Math.min(10, Math.floor(extra / 12));
         const hEq = 2 * hc + 2;
-        const g = Math.max(4, Math.floor((H - 6 - 26 - 144 - hEq - 30 - 62 - 6) / 4));
-        const yB = 6 + 26 + g + 144;
+        const g = Math.max(4, Math.floor((H - 6 - hTit - 144 - hEq - 30 - 62 - 6) / 4));
+        const yB = 6 + hTit + g + 144;
         const yEq = yB + g;
         const yl = yEq + hEq + g;
         const ys = yl + 30 + g;

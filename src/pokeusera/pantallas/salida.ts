@@ -1,9 +1,9 @@
 // PokéUsera · «¿Quién sale primero?»: after «La barra» and before the battle each player chooses, in secret and all at once, which of
-// their three useritos starts on the field (15 seconds, like the draft). Tap one to mark it, tap it again or press SALIR to confirm; if
+// their three useritos starts on the field (15 seconds, like the draft). Tap one to mark it, tap it again or press ¡A PELEAR! to confirm; if
 // the time runs out the marked one goes, or the first one if nothing is marked. The team comes in from outside (`pedir`: the host's own
 // seat in the Partida, or a network message for a guest) and the screen hands back the index.
 //
-// Performance (docs/ESTILO.md, T5/T6): each card (panel, mat, name, types, move types, object) is baked once; per frame there are three
+// Performance (docs/ESTILO.md, T5/T6): each card (panel, mat, name, types, move names, object) is baked once; per frame there are three
 // cards, three breathing sprites and the frame of the marked one. `paso` asks for a redraw only when the clock's second, a blink or the
 // sprites' resting frame changes.
 import type { EntrenadorId, ObjetoId } from '../tipos';
@@ -30,6 +30,8 @@ const ALTO_BOTON = 28;
 const MARGEN_PLAZO = 300;
 /** Where the sprite sits inside a card (the same corner as in the draft's sheet). */
 const SPRITE_X = 10;
+/** Width of each of the two columns of moves (the text column is 148 px wide). */
+const COL_MOV = 74;
 
 /** Where everything sits on a screen of height `H`: the cards take what the note and the button leave (between 78 and 112 px each). */
 function medidas(H: number) {
@@ -43,7 +45,15 @@ function medidas(H: number) {
   return { yBoton, yNota, y0: y0 + Math.max(0, Math.floor(sobra / 2)), hCarta, hueco };
 }
 
-/** One of the player's useritos, baked without the sprite: panel, beer mat, name, types, the types of its four moves and its object. */
+/** `s` cut with a «…» at the end so that it fits `maxPx` px (unchanged when it already fits). */
+function recortarPuntos(s: string, maxPx: number): string {
+  if (anchoTexto2(s) <= maxPx) return s;
+  const chars = Array.from(s);
+  while (chars.length > 1 && anchoTexto2(chars.join('').trimEnd() + '…') > maxPx) chars.pop();
+  return chars.join('').trimEnd() + '…';
+}
+
+/** One of the player's useritos, baked without the sprite: panel, beer mat, name, types, the names of its four moves (2 × 2, each with its type's swatch) and its object. */
 function carta(especie: string, objeto: ObjetoId | null, h: number): HTMLCanvasElement {
   return hornear(`salida|carta|${especie}|${objeto ?? '-'}|${h}`, AN, h + 2, (cx) => {
     const sp = ESPECIE[especie];
@@ -51,26 +61,28 @@ function carta(especie: string, objeto: ObjetoId | null, h: number): HTMLCanvasE
     const sy = Math.floor((h - 64) / 2);
     const mat = plataformaCacheada(28, 6);
     cx.drawImage(mat, SPRITE_X - 2 + Math.floor((68 - mat.width) / 2), sy + 62 - 12);
-    const x = SPRITE_X + 74;
-    texto2(cx, recortar(sp.nombre, AN - x - 8), x, 11);
-    let bx = x;
-    for (const tp of sp.tipos) bx += insignaTipo(cx, tp, bx, 25) + 3;
-    // The types of its four moves: what it can hit.
-    texto2(cx, t('salida.movs'), x, 43, TINTA_SUAVE, null);
-    let mx = x + anchoTexto2(t('salida.movs')) + 6;
-    for (const id of sp.movs) {
-      rect(cx, TINTA2, mx, 41, 9, 11);
-      rect(cx, COLOR_TIPO[MOVS[id].tipo], mx + 1, 42, 7, 9);
-      mx += 12;
-    }
+    // The text column (to the right of the sprite): what is left of the card's height is split above and below.
+    const x = SPRITE_X + 70;
+    const off = Math.max(0, Math.floor((h - ALTO_CARTA_MIN) / 2));
+    texto2(cx, recortar(sp.nombre, AN - x - 8), x + 2, 6 + off);
+    let bx = x + 2;
+    for (const tp of sp.tipos) bx += insignaTipo(cx, tp, bx, 17 + off) + 3;
+    // Its four moves: the swatch of the type and the name, in two columns.
+    sp.movs.forEach((id, i) => {
+      const mx = x + (i % 2) * COL_MOV;
+      const my = 32 + off + Math.floor(i / 2) * 12;
+      rect(cx, TINTA2, mx, my, 7, 9);
+      rect(cx, COLOR_TIPO[MOVS[id].tipo], mx + 1, my + 1, 5, 7);
+      texto2(cx, recortarPuntos(MOVS[id].nombre, COL_MOV - 11 - 3), mx + 10, my + 1, TINTA2, null);
+    });
     // Its object from «La barra», or nothing.
-    const yo = h - 24;
+    const yo = 57 + off;
     if (objeto) {
-      relleno(cx, TINTA2, x, yo, 16, 16);
-      relleno(cx, PAPEL_ALTO, x + 1, yo + 1, 14, 14);
-      cx.drawImage(iconoObjeto(objeto), 0, 0, LADO_ICONO_OBJETO, LADO_ICONO_OBJETO, x + 2, yo + 2, LADO_ICONO_OBJETO, LADO_ICONO_OBJETO);
-      texto2(cx, recortar(t(`objeto.${objeto}.nombre`), AN - x - 26), x + 21, yo + 5, TINTA2, null);
-    } else texto2(cx, t('salida.sinobjeto'), x, yo + 5, TINTA_SUAVE, null);
+      relleno(cx, TINTA2, x + 2, yo, 16, 16);
+      relleno(cx, PAPEL_ALTO, x + 3, yo + 1, 14, 14);
+      cx.drawImage(iconoObjeto(objeto), 0, 0, LADO_ICONO_OBJETO, LADO_ICONO_OBJETO, x + 4, yo + 2, LADO_ICONO_OBJETO, LADO_ICONO_OBJETO);
+      texto2(cx, recortarPuntos(t(`objeto.${objeto}.nombre`), AN - x - 28), x + 23, yo + 5, TINTA2, null);
+    } else texto2(cx, t('salida.sinobjeto'), x + 2, yo + 5, TINTA_SUAVE, null);
   });
 }
 
@@ -213,7 +225,7 @@ export class VistaSalida implements Escena {
       const bw = 130;
       const bx = Math.floor((ANCHO - bw) / 2);
       const listo = this.sel >= 0;
-      boton(ctx, bx, yBoton, bw, ALTO_BOTON, t('salida.salir'), listo, listo, 'principal');
+      boton(ctx, bx, yBoton, bw, ALTO_BOTON, t('salida.apelear'), listo, listo, 'principal');
       if (listo) entrada.zona(bx, yBoton, bw, ALTO_BOTON, () => this.confirmar());
     }
   }

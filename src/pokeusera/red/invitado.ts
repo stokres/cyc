@@ -60,6 +60,8 @@ export function jugarInvitado(con: Conexion): Promise<FinOnline> {
     let vs: VistaSalida | null = null;
     let va: VistaAzar | null = null;
     let miSeat: number | null = null;
+    /** This guest was shown «TU EQUIPO AL AZAR» in the current game (so the opener is already marked there). */
+    let modoAzar = false;
     let enDraft = false;
     let fase: 'draft' | 'combate' | 'podio' = 'draft';
     let podioVivo = false;
@@ -100,6 +102,7 @@ export function jugarInvitado(con: Conexion): Promise<FinOnline> {
         vd.escenario = va.escenario = msg.escenario;
         vd.alAbandonar = vc.alAbandonar = vb.alAbandonar = vs.alAbandonar = va.alAbandonar = abandonar;
         (window as unknown as { __pokeusera?: unknown }).__pokeusera = { vc, vd, vb, vs, va, cola };
+        modoAzar = false;
         enDraft = false;
         fase = 'draft';
         podioVivo = false;
@@ -139,10 +142,11 @@ export function jugarInvitado(con: Conexion): Promise<FinOnline> {
           return;
         }
         case 'azar': {
-          // AL AZAR: «TU EQUIPO AL AZAR», asked of this guest only. ¡A PELEAR! goes back as 'azar'; the 'salida' that follows settles any question left open.
+          // AL AZAR: «TU EQUIPO AL AZAR», asked of this guest only. ¡A PELEAR! goes back as 'azar' (the marked opener stays on the screen); the 'salida' that follows settles any question left open and is answered with that opener.
           if (miSeat === null || caducada(idx) || !Array.isArray(msg.equipos) || !msg.equipos.every((e) => Array.isArray(e) && e.every((x) => typeof x === 'string' && ESPECIE[x]))) return;
           const tope = Math.max(1500, msg.plazoMs - MARGEN_MS);
           const resta = Math.min(tope, Math.max(Math.min(MIN_ELECCION_MS, tope), tope - (Date.now() - cuando)));
+          modoAzar = true;
           p.poner(va);
           void va.pedir(msg.equipos, Array.isArray(msg.objetos) ? msg.objetos : [], resta).then(() => {
             if (!muerto && !caducada(idx)) enviar({ k: 'azar' });
@@ -152,6 +156,11 @@ export function jugarInvitado(con: Conexion): Promise<FinOnline> {
         case 'salida': {
           // «¿Quién sale primero?»: only this guest was asked. The choice goes back as 'salida'; the 'inicio' that follows settles any question left open.
           if (miSeat === null || caducada(idx)) return;
+          // AL AZAR: the opener was marked on «TU EQUIPO AL AZAR» (the screen is not shown again): answer with it at once.
+          if (modoAzar) {
+            enviar({ k: 'salida', idx: va.inicial });
+            return;
+          }
           const tope = Math.max(1500, msg.plazoMs - MARGEN_MS);
           const resta = Math.min(tope, Math.max(Math.min(MIN_ELECCION_MS, tope), tope - (Date.now() - cuando)));
           p.poner(vs);
