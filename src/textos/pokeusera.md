@@ -149,6 +149,7 @@ sala.elige = ELIGE TU ENTRENADOR
 sala.tuyo = TUYO
 sala.ocupado = OCUPADO
 sala.modo = MODO
+sala.velocidad = VELOCIDAD
 sala.rellenar = RELLENAR CON MÁQUINA
 sala.si = SÍ
 sala.no = NO

@@ -907,12 +907,6 @@ function avisoAguante(c: Ctx, t: number) {
   }
 }
 
-/** Why the type wins (or does nothing): the sentence of the pair (`tipo.logica.<attack>.<defender>`), for the first defender type with that effectiveness. The screen shows it only the first times. */
-function lineaLogica(c: Ctx, ataque: Tipo, defensa: readonly Tipo[], t: number, mult: 0 | 2) {
-  const d = defensa.find((x) => eficacia(ataque, [x]) === mult);
-  if (d) decir(c, `tipo.logica.${ataque}.${d}`, undefined, t);
-}
-
 /** Lines that go with the blow itself (what it did to its target), not with what comes after it. */
 const TEXTOS_DEL_GOLPE = new Set(['combate.critico', 'combate.muy_eficaz', 'combate.poco_eficaz', 'combate.veces', 'combate.no_afecta', 'combate.esconde_protege', 'combate.venganza', 'combate.aguanta']);
 
@@ -923,7 +917,7 @@ function esDelGolpe(ev: Evento): boolean {
     case 'falla':
       return true;
     case 'texto':
-      return ev.j === undefined || TEXTOS_DEL_GOLPE.has(ev.clave ?? '') || (ev.clave ?? '').startsWith('combate.perk.') || (ev.clave ?? '').startsWith('tipo.logica.');
+      return ev.j === undefined || TEXTOS_DEL_GOLPE.has(ev.clave ?? '') || (ev.clave ?? '').startsWith('combate.perk.');
     default:
       return false;
   }
@@ -1033,7 +1027,6 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
       st(c, j).fal++;
       st(c, t).esq++;
       decir(c, 'combate.no_afecta', varsDe(c, t), t);
-      lineaLogica(c, m.tipo, ESPECIE[v.especie].tipos, t, 0);
       continue;
     }
     // Buena ola (Ventolera) and Toma de corriente (Chispa): the blow does nothing to it, with no side effects, and raises a stat.
@@ -1134,10 +1127,7 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
             if (prende) ponerEstado(c, j, 'quemado', true, t);
           }
         }
-        if (efi > 1) {
-          decir(c, 'combate.muy_eficaz', varsDe(c, t), t);
-          lineaLogica(c, m.tipo, ESPECIE[v.especie].tipos, t, 2);
-        }
+        if (efi > 1) decir(c, 'combate.muy_eficaz', varsDe(c, t), t);
         else if (efi < 1) decir(c, 'combate.poco_eficaz', varsDe(c, t), t);
         if (n > 1) decir(c, 'combate.veces', { n: hechos }, t);
         if (hechos && !c.golpeado[t].includes(j)) c.golpeado[t].push(j);

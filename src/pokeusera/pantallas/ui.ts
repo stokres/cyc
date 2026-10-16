@@ -16,7 +16,9 @@ export type Velocidad = 'lenta' | 'normal' | 'rapida';
 export const VELOCIDADES: readonly Velocidad[] = ['lenta', 'normal', 'rapida'];
 
 /** Global switches. `rapido`: fast animations only (?auto, ?rapido, and an online guest catching up). `velocidad`: the saved setting. */
-export const cfg: { rapido: boolean; velocidad: Velocidad } = { rapido: false, velocidad: 'normal' };
+export const cfg: { rapido: boolean; velocidad: Velocidad; velocidadSala: Velocidad | null } = { rapido: false, velocidad: 'normal', velocidadSala: null };
+/** The speed that rules the battle: online it is the room's (the host's choice, the same for everybody), otherwise the phone's setting. */
+export const velocidadActiva = (): Velocidad => cfg.velocidadSala ?? cfg.velocidad;
 
 export interface Ritmo {
   /** Typewriter speed (characters per second). */
@@ -43,7 +45,7 @@ const RITMOS: Record<Velocidad, Ritmo> = {
 };
 
 /** The pacing of the chosen speed. */
-export const ritmo = (): Ritmo => RITMOS[cfg.velocidad];
+export const ritmo = (): Ritmo => RITMOS[velocidadActiva()];
 
 /** Waits `ms` (much shorter in the fast smoke-test mode). */
 export function dormir(ms: number): Promise<void> {

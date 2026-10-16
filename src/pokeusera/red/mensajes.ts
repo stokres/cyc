@@ -1,5 +1,6 @@
 // PokéUsera · online: the game messages that travel inside the room's `juego` envelope
 // (docs/POKEUSERA.md, «Online»). The server only relays them; the host's browser runs the game.
+import type { Velocidad } from '../pantallas/ui';
 import type { Eleccion, EntrenadorId, EscenarioId, EstadoCombate, EstadoDraft, Evento, ModoJuego, ObjetoId } from '../tipos';
 
 export interface AsientoMsg {
@@ -11,9 +12,9 @@ export interface AsientoMsg {
 /** Host → everybody (`juego`, `a: 'todos'`). */
 export type MsgAnfitrion =
   /** In the room (before the game): the way of playing the host chose (NORMAL / AL AZAR). The host repeats it when somebody joins; guests only read it. */
-  | { k: 'modo'; modo: ModoJuego }
+  | { k: 'modo'; modo: ModoJuego; velocidad: Velocidad }
   /** A game begins (also for «OTRA»). `seats` maps a room id to its seat; ids missing there only watch. `id` names the game (guests echo it in `listo`). `modo` is the game's mode (AL AZAR: no draft and no 'barra'; 'azar' follows). */
-  | { k: 'asientos'; id: number; asientos: AsientoMsg[]; seats: Record<string, number>; escenario: EscenarioId; modo: ModoJuego }
+  | { k: 'asientos'; id: number; asientos: AsientoMsg[]; seats: Record<string, number>; escenario: EscenarioId; modo: ModoJuego; velocidad: Velocidad }
   /** The draft changed; `turnoDe` picks next (null = over) and has `plazoMs`. `draft.elegidos.length` identifies the pick. */
   | { k: 'draft'; draft: EstadoDraft; turnoDe: number | null; plazoMs: number }
   /** «La barra», to the guest of that seat only: the three objects on offer and the guest's team (the choice goes back as 'objeto'). */

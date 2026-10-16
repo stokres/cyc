@@ -2,6 +2,7 @@
 // It only carries messages; the game itself is run by the host's browser.
 import { MODOS_JUEGO, type EntrenadorId as PjId, type ModoJuego } from '../tipos';
 import { leerMensajeCuenta } from '../cuentas/sala';
+import { VELOCIDADES, cfg, type Velocidad } from '../pantallas/ui';
 
 // ---------------------------------------------------------------- messages
 
@@ -80,6 +81,8 @@ export class Conexion {
   readonly cuentas = new Map<number, { token: string; nombre: string }>();
   /** The room's way of playing (docs/POKEUSERA.md, «Modo AL AZAR»): the host's choice, which `anunciarModo` sends; a guest learns it from the host's 'modo' message (NORMAL until then). */
   modo: ModoJuego = 'normal';
+  /** The battle speed of the room: the host's choice (it starts as his own setting), the same for everybody; a guest learns it from the host's 'modo' message. */
+  velocidad: Velocidad = cfg.velocidad;
 
   private ws: WebSocket | null = null;
   private oyentes = new Map<string, Set<(m: never) => void>>();
@@ -154,7 +157,7 @@ export class Conexion {
 
   /** Host only: tells the room the mode (the guests see it in the lobby). Sent again whenever somebody joins. */
   anunciarModo() {
-    if (this.anfitrion) this.juego('todos', { k: 'modo', modo: this.modo });
+    if (this.anfitrion) this.juego('todos', { k: 'modo', modo: this.modo, velocidad: this.velocidad });
   }
 
   /** Leaves on purpose (no `perdida`). */
@@ -184,8 +187,11 @@ export class Conexion {
       const c = leerMensajeCuenta(m.datos);
       if (c) this.cuentas.set(m.de, c);
       // The host's mode, from the host only (a guest's message is nothing to believe).
-      const d = m.datos as { k?: unknown; modo?: unknown } | null;
-      if (d && typeof d === 'object' && d.k === 'modo' && MODOS_JUEGO.includes(d.modo as ModoJuego) && this.jugadores.find((j) => j.anfitrion)?.id === m.de) this.modo = d.modo as ModoJuego;
+      const d = m.datos as { k?: unknown; modo?: unknown; velocidad?: unknown } | null;
+      if (d && typeof d === 'object' && d.k === 'modo' && MODOS_JUEGO.includes(d.modo as ModoJuego) && this.jugadores.find((j) => j.anfitrion)?.id === m.de) {
+        this.modo = d.modo as ModoJuego;
+        if (VELOCIDADES.includes(d.velocidad as Velocidad)) this.velocidad = d.velocidad as Velocidad;
+      }
     } else if (m.tipo === 'salio') {
       this.cuentas.delete(m.id);
     }

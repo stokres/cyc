@@ -35,6 +35,7 @@ import {
   barraValor,
   boton,
   cfg,
+  velocidadActiva,
   chipTiempo,
   chipTipo,
   colorEnt,
@@ -402,38 +403,6 @@ function anilloCacheado(rx: number, ry: number, color: string): HTMLCanvasElemen
 /** Text lines that only comment on a hit that the screen already shows (tags, numbers). */
 const REACCIONES = new Set(['combate.critico', 'combate.muy_eficaz', 'combate.poco_eficaz', 'combate.veces']);
 
-/** The sentence that says why a type wins (`tipo.logica.<attack>.<defender>`) is shown the first times each pair happens on this phone, then it is dropped (the Guide keeps it). */
-const VISTAS_LOGICA = 2;
-const CLAVE_LOGICA = 'pokeusera.logica.v1';
-let logicaVista: Record<string, number> | null = null;
-function quitarLogicaVista(eventos: Evento[]): Evento[] {
-  if (!eventos.some((ev) => ev.k === 'texto' && ev.clave?.startsWith('tipo.logica.'))) return eventos;
-  if (!logicaVista) {
-    try {
-      logicaVista = JSON.parse(localStorage.getItem(CLAVE_LOGICA) ?? '{}') as Record<string, number>;
-    } catch {
-      logicaVista = {};
-    }
-  }
-  const vistas = logicaVista;
-  let cambio = false;
-  const fuera = eventos.filter((ev) => {
-    if (ev.k !== 'texto' || !ev.clave?.startsWith('tipo.logica.')) return true;
-    if (cfg.rapido || (vistas[ev.clave] ?? 0) >= VISTAS_LOGICA) return false;
-    vistas[ev.clave] = (vistas[ev.clave] ?? 0) + 1;
-    cambio = true;
-    return true;
-  });
-  if (cambio) {
-    try {
-      localStorage.setItem(CLAVE_LOGICA, JSON.stringify(vistas));
-    } catch {
-      /* private window: it just shows again next time */
-    }
-  }
-  return fuera;
-}
-
 type EvGolpe = Extract<Evento, { k: 'golpe' }>;
 
 /** The sound of a hit: the more notable the better (critical, super effective, normal, weak). */
@@ -720,8 +689,7 @@ export class VistaCombate implements Escena {
     return { lista, actual: -1 };
   }
 
-  private async reproducir(eventosTodos: Evento[], conOrden = true) {
-    const eventos = quitarLogicaVista(eventosTodos);
+  private async reproducir(eventos: Evento[], conOrden = true) {
     this.hubo = false;
     this.finVisto = false;
     this.foco = null;
@@ -776,7 +744,7 @@ export class VistaCombate implements Escena {
         }
         for (const g of grupo) this.efectoTexto(g);
         // Reactions to a hit (critical, effectiveness, «n times») are also shown as tags over the userito: they wait less.
-        const breve = grupo.every((g) => REACCIONES.has(g.clave ?? '') || g.clave?.startsWith('tipo.logica.'));
+        const breve = grupo.every((g) => REACCIONES.has(g.clave ?? ''));
         await this.decir(linea, breve && ritmo().espera > 0 ? Math.round(ritmo().espera / 2) : undefined);
         continue;
       }
@@ -791,7 +759,7 @@ export class VistaCombate implements Escena {
     if (ev.fin) return false;
     for (let k = i + 1; k < eventos.length; k++) {
       const sig = eventos[k];
-      if (sig.k === 'texto' && sig.j === ev.j && (REACCIONES.has(sig.clave ?? '') || !!sig.clave?.startsWith('tipo.logica.'))) continue;
+      if (sig.k === 'texto' && sig.j === ev.j && REACCIONES.has(sig.clave ?? '')) continue;
       return sig.k === 'golpe' && sig.j === ev.j && !sig.fin;
     }
     return false;
@@ -1267,7 +1235,7 @@ export class VistaCombate implements Escena {
 
   /** How fast the move effects play: with the speed setting (slow 1, normal 1.15, fast 1.4), and much quicker in the fast test mode. */
   private escalaFx(): number {
-    return cfg.rapido ? 4 : cfg.velocidad === 'rapida' ? 1.4 : cfg.velocidad === 'normal' ? 1.15 : 1;
+    return cfg.rapido ? 4 : velocidadActiva() === 'rapida' ? 1.4 : velocidadActiva() === 'normal' ? 1.15 : 1;
   }
 
   /** The centre of j's sprite on screen (where an effect starts or lands). */

@@ -48,6 +48,7 @@ export function jugarInvitado(con: Conexion): Promise<FinOnline> {
       if (muerto) return;
       muerto = true;
       cfg.rapido = rapidoBase;
+      cfg.velocidadSala = null;
       for (const f of offs) f();
       resolver(r);
     };
@@ -89,6 +90,7 @@ export function jugarInvitado(con: Conexion): Promise<FinOnline> {
       if (msg.k === 'asientos') {
         miSeat = msg.seats[String(con.id)] ?? null;
         idJuego = msg.id;
+        cfg.velocidadSala = msg.velocidad;
         jugados = 0;
         vd = new VistaDraft(msg.asientos, miSeat);
         vc = new VistaCombate(miSeat);

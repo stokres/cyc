@@ -29,7 +29,7 @@ import { VistaCombate } from '../pantallas/combate';
 import { VistaDraft } from '../pantallas/draft';
 import { VistaSalida } from '../pantallas/salida';
 import { pantallaPodio } from '../pantallas/podio';
-import { nombreEnt, t } from '../pantallas/ui';
+import { cfg, nombreEnt, t } from '../pantallas/ui';
 import type { Conexion } from './conexion';
 import type { FinOnline, MsgAnfitrion, MsgInvitado } from './mensajes';
 
@@ -164,6 +164,7 @@ export async function jugarAnfitrion(con: Conexion, relleno: boolean): Promise<F
     }
   } finally {
     offPerdida();
+    cfg.velocidadSala = null;
   }
 }
 
@@ -179,6 +180,9 @@ async function unaPartida(
   const n = asientos.length;
   /** The game's mode, the host's choice in the room (it stays for «OTRA»). */
   const modo = con.modo;
+  /** The room's battle speed (the host's choice): the same on every phone, whatever each one has in its own settings. */
+  const velocidad = con.velocidad;
+  cfg.velocidadSala = velocidad;
   const buzon = new Buzon();
   const rnd = crearRnd((Date.now() ^ 0x2545f491) & 0x7fffffff);
   const enviar = (d: MsgAnfitrion) => con.juego('todos', d);
@@ -362,7 +366,7 @@ async function unaPartida(
   idDe.forEach((id, seat) => {
     if (id >= 0) seats[String(id)] = seat;
   });
-  enviar({ k: 'asientos', id: idJuego, asientos: asientos.map((a) => ({ entrenador: a.entrenador, nombre: a.nombre, bot: a.tipo === 'bot' })), seats, escenario: partida.escenario, modo });
+  enviar({ k: 'asientos', id: idJuego, asientos: asientos.map((a) => ({ entrenador: a.entrenador, nombre: a.nombre, bot: a.tipo === 'bot' })), seats, escenario: partida.escenario, modo, velocidad });
 
   try {
     const jugando = partida.jugar();

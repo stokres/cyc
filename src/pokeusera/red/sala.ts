@@ -14,7 +14,7 @@ import { guardarModo, modoElegido } from '../pantallas/ajustes';
 import { Campo } from '../pantallas/campo';
 import { dibujarFondoBar } from '../pantallas/fondos';
 import { mensaje } from '../pantallas/modal';
-import { barraArriba, boton, centrado, colorEnt, envolver, fondoPapel, nombreEnt, rect, t, texto2, velo } from '../pantallas/ui';
+import { VELOCIDADES, barraArriba, boton, cfg, centrado, colorEnt, envolver, fondoPapel, nombreEnt, rect, t, texto2, velo } from '../pantallas/ui';
 import { Conexion } from './conexion';
 
 const CLAVE_GUARDADA = 'pokeusera.clave';
@@ -178,6 +178,7 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
     let jugadoresAnunciados = con.jugadores.length;
     if (con.anfitrion) {
       con.modo = modoElegido();
+      con.velocidad = cfg.velocidad;
       con.anunciarModo();
     }
     offs.push(
@@ -223,6 +224,12 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
     const alternarModo = () => {
       con.modo = con.modo === 'azar' ? 'normal' : 'azar';
       guardarModo(con.modo);
+      con.anunciarModo();
+      sonido.efecto('cursor');
+    };
+    /** The battle speed is the room's (the host's choice, the same on every phone): it does not touch each one's own setting. */
+    const alternarVelocidad = () => {
+      con.velocidad = VELOCIDADES[(VELOCIDADES.indexOf(con.velocidad) + 1) % VELOCIDADES.length];
       con.anunciarModo();
       sonido.efecto('cursor');
     };
@@ -316,6 +323,17 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
         if (con.anfitrion) {
           const k = ctl.length;
           ctl.push({ x: 4, y, w: ANCHO - 8, h: 24, fn: () => ((sel = k), alternarModo()) });
+        }
+        y += 27;
+
+        // The battle speed: also the host's, the same for everybody.
+        panelCacheado(ctx, 4, y, ANCHO - 8, 24);
+        texto2(ctx, t('sala.velocidad'), 14, y + 9);
+        const vv = t(`velocidad.${con.velocidad}`);
+        texto2(ctx, vv, ANCHO - 14 - anchoTexto2(vv), y + 9, TINTA_SUAVE);
+        if (con.anfitrion) {
+          const k = ctl.length;
+          ctl.push({ x: 4, y, w: ANCHO - 8, h: 24, fn: () => ((sel = k), alternarVelocidad()) });
         }
         y += 27;
 

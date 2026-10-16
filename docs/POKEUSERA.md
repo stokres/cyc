@@ -487,7 +487,9 @@ Once tipos. Doble de daño (×2), la mitad (×½) o nada (×0). Si un userito ti
 
 ---
 
-**Que se entienda por qué (0.2.7, pedido por Jesús el 16-oct-2026).** Cada pareja de tipos ×2 o ×0 tiene una frase de lógica (`tipo.logica.<ataque>.<defensor>` en `pokeusera-combate.md`, 26 en total; el script del motor comprueba que estén todas y solo esas). Salen en tres sitios: (1) en combate, como línea justo tras «¡Muy eficaz!» o «No afecta» (el motor emite un `texto` más, `lineaLogica`; para un defensor de dos tipos, la del primer tipo que da ×2 o ×0), pero la pantalla solo la enseña las 2 primeras veces de cada pareja en ese móvil (`VISTAS_LOGICA`, contador en `localStorage` `pokeusera.logica.v1`; con `?auto` nunca); (2) en la Guía → TIPOS, al tocar una casilla (junto a «doble de daño») y al tocar un tipo (tarjeta «POR QUÉ»); (3) las fichas (draft, Useritopedia) usan las etiquetas «Pega fuerte a», «Es débil a», «Resiste a» e «Inmune a»; «Resiste a» es nuevo (los tipos que le hacen la mitad). Para cambiar una frase basta con editarla en el md.
+**Que se entienda por qué (0.2.7; 0.2.8 quita las del combate, pedido por Jesús el 16-oct-2026).** Cada pareja de tipos ×2 o ×0 tiene una frase de lógica (`tipo.logica.<ataque>.<defensor>` en `pokeusera-combate.md`, 26 en total; el script del motor comprueba que estén todas y solo esas). Salen en dos sitios (las frases NO salen durante el combate: Jesús las quitó el 16-oct porque se repetían): (1) en la Guía → TIPOS, al tocar una casilla (junto a «doble de daño») y al tocar un tipo (tarjeta «POR QUÉ»); (2) las fichas (draft, Useritopedia) usan las etiquetas «Pega fuerte a», «Es débil a», «Resiste a» e «Inmune a»; «Resiste a» es nuevo (los tipos que le hacen la mitad). Para cambiar una frase basta con editarla en el md.
+
+**Velocidad común online (0.2.8).** En una sala la velocidad la elige el anfitrión en la fila VELOCIDAD de la sala (parte de la suya de Ajustes); viaja en los mensajes `modo` y `asientos` y todos juegan con ella (`cfg.velocidadSala`, que anula la de cada móvil solo durante la partida online).
 
 ## 3. Los 32 useritos (24 validados, 6 de la tanda 8, 2 de la tanda 9)
 
