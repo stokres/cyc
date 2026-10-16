@@ -459,13 +459,14 @@ guia.tipos.l.x0 = NADA
 guia.tipos.fuerte = Pega fuerte a
 guia.tipos.flojo = Pega poco a
 guia.tipos.nada = No afecta a
-guia.tipos.recibe = Le pegan fuerte
+guia.tipos.recibe = Es débil a
 guia.tipos.ninguno = Ninguno
 guia.tipos.par = {a} contra {d}: {r}
 guia.tipos.r.2 = doble de daño
 guia.tipos.r.1 = daño normal
 guia.tipos.r.05 = la mitad de daño
 guia.tipos.r.0 = no le afecta
+guia.tipos.porque = POR QUÉ
 guia.tipos.t = CÓMO FUNCIONA
 
 guia.estados.nota = Solo puede haber un estado a la vez (Achispado se suma a los demás). Se ven junto al nombre del userito, con su etiqueta. La Siesta los cura todos. El sueño sigue pasando en el banquillo; la quemadura y el empacho solo duelen a quien está luchando.
@@ -499,9 +500,10 @@ guia.objetos.nota = Tras el draft, la barra te ofrece 3 objetos al azar: eliges 
 guia.perks.nota = Cada entrenador trae una ventaja pequeña. Vale para todos, también para la máquina.
 
 // ---- ficha del draft: tipos del userito
-draft.pega = Le pega fuerte a
-draft.pegan = Le pegan fuerte
-draft.inmune = No le afectan
+draft.pega = Pega fuerte a
+draft.pegan = Es débil a
+draft.resiste = Resiste a
+draft.inmune = Inmune a
 draft.x4 = ×4
 draft.habinfo = {nombre}: {desc}
 

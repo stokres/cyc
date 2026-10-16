@@ -175,15 +175,19 @@ function fichaBase(id: string, completa: boolean, h: number, vista: Vista): HTML
       const pega = [...new Set(sp.tipos.flatMap((a) => defensoresCon(a, 2)))];
       const pegan = atacantesFuertes(sp.tipos);
       const inmune = TIPOS.filter((a) => eficacia(a, sp.tipos) === 0);
+      const resiste = TIPOS.filter((a) => eficacia(a, sp.tipos) > 0 && eficacia(a, sp.tipos) < 1);
       const x4 = (tp: Tipo) => (eficacia(tp, sp.tipos) >= 4 ? t('draft.x4') : '');
       texto2(cx, t('draft.pega'), x0, ty - 1, TINTA_SUAVE, null);
       texto2(cx, t('draft.pegan'), x0 + mitad + 6, ty - 1, TINTA_SUAVE, null);
       const a = hileraTipos(cx, pega, x0, ty + 11, mitad);
       const b = hileraTipos(cx, pegan, x0 + mitad + 6, ty + 11, mitad, x4);
-      if (inmune.length && ty + 11 + Math.max(a, b) + 14 + 11 <= h - 3) {
+      // Second row: what it resists (half damage) and what cannot touch it, as long as there is room.
+      if ((resiste.length || inmune.length) && ty + 11 + Math.max(a, b) + 3 + 11 + Math.max(hileraTipos(null, resiste, 0, 0, mitad), hileraTipos(null, inmune, 0, 0, mitad)) <= h - 3) {
         const yi = ty + 11 + Math.max(a, b) + 3;
-        texto2(cx, t('draft.inmune'), x0, yi, TINTA_SUAVE, null);
-        hileraTipos(cx, inmune, x0, yi + 11, W_FICHA - 2 * x0);
+        texto2(cx, t('draft.resiste'), x0, yi, TINTA_SUAVE, null);
+        hileraTipos(cx, resiste, x0, yi + 11, mitad);
+        texto2(cx, t('draft.inmune'), x0 + mitad + 6, yi, TINTA_SUAVE, null);
+        hileraTipos(cx, inmune, x0 + mitad + 6, yi + 11, mitad);
       }
     } else {
       const ancho = W_FICHA - 2 * x0 - 2;

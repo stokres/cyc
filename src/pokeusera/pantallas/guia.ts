@@ -112,6 +112,12 @@ export function hileraTipos(ctx: CanvasRenderingContext2D | null, tipos: readonl
   return cy - y + ALTO_INSIGNIA;
 }
 
+/** The sentence that says why attack type `a` wins (or does nothing) against defender type `d`, '' if the pair has none (only ×2 and ×0 have one). */
+export const logicaTipos = (a: Tipo, d: Tipo): string => {
+  const s = t(`tipo.logica.${a}.${d}`);
+  return s.startsWith('[') ? '' : s;
+};
+
 /** Types that an attack of type `a` hits for exactly `m` (2, 0.5 or 0) as a defender. */
 export const defensoresCon = (a: Tipo, m: number): Tipo[] => TIPOS.filter((d) => eficacia(a, [d]) === m);
 /** Types whose attacks hit a (one or two types) defender for double or more. */
@@ -353,6 +359,8 @@ export function abrirGuia(base: Escena | null, pagina?: string): Promise<void> {
         if (selCol) {
           const m = eficacia(sel, [selCol]);
           par = t('guia.tipos.par', { a: NOMBRE_TIPO[sel].toUpperCase(), d: NOMBRE_TIPO[selCol].toUpperCase(), r: t(`guia.tipos.r.${m === 0.5 ? '05' : m}`) });
+          const porque = logicaTipos(sel, selCol);
+          if (porque) par += `. ${porque}`;
         }
         y +=
           tarjeta(ctx, y, {
@@ -367,6 +375,11 @@ export function abrirGuia(base: Escena | null, pagina?: string): Promise<void> {
               }
             },
           }) + 3;
+        // Why: one sentence for each type it beats (or cannot touch), so the chart can be remembered by its logic instead of by heart.
+        if (!selCol) {
+          const porque = [...defensoresCon(sel, 2), ...defensoresCon(sel, 0)].map((d) => logicaTipos(sel, d)).filter(Boolean);
+          if (porque.length) y += tarjeta(ctx, y, { titulo: t('guia.tipos.porque'), cuerpo: porque.join(' ') }) + 3;
+        }
       }
       y += tarjeta(ctx, y, { titulo: t('guia.tipos.t'), cuerpo: t('ayuda.tipos') }) + 3;
       return y - y0;

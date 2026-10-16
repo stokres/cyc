@@ -265,9 +265,11 @@ function maquetar(cx: CanvasRenderingContext2D | null, i: number): Omit<Ficha, '
   const pega = [...new Set(sp.tipos.flatMap((a) => defensoresCon(a, 2)))];
   const pegan = atacantesFuertes(sp.tipos);
   const inmune = TIPOS.filter((a) => eficacia(a, sp.tipos) === 0);
+  const resiste = TIPOS.filter((a) => eficacia(a, sp.tipos) > 0 && eficacia(a, sp.tipos) < 1);
   const grupos: [string, readonly Tipo[], boolean][] = [
     [t('draft.pega'), pega, false],
     [t('draft.pegan'), pegan, true],
+    [t('draft.resiste'), resiste, false],
     [t('draft.inmune'), inmune, false],
   ];
   const x4 = (tp: Tipo) => (eficacia(tp, sp.tipos) >= 4 ? t('draft.x4') : '');

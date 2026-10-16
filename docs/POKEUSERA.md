@@ -487,6 +487,8 @@ Once tipos. Doble de daño (×2), la mitad (×½) o nada (×0). Si un userito ti
 
 ---
 
+**Que se entienda por qué (0.2.7, pedido por Jesús el 16-oct-2026).** Cada pareja de tipos ×2 o ×0 tiene una frase de lógica (`tipo.logica.<ataque>.<defensor>` en `pokeusera-combate.md`, 26 en total; el script del motor comprueba que estén todas y solo esas). Salen en tres sitios: (1) en combate, como línea justo tras «¡Muy eficaz!» o «No afecta» (el motor emite un `texto` más, `lineaLogica`; para un defensor de dos tipos, la del primer tipo que da ×2 o ×0), pero la pantalla solo la enseña las 2 primeras veces de cada pareja en ese móvil (`VISTAS_LOGICA`, contador en `localStorage` `pokeusera.logica.v1`; con `?auto` nunca); (2) en la Guía → TIPOS, al tocar una casilla (junto a «doble de daño») y al tocar un tipo (tarjeta «POR QUÉ»); (3) las fichas (draft, Useritopedia) usan las etiquetas «Pega fuerte a», «Es débil a», «Resiste a» e «Inmune a»; «Resiste a» es nuevo (los tipos que le hacen la mitad). Para cambiar una frase basta con editarla en el md.
+
 ## 3. Los 32 useritos (24 validados, 6 de la tanda 8, 2 de la tanda 9)
 
 Todos suman lo mismo en estadísticas (420), para que no haya ninguno roto de salida: cada uno destaca en algo y flojea en otra cosa. Las cifras se ajustarán al probar. La columna PS es la base: en combate el PS es `round(base × 2) + 80` (ver «Precisiones del motor»).

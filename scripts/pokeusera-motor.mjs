@@ -45,6 +45,12 @@ for (const sp of M.ESPECIES) {
 }
 for (const id of Object.keys(M.MOVS)) if (!textos.has(`mov.${id}.desc`)) console.error('FALLO: falta mov.' + id + '.desc');
 for (const t of Object.keys(M.TIPO_NOMBRE)) if (!textos.has(`tipo.${t}`)) console.error('FALLO: falta tipo.' + t);
+// Every pair that is ×2 or ×0 has its sentence of logic (tipo.logica.<attack>.<defender>), and only those do.
+for (const a of M.TIPOS) for (const d of M.TIPOS) {
+  const m = M.eficacia(a, [d]);
+  const hay = textos.has(`tipo.logica.${a}.${d}`);
+  if ((m === 2 || m === 0) !== hay) console.error(`FALLO: tipo.logica.${a}.${d} ${hay ? 'sobra' : 'falta'} (eficacia ×${m})`);
+}
 const falla = (msg) => {
   fallos.push(msg);
   console.error('FALLO:', msg);
