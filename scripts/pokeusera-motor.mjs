@@ -982,7 +982,7 @@ function revisarTanda6() {
     const g = forzar('rosas', 'terraza', ['cajonazo', 'kbronero', 'draguserin', 'cajonazo']);
     if (g) {
       const esp = activos(g.r.estado).map((u) => u.niveles.esp);
-      if (esp.filter((n) => n === 1).length !== 1 || esp.some((n) => n < 0 || n > 1)) falla(`rosas: niveles de Especial ${esp}`);
+      if (esp.filter((n) => n === 2).length !== 1 || esp.some((n) => n < 0 || n > 2 || n === 1)) falla(`rosas: niveles de Especial ${esp} (una rosa sube 2)`);
       if (g.r.estado.sucesos.length) falla('rosas es instantáneo');
     }
   }

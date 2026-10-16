@@ -244,9 +244,9 @@ entrenador.guille.perk = Mañico
 entrenador.guille.perk_d = Una vez por userito, aguanta con 1 PS un golpe mortal a vida llena.
 entrenador.vinas.perk = Verso libre
 entrenador.vinas.perk_d = Sus ataques de Chanza y Juerga pegan un 10 % más.
-entrenador.ari.perk = De su cosecha
+entrenador.ari.perk = Improvisadora nata
 entrenador.ari.perk_d = Cada golpe que da tiene un 10 % más de salir crítico.
-entrenador.fer.perk = Cancelación de ruido
+entrenador.fer.perk = Técnico residente
 entrenador.fer.perk_d = Los movimientos con la etiqueta SONIDO (bocinas, gritos, música…) le hacen un 25 % menos.
 entrenador.elegir = ELEGIR
 

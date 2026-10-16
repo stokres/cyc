@@ -223,7 +223,7 @@ mov.caparazon.desc = Sube la Defensa.
 mov.cierzo.desc = Pega a todos. Baja su Velocidad.
 mov.tendedero.desc = Pega y se va al tendedero: vuelve al banquillo y eliges quién entra.
 mov.planeo.desc = Golpe de viento.
-mov.tubo.desc = Pega. Sube tu Velocidad.
+mov.tubo.desc = Pega duro. Sube tu Velocidad.
 mov.remolino.desc = Obliga al rival a cambiar.
 mov.chispazo.desc = Pega. Puede paralizar.
 mov.burbujeo.desc = Pega a todos. Puede paralizar.
@@ -233,7 +233,7 @@ mov.premio.desc = Pega 0, 40, 80 o 150. ¡Suerte!
 mov.chupitazo.desc = Pega. Puede achispar.
 mov.ronda.desc = Pega a todos. Puede achispar.
 mov.garrafon.desc = Pega fuerte. Puede achispar.
-mov.unamas.desc = Nadie cambia. Baja su Velocidad.
+mov.unamas.desc = Los rivales no pueden cambiar y bajan 1 su Velocidad.
 mov.dolor.desc = Achispa al rival.
 mov.rumba.desc = Pega de 2 a 5 veces.
 mov.remate.desc = Cuanta menos vida te queda, más pega: de 20 a 200. ¡Olé!
@@ -270,7 +270,7 @@ mov.quepague.desc = Va el primero. Los golpes a ti se desvían a otro. Los de «
 mov.aguantar.desc = Va el primero. Este turno ningún golpe te deja con menos de 1 PS.
 mov.devolver.desc = Va el último. Devuelve 1,5 veces el daño que te hicieron a quien te pegó el último.
 mov.maletazo.desc = Le cae la maleta de arriba. Puede bajar la Defensa.
-mov.embarque.desc = Embarque prioritario: pega el primero.
+mov.embarque.desc = Pega el primero.
 mov.cinturones.desc = Sube el Ataque y la Defensa.
 mov.improvisa.desc = Usa un movimiento al azar de todo el juego. Sin ensayar.
 mov.monologo.desc = Pega a todos con un monólogo que nadie pidió. Puede bajar el Especial.
@@ -278,7 +278,7 @@ mov.carambola.desc = Choca con todos. Puede bajar su Velocidad.
 mov.ficha.desc = Cura la mitad de los PS y quita los estados. El turno siguiente no haces nada.
 mov.crujiente.desc = Pega de 2 a 5 veces: cada mordisco cruje.
 mov.limon.desc = Quita los estados y sube el Especial.
-mov.cortepapel.desc = Hace el triple de golpes críticos.
+mov.cortepapel.desc = Pega con el triple de probabilidad de crítico.
 mov.papiroflexia.desc = Sube el Ataque y la Velocidad.
 mov.pasodoble.desc = Pega. Puede subir tu Velocidad.
 mov.mancha.desc = Le pone perdida la camiseta. Puede bajar su Precisión.
@@ -316,7 +316,7 @@ hab.kilos.desc = No le mueven: Remolino y perder el turno por un golpe no le afe
 hab.kilos.activa = ¡{quien} pesa 152 kilos y no se mueve!
 
 hab.indigesto.nombre = Indigesto
-hab.indigesto.desc = Quien le pega con un ataque físico tiene un 30 % de empacharse.
+hab.indigesto.desc = Quien le pega con un ataque físico a uno solo tiene un 30 % de empacharse.
 hab.indigesto.activa = ¡{otro} se empacha al pegar a {quien}!
 
 hab.espuma.nombre = La espuma no baja
@@ -347,15 +347,15 @@ hab.dos_cabezas.desc = No se puede dormir: siempre hay una cabeza despierta.
 hab.dos_cabezas.activa = ¡Una cabeza de {quien} siempre está despierta!
 
 hab.ardiente.nombre = Ardiente
-hab.ardiente.desc = Quien le pega con un ataque físico tiene un 30 % de quemarse.
+hab.ardiente.desc = Quien le pega con un ataque físico a uno solo tiene un 30 % de quemarse.
 hab.ardiente.activa = ¡{otro} se quema al tocar a {quien}!
 
 hab.pareja.nombre = Pareja de carretera
 hab.pareja.desc = Si su pareja (Camioner o Caravaner) está en combate, sea de quien sea, sus ataques pegan un 20 % más.
 
-hab.fotosintesis.nombre = Fotosíntesis
+hab.fotosintesis.nombre = Alucinógeno
 hab.fotosintesis.desc = Cura 1/16 de sus PS al final de cada turno.
-hab.fotosintesis.cura = ¡{quien} hace la fotosíntesis y se recupera!
+hab.fotosintesis.cura = ¡{quien} está en otro mundo y se recupera!
 
 hab.flipado.nombre = Flipado
 hab.flipado.desc = Cada vez que tumba a un userito, sube 1 su Ataque.
@@ -367,7 +367,7 @@ hab.hielo.nombre = Con hielo
 hab.hielo.desc = Los ataques de Petardo le hacen la mitad.
 
 hab.pesadisimo.nombre = Pesadísimo
-hab.pesadisimo.desc = Quien le pega con un ataque físico baja 1 su Velocidad.
+hab.pesadisimo.desc = Quien le pega con un ataque físico a uno solo baja 1 su Velocidad.
 hab.pesadisimo.activa = ¡{otro} se cansa de pegar a {quien}!
 
 hab.ola.nombre = Buena ola
@@ -378,9 +378,9 @@ hab.lavado.nombre = Recién lavado
 hab.lavado.desc = Al volver al banquillo se le quitan los estados y cura 1/8. Le va bien con Al tendedero.
 hab.lavado.activa = ¡{quien} se da una ducha antes de irse al banquillo!
 
-hab.maleta.nombre = Se abre la maleta
+hab.maleta.nombre = Maleta cabreada
 hab.maleta.desc = La primera vez que baja de la mitad de los PS, sube 2 su Ataque.
-hab.maleta.activa = ¡Se abre la maleta de {quien}!
+hab.maleta.activa = ¡La maleta de {quien} se ha cabreado!
 
 hab.publico.nombre = Público entregado
 hab.publico.desc = Cuando un rival falla un ataque, sube 1 su Especial (una vez por turno y hasta +2).
@@ -402,7 +402,7 @@ hab.cantaynollores.nombre = Canta y no llores
 hab.cantaynollores.desc = Con menos de un tercio de sus PS, sus ataques de Juerga pegan un 50 % más.
 
 hab.malaleche.nombre = Mala leche
-hab.malaleche.desc = Cada vez que le pegan con un ataque, sube 1 su Ataque (como mucho una vez por turno).
+hab.malaleche.desc = Cada vez que le pegan con un ataque, sube 1 su Ataque (una vez por turno como mucho, hasta +6).
 hab.malaleche.activa = ¡{quien} se pone de mala leche!
 
 // ---- ventajas de entrenador (motor/combate.ts: Chuchi «Llega tarde», Guille «Mañico», Ari «De su cosecha», Fer «Cancelación de ruido»)
@@ -457,57 +457,57 @@ suceso.ronda.frase = Invita la casa: ¡ronda para todos! Cada userito en combate
 suceso.ronda.desc = Todos los useritos en combate curan 1/8 de sus PS.
 
 suceso.luz.nombre = Se va la luz
-suceso.luz.frase = ¡Se va la luz! Durante 2 turnos todos fallan más, menos los de Fantasma, que ven en la oscuridad.
-suceso.luz.desc = Todos fallan más (20 puntos menos de precisión), menos los de tipo Fantasma, que se mueven a oscuras.
+suceso.luz.frase = ¡Se va la luz! Durante 2 turnos todos fallan más, menos los de Fantasma, que ven en la oscuridad y aciertan más.
+suceso.luz.desc = Todos tienen 10 puntos menos de precisión, menos los de tipo Fantasma, que tienen 10 más.
 
 suceso.happy.nombre = Happy hour
 suceso.happy.frase = ¡Happy hour! Dos por uno: durante 2 turnos el Alcohol pega un 50 % más y achispa el doble de veces.
 suceso.happy.desc = Los ataques de Alcohol pegan un 50 % más y achispan el doble de veces.
 
-suceso.cumple.nombre = ¡Es su cumple!
-suceso.cumple.frase = ¡Es el cumple de {quien}! Le sacan una tarta: cura 1/4 de su vida y sube 1 su Ataque.
-suceso.cumple.desc = Al userito con menos vida le sacan una tarta: cura 1/4 de sus PS y sube 1 su Ataque.
+suceso.cumple.nombre = ¡Tapa gratis!
+suceso.cumple.frase = ¡Tapa gratis para {quien}, que va peor! Cura 1/4 de su vida y sube 1 su Ataque.
+suceso.cumple.desc = Al userito con menos vida le ponen una tapa gratis: cura 1/4 de sus PS y sube 1 su Ataque.
 
-suceso.pelea.nombre = Pelea en la barra
-suceso.pelea.frase = ¡Pelea en la barra! Todos a por {jugador}, que va ganando: este turno todos le pegan enteros, sin perder fuerza.
+suceso.pelea.nombre = A por el flipao
+suceso.pelea.frase = ¡A por el flipao! Todos a por {jugador}, que va ganando: este turno todos le pegan enteros, sin perder fuerza.
 suceso.pelea.desc = Contra el jugador con más vida en total no cuenta el Acorralado: todos le pegan entero.
 
 suceso.karaoke.nombre = Dale al karaoke
 suceso.karaoke.frase = ¡Alguien le da al karaoke! Se canta a coro y se pega a coro: este turno los ataques a todos pegan enteros.
 suceso.karaoke.desc = Los ataques a todos pegan al 100 % en vez de al 75 %.
 
-suceso.barre.nombre = Vero barre
-suceso.barre.frase = Vero pasa la escoba y barre todo: ¡fuera las subidas y bajadas de estadísticas de todos!
+suceso.barre.nombre = Vero recoge
+suceso.barre.frase = Vero recoge todo con la escoba: ¡fuera las subidas y bajadas de estadísticas de todos!
 suceso.barre.desc = Se borran todas las subidas y bajadas de estadísticas de todos los useritos.
 
-suceso.premio.nombre = Premio de la tragaperras
+suceso.premio.nombre = ¡Premio gordo!
 suceso.premio.frase = ¡La tragaperras escupe monedas! Esto sí que es suerte: quien ya gastó la caña la recupera; si nadie, curan todos.
 suceso.premio.desc = A un jugador al azar le devuelven la caña, si ya la había gastado. Si nadie la gastó, todos curan 1/8.
 suceso.premio.cana = ¡{jugador} se lleva otra caña de premio! Ya puede volver a usarla.
 suceso.premio.cura = Nadie ha gastado la caña: ¡las monedas son para todos! Todos recuperan 1/8 de su vida.
 
-suceso.cierzo.nombre = Cierzo de golpe
-suceso.cierzo.frase = ¡Cierzo de golpe! Vuelan las servilletas: durante 2 turnos todos bajan 1 su Velocidad y Ventolera pega un 50 % más.
+suceso.cierzo.nombre = Corre el viento
+suceso.cierzo.frase = ¡Corre el viento! Vuelan las servilletas: durante 2 turnos todos bajan 1 su Velocidad y Ventolera pega un 50 % más.
 suceso.cierzo.desc = Todos bajan 1 su Velocidad y los de tipo Ventolera pegan un 50 % más.
 
 suceso.rosas.nombre = Pasa el de las rosas
-suceso.rosas.frase = Pasa el de las rosas y le deja una a {quien}. Qué detalle: sube 1 su Especial.
-suceso.rosas.desc = Un userito al azar recibe una rosa y sube 1 su Especial.
+suceso.rosas.frase = Pasa el de las rosas y le deja una a {quien}, pero hay que pagarla: sube 2 su Especial y pierde el 10 % de su vida actual.
+suceso.rosas.desc = Un userito al azar recibe una rosa: sube 2 su Especial, pero la paga con el 10 % de su vida actual.
 
 suceso.desfile.nombre = Desfile Drag
 suceso.desfile.frase = ¡Desfile Drag! Que suene la música y salga la reina: durante 2 turnos Juerga y Chanza pegan un 50 % más.
 suceso.desfile.desc = Los ataques de Juerga y de Chanza pegan un 50 % más.
 
-suceso.peluca.nombre = Peluca descolocada
-suceso.peluca.frase = ¡Peluca descolocada! Con el flequillo en los ojos no se apunta bien: todos bajan 1 su Precisión, menos los de Juerga.
-suceso.peluca.desc = Todos bajan 1 su Precisión, menos los de tipo Juerga, que van de peluca todos los días.
+suceso.peluca.nombre = Biberón de Jagger
+suceso.peluca.frase = ¡Biberón de Jagger! Con tanto biberón no se apunta bien: todos bajan 1 su Precisión, menos los de Juerga.
+suceso.peluca.desc = Todos bajan 1 su Precisión, menos los de tipo Juerga, que ya van de biberón todos los días.
 
 suceso.comanda.nombre = ¡Comanda!
 suceso.comanda.frase = ¡Marchando una comanda! Raciones para los más marchosos: los de Juerga y Chanza en combate recuperan 1/8 de su vida.
 suceso.comanda.desc = Los useritos de Juerga y de Chanza que están en combate curan 1/8 de sus PS.
 
-suceso.chinchin.nombre = Chin chin
-suceso.chinchin.frase = ¡Chin chin! Juan invita a los que van peor: 2 turnos, los 2 jugadores con menos vida curan 1/8 al acabar cada turno.
+suceso.chinchin.nombre = Clin clin clin
+suceso.chinchin.frase = ¡Clin, clin, clin! Juan invita a los que van peor: 2 turnos, los 2 jugadores con menos vida curan 1/8 al acabar cada turno.
 suceso.chinchin.desc = Los 2 jugadores con menos vida en total curan 1/8 a su userito al final de cada turno.
 suceso.chinchin.cura = ¡{quien} brinda y se anima!
 
@@ -515,8 +515,8 @@ suceso.choque.nombre = ¡Coches de choque!
 suceso.choque.frase = ¡Coches de choque! Todos se estampan con todos y pierden 1/10 de sus PS, menos los de Chispa y Petardo, que ya tienen el carné.
 suceso.choque.desc = Todos los useritos en combate chocan entre sí y pierden 1/10 de sus PS máximos, aunque sin llegar a tumbarlos. Los de tipo Chispa y Petardo no, porque van conduciendo.
 
-suceso.pista.nombre = Se enchufa la pista
-suceso.pista.frase = ¡Se enchufa la pista! Chispa pega un 50 % más y quien no es de Chispa pierde 1 de Velocidad al ser golpeado.
+suceso.pista.nombre = Saltan chispas
+suceso.pista.frase = ¡Saltan chispas! Chispa pega un 50 % más y quien no es de Chispa pierde 1 de Velocidad al ser golpeado.
 suceso.pista.desc = Los ataques de tipo Chispa pegan un 50 % más y todos los useritos que no son de tipo Chispa bajan 1 su Velocidad cada vez que reciben un ataque.
 
 // ---- objetos de la barra (motor/combate.ts, pantallas/barra.ts, guía y ficha)

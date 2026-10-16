@@ -992,7 +992,7 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
   }
 
   const danina = m.pot !== null || ef.especial === 'premio' || ef.especial === 'devolver';
-  const luz = hayDeSuceso(e, 'luz') && !ESPECIE[u.especie].tipos.includes('fantasma'); // Se va la luz: −20 accuracy, except for Fantasma
+  const luz = hayDeSuceso(e, 'luz') ? (ESPECIE[u.especie].tipos.includes('fantasma') ? 10 : -10) : 0; // Se va la luz: −10 accuracy points, +10 for Fantasma
   const karaoke = hayDeSuceso(e, 'karaoke'); // Dale al karaoke: area moves hit at 100 %, not 75 %
   const multS = multSuceso(e, m.tipo);
   const peleaJ = e.sucesos.find((x) => x.id === 'pelea')?.j; // Pelea en la barra: no «Acorralado» against this player
@@ -1044,8 +1044,8 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
       // Gafas de sol: +10 accuracy points on its attacks; they show themselves the first time they make a blow land that would have missed.
       const gafas = danina && u.objeto?.id === 'gafas';
       const base = gafas ? Math.min(100, base0 + OBJ_GAFAS_PREC) : base0;
-      const p = base * multNivel(u.niveles.prec) - (luz ? 20 : 0);
-      const sin = base0 * multNivel(u.niveles.prec) - (luz ? 20 : 0);
+      const p = base * multNivel(u.niveles.prec) + luz;
+      const sin = base0 * multNivel(u.niveles.prec) + luz;
       // The roll is drawn exactly when it would be without the glasses (sin < 100), so they never shift the random stream.
       if (sin < 100 || p < 100) {
         const tirada = azar(e) * 100;
@@ -1183,7 +1183,7 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
   }
 }
 
-/** The abilities that answer a blow: `j` hit player `t`'s userito with move `m` (it is still standing; `j` too). Physical = of a physical type (docs/POKEUSERA.md). */
+/** The abilities that answer a blow: `j` hit player `t`'s userito with move `m` (it is still standing; `j` too). Physical = of a physical type and aimed at one rival (docs/POKEUSERA.md). */
 function reaccionAlGolpe(c: Ctx, j: number, t: number, m: Movimiento) {
   const a = act(c, j);
   const v = act(c, t);
@@ -1196,7 +1196,7 @@ function reaccionAlGolpe(c: Ctx, j: number, t: number, m: Movimiento) {
     cambiarNivel(c, t, 'ata', 1, t);
   }
   if (v.ps <= 0 || a.ps <= 0) return;
-  const fisico = TIPOS_FISICOS.includes(m.tipo);
+  const fisico = TIPOS_FISICOS.includes(m.tipo) && m.objetivo !== 'todos'; // physical and aimed at one (an attack at everybody does not trigger them)
   const extra = { otro: nom(a) };
   switch (habilidadDe(v)) {
     case 'buena_chica':
@@ -1419,7 +1419,13 @@ function iniciarSuceso(c: Ctx) {
       for (const j of enPie) cambiarNivel(c, j, 'vel', -1);
       break;
     case 'rosas':
-      if (sobre >= 0) cambiarNivel(c, sobre, 'esp', 1);
+      if (sobre >= 0) {
+        // The rose has to be paid for: 10 % of the HP it has now (it never knocks it out).
+        cambiarNivel(c, sobre, 'esp', 2);
+        const u = act(c, sobre);
+        const dano = Math.min(u.ps - 1, Math.max(1, Math.floor(u.ps / 10)));
+        if (dano > 0) danar(c, sobre, dano);
+      }
       break;
     case 'peluca':
       for (const j of enPie) if (!ESPECIE[act(c, j).especie].tipos.includes('juerga')) cambiarNivel(c, j, 'prec', -1);
