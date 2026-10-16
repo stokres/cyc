@@ -197,7 +197,7 @@ userito.pulpino.desc = Pulpo gallego con una mala leche de campeonato. Si le toc
 
 // ---- movimientos: efecto corto para el menú
 mov.barrigazo.desc = Golpe fuerte. Puede paralizar.
-mov.trompazo.desc = Brutal. Te hieres con el golpe.
+mov.trompazo.desc = Pega muy fuerte, pero tú también te haces daño: pierdes 1/4 de lo que le quitas al rival.
 mov.galope.desc = Embestida sencilla.
 mov.lametazo.desc = Lametazo. Puede paralizar.
 mov.chapa.desc = Pega. Puede bajar la Velocidad.
@@ -262,7 +262,7 @@ mov.eco.desc = Pega dos veces.
 mov.venganza.desc = Doble contra quien te pegó.
 mov.flipada.desc = Sube Ata, Esp y Vel. Baja Def.
 mov.selfie.desc = Baja la precisión de los rivales.
-mov.desesperada.desc = Sin PP. Te hieres un poco.
+mov.desesperada.desc = Sin PP. Tú también te haces daño: pierdes 1/4 de lo que le quitas al rival.
 mov.mecuelo.desc = Se cuela en la barra y pega el primero.
 mov.rebufo.desc = Una racha de aire que llega antes que nadie.
 mov.colleja.desc = Colleja a traición. Pega el primero.
