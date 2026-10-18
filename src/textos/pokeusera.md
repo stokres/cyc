@@ -80,6 +80,7 @@ acum.grupo.escenarios = LOS BARES
 acum.grupo.sucesos = SUCESOS DEL BAR
 // Las medidas (cabecera de orden y líneas de cada fila): máximo 6 letras en las que son botón.
 acum.m.eleg = ELEG.
+acum.m.az = AL AZAR:
 acum.m.vict = VICT.
 acum.m.puesto = PUES.
 acum.m.dano = DAÑO

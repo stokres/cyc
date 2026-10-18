@@ -35,6 +35,7 @@ type Formato = 'int' | 'dec' | 'pct';
 /** The measures: `asc`: lower is better (the place), so it sorts upwards first and its bar grows as the value falls. */
 const MEDIDAS: Record<string, { fmt: Formato; asc?: boolean }> = {
   eleg: { fmt: 'int' },
+  az: { fmt: 'int' },
   vict: { fmt: 'pct' },
   puesto: { fmt: 'dec', asc: true },
   dano: { fmt: 'int' },
@@ -95,7 +96,7 @@ function itemEspecie(id: string, nombre: string, tipos: readonly Tipo[], e: Secc
     n,
     color: COLOR_TIPO[tipos[0]],
     m: e
-      ? { eleg: n - (e.az ?? 0), vict: pct(e.g, n), puesto: media(e.pu, n), dano: media(e.dh, n), ko: media(e.ko, n), cae: pct(e.ca, n), cura: media(e.cu, n), crit: media(e.cr, n), ini: pct(e.ini, n) }
+      ? { eleg: n, az: e.az ?? 0, vict: pct(e.g, n), puesto: media(e.pu, n), dano: media(e.dh, n), ko: media(e.ko, n), cae: pct(e.ca, n), cura: media(e.cu, n), crit: media(e.cr, n), ini: pct(e.ini, n) }
       : {},
     icono: (cx, x, y) => cx.drawImage(miniatura(id), x, y),
   };
@@ -109,6 +110,7 @@ function vistaUseritos(s: Seccion): Vista {
       ['eleg', 'vict', 'puesto'],
       ['dano', 'ko', 'cae'],
       ['cura', 'crit', 'ini'],
+      ['az'],
     ],
   };
 }
@@ -151,7 +153,7 @@ function vistaTipos(s: Seccion): Vista {
       nombre: t(`tipo.${tipo}`),
       n: a.n,
       color: COLOR_TIPO[tipo],
-      m: a.n ? { eleg: a.n - a.az, vict: pct(a.g, a.n), puesto: media(a.pu, a.n), dano: media(a.dh, a.n), ko: media(a.ko, a.n), cae: pct(a.ca, a.n) } : {},
+      m: a.n ? { eleg: a.n, az: a.az, vict: pct(a.g, a.n), puesto: media(a.pu, a.n), dano: media(a.dh, a.n), ko: media(a.ko, a.n), cae: pct(a.ca, a.n) } : {},
       icono: (cx, x, y) => chipTipo(cx, tipo, x + 6, y + 10),
     };
   });
@@ -161,6 +163,7 @@ function vistaTipos(s: Seccion): Vista {
     lineas: [
       ['eleg', 'vict', 'puesto'],
       ['dano', 'ko', 'cae'],
+      ['az'],
     ],
   };
 }
@@ -174,7 +177,7 @@ function vistaObjetos(s: Seccion): Vista {
       nombre: t(`objeto.${id}.nombre`),
       n,
       color: COLOR_BARRA,
-      m: a ? { eleg: n - (a.az ?? 0), act: pct(a.a, n), vict: pct(a.g, n), puesto: media(a.pu, n), dano: media(a.dh, n), ko: media(a.ko, n) } : {},
+      m: a ? { eleg: n, az: a.az ?? 0, act: pct(a.a, n), vict: pct(a.g, n), puesto: media(a.pu, n), dano: media(a.dh, n), ko: media(a.ko, n) } : {},
       icono: (cx, x, y) => cx.drawImage(iconoObjeto(id), 0, 0, 12, 12, x + 4, y + 4, 24, 24),
     };
   });
@@ -184,6 +187,7 @@ function vistaObjetos(s: Seccion): Vista {
     lineas: [
       ['eleg', 'act', 'vict'],
       ['puesto', 'dano', 'ko'],
+      ['az'],
     ],
   };
 }
