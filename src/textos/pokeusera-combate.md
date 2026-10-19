@@ -194,6 +194,11 @@ userito.papiroflexeon.desc = Avión de papel turquesa. Rápido, y corta como un 
 userito.ceceseta.desc = La camiseta de Camiones y Caravanas. La fan número uno.
 userito.mariachi.desc = Sombrero, bigote y trompeta. Llega a tu fiesta sin avisar y no se va hasta que cantes con él.
 userito.pulpino.desc = Pulpo gallego con una mala leche de campeonato. Si le tocas, se enfada. Si no le tocas, también, pero menos.
+userito.cilantrox.desc = Un tallo de cilantro con tres hojas. O te encanta o lo odias, y viene a montar una fiesta pagana.
+userito.fotomaton.desc = El fotomatón de la calle, con su cortinilla. Te mete dentro, te hace cuatro fotos y te saca peor que en el DNI.
+userito.cloudtrio.desc = Tres nubes blanditas, carísimas y muy polémicas. Nadie sabe por qué se compraron.
+userito.cigarr.desc = Un cigarro de liar. Se enciende rápido, se lía solo y deja humo por todas partes.
+userito.ollalocah.desc = La olla loca de la feria. Da vueltas hasta que se te revuelve todo lo que has comido.
 
 // ---- movimientos: efecto corto para el menú
 mov.barrigazo.desc = Golpe fuerte. Puede paralizar.
@@ -288,6 +293,13 @@ mov.picante.desc = Una salsa que pica. Puede quemar.
 mov.ochotortas.desc = Una tirada de precisión y, si acierta, pega 8 veces: una por tentáculo.
 mov.tinta.desc = Tinta en los ojos. Siempre baja 1 la Precisión.
 mov.morrina.desc = Le entra la morriña. Baja 1 el Ataque y 1 la Velocidad.
+mov.fiestapagana.desc = Una fiesta salvaje que pega a todos. Puede bajar 1 la Defensa.
+mov.todosdentro.desc = Los mete a todos en la cabina y los aprieta. Puede bajar 1 la Velocidad.
+mov.flash.desc = Un fogonazo en la cara. Puede bajar 1 la Precisión.
+mov.nubarron.desc = Una nube les tapa el sol y les pega a todos.
+mov.carisimo.desc = Les cobra una barbaridad. Puede bajar 1 el Especial.
+mov.calada.desc = Una calada y un soplo de humo. Puede quemar.
+mov.vueltas.desc = Gira que gira hasta marear. Puede hacerle perder el turno (si aún no ha actuado).
 
 // ---- habilidades (motor/combate.ts, evento «habilidad»). Por cada una: .nombre = el rótulo sobre el userito y la ficha ·
 //      .desc = lo que hace · .activa = la frase al activarse (si la tiene; {quien} = el que la tiene, {otro} = el otro userito)
@@ -404,6 +416,25 @@ hab.cantaynollores.desc = Con menos de un tercio de sus PS, sus ataques de Juerg
 hab.malaleche.nombre = Mala leche
 hab.malaleche.desc = Cada vez que le pegan con un ataque, sube 1 su Ataque (una vez por turno como mucho, hasta +6).
 hab.malaleche.activa = ¡{quien} se pone de mala leche!
+
+hab.jabon.nombre = Sabor a jabón
+hab.jabon.desc = Quien le pega con un ataque a uno solo tiene un 30 % de bajar 1 su Especial.
+hab.jabon.activa = ¡{otro} se queda con sabor a jabón por pegar a {quien}!
+
+hab.tira.nombre = Tira de cuatro
+hab.tira.desc = Tras acertar un ataque a todos, sube 1 su Defensa (hasta +2).
+hab.tira.activa = ¡{quien} saca la tira de fotos y se pone duro!
+
+hab.blandito.nombre = Caro y blandito
+hab.blandito.desc = Los ataques físicos a uno solo le hacen un 20 % menos.
+
+hab.humo.nombre = Humo en la cara
+hab.humo.desc = Quien le pega con un ataque físico a uno solo tiene un 30 % de bajar 1 su Precisión.
+hab.humo.activa = ¡{quien} echa humo y {otro} no ve nada!
+
+hab.feria.nombre = Vueltas de feria
+hab.feria.desc = Al salir al combate, todos los rivales bajan 1 su Velocidad.
+hab.feria.activa = ¡{quien} da vueltas y a los rivales se les revuelve todo!
 
 // ---- ventajas de entrenador (motor/combate.ts: Chuchi «Llega tarde», Guille «Mañico», Ari «De su cosecha», Fer «Cancelación de ruido»)
 combate.perk.chuchi = {quien} llegaba tarde: el golpe le pilla a medias.

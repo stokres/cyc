@@ -28,7 +28,7 @@
 //    abilities, objects, falls...): see `golpesPrimero`. The state and the dice do not change, only the order of the events.
 // Every event may carry `clave` + `vars` (quien = userito name, jugador = player name, mov, ...).
 import type { Eleccion, EscenarioId, EstadoCombate, Estadisticas, EntrenadorId, Estado, Evento, HabilidadId, Jugador, Movimiento, ObjetoId, Stat, StatsUserito, SucesoId, Tipo, Userito } from '../tipos';
-import { ESCENARIOS, HAB_CANTA_MULT, HAB_FOTOSINTESIS, HAB_GRASIENTO, HAB_LAVADO_CURA, HAB_MALETA_ATA, HAB_MANICO_ATA, HAB_PAREJA, HAB_PROB_REACCION, OBJ_BOCATA_CURA, OBJ_GAFAS_PREC, OBJ_MECHERO_QUEMA, OBJ_PALILLO_CRIT, OBJ_PANUELO, OBJ_TAPON_USOS, PERK_CANA_FRAN, PERK_COSECHA_ARI, PERK_PRECISION_PABLO, PERK_RUIDO_FER, PERK_TARDE_CHUCHI, PERK_VERSO_VINAS, TIPOS_FISICOS } from '../tipos';
+import { ESCENARIOS, HAB_CANTA_MULT, HAB_FOTOSINTESIS, HAB_GRASIENTO, HAB_LAVADO_CURA, HAB_MALETA_ATA, HAB_MANICO_ATA, HAB_BLANDITO, HAB_PAREJA, HAB_PROB_REACCION, OBJ_BOCATA_CURA, OBJ_GAFAS_PREC, OBJ_MECHERO_QUEMA, OBJ_PALILLO_CRIT, OBJ_PANUELO, OBJ_TAPON_USOS, PERK_CANA_FRAN, PERK_COSECHA_ARI, PERK_PRECISION_PABLO, PERK_RUIDO_FER, PERK_TARDE_CHUCHI, PERK_VERSO_VINAS, TIPOS_FISICOS } from '../tipos';
 import { DESESPERADA, EFECTOS, ESPECIE, MOVS, MOVS_IMPROVISA, SUCESOS, TURNOS_SUCESO, eficacia, esSonido, potenciaRemate, sucesosDe } from '../datos';
 import { azar, elegir, entero, probar, type ConSemilla } from './azar';
 
@@ -252,10 +252,13 @@ export function bonusCompania(e: EstadoCombate, j: number, a: Userito): boolean 
 /** Canta y no llores (Mariachi): with less than 1/3 of its HP, its Juerga attacks hit 50 % harder. */
 export const bonusCanta = (a: Userito, mov: Movimiento): boolean => habilidadDe(a) === 'cantaynollores' && mov.tipo === 'juerga' && a.ps > 0 && a.ps * 3 < a.psMax;
 
+/** Caro y blandito (Cloudtrio): the physical attacks at one rival (of a physical type, not at everybody) hit it 20 % less. */
+export const blandito = (d: Userito, mov: Movimiento): boolean => habilidadDe(d) === 'blandito' && TIPOS_FISICOS.includes(mov.tipo) && mov.objetivo !== 'todos';
+
 /** The damage multiplier the abilities put on an attack of player `j`'s userito `a` against `d`: +20 % with the partner on the field, +50 % of Canta y no llores,
  *  ×½ of Petardo against Con hielo. */
 export function multHabilidad(e: EstadoCombate, j: number, a: Userito, d: Userito, mov: Movimiento): number {
-  return (bonusCompania(e, j, a) ? 1 + HAB_PAREJA / 100 : 1) * (bonusCanta(a, mov) ? HAB_CANTA_MULT / 100 : 1) * (habilidadDe(d) === 'hielo' && mov.tipo === 'petardo' ? 0.5 : 1);
+  return (blandito(d, mov) ? 1 - HAB_BLANDITO / 100 : 1) * (bonusCompania(e, j, a) ? 1 + HAB_PAREJA / 100 : 1) * (bonusCanta(a, mov) ? HAB_CANTA_MULT / 100 : 1) * (habilidadDe(d) === 'hielo' && mov.tipo === 'petardo' ? 0.5 : 1);
 }
 
 // ------------------------------------------------------------------ sucesos (queries)
@@ -419,6 +422,14 @@ function alSalirAlCampo(c: Ctx, j: number) {
         cambiarNivel(c, j, 'vel', 1, j);
       }
       break;
+    case 'feria': {
+      // Vueltas de feria: the rivals that can still go slower get dizzy; the others stay as they are, without «no puede bajar más».
+      const rivales = rivalesEnPie(c.e, j);
+      if (!rivales.some((r) => act(c, r).niveles.vel > -6)) break;
+      habilidad(c, j, 'feria', 'hab.feria.activa');
+      for (const r of rivales) cambiarNivel(c, r, 'vel', -1, j, undefined, true);
+      break;
+    }
     case 'conazo': {
       // Coñazo only speaks when some rival's Attack can still go down; the rivals that cannot just stay as they are, without «no puede bajar más».
       const rivales = rivalesEnPie(c.e, j);
@@ -1090,6 +1101,7 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
         if (bonusCompania(e, j, u)) habilidad(c, j, habilidadDe(u));
         if (bonusCanta(u, m)) habilidad(c, j, 'cantaynollores');
         if (habilidadDe(v) === 'hielo' && m.tipo === 'petardo') habilidad(c, t, 'hielo');
+        if (blandito(v, m)) habilidad(c, t, 'blandito');
         if (volumen) habilidad(c, j, 'volumen');
         for (let h = 0; h < n && v.ps > 0; h++) {
           const tirada = azar(e) * 512;
@@ -1173,6 +1185,11 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
     }
   }
   if (ef.recarga && totalDano > 0 && algunoVivo && u.ps > 0) u.vol.recarga = true;
+  // Tira de cuatro (Fotomatón): after an attack at everybody that landed, its Defence goes up 1 (up to +2).
+  if (habilidadDe(u) === 'tira' && m.objetivo === 'todos' && acerto && u.ps > 0 && u.niveles.def < 2) {
+    habilidad(c, j, 'tira', 'hab.tira.activa');
+    cambiarNivel(c, j, 'def', 1, j);
+  }
   // «Al tendedero»: if the blow landed and there is somebody to take its place, it goes back to the bench when the turn ends.
   if (ef.especial === 'tendedero' && acerto && u.ps > 0) {
     const q = e.jugadores[j];
@@ -1212,6 +1229,20 @@ function reaccionAlGolpe(c: Ctx, j: number, t: number, m: Movimiento) {
       break;
     case 'ardiente':
       if (fisico && probar(c.e, HAB_PROB_REACCION)) ponerEstado(c, j, 'quemado', true, t, () => habilidad(c, t, 'ardiente', 'hab.ardiente.activa', extra));
+      break;
+    case 'jabon':
+      // Sabor a jabón (Cilantrox): 30 % to lower the Especial of whoever hits it with an attack at one.
+      if (m.objetivo !== 'todos' && probar(c.e, HAB_PROB_REACCION) && a.niveles.esp > -6) {
+        habilidad(c, t, 'jabon', 'hab.jabon.activa', extra);
+        cambiarNivel(c, j, 'esp', -1, t);
+      }
+      break;
+    case 'humo':
+      // Humo en la cara (Cigarr): 30 % to lower the Precision of whoever hits it with a physical attack at one.
+      if (fisico && probar(c.e, HAB_PROB_REACCION) && a.niveles.prec > -6) {
+        habilidad(c, t, 'humo', 'hab.humo.activa', extra);
+        cambiarNivel(c, j, 'prec', -1, t);
+      }
       break;
     case 'pesadisimo':
       if (fisico && a.niveles.vel > -6) {

@@ -249,7 +249,7 @@ if (vista === 'efectos') {
     // measuring only: no loop, no sheet (so the first launch really bakes the sprites)
   } else if (params.get('hoja')) {
     // --- Contact sheet: LISTA × 3 frames, two effects per row.
-    const FRAC_DE: Record<string, number[]> = { tendedero: [0.22, 0.42, 0.75], remate: [0.12, 0.45, 0.7], petardazo: [0.35, 0.55, 0.8], chupitazo: [0.35, 0.62, 0.85], garrafon: [0.35, 0.65, 0.88], fogonazo: [0.3, 0.6, 0.85], ayayay: [0.2, 0.4, 0.62], serenata: [0.25, 0.45, 0.7], picante: [0.25, 0.42, 0.7], ochotortas: [0.12, 0.35, 0.62], tinta: [0.14, 0.3, 0.7], morrina: [0.3, 0.55, 0.85] };
+    const FRAC_DE: Record<string, number[]> = { tendedero: [0.22, 0.42, 0.75], remate: [0.12, 0.45, 0.7], petardazo: [0.35, 0.55, 0.8], chupitazo: [0.35, 0.62, 0.85], garrafon: [0.35, 0.65, 0.88], fogonazo: [0.3, 0.6, 0.85], ayayay: [0.2, 0.4, 0.62], serenata: [0.25, 0.45, 0.7], picante: [0.25, 0.42, 0.7], ochotortas: [0.12, 0.35, 0.62], tinta: [0.14, 0.3, 0.7], morrina: [0.3, 0.55, 0.85], fiestapagana: [0.3, 0.45, 0.7], todosdentro: [0.22, 0.35, 0.6], flash: [0.17, 0.28, 0.45], nubarron: [0.3, 0.55, 0.85], carisimo: [0.2, 0.45, 0.7], calada: [0.15, 0.3, 0.55], vueltas: [0.25, 0.5, 0.8] };
     const COLS = 2;
     const filasN = Math.ceil(LISTA.length / COLS);
     const celda = SW * 3 + 16;

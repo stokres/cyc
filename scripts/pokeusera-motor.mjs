@@ -38,7 +38,7 @@ const decir = (ev) => (ev.clave ? textos.get(ev.clave)?.replace(/\{(\w+)\}/g, (_
 
 const fallos = [];
 // Data: 32 useritos with valid moves; every userito, move and type has its text.
-if (M.ESPECIES.length !== 32) console.error('FALLO: no hay 32 useritos');
+if (M.ESPECIES.length !== 37) console.error('FALLO: no hay 37 useritos');
 for (const sp of M.ESPECIES) {
   if (!textos.has(`userito.${sp.id}.desc`)) console.error('FALLO: falta userito.' + sp.id + '.desc');
   for (const mv of sp.movs) if (!M.MOVS[mv]) console.error('FALLO: movimiento desconocido', sp.id, mv);
@@ -2210,6 +2210,7 @@ revisarTanda7();
 revisarSalida();
 revisarTanda8();
 revisarTanda9();
+revisarUseritos33();
 revisarTanda12();
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -2272,7 +2273,7 @@ function revisarTanda8() {
 
   // --- Data: 30 useritos, the six new ones at the end (Nº 25-30), all of them adding up to 420, the types spread between 4 and 6.
   {
-    if (M.ESPECIES.length !== 32) falla(`hay ${M.ESPECIES.length} useritos, esperaba 32`);
+    if (M.ESPECIES.length !== 37) falla(`hay ${M.ESPECIES.length} useritos, esperaba 37`);
     const viejos = 'draguserin,goudazard,aceituna,cierzon,turroncho,tocinon,roscochoco,espumarro,cajonazo,lentejasur,tragaperras,turito,resacon,evoscar,chupitochu,caravaner,camioner,criaturitah,ego-ego,kbronero,cubatillo,p,jesuspelo,pantaloneto';
     if (M.ESPECIES.slice(0, 24).map((s) => s.id).join() !== viejos) falla('los Nº 1-24 han cambiado de sitio');
     const nuevos = [
@@ -2297,7 +2298,7 @@ function revisarTanda8() {
     }
     const porTipo = {};
     for (const sp of M.ESPECIES) for (const tp of sp.tipos) porTipo[tp] = (porTipo[tp] ?? 0) + 1;
-    for (const [tp, n] of Object.entries(porTipo)) if (tp === 'mindundi' ? n !== 8 : n < 4 || n > 6) falla(`tipo ${tp}: ${n} useritos (4-6, Mindundi 8)`);
+    for (const [tp, n] of Object.entries(porTipo)) if (tp === 'mindundi' ? n !== 8 : n < 4 || n > 8) falla(`tipo ${tp}: ${n} useritos (4-8, Mindundi 8)`);
   }
 
   // --- Data: the 13 new moves.
@@ -2510,12 +2511,13 @@ function revisarTanda8() {
       cajonazo: 'cajon', lentejasur: 'inesperado', tragaperras: 'bote', turito: 'conazo', resacon: 'curado', evoscar: 'dos_cabezas', chupitochu: 'ardiente', caravaner: 'pareja', camioner: 'pareja',
       criaturitah: 'fotosintesis', 'ego-ego': 'flipado', kbronero: 'volumen', cubatillo: 'hielo', p: 'pesadisimo', jesuspelo: 'ola', pantaloneto: 'lavado', maletrio: 'maleta', teloneon: 'publico',
       choquechu: 'corriente', torrezmon: 'grasiento', papiroflexeon: 'viento', ceceseta: 'fan', mariachi: 'cantaynollores', pulpino: 'malaleche',
+      cilantrox: 'jabon', fotomaton: 'tira', cloudtrio: 'blandito', cigarr: 'humo', ollalocah: 'feria',
     };
     for (const sp of M.ESPECIES) {
       if (sp.habilidad !== tabla[sp.id]) falla(`${sp.id}: habilidad ${sp.habilidad}, esperaba ${tabla[sp.id]}`);
       for (const c of ['nombre', 'desc']) if (!textos.has(`hab.${sp.habilidad}.${c}`)) falla(`falta hab.${sp.habilidad}.${c}`);
     }
-    if (new Set(Object.values(tabla)).size !== 31) falla('deberían ser 31 habilidades distintas (Caravaner y Camioner comparten una)');
+    if (new Set(Object.values(tabla)).size !== 36) falla('deberían ser 36 habilidades distintas (Caravaner y Camioner comparten una)');
   }
 
   // Fuego de dragón: its Petardo attacks burn twice as often (Petardazo 30 % → 60 %), and the ability is told before the burn.
@@ -3223,7 +3225,7 @@ function revisarTanda9() {
 
   // --- Data: 32 useritos, the Nº 1-30 where they were, Mariachi and Pulpiño at the end, both adding up to 420.
   {
-    if (M.ESPECIES.length !== 32) falla(`hay ${M.ESPECIES.length} useritos, esperaba 32`);
+    if (M.ESPECIES.length !== 37) falla(`hay ${M.ESPECIES.length} useritos, esperaba 37`);
     const antes = 'draguserin,goudazard,aceituna,cierzon,turroncho,tocinon,roscochoco,espumarro,cajonazo,lentejasur,tragaperras,turito,resacon,evoscar,chupitochu,caravaner,camioner,criaturitah,ego-ego,kbronero,cubatillo,p,jesuspelo,pantaloneto,maletrio,teloneon,choquechu,torrezmon,papiroflexeon,ceceseta';
     if (M.ESPECIES.slice(0, 30).map((x) => x.id).join() !== antes) falla('los Nº 1-30 han cambiado de sitio');
     const nuevos = [
@@ -3267,7 +3269,7 @@ function revisarTanda9() {
     if (M.MOVS_IMPROVISA.some((id) => ['ayayay', 'serenata', 'picante', 'ochotortas', 'tinta', 'morrina'].includes(id))) falla('¡Improvisa! no debe sacar los movimientos de un solo dueño');
     const porTipo = {};
     for (const sp of M.ESPECIES) for (const tp of sp.tipos) porTipo[tp] = (porTipo[tp] ?? 0) + 1;
-    for (const [tp, n] of Object.entries(porTipo)) if (tp === 'mindundi' ? n !== 8 : n < 4 || n > 6) falla(`tipo ${tp}: ${n} useritos`);
+    for (const [tp, n] of Object.entries(porTipo)) if (tp === 'mindundi' ? n !== 8 : n < 4 || n > 8) falla(`tipo ${tp}: ${n} useritos`);
   }
 
   // --- ¡Ay, ay, ay!: pega a los tres rivales y el 10 % de las veces uno retrocede (rivales lentos, que aún no han actuado).
@@ -4036,6 +4038,178 @@ function revisarTanda12() {
   const interfaz = readFileSync(join(raiz, 'src/textos/pokeusera.md'), 'utf8');
   for (const k of ['azar.titulo', 'azar.pista', 'azar.lleva', 'azar.rivales', 'azar.secreto', 'azar.apelear', 'azar.espera', 'azar.sinobjeto', 'modo.titulo', 'modo.normal', 'modo.azar', 'modo.normal.d', 'modo.azar.d', 'modo.ultimo', 'modo.volver', 'modo.pista', 'sala.modo'])
     if (!new RegExp(`^${k.replace(/\./g, '\\.')}\\s*=`, 'm').test(interfaz)) falla('falta el texto ' + k);
+}
+
+// Cilantrox, Fotomatón, Cloudtrio, Cigarr and OllaLocah (Nº 33-37, 19-oct), seven moves and five abilities.
+function revisarUseritos33() {
+  const ENT = ['fran', 'pablo', 'chuchi', 'guille'];
+  const mk = (equipos, semilla = 3) => M.crearCombate(equipos.map((especies, i) => ({ entrenador: ENT[i], nombre: 'J' + i, bot: false, especies })), semilla);
+  const ataca = (mov, objetivo = 1) => ({ tipo: 'atacar', mov, objetivo });
+  const pasa = { tipo: 'pasar' };
+  const idx = (esp, mov) => M.ESPECIE[esp].movs.indexOf(mov);
+  const act0 = (e, j = 0) => e.jugadores[j].equipo[e.jugadores[j].activo];
+  const seguro = (e, j) => (act0(e, j).niveles.prec = 6);
+  const conHab = (esp, hab, fn) => {
+    const sp = M.ESPECIE[esp];
+    const antes = sp.habilidad;
+    sp.habilidad = hab;
+    try {
+      return fn();
+    } finally {
+      sp.habilidad = antes;
+    }
+  };
+  const habs = (r, id, j) => r.eventos.filter((ev) => ev.k === 'habilidad' && ev.id === id && (j === undefined || ev.j === j));
+  const golpes = (r, j) => r.eventos.filter((ev) => ev.k === 'golpe' && ev.j === j && !ev.fin && !ev.clave);
+  const niveles = (r, j) => act0(r.estado, j).niveles;
+  const semillas = (n) => Array.from({ length: n }, (_, i) => i + 1);
+  const idp = (r) => r;
+  for (const k of ['hab.jabon.activa', 'hab.tira.activa', 'hab.humo.activa', 'hab.feria.activa', 'hab.blandito.nombre', 'hab.blandito.desc']) if (!textos.has(k)) falla(`falta el texto ${k}`);
+
+  // --- Data.
+  const nuevos = [
+    ['cilantrox', ['droga', 'juerga'], [80, 85, 70, 90, 95], 'fiestapagana,esporas,conga,almendrazo', 'jabon'],
+    ['fotomaton', ['bronca', 'chispa'], [80, 100, 80, 70, 90], 'todosdentro,flash,adoquin,temblor', 'tira'],
+    ['cloudtrio', ['ventolera', 'chanza'], [75, 110, 60, 85, 90], 'nubarron,carisimo,planeo,zasca', 'blandito'],
+    ['cigarr', ['petardo', 'fantasma'], [80, 55, 75, 100, 110], 'calada,fogonazo,susto,esconderse', 'humo'],
+    ['ollalocah', ['juerga', 'ventolera'], [95, 90, 90, 70, 75], 'vueltas,conga,rebufo,remolino', 'feria'],
+  ];
+  nuevos.forEach(([id, tipos, b, movs, hab], i) => {
+    const sp = M.ESPECIES[32 + i];
+    if (sp.id !== id) falla(`Nº ${33 + i}: es ${sp.id}, esperaba ${id}`);
+    if (sp.tipos.join() !== tipos.join()) falla(`${id}: tipos ${sp.tipos}`);
+    if ([sp.base.ps, sp.base.ata, sp.base.def, sp.base.vel, sp.base.esp].join() !== b.join()) falla(`${id}: estadísticas ${JSON.stringify(sp.base)}`);
+    if (b.reduce((x, y) => x + y, 0) !== 420) falla(`${id} no suma 420`);
+    if (sp.movs.join() !== movs) falla(`${id}: movimientos ${sp.movs}`);
+    if (sp.habilidad !== hab) falla(`${id}: habilidad ${sp.habilidad}`);
+  });
+  const movs = {
+    fiestapagana: ['juerga', 75, 100, 5, 'todos'],
+    todosdentro: ['bronca', 70, 100, 5, 'todos'],
+    flash: ['chispa', 55, 100, 10, 'uno'],
+    nubarron: ['ventolera', 60, 100, 8, 'todos'],
+    carisimo: ['chanza', 70, 100, 8, 'uno'],
+    calada: ['petardo', 60, 100, 10, 'uno'],
+    vueltas: ['ventolera', 60, 100, 10, 'uno'],
+  };
+  for (const [id, [tipo, pot, prec, pp, obj]] of Object.entries(movs)) {
+    const m = M.MOVS[id];
+    if (!m) {
+      falla(`falta el movimiento ${id}`);
+      continue;
+    }
+    if (m.tipo !== tipo || m.pot !== pot || m.prec !== prec || m.pp !== pp || m.objetivo !== obj) falla(`${id}: datos ${JSON.stringify(m)}`);
+    if (!textos.has(`mov.${id}.desc`)) falla(`falta mov.${id}.desc`);
+    if (M.ESPECIES.filter((sp) => sp.movs.includes(id)).length !== 1) falla(`${id}: debe tener un solo dueño`);
+  }
+
+  // --- Moves with a side effect (a hundred seeds, margins).
+  const tasa = (esp, mov, equipoRival, f) => {
+    let n = 0;
+    for (const sem of semillas(200)) {
+      const e = mk([[esp, 'turito', 'tocinon'], equipoRival], sem);
+      seguro(e, 0);
+      const r = M.resolverTurno(e, [ataca(idx(esp, mov)), pasa, pasa, pasa]);
+      if (f(r)) n++;
+    }
+    return n / 200;
+  };
+  const tocinon = ['tocinon', 'turito', 'cierzon'];
+  const cerca = (x, v, m, nombre) => {
+    if (Math.abs(x - v) > m) falla(`${nombre}: ${x.toFixed(2)}, esperaba ~${v}`);
+  };
+  cerca(tasa('cilantrox', 'fiestapagana', tocinon, (r) => niveles(r, 1).def === -1), 0.2, 0.09, 'Fiesta pagana baja la Defensa un 20 %');
+  cerca(tasa('fotomaton', 'todosdentro', tocinon, (r) => niveles(r, 1).vel === -1), 0.3, 0.1, '¡Todos dentro! baja la Velocidad un 30 %');
+  cerca(tasa('fotomaton', 'flash', tocinon, (r) => niveles(r, 1).prec === -1), 0.3, 0.1, 'Flash baja la Precisión un 30 %');
+  cerca(tasa('cloudtrio', 'carisimo', tocinon, (r) => niveles(r, 1).esp === -1), 0.3, 0.1, 'Está carísimo baja el Especial un 30 %');
+  cerca(tasa('cigarr', 'calada', tocinon, (r) => act0(r.estado, 1).estado === 'quemado'), 0.3, 0.1, 'Calada quema un 30 %');
+  if (M.EFECTOS.vueltas.retrocede !== 20) falla('Dar vueltas: 20 % de perder el turno');
+
+  // --- Sabor a jabón: 30 % to lower the Especial of whoever hits it with an attack at one, never with an attack at everybody.
+  {
+    let n = 0;
+    for (const sem of semillas(200)) {
+      const e = mk([['cilantrox', 'turito', 'tocinon'], ['tocinon', 'turito', 'cierzon']], sem);
+      seguro(e, 1);
+      const r = M.resolverTurno(e, [pasa, ataca(idx('tocinon', 'barrigazo'), 0), pasa, pasa]);
+      if (niveles(r, 1).esp === -1 && habs(r, 'jabon', 0).length === 1) n++;
+    }
+    cerca(n / 200, 0.3, 0.1, 'Sabor a jabón');
+    const e = mk([['cilantrox', 'turito', 'tocinon'], ['kbronero', 'turito', 'cierzon']], 4);
+    seguro(e, 1);
+    const r = M.resolverTurno(e, [pasa, ataca(idx('kbronero', 'pogo'), 0), pasa, pasa]);
+    if (habs(r, 'jabon').length) falla('Sabor a jabón no debe saltar con un ataque a todos');
+  }
+
+  // --- Humo en la cara: physical attacks at one only.
+  {
+    let n = 0;
+    for (const sem of semillas(200)) {
+      const e = mk([['cigarr', 'turito', 'tocinon'], ['turroncho', 'turito', 'tocinon']], sem);
+      act0(e, 1).niveles.prec = 3; // the attacker's own Precision, so that its drop shows (3 → 2) and the blow does not miss often
+      const r = M.resolverTurno(e, [pasa, ataca(idx('turroncho', 'adoquin'), 0), pasa, pasa]);
+      if (niveles(r, 1).prec === 2 && habs(r, 'humo', 0).length === 1) n++;
+    }
+    cerca(n / 200, 0.3, 0.1, 'Humo en la cara');
+    const e = mk([['cigarr', 'turito', 'tocinon'], ['turroncho', 'turito', 'cierzon']], 4);
+    seguro(e, 1);
+    const r = M.resolverTurno(e, [pasa, ataca(idx('turroncho', 'almendrazo'), 0), pasa, pasa]);
+    if (habs(r, 'humo').length) falla('Humo en la cara no debe saltar con un ataque no físico');
+  }
+
+  // --- Caro y blandito: a physical attack at one hits it 20 % less; a special one does not change.
+  {
+    const dano = (hab, mov) =>
+      conHab('cloudtrio', hab, () => {
+        const e = mk([['cloudtrio', 'turito', 'tocinon'], ['tocinon', 'turito', 'cierzon']], 5);
+        seguro(e, 1);
+        const r = M.resolverTurno(e, [pasa, ataca(idx('tocinon', mov), 0), pasa, pasa]);
+        return golpes(r, 0).reduce((s, ev) => s + ev.dano, 0);
+      });
+    const con = dano('blandito', 'barrigazo');
+    const sin = dano('gratinado', 'barrigazo');
+    if (!(con > 0 && con < sin * 0.9)) falla(`Caro y blandito: ${con} frente a ${sin} sin habilidad`);
+  }
+
+  // --- Tira de cuatro: after an attack at everybody that landed, +1 Defensa (at most +2).
+  {
+    const e = mk([['fotomaton', 'turito', 'tocinon'], ['tocinon', 'turito', 'cierzon']], 6);
+    seguro(e, 0);
+    const r = M.resolverTurno(e, [ataca(idx('fotomaton', 'todosdentro')), pasa, pasa, pasa]);
+    if (niveles(r, 0).def !== 1 || habs(r, 'tira', 0).length !== 1) falla(`Tira de cuatro: Defensa ${niveles(r, 0).def}`);
+    const r2 = M.resolverTurno(r.estado, [ataca(idx('fotomaton', 'todosdentro')), pasa, pasa, pasa]);
+    const r3 = M.resolverTurno(r2.estado, [ataca(idx('fotomaton', 'todosdentro')), pasa, pasa, pasa]);
+    if (niveles(r3, 0).def > 2) falla('Tira de cuatro: no debe pasar de +2');
+    const e2 = mk([['fotomaton', 'turito', 'tocinon'], ['tocinon', 'turito', 'cierzon']], 6);
+    seguro(e2, 0);
+    const r4 = M.resolverTurno(e2, [ataca(idx('fotomaton', 'flash')), pasa, pasa, pasa]);
+    if (habs(r4, 'tira').length) falla('Tira de cuatro no salta con un ataque a uno');
+  }
+
+  // --- Vueltas de feria: on coming in, every rival drops 1 Velocidad.
+  {
+    const e = mk([['ollalocah', 'turito', 'tocinon'], ['tocinon', 'turito', 'cierzon'], ['turito', 'tocinon', 'cierzon'], ['cierzon', 'turito', 'tocinon']], 7);
+    const r = M.resolverTurno(e, [pasa, pasa, pasa, pasa]);
+    const bajan = [1, 2, 3].every((j) => niveles(r, j).vel === -1) || [1, 2, 3].every((j) => act0(e, j).niveles.vel === -1);
+    if (!bajan) falla('Vueltas de feria: los rivales deben bajar 1 la Velocidad al salir');
+  }
+
+  // --- Whole bot battles with all five on the teams: they end and the invariants hold.
+  {
+    const ids = nuevos.map((x) => x[0]);
+    for (let s = 1; s <= 10; s++) {
+      const rnd = M.crearRnd(s * 7919);
+      const mezcla = [...ids, ...M.ESPECIES.map((x) => x.id).filter((id) => !ids.includes(id))].map((id, i) => ({ id, k: i < 5 ? rnd() * 0.4 : rnd() })).sort((a, b) => a.k - b.k).map((x) => x.id);
+      let e = mk([mezcla.slice(0, 3), mezcla.slice(3, 6), mezcla.slice(6, 9), mezcla.slice(9, 12)], s);
+      for (let t = 0; t < 200 && e.ganador === null; t++) {
+        const r = M.resolverTurno(e, e.jugadores.map((_, j) => (M.eliminado(e, j) ? null : M.eleccionBot(e, j, M.crearRnd(t * 13 + j + s)))));
+        e = r.estado;
+        for (const ev of r.eventos) if (ev.k === 'habilidad' && ev.clave && !textos.has(ev.clave)) falla(`falta el texto ${ev.clave}`);
+      }
+      if (e.ganador === null) falla(`batalla con los 5 nuevos: no acaba (semilla ${s})`);
+    }
+  }
+  void idp;
 }
 
 const semillas = process.argv.slice(2).map(Number).filter((n) => Number.isFinite(n)).slice(0, 5);

@@ -97,6 +97,12 @@ export const ESPECIES: Especie[] = [
   // Batch 9 (15-oct): Nº 31-32, again at the end.
   e('mariachi', 'Mariachi', ['juerga', 'petardo'], 100, 100, 85, 80, 55, ['ayayay', 'serenata', 'picante', 'taconeo'], 'cantaynollores'),
   e('pulpino', 'Pulpiño', ['bronca', 'grasa'], 95, 105, 85, 65, 70, ['ochotortas', 'tinta', 'morrina', 'adoquin'], 'malaleche'),
+  // Tanda 12 (19-oct, Nº 33-37): Cilantrox, Fotomatón, Cloudtrio, Cigarr and OllaLocah.
+  e('cilantrox', 'Cilantrox', ['droga', 'juerga'], 80, 85, 70, 90, 95, ['fiestapagana', 'esporas', 'conga', 'almendrazo'], 'jabon'),
+  e('fotomaton', 'Fotomatón', ['bronca', 'chispa'], 80, 100, 80, 70, 90, ['todosdentro', 'flash', 'adoquin', 'temblor'], 'tira'),
+  e('cloudtrio', 'Cloudtrio', ['ventolera', 'chanza'], 75, 110, 60, 85, 90, ['nubarron', 'carisimo', 'planeo', 'zasca'], 'blandito'),
+  e('cigarr', 'Cigarr', ['petardo', 'fantasma'], 80, 55, 75, 100, 110, ['calada', 'fogonazo', 'susto', 'esconderse'], 'humo'),
+  e('ollalocah', 'OllaLocah', ['juerga', 'ventolera'], 95, 90, 90, 70, 75, ['vueltas', 'conga', 'rebufo', 'remolino'], 'feria'),
 ];
 
 export const ESPECIE: Record<string, Especie> = Object.fromEntries(ESPECIES.map((s) => [s.id, s]));
@@ -209,6 +215,14 @@ const LISTA_MOVS: Movimiento[] = [
   m('ochotortas', 'Ocho tortas', 'bronca', 12, 90, 5, 'uno'),
   m('tinta', 'Chorro de tinta', 'grasa', 60, 100, 8, 'uno'),
   m('morrina', 'Morriña', 'mindundi', null, 100, 8, 'uno'),
+  // Tanda 12 (19-oct, Cilantrox, Fotomatón, Cloudtrio, Cigarr and OllaLocah): seven moves, all with one owner.
+  m('fiestapagana', 'Fiesta pagana', 'juerga', 75, 100, 5, 'todos'),
+  m('todosdentro', '¡Todos dentro!', 'bronca', 70, 100, 5, 'todos'),
+  m('flash', 'Flash', 'chispa', 55, 100, 10, 'uno'),
+  m('nubarron', 'Nubarrón', 'ventolera', 60, 100, 8, 'todos'),
+  m('carisimo', 'Está carísimo', 'chanza', 70, 100, 8, 'uno'),
+  m('calada', 'Calada', 'petardo', 60, 100, 10, 'uno'),
+  m('vueltas', 'Dar vueltas', 'ventolera', 60, 100, 10, 'uno'),
   // Used when no move has PP left (Mindundi, 50, never misses, recoil 1/4).
   m('desesperada', 'A la desesperada', 'mindundi', 50, null, 1, 'uno'),
 ];
@@ -352,6 +366,12 @@ export const EFECTOS: Record<string, Efecto> = {
   picante: { estado: { estado: 'quemado', prob: 20 } },
   ochotortas: { golpes: 8 },
   tinta: { nivel: [{ a: 'objetivo', stat: 'prec', cambio: -1 }] },
+  fiestapagana: { nivel: [{ a: 'objetivo', stat: 'def', cambio: -1, prob: 20 }] },
+  todosdentro: { nivel: [{ a: 'objetivo', stat: 'vel', cambio: -1, prob: 30 }] },
+  flash: { nivel: [{ a: 'objetivo', stat: 'prec', cambio: -1, prob: 30 }] },
+  carisimo: { nivel: [{ a: 'objetivo', stat: 'esp', cambio: -1, prob: 30 }] },
+  calada: { estado: { estado: 'quemado', prob: 30 } },
+  vueltas: { retrocede: 20 },
   morrina: {
     nivel: [
       { a: 'objetivo', stat: 'ata', cambio: -1 },

@@ -58,7 +58,8 @@ export type HabilidadId =
   | 'fuego_dragon' | 'gratinado' | 'buena_chica' | 'manico' | 'duro_de_roer' | 'kilos' | 'indigesto' | 'espuma' | 'cajon' | 'inesperado'
   | 'bote' | 'conazo' | 'curado' | 'dos_cabezas' | 'ardiente' | 'pareja' | 'fotosintesis' | 'flipado' | 'volumen' | 'hielo'
   | 'pesadisimo' | 'ola' | 'lavado' | 'maleta' | 'publico' | 'corriente' | 'grasiento' | 'viento' | 'fan'
-  | 'cantaynollores' | 'malaleche';
+  | 'cantaynollores' | 'malaleche'
+  | 'jabon' | 'tira' | 'blandito' | 'humo' | 'feria';
 export const HAB_PAREJA = 20; // Pareja de carretera / Fan de la gira: % more damage on its attacks while the partner is on the field
 export const HAB_PROB_REACCION = 30; // Buena chica / Indigesto / Ardiente: % chance that whoever hits them pays for it
 export const HAB_GRASIENTO = 10; // Grasiento: % chance that its Grasa attacks give the target an empacho
@@ -66,6 +67,7 @@ export const HAB_MALETA_ATA = 2; // Se abre la maleta: Attack stages it gains th
 export const HAB_MANICO_ATA = 2; // Mañico: Attack stages it gains each time a rival lowers one of its stats
 export const HAB_LAVADO_CURA = 8; // Recién lavado: heals 1/8 of its max HP when it goes back to the bench
 export const HAB_CANTA_MULT = 150; // Canta y no llores: % of damage of its Juerga attacks while it has less than 1/3 of its HP
+export const HAB_BLANDITO = 20; // Caro y blandito: % less damage from physical attacks at one rival
 export const HAB_FOTOSINTESIS = 16; // Fotosíntesis: heals 1/16 of its max HP at the end of every turn
 
 export interface Especie {

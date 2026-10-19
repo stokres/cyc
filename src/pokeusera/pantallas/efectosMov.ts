@@ -12,7 +12,7 @@
 // Movimientos con diseño propio (el resto usa una chispa genérica del color de su tipo; los de estado sobre uno
 // mismo, unos brillos). Sobre rivales (`FX`): lluvia, almendrazo, traca, fogonazo, petardazo, chispazo, cierzo, chupitazo,
 // garrafon, cancion, esporas, temblor, bocinazo, chapa, planeo, pringue, cara_de_pena, vacile, venganza, adoquin, barrigazo,
-// ronda, unamas, zasca, coz, raices, setas, burbujeo, pesao, tubo, goudamadre, tendedero, remate, maletazo, embarque, monologo, carambola, crujiente, cortepapel, pasodoble, mancha, ayayay, serenata, picante, ochotortas, tinta, morrina. Sobre uno mismo (`FX_YO`, `lanzar` los llama
+// ronda, unamas, zasca, coz, raices, setas, burbujeo, pesao, tubo, goudamadre, tendedero, remate, maletazo, embarque, monologo, carambola, crujiente, cortepapel, pasodoble, mancha, ayayay, serenata, picante, ochotortas, tinta, morrina, fiestapagana, todosdentro, flash, nubarron, carisimo, calada, vueltas. Sobre uno mismo (`FX_YO`, `lanzar` los llama
 // con la lista de objetivos vacía): siesta, esconderse, rebozado, caparazon, compas, pantalones, cinturones, improvisa, ficha, limon, papiroflexia. Los de «todos» llegan a
 // todos los rivales a la vez. Para añadir uno: función `(e, tipo, desde, a)` + entrada en `FX` o `FX_YO` + `LLEGA`/`LLEGA_YO`;
 // el precalentado (`tareasPrecalentarEfectos`) lo recoge solo.
@@ -1850,6 +1850,187 @@ function hLluviaFina(): Hoja {
   return [filas(['a', 'a', 'A', 'A', 'A', 'a'], p), filas(['a', 'A', 'A', 'A', 'a', 'a'], p)].map((c) => amp(c));
 }
 
+// ---- Tanda 12: fiesta, fotomatón, flash, nubarrón, billetes, calada y remolino de feria ------------------------
+// -- Fiesta pagana: confeti de colores y serpentinas
+const COL_CONFETI = ['#ff4a8a', '#ffd83a', '#4fd8a0', '#4a9aff', '#c25cff', '#ff8a2c'];
+function hConfeti(): Hoja {
+  return COL_CONFETI.map((col) => esc(amp(filas(['aA', 'Aa'], { a: col, A: mezcla(col, TINTA, 0.35) })), 1.5));
+}
+function serpentina(col: string, fase: number): HTMLCanvasElement {
+  const c = lienzo(18, 9);
+  const x = ctxDe(c);
+  for (let i = 0; i < 18; i++) {
+    const y = Math.round(3 + 2.6 * Math.sin(i * 0.75 + fase));
+    pix(x, mezcla(col, TINTA, 0.4), i, y + 1, 1, 2);
+    pix(x, col, i, y, 1, 2);
+  }
+  return c;
+}
+const hSerpentinaRosa = (): Hoja => [serpentina('#ff4a8a', 0), serpentina('#ff4a8a', 2.2)];
+const hSerpentinaCian = (): Hoja => [serpentina('#4ad8e8', 1), serpentina('#4ad8e8', 3.2)];
+
+// -- ¡Todos dentro!: la cortinilla roja del fotomatón y las líneas de presión
+function hCortinilla(): Hoja {
+  const W = 44;
+  const H = 52;
+  const c = lienzo(W, H);
+  const x = ctxDe(c);
+  const pliegue = [ROJO_OSC, ROJO, '#ec5a48', ROJO, '#a82a24'];
+  for (let i = 0; i < W; i++) {
+    const fondo = H - 1 - (((i / 4) | 0) & 1 ? 2 : 0);
+    for (let j = 4; j <= fondo; j++) pix(x, i === 0 || i === W - 1 ? TINTA : j === fondo ? '#e0b83a' : pliegue[i % 5], i, j);
+  }
+  pix(x, '#6c6c7c', 0, 0, W, 4);
+  pix(x, '#d8d8e8', 0, 0, W, 1);
+  pix(x, TINTA, 0, 3, W, 1);
+  for (let i = 2; i < W - 2; i += 6) pix(x, '#d8d8e8', i, 3, 3, 3);
+  return [c];
+}
+function hLineasPresion(): Hoja {
+  const h = lienzo(16, 3);
+  const hx = ctxDe(h);
+  pix(hx, BLANCO, 0, 0, 16, 2);
+  pix(hx, TINTA, 0, 2, 16, 1);
+  const d = lienzo(10, 10);
+  const dx = ctxDe(d);
+  linea(dx, TINTA, 0, 1, 8, 9, 2);
+  linea(dx, BLANCO, 0, 0, 8, 8, 2);
+  return [h, d, espejo(d)];
+}
+
+// -- Flash: fogonazo blanco-azulado, cruz de rayos y aspas
+function discoRapido(x: CanvasRenderingContext2D, color: string, cx: number, cy: number, r: number): void {
+  for (let j = -r; j <= r; j++) {
+    const w = Math.floor(Math.sqrt(r * r - j * j) + 0.4);
+    pix(x, color, cx - w, cy + j, 2 * w + 1, 1);
+  }
+}
+function hFogonazoFoto(): Hoja {
+  return [8, 22, 30, 14].map((r) => {
+    const T = 2 * r + 3;
+    const c = lienzo(T, T);
+    const x = ctxDe(c);
+    discoRapido(x, '#9ec4ff', r + 1, r + 1, r);
+    discoRapido(x, '#ffffff', r + 1, r + 1, Math.round(r * 0.8));
+    return c;
+  });
+}
+function hCruzFlash(): Hoja {
+  return [14, 30, 24, 10].map((r) => astro(r, '#4a78c8', '#cfe6ff', '#ffffff'));
+}
+function hAspasFlash(): Hoja {
+  return [8, 16, 12, 6].map((r) => {
+    const c = lienzo(2 * r + 3, 2 * r + 3);
+    const x = ctxDe(c);
+    for (const [a, b] of [[0, 2 * r + 2], [2 * r + 2, 0]]) {
+      linea(x, '#9ec4ff', 0, a, 2 * r + 2, b, 3);
+      linea(x, '#ffffff', 0, a, 2 * r + 2, b, 1);
+    }
+    return c;
+  });
+}
+
+// -- Nubarrón: nube gris blandita, su sombra y un solcito
+function hNubarron(): Hoja {
+  return [sombrear(58, 28, union(disco(12, 17, 9), disco(25, 12, 12), disco(40, 12, 12), disco(49, 17, 8), caja(12, 16, 49, 26)), { ol: '#3a4254', base: '#8a92a6', luz: '#c0c8d8', som: '#626a80' })];
+}
+function hSombraNube(): Hoja {
+  const c = lienzo(44, 10);
+  const x = ctxDe(c);
+  x.fillStyle = 'rgba(40,30,70,0.34)';
+  for (let j = 0; j < 10; j++) {
+    const w = Math.floor(22 * Math.sqrt(1 - ((j - 4.5) / 5) ** 2));
+    x.fillRect(22 - w, j, 2 * w, 1);
+  }
+  return [c];
+}
+function hSolcito(): Hoja {
+  const c = sombrear(23, 23, disco(11, 11, 6), { ol: '#c8601a', base: AMARILLO, luz: BLANCO, som: NARANJA });
+  const x = ctxDe(c);
+  for (const [dx, dy] of [[0, -1], [0, 1], [-1, 0], [1, 0], [0.7, 0.7], [-0.7, 0.7], [0.7, -0.7], [-0.7, -0.7]]) {
+    for (const k of [9, 10]) pix(x, AMARILLO, Math.round(11 + dx * k), Math.round(11 + dy * k));
+  }
+  return [c];
+}
+
+// -- Está carísimo: billetes, monedas con € y la etiqueta de precio
+const EURO = ['..###.', '.#...#', '#####.', '.#....', '#####.', '.#...#', '..###.'];
+function hBillete(): Hoja {
+  const m: Mat = { ol: '#1c5a2c', base: '#4fc070', luz: '#a8f0b8', som: '#2c8a48' };
+  const a = sombrear(14, 8, caja(0, 0, 13, 7), m);
+  pix(ctxDe(a), '#d8ffd8', 6, 3, 2, 2);
+  const b = sombrear(14, 5, caja(0, 0, 13, 4), m);
+  pix(ctxDe(b), '#d8ffd8', 6, 2, 2, 1);
+  return [esc(a, 1.5), esc(b, 1.5)];
+}
+function hMoneda(): Hoja {
+  const m: Mat = { ol: '#8a5a10', base: AMARILLO, luz: '#fff4b0', som: '#d09a20' };
+  const frente = (): HTMLCanvasElement => {
+    const c = sombrear(10, 10, disco(4.5, 4.5, 4), m);
+    marca(ctxDe(c), EURO, '#a06a10', 2, 1);
+    return c;
+  };
+  const medio = (): HTMLCanvasElement => sombrear(6, 10, eli(2.5, 4.5, 2.4, 4.4), m);
+  const canto = (): HTMLCanvasElement => sombrear(3, 10, caja(0, 0, 2, 9), m);
+  return [esc(frente(), 1.5), esc(medio(), 1.5), esc(canto(), 1.5), esc(medio(), 1.5)];
+}
+function hEtiqueta(): Hoja {
+  const c = sombrear(24, 30, resta(resta(caja(2, 7, 21, 29), (i, j) => i + j < 12), (i, j) => j - i < -11), { ol: '#5a4a3a', base: '#fff8e0', luz: '#ffffff', som: '#d8cca8' });
+  const x = ctxDe(c);
+  pix(x, ROJO, 11, 1, 1, 8);
+  pix(x, TINTA, 11, 9, 2, 2);
+  marca(x, EURO, ROJO, 9, 14);
+  pix(x, '#c8b890', 6, 24, 12, 1);
+  return [esc(c, 1.5)];
+}
+
+// -- Calada: brasa, volutas y nube de humo gris
+function hBrasaGrande(): Hoja {
+  const m: Mat = { ol: ROJO_OSC, base: NARANJA, luz: AMARILLO, som: ROJO };
+  const a = sombrear(9, 9, disco(4, 4, 3.4), m);
+  pix(ctxDe(a), BLANCO, 3, 3, 2, 2);
+  const b = sombrear(7, 7, disco(3, 3, 2.6), m);
+  pix(ctxDe(b), AMARILLO, 3, 3, 1, 1);
+  return [esc(a, 1.5), esc(b, 1.5)];
+}
+function hVoluta(): Hoja {
+  const m: Mat = { ol: '#6a6070', base: '#c8c0cc', luz: '#eee8f0', som: '#9a90a4' };
+  return [3, 4, 5, 6].map((r) => sombrear(2 * r + 3, 2 * r + 3, disco(r + 1, r + 1, r), m));
+}
+
+// -- Dar vueltas: remolino de aire de lado, luces de feria y estrellitas de mareo
+function hRemolino(R: number): Hoja {
+  return [0, 1, 2, 3].map((f) => {
+    const W = 2 * R + 3;
+    const H = Math.round(R * 1.2) + 3;
+    const c = lienzo(W, H);
+    const x = ctxDe(c);
+    const cx = (W - 1) / 2;
+    const cy = (H - 1) / 2;
+    for (let j = 0; j < H; j++) {
+      for (let i = 0; i < W; i++) {
+        const dx = i - cx;
+        const dy = (j - cy) / 0.6;
+        const d = Math.hypot(dx, dy);
+        if (d > R || d < 3) continue;
+        const u = ((Math.atan2(dy, dx) / (Math.PI * 2)) * 2 + d / 11 + f * 0.125 + 8) % 1;
+        if (u < 0.12) pix(x, '#f4fbff', i, j);
+        else if (u < 0.24) pix(x, '#9ec4ff', i, j);
+        else if (u < 0.3) pix(x, '#4a78c8', i, j);
+      }
+    }
+    return c;
+  });
+}
+const hRemolinoG = (): Hoja => hRemolino(22);
+const hRemolinoP = (): Hoja => hRemolino(15);
+function hLuzFeria(col: string): Hoja {
+  return [amp(filas(['.aa.', 'aWaa', 'aaaA', '.AA.'], { a: col, W: '#ffffff', A: mezcla(col, TINTA, 0.45) }))];
+}
+const hLuzAmarilla = (): Hoja => hLuzFeria('#ffd83a');
+const hLuzRoja = (): Hoja => hLuzFeria('#ff3a2c');
+const hEstrellitaMareo = (): Hoja => [astro(3, '#c8a81a', '#ffe83a', '#ffffff')];
+
 // ------------------------------------------------------------------------------------------------------------
 // Depósito de partículas
 // ------------------------------------------------------------------------------------------------------------
@@ -2936,6 +3117,162 @@ const morrina: Efecto = (e, _tipo, _d, a) => {
   }
 };
 
+// ---- Tanda 12 ---------------------------------------------------------------------------------------------------
+/** Fiesta pagana: de un cohete sale confeti hacia cada rival y estalla en confeti de colores, serpentinas, notas y un destello. */
+const fiestapagana: Efecto = (e, tipo, d, a) => {
+  const hc = unos('confeti', hConfeti);
+  const hs = [memo('serpentina-rosa', hSerpentinaRosa), memo('serpentina-cian', hSerpentinaCian)];
+  const notas = [unos('nota-a', hNotaA), unos('nota-b', hNotaB), unos('nota-c', hNotaC)];
+  const hp = memo('pum', hPum);
+  a.forEach((t, k) => {
+    for (let i = 0; i < 3; i++) e.mk(hc[(i + k) % 6], d.x + 8, d.y - 6, t.x + (i - 1) * 6, t.y - 8, i * 25, 150, -14, 0, 1, 0, 0, 0);
+    e.mk(hp, t.x, t.y - 4, t.x, t.y - 4, 150, 220);
+    for (let i = 0; i < 6; i++) {
+      const ang = (i / 6) * 6.283 + az() * 0.6;
+      const r = entre(16, 32);
+      e.mk(hc[(i + k * 2) % 6], t.x, t.y - 6, t.x + Math.cos(ang) * r, t.y - 6 + Math.sin(ang) * r * 0.8, 150 + i * 8, 430, 14, 0, 1, 1, 0, 120);
+    }
+    for (let i = 0; i < 2; i++) e.mk(hs[i], t.x + (i ? 4 : -4), t.y - 8, t.x + (i ? 30 : -30), alto(t.y - 26 - i * 6), 160 + i * 20, 420, -8, 0, 1, 1, 70, 130);
+    for (let j = 0; j < 2; j++) e.mk(notas[(j + k) % 3][j & 1], t.x + (j - 0.5) * 10, t.y - 8, t.x + (j - 0.5) * 22, alto(t.y - 36), 220 + j * 80, 380, 0, -5, 1, 1, 0, 110);
+    golpe(e, tipo, t.x, t.y, 220, 2);
+  });
+};
+
+/** ¡Todos dentro!: la cortinilla roja del fotomatón cae sobre cada rival y se sacude; líneas que convergen y estrellas de golpe. */
+const todosdentro: Efecto = (e, tipo, _d, a) => {
+  const cort = memo('cortinilla', hCortinilla);
+  const [lh, ld1, ld2] = unos('lineas-presion', hLineasPresion);
+  const he = memo('destello-amarillo', hDestelloAmarillo);
+  for (const t of a) {
+    const cy = t.y + 2;
+    e.mk(cort, t.x, alto(cy - 70), t.x, cy, 20, 150, 0, 0, 1, 2);
+    e.mk(cort, t.x, cy, t.x, cy, 170, 300, 0, -3, 1, 0, 0, 90);
+    e.mk(lh, t.x - 44, t.y - 2, t.x - 18, t.y - 2, 120, 150, 0, 0, 1, 2, 0, 60);
+    e.mk(lh, t.x + 44, t.y - 2, t.x + 18, t.y - 2, 120, 150, 0, 0, 1, 2, 0, 60);
+    e.mk(ld1, t.x - 36, t.y - 30, t.x - 14, t.y - 12, 130, 140, 0, 0, 1, 2, 0, 60);
+    e.mk(ld2, t.x + 36, t.y - 30, t.x + 14, t.y - 12, 130, 140, 0, 0, 1, 2, 0, 60);
+    e.mk(ld2, t.x - 36, t.y + 30, t.x - 14, t.y + 12, 130, 140, 0, 0, 1, 2, 0, 60);
+    e.mk(ld1, t.x + 36, t.y + 30, t.x + 14, t.y + 12, 130, 140, 0, 0, 1, 2, 0, 60);
+    for (let i = 0; i < 3; i++) e.mk(he, t.x + (i - 1) * 15, t.y + (i === 1 ? -22 : -4), t.x + (i - 1) * 15, t.y + (i === 1 ? -22 : -4), 260 + i * 35, 230, 0, 0, 1, 0, 0, 70);
+    golpe(e, tipo, t.x, t.y, 175, 2);
+  }
+};
+
+/** Flash: una chispa de cámara en el atacante y un fogonazo blanco-azulado sobre el rival, con cruz de rayos, aspas y manchas de deslumbramiento. */
+const flash: Efecto = (e, tipo, d, a) => {
+  const hcl = memo('clic', hClic);
+  const disco4 = memo('fogonazo-foto', hFogonazoFoto);
+  const cruz = memo('cruz-flash', hCruzFlash);
+  const aspas = memo('aspas-flash', hAspasFlash);
+  const man = memo('destello-violeta', () => hDestello('#7a3ac0', '#c8a0ff', [2, 3, 2]));
+  e.mk(hcl, d.x + 8, d.y - 6, d.x + 8, d.y - 6, 0, 120);
+  for (const t of a) {
+    e.mk(disco4, t.x, t.y - 4, t.x, t.y - 4, 90, 240);
+    e.mk(cruz, t.x, t.y - 4, t.x, t.y - 4, 90, 260);
+    e.mk(aspas, t.x, t.y - 4, t.x, t.y - 4, 105, 240);
+    for (let i = 0; i < 4; i++) {
+      const ang = (i / 4) * 6.283 + 0.78;
+      e.mk(hcl, t.x, t.y - 4, t.x + Math.cos(ang) * 30, t.y - 4 + Math.sin(ang) * 26, 120, 260, 0, 0, 1, 1, 0, 80);
+    }
+    for (let i = 0; i < 3; i++) e.mk(man, t.x + entre(-18, 18), t.y + entre(-22, 10), t.x + entre(-18, 18), t.y + entre(-22, 10), 270 + i * 30, 300, 0, 0, 1, 0, 0, 100);
+    golpe(e, tipo, t.x, t.y, 100, 2);
+  }
+};
+
+/** Nubarrón: una nube gris blandita cruza tapando el solcito de cada rival, con su sombra, ráfagas de viento y gotas finas. */
+const nubarron: Efecto = (e, tipo, _d, a) => {
+  const hl = unos('lluvia-fina', hLluviaFina);
+  const rr = memo('racha+', hRachaD);
+  for (const t of a) {
+    const cy = alto(t.y - 32);
+    e.mk(memo('solcito', hSolcito), t.x + 16, cy - 4, t.x + 16, cy - 4, 0, 900, 0, 0, 1, 0, 0, 150);
+    e.mk(rr, t.x - 54, t.y - 14, t.x + 54, t.y - 14, 30, 360, 0, 0, 1, 1, 0, 100);
+    e.mk(rr, t.x - 54, t.y + 8, t.x + 54, t.y + 8, 110, 360, 0, 0, 1, 1, 0, 100);
+    e.mk(memo('sombra-nube', hSombraNube), t.x - 50, t.y + 18, t.x + 28, t.y + 18, 0, 850, 0, 0, 1, 1, 0, 160);
+    e.mk(memo('nubarron', hNubarron), t.x - 50, cy, t.x + 28, cy, 0, 850, 0, 0, 1, 1, 0, 160);
+    for (let i = 0; i < 8; i++) {
+      const x = t.x - 14 + i * 5;
+      e.mk(hl[i & 1], x, cy + 12, x - 2, t.y + 14, 380 + i * 45, 230, 0, 0, 1, 2, 0, 60);
+    }
+    golpe(e, tipo, t.x, t.y, 260, 2);
+  }
+};
+
+/** Está carísimo: llueven billetes y monedas sobre el rival y le cae encima una etiqueta de precio enorme que lo hunde. */
+const carisimo: Efecto = (e, tipo, _d, a) => {
+  const hb = memo('billete', hBillete);
+  const hm = memo('moneda', hMoneda);
+  for (const t of a) {
+    for (let i = 0; i < 5; i++) {
+      const x = t.x + (i - 2) * 10 + entre(-3, 3);
+      e.mk(hb, x, alto(t.y - 62 - (i & 1) * 10), x + (i & 1 ? 4 : -4), t.y + (i % 3) * 4 - 4, i * 30, 260, 0, i & 1 ? -4 : 4, 1, 2, 80, 70);
+    }
+    for (let i = 0; i < 4; i++) {
+      const x = t.x + (i - 1.5) * 11;
+      e.mk(hm, x, alto(t.y - 56), x, t.y + 2 + (i & 1) * 6, 60 + i * 35, 240, 0, 0, 1, 2, 60, 70);
+    }
+    const ty = alto(t.y - 12);
+    e.mk(memo('etiqueta', hEtiqueta), t.x, alto(t.y - 76), t.x, ty, 140, 150, 0, 0, 1, 2);
+    e.mk(memo('etiqueta', hEtiqueta), t.x, ty, t.x, ty, 290, 380, 0, 5, 1, 0, 0, 100);
+    e.mk(memo('pum', hPum), t.x, t.y - 6, t.x, t.y - 6, 290, 220);
+    golpe(e, tipo, t.x, t.y, 290, 3);
+  }
+};
+
+/** Calada: una brasa naranja viaja en arco dejando una voluta de humo gris y, al llegar, sopla una nube de humo con chispas y brasas. */
+const calada: Efecto = (e, tipo, d, a) => {
+  const hv = unos('voluta', hVoluta);
+  const hh = memo('humo', hHumo);
+  const hch = memo('chispa', hChispa);
+  const hbr = memo('brasa', hBrasa);
+  for (const t of a) {
+    const VUELO = 190;
+    e.mk(memo('brasa-grande', hBrasaGrande), d.x + 8, d.y - 6, t.x - 10, t.y - 6, 0, VUELO, -14, 0, 1, 0, 60, 0);
+    for (let i = 0; i < 5; i++) {
+      const u = (i + 1) / 6;
+      const x = hasta(d.x + 8, t.x - 10, u);
+      const y = hasta(d.y - 6, t.y - 6, u) - 14 * 4 * u * (1 - u);
+      e.mk(hv[Math.min(3, i)], x, y, x - 2, y - 8, u * VUELO, 360, 0, 0, 1, 1, 0, 110);
+    }
+    const dir = t.x >= d.x ? 1 : -1;
+    for (let i = 0; i < 3; i++) e.mk(hh, t.x + (i - 1) * 12, t.y - 2, t.x + (i - 1) * 12 + dir * 10, t.y - 14 - (i & 1) * 6, VUELO + i * 25, 440, 0, 0, 1, 1, 0, 110);
+    for (let i = 0; i < 5; i++) {
+      const ang = (i / 5) * 6.283 + az();
+      e.mk(hch, t.x, t.y - 4, t.x + Math.cos(ang) * 24, t.y - 4 + Math.sin(ang) * 20, VUELO + 10, 320, -8, 0, 1, 1, 70, 90);
+    }
+    for (let i = 0; i < 2; i++) e.mk(hbr, t.x + entre(-6, 6), t.y, t.x + entre(-20, 20), t.y - entre(18, 30), VUELO + 40 + i * 30, 300, -8, 0, 1, 1, 0, 90);
+    golpe(e, tipo, t.x, t.y, VUELO, 2);
+  }
+};
+
+/** Dar vueltas: un remolino de aire con luces de feria (amarillas y rojas) gira alrededor del rival, que se marea con estrellitas en órbita. */
+const vueltas: Efecto = (e, tipo, _d, a) => {
+  const luz = [memo('luz-amarilla', hLuzAmarilla), memo('luz-roja', hLuzRoja)];
+  const est = memo('estrellita-mareo', hEstrellitaMareo);
+  for (const t of a) {
+    e.mk(memo('remolino-g', hRemolinoG), t.x, t.y + 10, t.x, t.y + 6, 0, 800, 0, 0, 1, 0, 70, 160);
+    e.mk(memo('remolino-p', hRemolinoP), t.x, alto(t.y - 24), t.x, alto(t.y - 28), 60, 740, 0, 0, 1, 0, 70, 160);
+    const SEG = 8;
+    const cy = t.y - 4;
+    for (let s = 0; s < 4; s++) {
+      for (let g = 0; g < SEG; g++) {
+        const a0 = (s * Math.PI) / 2 + (g * 2 * Math.PI) / SEG;
+        const a1 = a0 + (2 * Math.PI) / SEG;
+        e.mk(luz[s & 1], t.x + Math.cos(a0) * 27, alto(cy + Math.sin(a0) * 13), t.x + Math.cos(a1) * 27, alto(cy + Math.sin(a1) * 13), 40 + g * 55, 55, 0, 0, 1, 0, 0, g === SEG - 1 ? 25 : 0);
+      }
+    }
+    const hy = alto(t.y - 30);
+    for (let s = 0; s < 2; s++) {
+      for (let g = 0; g < SEG; g++) {
+        const a0 = s * Math.PI + (g * 2 * Math.PI) / SEG;
+        const a1 = a0 + (2 * Math.PI) / SEG;
+        e.mk(est, t.x + Math.cos(a0) * 15, alto(hy + Math.sin(a0) * 5), t.x + Math.cos(a1) * 15, alto(hy + Math.sin(a1) * 5), 220 + g * 60, 60, 0, 0, 1, 0, 0, g === SEG - 1 ? 30 : 0);
+      }
+    }
+    golpe(e, tipo, t.x, t.y, 200, 2);
+  }
+};
+
 /** Efectos de los movimientos sobre rivales (y «todos»). */
 const FX: Record<string, Efecto> = {
   lluvia, almendrazo, traca, fogonazo, petardazo, chispazo, cierzo, chupitazo, garrafon, cancion, esporas, temblor, bocinazo,
@@ -2943,6 +3280,7 @@ const FX: Record<string, Efecto> = {
   setas, burbujeo, pesao, tubo, goudamadre, tendedero, remate,
   maletazo, embarque, monologo, carambola, crujiente, cortepapel, pasodoble, mancha,
   ayayay, serenata, picante, ochotortas, tinta, morrina,
+  fiestapagana, todosdentro, flash, nubarron, carisimo, calada, vueltas,
 };
 
 /** Efectos de los movimientos sobre uno mismo (objetivo «yo»: `lanzar` los llama sin objetivos). */
@@ -3000,6 +3338,13 @@ const LLEGA: Record<string, number> = {
   ochotortas: 70,
   tinta: 150,
   morrina: 330,
+  fiestapagana: 220,
+  todosdentro: 175,
+  flash: 100,
+  nubarron: 260,
+  carisimo: 290,
+  calada: 190,
+  vueltas: 200,
 };
 
 /** Lo mismo para los movimientos sobre uno mismo (cuándo se nota el efecto: el texto de lo que sube o baja viene detrás). */

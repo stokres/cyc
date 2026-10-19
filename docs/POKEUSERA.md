@@ -496,7 +496,7 @@ Once tipos. Doble de daño (×2), la mitad (×½) o nada (×0). Si un userito ti
 
 **Velocidad común online (0.2.8).** En una sala la velocidad la elige el anfitrión en la fila VELOCIDAD de la sala (parte de la suya de Ajustes); viaja en los mensajes `modo` y `asientos` y todos juegan con ella (`cfg.velocidadSala`, que anula la de cada móvil solo durante la partida online).
 
-## 3. Los 32 useritos (24 validados, 6 de la tanda 8, 2 de la tanda 9)
+## 3. Los 37 useritos (24 validados, 6 de la tanda 8, 2 de la tanda 9, 5 de la del 19-oct)
 
 Todos suman lo mismo en estadísticas (420), para que no haya ninguno roto de salida: cada uno destaca en algo y flojea en otra cosa. Las cifras se ajustarán al probar. La columna PS es la base: en combate el PS es `round(base × 2) + 80` (ver «Precisiones del motor»).
 
@@ -534,6 +534,13 @@ Todos suman lo mismo en estadísticas (420), para que no haya ninguno roto de sa
 | 30 | **Ceceseta**: la camiseta blanca de Camiones y Caravanas | Juerga / Chanza | 95 | 95 | 80 | 85 | 65 | Pasodoble, Mancha de cerveza, ¡Camioneees y caravanaaas!, Zasca |
 | 31 | **Mariachi**: un mariachi con sombrero y trompeta que llega a la fiesta sin avisar (tanda 9) | Juerga / Petardo | 100 | 100 | 85 | 80 | 55 | ¡Ay, ay, ay!, Serenata, Salsa picante, Taconeo |
 | 32 | **Pulpiño**: un pulpo gallego con muy mala leche (tanda 9) | Bronca / Grasa | 95 | 105 | 85 | 65 | 70 | Ocho tortas, Chorro de tinta, Morriña, Adoquinazo |
+| 33 | **Cilantrox**: un tallo de cilantro con tres hojas, gorrito de fiesta y guirnalda (tanda 19-oct) | Droga / Juerga | 80 | 85 | 70 | 90 | 95 | Fiesta pagana, Droja, Conga, Almendrazo |
+| 34 | **Fotomatón**: el fotomatón de la calle, con ceño de matón y su cortinilla roja | Bronca / Chispa | 80 | 100 | 80 | 70 | 90 | ¡Todos dentro!, Flash, Adoquinazo, Temblor |
+| 35 | **Cloudtrio**: tres nubes blanditas, carísimas y polémicas (decoración del show de impro) | Ventolera / Chanza | 75 | 110 | 60 | 85 | 90 | Nubarrón, Está carísimo, Planeo, Zasca |
+| 36 | **Cigarr**: un cigarro de liar | Petardo / Fantasma | 80 | 55 | 75 | 100 | 110 | Calada, Fogonazo, Susto, Esconderse |
+| 37 | **OllaLocah**: la olla loca de las ferias | Juerga / Ventolera | 95 | 90 | 90 | 70 | 75 | Dar vueltas, Conga, Rebufo, Remolino |
+
+**Los cinco de la tanda del 19-oct** (pedidos por Jesús; propuesta en `/mnt/project-files/batallas/propuesta-tanda12.md`, aprobada con «Todo ok»). Draft en rejilla de 7×6 (las casillas bajan a 32-36 px para que la ficha conserve su sitio). Sprites en `arte2/useritos2-g.ts` (hoja en `graficos-v2/tanda12/`). Los 7 ataques nuevos tienen un solo dueño y su efecto animado: Fiesta pagana (Juerga, 75, todos, 20 % baja 1 Defensa), ¡Todos dentro! (Bronca, 70, todos, 30 % baja 1 Velocidad), Flash (Chispa, 55, uno, 30 % baja 1 Precisión), Nubarrón (Ventolera, 60, todos), Está carísimo (Chanza, 70, uno, 30 % baja 1 Especial), Calada (Petardo, 60, uno, 30 % quema) y Dar vueltas (Ventolera, 60, uno, 20 % pierde el turno). OllaLocah es la primera en llevar Remolino. Equilibrio (8000 batallas): ×0,76-1,11 al entrar; tras retocar estadísticas, Cilantrox ×0,91, Cloudtrio ×1,08, Fotomatón ×1,11, Cigarr ×0,90 y OllaLocah ×0,91. Dos habilidades cambiaron respecto a la propuesta: Tira de cuatro (Fotomatón) es «tras acertar un ataque a todos, sube 1 su Defensa (hasta +2)» porque «cuando le tumban a un compañero» no puede darse con un solo userito en juego, y Vueltas de feria (OllaLocah) es «al salir, todos los rivales bajan 1 su Velocidad». No salen en la Aventura (oculta).
 
 Reparto por tipos (contando los dobles, con los 8 de las tandas 8 y 9): Mindundi 8, Petardo 5, Droga 5, Bronca 6, Ventolera 5, Chispa 4, Alcohol 4, Juerga 6, Chanza 6, Grasa 5, Fantasma 5. Los ids nuevos (`maletrio`, `teloneon`, `choquechu`, `torrezmon`, `papiroflexeon`, `ceceseta`, `mariachi`, `pulpino`) van al final de `ESPECIES`. Las habilidades de los 32 están en «Habilidades». La tanda 9 no se ha pasado por la simulación de equilibrio todavía.
 
@@ -608,6 +615,11 @@ Constantes en `tipos.ts`: `HAB_PAREJA` 20, `HAB_PROB_REACCION` 30, `HAB_GRASIENT
 | Ceceseta | Fan de la gira (con Camioner o Caravaner en combate, de quien sea) |
 | Mariachi | Canta y no llores |
 | Pulpiño | Mala leche |
+| Cilantrox | Sabor a jabón (quien le pega con un ataque a uno solo tiene un 30 % de bajar 1 su Especial) |
+| Fotomatón | Tira de cuatro (tras acertar un ataque a todos, sube 1 su Defensa, hasta +2) |
+| Cloudtrio | Caro y blandito (los ataques físicos a uno solo le hacen un 20 % menos) |
+| Cigarr | Humo en la cara (quien le pega con un ataque físico a uno solo tiene un 30 % de bajar 1 su Precisión) |
+| OllaLocah | Vueltas de feria (al salir, todos los rivales bajan 1 su Velocidad) |
 
 Decisiones donde la propuesta no llegaba: ¡Improvisa! elige entre 29 movimientos (`MOVS_IMPROVISA`) y deja como «último movimiento» el elegido (así Sin Narrativa copia el real); Otra ficha y Con limón no hacen nada si están sanos (Otra ficha falla, como la Siesta); la Siesta de Evoscar copiada por Dos cabezas cura sin dormir; Guille no gasta su Mañico con Cajonazo. Las habilidades todavía no se han pasado por la simulación de equilibrio.
 

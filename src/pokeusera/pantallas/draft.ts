@@ -1,5 +1,5 @@
 // PokéUsera · the draft (snake order): who is choosing, every player's picks so far, the sheet of the userito being looked at and the
-// grid of the 32 useritos. The sheet lives in the screen itself (between the players' panels and the grid; no window): tapping a cell
+// grid of the 37 useritos. The sheet lives in the screen itself (between the players' panels and the grid; no window): tapping a cell
 // of the grid shows that userito's sheet, tapping another one swaps it, and tapping the selected one again takes it: on your turn, a
 // gold ELEGIR label sits on the selected cell itself (the double tap), not on the sheet, which is information only. The top bar with the
 // clock and whose turn it is never goes away. It draws only from what it is told (`alDraft`: the draft state, whose turn and for how
@@ -48,7 +48,7 @@ export interface PlazaDraft {
   nombre: string;
 }
 
-/** The grid: 7 columns × 5 rows for the 32 useritos (a 32×32 thumbnail per 34×36–43 cell, ≥ 55×58 CSS px on a 390 px phone; the last row has room to spare).
+/** The grid: 7 columns × 6 rows for the 37 useritos (it was 5 rows for 32; a 32×32 thumbnail per 34×36–43 cell, ≥ 55×58 CSS px on a 390 px phone; the last row has room to spare).
  *  The row is centred (X_REJ: 1 px of margin on a 240 px screen). */
 const COLS = 7;
 const FILAS = Math.ceil(ESPECIES.length / COLS);
@@ -225,7 +225,8 @@ function disenoDraft(H: number): Diseno & { yJug: number; hCelda: number; yGrid:
   const hCelda = 36 + Math.min(4, Math.floor(extra / 30));
   const yInfo = yJug + 2 * hCelda + 2;
   // The cells grow with the screen from 36 to 43 px (five rows, about what the four rows of 44-54 took); what is left goes to the sheet.
-  const cellH = Math.max(36, Math.min(43, 36 + Math.floor(extra / 19)));
+  // With more than five rows (37 useritos: 6) the cells stay tighter (32-36 px: the 32 px thumbnail still fits and a tap is still ≥ 52 CSS px high) so the sheet keeps the room it had.
+  const cellH = FILAS > 5 ? 32 + Math.min(4, Math.floor(extra / 40)) : Math.max(36, Math.min(43, 36 + Math.floor(extra / 19)));
   const yGrid = H - 3 - cellH * FILAS;
   const hInfo = yGrid - yInfo - 2;
   return { yJug, hCelda, yInfo, hInfo, yGrid, cellH, completa: hInfo >= ALTO_FICHA_COMPLETA };
