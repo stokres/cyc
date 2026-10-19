@@ -1,12 +1,12 @@
 // PokéUsera · Edición Jarra (arte v2): batch g of the 64×64 useritos (same conventions as useritos2.ts).
 // Cilantrox, Fotomatón, Cloudtrio, Cigarr and OllaLocah.
 import type { Dibujo2 } from './useritos2';
-import { Pintor, bez3, cur, el, espejo, inter, men, poli, rc, rr, trazo, un, type Mat } from './pintor';
+import { Mascara, Pintor, bez3, cur, el, espejo, inter, men, poli, rc, rr, trazo, un, type Mat } from './pintor';
 
 // ---------------------------------------------------------------------------------------------
-// Cilantrox · a sprig of coriander: a chubby green stem with a sly face, three scalloped leaves, a little
-// party hat on the middle one and a pennant garland round the neck. Frame 1: the leaves sway and he bobs.
-// From behind: the leaf backs, the stem with a seam, the garland and the hat.
+// Cilantrox · a slim sprig of coriander: a thin elegant stem with a few rootlets, three flat serrated leaves
+// with veins and a sly pair of eyes on each (one winks), a tiny party hat on the middle one, a small pennant
+// garland on the stem and some confetti. Frame 1: stem and leaves sway. From behind: darker leaves with veins.
 // ---------------------------------------------------------------------------------------------
 const INK_C = '#0e2a18';
 const VERDE: Mat = { r: ['#1c5a2a', '#2e8a38', '#58b842', '#a6e266'], ol: INK_C, ol2: '#1c5a2a' };
@@ -18,95 +18,106 @@ function cilantrox(P: Pintor): void {
   const f = P.f;
   const E = P.espalda;
   const T = (m: ReturnType<typeof rc>) => (E ? espejo(m) : m);
-  const dy = f ? -1 : 0;
-  const sw = f ? 0.1 : -0.04; // leaf sway (radians)
+  const TX = (x: number) => (E ? 63 - x : x);
+  const sw = f ? 0.12 : -0.04; // leaf sway (radians)
+  const sx = f ? 1.5 : -0.5; // the top of the stem leans with it
 
-  // Root tuft under the stem.
-  for (const [x, w] of [[25, -1], [32, 0], [39, 1]] as [number, number][]) {
-    P.llenar(T(cur([[x, 59], [x + w * 2, 62.5]], 1)), '#d8c8a0');
+  // Rootlets under the foot.
+  for (const [x, w] of [[28, -3], [31, -1], [34, 1], [37, 3]] as [number, number][]) {
+    P.llenar(T(cur([[x + (x < 32 ? 1 : -1), 58.5], [x + w, 62.5]], 1)), '#d8c8a0');
   }
 
-  // Stem: a chubby body with a neck, and three petioles that carry the leaves.
-  const bases: [number, number, number][] = [
-    [20, 35, -2.5 + sw],
-    [44, 35, -0.64 + sw],
-    [32, 27, -Math.PI / 2 + sw * 0.6],
-  ];
-  const cuerpo = un(el(32, 52 + dy, 12, 10), trazo([[32, 46 + dy], [32, 36 + dy]], 5.5, 3.2));
-  const petiolos = un(...bases.map(([x, y]) => trazo([[32, 40 + dy], [x, y + 1 + dy]], 2, 1.7)));
-  P.forma(petiolos, VERDE, { rad: 2, grad: 0.3, paso: 2 });
-  P.sombra(cuerpo, 0, 1, 1);
-  P.forma(cuerpo, VERDE, { rad: 6, grad: 0.35 });
+  // Confetti and the stem (behind the leaves).
+  const conf: [number, number, string][] = [[8, 9, GORRO.r[2]], [55, 10, AMARILLO], [14, 17, BLANCO], [51, 19, GORRO.r[2]], [4, 36, AMARILLO], [59, 33, VERDE.r[3]], [22, 6, AMARILLO], [44, 5, BLANCO]];
+  for (const [x, y, c] of conf) P.px(TX(x), y + (f ? 1 : 0), c);
+  const tallo = bez3([32, 59], [29, 53], [35 + sx, 47], [32 + sx, 40], 14);
+  P.sombra(T(trazo(tallo, 1.4, 1)), 0, 1, 1);
+  P.forma(T(trazo(tallo, 1.4, 1)), VERDE, { rad: 2, grad: 0.3, paso: 2 });
 
-  // A leaf: a core plus a fan of scalloped lobes, with veins; `ang` points to the tip.
-  const hoja = (bx: number, by: number, ang: number, R: number): void => {
-    by += dy;
-    const dir = (a: number, d: number): [number, number] => [bx + Math.cos(a) * d, by + Math.sin(a) * d];
-    const das = [-1.0, -0.5, 0, 0.5, 1.0];
-    const lobos = das.map((da) => {
-      const [x, y] = dir(ang + da, R * 0.86);
-      return el(x, y, R * 0.25, R * 0.25);
-    });
-    const [cx, cy] = dir(ang, R * 0.42);
-    const m = un(el(cx, cy, R * 0.45, R * 0.45), ...lobos);
-    P.sombra(m, 0, 1, 1);
-    P.forma(m, VERDE, { rad: 4, grad: 0.35, sesgo: 0.05 });
-    for (const da of das) {
-      const [x1, y1] = dir(ang + da, R * 0.78);
-      P.llenarSobre(cur([[...dir(ang + da * 0.3, R * 0.2)], [x1, y1]], 1), VERDE.r[1], VERDE);
+  // A flat serrated leaf: `ang` points to the tip, `L` long, `W` wide.
+  const hoja = (bx: number, by: number, ang: number, L: number, W: number): Mascara => {
+    const ca = Math.cos(ang);
+    const sa = Math.sin(ang);
+    const pt = (u: number, v: number): [number, number] => [bx + u * ca - v * sa, by + u * sa + v * ca];
+    const lado: [number, number][] = [];
+    const N = 30;
+    for (let i = 0; i <= N; i++) {
+      const t = i / N;
+      const env = Math.pow(Math.sin(Math.PI * Math.pow(t, 0.72)), 0.75);
+      const ond = Math.abs(Math.sin(Math.PI * t * 3.5 + 0.2));
+      lado.push([t * L, (W / 2) * env * (0.5 + 0.5 * ond)]);
+    }
+    const pts = [...lado.map(([u, v]) => pt(u, v)), ...lado.reverse().map(([u, v]) => pt(u, -v))];
+    return poli(pts);
+  };
+  const dibujaHoja = (bx: number, by: number, ang: number, L: number, W: number, ojos: number): void => {
+    const m = hoja(bx, by, ang, L, W);
+    P.sombra(T(m), 0, 1, 1);
+    P.forma(T(m), VERDE, { rad: 3, grad: 0.35, sesgo: 0.05 });
+    const ca = Math.cos(ang);
+    const sa = Math.sin(ang);
+    const pt = (u: number, v: number): [number, number] => [bx + u * ca - v * sa, by + u * sa + v * ca];
+    // Midrib and side veins.
+    P.llenarSobre(T(cur([pt(1, 0), pt(L * 0.9, 0)], 1)), VERDE.r[E ? 3 : 1], VERDE);
+    for (const t of [0.28, 0.5, 0.7]) {
+      for (const s of [-1, 1]) {
+        P.llenarSobre(T(cur([pt(L * t, 0), pt(L * (t + 0.16), s * W * 0.34)], 1)), VERDE.r[E ? 3 : 2], VERDE);
+      }
+    }
+    if (E) return;
+    // Sly eyes on the leaf (mid-way along it): `ojos` = 0 both open, 1 wink on the right one.
+    const [ex, ey] = pt(L * 0.52, 0);
+    const sep = 3.4;
+    for (const s of [-1, 1]) {
+      const cx = Math.round(ex + s * sep);
+      const cy = Math.round(ey);
+      if (ojos === 1 && s > 0) {
+        P.llenar(cur([[cx - 2, cy - 1], [cx + 1, cy + 1], [cx + 3, cy - 1]], 1), INK_C);
+        continue;
+      }
+      const o = el(cx + 0.5, cy + 0.5, 2.5, 2.4);
+      P.aro(o, INK_C);
+      P.llenar(o, BLANCO);
+      P.px(cx + (f ? 0 : 1), cy + 1, INK_C);
+      P.px(cx + (f ? 0 : 1) + 1, cy + 1, INK_C);
+      P.llenar(inter(rc(cx - 2, cy - 2, 6, 2), o), VERDE.r[1]); // heavy lid: a sly look
+      P.llenar(cur([[cx - 2, cy - 0.5], [cx + 3, cy - 0.5]], 1), INK_C);
     }
   };
-  for (const [x, y, an] of bases) hoja(x, y, an, 17);
-  if (E) P.tono(rc(0, 0, 64, 42), VERDE, -1);
 
-  // The party hat on the top leaf.
-  const hx = 32 + sw * 10;
-  const hy = 6 + dy;
-  const gorro = poli([[hx - 6, hy + 8], [hx + 6, hy + 7], [hx + 1.5, hy - 5]]);
+  // Petioles, side leaves first and the middle one in front.
+  const bases: [number, number, number, number, number][] = [
+    [24 + sx * 0.4, 38, -2.4 + sw, 25, 17],
+    [40 + sx * 0.4, 38, -0.74 + sw, 25, 17],
+  ];
+  for (const [x, y] of bases) P.forma(T(trazo([[32 + sx * 0.6, 42], [x, y + 0.5]], 1, 0.9)), VERDE, { rad: 1, paso: 2 });
+  P.forma(T(trazo([[32 + sx * 0.6, 42], [32 + sx, 34]], 1, 1)), VERDE, { rad: 1, paso: 2 });
+  dibujaHoja(bases[0][0], bases[0][1], bases[0][2], 25, 17, 0);
+  dibujaHoja(bases[1][0], bases[1][1], bases[1][2], 25, 17, 1);
+  dibujaHoja(32 + sx, 36, -Math.PI / 2 + sw * 0.6, 27, 20, 0);
+  if (E) P.tono(rc(0, 0, 64, 44), VERDE, -1);
+
+  // The party hat on the middle leaf's tip.
+  const hx = 32 + sx + sw * 9;
+  const hy = 3;
+  const gorro = poli([[hx - 3, hy + 7], [hx + 3, hy + 6], [hx + 0.5, hy - 3]]);
   P.sombra(gorro, 0, 1, 1);
-  P.forma(gorro, GORRO, { rad: 4, grad: 0.4 });
-  P.llenar(inter(gorro, poli([[hx - 5, hy + 4.5], [hx + 5, hy + 3.5], [hx + 5, hy + 2], [hx - 5, hy + 3]])), AMARILLO);
-  P.forma(el(hx + 1.5, hy - 5.5, 2.2, 2.2), GORRO, { rad: 2, borde: 'suave' });
-  P.px(Math.round(hx + 1), Math.round(hy - 6), BLANCO);
+  P.forma(gorro, GORRO, { rad: 3, grad: 0.4 });
+  P.llenar(inter(gorro, poli([[hx - 4, hy + 4.5], [hx + 4, hy + 3.5], [hx + 4, hy + 2.5], [hx - 4, hy + 3.5]])), AMARILLO);
+  P.px(Math.round(hx), Math.round(hy - 4), BLANCO);
 
-  // Garland round the neck: pennants hanging from a sagging string.
-  const cuerda = bez3([22, 44 + dy], [26, 49.5 + dy], [38, 49.5 + dy], [42, 44 + dy], 14);
+  // Small pennant garland on the stem.
+  const cuerda = bez3([27, 52], [29, 54.5], [35, 54.5], [37, 52], 12);
   P.llenar(cur(cuerda, 1), INK_C);
-  const cols = [AMARILLO, GORRO.r[2], BLANCO];
-  [2, 4, 6, 8, 10, 12].forEach((k, i) => {
+  const cols = [AMARILLO, GORRO.r[2], BLANCO, AMARILLO];
+  [2, 4, 6, 8, 10].forEach((k, i) => {
     const [x, y] = cuerda[k];
-    const c = cols[i % 3];
     const X = Math.round(x);
     const Y = Math.round(y);
-    P.px(X - 1, Y + 1, c);
+    const c = cols[i % 4];
     P.px(X, Y + 1, c);
     P.px(X + 1, Y + 1, c);
-    P.px(X, Y + 2, c);
-    P.px(X, Y + 3, GORRO.r[0]);
-  });
-
-  P.cara(() => {
-    // Sly eyes: half-lidded, looking to the side; one brow up.
-    for (const cx of [27.5, 37.5]) {
-      const ojo = el(cx, 53 + dy, 3.4, 3);
-      P.aro(ojo, INK_C);
-      P.llenar(ojo, BLANCO);
-      P.llenar(inter(el(cx + 1, 54 + dy, 1.7, 1.9), ojo), INK_C);
-      P.llenar(inter(rc(cx - 4, 50 + dy, 9, 3), ojo), VERDE.r[1]);
-      P.llenar(cur([[cx - 3.5, 52.5 + dy], [cx + 3.5, 52.5 + dy]], 1), INK_C);
-    }
-    P.llenar(cur([[23, 50 + dy], [27, 48.5 + dy], [31, 50 + dy]], 1), INK_C);
-    P.llenar(cur([[34, 49 + dy], [38, 47 + dy], [42, 48.5 + dy]], 1), INK_C);
-    // Crooked grin with a gap in the teeth.
-    P.llenar(cur([[28, 58 + dy], [32, 59.5 + dy], [38, 57 + dy]], 1), INK_C);
-    P.px(38, 56 + dy, INK_C);
-    P.llenar(rc(32, 58 + dy, 3, 1), BLANCO);
-  });
-  P.dorso(() => {
-    P.llenar(cur([[32, 42 + dy], [32, 58 + dy]], 1), VERDE.r[0]);
-    P.llenar(cur([[28, 46 + dy], [28, 55 + dy]], 1), VERDE.r[2]);
-    P.px(36, 52 + dy, VERDE.r[0]);
-    P.px(37, 53 + dy, VERDE.r[0]);
+    P.px(X, Y + 2, GORRO.r[0]);
   });
 }
 
@@ -238,16 +249,18 @@ function fotomaton(P: Pintor): void {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Cloudtrio · three plush cream clouds hanging by threads: a classic one top right, a crumpled one in the middle
-// and a lumpy one lower left, all tired and bored, with a price tag with «€» dangling from the middle one.
-// Frame 1: they all sway a little (and the tag swings). From behind: the stitched backs, the threads and the
-// tag's blank side.
+// Cloudtrio · three plush white clouds hanging by thin threads (a big one in the middle, a small one top right
+// and a medium one lower left), each with a vacant, silly face: huge empty eyes looking different ways and a
+// slack open mouth with the tongue out and a drop of drool; a price tag with «€» dangles from the middle one.
+// Frame 1: they sway a little (and the tag swings). From behind: faceless, stitched backs, threads and the tag.
 // ---------------------------------------------------------------------------------------------
-const INK_N = '#3a2e1e';
-const CREMA: Mat = { r: ['#8a7650', '#b9a47a', '#dccb9e', '#f6ecc8'], ol: INK_N, ol2: '#6e5c3e' };
-const HILO = '#a89878';
+const INK_N = '#3a3450';
+const CREMA: Mat = { r: ['#a2a8c8', '#c8cee6', '#e6eaf8', '#ffffff'], ol: '#5c6286', ol2: '#9aa2c4' };
+const HILO = '#7c84a4';
 const PRECIO = '#f0c040';
-const RUBOR = '#e8a08a';
+const RUBOR = '#f4b4c8';
+const LENGUA_N = '#f07890';
+const BABA = '#b8e0ff';
 
 function cloudtrio(P: Pintor): void {
   const f = P.f;
@@ -261,68 +274,75 @@ function cloudtrio(P: Pintor): void {
 
   const hilo = (x0: number, x1: number, y1: number): void => {
     P.llenar(T(cur([[x0, 0], [x1, y1]], 1)), HILO);
-    P.px(TX(x1), y1 - 1, INK_N);
   };
-  const cara = (cx: number, cy: number, sep: number, ladeo = 0): void => {
+  // A classic cloud: three round bumps over a flatter base. (cx, by) = centre / bottom, w wide, h tall.
+  const nube = (cx: number, by: number, w: number, h: number): ReturnType<typeof rc> => {
+    const base = rr(cx - w / 2, by - h * 0.5, w, h * 0.5, h * 0.25);
+    return un(
+      base,
+      el(cx - w * 0.25, by - h * 0.5, w * 0.2, h * 0.36),
+      el(cx + w * 0.02, by - h * 0.56, w * 0.25, h * 0.46),
+      el(cx + w * 0.3, by - h * 0.46, w * 0.18, h * 0.33),
+    );
+  };
+  // Silly face centred at (cx, cy): `r` eye radius, pupils look somewhere different each.
+  const cara = (cx: number, cy: number, r: number, mir: [number, number][]): void => {
     if (E) return;
-    for (const s of [-1, 1]) {
-      const x = Math.round(cx + s * sep - 1);
-      const y = Math.round(cy + (s * ladeo));
-      P.llenar(rc(x, y, 3, 1), INK_N);
-      P.px(x, y + 1, '#ffffff');
-      P.px(x + 1, y + 1, INK_N);
-      P.px(x + 2, y + 1, '#ffffff');
-      P.px(x + 1, y + 2, CREMA.r[1]);
-      P.px(x + 2 * (s > 0 ? 1 : -1) + 1 + (s > 0 ? 3 : -3), y + 3, RUBOR);
-    }
-    P.llenar(rc(Math.round(cx - 1), Math.round(cy + 5), 3, 1), INK_N);
-    P.px(Math.round(cx + 2), Math.round(cy + 4), INK_N);
+    const sep = r + 1.6;
+    [-1, 1].forEach((s, i) => {
+      const o = el(cx + s * sep, cy, r, r);
+      P.aro(o, INK_N);
+      P.llenar(o, '#ffffff');
+      const [px, py] = mir[i];
+      P.llenar(inter(el(cx + s * sep + px, cy + py, 1.1, 1.1), o), INK_N);
+      P.px(Math.round(cx + s * (sep + r + 1.5)), Math.round(cy + r), RUBOR);
+    });
+    // Slack open mouth, tongue out and a drop of drool.
+    const mx = Math.round(cx);
+    const my = Math.round(cy + r + 2.5);
+    P.llenar(rc(mx - 2, my, 5, 3), INK_N);
+    P.llenar(rc(mx - 1, my + 1, 3, 3), LENGUA_N);
+    P.px(mx, my + 4, LENGUA_N);
+    P.px(mx + 3, my + 3, BABA);
+    P.px(mx + 3, my + 4, BABA);
+  };
+  const cuerpo = (m: ReturnType<typeof rc>): void => {
+    P.sombra(T(m), 0, 2, 1);
+    P.forma(T(m), CREMA, { rad: 6, grad: 0.4 });
   };
 
   // Threads first (behind).
-  hilo(48, 47 + b[0], 5 + b[1]);
-  hilo(31, 30 + a[0], 24 + a[1]);
-  hilo(12, 12 + c[0], 41 + c[1]);
+  hilo(47, 46 + b[0], 6 + b[1]);
+  hilo(28, 28 + a[0], 21 + a[1]);
+  hilo(8, 9 + c[0], 45 + c[1]);
 
-  // Right cloud: the classic shape.
+  // Small cloud, top right.
   {
     const [dx, dy] = b;
-    const m = un(el(46 + dx, 19 + dy, 14.5, 6), el(40 + dx, 13.5 + dy, 6.5, 6.5), el(48 + dx, 11.5 + dy, 8, 7.2), el(55 + dx, 16.5 + dy, 5.8, 5.4));
-    P.sombra(T(m), 0, 2, 1);
-    P.forma(T(m), CREMA, { rad: 6, grad: 0.4 });
-    P.llenarSobre(T(cur([[39 + dx, 20 + dy], [46 + dx, 23 + dy], [55 + dx, 21 + dy]], 1)), CREMA.r[1], CREMA);
-    P.llenarSobre(T(cur([[44 + dx, 8 + dy], [47 + dx, 7 + dy]], 1)), CREMA.r[3], CREMA);
-    P.llenarSobre(T(cur([[41 + dx, 10 + dy], [38 + dx, 13 + dy]], 1)), CREMA.r[3], CREMA);
-    cara(47 + dx, 15 + dy, 4.5);
+    cuerpo(nube(47 + dx, 22 + dy, 24, 17));
+    P.llenarSobre(T(cur([[38 + dx, 21.5 + dy], [47 + dx, 22.5 + dy], [56 + dx, 21.5 + dy]], 1)), CREMA.r[1], CREMA);
+    cara(47 + dx, 15 + dy, 2.4, [[1, -1], [-1, 0.5]]);
   }
-  // Middle cloud: crumpled, a tilted bean with creases.
+  // Big cloud in the middle.
   {
     const [dx, dy] = a;
-    const m = un(trazo([[17 + dx, 38 + dy], [35 + dx, 31 + dy]], 6.5, 7), el(40 + dx, 33 + dy, 4.4, 4.6), el(18 + dx, 38 + dy, 5, 5.5), el(24 + dx, 32 + dy, 5, 4.5), el(31 + dx, 29.5 + dy, 5, 4.2), el(13 + dx, 41 + dy, 4, 4));
-    P.sombra(T(m), 0, 2, 1);
-    P.forma(T(m), CREMA, { rad: 5, grad: 0.4 });
-    for (const [p, q] of [[[20, 41], [28, 36]], [[24, 42], [33, 37]], [[26, 31], [33, 29]], [[34, 36], [39, 33]]] as [number, number][][]) {
-      P.llenarSobre(T(cur([[p[0] + dx, p[1] + dy], [q[0] + dx, q[1] + dy]], 1)), CREMA.r[0], CREMA);
-      P.llenarSobre(T(cur([[p[0] + dx, p[1] + dy - 1], [q[0] + dx, q[1] + dy - 1]], 1)), CREMA.r[3], CREMA);
-    }
-    cara(30 + dx, 34 + dy, 4.5, -0.5);
+    cuerpo(nube(28 + dx, 41 + dy, 31, 21));
+    P.llenarSobre(T(cur([[15 + dx, 40 + dy], [28 + dx, 41 + dy], [42 + dx, 40 + dy]], 1)), CREMA.r[1], CREMA);
+    cara(28 + dx, 32 + dy, 3, [[-1, -1], [1.2, 0.8]]);
   }
-  // Left cloud: lumpy, lower.
+  // Medium cloud, lower left.
   {
     const [dx, dy] = c;
-    const m = un(trazo([[6 + dx, 55 + dy], [22 + dx, 50 + dy]], 5.5, 7), el(8 + dx, 56.5 + dy, 5, 4.4), el(25 + dx, 49 + dy, 4.8, 4.4), el(15 + dx, 49 + dy, 5.5, 5), el(10 + dx, 51 + dy, 4.5, 4.5), el(21 + dx, 46 + dy, 5, 4.6), el(5 + dx, 53 + dy, 3.5, 4));
-    P.sombra(T(m), 0, 2, 1);
-    P.forma(T(m), CREMA, { rad: 5, grad: 0.4 });
-    P.llenarSobre(T(cur([[8 + dx, 58 + dy], [14 + dx, 56 + dy], [21 + dx, 54 + dy]], 1)), CREMA.r[1], CREMA);
-    P.llenarSobre(T(cur([[12 + dx, 45 + dy], [17 + dx, 44 + dy]], 1)), CREMA.r[3], CREMA);
-    cara(16 + dx, 50 + dy, 4.5, 0.5);
+    cuerpo(nube(20 + dx, 61 + dy, 27, 18));
+    P.llenarSobre(T(cur([[8 + dx, 60 + dy], [20 + dx, 61 + dy], [32 + dx, 60 + dy]], 1)), CREMA.r[1], CREMA);
+    cara(20 + dx, 53 + dy, 2.7, [[0, -1.3], [1, 1]]);
   }
 
   // The price tag, hanging from the middle cloud.
   {
     const sw = f ? 2 : 0;
     const x0 = 36 + sw;
-    P.llenar(T(cur([[38, 38 + a[1]], [x0 + 4, 46]], 1)), HILO);
+    P.llenar(T(cur([[39, 40 + a[1]], [x0 + 4, 46]], 1)), HILO);
     const tag = poli([[x0, 47], [x0 + 9, 46], [x0 + 10, 56], [x0 + 1, 57]]);
     P.sombra(T(tag), 1, 1, 1);
     P.forma(T(tag), { r: ['#b88a10', PRECIO, '#fff0a0'], ol: INK_N, ol2: '#b88a10' }, { rad: 3, paso: 1, borde: true });
@@ -341,7 +361,7 @@ function cloudtrio(P: Pintor): void {
   }
   // Stitched seams on the backs.
   P.dorso(() => {
-    for (const [x, y] of [[42, 13], [46, 12], [50, 12], [26, 35], [30, 34], [16, 50], [20, 50]] as [number, number][]) P.px(x, y, CREMA.r[0]);
+    for (const [x, y] of [[42, 15], [46, 13], [50, 14], [24, 32], [28, 30], [32, 32], [16, 54], [20, 52], [24, 54]] as [number, number][]) P.px(x, y, CREMA.r[0]);
   });
 }
 

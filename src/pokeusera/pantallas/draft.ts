@@ -66,6 +66,8 @@ const STATS: { clave: 'ps' | 'ata' | 'def' | 'vel' | 'esp'; nombre: string }[] =
 /** The sheet's panel: width, and the height from which the full sheet (sprite beside the stats) fits; below it the compact one is used. */
 const W_FICHA = ANCHO - 2;
 const ALTO_FICHA_COMPLETA = 176;
+/** The least the sheet may have (compact version) when the screen is so short that the grid window shrinks. */
+const HINFO_MIN = 100;
 
 /** The sheet's blocks, in the sheet's own coordinates (the panel's top-left is 0,0). Compact: header, the five stats in a row, moves, ability, text. Full: sprite on the left, the stats on the right. No button: ELEGIR is on the grid's selected cell (`etiquetaElegir`). */
 const G = {
@@ -219,17 +221,20 @@ function etiquetaElegir(): HTMLCanvasElement {
 }
 
 /** Where everything sits on a screen of height `H` (the players' panels, the sheet, the grid). */
-function disenoDraft(H: number): Diseno & { yJug: number; hCelda: number; yGrid: number; cellH: number } {
+function disenoDraft(H: number): Diseno & { yJug: number; hCelda: number; yGrid: number; cellH: number; gridH: number; maxScroll: number } {
   const extra = Math.max(0, H - 384);
   const yJug = 20;
   const hCelda = 36 + Math.min(4, Math.floor(extra / 30));
   const yInfo = yJug + 2 * hCelda + 2;
   // The cells grow with the screen from 36 to 43 px (five rows, about what the four rows of 44-54 took); what is left goes to the sheet.
-  // With more than five rows (37 useritos: 6) the cells stay tighter (32-36 px: the 32 px thumbnail still fits and a tap is still ≥ 52 CSS px high) so the sheet keeps the room it had.
-  const cellH = FILAS > 5 ? 32 + Math.min(4, Math.floor(extra / 40)) : Math.max(36, Math.min(43, 36 + Math.floor(extra / 19)));
-  const yGrid = H - 3 - cellH * FILAS;
+  // The cells keep their size whatever the number of useritos (a tap ≥ 55 px CSS high); what does not fit scrolls. The window shows five rows
+  // (what the screen had for 32 useritos) or fewer on a short screen, so that the sheet always keeps HINFO_MIN px.
+  const cellH = Math.max(36, Math.min(43, 36 + Math.floor(extra / 19)));
+  const gridH = Math.max(2 * cellH, Math.min(5 * cellH, FILAS * cellH, H - 3 - yInfo - 2 - HINFO_MIN));
+  const yGrid = H - 3 - gridH;
   const hInfo = yGrid - yInfo - 2;
-  return { yJug, hCelda, yInfo, hInfo, yGrid, cellH, completa: hInfo >= ALTO_FICHA_COMPLETA };
+  const maxScroll = Math.max(0, FILAS * cellH - gridH);
+  return { yJug, hCelda, yInfo, hInfo, yGrid, cellH, gridH, maxScroll, completa: hInfo >= ALTO_FICHA_COMPLETA };
 }
 
 /** One task per userito for the background baking (`precalentar.ts`): its sheet as the player first sees it, for the current screen height. */
@@ -251,6 +256,11 @@ export class VistaDraft implements Escena {
   private tiposVista = false;
   private habVista = false;
   /** The machine's cursor (px of the grid cell's corner): it wanders while a machine thinks and hops to what it picks. */
+  /** The grid's scroll (px of its content), the speed of the inertia (px/ms) and the drag in progress. */
+  private scrollG = 0;
+  private velG = 0;
+  private arrastrandoG = false;
+  private ultTG = 0;
   private hx = -1;
   private hy = -1;
   private cursorOculto = true;
@@ -301,7 +311,8 @@ export class VistaDraft implements Escena {
       this.turnoDe = null;
       if (k >= 0) {
         // The machine's cursor hops to the pick; the sheet stays where the player was looking.
-        const [dx, dy] = this.celda(k);
+        this.verCelda(k);
+        const [dx, dy] = this.celdaG(k);
         const x0 = this.hx < 0 ? dx : this.hx;
         const y0 = this.hy < 0 ? dy : this.hy;
         this.cursorOculto = false;
@@ -354,9 +365,31 @@ export class VistaDraft implements Escena {
     return disenoDraft(H);
   }
 
+  /** Where cell `k` is in the grid's content (the cursor lives here, so it follows the scroll). */
+  private celdaG(k: number): [number, number] {
+    const L = this.layout(pantalla().alto);
+    return [X_REJ + (k % COLS) * CELDA_W, Math.floor(k / COLS) * L.cellH];
+  }
+
+  /** Where cell `k` is on the screen now. */
   private celda(k: number): [number, number] {
     const L = this.layout(pantalla().alto);
-    return [X_REJ + (k % COLS) * CELDA_W, L.yGrid + Math.floor(k / COLS) * L.cellH];
+    const [x, y] = this.celdaG(k);
+    return [x, L.yGrid + y - Math.round(this.scrollG)];
+  }
+
+  private limitarG(v: number): number {
+    return Math.max(0, Math.min(this.layout(pantalla().alto).maxScroll, v));
+  }
+
+  /** Scrolls the grid the least that shows cell `k` whole. */
+  private verCelda(k: number) {
+    const L = this.layout(pantalla().alto);
+    const y = Math.floor(k / COLS) * L.cellH;
+    if (y < this.scrollG) this.scrollG = y;
+    else if (y + L.cellH > this.scrollG + L.gridH) this.scrollG = y + L.cellH - L.gridH;
+    this.scrollG = this.limitarG(this.scrollG);
+    this.velG = 0;
   }
 
   private dueno(id: string): number {
@@ -391,8 +424,29 @@ export class VistaDraft implements Escena {
     this.movSel = -1;
     this.tiposVista = false;
     this.habVista = false;
+    this.verCelda(k);
     if (sonar) sonido.efecto('cursor');
     pantalla().redibujar();
+  }
+
+  /** A finger dragging: the grid scrolls (the rest of the screen does not move). */
+  arrastre(_dx: number, dy: number, _total: { x: number; y: number }, fin: boolean) {
+    if (this.layout(pantalla().alto).maxScroll <= 0) return;
+    const ahora = performance.now();
+    if (!fin) {
+      if (!this.arrastrandoG) {
+        this.arrastrandoG = true;
+        this.velG = 0;
+        this.ultTG = ahora;
+      }
+      const dtm = Math.max(1, ahora - this.ultTG);
+      this.ultTG = ahora;
+      this.scrollG = this.limitarG(this.scrollG - dy);
+      this.velG = this.velG * 0.5 - (dy / dtm) * 0.5;
+      return;
+    }
+    this.arrastrandoG = false;
+    this.velG = ahora - this.ultTG > 90 ? 0 : Math.max(-3, Math.min(3, this.velG));
   }
 
   private tocarMov(i: number) {
@@ -455,6 +509,12 @@ export class VistaDraft implements Escena {
 
   paso(dt: number): boolean {
     let mueve = this.anim.paso(dt);
+    if (!this.arrastrandoG && Math.abs(this.velG) > 0.02) {
+      const antes = this.scrollG;
+      this.scrollG = this.limitarG(this.scrollG + this.velG * dt);
+      this.velG = this.scrollG === antes ? 0 : this.velG * Math.exp(-dt / 260);
+      mueve = true;
+    } else if (!this.arrastrandoG) this.velG = 0;
     if (this.turnoDe !== null && !this.apelear) {
       // The countdown ticks in the last seconds of the local player's turn.
       const seg = Math.ceil((this.fin - Date.now()) / 1000);
@@ -469,7 +529,7 @@ export class VistaDraft implements Escena {
           this.vaga = 230;
           const libres = ESPECIES.map((_, k) => k).filter((k) => this.dueno(ESPECIES[k].id) < 0);
           if (libres.length) {
-            [this.hx, this.hy] = this.celda(libres[Math.floor(Math.random() * libres.length)]);
+            [this.hx, this.hy] = this.celdaG(libres[Math.floor(Math.random() * libres.length)]);
             this.cursorOculto = false;
             mueve = true;
           }
@@ -492,7 +552,7 @@ export class VistaDraft implements Escena {
     const H = pantalla().alto;
     const L = this.layout(H);
     fondoPapel(ctx, H);
-    if (this.hx < 0) [this.hx, this.hy] = this.celda(this.sel);
+    if (this.hx < 0) [this.hx, this.hy] = this.celdaG(this.sel);
     this.jugadores(ctx, L.yJug, L.hCelda, ahora);
     this.ficha(ctx, L, ahora);
     this.rejilla(ctx, L, ahora);
@@ -661,16 +721,29 @@ export class VistaDraft implements Escena {
     return this.rej;
   }
 
-  private rejilla(ctx: CanvasRenderingContext2D, L: { yGrid: number; cellH: number }, ahora: number) {
-    ctx.drawImage(this.rejillaLienzo(L.cellH), 0, L.yGrid);
+  private rejilla(ctx: CanvasRenderingContext2D, L: { yGrid: number; cellH: number; gridH: number; maxScroll: number }, ahora: number) {
+    const sc = Math.round(this.limitarG(this.scrollG));
+    this.scrollG = sc;
+    ctx.drawImage(this.rejillaLienzo(L.cellH), 0, sc, ANCHO, L.gridH, 0, L.yGrid, ANCHO, L.gridH);
+    const y0 = L.yGrid;
+    const y1 = L.yGrid + L.gridH;
     ESPECIES.forEach((_sp, k) => {
       const x = X_REJ + (k % COLS) * CELDA_W;
-      const y = L.yGrid + Math.floor(k / COLS) * L.cellH;
+      const y = L.yGrid + Math.floor(k / COLS) * L.cellH - sc;
+      const ya = Math.max(y, y0);
+      const yb = Math.min(y + L.cellH, y1);
+      if (yb <= ya) return;
       // The selected cell is also ELEGIR on your turn (double tap): a second tap on it takes the userito; any other cell just shows its sheet.
-      entrada.zona(x, y, CELDA_W, L.cellH, () => (k === this.sel && this.puedeElegir ? this.confirmar() : this.mirar(k)));
+      // The tap zone is only the part of the cell that is inside the window.
+      entrada.zona(x, ya, CELDA_W, yb - ya, () => (k === this.sel && this.puedeElegir ? this.confirmar() : this.mirar(k)));
     });
+    // Everything that is drawn over the cells stays inside the window.
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, y0, ANCHO, L.gridH);
+    ctx.clip();
     // The machine's cursor (gold) while it thinks or picks, and the cell whose sheet is open (the player's colour, blinking, on their turn).
-    if (!this.cursorOculto && this.hx >= 0) this.marco(ctx, Math.round(this.hx), Math.round(this.hy), L.cellH, ORO_UI);
+    if (!this.cursorOculto && this.hx >= 0) this.marco(ctx, Math.round(this.hx), y0 + Math.round(this.hy) - sc, L.cellH, ORO_UI);
     const [sx, sy] = this.celda(this.sel);
     this.marco(ctx, sx, sy, L.cellH, this.miTurno ? (parpadea(ahora, 400) ? colorEnt(this.plazas[this.miSeat!].entrenador) : TINTA2) : TINTA2);
     // ELEGIR over the bottom of the selected cell, centred on it but never out of the screen (it is a pixel or three wider than a cell, so on the
@@ -679,6 +752,14 @@ export class VistaDraft implements Escena {
       const lab = etiquetaElegir();
       const lx = Math.max(0, Math.min(ANCHO - lab.width, sx + Math.floor((CELDA_W - lab.width) / 2)));
       ctx.drawImage(lab, lx, sy + L.cellH - LAB_ALTO - 2);
+    }
+    ctx.restore();
+    // A thin scroll bar on the right edge when there is more than the window shows.
+    if (L.maxScroll > 0) {
+      const alto = Math.max(10, Math.round((L.gridH * L.gridH) / (L.gridH + L.maxScroll)));
+      const yb = y0 + Math.round(((L.gridH - alto) * sc) / L.maxScroll);
+      rect(ctx, 'rgba(59,42,63,0.18)', ANCHO - 3, y0, 2, L.gridH);
+      rect(ctx, TINTA2, ANCHO - 3, yb, 2, alto);
     }
   }
 
