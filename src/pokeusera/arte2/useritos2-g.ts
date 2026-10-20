@@ -97,15 +97,6 @@ function cilantrox(P: Pintor): void {
   dibujaHoja(32 + sx, 36, -Math.PI / 2 + sw * 0.6, 27, 20, 0);
   if (E) P.tono(rc(0, 0, 64, 44), VERDE, -1);
 
-  // The party hat on the middle leaf's tip.
-  const hx = 32 + sx + sw * 9;
-  const hy = 3;
-  const gorro = poli([[hx - 3, hy + 7], [hx + 3, hy + 6], [hx + 0.5, hy - 3]]);
-  P.sombra(gorro, 0, 1, 1);
-  P.forma(gorro, GORRO, { rad: 3, grad: 0.4 });
-  P.llenar(inter(gorro, poli([[hx - 4, hy + 4.5], [hx + 4, hy + 3.5], [hx + 4, hy + 2.5], [hx - 4, hy + 3.5]])), AMARILLO);
-  P.px(Math.round(hx), Math.round(hy - 4), BLANCO);
-
   // Small pennant garland on the stem.
   const cuerda = bez3([27, 52], [29, 54.5], [35, 54.5], [37, 52], 12);
   P.llenar(cur(cuerda, 1), INK_C);
@@ -251,13 +242,12 @@ function fotomaton(P: Pintor): void {
 // ---------------------------------------------------------------------------------------------
 // Cloudtrio · three plush white clouds hanging by thin threads (a big one in the middle, a small one top right
 // and a medium one lower left), each with a vacant, silly face: huge empty eyes looking different ways and a
-// slack open mouth with the tongue out and a drop of drool; a price tag with «€» dangles from the middle one.
-// Frame 1: they sway a little (and the tag swings). From behind: faceless, stitched backs, threads and the tag.
+// slack open mouth with the tongue out and a drop of drool.
+// Frame 1: they sway a little . From behind: faceless, stitched backs, threads and the tag.
 // ---------------------------------------------------------------------------------------------
 const INK_N = '#3a3450';
 const CREMA: Mat = { r: ['#a2a8c8', '#c8cee6', '#e6eaf8', '#ffffff'], ol: '#5c6286', ol2: '#9aa2c4' };
 const HILO = '#7c84a4';
-const PRECIO = '#f0c040';
 const RUBOR = '#f4b4c8';
 const LENGUA_N = '#f07890';
 const BABA = '#b8e0ff';
@@ -266,7 +256,6 @@ function cloudtrio(P: Pintor): void {
   const f = P.f;
   const E = P.espalda;
   const T = (m: ReturnType<typeof rc>) => (E ? espejo(m) : m);
-  const TX = (x: number) => (E ? 63 - x : x);
   // Per cloud sway: [dx, dy] in frame 1.
   const a = f ? [-1, 1] : [0, 0];
   const b = f ? [1, -1] : [0, 0];
@@ -338,27 +327,6 @@ function cloudtrio(P: Pintor): void {
     cara(20 + dx, 53 + dy, 2.7, [[0, -1.3], [1, 1]]);
   }
 
-  // The price tag, hanging from the middle cloud.
-  {
-    const sw = f ? 2 : 0;
-    const x0 = 36 + sw;
-    P.llenar(T(cur([[39, 40 + a[1]], [x0 + 4, 46]], 1)), HILO);
-    const tag = poli([[x0, 47], [x0 + 9, 46], [x0 + 10, 56], [x0 + 1, 57]]);
-    P.sombra(T(tag), 1, 1, 1);
-    P.forma(T(tag), { r: ['#b88a10', PRECIO, '#fff0a0'], ol: INK_N, ol2: '#b88a10' }, { rad: 3, paso: 1, borde: true });
-    P.px(TX(x0 + 5), 48, INK_N);
-    if (!E) {
-      const eu = ['.###', '#...', '###.', '#...', '.###'];
-      eu.forEach((fila, j) => {
-        Array.from(fila).forEach((ch, i) => {
-          if (ch === '#') P.px(x0 + 3 + i, 50 + j, INK_N);
-        });
-      });
-    } else {
-      P.llenar(rc(x0 + 3, 51, 4, 1), '#b88a10');
-      P.llenar(rc(x0 + 3, 53, 3, 1), '#b88a10');
-    }
-  }
   // Stitched seams on the backs.
   P.dorso(() => {
     for (const [x, y] of [[42, 15], [46, 13], [50, 14], [24, 32], [28, 30], [32, 32], [16, 54], [20, 52], [24, 54]] as [number, number][]) P.px(x, y, CREMA.r[0]);
