@@ -657,8 +657,8 @@ function revisarPerksNuevos() {
     if (!distinto) falla('De su cosecha: atacando no gasta ningún número de azar extra');
   }
 
-  // Cancelación de ruido: a sound move with damage (¡Ay, ay, ay!) does 25 % less to Fer (floor, min 1) and warns once; one without damage (Serenata, Bocinazo) gets through
-  // about 75 % of the seeds (and when it does not, nothing reaches him and the line says why); a normal move and a Petardo hit him as usual.
+  // Cancelación de ruido: a sound move with damage (¡Ay, ay, ay!) does 20 % less to Fer (floor, min 1) and warns once; one without damage (Serenata, Bocinazo) gets through
+  // about 80 % of the seeds (and when it does not, nothing reaches him and the line says why); a normal move and a Petardo hit him as usual.
   // Camioner: Trompazo 0 (normal), Bocinazo 2 (sound); Mariachi: ¡Ay, ay, ay! 0, Serenata 1, Salsa picante 2 (normal).
   {
     const sonidos = ['bocinazo', 'ayayay', 'serenata', 'distorsion', 'solo', 'pasodoble', 'cancion', 'dosvoces', 'eco', 'monologo'];
@@ -668,10 +668,10 @@ function revisarPerksNuevos() {
       return { e, r: M.resolverTurno(e, [ataca(mov, objetivo), cana]) };
     };
     const perdido = (x) => x.r.estado.jugadores[1].equipo[0].psMax - x.r.estado.jugadores[1].equipo[0].ps;
-    // Damage: 75 % of what Fran takes (same seed, same dice), one warning, and a normal move is not halved.
+    // Damage: 80 % of what Fran takes (same seed, same dice), one warning, and a normal move is not halved.
     const feroz = vs(['mariachi', 'turito', 'cierzon'], 'fer', 0);
     const refe = vs(['mariachi', 'turito', 'cierzon'], 'fran', 0);
-    if (perdido(refe) < 2 || perdido(feroz) !== Math.max(1, Math.floor((perdido(refe) * 75) / 100))) falla(`Fer: ¡Ay, ay, ay! no hace un 25 % menos (${perdido(feroz)} contra ${perdido(refe)})`);
+    if (perdido(refe) < 2 || perdido(feroz) !== Math.max(1, Math.floor((perdido(refe) * 80) / 100))) falla(`Fer: ¡Ay, ay, ay! no hace un 20 % menos (${perdido(feroz)} contra ${perdido(refe)})`);
     const avisos = feroz.r.eventos.filter((ev) => ev.clave === 'combate.perk.fer');
     if (avisos.length !== 1 || avisos[0].j !== 1 || !avisos[0].vars?.quien) falla(`Fer: aviso mal (${avisos.length})`);
     if (refe.r.eventos.some((ev) => ev.clave === 'combate.perk.fer' || ev.clave === 'combate.perk.fer_nada')) falla('Fer: lo ha activado otro entrenador');
@@ -680,7 +680,7 @@ function revisarPerksNuevos() {
     if (perdido(normal) !== perdido(normalRef) || normal.r.eventos.some((ev) => ev.clave === 'combate.perk.fer')) falla('Fer: Salsa picante (no es de sonido) no le hace el daño normal');
     const tromp = vs(['camioner', 'turito', 'cierzon'], 'fer', 0);
     if (perdido(tromp) !== perdido(vs(['camioner', 'turito', 'cierzon'], 'fran', 0))) falla('Fer: Trompazo (normal) no le hace el daño normal');
-    // No damage: Serenata (embobado) and Bocinazo (−1 Attack) reach him about 75 % of the seeds, and exactly when the warning is not given; always reach Fran.
+    // No damage: Serenata (embobado) and Bocinazo (−1 Attack) reach him about 80 % of the seeds, and exactly when the warning is not given; always reach Fran.
     for (const [esp, mov, llega, nombre] of [
       ['mariachi', 1, (x) => x.r.estado.jugadores[1].equipo[0].vol.embobado > 0, 'Serenata'],
       ['camioner', 2, (x) => x.r.estado.jugadores[1].equipo[0].niveles.ata === -1, 'Bocinazo'],
@@ -694,7 +694,7 @@ function revisarPerksNuevos() {
         if (llega(x)) paso++;
         if (!llega(vs([esp, 'turito', 'cierzon'], 'fran', mov, 1, sem))) falla(`Fer (referencia): ${nombre} no llega a Fran (semilla ${sem})`);
       }
-      if (paso < N * 0.65 || paso > N * 0.85) falla(`Fer: ${nombre} le llega ${paso} de ${N} veces (se esperaba el 75 %)`);
+      if (paso < N * 0.7 || paso > N * 0.9) falla(`Fer: ${nombre} le llega ${paso} de ${N} veces (se esperaba el 80 %)`);
     }
     // His own sound moves work as ever, and the userito that comes in after a fall is covered too.
     const suyo = M.resolverTurno(M.crearCombate(eq(['fer', 'pablo'], [['mariachi', 'turito', 'cierzon'], ['tocinon', 'turito', 'cierzon']]), 21), [ataca(0), cana]);
@@ -704,7 +704,7 @@ function revisarPerksNuevos() {
     const bancoRef = M.resolverTurno(M.crearCombate(eq(['pablo', 'fran'], [['mariachi', 'turito', 'cierzon'], ['tocinon', 'camioner', 'cierzon']]), 21), [ataca(0), { tipo: 'cambiar', a: 1 }]);
     const c1 = banco.estado.jugadores[1].equipo[1];
     const c2 = bancoRef.estado.jugadores[1].equipo[1];
-    if (c2.psMax - c2.ps >= 2 && c1.psMax - c1.ps !== Math.max(1, Math.floor(((c2.psMax - c2.ps) * 75) / 100))) falla('Fer: el userito que entra no recibe un 25 % menos del ruido');
+    if (c2.psMax - c2.ps >= 2 && c1.psMax - c1.ps !== Math.max(1, Math.floor(((c2.psMax - c2.ps) * 80) / 100))) falla('Fer: el userito que entra no recibe un 20 % menos del ruido');
   }
 }
 revisarPerksNuevos();
@@ -755,7 +755,7 @@ function revisarTanda6() {
     if (o('lentejasur', 'susto', 'aceituna', 'mecuelo').join() !== '0,1') falla('Susto y ¡Me cuelo! (+1) se ordenan por velocidad');
     if (o('aceituna', 'mecuelo', 'lentejasur', 'susto').join() !== '1,0') falla('Susto (más rápido) debe ir antes que ¡Me cuelo! (+1 los dos)');
     if (o('aceituna', 'mecuelo', 'cajonazo', 'aguantar').join() !== '1,0') falla('una protección (+2) va antes que un rápido (+1)');
-    if (o('evoscar', 'coz', 'camioner', 'trompazo').join() !== '0,1') falla('Evoscar con Coz doble debería ir antes que Camioner');
+    if (o('evoscar', 'coz', 'camioner', 'trompazo')[0] !== 0) falla('Evoscar con Coz doble debería ir antes que Camioner'); // (Coz doble can KO Camioner first)
     if (o('evoscar', 'devolver', 'camioner', 'trompazo').join() !== '1,0') falla('Devolvérsela (−1) debe ir la última, incluso detrás del más lento');
   }
 
@@ -1854,7 +1854,7 @@ function revisarTanda7() {
   {
     const T = M.MOVS.tendedero;
     const R = M.MOVS.remate;
-    if (!T || T.tipo !== 'ventolera' || T.pot !== 80 || T.prec !== 100 || T.pp !== 8 || T.objetivo !== 'uno' || T.prioridad) falla('Al tendedero: Ventolera, 80, 100, 8 PP, a uno, sin prioridad');
+    if (!T || T.tipo !== 'ventolera' || T.pot !== 90 || T.prec !== 100 || T.pp !== 8 || T.objetivo !== 'uno' || T.prioridad) falla('Al tendedero: Ventolera, 90, 100, 8 PP, a uno, sin prioridad');
     if (!R || R.tipo !== 'juerga' || R.prec !== 100 || R.pp !== 5 || R.objetivo !== 'uno' || R.prioridad) falla('Remate por bulerías: Juerga, precisión 100, 5 PP, a uno, sin prioridad');
     if (M.ESPECIE.pantaloneto.movs.join() !== 'pantalones,tendedero,chapa,mecuelo') falla(`Pantaloneto: ${M.ESPECIE.pantaloneto.movs}`);
     if (M.ESPECIE.cajonazo.movs.join() !== 'remate,taconeo,aguantar,temblor') falla(`Cajonazo: ${M.ESPECIE.cajonazo.movs}`);
@@ -2280,8 +2280,8 @@ function revisarTanda8() {
       ['maletrio', ['bronca', 'fantasma'], [90, 100, 105, 55, 70], 'maletazo,embarque,cinturones,venganza', 'maleta'],
       ['teloneon', ['chanza', 'fantasma'], [70, 75, 65, 110, 100], 'improvisa,monologo,zasca,susto', 'publico'],
       ['choquechu', ['chispa', 'petardo'], [80, 80, 80, 100, 80], 'carambola,ficha,chispazo,fogonazo', 'corriente'],
-      ['torrezmon', ['grasa', 'droga'], [85, 65, 70, 100, 100], 'crujiente,limon,fritanga,pringue', 'grasiento'],
-      ['papiroflexeon', ['ventolera'], [85, 110, 75, 100, 50], 'cortepapel,papiroflexia,rebufo,chuleria', 'viento'],
+      ['torrezmon', ['grasa', 'droga'], [85, 75, 70, 100, 90], 'crujiente,limon,fritanga,pringue', 'grasiento'],
+      ['papiroflexeon', ['ventolera'], [85, 105, 75, 95, 60], 'cortepapel,papiroflexia,rebufo,chuleria', 'viento'],
       ['ceceseta', ['juerga', 'chanza'], [95, 95, 80, 85, 65], 'pasodoble,mancha,cancion,zasca', 'fan'],
     ];
     nuevos.forEach(([id, tipos, b, movs, hab], i) => {
@@ -2313,7 +2313,7 @@ function revisarTanda8() {
       ficha: ['chispa', null, null, 5, 'yo', 0],
       crujiente: ['grasa', 25, 90, 10, 'uno', 0],
       limon: ['droga', null, null, 5, 'yo', 0],
-      cortepapel: ['ventolera', 80, 100, 8, 'uno', 0],
+      cortepapel: ['ventolera', 90, 100, 8, 'uno', 0],
       papiroflexia: ['ventolera', null, null, 5, 'yo', 0],
       pasodoble: ['juerga', 80, 100, 8, 'uno', 0],
       mancha: ['alcohol', 75, 100, 8, 'uno', 0],
@@ -3229,7 +3229,7 @@ function revisarTanda9() {
     const antes = 'draguserin,goudazard,aceituna,cierzon,turroncho,tocinon,roscochoco,espumarro,cajonazo,lentejasur,tragaperras,turito,resacon,evoscar,chupitochu,caravaner,camioner,criaturitah,ego-ego,kbronero,cubatillo,p,jesuspelo,pantaloneto,maletrio,teloneon,choquechu,torrezmon,papiroflexeon,ceceseta';
     if (M.ESPECIES.slice(0, 30).map((x) => x.id).join() !== antes) falla('los Nº 1-30 han cambiado de sitio');
     const nuevos = [
-      ['mariachi', ['juerga', 'petardo'], [100, 100, 85, 80, 55], 'ayayay,serenata,picante,taconeo', 'cantaynollores'],
+      ['mariachi', ['juerga', 'petardo'], [105, 95, 80, 70, 70], 'ayayay,serenata,picante,taconeo', 'cantaynollores'],
       ['pulpino', ['bronca', 'grasa'], [95, 105, 85, 65, 70], 'ochotortas,tinta,morrina,adoquin', 'malaleche'],
     ];
     nuevos.forEach(([id, tipos, b, movs, hab], i) => {
@@ -3242,7 +3242,7 @@ function revisarTanda9() {
       if (sp.habilidad !== hab) falla(`${id}: habilidad ${sp.habilidad}`);
     });
     const tabla = {
-      ayayay: ['juerga', 70, 100, 5, 'todos'],
+      ayayay: ['juerga', 85, 100, 5, 'todos'],
       serenata: ['juerga', null, 100, 5, 'uno'],
       picante: ['petardo', 90, 100, 8, 'uno'],
       ochotortas: ['bronca', 12, 90, 5, 'uno'],
@@ -3297,6 +3297,7 @@ function revisarTanda9() {
     let aMariachi = 0;
     for (const sem of semillas(60)) {
       const e = mk(equipos(), sem);
+      act0(e, 0).niveles.vel = 1; // since 0.2.14 Mariachi (70) is slower than Tocinón (75): one stage up so it still sings first
       const r = M.resolverTurno(e, [ataca(sere, 1), ataca(idx('tocinon', 'barrigazo'), 0), pasa, pasa]);
       if (dano(r, 1)) falla('Serenata no hace daño');
       const v = act0(r.estado, 1);
@@ -4071,7 +4072,7 @@ function revisarUseritos33() {
     ['cilantrox', ['droga', 'juerga'], [80, 85, 70, 90, 95], 'fiestapagana,esporas,conga,almendrazo', 'jabon'],
     ['fotomaton', ['bronca', 'chispa'], [80, 100, 80, 70, 90], 'todosdentro,flash,adoquin,temblor', 'tira'],
     ['cloudtrio', ['ventolera', 'chanza'], [75, 110, 60, 85, 90], 'nubarron,carisimo,planeo,zasca', 'blandito'],
-    ['cigarr', ['petardo', 'fantasma'], [80, 55, 75, 100, 110], 'calada,fogonazo,susto,esconderse', 'humo'],
+    ['cigarr', ['petardo', 'fantasma'], [90, 45, 75, 100, 110], 'calada,fogonazo,susto,esconderse', 'humo'],
     ['ollalocah', ['juerga', 'ventolera'], [95, 90, 90, 70, 75], 'vueltas,conga,rebufo,remolino', 'feria'],
   ];
   nuevos.forEach(([id, tipos, b, movs, hab], i) => {

@@ -445,7 +445,7 @@ Pedidas y decididas por Jesús el 13 de octubre de 2026: cada entrenador trae un
 | **Guille** | Mañico | Una vez por userito y batalla, si un golpe de otro jugador lo dejaría a 0 estando con la vida llena, aguanta con 1 PS. Sale «¡{userito} aguanta como un buen mañico!» |
 | **Viñas** | Verso libre | Sus ataques de Chanza y Juerga pegan un 10 % más (`PERK_VERSO_VINAS = 110`, `multVerso` en `motor/combate.ts`, un multiplicador más del daño; solo cuenta el tipo del movimiento). Sin aviso. |
 | **Ari** | Improvisadora nata | Cada golpe que da tiene un 10 % más de salir crítico (`PERK_COSECHA_ARI = 10`): tras la tirada normal de crítico, si no ha salido, una segunda tirada del 10 %. Sale «¡{quien} improvisa y el golpe sale mejor de lo previsto!» solo cuando el crítico viene de esta segunda tirada. |
-| **Fer** | Técnico residente | Los movimientos con la etiqueta SONIDO de un rival (diez: bocinazo, ayayay, serenata, distorsion, solo, pasodoble, cancion, dosvoces, eco, monologo; `MOVS_SONIDO`) le hacen un 25 % menos de daño (`PERK_RUIDO_FER` = 75, mínimo 1; sale «{quien} lleva los cascos puestos: el ruido le llega más flojo.»). Los que no hacen daño (Bocinazo, Serenata) le llegan el 75 % de las veces; cuando no le llegan, «…esta vez el ruido no le llega.» (la tirada solo se hace si Fer es el objetivo). Cambiado el 15-oct-2026 a petición de Jesús: antes anulaba seis movimientos. |
+| **Fer** | Técnico residente | Los movimientos con la etiqueta SONIDO de un rival (diez: bocinazo, ayayay, serenata, distorsion, solo, pasodoble, cancion, dosvoces, eco, monologo; `MOVS_SONIDO`) le hacen un 20 % menos de daño (`PERK_RUIDO_FER` = 80, mínimo 1; era 75 hasta la 0.2.14; sale «{quien} lleva los cascos puestos: el ruido le llega más flojo.»). Los que no hacen daño (Bocinazo, Serenata) le llegan el 80 % de las veces; cuando no le llegan, «…esta vez el ruido no le llega.» (la tirada solo se hace si Fer es el objetivo). Cambiado el 15-oct-2026 a petición de Jesús: antes anulaba seis movimientos. |
 
 Detalles: lo gastado se apunta en `Userito.perk` (`tarde`, `manico`), fuera de `vol`, así que no se pierde al cambiar de userito: cada userito tiene el suyo. Cuentan los golpes de ataque de otros (cada golpe de un movimiento múltiple va por separado; el primero gasta la ventaja de Chuchi); no cuentan quemaduras, retroceso, golpes a sí mismo ni Hora de cerrar. Los textos de aviso, en `pokeusera-combate.md` (`combate.perk.chuchi`, `combate.perk.guille`, `combate.perk.ari` y `combate.perk.fer`); nombre y descripción de cada ventaja, en `pokeusera.md` (`entrenador.<id>.perk` y `.perk_d`). La pantalla de elegir entrenador muestra el nombre bajo cada nombre y la descripción del seleccionado (un toque selecciona, otro toque o ELEGIR confirma), y la guía las explica en la pestaña BAR. Las máquinas no las tienen en cuenta al decidir. `scripts/pokeusera-motor.mjs` comprueba cada una con casos deterministas (`revisarPerks` y `revisarPerksNuevos`).
 
@@ -506,38 +506,38 @@ Todos suman lo mismo en estadísticas (420), para que no haya ninguno roto de sa
 | 2 | **Goudazard**: palito frito de gouda rebozado | Grasa / Petardo | 75 | 70 | 85 | 90 | 100 | De Goudamadre, Fogonazo, Pringue, Rebozado |
 | 3 | **Aceituna**: la perrita negra de Fran, pequeña y muy dulce (antes Aceitún) | Mindundi / Chanza | 90 | 100 | 90 | 75 | 65 | Lametazo, ¡Me cuelo!, Vacile, Dar la chapa |
 | 4 | **Cierzón**: remolino mañico que no para quieto | Ventolera | 75 | 95 | 70 | 105 | 75 | Cierzo, Planeo, Rebufo, Venganza |
-| 5 | **Turroncho**: bloque de turrón blando con almendras | Bronca / Droga | 75 | 80 | 90 | 95 | 80 | Almendrazo, Adoquinazo, Caparazón, Siesta |
+| 5 | **Turroncho**: bloque de turrón blando con almendras | Bronca / Droga | 75 | 90 | 90 | 95 | 70 | Almendrazo, Adoquinazo, Caparazón, Siesta |
 | 6 | **Tocinón**: cerdo enorme y tranquilo, 152 kilos de userito | Mindundi / Grasa | 105 | 95 | 70 | 75 | 75 | Barrigazo, Pringue, Temblor, Siesta |
 | 7 | **Roscochoco**: dulce navideño de chocolate, muy indigesto | Grasa / Juerga | 100 | 75 | 85 | 60 | 100 | Indigestión, Fritanga, Conga, Rebozado |
 | 8 | **Espumarro**: jarra de cerveza a la que nunca se le baja la espuma | Alcohol / Mindundi | 95 | 70 | 80 | 75 | 100 | Ronda, Garrafón, ¡Una más!, Barrigazo |
-| 9 | **Cajonazo**: cajón flamenco con brazos y mucho compás | Juerga | 105 | 120 | 100 | 45 | 50 | Remate por bulerías, Taconeo, Aguantar el tipo, Temblor |
-| 10 | **Lentejasur**: lenteja sucia que aparece cuando menos te lo esperas | Droga / Fantasma | 70 | 65 | 70 | 100 | 115 | Lluvia de lentejas, Tropezón, Susto, Droja |
+| 9 | **Cajonazo**: cajón flamenco con brazos y mucho compás | Juerga | 105 | 110 | 100 | 45 | 60 | Remate por bulerías, Taconeo, Aguantar el tipo, Temblor |
+| 10 | **Lentejasur**: lenteja sucia que aparece cuando menos te lo esperas | Droga / Fantasma | 80 | 55 | 70 | 100 | 115 | Lluvia de lentejas, Tropezón, Susto, Droja |
 | 11 | **Tragaperras**: la máquina del rincón del bar, que se ríe de ti | Chispa / Chanza | 75 | 60 | 80 | 90 | 115 | Premio gordo, Chispazo, Zasca, Cizaña |
 | 12 | **Turito**: el userito que aburre y cansa | Mindundi | 100 | 70 | 90 | 80 | 80 | Dar la chapa, Te pillo en la barra, Turra, Bostezo |
-| 13 | **Resacón**: nube gris que aparece a la mañana siguiente | Alcohol / Fantasma | 85 | 90 | 80 | 75 | 90 | Dolor de cabeza, Chupitazo, Venganza, Aguantar el tipo |
-| 14 | **Evoscar**: dos cabezas, una de mujer y otra de hombre (pelo corto), con cuerpo de caballo; una pareja aburrida que se pasa el día discutiendo | Mindundi / Bronca | 100 | 105 | 95 | 55 | 65 | Coz doble, Devolvérsela, A dos voces, Sin Narrativa |
-| 15 | **Chupitochu**: chupito muy fuerte y ardiente | Alcohol / Petardo | 75 | 55 | 75 | 90 | 125 | Chupitazo, Fogonazo, Garrafón, Esconderse |
+| 13 | **Resacón**: nube gris que aparece a la mañana siguiente | Alcohol / Fantasma | 85 | 80 | 80 | 75 | 100 | Dolor de cabeza, Chupitazo, Venganza, Aguantar el tipo |
+| 14 | **Evoscar**: dos cabezas, una de mujer y otra de hombre (pelo corto), con cuerpo de caballo; una pareja aburrida que se pasa el día discutiendo | Mindundi / Bronca | 100 | 95 | 95 | 55 | 75 | Coz doble, Devolvérsela, A dos voces, Sin Narrativa |
+| 15 | **Chupitochu**: chupito muy fuerte y ardiente | Alcohol / Petardo | 85 | 45 | 75 | 90 | 125 | Chupitazo, Fogonazo, Garrafón, Esconderse |
 | 16 | **Caravaner**: una caravana | Bronca / Juerga | 85 | 85 | 70 | 95 | 85 | ¡Camioneees y caravanaaas!, Temblor, Caparazón, Siesta |
-| 17 | **Camioner**: un camión | Mindundi / Bronca | 105 | 125 | 100 | 35 | 55 | Trompazo, Adoquinazo, Bocinazo, ¡Camioneees y caravanaaas! |
+| 17 | **Camioner**: un camión | Mindundi / Bronca | 105 | 120 | 95 | 35 | 65 | Trompazo, Adoquinazo, Bocinazo, ¡Camioneees y caravanaaas! |
 | 18 | **Criaturitah**: pequeña criaturita del bosque | Droga / Chanza | 70 | 80 | 70 | 100 | 100 | Droja, Raíces, Colleja, Monada |
 | 19 | **Ego-Ego**: fantasma muy flipado | Fantasma | 80 | 100 | 75 | 95 | 70 | Eco, Chulería, Flipada, ¡Que pague otro! |
 | 20 | **Kbronero**: teclado heavy | Chispa / Juerga | 80 | 90 | 70 | 85 | 95 | Solo de teclado, Distorsión, Pogo, Compás |
 | 21 | **Cubatillo**: un cubata (ron con cola) con hielos y pajita, con burbujas que chisporrotean | Alcohol / Chispa | 70 | 55 | 70 | 115 | 110 | Burbujeo, Ronda, Chispazo, ¡Una más! |
-| 22 | **P**: una P mayúscula gordita con ojos y patitas, muy pesada | Mindundi / Chanza | 95 | 90 | 100 | 60 | 75 | P de Pesao, Dar la chapa, ¡Que pague otro!, Cara de pena |
+| 22 | **P**: una P mayúscula gordita con ojos y patitas, muy pesada | Mindundi / Chanza | 90 | 90 | 100 | 65 | 75 | P de Pesao, Dar la chapa, ¡Que pague otro!, Cara de pena |
 | 23 | **JesúsPelo**: surfero de pelo blanco corto con su tabla, muy tranquilo | Droga / Ventolera | 85 | 95 | 80 | 95 | 65 | Golpe de Tabla, Setas, Raíces, Planeo |
-| 24 | **Pantaloneto**: unos pantalones escapados del tendedero que van solos | Mindundi / Ventolera | 95 | 120 | 90 | 75 | 40 | Bajarse los pantalones, Al tendedero, Dar la chapa, ¡Me cuelo! |
+| 24 | **Pantaloneto**: unos pantalones escapados del tendedero que van solos | Mindundi / Ventolera | 95 | 110 | 90 | 75 | 50 | Bajarse los pantalones, Al tendedero, Dar la chapa, ¡Me cuelo! |
 | 25 | **Maletrio**: tres maletas blancas apiladas, el equipaje perdido de «Impropios Airlines» | Bronca / Fantasma | 90 | 100 | 105 | 55 | 70 | Maletazo, ¡3, 2, 1... Despegamos!, Abróchense los cinturones, Venganza |
 | 26 | **Teloneon**: un telón rojo de teatro con careta, que improvisa | Chanza / Fantasma | 70 | 75 | 65 | 110 | 100 | ¡Improvisa!, Monólogo, Zasca, Susto |
 | 27 | **Choquechu**: un coche de choque de feria con su pértiga echando chispas | Chispa / Petardo | 80 | 80 | 80 | 100 | 80 | Voy to loco, Otra ficha, Chispazo, Fogonazo |
-| 28 | **Torrezmón**: un torrezno grasiento con su corteza crujiente y su limón | Grasa / Droga | 85 | 65 | 70 | 100 | 100 | Crujiente, Con limón, Fritanga, Pringue |
-| 29 | **Papiroflexeon**: un avión de papel turquesa | Ventolera | 85 | 110 | 75 | 100 | 50 | Corte de papel, Papiroflexia, Rebufo, Chulería |
+| 28 | **Torrezmón**: un torrezno grasiento con su corteza crujiente y su limón | Grasa / Droga | 85 | 75 | 70 | 100 | 90 | Crujiente, Con limón, Fritanga, Pringue |
+| 29 | **Papiroflexeon**: un avión de papel turquesa | Ventolera | 85 | 105 | 75 | 95 | 60 | Corte de papel, Papiroflexia, Rebufo, Chulería |
 | 30 | **Ceceseta**: la camiseta blanca de Camiones y Caravanas | Juerga / Chanza | 95 | 95 | 80 | 85 | 65 | Pasodoble, Mancha de cerveza, ¡Camioneees y caravanaaas!, Zasca |
-| 31 | **Mariachi**: un mariachi con sombrero y trompeta que llega a la fiesta sin avisar (tanda 9) | Juerga / Petardo | 100 | 100 | 85 | 80 | 55 | ¡Ay, ay, ay!, Serenata, Salsa picante, Taconeo |
+| 31 | **Mariachi**: un mariachi con sombrero y trompeta que llega a la fiesta sin avisar (tanda 9) | Juerga / Petardo | 105 | 95 | 80 | 70 | 70 | ¡Ay, ay, ay!, Serenata, Salsa picante, Taconeo |
 | 32 | **Pulpiño**: un pulpo gallego con muy mala leche (tanda 9) | Bronca / Grasa | 95 | 105 | 85 | 65 | 70 | Ocho tortas, Chorro de tinta, Morriña, Adoquinazo |
 | 33 | **Cilantrox**: un tallo de cilantro con tres hojas, gorrito de fiesta y guirnalda (tanda 19-oct) | Droga / Juerga | 80 | 85 | 70 | 90 | 95 | Fiesta pagana, Droja, Conga, Almendrazo |
 | 34 | **Fotomatón**: el fotomatón de la calle, con ceño de matón y su cortinilla roja | Bronca / Chispa | 80 | 100 | 80 | 70 | 90 | ¡Todos dentro!, Flash, Adoquinazo, Temblor |
 | 35 | **Cloudtrio**: tres nubes blanditas, carísimas y polémicas (decoración del show de impro) | Ventolera / Chanza | 75 | 110 | 60 | 85 | 90 | Nubarrón, Está carísimo, Planeo, Zasca |
-| 36 | **Cigarr**: un cigarro de liar | Petardo / Fantasma | 80 | 55 | 75 | 100 | 110 | Calada, Fogonazo, Susto, Esconderse |
+| 36 | **Cigarr**: un cigarro de liar | Petardo / Fantasma | 90 | 45 | 75 | 100 | 110 | Calada, Fogonazo, Susto, Esconderse |
 | 37 | **OllaLocah**: la olla loca de las ferias | Juerga / Ventolera | 95 | 90 | 90 | 70 | 75 | Dar vueltas, Conga, Rebufo, Remolino |
 
 **Los cinco de la tanda del 19-oct** (pedidos por Jesús; propuesta en `/mnt/project-files/batallas/propuesta-tanda12.md`, aprobada con «Todo ok»). Draft en rejilla de 7×6 con **scroll**: las casillas conservan su tamaño (36-43 px lógicos) y la ventana de la rejilla enseña 5 filas, o menos en una pantalla baja (la ficha siempre conserva al menos 100 px); el resto se desliza con el dedo (con inercia), la selección con teclado/toque se desplaza sola para verse y una barrita a la derecha indica que hay más. Probado en 390×844, 360×640 y 320×568. Sprites en `arte2/useritos2-g.ts` (hoja en `graficos-v2/tanda12/`). Los 7 ataques nuevos tienen un solo dueño y su efecto animado: Fiesta pagana (Juerga, 75, todos, 20 % baja 1 Defensa), ¡Todos dentro! (Bronca, 70, todos, 30 % baja 1 Velocidad), Flash (Chispa, 55, uno, 30 % baja 1 Precisión), Nubarrón (Ventolera, 60, todos), Está carísimo (Chanza, 70, uno, 30 % baja 1 Especial), Calada (Petardo, 60, uno, 30 % quema) y Dar vueltas (Ventolera, 60, uno, 20 % pierde el turno). OllaLocah es la primera en llevar Remolino. Equilibrio (8000 batallas): ×0,76-1,11 al entrar; tras retocar estadísticas, Cilantrox ×0,91, Cloudtrio ×1,08, Fotomatón ×1,11, Cigarr ×0,90 y OllaLocah ×0,91. Dos habilidades cambiaron respecto a la propuesta: Tira de cuatro (Fotomatón) es «tras acertar un ataque a todos, sube 1 su Defensa (hasta +2)» porque «cuando le tumban a un compañero» no puede darse con un solo userito en juego, y Vueltas de feria (OllaLocah) es «al salir, todos los rivales bajan 1 su Velocidad». No salen en la Aventura (oculta).
@@ -659,8 +659,8 @@ Potencia, precisión y PP. «Uno» es un rival a elegir; «todos», los tres riv
 | Temblor | Bronca | 80 | 100 | 5 | todos | No afecta a los de tipo Ventolera |
 | Adoquinazo | Bronca | 100 | 85 | 5 | uno | — |
 | Caparazón | Bronca | — | — | 10 | yo | Sube 2 niveles la Defensa |
-| Cierzo | Ventolera | 70 | 95 | 5 | todos | Baja 1 nivel la Velocidad de los rivales (lo lleva Cierzón; Pantaloneto lo cambió por Al tendedero) |
-| Al tendedero | Ventolera | 80 | 100 | 8 | uno | Si acierta, el que lo usa vuelve al banquillo al final del turno y su dueño elige quién entra. Si falla o no queda nadie más, se queda. Solo Pantaloneto |
+| Cierzo | Ventolera | 60 | 95 | 5 | todos | Baja 1 nivel la Velocidad de los rivales, la mitad de las veces (desde la 0.2.14; lo lleva Cierzón; Pantaloneto lo cambió por Al tendedero) |
+| Al tendedero | Ventolera | 90 | 100 | 8 | uno | Si acierta, el que lo usa vuelve al banquillo al final del turno y su dueño elige quién entra. Si falla o no queda nadie más, se queda. Solo Pantaloneto |
 | Planeo | Ventolera | 80 | 100 | 8 | uno | — |
 | Golpe de Tabla | Ventolera | 90 | 95 | 5 | uno | Sube 1 nivel la Velocidad del que lo usa (una vez, si acierta a alguien) |
 | Remolino | Ventolera | — | 100 | 8 | uno | Le obliga a cambiar a otro userito al azar |
@@ -679,14 +679,14 @@ Potencia, precisión y PP. «Uno» es un rival a elegir; «todos», los tres riv
 | Taconeo | Juerga | 95 | 100 | 8 | uno | 20 %: retrocede (pierde el turno si aún no ha actuado) |
 | Conga | Juerga | 70 | 100 | 5 | todos | — |
 | Pogo | Juerga | 75 | 95 | 5 | todos | 20 %: retroceden |
-| Coz doble | Juerga | 45 | 100 | 8 | uno | Pega dos veces (una por cabeza) |
+| Coz doble | Juerga | 55 | 100 | 8 | uno | Pega dos veces (una por cabeza) |
 | Chulería | Juerga | 80 | 100 | 8 | uno | — |
 | Compás | Juerga | — | — | 10 | yo | Sube 2 niveles el Ataque |
 | ¡Camioneees y caravanaaas! | Juerga | 75 | 100 | 3 | todos | Si alguien la cantó el turno anterior, pega el doble |
 | Zasca | Chanza | 100 | 90 | 5 | uno | — |
 | Vacile | Chanza | 80 | 100 | 8 | uno | 20 %: baja 1 nivel el Especial |
 | P de Pesao | Chanza | 60 | 100 | 8 | uno | Siempre baja 1 nivel la Velocidad del rival |
-| A dos voces | Bronca | 75 | 100 | 5 | todos | — (antes Chanza, 65: ahora son una pareja que discute) |
+| A dos voces | Bronca | 85 | 100 | 5 | todos | — (antes Chanza, 65: ahora son una pareja que discute) |
 | Monada | Chanza | — | 100 | 8 | todos | Nadie quiere pegarle: baja 1 nivel el Ataque de los rivales |
 | Cizaña | Chanza | — | 90 | 5 | uno | Durante 2 turnos, sus ataques a un rival van a un rival al azar |
 | Sin Narrativa | Chanza | — | — | 8 | — | Copia el último movimiento que se haya usado en la batalla, de quien sea |
@@ -697,7 +697,7 @@ Potencia, precisión y PP. «Uno» es un rival a elegir; «todos», los tres riv
 | Indigestión | Grasa | — | 90 | 5 | uno | Lo empacha |
 | Rebozado | Grasa | — | — | 10 | yo | Sube 2 niveles la Defensa |
 | Susto | Fantasma | 40 | 100 | 10 | uno | Prioridad +1: ataca antes que los de prioridad 0 (solo van antes los cambios y las protecciones) |
-| Eco | Fantasma | 40 | 100 | 10 | uno | Pega dos veces |
+| Eco | Fantasma | 35 | 100 | 10 | uno | Pega dos veces |
 | Venganza | Fantasma | 50 | 100 | 5 | uno | Doble de potencia contra quien le hizo daño el turno anterior |
 | Flipada | Fantasma | — | — | 5 | yo | Sube 1 nivel el Ataque, el Especial y la Velocidad; baja 1 nivel la Defensa |
 | Selfie | Fantasma | — | 70 | 8 | todos | Flash en la cara: baja 1 nivel la precisión de los rivales |
@@ -710,11 +710,11 @@ Potencia, precisión y PP. «Uno» es un rival a elegir; «todos», los tres riv
 | Otra ficha | Chispa | — | — | 5 | yo | Cura la mitad de los PS y quita los estados; el turno siguiente no hace nada (recarga). Falla si está sano y sin estado |
 | Crujiente | Grasa | 25 | 90 | 10 | uno | Pega de 2 a 5 veces |
 | Con limón | Droga | — | — | 5 | yo | Quita los estados y sube 1 nivel el Especial |
-| Corte de papel | Ventolera | 80 | 100 | 8 | uno | Triple de probabilidad de crítico (`critico: 3`) |
+| Corte de papel | Ventolera | 90 | 100 | 8 | uno | Triple de probabilidad de crítico (`critico: 3`) |
 | Papiroflexia | Ventolera | — | — | 5 | yo | Sube 1 nivel el Ataque y 1 la Velocidad |
 | Pasodoble | Juerga | 80 | 100 | 8 | uno | 30 %: sube 1 nivel la Velocidad del que lo usa |
 | Mancha de cerveza | Alcohol | 75 | 100 | 8 | uno | 30 %: baja 1 nivel la Precisión |
-| ¡Ay, ay, ay! | Juerga | 70 | 100 | 5 | todos | 10 %: el rival retrocede |
+| ¡Ay, ay, ay! | Juerga | 85 | 100 | 5 | todos | 10 %: el rival retrocede |
 | Serenata | Juerga | — | 100 | 5 | uno | Deja al rival embobado 2 turnos (`vol.embobado`, como Cizaña): su ataque a uno contra el Mariachi que cantó (y solo mientras ese Mariachi esté en el campo) va a otro rival al azar; los ataques a todos sí le dan. Si no hay otro rival, el golpe se queda. Repetida sobre uno embobado, no tiene efecto |
 | Salsa picante | Petardo | 90 | 100 | 8 | uno | 20 %: quema |
 | Ocho tortas | Bronca | 12 | 90 | 5 | uno | Una sola tirada de precisión y, si acierta, 8 golpes (`golpes: 8`); se para si el rival cae |
@@ -788,3 +788,4 @@ Pedido por Jesús el 14-oct-2026: «un modo a 1 jugador… que se vayan "cazando
 **Pendiente de decidir con Jesús** (ideas para la siguiente vuelta): niveles y experiencia en vez de escalar a los rivales; vida que no se recupera entre batallas (y la barra como «centro de salud»); jarras limitadas que se ganan; un userito salvaje sin cara de entrenador; que el combate contra un solo rival use mejor la pantalla (ahora el rival ocupa la primera fila de tres); objetos de la barra en la aventura; historia y frases de los jefes.
 
 - **Equilibrio de Fer con la mitad (15-oct-2026, `--entrenadores=6000`):** con los diez movimientos de sonido y ×0,5 Fer gana el 31,1 % (×1,24, fuera de margen); con ×0,75 (un 25 % menos) 26,4 %; con ×0,5 solo en los seis de antes, 24,9 %. Jesús pidió ×0,5 y, viendo el 31 %, eligió el 25 % menos (×0,75), que es lo que hay.
+- **Equilibrio de la 0.2.14 (20-oct-2026, paquete «R», aprobado por Jesús):** medido con 24 000 batallas (tres tandas de 8000 con semillas distintas, porque entre tandas un userito varía hasta ±0,10). Antes de ×0,81 (Mariachi) a ×1,18 (Torrezmón), con 15 useritos fuera de ×0,90–1,10; después de ×0,86 (Cilantrox) a ×1,15 (Jesúspelo y Ceceseta), con 6 fuera de ×0,90–1,10 y ninguno fuera del margen. Cambios, todos con suma 420: estadísticas de Mariachi, Pantaloneto, Lentejasur, Chupitochu, Evoscar, Cigarr, Cajonazo, Papiroflexeon, Camioner, Resacón, Torrezmón, Turroncho y P (ver la tabla de useritos); potencia de ataques que solo tiene un userito (¡Ay, ay, ay! 85, Al tendedero 90, Coz doble 55, A dos voces 85, Corte de papel 90, Cierzo 60, Eco 35); Cierzo baja la Velocidad la mitad de las veces; Fer al 20 % (con R salía ×1,11; así, ×1,09 y los siete dentro). Lecciones: la Especial vale el doble (ataca y es la defensa contra 6 de los 11 tipos), así que para bajar a alguien se le quita Especial y para subirlo se le da; no se tocan ataques compartidos (arrastran a otros); habilidades, bot, tabla de tipos y fórmula de daño se probaron y no sirven para equilibrar. Informe, scripts y resultados: `/mnt/project-files/batallas/recomendaciones-equilibrio.md` y `batallas/equilibrio-0.2.13/`.
