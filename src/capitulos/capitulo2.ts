@@ -1,0 +1,375 @@
+// Chapter 2, the opening (docs/CAPITULO2.md): from the door of the Bar del Brío,
+// where chapter 1 ended, to Fran closing his eyes and dreaming his Pang.
+//
+// The four are already inside, at the bar, from the start; the player switches
+// between them with the dock. The puzzle, «una moneda para la tragaperras»: Fran
+// orders a round so Chuchi does not leave (the beers down the bar, src/ui/canas.ts);
+// Chuchi knows the slot machine has to be switched off and on «like the router»;
+// Guille pulls it from the wall, and behind it there is a 1987 duro; the machine
+// takes no pesetas until Pablo charms Vero into the «fresquitos»; then it swallows
+// the duro and pays nothing, Pablo starts a pasodoble and all four sing
+// (src/ui/canto.ts): the jackpot. Fran closes his eyes: the Pang.
+//
+// Each round raises «el nivel de la noche» and the bar turns into a dream: the
+// scenes bar0…bar3 are the same bar baked with its dream gone further, and the
+// live bits (src/capitulos/bar-vivo.ts) move on top. Every line comes from
+// src/textos/capitulo2.md.
+import { escena as bar } from '../arte/escenas/bar.mjs';
+import { escena as calle } from '../arte/escenas/calle.mjs';
+import type { Aventura, Capitulo, ZonaLogica } from '../juego/aventura';
+import type { Estado } from '../juego/estado';
+import type { PjId } from '../juego/reparto';
+import type { Escena } from '../motor/escena';
+import { texto } from '../juego/textos';
+import { h } from '../ui/hud';
+import { jugarCanas } from '../ui/canas';
+import { jugarCanto } from '../ui/canto';
+import { mostrarTragaperras } from '../ui/tragaperras';
+import { jugarPangCapitulo } from '../pang/capitulo';
+import { dibujarBarVivo } from './bar-vivo';
+
+const HORA = (h: number, m: number) => h * 60 + m;
+/** The Brío's door on the street (calle.mjs), where chapter 1 left them. */
+const PUERTA_BRIO = 6740;
+const ZONAS = ['puerta', 'tabaco', 'barra', 'grifos', 'expositor', 'estanteria', 'tele', 'porra', 'tragaperras', 'bano'] as const;
+/** The bar's music, louder than in the street but under the voices. */
+const VOLUMEN_BAR = 0.75;
+
+let spots0: Escena['spots'] | null = null;
+/** Where everyone is in the bar (the same in its four dream levels). */
+function spots() {
+  return (spots0 ??= (bar(0) as unknown as Escena).spots);
+}
+
+function estadoInicial(): Estado {
+  const s = spots();
+  const en = (id: PjId) => ({ escena: 'bar0', X: s[id].X, y: s[id].y, face: s[id].face ?? 1 });
+  return {
+    v: 3,
+    activo: 'fran',
+    jugables: ['fran', 'pablo', 'chuchi', 'guille'],
+    llegados: [],
+    donde: { fran: en('fran'), pablo: en('pablo'), chuchi: en('chuchi'), guille: en('guille') },
+    ropa: {},
+    inv: { fran: [], pablo: [], chuchi: [], guille: [] },
+    flags: {},
+    minutos: { fran: HORA(23, 47), pablo: HORA(23, 47), chuchi: HORA(23, 47), guille: HORA(23, 47) },
+    usos: {},
+  };
+}
+
+/** How far the night has gone (0–3): which of the four bars is on. */
+const nivel = (g: Aventura) => Number(g.estado.flags['c2.nivel'] ?? 0);
+
+/**
+ * The next round: the bar is baked again a step further into the dream, behind a
+ * flash, and everyone stays where they were.
+ */
+async function subirNivel(g: Aventura, n: number) {
+  if (nivel(g) >= n) return;
+  g.poner('c2.nivel', n);
+  const escena = `bar${n}`;
+  for (const id of g.estado.jugables) {
+    const p = g.pjs.get(id);
+    const d = g.estado.donde[id];
+    if (d) Object.assign(d, { escena, ...(p ? { X: p.X, y: p.y, face: p.face } : {}) });
+  }
+  g.hud.cerrarDialogo();
+  const flash = h('div', { style: 'position:absolute;inset:0;z-index:30;pointer-events:none;background:#fff6e0;opacity:0;transition:opacity 350ms ease-in' });
+  g.root.append(flash);
+  requestAnimationFrame(() => (flash.style.opacity = '1'));
+  await g.esperar(380);
+  const cam = g.motor.cam;
+  await g.irA(escena, false);
+  g.motor.seguir(cam, true);
+  flash.style.transition = 'opacity 900ms ease-out';
+  flash.style.opacity = '0';
+  await g.esperar(900);
+  flash.remove();
+}
+
+/** Someone who is not the one for this step: a line of their own pointing at who is. */
+async function noEres(g: Aventura, paso: string) {
+  await g.hablar(`c2.${paso}.noeres`);
+}
+
+// ------------------------------------------------------------------ the steps
+
+/** Fran orders the round: Vero sends the beers down the bar. */
+async function ronda(g: Aventura) {
+  await g.hablar('c2.vero.ronda');
+  g.pausado = true;
+  const r = await jugarCanas(g.root, { rapido: g.rapido, sonido: g.sound }).finally(() => (g.pausado = false));
+  if (r === 'cancelado') return g.hablar('c2.canas.cancelada');
+  if (r === 'hecho') g.minijuegoSuperado('canas');
+  g.poner('c2.ronda');
+  g.avanzarReloj(10);
+  await g.hablar('c2.ronda.servida');
+  await subirNivel(g, 1);
+  await g.hablar('c2.tragaperras.idea');
+  g.hud.ayuda(texto('objetivo.c2.moneda'), 6);
+}
+
+/** Vero, tapped (or the counter): what she says depends on who and when. */
+async function vero(g: Aventura, item: string | null) {
+  const quien = g.estado.activo;
+  if (item === 'duro') return g.hablar('c2.vero.duro');
+  if (item) return g.hablar('c2.vero.objeto');
+  if (!g.flag('c2.ronda')) return quien === 'fran' ? ronda(g) : noEres(g, 'ronda');
+  if (!g.flag('c2.cambio') && quien === 'guille') {
+    g.poner('c2.cambio');
+    return g.hablar('c2.vero.cambio');
+  }
+  if (g.flag('c2.duroProbado') && !g.flag('c2.fresquitos')) return quien === 'pablo' ? fresquitos(g) : noEres(g, 'fresquitos');
+  if (g.flag('c2.premio')) return g.hablar('c2.vero.sueno');
+  if (g.flag('c2.fresquitos')) return g.hablar('c2.vero.despues');
+  return g.hablar('c2.vero.charla');
+}
+
+/** Pablo and Vero: three lines to make her laugh; only the improv one works. */
+async function fresquitos(g: Aventura) {
+  await g.hablar('c2.pablo.vero');
+  for (;;) {
+    const i = await g.hud.opciones([1, 2, 3].map((n) => texto(`c2.opcion.${n}`)));
+    await g.hablar(`c2.pablo.opcion.${i + 1}`);
+    if (i === 2) break;
+  }
+  g.poner('c2.fresquitos');
+  g.avanzarReloj(15);
+  await subirNivel(g, 2);
+  await g.hablar('c2.fresquitos.despues');
+}
+
+/** The slot machine: out of order, then pulled from the wall, then the duro. */
+async function tragaperras(g: Aventura) {
+  const quien = g.estado.activo;
+  if (!g.flag('c2.separada')) {
+    if (!g.flag('c2.diagnostico')) {
+      if (quien !== 'chuchi') return g.hablar('c2.tragaperras.rota');
+      g.poner('c2.diagnostico');
+      return g.hablar('c2.chuchi.tragaperras');
+    }
+    if (quien !== 'guille') return noEres(g, 'separar');
+    await g.hablar('c2.guille.tragaperras.antes');
+    g.poner('c2.separada');
+    g.poner('c2.duroVisible');
+    g.sound.pickup();
+    await g.hablar('c2.guille.tragaperras');
+    g.poner('c2.encendida');
+    return;
+  }
+  if (g.flag('c2.duroVisible')) {
+    g.poner('c2.duroVisible', false);
+    g.dar('duro');
+    g.sound.pickup();
+    await g.hablar('c2.coger.duro');
+    g.ayudaUnaVez('bolsa');
+    return;
+  }
+  if (g.flag('c2.tirada')) return g.hablar('c2.tragaperras.despues');
+  return g.hablar(g.tiene('duro') ? 'c2.tragaperras.conduro' : 'c2.tragaperras.encendida');
+}
+
+/** The duro into the machine: no pesetas, until the fresquitos; then a spin, and the song. */
+async function meterDuro(g: Aventura) {
+  if (!g.flag('c2.fresquitos')) {
+    g.poner('c2.duroProbado');
+    g.sound.nope();
+    await g.hablar('c2.duro.probar');
+    return;
+  }
+  g.quitar('duro');
+  g.poner('c2.tirada');
+  await g.hablar('c2.duro.entra');
+  g.hud.cerrarDialogo();
+  g.pausado = true;
+  await mostrarTragaperras(g.root, { premio: false, rapido: g.rapido, sonido: g.sound }).finally(() => (g.pausado = false));
+  await g.hablar('c2.duro.sinpremio');
+  await canto(g);
+}
+
+/** The first time the song is ever sung: the jackpot, the dream, and Fran's eyes. */
+async function canto(g: Aventura) {
+  await g.hablar('c2.canto.antes');
+  g.pausado = true;
+  const r = await jugarCanto(g.root, { rapido: g.rapido, sonido: g.sound }).finally(() => (g.pausado = false));
+  if (r === 'hecho') g.minijuegoSuperado('canto');
+  g.poner('c2.premio');
+  await g.hablar('c2.premio.antes');
+  g.hud.cerrarDialogo();
+  g.pausado = true;
+  await mostrarTragaperras(g.root, { premio: true, rapido: g.rapido, sonido: g.sound }).finally(() => (g.pausado = false));
+  await subirNivel(g, 3);
+  await g.hablar('c2.premio');
+  await ojosDeFran(g);
+}
+
+/** The camera closes in on Fran, he shuts his eyes, and the foam of his beer becomes the Pang. */
+async function ojosDeFran(g: Aventura) {
+  const F = g.pjs.get('fran');
+  g.foco = F ? F.X : null;
+  await g.esperar(700);
+  await g.hablar('c2.fran.ojos');
+  g.hud.cerrarDialogo();
+  g.hud.setVisible(false);
+  // The zoom is a CSS scale of the whole game layer: free, and the scene stays as it is.
+  const capa = g.root;
+  const k = F ? g.motor.f(F.y) : 1;
+  const ox = F ? (g.motor.screenX(F.X, k) / g.motor.vw) * 100 : 50;
+  const oy = F ? (((F.y - 230 * g.motor.escala(k)) / 1080) * 100) : 45;
+  capa.style.transformOrigin = `${ox}% ${oy}%`;
+  capa.style.transition = 'transform 1.8s cubic-bezier(.5,0,.2,1)';
+  requestAnimationFrame(() => (capa.style.transform = 'scale(2.4)'));
+  await g.esperar(900);
+  if (F) F.eyesClosed = true;
+  await g.esperar(1000);
+  g.pausado = true;
+  const r = await jugarPangCapitulo(g.root.parentElement!, { rapido: g.rapido, sonido: g.sound }).finally(() => (g.pausado = false));
+  if (r === 'hecho') g.minijuegoSuperado('pang');
+  capa.style.transition = 'none';
+  capa.style.transform = '';
+  if (F) F.eyesClosed = false;
+  g.poner('c2.pang');
+  g.hud.setVisible(true);
+  await g.hablar('c2.despues');
+  g.foco = null;
+  await fin(g);
+}
+
+/** «Continuará…»: the end of what there is of chapter 2 so far. */
+async function fin(g: Aventura) {
+  g.hud.cerrarDialogo();
+  await g.velar(true);
+  await g.hud.rotulo(texto('fin.continuara'), texto('c2.fin.sub'), undefined, 'continuara');
+  g.capituloSuperado(2);
+  await g.velar(false);
+  g.onFin?.();
+}
+
+// ------------------------------------------------------------------ the bar
+
+function zonasBar(g: Aventura): Record<string, ZonaLogica> {
+  // Each place has a line for every level of the night it has one for, else the plain one.
+  const mirarPorNivel = (id: string) => async () => {
+    for (let n = nivel(g); n > 0; n--) if (g.hayDialogo(`c2.mirar.${id}.${n}`)) return g.hablar(`c2.mirar.${id}.${n}`);
+    await g.hablar(`c2.mirar.${id}`);
+  };
+  const z: Record<string, ZonaLogica> = {};
+  for (const id of ZONAS) z[id] = { nombre: () => texto(`zona.c2.${id}`), mirar: mirarPorNivel(id) };
+  z.puerta.usar = () => g.hablar(g.flag('c2.premio') ? 'c2.puerta.sueno' : 'c2.puerta');
+  z.barra.usar = () => vero(g, null);
+  z.barra.usarObjeto = async (item) => {
+    await vero(g, item);
+    return true;
+  };
+  z.tragaperras.usar = () => tragaperras(g);
+  z.tragaperras.usarObjeto = async (item) => {
+    if (item !== 'duro') return false;
+    await meterDuro(g);
+    return true;
+  };
+  return z;
+}
+
+export const capitulo2: Capitulo = {
+  escenas: {
+    calle: () => calle() as unknown as Escena,
+    bar0: () => bar(0) as unknown as Escena,
+    bar1: () => bar(1) as unknown as Escena,
+    bar2: () => bar(2) as unknown as Escena,
+    bar3: () => bar(3) as unknown as Escena,
+  },
+
+  estadoInicial,
+
+  /** The four are together from the start: no one is chosen, the chapter opens on the street. */
+  async inicio(g) {
+    g.sound.precargar('brio');
+    // The door of the Brío, as chapter 1 left it, while the narrator sets the night.
+    await g.irA('calle', true, false);
+    g.foco = PUERTA_BRIO;
+    g.motor.seguir(PUERTA_BRIO, true);
+    await g.velar(false);
+    await g.hablar('c2.intro');
+    g.hud.cerrarDialogo();
+    // In through the door: from the entrance along the bar to the four of them.
+    await g.velar(true);
+    await g.irA('bar0', false, false);
+    g.foco = spots().entrada.X;
+    g.motor.seguir(spots().entrada.X, true);
+    await g.velar(false);
+    await g.esperar(500);
+    g.foco = spots().fran.X;
+    while (g.motor.camaraMoviendose) await g.esperar(100);
+    g.foco = null;
+    // Started for good: a save from here on carries on in the bar (main.ts, «empezada»).
+    for (const id of g.estado.jugables) g.poner(`empezado.${id}`);
+    await g.hablar('c2.mesa');
+    g.hud.ayuda(texto('objetivo.c2.ronda'), 6);
+    g.ayudaUnaVez('cambiar');
+  },
+
+  zonas(g, escena) {
+    return escena.startsWith('bar') ? zonasBar(g) : {};
+  },
+
+  npcs(g, escena) {
+    if (!escena.startsWith('bar')) return [];
+    const v = g.S.spots.vero;
+    return [{ id: 'vero', X: v.X, y: v.y, face: v.face ?? 1 }];
+  },
+
+  situacion: () => '',
+  async empezar() {},
+  async final() {},
+
+  async personaje(g, quien, item) {
+    if (quien === 'vero') return vero(g, item);
+    if (quien === 'aceituna' || quien === 'sombra') return;
+    if (quien !== g.estado.activo) {
+      if (item === 'duro') return g.hablar('c2.duro.dar');
+      return g.hablar(`c2.charla.${quien}`);
+    }
+    if (item === 'duro') return g.hablar('c2.duro.mirar');
+    if (item) return g.hablar('nadacontigo');
+    return g.hablar(`c2.mirar.${quien}`);
+  },
+
+  async mirarObjeto(g, item) {
+    await g.decir(g.estado.activo, texto(`objeto.${item}.texto`));
+  },
+
+  objetivo(g) {
+    if (!g.flag('c2.ronda')) return texto('objetivo.c2.ronda');
+    if (g.flag('c2.tirada')) return null;
+    if (g.flag('c2.fresquitos')) return texto('objetivo.c2.duro');
+    if (g.flag('c2.duroProbado')) return texto('objetivo.c2.fresquitos');
+    return texto('objetivo.c2.moneda');
+  },
+
+  pista(g) {
+    const f = (k: string) => g.flag(k);
+    if (!f('c2.ronda')) return texto('pista.c2.ronda');
+    if (!f('c2.diagnostico')) return texto(f('c2.cambio') ? 'pista.c2.maquina' : 'pista.c2.cambio');
+    if (!f('c2.separada')) return texto('pista.c2.enchufe');
+    if (f('c2.duroVisible')) return texto('pista.c2.cogerduro');
+    if (!f('c2.duroProbado')) return texto('pista.c2.meterduro');
+    if (!f('c2.fresquitos')) return texto('pista.c2.fresquitos');
+    return texto('pista.c2.duro2');
+  },
+
+  vecinas: (escena) => {
+    const m = escena.match(/^bar(\d)$/);
+    return m && Number(m[1]) < 3 ? [`bar${Number(m[1]) + 1}`] : [];
+  },
+
+  musica(g) {
+    if (g.escena === 'calle') return { pista: 'barPuerta', volumen: 1 };
+    if (!g.escena.startsWith('bar')) return null;
+    return { pista: nivel(g) >= 2 ? 'brioSueno' : 'brio', volumen: VOLUMEN_BAR };
+  },
+
+  dibujar(g, ctx, capa) {
+    if (g.escena.startsWith('bar')) dibujarBarVivo(g, ctx, capa, nivel(g));
+  },
+};

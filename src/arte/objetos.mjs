@@ -116,7 +116,18 @@ const hojas = () => [
   ...[0, 1, 2, 3].map((i) => stroke(`M30 ${36 + i * 8}L${62 - (i % 2) * 10} ${36 + i * 8}`, '#a8a090', 1.6, { opacity: 0.5 })),
 ].join('');
 
+/** A 1987 duro (five pesetas): aluminium bronze, the king's head and a worn rim. Chapter 2. */
+const duro = () => [
+  shape(ellipse(50, 52, 30, 30), '#d7b450', [path(ellipse(56, 58, 24, 24), '#b8923a')], '#7a5a1c', 2.4),
+  shape(ellipse(50, 50, 22, 22), 'none', [], '#9c7a2e', 1.6),
+  // The king in profile, worn smooth.
+  path(smooth([[44, 36], [54, 34], [60, 42], [58, 50], [62, 54], [58, 58], [56, 66], [44, 66], [42, 54], [40, 44]]), '#c7a145'),
+  stroke('M54 38C60 42 59 48 58 50L62 54L58 57', '#8a6a26', 1.6),
+  path(ellipse(40, 38, 7, 4), '#fff4c8', { opacity: 0.6 }),
+].join('');
+
 export const OBJETOS = {
+  duro,
   libreto,
   tijeras,
   hojas,

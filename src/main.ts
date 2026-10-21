@@ -14,6 +14,8 @@ import { jugarRobot } from './ui/robot';
 import { jugarCerdos } from './ui/cerdos';
 import { mostrarPrologo } from './ui/prologo';
 import { capitulo1 } from './capitulos/capitulo1';
+import { capitulo2 } from './capitulos/capitulo2';
+import type { Estado } from './juego/estado';
 import { h } from './ui/hud';
 import { alCambiarOrientacion, esVertical } from './ui/orientacion';
 import type { Calidad } from './motor/motor';
@@ -63,22 +65,39 @@ async function arrancar() {
   // being replayed. Switching between them saves and reloads the page.
   // The emergency exit (docs/JUGABILIDAD.md): the address ending in ?nueva starts from nothing.
   const params = new URLSearchParams(location.search);
+  // Chapter 2 while it is being made (docs/CAPITULO2.md): the address ending in ?capitulo2
+  // plays it from the start, with a save of its own; chapter 1's game is never touched.
+  const cap2 = params.has('capitulo2');
+  const CLAVE_CAP2 = 'cyc.capitulo2';
   if (params.has('nueva')) {
-    borrarPartida();
+    if (cap2) storageSet(CLAVE_CAP2, '');
+    else borrarPartida();
     params.delete('nueva');
     history.replaceState(null, '', location.pathname + (params.size ? `?${params}` : '') + location.hash);
   }
   const partida = cargarPartida();
   const enCurso = enJuego(partida);
-  const g = new Aventura(root, capitulo1, enCurso?.estado ?? capitulo1.estadoInicial());
-  g.rejugando = partida.jugando === 'rejuego';
+  const guardadoCap2 = (): Estado | null => {
+    try {
+      const raw = storageGet(CLAVE_CAP2);
+      return raw ? (JSON.parse(raw) as Estado) : null;
+    } catch {
+      return null;
+    }
+  };
+  const g = cap2
+    ? new Aventura(root, capitulo2, guardadoCap2() ?? capitulo2.estadoInicial())
+    : new Aventura(root, capitulo1, enCurso?.estado ?? capitulo1.estadoInicial());
+  g.rejugando = !cap2 && partida.jugando === 'rejuego';
   let saliendo = false;
   const guardar = () => !saliendo && guardarPartida(partida);
   g.alGuardar = (estado) => {
+    if (cap2) return void (!saliendo && storageSet(CLAVE_CAP2, JSON.stringify(estado)));
     partida[partida.jugando] = { capitulo: 1, estado };
     guardar();
   };
   g.onProgreso = ({ capitulo, minijuego }) => {
+    if (cap2) return;
     const { capitulos, minijuegos } = partida.progreso;
     if (capitulo) capitulos[capitulo] = { ...capitulos[capitulo], superado: true, fecha: capitulos[capitulo]?.fecha ?? new Date().toISOString() };
     if (minijuego) minijuegos[minijuego] = { ...minijuegos[minijuego], superado: true };
@@ -111,7 +130,9 @@ async function arrancar() {
 
   // Signs are lettered with the web fonts: wait for them, but never for long.
   await Promise.race([Promise.all([document.fonts.load("44px 'Graduate'"), document.fonts.load("800 34px 'Alegreya Sans'")]), wait(1800)]).catch(() => {});
-  const lugar = g.estado.donde[g.estado.activo]?.escena ?? 'piso';
+  // A new chapter 2 opens on the street, at the Brío's door (capitulo2.ts, inicio).
+  const empezada = g.estado.jugables.some((id) => g.flag(`empezado.${id}`));
+  const lugar = cap2 && !empezada ? 'calle' : g.estado.donde[g.estado.activo]?.escena ?? 'piso';
   // Behind the title the curtain stays down: nothing of the scene shows until the game starts.
   const cargada = g.ejecutar(() => g.irA(lugar, true, false));
   const logo = await logoClaro().catch(() => logoUrl);
@@ -226,8 +247,7 @@ async function arrancar() {
           'div',
           { class: 'fila' },
           h('button', { class: 'btn primario', onclick: (e) => (e.stopPropagation(), cerrar()) }, texto('menu.continuar')),
-          capitulos,
-          minijuegos,
+          ...(cap2 ? [] : [capitulos, minijuegos]),
           reiniciar,
         ),
       ),
@@ -238,6 +258,11 @@ async function arrancar() {
         seguro = true;
         reiniciar.textContent = texto('menu.seguro');
         return;
+      }
+      if (cap2) {
+        saliendo = true;
+        storageSet(CLAVE_CAP2, '');
+        return location.reload();
       }
       // Only the game being played starts again: chapters and minigames finished stay finished.
       cambiarPartida((p) => (p[p.jugando] = null));
@@ -404,6 +429,26 @@ async function arrancar() {
 
   // ---------------------------------------------------------- end of the pilot
   g.onFin = () => {
+    // Chapter 2 so far: the end of its opening, and the way to play it again.
+    if (cap2) {
+      const el = g.hud.cubrir(
+        'titulo',
+        h(
+          'div',
+          { class: 'tarjeta vidrio' },
+          h('img', { src: logo, alt: 'Camiones y Caravanas', class: 'logo-fin' }),
+          h('h2', {}, texto('c2.fin.titulo')),
+          h('p', {}, texto('c2.fin.texto')),
+          h(
+            'div',
+            { class: 'fila' },
+            h('button', { class: 'btn primario', id: 'fin-seguir', onclick: (e) => (e.stopPropagation(), el.remove()) }, texto('fin.seguir')),
+            h('button', { class: 'btn fantasma', id: 'fin-rejugar', onclick: (e) => (e.stopPropagation(), (saliendo = true), storageSet(CLAVE_CAP2, ''), location.reload()) }, texto('fin.rejugar')),
+          ),
+        ),
+      );
+      return;
+    }
     const el = g.hud.cubrir(
       'titulo',
       h(
@@ -447,14 +492,14 @@ async function arrancar() {
 
   // ---------------------------------------------------------- title
   // A new game until someone's story has started (the save exists as soon as a scene loads).
-  const nueva = !g.estado.jugables.some((id) => g.flag(`empezado.${id}`));
+  const nueva = !empezada;
   const titulo = g.hud.cubrir(
     'titulo',
     h(
       'div',
       { class: 'pila' },
       h('img', { src: logo, alt: 'Camiones y Caravanas, crew est. 2020' }),
-      h('div', { class: 'capitulo' }, texto('titulo.capitulo')),
+      h('div', { class: 'capitulo' }, texto(cap2 ? 'titulo.capitulo2' : 'titulo.capitulo')),
       ...(g.rejugando ? [h('div', { class: 'aviso-rejuego' }, texto('titulo.rejugando'))] : []),
       h('div', { class: 'toca' }, texto(nueva ? 'titulo.empezar' : 'titulo.seguir')),
     ),
@@ -468,7 +513,7 @@ async function arrancar() {
     empezado = true;
     if (quierePantallaCompleta()) pedirPantallaCompleta();
     // A new game: the prologue first (src/ui/prologo.ts), while the scene finishes loading behind it.
-    if (nueva) {
+    if (nueva && !cap2) {
       g.pausado = true;
       await mostrarPrologo(root.parentElement!, g.rapido);
       g.pausado = false;

@@ -51,6 +51,8 @@ export interface Capitulo {
   empezar(g: Aventura, quien: PjId): Promise<void>;
   /** All four are on their way: the four of them arrive at the bar together. */
   final(g: Aventura): Promise<void>;
+  /** A chapter that opens with a scene of its own instead of choosing who to play (chapter 2). */
+  inicio?(g: Aventura): Promise<void>;
   alEntrar?(g: Aventura, escena: string): Promise<void>;
   /** First look at every tap; return true to swallow it (e.g. waking Fran up). */
   tocar?(g: Aventura): boolean;
@@ -386,6 +388,7 @@ export class Aventura {
 
   /** A new game: choose who starts. */
   async empezarPartida() {
+    if (this.cap.inicio) return this.cap.inicio(this);
     await this.cambiarA(await this.escogerQuien(texto('eleccion.titulo')));
   }
 

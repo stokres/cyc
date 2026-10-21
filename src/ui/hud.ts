@@ -400,6 +400,33 @@ export class Hud {
     });
   }
 
+  /** Lines to choose from in a conversation (Pablo trying to make Vero laugh); resolves with the index. */
+  opciones(lista: string[]): Promise<number> {
+    this.cerrarBandeja();
+    this.plegarReparto();
+    return new Promise((resolve) => {
+      const el = h(
+        'div',
+        { class: 'opciones' },
+        ...lista.map((t, i) =>
+          h(
+            'button',
+            {
+              class: 'opcion-dialogo vidrio',
+              onclick: (e) => {
+                e.stopPropagation();
+                el.remove();
+                resolve(i);
+              },
+            },
+            t,
+          ),
+        ),
+      );
+      this.root.append(el);
+    });
+  }
+
   /** A title card over the faded scene (a story ends, or the chapter: `clase` 'continuara'); resolves on tap. */
   rotulo(titulo: string, sub: string, quien?: PjId, clase = ''): Promise<void> {
     return new Promise((resolve) => {
