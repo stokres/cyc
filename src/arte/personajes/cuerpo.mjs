@@ -41,6 +41,9 @@ function motas(x0, y0, w, h, n, color, seed = 7) {
  *   shoes: { style: 'sneaker' | 'boot', base, back, light, line, sole, soleBack },
  *   joints, torso (point list), belly (0..1), limb (arm width), thigh (thigh width),
  *   headAt: { x, y, s }, head(face) -> svg string,
+ *   optional, for builds that are not the four's: neckHalf (half width of the neck, 10),
+ *   top.sleeveK (width of a short sleeve, 1), encima({ front, back, top, hipY, nx, ny }) -> svg
+ *   drawn over the torso (an apron, a neckline).
  * }
  */
 /** Muted Hawaiian print: leaves and small flowers scattered over a box. */
@@ -108,7 +111,8 @@ function buildBody(cfg) {
 
   function torso() {
     const [nx, ny] = J.cabeza;
-    const neck = shape(smooth([[nx - 10, ny - 14], [nx + 8, ny - 14], [nx + 10, top + 4], [nx - 12, top + 4]]), S.skinShadow, [], S.skinLine, 1.2);
+    const nk = cfg.neckHalf ?? 10;
+    const neck = shape(smooth([[nx - nk, ny - 14], [nx + nk - 2, ny - 14], [nx + nk, top + 4], [nx - nk - 2, top + 4]]), S.skinShadow, [], S.skinLine, 1.2);
     // Waistband: no wider than the two thighs together, so it never pokes out under the top.
     const tw = cfg.thigh ?? 19;
     const hl = J.muslo_detras[0] - tw + 1;
@@ -248,7 +252,7 @@ function buildBody(cfg) {
         ...[[-16, -12], [-6, -16], [6, -15], [16, -10], [22, 0]].map(([x, y]) => path(ellipse(nx + x, top + y, 4, 3), c.light, { opacity: 0.8 })),
       ], c.line, 1.4);
     }
-    return neck + hips + garment + collar;
+    return neck + hips + garment + collar + (cfg.encima ? cfg.encima({ front, back, top, hipY, nx, ny }) : '');
   }
 
   /** A relaxed hand hanging from the wrist: palm, fingers curled a little and the thumb in front. */
@@ -290,7 +294,8 @@ function buildBody(cfg) {
       sombraLado(ex, ey, re + 0.8, wx, wy, rw, shade),
       isBack ? '' : path(ellipse(ex + re * 0.35, (ey + wy) / 2 - 4, 2.4, 9), S.skinLight ?? S.skin, { opacity: 0.55 }),
     ]) + contorno(ex, ey, re + 0.8, wx, wy, rw, L, 1.4, { arriba: true });
-    const sleeve = smooth([[sx - 13, sy - 4], [sx - 6, sy - 13], [sx + 7, sy - 14], [sx + 15, sy - 5], [sx + 16, sy + 12], [sx + 15, sy + 24, 'c'], [sx - 15, sy + 24, 'c'], [sx - 15, sy + 10]]);
+    const k = T.sleeveK ?? 1;
+    const sleeve = smooth([[sx - 13 * k, sy - 4], [sx - 6 * k, sy - 13], [sx + 7 * k, sy - 14], [sx + 15 * k, sy - 5], [sx + 16 * k, sy + 12], [sx + 15 * k, sy + 24, 'c'], [sx - 15 * k, sy + 24, 'c'], [sx - 15 * k, sy + 10]]);
     return g(`brazo_${side}`, [
       g(`mano_${side}`, [manoV2(wx, wy, rw + 0.8, isBack), pivot(`mano_${side}`, wx, wy)]),
       g(`antebrazo_${side}`, [fore, pivot(`antebrazo_${side}`, ex, ey)]),
