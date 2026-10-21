@@ -10,8 +10,9 @@
 //   clave = texto                 a single string (names, objectives, hints, menus)
 //   {hora}                        placeholders filled in by the game
 
-/** Who says a line: a protagonist, Aceituna, Pablo's shadow (the narrator in person) or the narrator (null). */
-export type Quien = 'fran' | 'pablo' | 'chuchi' | 'guille' | 'aceituna' | 'sombra' | null;
+/** Who says a line: a protagonist, Aceituna, Pablo's shadow (the narrator in person), a character who is not
+ * played (Vero, chapter 2) or the narrator (null). */
+export type Quien = 'fran' | 'pablo' | 'chuchi' | 'guille' | 'aceituna' | 'sombra' | 'vero' | null;
 
 export interface Linea {
   quien: Quien;
@@ -20,7 +21,7 @@ export interface Linea {
   texto: string;
 }
 
-const QUIEN: Record<string, Quien> = { FRAN: 'fran', PABLO: 'pablo', CHUCHI: 'chuchi', GUILLE: 'guille', ACEITUNA: 'aceituna', SOMBRA: 'sombra', NARRADOR: null };
+const QUIEN: Record<string, Quien> = { FRAN: 'fran', PABLO: 'pablo', CHUCHI: 'chuchi', GUILLE: 'guille', ACEITUNA: 'aceituna', SOMBRA: 'sombra', VERO: 'vero', NARRADOR: null };
 const ANIMO: Record<string, string> = {
   normal: 'neutral',
   contento: 'happy',

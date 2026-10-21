@@ -5,6 +5,7 @@ import * as pablo from '../arte/personajes/pablo.mjs';
 import * as chuchi from '../arte/personajes/chuchi.mjs';
 import * as guille from '../arte/personajes/guille.mjs';
 import * as aceituna from '../arte/personajes/aceituna.mjs';
+import * as vero from '../arte/personajes/vero.mjs';
 import type { ArteDePersonaje } from '../motor/actores';
 
 export type PjId = 'fran' | 'pablo' | 'chuchi' | 'guille';
@@ -27,6 +28,20 @@ export const REPARTO: Record<PjId, Ficha> = {
   guille: { id: 'guille', nombre: 'Guille', arte: guille as unknown as ArteDePersonaje, ropa: undefined, color: '#f5c95f' },
 };
 
+/** Characters who talk and stand in a scene but are never played (chapter 2: Vero, behind the Brío's bar). */
+export type NpcId = 'vero';
+export interface FichaNpc {
+  id: NpcId;
+  nombre: string;
+  arte: ArteDePersonaje;
+  ropa: string | undefined;
+  color: string;
+}
+export const NPCS: Record<NpcId, FichaNpc> = {
+  vero: { id: 'vero', nombre: 'Vero', arte: vero as unknown as ArteDePersonaje, ropa: 'barra', color: '#d0607a' },
+};
+export const esNpc = (q: string | null): q is NpcId => !!q && q in NPCS;
+
 export const NOMBRE_ACEITUNA = 'Aceituna';
 export const COLOR_ACEITUNA = '#c8433a';
 export const COLOR_SOMBRA = '#8a7ab8';
@@ -42,20 +57,24 @@ interface Pose {
 }
 
 /** Portrait (SVG markup) for the dialogue box and the character dock; each pose is built once. */
-export function retrato(id: PjId | 'aceituna' | 'sombra', o: Pose = {}) {
+export function retrato(id: PjId | 'aceituna' | 'sombra' | NpcId, o: Pose = {}) {
   const k = `${id}|${o.mood}|${o.mouthKind}|${o.blink ? 1 : 0}|${o.ropa ?? ''}`;
   let v = retratos.get(k);
   if (!v) retratos.set(k, (v = dibujarRetrato(id, o)));
   return v;
 }
 
-function dibujarRetrato(id: PjId | 'aceituna' | 'sombra', o: Pose) {
+function dibujarRetrato(id: PjId | 'aceituna' | 'sombra' | NpcId, o: Pose) {
   // Pablo's shadow: his own face, gone dark (only eyes and a glint left).
   if (id === 'sombra') {
     return `<svg viewBox="-62 -82 124 150" aria-hidden="true"><defs><filter id="sombra-retrato"><feColorMatrix type="matrix" values="0.12 0.06 0 0 0.03  0.06 0.1 0.02 0 0.02  0.06 0.04 0.16 0 0.06  0 0 0 1 0"/></filter></defs><g filter="url(#sombra-retrato)">${REPARTO.pablo.arte.headFront({ mood: o.mood, mouthKind: o.mouthKind, blink: o.blink })}</g></svg>`;
   }
   if (id === 'aceituna') {
     return `<svg viewBox="-52 -74 104 126" aria-hidden="true">${aceituna.headFront({ blink: o.blink, pant: o.mouthKind === 'a' || o.mouthKind === 'o', happy: o.mood === 'happy' })}</svg>`;
+  }
+  // Vero's bun rises above the others' hair: a taller box, same width.
+  if (esNpc(id)) {
+    return `<svg viewBox="-62 -96 124 164" aria-hidden="true">${NPCS[id].arte.headFront({ mood: o.mood, mouthKind: o.mouthKind, blink: o.blink })}</svg>`;
   }
   // Portraits face the camera (front view), unlike the 3/4 characters in the scene.
   const arte = REPARTO[id].arte;

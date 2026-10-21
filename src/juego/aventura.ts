@@ -8,7 +8,7 @@ import { Hud, h } from '../ui/hud';
 import { Gestures, type PointerInfo } from '../core/input';
 import { Sound } from '../core/audio';
 import { dialogo, hayDialogo, restaurarUsos, texto, usos, type Linea, type Quien } from './textos';
-import { PROTAS, REPARTO, type PjId } from './reparto';
+import { NPCS, PROTAS, REPARTO, esNpc, type NpcId, type PjId } from './reparto';
 import type { Estado } from './estado';
 import { OBJETOS } from '../arte/objetos.mjs';
 import { mostrarTutorial } from '../ui/tutorial';
@@ -34,8 +34,10 @@ export interface Capitulo {
   /** A save from an older version: whose story changed so much it has to start again (see reparar). */
   caducados?(e: Estado): PjId[];
   zonas(g: Aventura, escena: string): Record<string, ZonaLogica>;
-  /** Tap on a character or Aceituna, maybe with an item. */
-  personaje(g: Aventura, quien: PjId | 'aceituna' | 'sombra', item: string | null): Promise<void>;
+  /** Tap on a character, Aceituna or someone who is not played (Vero), maybe with an item. */
+  personaje(g: Aventura, quien: PjId | 'aceituna' | 'sombra' | NpcId, item: string | null): Promise<void>;
+  /** Characters who are not played and stand in this scene (Vero behind the bar), and where. */
+  npcs?(g: Aventura, escena: string): Array<{ id: NpcId; X: number; y: number; face: number }>;
   /** Pablo's shadow (the narrator in person): in which scene, if any, and whether it shows now. */
   sombra?(g: Aventura, escena: string): boolean;
   mirarObjeto(g: Aventura, item: string): Promise<void>;
@@ -77,6 +79,8 @@ export class Aventura {
   perro: Perrita | null = null;
   /** Pablo's shadow, following him around the backstage (the narrator in person). */
   sombra: Personaje | null = null;
+  /** Characters who are not played, in this scene (Capitulo.npcs). */
+  npcs = new Map<NpcId, Personaje>();
   /** The shadow faces Pablo (they have been talking) instead of mirroring him, until he walks. */
   private sombraMira = false;
   props: Objeto[] = [];
@@ -282,6 +286,15 @@ export class Aventura {
       this.motor.world.append(p.wrap);
       this.motor.actores.push(p);
     }
+    for (const n of this.npcs.values()) n.wrap.remove();
+    this.npcs.clear();
+    for (const n of this.cap.npcs?.(this, escena) ?? []) {
+      const F = NPCS[n.id];
+      const p = new Personaje(this.motor.world, this.motor.defs, n.id, F.arte, F.ropa, 7);
+      Object.assign(p, { X: n.X, y: n.y, face: n.face, visible: true, speed: S.speed ?? 250 });
+      this.npcs.set(n.id, p);
+      this.motor.actores.push(p);
+    }
     this.sombra = null;
     if (this.estado.donde.pablo?.escena === escena && this.cap.sombra?.(this, escena)) this.sacarSombra();
     this.perro = null;
@@ -417,7 +430,7 @@ export class Aventura {
     } finally {
       this.ocupado = false;
       this.hud.cerrarDialogo();
-      for (const p of this.pjs.values()) p.talking = false;
+      for (const p of [...this.pjs.values(), ...this.npcs.values()]) p.talking = false;
       this.refrescar();
       this.guardar();
     }
@@ -428,12 +441,13 @@ export class Aventura {
   }
 
   async decir(quien: Quien, frase: string, animo?: string, hora?: string) {
-    const actor = quien === 'sombra' ? this.sombra : quien && quien !== 'aceituna' ? this.pjs.get(quien) : null;
-    const base = actor ? REPARTO[quien === 'sombra' ? 'pablo' : (quien as PjId)].arte.INFO.defaultMood ?? 'neutral' : 'neutral';
+    const actor = quien === 'sombra' ? this.sombra : esNpc(quien) ? this.npcs.get(quien) ?? null : quien && quien !== 'aceituna' ? this.pjs.get(quien) : null;
+    const arte = esNpc(quien) ? NPCS[quien].arte : quien && quien !== 'aceituna' ? REPARTO[quien === 'sombra' ? 'pablo' : quien].arte : null;
+    const base = (arte && arte.INFO.defaultMood) || 'neutral';
     if (actor) {
       actor.mood = animo ?? base;
       actor.talking = true;
-      for (const o of this.pjs.values()) if (o !== actor && o.visible) o.lookAt(actor.X);
+      for (const o of [...this.pjs.values(), ...this.npcs.values()]) if (o !== actor && o.visible) o.lookAt(actor.X);
       // Pablo and his shadow look at each other while either of them speaks.
       const s = this.sombra;
       const pablo = this.pjs.get('pablo');
@@ -543,7 +557,7 @@ export class Aventura {
     return { x: x - (ancho / 2) * s, y: a.y - alto * s, w: ancho * s, h: alto * s };
   }
 
-  private actorEn(x: number, y: number): PjId | 'aceituna' | 'sombra' | null {
+  private actorEn(x: number, y: number): PjId | 'aceituna' | 'sombra' | NpcId | null {
     const dentro = (r: { x: number; y: number; w: number; h: number }) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
     if (this.perro && this.perro.visible && dentro(this.rectActor(this.perro, 140, 100))) return 'aceituna';
     for (const [id, p] of this.pjs) {
@@ -551,6 +565,7 @@ export class Aventura {
       if (dentro(this.rectActor(p, 110, 290))) return id;
     }
     if (this.sombra && this.sombra.visible && dentro(this.rectActor(this.sombra, 110, 290))) return 'sombra';
+    for (const [id, p] of this.npcs) if (p.visible && dentro(this.rectActor(p, 110, 290))) return id;
     return null;
   }
 
@@ -584,9 +599,11 @@ export class Aventura {
       void this.ejecutar(async () => {
         const me = this.activo;
         if (actor !== this.estado.activo) {
-          const otro = actor === 'aceituna' ? this.perro! : actor === 'sombra' ? this.sombra! : this.pjs.get(actor)!;
+          const otro = actor === 'aceituna' ? this.perro! : actor === 'sombra' ? this.sombra! : esNpc(actor) ? this.npcs.get(actor)! : this.pjs.get(actor)!;
           const lado = me.X < otro.X ? -1 : 1;
-          await this.andar(otro.X + lado * 150, otro.y + 6);
+          // Someone behind a counter is spoken to from the front of it, not walked round.
+          if (esNpc(actor)) await this.andar(otro.X + lado * 60, Math.max(this.S.walk.y0, otro.y + 6));
+          else await this.andar(otro.X + lado * 150, otro.y + 6);
           me.lookAt(otro.X);
           if (actor !== 'aceituna') otro.lookAt(me.X);
           if (actor === 'sombra') this.sombraMira = true;
@@ -707,6 +724,7 @@ export class Aventura {
   private enMovimiento() {
     if (this.motor.camaraMoviendose || this.perro?.moving || this.sombra?.moving) return true;
     for (const p of this.pjs.values()) if (p.moving) return true;
+    for (const p of this.npcs.values()) if (p.moving) return true;
     return false;
   }
 
@@ -716,6 +734,11 @@ export class Aventura {
     this.hud.update(dt);
     const speaking = this.hud.hablando;
     for (const [id, p] of this.pjs) {
+      p.step(dt);
+      if (speaking === id) p.talking = true;
+      p.update(m.t, dt);
+    }
+    for (const [id, p] of this.npcs) {
       p.step(dt);
       if (speaking === id) p.talking = true;
       p.update(m.t, dt);
