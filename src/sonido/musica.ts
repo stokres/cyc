@@ -1,5 +1,5 @@
 // The music: each track and where its loop starts and ends (seconds). The files are made by
-// tools/musica (each piece's «bucle»; the farm's, banjo.py then bucle.py): the loop sits between
+// tools/musica (each piece's «bucle»; the farm's, banjo.py then bucle.py; the Brío's, brio.py): the loop sits between
 // half-second margins that hold what comes just before and after it, so it joins without a
 // click on any phone. Each is fetched the first time it plays. A track with `entrada` starts
 // there (an intro heard once) and then loops between inicio and fin.
@@ -10,6 +10,8 @@ import vueltas from './vueltas.mp3?url';
 import contraRobi from './contra-robi.mp3?url';
 import jaleo from './jaleo.mp3?url';
 import barPuerta from './bar-puerta.mp3?url';
+import brio from './brio.mp3?url';
+import brioSueno from './brio-sueno.mp3?url';
 import pasodoble from './pasodoble.mp3?url';
 import bolilandia from './bolilandia.mp3?url';
 import bolilandiaLuz from './bolilandia-luz.mp3?url';
@@ -30,6 +32,10 @@ export const MUSICA = {
   jaleo: { url: jaleo, inicio: 0.5, fin: 41.3 },
   /** The Bar del Río's rock as heard from the street, through the door (bar_rockero.py puerta). */
   barPuerta: { url: barPuerta, inicio: 0.5, fin: 69.071429 },
+  /** The same rock heard inside the Bar del Brío (chapter 2): clean, present and low in the mix, the very song of barPuerta and the same loop length (brio.py brio). */
+  brio: { url: brio, inicio: 0.5, fin: 69.071429 },
+  /** The same song when the bar turns into a dream (nights 2 and 3): 0.8 speed, out of tune, wobbling, with echo, phaser and a long hall; the same loop length as brio, so a crossfade between the two lines up (brio.py sueno). */
+  brioSueno: { url: brioSueno, inicio: 0.5, fin: 69.071429 },
   /** «Bolilandia, cerrado»: the play park's music-box waltz at night, lights out, Chuchi's (bolilandia_noche.py). */
   bolilandia: { url: bolilandia, inicio: 0.5, fin: 63.108707 },
   /** The same waltz with the lights on and the park awake: glockenspiel, calliope, tuba (bolilandia_noche.py luz). */
