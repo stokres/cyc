@@ -12,7 +12,7 @@ const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-119
 async function jugar(sigma) {
   const page = await b.newPage({ viewport: { width: 844, height: 390 } });
   await page.addInitScript(() => localStorage.clear());
-  await page.goto('http://localhost:5173/');
+  await page.goto(`http://localhost:${process.env.PUERTO ?? 5173}/`);
   await page.waitForFunction(() => window.__cyc);
   await page.evaluate(() => window.__cyc.listo());
   await page.evaluate(async (modo) => { const g = window.__cyc.g; window.__cyc.titulo.remove(); g.estado.activo = 'guille'; g.poner('empezado.guille'); g.poner('basculaLista'); await g.irA('granja'); void import('/src/ui/cerdos.ts').then((m) => m.jugarCerdos(g.root, false, modo === 'infinito' ? { record: 0 } : undefined).then((r) => (window.__res = r))); }, modo);

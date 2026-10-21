@@ -54,7 +54,7 @@ await page.addInitScript(() => {
     return d.call(this, img, ...a);
   };
 });
-await page.goto('http://localhost:5173/');
+await page.goto(`http://localhost:${process.env.PUERTO ?? 5173}/`);
 await page.waitForFunction(() => window.__cyc);
 await page.evaluate(() => window.__cyc.listo());
 await page.evaluate(() => {

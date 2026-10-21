@@ -19,7 +19,7 @@ for (const [nombre, reaccion, punteria, pulso] of PERFILES) {
   for (let intento = 0; intento < Number(process.env.PARTIDAS || 3); intento++) {
     const page = await b.newPage({ viewport: { width: 844, height: 390 }, hasTouch: true });
     await page.addInitScript(() => localStorage.clear());
-    await page.goto('http://localhost:5173/');
+    await page.goto(`http://localhost:${process.env.PUERTO ?? 5173}/`);
     await page.waitForFunction(() => window.__cyc);
     await page.evaluate(() => window.__cyc.listo());
     await page.evaluate(async () => {

@@ -1,0 +1,64 @@
+# Capítulo 2 · El arranque (especificación)
+
+Decidido con Jesús entre el 16 y el 21 de octubre de 2026. El guion y el planteamiento completos están en la carpeta del proyecto (`capitulo2/planteamiento.md`, `capitulo2/guion-arranque.md`, `capitulo2/plan-arte.md`); aquí está lo que el código necesita para que las piezas encajen.
+
+## La historia del arranque
+
+La noche se cuenta **en orden**. Empieza en la puerta del Bar del Brío, donde acabó el capítulo 1: un texto del narrador sobre la fachada, la cámara entra y los cuatro están en la barra. Puzle a cuatro, «Una moneda para la tragaperras»:
+
+1. Chuchi quiere irse. Fran pide otra ronda a Vero: **minijuego de las cañas por la barra**. Sube el nivel de la noche a 1.
+2. La tragaperras está «fuera de servicio». Chuchi la reinicia «como el router», pero el enchufe está detrás. Guille la separa de la pared y detrás aparece **un duro de 1987** (objeto de la bolsa).
+3. La máquina no acepta pesetas. Pablo convence a Vero para los **fresquitos** (conversación con tres opciones; las dos malas tienen respuesta propia). Nivel 2.
+4. Ahora sí, la máquina se traga el duro. Tirada sin premio (limón, campana, cerdo).
+5. Pablo se arranca con un pasodoble y le salen dos palabras. **Minijuego del canto a cuatro**: «¡Camioneees y caravanaaas!». Nivel 3. **Premio gordo**: tres sietes y lluvia de monedas.
+6. Zoom a Fran, que cierra los ojos. La espuma de su caña llena la pantalla y empieza **el *Pang* corto** (Usera, el piso de Fran y Las Vegas contra la Penúltima). Al acabar, Fran abre los ojos en el bar, más desmadrado que antes. Continuará.
+
+Los cuatro están en la misma escena desde el principio y se cambia de personaje con el selector, como en el capítulo 1. Cada paso lo hace quien tiene que hacerlo (Fran pide la ronda, Chuchi la máquina, Guille la mueve, Pablo los fresquitos); con otro personaje, una frase propia que pide cambiar.
+
+## Vero
+
+Camarera del Brío, personaje no jugable. Cubana, joven, alta, guapa, piel morena, labios grandes, pelo moreno recogido; camiseta negra de manga corta, delantal corto oscuro y aros pequeños. Habla con cariño y retranca («mi amor», «mi niño», «mi vida», «chico», «¿oíste?»). En los textos habla como `VERO:`.
+
+- Arte: `src/arte/personajes/vero.mjs`, con la misma forma que los cuatro (`body`, `headFront`, `INFO`, `JOINTS`, `OUTFITS`) y el cuerpo de la segunda versión.
+- En el bar está detrás de la barra (`spots.vero`); la barra que la tapa de cintura para abajo es un objeto del suelo (`props`), que se ordena por profundidad con los personajes.
+
+## El bar: escenas `bar0` a `bar3`
+
+`src/arte/escenas/bar.mjs` exporta `escena(nivel)` (0–3). Las cuatro tienen la misma distribución y las mismas zonas; cambia la paleta y lo que el sueño deforma. El `id` de cada una es `bar0`…`bar3`. Subir de nivel es cargar la siguiente (`vecinas` la hornea por adelantado); solo hay un bar horneado en pantalla.
+
+| Nivel | Cuándo | Qué cambia en el horneado |
+|---|---|---|
+| 0 | Al entrar | El Brío de siempre |
+| 1 | Tras las cañas | Casi nada horneado; el número que se mueve en la porra es una pieza viva |
+| 2 | Tras los fresquitos | Colores más saturados y botellas reordenadas por colores |
+| 3 | Tras el canto | Paredes y líneas curvadas, la porra llena de sietes, paleta de sueño |
+
+**Zonas** (ids fijos; nombres en `zona.c2.<id>`): `puerta`, `tabaco`, `barra`, `grifos`, `expositor`, `estanteria`, `tele`, `porra`, `tragaperras`, `bano`.
+
+**Spots** (ids fijos): `vero` (`X`, `y`), `fran`, `pablo`, `chuchi`, `guille` (`X`, `y`, `face`: dónde está cada uno en la barra al empezar), `entrada` (`X`: donde arranca la cámara), `tragaperras` (`X`, `y`: dónde se pone quien la usa), `tragaperrasSeparada` (`X`, `y`: dónde queda la máquina separada de la pared).
+
+**Props**: `barra` (frente de la barra, por delante de Vero y por detrás de los cuatro), `tragaperras` (`si: '!c2.separada'`) y `tragaperrasFuera` (`si: 'c2.separada'`), `duro` (`si: 'c2.duroVisible'`).
+
+**Piezas vivas** (se pintan encima del decorado horneado, en `src/capitulos/bar-vivo.ts`, `dibujarBarVivo(g, ctx, capa, nivel)`): la pantalla de la tele (en el nivel 2, el dragón de Usera), las luces de la tragaperras (solo con `c2.encendida`), el número de la porra que cambia de casilla (desde el nivel 1), las tapas que respiran (nivel 2 y 3) y el giro lento de unas pocas piezas (nivel 3). Todo pasado a imagen una vez.
+
+## Minijuegos y piezas a pantalla completa
+
+Todos con la forma de los del capítulo 1 (`src/ui/rana.ts`, `cerdos.ts`): una cubierta `.cubierta.minijuego`, la franja de objetivo y el botón «Saltar» dorado tras dos rondas perdidas, bucle con tope de 60 fps y gancho de prueba `window.__<nombre>()` con `fotogramas`.
+
+- `src/ui/canas.ts`: `jugarCanas(root, { rapido, sonido }) → Promise<'hecho' | 'saltado' | 'cancelado'>`. Vero desliza cañas por la barra; un toque frena cada una delante de quien la espera.
+- `src/ui/canto.ts`: `jugarCanto(root, { rapido, sonido }) → Promise<Resultado>`. Las caras de los cuatro se iluminan a golpe de música; tocar a cada uno a tiempo para que cante su parte (Pablo «Ca-mio», Fran «neees-y», Chuchi «ca-ra», Guille «va-naaas»).
+- `src/ui/tragaperras.ts`: `mostrarTragaperras(root, { premio, rapido, sonido }) → Promise<void>`. La máquina de cerca: sin premio para en limón, campana y cerdo; con premio, tres sietes y lluvia de monedas. Reaprovecha el dibujo del tráiler.
+- `src/pang/` (traído de la rama `claude/pang-cyc-56o0iv`, sin el juego en red): `jugarPangCapitulo(root, { rapido, sonido }) → Promise<Resultado>`. Solo Fran, fases de Usera, el piso de Fran y Las Vegas con la Penúltima; empieza con la espuma de la caña llenando la pantalla.
+
+## Textos y música
+
+- `src/textos/capitulo2.md`: todo el texto del capítulo 2 (formato de `capitulo1.md`). `src/textos/pang.md`: los del *Pang*.
+- Música: `brio` (el rock del bar, por dentro) y `brioSueno` (el mismo, deformado, para los niveles 2 y 3), en `src/sonido/musica.ts`.
+
+## Cómo se juega mientras no está publicado
+
+Con `?capitulo2` en la dirección se juega el capítulo 2 desde el principio, con su propia partida guardada aparte; el capítulo 1 no cambia. Enlazarlo con el final del capítulo 1 queda para cuando Jesús lo apruebe.
+
+## Rendimiento
+
+`node scripts/rendimiento.mjs bar canas canto tragaperras pang` (con `PUERTO=` si el servidor no está en el 5173). Mismas reglas que el resto (`docs/ESTILO.md`, T5 y T6).
