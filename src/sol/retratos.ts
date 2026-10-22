@@ -99,32 +99,50 @@ function boca(x: CanvasRenderingContext2D, cx: number, cy: number, e: Estado, la
 
 // ---------------------------------------------------------------- Pablo
 
-function pablo(e: Estado) {
+/** Colours of Pablo's portrait; the narrator (his shadow) wears the same face in the dark. */
+interface PaletaPablo {
+  piel: string; sombra: string; pelo: string; peloO: string; peloL: string; barba: string;
+  chaqueta: string; chaquetaO: string; camisa: string; camisaO: string; camisaOO: string;
+  iris: string; mejillas: string; labio: string; nariz: string; arete: string;
+}
+const PABLO_NORMAL: PaletaPablo = {
+  piel: '#f2b88c', sombra: '#d9936b', pelo: '#8a5430', peloO: '#60381f', peloL: '#b57a48', barba: '#4e2e1c',
+  chaqueta: '#454c6a', chaquetaO: '#3a405e', camisa: '#e9e4d2', camisaO: '#c4bfae', camisaOO: '#2f3550',
+  iris: '#6a4a2a', mejillas: '#f09a86', labio: '#8a3a3a', nariz: '#c07a58', arete: '#f7c948',
+};
+/** Pablo made of shadow: violet-black skin and hair, a ghostly shirt, bright yellow eyes. */
+const PABLO_SOMBRA: PaletaPablo = {
+  piel: '#3d3168', sombra: '#2b2250', pelo: '#171128', peloO: '#0d0919', peloL: '#2e2552', barba: '#120c22',
+  chaqueta: '#251d44', chaquetaO: '#190f33', camisa: '#4d4380', camisaO: '#382f66', camisaOO: '#120c26',
+  iris: '#ffd84a', mejillas: '#4a3d80', labio: '#8a6ad8', nariz: '#2b2250', arete: '#ffe27a',
+};
+
+function pablo(e: Estado, v: PaletaPablo = PABLO_NORMAL) {
   const c = lienzo(32, 32);
   const x = ctx(c);
-  const piel = '#f2b88c';
-  const sombra = '#d9936b';
-  const pelo = '#8a5430';
-  const peloO = '#60381f';
-  const peloL = '#b57a48';
-  const barba = '#4e2e1c';
+  const piel = v.piel;
+  const sombra = v.sombra;
+  const pelo = v.pelo;
+  const peloO = v.peloO;
+  const peloL = v.peloL;
+  const barba = v.barba;
   // jacket and tee
-  elip(x, '#3a405e', 16, 36, 15, 11);
-  elip(x, '#454c6a', 16, 35, 14, 10);
-  rect(x, '#e9e4d2', 12, 26, 8, 6);
-  rect(x, '#c4bfae', 12, 26, 1, 6);
-  rect(x, '#c4bfae', 19, 26, 1, 6);
-  rect(x, '#2f3550', 11, 26, 1, 6);
-  rect(x, '#2f3550', 20, 26, 1, 6);
+  elip(x, v.chaquetaO, 16, 36, 15, 11);
+  elip(x, v.chaqueta, 16, 35, 14, 10);
+  rect(x, v.camisa, 12, 26, 8, 6);
+  rect(x, v.camisaO, 12, 26, 1, 6);
+  rect(x, v.camisaO, 19, 26, 1, 6);
+  rect(x, v.camisaOO, 11, 26, 1, 6);
+  rect(x, v.camisaOO, 20, 26, 1, 6);
   // neck
   rect(x, sombra, 12, 22, 8, 5);
-  elip(x, '#c4bfae', 16, 26, 4, 2, 26, 27);
+  elip(x, v.camisaO, 16, 26, 4, 2, 26, 27);
   // ears and the hoop
   elip(x, piel, 6, 16, 2.5, 3.5);
   elip(x, piel, 26, 16, 2.5, 3.5);
   rect(x, sombra, 5, 16, 1, 3);
-  rect(x, '#f7c948', 4, 19, 1, 3);
-  rect(x, '#f7c948', 5, 21, 2, 1);
+  rect(x, v.arete, 4, 19, 1, 3);
+  rect(x, v.arete, 5, 21, 2, 1);
   // face
   elip(x, piel, 16, 15, 10, 11);
   // the short beard hugs the jaw and chin like a «U»: no moustache, so nothing crosses the face
@@ -132,17 +150,17 @@ function pablo(e: Estado) {
   elip(x, piel, 16, 18.5, 7.5, 7.5, 21, 28);
   rect(x, peloO, 12, 27, 8, 1);
   // eyes
-  const o = { iris: '#6a4a2a', ceja: peloO, cejaAlta: true };
+  const o = { iris: v.iris, ceja: peloO, cejaAlta: true };
   ojo(x, 14, 16, -1, e.ojos && e.animo !== 'contento', { ...o, feliz: e.animo === 'contento' && e.ojos });
   ojo(x, 18, 16, 1, e.ojos && e.animo !== 'contento', { ...o, feliz: e.animo === 'contento' && e.ojos });
   // nose
   rect(x, sombra, 15, 18, 2, 3);
-  rect(x, '#c07a58', 14, 20, 4, 1);
+  rect(x, v.nariz, 14, 20, 4, 1);
   // mouth
-  boca(x, 16, 23, e, '#8a3a3a');
+  boca(x, 16, 23, e, v.labio);
   // blush
-  rect(x, '#f09a86', 8, 19, 2, 1);
-  rect(x, '#f09a86', 22, 19, 2, 1);
+  rect(x, v.mejillas, 8, 19, 2, 1);
+  rect(x, v.mejillas, 22, 19, 2, 1);
   // messy hair, but little of it: a low cap, three short tufts, a ragged fringe and thin sideburns
   elip(x, pelo, 16, 10, 10.5, 7, 3, 7);
   for (const [cx, top, ancho] of [[10, 2, 3], [16, 1, 3], [22, 2, 3]] as const) {
@@ -167,28 +185,33 @@ function pablo(e: Estado) {
 
 // ---------------------------------------------------------------- the mother
 
-function madre(e: Estado) {
+interface PaletaMadre { pelo: string; peloO: string; peloL: string; vestido: string; vestidoO: string; flor: string }
+const MADRE_NORMAL: PaletaMadre = { pelo: '#8e4d2f', peloO: '#66331f', peloL: '#b8693d', vestido: '#cc5565', vestidoO: '#9b3b4d', flor: '#e6b84a' };
+/** The shopkeeper of the peña: grey hair in a bun, a blue dress. */
+const TENDERA: PaletaMadre = { pelo: '#a9a7b9', peloO: '#7c7a92', peloL: '#d8d6e6', vestido: '#3f7ac4', vestidoO: '#2c5a98', flor: '#ff8ab0' };
+
+function madre(e: Estado, v: PaletaMadre = MADRE_NORMAL) {
   const c = lienzo(32, 32);
   const x = ctx(c);
   const piel = '#f4c39c';
   const sombra = '#dba47e';
-  const pelo = '#8e4d2f';
-  const peloO = '#66331f';
-  const peloL = '#b8693d';
+  const pelo = v.pelo;
+  const peloO = v.peloO;
+  const peloL = v.peloL;
   // the bun first (behind the head), a flower in it
   elip(x, pelo, 16, 3, 7, 5);
   elip(x, peloL, 14, 2, 3, 2);
   rect(x, peloO, 10, 5, 12, 1);
-  rect(x, '#e6b84a', 20, 1, 3, 3);
+  rect(x, v.flor, 20, 1, 3, 3);
   rect(x, '#fff1a8', 21, 2, 1, 1);
   // dress, apron and its straps
-  elip(x, '#9b3b4d', 16, 36, 15, 11);
-  elip(x, '#cc5565', 16, 35, 14, 10);
+  elip(x, v.vestidoO, 16, 36, 15, 11);
+  elip(x, v.vestido, 16, 35, 14, 10);
   rect(x, '#f6edd4', 9, 26, 14, 8);
   rect(x, '#d9cba8', 9, 26, 1, 8);
   rect(x, '#d9cba8', 22, 26, 1, 8);
-  rect(x, '#cc5565', 8, 26, 3, 3);
-  rect(x, '#cc5565', 21, 26, 3, 3);
+  rect(x, v.vestido, 8, 26, 3, 3);
+  rect(x, v.vestido, 21, 26, 3, 3);
   // neck and collar
   rect(x, sombra, 12, 22, 8, 5);
   elip(x, '#f6edd4', 16, 26, 5, 2, 25, 27);
@@ -230,21 +253,26 @@ function madre(e: Estado) {
 
 // ---------------------------------------------------------------- the villager
 
-function aldeano(e: Estado) {
+interface PaletaAldeano { chaleco: string; chalecoO: string; panuelo: string; panueloO: string; sombrero: string; sombreroO: string; cinta: string; cintaO: string }
+const ALDEANO_NORMAL: PaletaAldeano = { chaleco: '#b5472f', chalecoO: '#8a3224', panuelo: '#c64b3a', panueloO: '#8a2a20', sombrero: '#ecc96c', sombreroO: '#bd9540', cinta: '#c64b3a', cintaO: '#8a2a20' };
+/** The innkeeper: a dark blue cap, a green waistcoat. */
+const POSADERO: PaletaAldeano = { chaleco: '#3f8a5a', chalecoO: '#2a6440', panuelo: '#e6c24a', panueloO: '#b08a2a', sombrero: '#4a5a8a', sombreroO: '#33406a', cinta: '#e6c24a', cintaO: '#b08a2a' };
+
+function aldeano(e: Estado, v: PaletaAldeano = ALDEANO_NORMAL) {
   const c = lienzo(32, 32);
   const x = ctx(c);
   const piel = '#dc9d6c';
   const sombra = '#b97b4e';
   const blanco = '#f4f4f6';
   // waistcoat, shirt and a red neckerchief
-  elip(x, '#8a3224', 16, 36, 15, 11);
-  elip(x, '#b5472f', 16, 35, 14, 10);
+  elip(x, v.chalecoO, 16, 36, 15, 11);
+  elip(x, v.chaleco, 16, 35, 14, 10);
   rect(x, '#f0e6d2', 12, 26, 8, 6);
   rect(x, '#cfc2a8', 12, 26, 1, 6);
-  rect(x, '#6a2418', 11, 26, 1, 6);
-  rect(x, '#6a2418', 20, 26, 1, 6);
-  rect(x, '#c64b3a', 11, 25, 10, 3);
-  rect(x, '#8a2a20', 12, 27, 8, 1);
+  rect(x, v.chalecoO, 11, 26, 1, 6);
+  rect(x, v.chalecoO, 20, 26, 1, 6);
+  rect(x, v.panuelo, 11, 25, 10, 3);
+  rect(x, v.panueloO, 12, 27, 8, 1);
   // neck, ears
   rect(x, sombra, 12, 22, 8, 4);
   elip(x, piel, 6, 16, 2.5, 3.5);
@@ -278,14 +306,14 @@ function aldeano(e: Estado) {
   } else rect(x, '#8a3a3a', 14, 25, 4, 1);
   rect(x, blanco, 12, 26, 8, 2);
   // the straw hat: a dome, a ribbon and a wide brim
-  elip(x, '#ecc96c', 16, 8, 10, 8, -99, 8);
-  rect(x, '#bd9540', 6, 6, 20, 1);
-  rect(x, '#c64b3a', 6, 5, 20, 3);
-  rect(x, '#8a2a20', 6, 7, 20, 1);
-  elip(x, '#ecc96c', 16, 9, 15, 3.5);
-  elip(x, '#bd9540', 16, 10, 15, 3, 10, 12);
+  elip(x, v.sombrero, 16, 8, 10, 8, -99, 8);
+  rect(x, v.sombreroO, 6, 6, 20, 1);
+  rect(x, v.cinta, 6, 5, 20, 3);
+  rect(x, v.cintaO, 6, 7, 20, 1);
+  elip(x, v.sombrero, 16, 9, 15, 3.5);
+  elip(x, v.sombreroO, 16, 10, 15, 3, 10, 12);
   rect(x, '#fff0a8', 12, 2, 4, 1);
-  for (let i = 0; i < 7; i++) rect(x, '#bd9540', 2 + i * 4, 8 + (i % 2), 2, 1);
+  for (let i = 0; i < 7; i++) rect(x, v.sombreroO, 2 + i * 4, 8 + (i % 2), 2, 1);
   return contorno(c);
 }
 
@@ -489,7 +517,17 @@ function guille(e: Estado) {
   return contorno(c);
 }
 
-const FUNCS: Record<Quien, (e: Estado) => HTMLCanvasElement> = { pablo, madre, aldeano, chuchi, fran, guille };
+const FUNCS: Record<Quien, (e: Estado) => HTMLCanvasElement> = {
+  pablo: (e) => pablo(e),
+  madre: (e) => madre(e),
+  aldeano: (e) => aldeano(e),
+  chuchi,
+  fran,
+  guille,
+  narrador: (e) => pablo(e, PABLO_SOMBRA),
+  tendera: (e) => madre(e, TENDERA),
+  posadero: (e) => aldeano(e, POSADERO),
+};
 
 /** One portrait: eyes open or shut, mouth open or shut, and a smile if `contento`. */
 export function retrato(q: Quien, ojos: boolean, boca: boolean, animo: Animo = 'normal'): HTMLCanvasElement {

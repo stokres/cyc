@@ -527,9 +527,9 @@ interface Grito {
 }
 
 const FILAS = [
-  { s: 1, base: 112, sep: 12, sombra: 0.6, desp: 0 },
-  { s: 1.5, base: 134, sep: 19, sombra: 0.35, desp: 7 },
-  { s: 2, base: 164, sep: 28, sombra: 0, desp: 12 },
+  { s: 1, base: 132, sep: 12, sombra: 0.6, desp: 0 },
+  { s: 1.5, base: 152, sep: 19, sombra: 0.35, desp: 7 },
+  { s: 2, base: 182, sep: 28, sombra: 0, desp: 12 },
 ];
 
 /**
@@ -574,7 +574,7 @@ export async function fxOvacion(e: Escena, enemigos: Donde[], impacto: (i: numbe
         }
       }
       if (t > proxGrito && t < 3.4) {
-        gritos.push({ s: grito(nGrito++), x: 50 + Math.random() * 140, y: 100 + Math.random() * 30, t: 0 });
+        gritos.push({ s: grito(nGrito++), x: 50 + Math.random() * 140, y: 112 + Math.random() * 26, t: 0 });
         proxGrito = t + 0.32;
       }
       for (const gr of gritos) gr.t += dt;
@@ -584,7 +584,7 @@ export async function fxOvacion(e: Escena, enemigos: Donde[], impacto: (i: numbe
       const entra = easeOut(limitar(t / 0.55, 0, 1));
       const sale = 1 - easeIn(limitar((t - 4.0) / 0.7, 0, 1));
       const k = Math.min(entra, sale);
-      g.fillStyle = `rgba(10,4,32,${0.66 * k})`;
+      g.fillStyle = `rgba(10,4,32,${0.5 * k})`;
       g.fillRect(0, 0, 240, 160);
       // the spotlights, crossing over the enemies
       g.globalAlpha = k * (0.7 + 0.3 * Math.sin(t * 9));

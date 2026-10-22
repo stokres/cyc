@@ -91,6 +91,8 @@ export interface EstadoCombate {
 const PE = { x: 130, y: 118, rx: 86, ry: 52 };
 const PH = { x: 130, y: 82, rx: 90, ry: 39 };
 const CENTRO_ENEMIGOS = 0.6;
+/** Where the friends stand (feet), from the leader in front to the last one at the back, on a diagonal. */
+const FILA_AMIGOS = [{ x: 108, y: 119 }, { x: 85, y: 111 }, { x: 62, y: 103 }, { x: 39, y: 95 }];
 const CAJA_Y = 123;
 
 interface Heroe {
@@ -112,6 +114,8 @@ interface Heroe {
   ultimoIcono: number;
   /** Seconds of the «hurt» pose left. */
   herido: number;
+  /** The numbers the status box keeps showing while a level-up is still to be told (victory). */
+  previo: { pv: number; ip: number; pvMax: number; ipMax: number } | null;
 }
 
 interface Enemigo {
@@ -241,7 +245,7 @@ export class Combate implements Escena {
     this.dialogo = new Dialogo(o.sonido, (q) => nombreAmigo(q as Amigo));
     this.heroes = o.grupo.miembros.map((m, i) => ({
       lado: 'heroe', m, idx: i, angulo: Math.PI + 0.35 + i * 0.34, pose: 'quieto', tPose: 0, frameFijo: -1, dx: 0, dy: 0, flash: 0, defiende: false,
-      pvVisto: m.pv, ipVisto: m.ip, ultimoIcono: 0, herido: 0,
+      pvVisto: m.pv, ipVisto: m.ip, ultimoIcono: 0, herido: 0, previo: null,
     }));
     const n = o.enemigos.length;
     const sep = n >= 5 ? 0.3 : n === 4 ? 0.33 : n === 3 ? 0.4 : 0.5;
@@ -295,8 +299,13 @@ export class Combate implements Escena {
       const a = l.angulo - this.cam.th;
       return { x: PE.x + PE.rx * l.radio * Math.sin(a) + l.dx, y: PE.y - PE.ry * l.radio * Math.cos(a) + l.dy };
     }
+    // the four stand on a diagonal (the leader nearest, in front); the camera's turn moves them along the ring
     const a = l.angulo - this.cam.th * 0.45;
-    return { x: PH.x + PH.rx * Math.sin(a) + l.dx, y: PH.y - PH.ry * Math.cos(a) + l.dy };
+    const base = FILA_AMIGOS[Math.min(l.idx, FILA_AMIGOS.length - 1)];
+    return {
+      x: base.x + PH.rx * (Math.sin(a) - Math.sin(l.angulo)) + l.dx,
+      y: base.y - PH.ry * (Math.cos(a) - Math.cos(l.angulo)) + l.dy,
+    };
   }
   private alto(l: Luchador) {
     return l.lado === 'enemigo' ? spriteEnemigo(l.def.id).height + l.def.flota : LUCHADOR_H - 2;
@@ -1379,7 +1388,13 @@ export class Combate implements Escena {
     await dlg('combate.victoria');
     // experience for everybody (the ones who fell too)
     const subidas: SubidaDeNivel[] = [];
+    // the boxes keep the old numbers until each level-up panel is shown
+    for (const h of this.heroes) {
+      const s0 = statsDe(this.g, h.m);
+      h.previo = { pv: h.m.pv, ip: h.m.ip, pvMax: s0.pv, ipMax: s0.ip };
+    }
     for (const m of this.g.miembros) subidas.push(...darExp(this.g, m, exp));
+    for (const h of this.heroes) if (!subidas.some((s) => s.q === h.m.q)) h.previo = null;
     await dlg('combate.exp', { n: exp });
     await dlg('combate.monedas', { n: monedas });
     for (const b of botin) await dlg('combate.hallado', { objeto: texto(`objeto.${b}.nombre`) });
@@ -1404,6 +1419,13 @@ export class Combate implements Escena {
   private panelAbierto: SubidaDeNivel | null = null;
   private async panelNivel(s: SubidaDeNivel) {
     this.panelAbierto = s;
+    // now the box changes too (the numbers roll up to the new ones)
+    const hh = this.heroes.find((h) => h.m.q === s.q);
+    if (hh?.previo) {
+      hh.pvVisto = hh.previo.pv;
+      hh.ipVisto = hh.previo.ip;
+      hh.previo = null;
+    }
     this.vaciar();
     for (;;) {
       const e = await this.siguiente();
@@ -1649,11 +1671,11 @@ export class Combate implements Escena {
   }
 
   private dibujarCaja(g: CanvasRenderingContext2D, h: Heroe, i: number) {
-    const s = statsDe(this.g, h.m);
-    const pv = Math.round(h.pvVisto);
-    const ip = Math.round(h.ipVisto);
+    const s = h.previo ? { pv: h.previo.pvMax, ip: h.previo.ipMax } : statsDe(this.g, h.m);
+    const pv = h.previo ? h.previo.pv : Math.round(h.pvVisto);
+    const ip = h.previo ? h.previo.ip : Math.round(h.ipVisto);
     const activo = this.ui.turno === h;
-    const clave = `${h.m.q}.${pv}.${ip}.${s.pv}.${s.ip}.${activo}.${h.m.nivel}`;
+    const clave = `${h.m.q}.${pv}.${ip}.${s.pv}.${s.ip}.${activo}.${h.previo ? 'p' : h.m.nivel}`;
     const caja = this.cajas[i];
     if (caja.clave !== clave) {
       caja.clave = clave;

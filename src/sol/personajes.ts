@@ -14,7 +14,7 @@
 // mop and a loud mustard shirt full of hibiscus. The build (arms, torso, legs) is in the moulds' optional fields.
 import { ctx, lienzo, mezcla, noche, reflejar, una, type Pal } from './pixel';
 
-export type Quien = 'pablo' | 'madre' | 'aldeano' | 'chuchi' | 'fran' | 'guille';
+export type Quien = 'pablo' | 'madre' | 'aldeano' | 'chuchi' | 'fran' | 'guille' | 'narrador' | 'tendera' | 'posadero';
 /** The four friends, the party of the fights. */
 export type Amigo = 'pablo' | 'chuchi' | 'fran' | 'guille';
 export type Dir = 'S' | 'SE' | 'E' | 'NE' | 'N' | 'NW' | 'W' | 'SW';
@@ -548,7 +548,27 @@ const GUILLE: Molde = {
   piernaY: 16,
 };
 
-const MOLDES: Record<Quien, Molde> = { pablo: PABLO, madre: MADRE, aldeano: ALDEANO, chuchi: CHUCHI, fran: FRAN, guille: GUILLE };
+// The narrator is Pablo's shadow (chapter 1): the same build and head, in violet-black with yellow eyes.
+const NARRADOR: Molde = {
+  ...PABLO,
+  pal: {
+    s: '#3d3168', S: '#2b2250', e: '#ffd84a', m: '#8a6ad8',
+    h: '#171128', H: '#0d0919', l: '#2e2552', b: '#120c22', B: '#0b0716',
+    c: '#251d44', C: '#190f33', d: '#4d4380', D: '#382f66',
+    p: '#1c1738', P: '#120e26', o: '#2b2250', O: '#171128', x: '#ffe27a',
+  },
+};
+// The shopkeeper of the peña (the mother's build, grey hair, a blue dress) and the innkeeper (the villager's, a dark cap, a green waistcoat).
+const TENDERA: Molde = {
+  ...MADRE,
+  pal: { ...MADRE.pal, h: '#a9a7b9', H: '#7c7a92', l: '#d8d6e6', c: '#3f7ac4', C: '#2c5a98', p: '#3f7ac4', P: '#2c5a98', o: '#4a4a5a', O: '#2e2e3a' },
+};
+const POSADERO: Molde = {
+  ...ALDEANO,
+  pal: { ...ALDEANO.pal, t: '#4a5a8a', T: '#33406a', r: '#e6c24a', c: '#3f8a5a', C: '#2a6440', p: '#4a4458', P: '#322d40' },
+};
+
+const MOLDES: Record<Quien, Molde> = { pablo: PABLO, madre: MADRE, aldeano: ALDEANO, chuchi: CHUCHI, fran: FRAN, guille: GUILLE, narrador: NARRADOR, tendera: TENDERA, posadero: POSADERO };
 
 // ---------------------------------------------------------------- painting into a grid
 

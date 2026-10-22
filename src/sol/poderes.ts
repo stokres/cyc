@@ -93,6 +93,8 @@ export const invocacionPorId = (id: string) => INVOCACIONES.find((i) => i.id ===
 
 export interface Objeto {
   id: string;
+  /** Coins it costs in the peña's shop. */
+  precio: number;
   /** Health it gives back. */
   pv?: number;
   /** IP it gives back. */
@@ -100,7 +102,7 @@ export interface Objeto {
 }
 
 export const OBJETOS: Objeto[] = [
-  { id: 'turron', pv: 35 },
-  { id: 'chupito', ip: 10 },
+  { id: 'turron', precio: 12, pv: 35 },
+  { id: 'chupito', precio: 15, ip: 10 },
 ];
 export const objetoPorId = (id: string) => OBJETOS.find((o) => o.id === id)!;

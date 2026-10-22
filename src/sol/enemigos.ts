@@ -5,6 +5,7 @@
 // attacks are in src/textos/sol.md (`enemigo.<id>.nombre`, `enemigo.<id>.<ataque>`).
 import { type Elemento } from './grupo';
 import { contorno } from './contorno';
+import { apuntador } from './iconos';
 import { ctx, elipse, lienzo, rect, una } from './pixel';
 
 /** How an enemy attack works. */
@@ -31,7 +32,7 @@ export interface AtaqueEnemigo {
   herido?: boolean;
 }
 
-export type Pintor = 'petardo' | 'movil' | 'spoiler' | 'critico' | 'mosquito';
+export type Pintor = 'petardo' | 'movil' | 'spoiler' | 'critico' | 'mosquito' | 'apuntador';
 
 export interface DefEnemigo {
   id: string;
@@ -126,6 +127,15 @@ export const ENEMIGOS: Record<string, DefEnemigo> = {
     ataques: [
       { id: 'picotazo', tipo: 'golpe', pot: 1.05, peso: 3 },
       { id: 'zumbido', tipo: 'todos', pot: 0.55, peso: 1, el: 'viento' },
+    ],
+  },
+  // The wild prompter of the road (a boss alone: when it is beaten it joins the party).
+  chist: {
+    id: 'chist', pintor: 'apuntador', paleta: 0, el: 'tierra', pv: 90, atk: 15, def: 7, agi: 11, exp: 45, monedas: 0, flota: 0, frames: 2,
+    ataques: [
+      { id: 'soplo', tipo: 'golpe', pot: 1, peso: 3, el: 'tierra' },
+      { id: 'chistido', tipo: 'chupa', pot: 0.8, peso: 2 },
+      { id: 'notaalpie', tipo: 'todos', pot: 0.55, peso: 2, el: 'tierra' },
     ],
   },
 };
@@ -332,7 +342,18 @@ function mosquito(p: Paleta, f: number): HTMLCanvasElement {
   return contorno(c, p.linea);
 }
 
+/** The wild prompter: the little prompter of the icons, twice as big. */
+function apuntadorGrande(_p: Paleta, f: number): HTMLCanvasElement {
+  const src = apuntador('tierra', f);
+  const c = lienzo(src.width * 2, src.height * 2);
+  const x = ctx(c);
+  x.imageSmoothingEnabled = false;
+  x.drawImage(src, 0, 0, c.width, c.height);
+  return c;
+}
+
 const PALETAS: Record<Pintor, [Paleta, Paleta]> = {
+  apuntador: [{}, {}],
   petardo: [
     { base: '#e04a3a', luz: '#f48a6a', sombra: '#a82a2a', banda: '#f4c438', bandaSombra: '#b88a20', mecha: '#4a3a30', pie: '#7a2020', linea: '#3a1018' },
     { base: '#7a46c8', luz: '#a47ae8', sombra: '#4a2a8a', banda: '#7ae0a0', bandaSombra: '#3a9a68', mecha: '#4a3a30', pie: '#3a1c6a', linea: '#1c0c3a' },
@@ -355,7 +376,7 @@ const PALETAS: Record<Pintor, [Paleta, Paleta]> = {
   ],
 };
 
-const PINTORES: Record<Pintor, (p: Paleta, f: number) => HTMLCanvasElement> = { petardo, movil, spoiler, critico, mosquito };
+const PINTORES: Record<Pintor, (p: Paleta, f: number) => HTMLCanvasElement> = { petardo, movil, spoiler, critico, mosquito, apuntador: apuntadorGrande };
 
 /** One frame of an enemy's idle animation, with its outline. */
 export function spriteEnemigo(id: string, frame = 0): HTMLCanvasElement {

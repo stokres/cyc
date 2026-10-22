@@ -134,6 +134,35 @@ export function crearGrupo(o: { amigos?: readonly Amigo[]; nivel?: number; apunt
   return g;
 }
 
+/** A friend joins the party at the level of the leader (the first member), full of health and IP. Does nothing if he is in. */
+export function unirAmigo(g: Grupo, q: Amigo): Miembro {
+  const ya = g.miembros.find((m) => m.q === q);
+  if (ya) return ya;
+  const nivel = g.miembros[0]?.nivel ?? 1;
+  const m: Miembro = { q, nivel, exp: expTotal(nivel), pv: 1, ip: 1 };
+  g.miembros.push(m);
+  g.miembros.sort((a, b) => ORDEN_AMIGOS.indexOf(a.q) - ORDEN_AMIGOS.indexOf(b.q));
+  const s = statsDe(g, m);
+  m.pv = s.pv;
+  m.ip = s.ip;
+  return m;
+}
+
+/** The party now holds a prompter (set on `dueno`). Returns false if it already had it. */
+export function darApuntador(g: Grupo, id: string, dueno: Amigo): boolean {
+  if (g.apuntadores.some((a) => a.id === id)) return false;
+  g.apuntadores.push({ id, dueno, estado: 'puesto', turnos: 0 });
+  const m = g.miembros.find((x) => x.q === dueno);
+  if (m) {
+    const s = statsDe(g, m);
+    m.pv += BONO_APUNTADOR[id]?.pv ?? 0;
+    m.ip += BONO_APUNTADOR[id]?.ip ?? 0;
+    m.pv = Math.min(m.pv, s.pv);
+    m.ip = Math.min(m.ip, s.ip);
+  }
+  return true;
+}
+
 /** Heals everybody completely and puts every prompter back (an inn, a rest). */
 export function descansar(g: Grupo) {
   for (const a of g.apuntadores) {

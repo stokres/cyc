@@ -5,6 +5,7 @@ import {
   aguaFrames, arbol, banco, barril, cartel, casa, caja, farola, fuente, maceta, postePuerta, puesto, sueloDe, T,
   type Baldosa, type Luz,
 } from './arte';
+import { letreroPosada, letreroTienda } from './artecampo';
 import { ctx, lienzo, una } from './pixel';
 
 export interface Rect {
@@ -52,7 +53,8 @@ export interface Lectura {
   quien: 'pablo' | null;
 }
 
-export interface Mundo {
+/** What every walkable map has: the baked ground, the water, the solid boxes and the objects in depth order. */
+export interface MundoBase {
   w: number;
   h: number;
   suelo: HTMLCanvasElement;
@@ -63,13 +65,30 @@ export interface Mundo {
   luces: Luz[];
   /** Water sparkles: x, y, phase. */
   brillos: Array<[number, number, number]>;
+  lecturas: Lectura[];
+}
+
+/** The village. */
+export interface Mundo extends MundoBase {
   cuerdas: Cuerda[];
   bombillas: Bombilla[];
   /** The strings' cords and flags, painted once (transparent), drawn over everything. */
   cordones: HTMLCanvasElement | null;
-  lecturas: Lectura[];
   /** Pablo's front door: the tile and where he comes out. */
   puerta: Rect;
+  /** The doors of the peña (the shop) and of the inn: the tile to walk into. */
+  tienda: Rect;
+  posada: Rect;
+  /** Where Pablo comes out of each. */
+  salidaTienda: { x: number; y: number };
+  salidaPosada: { x: number; y: number };
+  /** The way out to the road, on the plaza's east side: walk into it. */
+  salidaCamino: Rect;
+  /** Where Pablo stands when he comes back from the road. */
+  llegadaCamino: { x: number; y: number };
+  /** Where the three friends wait (feet), the narrator's spot and Chuchi's entrance (the gate). */
+  amigos: { fran: { x: number; y: number }; guille: { x: number; y: number }; chuchi: { x: number; y: number } };
+  narrador: { x: number; y: number };
   salida: { x: number; y: number };
   /** The plaza, where the slice ends. */
   plaza: Rect;
@@ -124,6 +143,8 @@ function construirPueblo(): Mundo {
   rr(g, 20, 21, 22, 21, 'h');
   // A little path on the plaza's south side to the fiesta grounds.
   rr(g, 23, 15, 37, 15, 'g');
+  // The way out to the road to the theatre: an opening in the forest on the east side of the plaza.
+  rr(g, 38, 9, 39, 11, 'd');
 
   const luces: Luz[] = [];
   const rects: Rect[] = [];
@@ -153,13 +174,16 @@ function construirPueblo(): Mundo {
     const y = ty * T;
     poner(`casa.${id}`, x, y, img);
     const WP = w * T;
-    if (id === 'pablo') {
+    if (id === 'pablo' || id === 'tienda' || id === 'norte1') {
       // The door tile can be walked into.
       rects.push({ x, y, w: WP, h: 64 }, { x, y: y + 64, w: puerta * T, h: 16 }, { x: x + (puerta + 1) * T, y: y + 64, w: WP - (puerta + 1) * T, h: 16 });
     } else {
       rects.push({ x, y, w: WP, h: 80 });
       lecturas.push({ rect: { x: x + puerta * T - 4, y: y + 80, w: T + 8, h: 14 }, clave: 'lectura.puerta', quien: null });
     }
+    // The signs on the walls beside the shop's and the inn's doors.
+    if (id === 'tienda') poner('letrero.tienda', x + (puerta + 1) * T + 4, y + 50, letreroTienda(), y + 79);
+    if (id === 'norte1') poner('letrero.posada', x + (puerta + 1) * T + 4, y + 50, letreroPosada(), y + 79);
     // The pool of light at the door and the windows.
     luces.push({ x: x + puerta * T + 8, y: y + 84, rx: 26, ry: 10, rgb: calido, fuerza: extra.ventanas === false ? 0.3 : 1 });
   }
@@ -178,6 +202,8 @@ function construirPueblo(): Mundo {
   // The forest around: trees close together on the edges (the ring of tiles is solid anyway).
   for (let k = -1; k < 14; k++) {
     poner(`bosqueO.${k}`, -8 + (k % 2) * 14, k * 32 - 14, arbol((k + 3) % 3));
+    // (a gap in the east forest: the road to the theatre)
+    if (k >= 4 && k <= 6) continue;
     poner(`bosqueE.${k}`, W * T - 24 - (k % 2) * 14, k * 32 - 14 + 10, arbol((k + 1) % 3));
   }
   for (let k = 0; k < 20; k++) {
@@ -275,6 +301,10 @@ function construirPueblo(): Mundo {
   // The crate and the world's things that move are the engine's.
   const aldeanoZona: Rect = { x: 15 * T, y: 18 * T, w: 4 * T, h: 6 * T };
   void pabloCasa;
+  // the sign at the mouth of the road (its text is the narrator's)
+  poner('cartel.camino', 35 * T + 2, 12 * T - 6, cartel(), 12 * T + 14);
+  rects.push({ x: 35 * T + 8, y: 12 * T + 4, w: 5, h: 5 });
+  lecturas.push({ rect: { x: 34 * T, y: 12 * T + 10, w: 3 * T, h: 12 }, clave: 'lectura.cartelCamino', quien: null });
   return {
     w: W * T,
     h: H * T,
@@ -290,6 +320,14 @@ function construirPueblo(): Mundo {
     cordones,
     lecturas,
     puerta: { x: 3 * T + 2 * T, y: 13 * T + 64, w: T, h: 16 },
+    tienda: { x: 15 * T + T, y: 5 * T + 64, w: T, h: 16 },
+    posada: { x: 22 * T + 2 * T, y: 0 * T + 64, w: T, h: 16 },
+    salidaTienda: { x: 15 * T + T + 8, y: 5 * T + 80 + 10 },
+    salidaPosada: { x: 22 * T + 2 * T + 8, y: 0 * T + 80 + 10 },
+    salidaCamino: { x: 38 * T, y: 9 * T, w: 2 * T, h: 3 * T },
+    llegadaCamino: { x: 37 * T, y: 10 * T + 8 },
+    amigos: { fran: { x: 23 * T + 8, y: 11 * T + 8 }, guille: { x: 31 * T + 8, y: 9 * T + 12 }, chuchi: { x: 19 * T + 8, y: 20 * T + 12 } },
+    narrador: { x: 26 * T, y: 10 * T + 8 },
     salida: { x: 3 * T + 2 * T + 8, y: 13 * T + 80 + 10 },
     plaza: { x: 22 * T, y: 5 * T, w: 14 * T, h: 8 * T },
     caja: { x: 20 * T, y: 20 * T },
