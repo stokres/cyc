@@ -29,6 +29,11 @@ import tragaperrasPremio from './tragaperras-premio.mp3?url';
 import pangUsera from './pang-usera.mp3?url';
 import pangCalle from './pang-calle.mp3?url';
 import pangRonda from './pang-ronda.mp3?url';
+import solPueblo from './sol-pueblo.mp3?url';
+import solTexto from './sol-texto.mp3?url';
+import solPoder from './sol-poder.mp3?url';
+import solMenu from './sol-menu.mp3?url';
+import solPuerta from './sol-puerta.mp3?url';
 
 export const MUSICA = {
   /** The farm polka on banjo, from Guille's radio (banjo.py radio). */
@@ -81,6 +86,17 @@ export const MUSICA = {
   pangCalle: { url: pangCalle, inicio: 0.5, fin: 53.833333 },
   /** «Última ronda», the bosses' theme. */
   pangRonda: { url: pangRonda, inicio: 0.5, fin: 49.071429 },
+  /**
+   * «Sol de Levante», Pablo's Golden Sun parody (chapter 2, tools/musica/sol.py). «Pueblo»: the village at night in the
+   * fiestas, 108 bpm, 32 bars; the 4-bar intro (the storm and the build's last two bars) plays once and then the 71.1 s
+   * round loops from `inicio` to `fin`, which is exactly the ring the generator rendered.
+   */
+  solPueblo: { url: solPueblo, entrada: 0, inicio: 8.888889, fin: 80 },
+  /** Short sounds of the same game, played once with Sound.efecto (`inicio` and `fin` are not used): the blip of each letter of text (35 ms, soft), a psynergy cast (1.4 s), the menu's cursor/confirm tick (60 ms) and a door with a step (0.64 s). */
+  solTexto: { url: solTexto, inicio: 0, fin: 0.036 },
+  solPoder: { url: solPoder, inicio: 0, fin: 1.4 },
+  solMenu: { url: solMenu, inicio: 0, fin: 0.062 },
+  solPuerta: { url: solPuerta, inicio: 0, fin: 0.64 },
 } as const;
 
 export type Pista = keyof typeof MUSICA;
