@@ -7,7 +7,9 @@
 // Outlines are made automatically, always a dark tone of the colour they surround (never black).
 import { ctx, lienzo, mezcla, noche, reflejar, una, type Pal } from './pixel';
 
-export type Quien = 'pablo' | 'madre' | 'aldeano';
+export type Quien = 'pablo' | 'madre' | 'aldeano' | 'chuchi' | 'fran' | 'guille';
+/** The four friends, the party of the fights. */
+export type Amigo = 'pablo' | 'chuchi' | 'fran' | 'guille';
 export type Dir = 'S' | 'SE' | 'E' | 'NE' | 'N' | 'NW' | 'W' | 'SW';
 export type Pose = 'normal' | 'poder' | 'sentado' | 'dormido';
 
@@ -260,7 +262,8 @@ const ALDEANO: Molde = {
   manga: 3,
 };
 
-const MOLDES: Record<Quien, Molde> = { pablo: PABLO, madre: MADRE, aldeano: ALDEANO };
+// Placeholders until the three friends are drawn: they wear the villager's mould.
+const MOLDES: Record<Quien, Molde> = { pablo: PABLO, madre: MADRE, aldeano: ALDEANO, chuchi: ALDEANO, fran: ALDEANO, guille: ALDEANO };
 
 // ---------------------------------------------------------------- painting into a grid
 

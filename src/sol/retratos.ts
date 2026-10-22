@@ -289,7 +289,8 @@ function aldeano(e: Estado) {
   return contorno(c);
 }
 
-const FUNCS: Record<Quien, (e: Estado) => HTMLCanvasElement> = { pablo, madre, aldeano };
+// Placeholders until the three friends have their portraits.
+const FUNCS: Record<Quien, (e: Estado) => HTMLCanvasElement> = { pablo, madre, aldeano, chuchi: aldeano, fran: aldeano, guille: aldeano };
 
 /** One portrait: eyes open or shut, mouth open or shut, and a smile if `contento`. */
 export function retrato(q: Quien, ojos: boolean, boca: boolean, animo: Animo = 'normal'): HTMLCanvasElement {
