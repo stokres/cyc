@@ -59,7 +59,7 @@ function cargarAjustes(): Ajustes {
 async function arrancar() {
   cargarTextos(textosInterfaz, textosCapitulo, textosCapitulo2);
   const root = document.getElementById('game')!;
-  // «Sol de Levante» (src/sol/), the friends' parody, opened by itself: the address ending in ?sol.
+  // «Alacant Sun» (src/sol/), the friends' parody, opened by itself: the address ending in ?sol.
   if (new URLSearchParams(location.search).has('sol')) {
     const [{ jugarSol }, { Sound }] = await Promise.all([import('./sol/sol'), import('./core/audio')]);
     const sonido = new Sound();

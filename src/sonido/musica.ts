@@ -87,7 +87,7 @@ export const MUSICA = {
   /** «Última ronda», the bosses' theme. */
   pangRonda: { url: pangRonda, inicio: 0.5, fin: 49.071429 },
   /**
-   * «Sol de Levante», Pablo's Golden Sun parody (chapter 2, tools/musica/sol.py). «Pueblo»: the village at night in the
+   * «Alacant Sun», Pablo's Golden Sun parody (chapter 2, tools/musica/sol.py). «Pueblo»: the village at night in the
    * fiestas, 108 bpm, 32 bars; the 4-bar intro (the storm and the build's last two bars) plays once and then the 71.1 s
    * round loops from `inicio` to `fin`, which is exactly the ring the generator rendered.
    */

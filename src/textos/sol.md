@@ -1,8 +1,8 @@
-# Sol de Levante (el juego de Pablo)
+# Alacant Sun (el juego de Pablo)
 
 <!--
 CÓMO EDITAR ESTE ARCHIVO
-Todo lo que se lee en «Sol de Levante» está aquí. Mismo formato que capitulo1.md, pero solo con textos sueltos:
+Todo lo que se lee en «Alacant Sun» está aquí. Mismo formato que capitulo1.md, pero solo con textos sueltos:
 
   clave = texto                un texto. Quién lo dice sale de la clave: madre.*, aldeano.* y pablo.*
                                enseñan su retrato en la ventanita; el resto lo cuenta el narrador.
@@ -17,8 +17,6 @@ Los textos son provisionales: los revisará Jesús junto con el resto.
 
 // ---------------------------------------------------------------- título y consola
 
-titulo.arriba = SOL DE
-titulo.abajo = LEVANTE
 titulo.pie = PARA PABLO, CON CARIÑO
 titulo.pulsa = PULSA A
 consola.marca = CAMIONES Y CARAVANAS

@@ -1,4 +1,4 @@
-// «Sol de Levante»'s font: a small hand-made proportional bitmap font (7 px capitals, 5 px lower case,
+// «Alacant Sun»'s font: a small hand-made proportional bitmap font (7 px capitals, 5 px lower case,
 // two rows of descender, accents above) drawn once into cached atlases, one per colour. Spanish
 // characters included: á é í ó ú ü ñ Á É Í Ó Ú Ü Ñ ¿ ¡. Text is crisp at 240×160, like the original's.
 //

@@ -381,7 +381,7 @@ if (toca('tragaperras')) {
 }
 
 if (toca('sol')) {
-  // «Sol de Levante» (src/sol/): the village at night in the rain, Pablo walking back and forth along the
+  // «Alacant Sun» (src/sol/): the village at night in the rain, Pablo walking back and forth along the
   // road (the cached tiles and sprites, two rain layers, the strings of lights, lightning now and then).
   await medir('sol: pueblo con lluvia', `(async () => {
     clearInterval(window.__paseo);

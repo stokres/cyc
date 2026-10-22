@@ -1,4 +1,4 @@
-// The sound ids of «Sol de Levante». They come from src/sonido/musica.ts (the music and effects are
+// The sound ids of «Alacant Sun». They come from src/sonido/musica.ts (the music and effects are
 // made in parallel by another agent); until they are there, the casts below keep the code compiling
 // and every call here does nothing (a missing id never reaches the audio code).
 import type { SonidoMinijuego } from '../core/audio';

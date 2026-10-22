@@ -1,45 +1,27 @@
-// The title screen: a rising sun over the village roofs, the logo in gold. Painted once (a 240×160 canvas);
-// the loop only blits it and blinks the «press A» line.
+// The title screen of «Alacant Sun»: a rising sun over the village roofs, the logo on top. The backdrop is painted
+// once (a 240×160 canvas); the loop only blits it, the logo and the blinking «press A» line.
 import { escribir, anchoTexto } from './fuente';
 import { azar, ctx, elipse, lienzo, rect, una } from './pixel';
+import logoUrl from './logo-alacant-sun.png';
 
-/** The logo text scaled up (nearest) in gold with a dark outline and a bevel. */
-function rotulo(s: string, escala: number): HTMLCanvasElement {
-  const base = lienzo(anchoTexto(s) + 2, 11);
-  escribir(ctx(base), s, 1, 0, '#ffffff');
-  const w = base.width * escala;
-  const h = 11 * escala;
-  const c = lienzo(w + 8, h + 8);
-  const x = ctx(c);
-  const llena = lienzo(w, h);
-  const l = ctx(llena);
-  l.drawImage(base, 0, 0, w, h);
-  // gold: bands from pale to deep («source-atop» keeps what the other bands painted)
-  l.globalCompositeOperation = 'source-atop';
-  const bandas = ['#fff3b0', '#ffe27a', '#ffd04a', '#f5b02a', '#e08a1c', '#b8580f'];
-  const bh = h / bandas.length;
-  bandas.forEach((b, i) => {
-    l.fillStyle = b;
-    l.fillRect(0, Math.floor(i * bh), w, Math.ceil(bh) + 1);
-  });
-  // the outline: a dark silhouette in eight directions behind, and a drop shadow
-  const sil = lienzo(w, h);
-  const s2 = ctx(sil);
-  s2.drawImage(base, 0, 0, w, h);
-  s2.globalCompositeOperation = 'source-in';
-  s2.fillStyle = '#2a0f3a';
-  s2.fillRect(0, 0, w, h);
-  const t = 1;
-  x.globalAlpha = 0.5;
-  x.drawImage(sil, 4 + t, 4 + t + 2);
-  x.globalAlpha = 1;
-  for (let dy = -t; dy <= t; dy++) for (let dx = -t; dx <= t; dx++) if (dx || dy) x.drawImage(sil, 4 + dx, 4 + dy);
-  x.drawImage(llena, 4, 4);
-  return c;
+// The «Alacant Sun» logo: a ready-made picture (216×99), loaded once and blitted as it is, unscaled.
+let logo: HTMLImageElement | null = null;
+
+/** Draws the logo at the top centre of the 240×160 screen. If it has not loaded yet, this frame goes without it. */
+export function dibujarLogo(g: CanvasRenderingContext2D) {
+  if (!logo) {
+    logo = new Image();
+    logo.src = logoUrl;
+  }
+  if (!logo.complete || !logo.naturalWidth) return;
+  const smooth = g.imageSmoothingEnabled;
+  g.imageSmoothingEnabled = false;
+  g.drawImage(logo, Math.round((240 - logo.naturalWidth) / 2), 1);
+  g.imageSmoothingEnabled = smooth;
 }
 
-/** The whole static title: sky, sun, roofs and logo. */
-export function portada(nombre: { arriba: string; abajo: string; pie: string }): HTMLCanvasElement {
+/** The static backdrop of the title: sky, sun, roofs and footer (the logo goes on top, `dibujarLogo`). */
+export function portada(pie: string): HTMLCanvasElement {
   return una('portada', () => {
     const c = lienzo(240, 160);
     const x = ctx(c);
@@ -55,7 +37,7 @@ export function portada(nombre: { arriba: string; abajo: string; pie: string }):
     }
     // the sun: rays, glow rings and the disc
     const cx = 120;
-    const cy = 112;
+    const cy = 122;
     for (let i = 0; i < 16; i++) {
       const a = Math.PI + (i / 15) * Math.PI;
       for (let d = 36; d < 96; d++) {
@@ -107,14 +89,8 @@ export function portada(nombre: { arriba: string; abajo: string; pie: string }):
       rect(x, '#0c0a2e', tx - 1, ty + 8, 3, 12);
     }
     rect(x, '#0a0826', 0, 150, 240, 10);
-    // the logo
-    const arriba = rotulo(nombre.arriba, 2);
-    const abajo = rotulo(nombre.abajo, 3);
-    x.drawImage(arriba, Math.round((240 - arriba.width) / 2), 8);
-    x.drawImage(abajo, Math.round((240 - abajo.width) / 2), 36);
-    // a small sun between the words' ends
     // the footer
-    escribir(x, nombre.pie, Math.round((240 - anchoTexto(nombre.pie)) / 2), 148, '#c9bfff', '#0a0826');
+    escribir(x, pie, Math.round((240 - anchoTexto(pie)) / 2), 148, '#c9bfff', '#0a0826');
     return c;
   });
 }

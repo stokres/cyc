@@ -127,13 +127,10 @@ function pablo(e: Estado) {
   rect(x, '#f7c948', 5, 21, 2, 1);
   // face
   elip(x, piel, 16, 15, 10, 11);
-  // the short beard along the jaw, the moustache
-  elip(x, barba, 16, 17, 10, 11, 20, 28);
-  elip(x, piel, 16, 23.5, 5.5, 3.5);
-  rect(x, barba, 11, 20, 10, 2);
-  rect(x, piel, 14, 22, 4, 1);
-  rect(x, peloO, 12, 22, 1, 1);
-  rect(x, peloO, 19, 22, 1, 1);
+  // the short beard hugs the jaw and chin like a «U»: no moustache, so nothing crosses the face
+  elip(x, barba, 16, 16.5, 10, 12, 21, 28);
+  elip(x, piel, 16, 18.5, 7.5, 7.5, 21, 28);
+  rect(x, peloO, 12, 27, 8, 1);
   // eyes
   const o = { iris: '#6a4a2a', ceja: peloO, cejaAlta: true };
   ojo(x, 14, 16, -1, e.ojos && e.animo !== 'contento', { ...o, feliz: e.animo === 'contento' && e.ojos });
@@ -146,27 +143,25 @@ function pablo(e: Estado) {
   // blush
   rect(x, '#f09a86', 8, 19, 2, 1);
   rect(x, '#f09a86', 22, 19, 2, 1);
-  // messy hair: a cap, spikes up, a jagged fringe and sideburns
-  elip(x, pelo, 16, 11, 11.5, 8.5, -99, 9);
-  // spikes standing up, each narrowing to a point
-  for (const [cx, top, ancho] of [[8, 1, 5], [13, 0, 5], [19, 0, 5], [24, 2, 5]] as const) {
-    for (let y = top; y < 6; y++) {
+  // messy hair, but little of it: a low cap, three short tufts, a ragged fringe and thin sideburns
+  elip(x, pelo, 16, 10, 10.5, 7, 3, 7);
+  for (const [cx, top, ancho] of [[10, 2, 3], [16, 1, 3], [22, 2, 3]] as const) {
+    for (let y = top; y < 5; y++) {
       const w = Math.min(ancho, 1 + (y - top) * 2);
-      rect(x, y - top < 2 ? peloL : pelo, cx - Math.floor(w / 2), y, w, 1);
+      rect(x, y - top < 1 ? peloL : pelo, cx - Math.floor(w / 2), y, w, 1);
     }
   }
   // the fringe falls over the forehead in points
-  for (const [fx, fy, fw] of [[6, 11, 4], [10, 12, 3], [13, 10, 3], [17, 12, 3], [20, 11, 4], [24, 11, 2]] as const) {
-    rect(x, pelo, fx, 9, fw, fy - 8);
+  for (const [fx, fy, fw] of [[8, 8, 3], [12, 7, 3], [17, 8, 3], [21, 7, 3]] as const) {
+    rect(x, pelo, fx, 7, fw, fy - 6);
     rect(x, peloO, fx, fy + 1, fw, 1);
   }
-  rect(x, pelo, 4, 9, 4, 11);
-  rect(x, pelo, 24, 9, 4, 11);
-  rect(x, peloO, 4, 18, 1, 2);
-  rect(x, peloO, 27, 18, 1, 2);
-  rect(x, peloL, 9, 6, 3, 1);
-  rect(x, peloL, 18, 5, 4, 1);
-  rect(x, peloL, 14, 9, 2, 1);
+  rect(x, pelo, 6, 8, 3, 6);
+  rect(x, pelo, 23, 8, 3, 6);
+  rect(x, peloO, 6, 13, 1, 1);
+  rect(x, peloO, 25, 13, 1, 1);
+  rect(x, peloL, 11, 5, 3, 1);
+  rect(x, peloL, 18, 4, 3, 1);
   return contorno(c);
 }
 

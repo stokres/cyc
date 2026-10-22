@@ -1,4 +1,4 @@
-// The world's pixel art of «Sol de Levante»: tiles of the village, houses, trees, the fountain, the crate of
+// The world's pixel art of «Alacant Sun»: tiles of the village, houses, trees, the fountain, the crate of
 // soft turrón... Everything is painted ONCE into cached canvases, in day colours, then put through the
 // night grade (pixel.ts, `noche`) and the lights painted on top (windows, lamps), so the frame loop only
 // drawImage()s them (docs/ESTILO.md, T5). Nothing here depends on the map.

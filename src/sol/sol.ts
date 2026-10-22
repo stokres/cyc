@@ -1,4 +1,4 @@
-// «Sol de Levante»: a short, affectionate parody of the first *Golden Sun* for Pablo (docs: the proposal in
+// «Alacant Sun»: a short, affectionate parody of the first *Golden Sun* for Pablo (docs: the proposal in
 // /capitulo2/golden-sun-pablo.md). This slice: the GBA screen and its console, Pablo's bedroom (the mother who
 // will not take a «no»), the village in fiestas at night in a storm, one psynergy («Sí, y...», our Move) that
 // pushes a crate of soft turrón with a hand of stage light, and the plaza where the slice ends.
@@ -22,7 +22,7 @@ import { solidoBaldosa, pueblo, type Lectura, type Mundo, type Rect } from './ma
 import { CICLO, dirDe, marco, PIES, sombraPies, vectorDe, type Dir, type Pose, type Quien } from './personajes';
 import { ctx, girar, lienzo } from './pixel';
 import { SonidoSol, EFECTO_PODER, EFECTO_PUERTA } from './sonido';
-import { portada } from './titulo';
+import { dibujarLogo, portada } from './titulo';
 
 export type Resultado = 'hecho' | 'saltado' | 'cancelado';
 
@@ -975,12 +975,13 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
   };
 
   const dibujarTitulo = () => {
-    g.drawImage(portada({ arriba: texto('titulo.arriba'), abajo: texto('titulo.abajo'), pie: texto('titulo.pie') }), 0, 0);
+    g.drawImage(portada(texto('titulo.pie')), 0, 0);
+    dibujarLogo(g);
     dibujarLluvia(0.55);
     // twinkling over the sun
     for (let i = 0; i < 3; i++) {
       const ph = (t * 0.7 + i * 0.33) % 1;
-      if (ph < 0.3) g.drawImage(destello(ph < 0.1 ? 2 : 1), 96 + ((i * 53) % 50), 96 + ((i * 29) % 30));
+      if (ph < 0.3) g.drawImage(destello(ph < 0.1 ? 2 : 1), 96 + ((i * 53) % 50), 92 + ((i * 29) % 16));
     }
     if (rayoT >= 0 || flash > 0) rayoEnPantalla();
     if (Math.floor(t * 1.6) % 2 === 0) {
