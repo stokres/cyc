@@ -101,6 +101,26 @@ Apilar los ocho cerdos encima de la báscula, estilo *Tower Bloxx*: un toque sue
 
 Homenaje al microjuego de *WarioWare* de disparar plátanos a una nariz gigante: desde detrás del cañón de bolas del parque, **se toca donde disparar** y la bola tarda medio segundo en llegar, así que al botón luminoso de la cabeza de Robi hay que apuntarle por delante. Seis aciertos lo apagan. Si la bola da en la cabeza, en el cuerpo o en el gorrito de fiesta que se pone sobre el botón, rebota. Robi se va acercando para dar un abrazo de cumpleaños; los fallos le acercan un poco (un 3 % del camino en el primer tramo, un 2,5 % en el segundo y un 2 % en el último, para que al final haya más intentos), los aciertos le echan atrás, y si llega se repite (tras dos rondas perdidas aparece «Saltar»). Tres tramos por aciertos: balanceo; más rápido, botando y con el gorrito; y a saltos. **El segundo y el tercero se mueven menos** que al principio (5 de octubre de 2026: con el gorrito eran casi imposibles), el botón cuenta con margen (1,45 veces su radio) y **el gorrito solo tapa cuando está bajado del todo**: un botón que se ve es un botón al que se le puede dar. Se ajusta con `node scripts/robot-sim.mjs`: quien apunta, aunque sea poco, gana; quien dispara sin parar a donde está el botón gana más o menos dos de cada tres, porque cada fallo acerca a Robi.
 
+### Las cañas por la barra (capítulo 2, Fran)
+
+Vista lateral de la barra del Brío (la del tráiler, `src/ui/bar-pintura.ts`). Vero desliza cañas a los cuatro amigos, que están a lo largo de la barra con un posavasos delante. Un toque frena la caña: si se para sobre el posavasos de quien la espera (se anuncia encima, «Para Pablo»), su cara se pone contenta; si se queda corta o se pasa, cae al suelo con salpicón y la ronda empieza otra vez. Cuatro cañas por ronda, cada una algo más rápida y a un amigo más lejos o más cerca; tras dos rondas perdidas aparece «Saltar».
+
+- **La caña frena con rozamiento** después del toque (no se para en seco), así que hay que tocar un poco antes: un aro dorado sobre la barra enseña dónde se pararía si tocaras ahora.
+- **El ritmo no depende de la distancia:** cada caña se empuja para que el toque ideal llegue a los 1,2, 1,05, 0,95 y 0,85 s del empuje (`TIEMPO`); al amigo lejano le llega más deprisa. Se acepta el error del posavasos más el ancho del vaso: unos 0,1 s a cada lado en la más rápida. Con reflejos normales se gana en una o dos rondas; sin tocar, nunca.
+- Si la caña llega al final de la barra sin tocar, cae por allí.
+
+### El canto a cuatro (capítulo 2, los cuatro)
+
+Las cuatro caras grandes en fila. Suena una base de pasodoble y cada uno tiene su turno para cantar dos sílabas de «Ca-mio-neees-y-ca-ra-va-naaas» (Pablo «Ca-mio», Fran «neees-y», Chuchi «ca-ra», Guille «va-naaas»): un aro se cierra sobre su cara y, en el golpe, se ilumina. Un toque en la cara iluminada, a tiempo: sus sílabas salen en grande y suena su golpe de metales. Un toque en otro, fuera de tiempo o ninguno: «¡Desafinado! Otra vez» y se vuelve a empezar la frase. La frase se canta dos veces, la segunda más rápida (112 frente a 92 pulsos por minuto) y más fuerte; al acabar sale «¡CAMIONEEES Y CARAVANAAAS!». Tras dos fallos aparece «Saltar».
+
+- **Va con el reloj de la música** (`Sound.posicion`), como el tráiler: un compás es la cuarta parte del bucle (`canto-a.mp3`, `canto-b.mp3`), una frase empieza en una línea de compás y sus cuatro turnos van un compás aparte, el primero con al menos uno de adelanto. Tras un fallo, la frase vuelve a empezar en la siguiente línea de compás. Sin sonido, con el reloj de los fotogramas.
+- Margen de error del toque: ±0,24 s la primera vez y ±0,20 s la segunda.
+- La melodía es propia, la de metales del canto del tráiler (`tools/musica/canto.py`); nunca la de *Paquito el Chocolatero*, que tiene derechos.
+
+### La tragaperras de cerca (capítulo 2)
+
+La máquina de frente, como en el tráiler, a pantalla completa (`src/ui/tragaperras.ts`, que comparte dibujo con él en `src/ui/tragaperras-pintura.ts`). Los rodillos giran y paran uno a uno al ritmo de su sonido (`tools/musica/tragaperras.py`). Sin premio caen limón, campana y cerdo; con premio, tres sietes, el cartel iluminado, las bombillas locas y una lluvia de monedas. Se cierra sola (a los 3,9 s sin premio, a los 7,3 s con premio) o con un toque.
+
 ### Minijuegos sin fin (menú de minijuegos)
 
 En el menú, **Minijuegos** abre los minijuegos que hayas superado en la historia (en tu partida o en un rejuego), en una versión sin fin: la misma mecánica, pero la dificultad sigue subiendo hasta que pierdes, y hay puntos (decidido el 4 de octubre de 2026). Los que aún no has superado salen bloqueados, con quién los tiene en su historia. El código está en cada minijuego, con la opción `infinito` (`src/ui/infinito.ts` pone el marcador).

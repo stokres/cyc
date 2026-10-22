@@ -40,10 +40,18 @@ export interface Ambiente {
   pan?: number;
 }
 
-/** What a minigame needs from the sound: its music, in a loop while it lasts. */
+/**
+ * What a minigame needs from the sound: its music, in a loop while it lasts. The rest is for
+ * the ones that keep to the beat or play short sounds (the chapter 2 chant and slot machine):
+ * the music's clock, a track loaded in advance, and sounds played once.
+ */
 export interface SonidoMinijuego {
-  musica(id: Pista): void;
+  musica(id: Pista, entra?: number): void;
   pararMusica(fundido?: number): void;
+  posicion?(id: Pista): number | null;
+  lista?(id: Pista): Promise<void>;
+  efecto?(id: Pista, volumen?: number): void;
+  prepararEfectos?(...ids: Pista[]): Promise<void>;
 }
 
 /** A track playing, or still loading (no source yet). */
@@ -205,6 +213,41 @@ export class Sound {
   /** Fetches and decodes a track ahead of time, so it starts at once when asked for. */
   precargar(id: Pista) {
     if (this.ac) this.cargar(id, this.ac);
+  }
+
+  /** Short sounds (a brass stab, a fall...), fetched and decoded once and kept: they are tiny, so apart from the music's cap. */
+  private efectos = new Map<Pista, Promise<AudioBuffer | null>>();
+  private cargarEfecto(id: Pista, ac: AudioContext) {
+    let carga = this.efectos.get(id);
+    if (!carga) {
+      carga = fetch(MUSICA[id].url)
+        .then((r) => r.arrayBuffer())
+        .then((b) => ac.decodeAudioData(b))
+        .catch(() => null);
+      this.efectos.set(id, carga);
+    }
+    return carga;
+  }
+
+  /** Resolves once these short sounds are ready (at once without sound), so the first one plays on time. */
+  async prepararEfectos(...ids: Pista[]) {
+    const ac = this.ac;
+    if (ac) await Promise.all(ids.map((id) => this.cargarEfecto(id, ac)));
+  }
+
+  /** Plays a short sound once, with the cues' volume (the menu's «Efectos»). */
+  efecto(id: Pista, volumen = 1) {
+    const ac = this.ac;
+    if (!ac || !this.fx) return;
+    void this.cargarEfecto(id, ac).then((buf) => {
+      if (!buf || !this.fx) return;
+      const src = ac.createBufferSource();
+      src.buffer = buf;
+      const g = ac.createGain();
+      g.gain.value = volumen;
+      src.connect(g).connect(this.fx);
+      src.start();
+    });
   }
 
   private cargar(id: Pista, ac: AudioContext) {

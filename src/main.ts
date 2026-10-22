@@ -2,6 +2,7 @@ import './ui/ui.css';
 import logoUrl from '../assets/logo.png';
 import { logoClaro } from './ui/logo';
 import textosCapitulo from './textos/capitulo1.md?raw';
+import textosCapitulo2 from './textos/capitulo2.md?raw';
 import textosInterfaz from './textos/interfaz.md?raw';
 import { cargarTextos, texto } from './juego/textos';
 import { Aventura } from './juego/aventura';
@@ -56,7 +57,7 @@ function cargarAjustes(): Ajustes {
 }
 
 async function arrancar() {
-  cargarTextos(textosInterfaz, textosCapitulo);
+  cargarTextos(textosInterfaz, textosCapitulo, textosCapitulo2);
   const root = document.getElementById('game')!;
   const ajustes = cargarAjustes();
   const guardarAjustes = () => storageSet('cyc.ajustes', JSON.stringify(ajustes));
