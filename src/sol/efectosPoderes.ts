@@ -574,7 +574,7 @@ export async function fxOvacion(e: Escena, enemigos: Donde[], impacto: (i: numbe
         }
       }
       if (t > proxGrito && t < 3.4) {
-        gritos.push({ s: grito(nGrito++), x: 24 + Math.random() * 192, y: 100 + Math.random() * 30, t: 0 });
+        gritos.push({ s: grito(nGrito++), x: 50 + Math.random() * 140, y: 100 + Math.random() * 30, t: 0 });
         proxGrito = t + 0.32;
       }
       for (const gr of gritos) gr.t += dt;

@@ -1356,6 +1356,8 @@ export class Combate implements Escena {
   /** Everything the victory gives: the music, the numbers, the level-ups. */
   private async victoria(): Promise<ResultadoCombate> {
     this.fase = 'victoria';
+    this.ui.modo = '';
+    this.ui.turno = null;
     this.msg = '';
     this.cam.obj = 0;
     this.sonido.parar(0.05);
@@ -1414,6 +1416,8 @@ export class Combate implements Escena {
 
   private async derrota(): Promise<ResultadoCombate> {
     this.fase = 'derrota';
+    this.ui.modo = '';
+    this.ui.turno = null;
     this.sonido.parar(0.6);
     this.msg = texto('combate.derrota');
     await this.espera(2.2);
@@ -1422,6 +1426,8 @@ export class Combate implements Escena {
 
   /** `ganar()` / `perder()` of the hook: the end is cut short and then goes through the usual steps. */
   private async terminarCorte(r: ResultadoCombate): Promise<ResultadoCombate> {
+    this.corteP = null;
+    this.esperando = null;
     if (r === 'victoria') {
       for (const e of this.enemigos) if (e.pv > 0 || e.muriendo < 0) {
         e.pv = 0;
@@ -1465,7 +1471,7 @@ export class Combate implements Escena {
       fase: this.fase,
       ronda: this.ronda,
       turno: this.ui.turno?.m.q ?? null,
-      menu: this.ui.modo,
+      menu: this.panelAbierto ? 'nivel' : this.ui.modo,
       mensaje: this.msg,
       enemigos: this.enemigos.map((e) => ({ id: e.def.id, pv: e.pv, pvMax: e.pvMax, vivo: e.vivo && e.pv > 0 })),
       grupo: this.heroes.map((h) => {
@@ -1524,9 +1530,9 @@ export class Combate implements Escena {
     this.dibujarLuchadores(g);
     this.dibujarAnims(g, 'sobre');
     this.parts.dibujar(g);
-    this.numeros.dibujar(g);
     g.restore();
     this.dibujarAnims(g, 'tope');
+    this.numeros.dibujar(g);
     if (this.flashPantalla.dur > 0) {
       g.globalAlpha = this.flashPantalla.a * (1 - this.flashPantalla.t / this.flashPantalla.dur);
       g.fillStyle = this.flashPantalla.col;
@@ -1758,22 +1764,22 @@ export class Combate implements Escena {
   }
 
   private dibujarPanelNivel(g: CanvasRenderingContext2D, s: SubidaDeNivel) {
-    const x = 58;
+    const x = 46;
     const y = 8;
-    g.drawImage(ventana(124, 90), x, y);
+    g.drawImage(ventana(148, 90), x, y);
     const sh = '#0a1450';
     escribir(g, nombreAmigo(s.q), x + 10, y + 8, '#ffe27a', sh);
-    escribir(g, `${texto('estado.nivel')} ${s.nivel}`, x + 72, y + 8, '#ffffff', sh);
+    escribir(g, `${texto('estado.nivel')} ${s.nivel}`, x + 90, y + 8, '#ffffff', sh);
     const filas: Array<[string, keyof SubidaDeNivel['antes']]> = [
       [texto('etiqueta.pv'), 'pv'], [texto('etiqueta.ip'), 'ip'], [texto('etiqueta.atk'), 'atk'], [texto('etiqueta.def'), 'def'], [texto('etiqueta.agi'), 'agi'],
     ];
     filas.forEach(([l, k], i) => {
       const cy = y + 24 + i * 12;
       escribir(g, l, x + 10, cy, '#9ab4ff', sh);
-      escribir(g, String(s.antes[k]), x + 52, cy, '#ffffff', sh);
-      escribir(g, '+', x + 72, cy, '#8cf08c', sh);
-      escribir(g, String(s.despues[k] - s.antes[k]), x + 80, cy, '#8cf08c', sh);
-      escribir(g, String(s.despues[k]), x + 96, cy, '#ffe27a', sh);
+      escribir(g, String(s.antes[k]), x + 64, cy, '#ffffff', sh);
+      escribir(g, '+', x + 86, cy, '#8cf08c', sh);
+      escribir(g, String(s.despues[k] - s.antes[k]), x + 93, cy, '#8cf08c', sh);
+      escribir(g, String(s.despues[k]), x + 112, cy, '#ffe27a', sh);
     });
   }
 }
@@ -1782,4 +1788,3 @@ export class Combate implements Escena {
 export function empezarCombate(o: OpcionesCombate): Combate {
   return new Combate(o);
 }
-
