@@ -1,10 +1,17 @@
-// The three characters of the slice as chibi 16×24 sprites (big head, small body, the proportions of
-// the original's): Pablo, his mother and the villager. Each frame is built once from char maps and
-// painted into a cached canvas; the game only drawImage()s them (docs/ESTILO.md, T5).
+// The characters of the slice as chibi 16×24 sprites (big head, small body, the proportions of the original's):
+// Pablo, his mother, the villager and the three friends who join him, Chuchi, Fran and Guille. Each frame is
+// built once from char maps and painted into a cached canvas; the game only drawImage()s them (docs/ESTILO.md, T5).
 //
-// Eight directions: south, north and east are drawn; the three-quarter views reuse them with the
-// features shifted, and the west ones are mirrors. Walk cycle: idle, left foot, idle, right foot.
+// Eight directions: south, north and east are drawn; the three-quarter views reuse them with the features
+// shifted, and the west ones are mirrors. The four friends have their head drawn by hand for each view (south,
+// south-east, east, north-east and north), so the same head turns all the way round. Walk cycle: idle, left foot,
+// idle, right foot. Poses: normal, power (an arm raised, open hand), and for Pablo's bedroom sitting and asleep.
 // Outlines are made automatically, always a dark tone of the colour they surround (never black).
+//
+// The four are told apart by their silhouette before their face: Pablo has brown tufts and a dark jacket; Chuchi
+// is a thin stick with a bald egg of a head, glasses and a maroon sweater; Fran is short and round with a huge
+// black beard falling over a teal tee and short trousers with white socks; Guille is long-legged with a black
+// mop and a loud mustard shirt full of hibiscus. The build (arms, torso, legs) is in the moulds' optional fields.
 import { ctx, lienzo, mezcla, noche, reflejar, una, type Pal } from './pixel';
 
 export type Quien = 'pablo' | 'madre' | 'aldeano' | 'chuchi' | 'fran' | 'guille';
@@ -46,6 +53,28 @@ interface Molde {
   blush?: string;
   /** A back-of-the-head detail (apron bow...), as pixels [x, y, letter] for the back view. */
   espalda?: Array<[number, number, string]>;
+  // The build. Everything below is optional and defaults to Pablo's (a 6-wide torso, arms beside it, 3-wide legs).
+  /** The torso's left column in the front/back views and in profile (default 5 and 6). */
+  torsoX?: { S: number; E: number };
+  /** Columns of the screen-left and screen-right arms in the front/back views (default 4 and 11). */
+  brazoX?: [number, number];
+  /** Column of the near arm in profile (default 8). */
+  brazoE?: number;
+  /** Rows of bare forearm between the sleeve and the hand (short sleeves). */
+  piel?: number;
+  /** Letter of the cuff, painted on the last row of the sleeve. */
+  puno?: string;
+  /** First row of the legs (default 17; a taller friend starts them higher, a stocky one lower). */
+  piernaY?: number;
+  /** Rows of trousers; what is left down to the shoe is sock (`calcetin`). Default: all of it. */
+  pantalon?: number;
+  /** Letter of the sock. */
+  calcetin?: string;
+  /** Width of a leg (default 3). */
+  piernaW?: number;
+  /** Left columns of the two legs in the front/back views (default 5 and 8) and of the standing leg in profile (default 7). */
+  piernaX?: [number, number];
+  piernaE?: number;
 }
 
 // Faces (skin) are shared; skin tones come from the palette.
@@ -262,8 +291,264 @@ const ALDEANO: Molde = {
   manga: 3,
 };
 
-// Placeholders until the three friends are drawn: they wear the villager's mould.
-const MOLDES: Record<Quien, Molde> = { pablo: PABLO, madre: MADRE, aldeano: ALDEANO, chuchi: ALDEANO, fran: ALDEANO, guille: ALDEANO };
+// The three friends. Same system as Pablo (a head drawn by hand for each view, a torso, a sleeve and a palette
+// of their own), but the build changes the silhouette: Chuchi is a long thin stick with a bald egg of a head,
+// Fran is short and round with a huge black beard that falls over his chest, Guille is long-legged with square
+// shoulders and a mop of black hair.
+
+const CHUCHI: Molde = {
+  pal: {
+    s: '#f1c6a9', S: '#d59f86', l: '#fde2cf', e: '#1e1218', m: '#c27064',
+    g: '#6a3c22', b: '#b0683a', B: '#8a4a28',
+    c: '#7a1f38', C: '#541428', d: '#9c3050',
+    p: '#3e3e4c', P: '#2c2c38', o: '#f4f4f6', O: '#b4b4c4',
+  },
+  cabeza: {
+    S: [
+      '...ssllss...', // 1
+      '..sslsssss..', // 2
+      '.ssssssssss.', // 3
+      '.ssssssssss.', // 4
+      'SggggssggggS', // 5
+      'SgleggggelgS', // 6
+      'SggggssggggS', // 7
+      '.bbssSSssbb.', // 8
+      '.bbbbmmmbbb.', // 9
+      '..BBBBBBBB..', // 10
+    ],
+    SE: [
+      '...ssllss...', // 1
+      '..ssllsssss.', // 2
+      '.sssssssssss', // 3
+      '.sssssssssss', // 4
+      'ssSggggsggg.', // 5
+      'ssSglegggeg.', // 6
+      'ssSggggsggg.', // 7
+      '.sSbbsssSsss', // 8
+      '..bbbbbmmbbs', // 9
+      '...BBBBBBB..', // 10
+    ],
+    E: [
+      '...ssllss...', // 1
+      '..sslsssss..', // 2
+      '.sssssssssss', // 3
+      '.sssssssssss', // 4
+      'ssssSSssgggs', // 5
+      'ssssSSgggegs', // 6
+      'ssssSSssgggs', // 7
+      '.ssssbbbbbss', // 8
+      '..sssbbbbmb.', // 9
+      '...sBBBBBB..', // 10
+    ],
+    NE: [
+      '...ssllss...', // 1
+      '..sslsssss..', // 2
+      '.ssssssssss.', // 3
+      '.sssssssssss', // 4
+      '.ssssssssSSs', // 5
+      '.ssssssssSgg', // 6
+      '.sssssssssSs', // 7
+      '..sssssssbbs', // 8
+      '...ssssssbb.', // 9
+      '....ssssss..', // 10
+    ],
+    N: [
+      '...ssllss...', // 1
+      '..sslsssss..', // 2
+      '.ssssssssss.', // 3
+      '.ssssssssss.', // 4
+      'SssssssssssS', // 5
+      'SgssssssssgS', // 6
+      'SssssssssssS', // 7
+      '.ssssssssss.', // 8
+      '..SSssssSS..', // 9
+      '...ssssss...', // 10
+    ],
+  },
+  torso: {
+    S: ['ccCCcc', 'cddddc', 'cddddc', 'cddddc', 'CCCCCC'],
+    N: ['cccccc', 'cddddc', 'cddddc', 'cddddc', 'CCCCCC'],
+    E: ['ccCcc', 'cdddc', 'cdddc', 'cdddc', 'CCCCC'],
+  },
+  manga: 3,
+  puno: 'C',
+  brazoX: [5, 10],
+  piernaY: 16,
+};
+
+const FRAN: Molde = {
+  pal: {
+    s: '#e8b090', S: '#c98a6c', e: '#2a1a22', m: '#c0504c',
+    h: '#4a3a46', H: '#33262f', l: '#6c5864', w: '#b4aebc',
+    b: '#2a1f27', B: '#1b1219', n: '#463640',
+    c: '#2c9b92', C: '#1d726d', d: '#48b8ad',
+    p: '#2e4378', P: '#222f5a', q: '#ecebf2', o: '#3a3a4e', O: '#8a8a9c',
+  },
+  cabeza: {
+    S: [
+      '...hh.hhhh..', // 1
+      '..hhwhhhhh..', // 2
+      '.hhhhhhhhhh.', // 3
+      'hhhhssssshhh', // 4
+      'hhbbbssbbbhh', // 5
+      'hssessssessh', // 6
+      'hssessssessh', // 7
+      'hbsssSSsssbh', // 8
+      'hbbbmmmmbbbh', // 9
+      '.bbbbbbbbbb.', // 10
+      '..bbbnbbbb..', // 11
+      '...bBBBBb...', // 12
+    ],
+    SE: [
+      '..hhhhhhh...', // 1
+      '.hhhhwhhhhh.', // 2
+      'hhhlhhhhhhh.', // 3
+      'hhhhhssshh..', // 4
+      'hhhhbbbsbbb.', // 5
+      'hhhhsessses.', // 6
+      'hhhhsessses.', // 7
+      'hhbbbssssSss', // 8
+      '.bbbbbbmmmbb', // 9
+      '..bbbbbbbbb.', // 10
+      '...bbbnbbbb.', // 11
+      '....bBBBBb..', // 12
+    ],
+    E: [
+      '..hhhhhhhh..', // 1
+      '.hhhhwhhhhh.', // 2
+      'hhhlhhhhhhh.', // 3
+      'hhhhhhhhhss.', // 4
+      'hhhhhhhhbbs.', // 5
+      'hhhhhhhsess.', // 6
+      'hhhhhhhsess.', // 7
+      'hhhhhbbsssss', // 8
+      'hhhhbbbbbbmb', // 9
+      '.hhbbbbbbbbb', // 10
+      '..hbbbnbbbb.', // 11
+      '....bbBBBb..', // 12
+    ],
+    NE: [
+      '...hhhhhh...', // 1
+      '..hhhhwhhh..', // 2
+      '.hhlhhhhhhh.', // 3
+      'hhhhhhhhhhhh', // 4
+      'hhhhhhhhhhhs', // 5
+      'hhhhhhhhhhss', // 6
+      'hhhhhhhhhSss', // 7
+      '.hhhhhhhhbbb', // 8
+      '..hhhhhhhbb.', // 9
+      '..hhhhhhbbb.', // 10
+      '...hhhhbbb..', // 11
+      '....bbbb....', // 12
+    ],
+    N: [
+      '...hhhhhh...', // 1
+      '..hhhhwhhh..', // 2
+      '.hhlhhhhhhh.', // 3
+      'hhhhhhhhhhhh', // 4
+      'hhhhhhhhhhhh', // 5
+      'hhhhhhhhhhhh', // 6
+      'shhhhhhhhhhs', // 7
+      'shhhhhhhhhhs', // 8
+      '.hhhhhhhhhh.', // 9
+      '..ssssssss..', // 10
+    ],
+  },
+  torso: {
+    S: ['cccccccc', 'cccccccc', 'cccddccc', 'ccddddcc', 'ccddddcc', 'cccddccc', 'CCCCCCCC'],
+    N: ['cccccccc', 'cccccccc', 'cccccccc', 'cccccccc', 'cccccccc', 'cccccccc', 'CCCCCCCC'],
+    E: ['ccccc..', 'cccccc.', 'ccccccc', 'cccdddc', 'cccdddc', 'cccccc.', 'CCCCCC.'],
+  },
+  manga: 2,
+  piel: 1,
+  torsoX: { S: 4, E: 5 },
+  brazoX: [3, 12],
+  piernaY: 18,
+  pantalon: 2,
+  calcetin: 'q',
+};
+
+const GUILLE: Molde = {
+  pal: {
+    s: '#e3a784', S: '#bd7f5e', e: '#2a1a22', m: '#b5504a',
+    h: '#383040', H: '#241c2c', l: '#5a4c68', b: '#1c1420',
+    c: '#e2a728', C: '#b57d18', f: '#d8352b', w: '#f4ecd8', v: '#2f8a3c',
+    p: '#3f6bb0', P: '#2c4f8c', o: '#b97b3f', O: '#7d4c22',
+  },
+  cabeza: {
+    S: [
+      '....hhhh....', // 1
+      '..hhhhhhhh..', // 2
+      '.hhhlhhhhhh.', // 3
+      'hhhhhhhhhhhh', // 4
+      'hhbbbssbbbhh', // 5
+      'hhsesssseshh', // 6
+      'hssessssessh', // 7
+      'SssssSSssssS', // 8
+      '.ssssmmssss.', // 9
+      '..sSSSSSSs..', // 10
+    ],
+    SE: [
+      '..hhhhhhh...', // 1
+      '.hhhhhhhhhh.', // 2
+      'hhlhhhhhhhh.', // 3
+      'hhhhhhhhhhh.', // 4
+      'hhhhbbbsbbbs', // 5
+      'hhhhsessses.', // 6
+      'hhhhsessses.', // 7
+      'hhhssssssSss', // 8
+      '.hhsssssmmss', // 9
+      '..hSSSSSSS..', // 10
+    ],
+    E: [
+      '..hhhhhhh...', // 1
+      '.hhhhhhhhhh.', // 2
+      'hhhlhhhhhhh.', // 3
+      'hhhhhhhhhhh.', // 4
+      'hhhhhhhhbbs.', // 5
+      'hhhhhhhsess.', // 6
+      'hhhhhhhsess.', // 7
+      'hhhhhhhsssss', // 8
+      '.hhhhhsssmss', // 9
+      '..hhhhSSSSS.', // 10
+    ],
+    NE: [
+      '...hhhhh....', // 1
+      '..hhhhhhhh..', // 2
+      '.hhlhhhhhhh.', // 3
+      'hhhhhhhhhhhh', // 4
+      'hhhhhhhhhhhs', // 5
+      'hhhhhhhhhhss', // 6
+      'hhhhhhhhhSss', // 7
+      '.hhhhhhhhSSs', // 8
+      '..hhhhhhhhs.', // 9
+      '...hhhssss..', // 10
+    ],
+    N: [
+      '...hhhhhh...', // 1
+      '..hhhhhhhh..', // 2
+      '.hhhlhhhhhh.', // 3
+      'hhhhhhhhhhhh', // 4
+      'hhhhhhhhhhhh', // 5
+      'hhhhhhhhhhhh', // 6
+      'shhhhhhhhhhs', // 7
+      'shhhhhhhhhhs', // 8
+      '.hhhhhhhhhh.', // 9
+      '...ssssss...', // 10
+    ],
+  },
+  torso: {
+    S: ['ccCssCcc', '.ffccvc.', '.fwcccc.', '.cccffv.', '.CCCCCC.'],
+    N: ['cccccccc', '.cfcccc.', '.ffvccc.', '.cccccc.', '.CCCCCC.'],
+    E: ['ccCcc', 'cfcvc', 'cwccc', 'cccfc', 'CCCCC'],
+  },
+  manga: 2,
+  piel: 1,
+  torsoX: { S: 4, E: 6 },
+  piernaY: 16,
+};
+
+const MOLDES: Record<Quien, Molde> = { pablo: PABLO, madre: MADRE, aldeano: ALDEANO, chuchi: CHUCHI, fran: FRAN, guille: GUILLE };
 
 // ---------------------------------------------------------------- painting into a grid
 
@@ -370,79 +655,87 @@ const cuadro = (g: Rejilla, x: number, y: number, w: number, h: number, col: str
 function piernas(g: Rejilla, M: Molde, v: Vista, paso: number, pose: Pose) {
   const { pal } = M;
   const quieto = paso === 0 || pose !== 'normal';
+  const y0 = M.piernaY ?? 17;
+  const w = M.piernaW ?? 3;
+  const pant = M.pantalon ?? 21 - y0;
+  // A leg: trousers, the sock if the trousers are short, and the shoe (two rows; the toe sticks out in profile).
+  const pierna = (x: number, alza: number, col: string) => {
+    const largo = 21 - y0 - alza;
+    cuadro(g, x, y0, w, Math.min(pant, largo), col);
+    if (largo > pant) cuadro(g, x, y0 + pant, w, largo - pant, pal[M.calcetin ?? 'q'] ?? col);
+    const zapato = w + (v === 'E' ? 1 : 0);
+    cuadro(g, x, 21 - alza, zapato, 2, pal.o);
+    cuadro(g, x, 22 - alza, zapato, 1, pal.O);
+  };
   if (v === 'E') {
     // Profile: standing = the legs together; contact = a stride (the front foot lifts a pixel).
-    const pierna = (x: number, alza: number, col: string) => {
-      cuadro(g, x, 17, 3, 4 - alza, col);
-      cuadro(g, x, 21 - alza, 4, 2, pal.o);
-      cuadro(g, x, 22 - alza, 4, 1, pal.O);
-    };
-    if (quieto) pierna(7, 0, pal.p);
+    const x = M.piernaE ?? 7;
+    if (quieto) pierna(x, 0, pal.p);
     else {
       const s = paso === 1 ? 1 : -1;
-      pierna(7 - s * 2, 0, pal.P);
-      pierna(7 + s * 2, 1, pal.p);
+      pierna(x - s * 2, 0, pal.P);
+      pierna(x + s * 2, 1, pal.p);
     }
     return;
   }
-  // Front and back: two legs, 3 wide; in a step the one that moves is lifted a pixel.
-  const pierna = (x: number, alza: number, col: string) => {
-    cuadro(g, x, 17, 3, 4 - alza, col);
-    cuadro(g, x, 21 - alza, 3, 2, pal.o);
-    cuadro(g, x, 22 - alza, 3, 1, pal.O);
-  };
-  pierna(5, quieto ? 0 : paso === 1 ? 1 : 0, pal.p);
-  pierna(8, quieto ? 0 : paso === 2 ? 1 : 0, pal.P);
+  // Front and back: two legs; in a step the one that moves is lifted a pixel.
+  const [xi, xd] = M.piernaX ?? [5, 8];
+  pierna(xi, quieto ? 0 : paso === 1 ? 1 : 0, pal.p);
+  pierna(xd, quieto ? 0 : paso === 2 ? 1 : 0, pal.P);
 }
 
 function torsoYBrazos(g: Rejilla, M: Molde, v: Vista, paso: number, dy: number, pose: Pose) {
   const { pal } = M;
-  const x0 = v === 'E' ? 6 : 5;
+  const x0 = v === 'E' ? (M.torsoX?.E ?? 6) : (M.torsoX?.S ?? 5);
   const y0 = 11 + dy;
   mapa(g, M.torso[v], x0, y0, pal);
   const manga = pal.c;
   const mano = pal.s;
   const largo = M.manga;
+  const piel = M.piel ?? 0;
   const poder = pose === 'poder';
   const sent = pose === 'sentado';
+  // An arm hanging from (x, y): the sleeve (with its cuff), the bare forearm and the hand.
+  const brazo = (x: number, y: number) => {
+    for (let j = 0; j < largo; j++) poner(g, x, y + j, j === largo - 1 && M.puno ? pal[M.puno] : manga);
+    for (let j = 0; j < piel; j++) poner(g, x, y + largo + j, mano);
+    poner(g, x, y + largo + piel, mano);
+  };
 
   if (v === 'E') {
+    const bx = M.brazoE ?? 8;
     if (poder) {
       // The near arm forward and up, the hand open.
-      poner(g, 9, y0 + 1, manga);
-      poner(g, 10, y0, manga);
-      poner(g, 11, y0 - 1, manga);
-      poner(g, 12, y0 - 2, mano);
-      poner(g, 12, y0 - 3, mano);
-      poner(g, 13, y0 - 3, mano);
-      poner(g, 13, y0 - 4, mano);
+      poner(g, bx + 1, y0 + 1, manga);
+      poner(g, bx + 2, y0, manga);
+      poner(g, bx + 3, y0 - 1, manga);
+      poner(g, bx + 4, y0 - 2, mano);
+      poner(g, bx + 4, y0 - 3, mano);
+      poner(g, bx + 5, y0 - 3, mano);
+      poner(g, bx + 5, y0 - 4, mano);
       return;
     }
     // The near arm swings with the stride.
     const sw = paso === 1 ? 1 : paso === 2 ? -1 : 0;
-    for (let j = 0; j < largo; j++) poner(g, 8 + sw, y0 + 1 + j, manga);
-    poner(g, 8 + sw, y0 + 1 + largo, mano);
+    brazo(bx + sw, y0 + 1);
     return;
   }
 
-  const brazo = (x: number, al: number) => {
-    for (let j = 0; j < largo; j++) poner(g, x, y0 + 1 + j + al, manga);
-    poner(g, x, y0 + 1 + largo + al, mano);
-  };
+  const [bi, bd] = M.brazoX ?? [4, 11];
   const sw = sent || poder ? 0 : paso === 1 ? 1 : paso === 2 ? -1 : 0;
-  brazo(4, sent ? -1 : sw);
+  brazo(bi, y0 + 1 + (sent ? -1 : sw));
   if (poder) {
     // The arm on the screen's right raised beside the head, the hand open.
-    poner(g, 11, y0 + 1, manga);
-    poner(g, 12, y0, manga);
-    poner(g, 13, y0 - 1, manga);
-    poner(g, 13, y0 - 2, mano);
-    poner(g, 13, y0 - 3, mano);
-    poner(g, 14, y0 - 3, mano);
-    poner(g, 14, y0 - 4, mano);
+    poner(g, bd, y0 + 1, manga);
+    poner(g, bd + 1, y0, manga);
+    poner(g, bd + 2, y0 - 1, manga);
+    poner(g, bd + 2, y0 - 2, mano);
+    poner(g, bd + 2, y0 - 3, mano);
+    poner(g, bd + 3, y0 - 3, mano);
+    poner(g, bd + 3, y0 - 4, mano);
     return;
   }
-  brazo(11, sent ? -1 : -sw);
+  brazo(bd, y0 + 1 + (sent ? -1 : -sw));
 }
 
 /** A hand-drawn head (`Molde.cabeza`); asleep, the eyes are shut: the upper pixel of each goes skin. */
@@ -521,6 +814,9 @@ function cabeza(g: Rejilla, M: Molde, v: Vista, tres: boolean, dy: number, pose:
 export function marco(q: Quien, d: Dir, paso: number, pose: Pose = 'normal'): HTMLCanvasElement {
   return una(`pj.${q}.${d}.${paso}.${pose}`, () => pintarFrame(q, d, paso, pose));
 }
+
+/** The palette of a friend (letters as in the maps), so the fighters wear the same colours as the walking sprites. */
+export const paletaDe = (q: Amigo): Pal => MOLDES[q].pal;
 
 /** Cycle of the walk: idle, left, idle, right. */
 export const CICLO = [0, 1, 0, 2] as const;

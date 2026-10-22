@@ -289,8 +289,207 @@ function aldeano(e: Estado) {
   return contorno(c);
 }
 
-// Placeholders until the three friends have their portraits.
-const FUNCS: Record<Quien, (e: Estado) => HTMLCanvasElement> = { pablo, madre, aldeano, chuchi: aldeano, fran: aldeano, guille: aldeano };
+// ---------------------------------------------------------------- Chuchi
+
+function chuchi(e: Estado) {
+  const c = lienzo(32, 32);
+  const x = ctx(c);
+  const piel = '#f1c6a9';
+  const sombra = '#d59f86';
+  const luz = '#fde2cf';
+  const barba = '#b0683a';
+  const barbaO = '#8a4a28';
+  const barbaL = '#cf9560';
+  const montura = '#5a3420';
+  // the maroon sweater, round neck, no hood
+  elip(x, '#541428', 16, 36, 15, 11);
+  elip(x, '#7a1f38', 16, 35, 14, 10);
+  elip(x, '#8e2a46', 10, 33, 4, 5, 29, 36);
+  rect(x, '#541428', 14, 30, 1, 3);
+  rect(x, '#541428', 20, 31, 1, 2);
+  // neck and the collar's rim
+  rect(x, sombra, 12, 22, 8, 5);
+  elip(x, '#541428', 16, 27.5, 6, 2.5, 26, 29);
+  rect(x, '#6c1a32', 11, 27, 10, 1);
+  // ears that stand out
+  elip(x, piel, 6, 16, 3, 4.5);
+  elip(x, piel, 26, 16, 3, 4.5);
+  rect(x, sombra, 5, 15, 1, 3);
+  rect(x, sombra, 26, 15, 1, 3);
+  // the bald egg: a tall skull, a sliver of shade on the right and a shine on the left
+  elip(x, sombra, 16, 14, 10, 12.5);
+  elip(x, piel, 15, 14, 9, 12.5);
+  elip(x, luz, 11, 6, 4.5, 2.2);
+  rect(x, '#fff4ea', 9, 5, 3, 1);
+  rect(x, luz, 8, 9, 2, 3);
+  // the trimmed ginger beard hugs the jaw like a «U»: no moustache, so nothing crosses the face
+  elip(x, barba, 16, 16.5, 10, 12, 21, 28);
+  elip(x, piel, 16, 18.5, 7.5, 7.5, 21, 28);
+  rect(x, barbaO, 12, 27, 8, 1);
+  rect(x, barbaL, 9, 22, 1, 3);
+  rect(x, barbaL, 22, 22, 1, 3);
+  // eyes (the brows are painted above the glasses)
+  const o = { iris: '#5a3a22', ceja: piel };
+  ojo(x, 14, 16, -1, e.ojos && e.animo !== 'contento', { ...o, feliz: e.animo === 'contento' && e.ojos });
+  ojo(x, 18, 16, 1, e.ojos && e.animo !== 'contento', { ...o, feliz: e.animo === 'contento' && e.ojos });
+  // square dark-brown glasses with thick tops and a little bridge
+  for (const lx of [8, 18]) {
+    rect(x, montura, lx, 12, 7, 2);
+    rect(x, montura, lx, 14, 1, 5);
+    rect(x, montura, lx + 6, 14, 1, 5);
+    rect(x, montura, lx + 1, 19, 5, 1);
+  }
+  rect(x, montura, 15, 14, 3, 1);
+  rect(x, montura, 5, 14, 3, 1);
+  rect(x, montura, 25, 14, 3, 1);
+  rect(x, '#ffffff', 9, 14, 1, 1);
+  rect(x, '#ffffff', 19, 14, 1, 1);
+  // light ginger brows over the frames
+  rect(x, '#c58a58', 9, 10, 5, 1);
+  rect(x, '#c58a58', 19, 10, 5, 1);
+  // nose
+  rect(x, sombra, 15, 17, 2, 3);
+  rect(x, '#c4856a', 14, 20, 4, 1);
+  // a half smile
+  boca(x, 16, 23, e, '#a8584c');
+  if (e.animo === 'contento' && !e.boca) rect(x, '#a8584c', 20, 23, 1, 1);
+  rect(x, '#e8988a', 9, 20, 2, 1);
+  rect(x, '#e8988a', 22, 20, 2, 1);
+  return contorno(c);
+}
+
+// ---------------------------------------------------------------- Fran
+
+function fran(e: Estado) {
+  const c = lienzo(32, 32);
+  const x = ctx(c);
+  const piel = '#e8b090';
+  const sombra = '#c98a6c';
+  const pelo = '#4a3a46';
+  const peloO = '#33262f';
+  const peloL = '#6c5864';
+  const gris = '#b4aebc';
+  const barba = '#2a1f27';
+  const barbaO = '#1b1219';
+  const barbaL = '#463640';
+  // the teal tee
+  elip(x, '#1d726d', 16, 36, 15, 11);
+  elip(x, '#2c9b92', 16, 35, 14, 10);
+  rect(x, '#48b8ad', 5, 29, 3, 2);
+  // neck, ears and a broad, round face
+  rect(x, sombra, 11, 22, 10, 6);
+  elip(x, piel, 5.5, 16, 2.5, 3.5);
+  elip(x, piel, 26.5, 16, 2.5, 3.5);
+  elip(x, piel, 16, 15, 10.5, 11);
+  // the big black beard, all in one piece: sideburns, the moustache that starts under the nose and a mass that
+  // falls over the chest; its top edge is a tent around the nose, not a straight line across the face
+  elip(x, barba, 6.5, 17, 2, 5.5);
+  elip(x, barba, 25.5, 17, 2, 5.5);
+  const masa: Array<[number, number]> = [[19, 4], [20, 6.5], [21, 8.5], [22, 9.5], [23, 10], [24, 10.5], [25, 10.5], [26, 10.5], [27, 10.5], [28, 10], [29, 9], [30, 7.5], [31, 5.5]];
+  for (const [yy, half] of masa) rect(x, barba, Math.round(16 - half), yy, Math.round(half * 2), 1);
+  rect(x, barbaL, 9, 24, 1, 3);
+  rect(x, barbaL, 22, 24, 1, 3);
+  rect(x, barbaL, 11, 28, 1, 2);
+  rect(x, barbaL, 15, 29, 1, 2);
+  rect(x, barbaL, 20, 28, 1, 2);
+  rect(x, barbaO, 12, 31, 8, 1);
+  // eyes under heavy brows
+  const o = { iris: '#4a2e22', ceja: barba };
+  ojo(x, 14, 16, -1, e.ojos && e.animo !== 'contento', { ...o, feliz: e.animo === 'contento' && e.ojos });
+  ojo(x, 18, 16, 1, e.ojos && e.animo !== 'contento', { ...o, feliz: e.animo === 'contento' && e.ojos });
+  // nose and ruddy cheeks
+  rect(x, sombra, 15, 18, 3, 3);
+  rect(x, '#b8785a', 14, 20, 5, 1);
+  rect(x, '#e28a76', 9, 19, 3, 1);
+  rect(x, '#e28a76', 21, 19, 3, 1);
+  // the mouth, lost in the beard
+  boca(x, 16, 24, e, '#d8786a');
+  // short dark hair with a touch of grey: a low cap that leaves the forehead bare
+  elip(x, pelo, 16, 8, 10.5, 6.5, 2, 9);
+  rect(x, pelo, 5, 8, 3, 5);
+  rect(x, pelo, 24, 8, 3, 5);
+  rect(x, piel, 11, 9, 2, 1);
+  rect(x, piel, 16, 9, 3, 1);
+  rect(x, peloO, 5, 12, 1, 1);
+  rect(x, peloO, 26, 12, 1, 1);
+  rect(x, peloL, 12, 4, 3, 1);
+  rect(x, gris, 9, 4, 1, 2);
+  rect(x, gris, 21, 5, 1, 2);
+  rect(x, gris, 7, 8, 1, 1);
+  return contorno(c);
+}
+
+// ---------------------------------------------------------------- Guille
+
+/** A hibiscus for the shirt: a red cross with a pale heart. */
+function hibisco(x: CanvasRenderingContext2D, cx: number, cy: number) {
+  rect(x, '#d8352b', cx - 1, cy, 3, 1);
+  rect(x, '#d8352b', cx, cy - 1, 1, 3);
+  rect(x, '#f6e6b0', cx, cy, 1, 1);
+  rect(x, '#2f8a3c', cx + 2, cy + 1, 2, 1);
+}
+
+function guille(e: Estado) {
+  const c = lienzo(32, 32);
+  const x = ctx(c);
+  const piel = '#e3a784';
+  const sombra = '#bd7f5e';
+  const barbilla = '#cb9270';
+  const pelo = '#383040';
+  const peloO = '#241c2c';
+  const peloL = '#5a4c68';
+  // the loud shirt: mustard, hibiscus and leaves, collar open on a V of chest
+  elip(x, '#b57d18', 16, 34, 15, 11);
+  elip(x, '#e2a728', 16, 33, 14, 10);
+  hibisco(x, 6, 28);
+  hibisco(x, 27, 27);
+  hibisco(x, 9, 31);
+  hibisco(x, 23, 30);
+  rect(x, '#2f8a3c', 4, 30, 2, 1);
+  rect(x, '#2f8a3c', 27, 31, 2, 1);
+  // the neck and the V of the collar
+  rect(x, sombra, 12, 21, 8, 5);
+  [[8, 25], [6, 26], [4, 27], [2, 28]].forEach(([w, yy]) => rect(x, piel, 16 - w / 2, yy, w, 1));
+  rect(x, '#b57d18', 10, 25, 2, 2);
+  rect(x, '#b57d18', 20, 25, 2, 2);
+  rect(x, '#f6e6b0', 10, 27, 1, 1);
+  rect(x, '#f6e6b0', 21, 27, 1, 1);
+  // ears
+  elip(x, piel, 6, 16, 2.5, 3.5);
+  elip(x, piel, 26, 16, 2.5, 3.5);
+  rect(x, sombra, 5, 15, 1, 3);
+  // a long face with a square jaw; the shadow of a beard is a darker «U» along the jaw, as in the others
+  elip(x, piel, 16, 13.5, 9.5, 11, 0, 20);
+  const mandibula = [9.5, 9.5, 9, 8, 6, 3.5];
+  mandibula.forEach((half, i) => rect(x, barbilla, Math.round(16 - half), 20 + i, Math.round(half * 2), 1));
+  [7, 7, 6.5, 5].forEach((half, i) => rect(x, piel, Math.round(16 - half), 20 + i, Math.round(half * 2), 1));
+  // eyes with thick black brows
+  const o = { iris: '#3a2a22', ceja: peloO };
+  ojo(x, 14, 15, -1, e.ojos && e.animo !== 'contento', { ...o, feliz: e.animo === 'contento' && e.ojos });
+  ojo(x, 18, 15, 1, e.ojos && e.animo !== 'contento', { ...o, feliz: e.animo === 'contento' && e.ojos });
+  // nose and a wide mouth
+  rect(x, sombra, 15, 17, 2, 3);
+  rect(x, '#b57456', 14, 19, 4, 1);
+  boca(x, 16, 22, e, '#9a4038');
+  rect(x, '#ea9a7e', 8, 18, 2, 1);
+  rect(x, '#ea9a7e', 22, 18, 2, 1);
+  // black hair, but not much of it: a low cap, short sides and a fringe swept over the forehead to the left
+  elip(x, pelo, 16, 8, 10.5, 6.5, 1, 9);
+  rect(x, pelo, 6, 8, 2, 5);
+  rect(x, pelo, 24, 8, 2, 5);
+  rect(x, pelo, 8, 9, 14, 1);
+  rect(x, pelo, 8, 10, 8, 1);
+  rect(x, pelo, 8, 11, 2, 1);
+  rect(x, peloO, 6, 12, 1, 1);
+  rect(x, peloO, 25, 12, 1, 1);
+  rect(x, pelo, 12, 1, 3, 1);
+  rect(x, pelo, 18, 1, 2, 1);
+  rect(x, peloL, 12, 3, 4, 1);
+  rect(x, peloL, 20, 5, 2, 1);
+  return contorno(c);
+}
+
+const FUNCS: Record<Quien, (e: Estado) => HTMLCanvasElement> = { pablo, madre, aldeano, chuchi, fran, guille };
 
 /** One portrait: eyes open or shut, mouth open or shut, and a smile if `contento`. */
 export function retrato(q: Quien, ojos: boolean, boca: boolean, animo: Animo = 'normal'): HTMLCanvasElement {
