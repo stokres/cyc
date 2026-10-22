@@ -24,7 +24,14 @@ export const DIRS: Dir[] = ['S', 'SE', 'E', 'NE', 'N', 'NW', 'W', 'SW'];
 interface Molde {
   pal: Pal;
   /** Hair, as masks of 12 columns placed at x = 2, rows from `y`. Letters: h hair, H shade, l light, t/T hat, r hat band. */
-  pelo: { S: string[]; E: string[]; N: string[]; y: number; x?: number };
+  pelo?: { S: string[]; E: string[]; N: string[]; y: number; x?: number };
+  /**
+   * A whole head drawn by hand for each view (hair, face, ears, beard together), 12 columns at x = 2,
+   * rows from y = 1. Facing right; the west views are mirrors. When a mould has it, `pelo` and `barba`
+   * are not used: the same head turns from front to back through the three-quarter views. The
+   * letters are the palette's; `e` are the eyes and `x` the earring (gold).
+   */
+  cabeza?: Record<'S' | 'SE' | 'E' | 'NE' | 'N', string[]>;
   /** Beard or moustache over the face (10 columns at x = 3 for the front, 11 for the profile). */
   barba?: { S: string[]; E: string[]; y: number };
   /** The torso as maps: front, back and profile (rows from y = 11). */
@@ -33,8 +40,6 @@ interface Molde {
   falda?: { S: string[]; E: string[] };
   /** The arm's colour letter and how many rows of sleeve (the rest of the arm is the hand). */
   manga: number;
-  /** The earring (profile and the near side of the three-quarter views). */
-  pendiente?: boolean;
   /** Rosy cheeks. */
   blush?: string;
   /** A back-of-the-head detail (apron bow...), as pixels [x, y, letter] for the back view. */
@@ -72,50 +77,67 @@ const PABLO: Molde = {
     c: '#454c6a', C: '#2f3550', d: '#e9e4d2', D: '#c4bfae',
     p: '#4268ae', P: '#2f4d8a', o: '#f4f4f6', O: '#a9a9bd', x: '#f7c948',
   },
-  pelo: {
-    y: 1,
+  cabeza: {
+    //   x = 2 ......... 13
     S: [
-      '...h..h.h...', // 1  messy spikes
-      '..hhh.hhhh..', // 2
-      '.hhhhhhhhhh.', // 3
-      'hhhlhhhhhhhh', // 4
-      'hhhh.hh.hhhh', // 5
-      'hh........hh', // 6
-      'hh........hh', // 7
+      '..h..hh.h...', // 1
+      '.hhhhhhhhhh.', // 2
+      'hhhlhhhhhhhh', // 3
+      'hhhhhhhhhhhh', // 4
+      'hhhhhsssshhh', // 5
+      'hhsesssseshh', // 6
+      'hhsesssseshh', // 7
+      '.xsssSSsssb.', // 8
+      '..bbbmmbbb..', // 9
+      '...BBBBBB...', // 10
+    ],
+    SE: [
+      '..h.hh.h....', // 1
+      '.hhhhhhhhhh.', // 2
+      'hhlhhhhhhhh.', // 3
+      'hhhhhhhhhhh.', // 4
+      'hhhhhhsssss.', // 5
+      'hhhhsessses.', // 6
+      'hsShsessses.', // 7
+      '.sSbsssssSss', // 8
+      '.x.bbbbmmbb.', // 9
+      '....BBBBBB..', // 10
     ],
     E: [
-      '..h.h..h....', // 1
-      '.hhhhhhhh...', // 2
-      'hhhhhhhhhh..', // 3
+      '...hh.hh....', // 1
+      '.hhhhhhhhh..', // 2
+      'hhhlhhhhhhh.', // 3
       'hhhhhhhhhhh.', // 4
-      'hhhhhhhh.hh.', // 5
-      'hhhhhh....h.', // 6
-      'hhhh........', // 7
-      'hhh.........', // 8
+      'hhhhhhhhsss.', // 5
+      'hhhhhhhsess.', // 6
+      'hhhhhsSsess.', // 7
+      '.hhhhsSbssss', // 8
+      '..hhhxbbbbm.', // 9
+      '...hhBBBBB..', // 10
+    ],
+    NE: [
+      '...h.h.h....', // 1
+      '..hhhhhhhh..', // 2
+      '.hhlhhhhhhh.', // 3
+      'hhhhhhhhhhhh', // 4
+      'hhhhhhhhhhhh', // 5
+      'hhhhhhhhhhhs', // 6
+      'hhhhhhhhsSss', // 7
+      '.hhhhhhhsSss', // 8
+      '..hhhhhhxbb.', // 9
+      '...hhssss...', // 10
     ],
     N: [
       '...h..h.h...', // 1
       '..hhhhhhhh..', // 2
-      '.hhhhhhhhhh.', // 3
-      'hhhlhhhhhhhh', // 4
+      '.hhhlhhhhhh.', // 3
+      'hhhhhhhhhhhh', // 4
       'hhhhhhhhhhhh', // 5
       'hhhhhhhhhhhh', // 6
-      'hhhhhhhhhhhh', // 7
-      '.hhhhhhhhhh.', // 8
-      '..hhhhhhhh..', // 9
-    ],
-  },
-  barba: {
-    y: 8,
-    S: [
-      '...bbbb...', // 8 (moustache)
-      '.bb....bb.', // 9
-      '..bbbbbb..', // 10
-    ],
-    E: [
-      '....bbbbb..', // 8 (moustache and jaw)
-      '..bbbbb.b..', // 9
-      '..bbbbbbb..', // 10
+      'shhhhhhhhhhs', // 7
+      'shhhhhhhhhhs', // 8
+      '.hhhhhhhhhhx', // 9
+      '...ssssss...', // 10
     ],
   },
   torso: {
@@ -124,7 +146,6 @@ const PABLO: Molde = {
     E: ['ccccc', 'cdddc', 'cdddc', 'cdddc', 'cCddC', 'CCCCC'],
   },
   manga: 3,
-  pendiente: true,
 };
 
 const MADRE: Molde = {
@@ -421,10 +442,32 @@ function torsoYBrazos(g: Rejilla, M: Molde, v: Vista, paso: number, dy: number, 
   brazo(11, sent ? -1 : -sw);
 }
 
+/** A hand-drawn head (`Molde.cabeza`); asleep, the eyes are shut: the upper pixel of each goes skin. */
+function cabezaEntera(g: Rejilla, M: Molde, v: Vista, tres: boolean, dy: number, pose: Pose) {
+  const { pal } = M;
+  const vista = v === 'E' ? 'E' : tres ? (v === 'S' ? 'SE' : 'NE') : v;
+  const filas = M.cabeza![vista];
+  const dormido = pose === 'dormido';
+  mapa(g, filas, 2, 1 + dy, pal, (ch) => dormido && ch === 'e');
+  if (dormido) {
+    filas.forEach((fila, j) => {
+      for (let i = 0; i < fila.length; i++) {
+        if (fila[i] !== 'e') continue;
+        const arriba = filas[j - 1]?.[i] === 'e';
+        poner(g, 2 + i, 1 + j + dy, arriba ? pal.s : pal.e);
+        // A shut eye is a dash: the pixel next to it, towards the nose, is dark too.
+        if (!arriba) poner(g, 2 + i + (i < 6 ? 1 : -1), 1 + j + dy, pal.e);
+      }
+    });
+  }
+}
+
 function cabeza(g: Rejilla, M: Molde, v: Vista, tres: boolean, dy: number, pose: Pose) {
+  if (M.cabeza) return cabezaEntera(g, M, v, tres, dy, pose);
   const { pal } = M;
   const y = dy;
-  const px = M.pelo.x ?? 2;
+  const pelo = M.pelo!;
+  const px = pelo.x ?? 2;
   if (v === 'S') {
     // The base face; in the three-quarter view the features slide towards the facing side.
     mapa(g, CARA_S, 3, 3 + y, pal, (ch) => tres && (ch === 'e' || ch === 'm'));
@@ -448,25 +491,22 @@ function cabeza(g: Rejilla, M: Molde, v: Vista, tres: boolean, dy: number, pose:
     for (let i = 2; i < 8; i++) poner(g, 3 + i, 10 + y, pal.S);
     if (M.blush) for (const bx of tres ? [4, 11] : [4, 11]) poner(g, bx, 8 + y, M.blush);
     if (M.barba) mapa(g, M.barba.S.map((r) => (tres ? `.${r.slice(0, -1)}` : r)), 3, M.barba.y + y, pal);
-    mapa(g, M.pelo.S, px, M.pelo.y + y, pal);
-    sombrearPelo(g, M.pelo.S, px, M.pelo.y + y, pal);
-    if (tres && M.pendiente) poner(g, 13, 8 + y, pal.x);
+    mapa(g, pelo.S, px, pelo.y + y, pal);
+    sombrearPelo(g, pelo.S, px, pelo.y + y, pal);
   } else if (v === 'E') {
     mapa(g, CARA_E, 3, 3 + y, pal);
     for (let i = 2; i < 9; i++) poner(g, 3 + i, 10 + y, pal.S);
     if (M.blush) poner(g, 10, 8 + y, M.blush);
     if (M.barba) mapa(g, M.barba.E, 3, M.barba.y + y, pal);
-    mapa(g, M.pelo.E, px, M.pelo.y + y, pal);
-    sombrearPelo(g, M.pelo.E, px, M.pelo.y + y, pal);
-    if (M.pendiente) poner(g, 7, 8 + y, pal.x);
+    mapa(g, pelo.E, px, pelo.y + y, pal);
+    sombrearPelo(g, pelo.E, px, pelo.y + y, pal);
   } else {
     // From behind: the neck, then all hair.
     mapa(g, ['..ssssss..'], 3, 10 + y, pal);
-    mapa(g, M.pelo.N, px, M.pelo.y + y, pal);
-    sombrearPelo(g, M.pelo.N, px, M.pelo.y + y, pal);
+    mapa(g, pelo.N, px, pelo.y + y, pal);
+    sombrearPelo(g, pelo.N, px, pelo.y + y, pal);
     if (tres) {
       for (let j = 6; j <= 9; j++) poner(g, 12, j + y, pal.s);
-      if (M.pendiente) poner(g, 12, 8 + y, pal.x);
     }
     if (M.espalda) for (const [ex, ey, ch] of M.espalda) poner(g, ex, ey + y, pal[ch]);
   }
