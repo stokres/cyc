@@ -34,6 +34,16 @@ import solTexto from './sol-texto.mp3?url';
 import solPoder from './sol-poder.mp3?url';
 import solMenu from './sol-menu.mp3?url';
 import solPuerta from './sol-puerta.mp3?url';
+import solCamino from './sol-camino.mp3?url';
+import solCombate from './sol-combate.mp3?url';
+import solVictoria from './sol-victoria.mp3?url';
+import solNivel from './sol-nivel.mp3?url';
+import solEncuentro from './sol-encuentro.mp3?url';
+import solGolpe from './sol-golpe.mp3?url';
+import solCura from './sol-cura.mp3?url';
+import solApuntador from './sol-apuntador.mp3?url';
+import solCae from './sol-cae.mp3?url';
+import solHuir from './sol-huir.mp3?url';
 
 export const MUSICA = {
   /** The farm polka on banjo, from Guille's radio (banjo.py radio). */
@@ -97,6 +107,24 @@ export const MUSICA = {
   solPoder: { url: solPoder, inicio: 0, fin: 1.4 },
   solMenu: { url: solMenu, inicio: 0, fin: 0.062 },
   solPuerta: { url: solPuerta, inicio: 0, fin: 0.64 },
+  /**
+   * «Alacant Sun», the road and the fights (tools/musica/sol_combate.py). «Camino»: the road to the Theatre across the
+   * fields at night, A mixolydian / D major, 100 bpm, 28 bars; the 4-bar intro plays once and then the 67.2 s round
+   * loops from `inicio` to `fin`.
+   */
+  solCamino: { url: solCamino, entrada: 0, inicio: 9.6, fin: 76.8 },
+  /** «Combate»: the normal fight, E minor, 150 bpm, 32 bars; a 2-bar intro (3.2 s) heard once, then the 51.2 s round loops. */
+  solCombate: { url: solCombate, entrada: 0, inicio: 3.2, fin: 54.4 },
+  /** Played once with Sound.efecto (`inicio` and `fin` are not used): the victory fanfare (5.3 s, its tail fades out) and the level-up jingle (2.2 s). */
+  solVictoria: { url: solVictoria, inicio: 0, fin: 5.3 },
+  solNivel: { url: solNivel, inicio: 0, fin: 2.2 },
+  /** Fight effects, also played once: entering a fight (1 s), a physical hit (0.25 s), healing (0.8 s), letting a prompter go (0.8 s), an enemy falling apart (0.6 s) and running away (0.6 s). */
+  solEncuentro: { url: solEncuentro, inicio: 0, fin: 1 },
+  solGolpe: { url: solGolpe, inicio: 0, fin: 0.25 },
+  solCura: { url: solCura, inicio: 0, fin: 0.8 },
+  solApuntador: { url: solApuntador, inicio: 0, fin: 0.8 },
+  solCae: { url: solCae, inicio: 0, fin: 0.6 },
+  solHuir: { url: solHuir, inicio: 0, fin: 0.6 },
 } as const;
 
 export type Pista = keyof typeof MUSICA;
