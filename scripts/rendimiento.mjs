@@ -15,7 +15,7 @@
 // without it, to compare.
 //
 // Usage: node scripts/rendimiento.mjs [escena...]   (against npm run dev on :5173)
-//   escenas: prologo, piso, calle, bar, granja, cerdos, backstage, palabras, rana, parque, robot, sinfin, trailer, canas, canto, tragaperras (all by default)
+//   escenas: prologo, piso, calle, bar, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, tragaperras (all by default)
 import { chromium } from 'playwright';
 import { readFileSync, readdirSync } from 'node:fs';
 
@@ -106,9 +106,10 @@ async function medir(nombre, prep, contar = 'escena') {
     const ca0 = window.__canas?.().fotogramas ?? 0;
     const cn0 = window.__canto?.().fotogramas ?? 0;
     const tg0 = window.__tragaperras?.().fotogramas ?? 0;
+    const g0 = window.__pang?.().fotogramas ?? 0;
     setTimeout(() => {
       m.dibujar = d;
-      res(contar === 'cerdos' ? ((window.__cerdos?.().fotogramas ?? 0) - f0) / seg : contar === 'palabras' ? ((window.__palabras?.().fotogramas ?? 0) - p0) / seg : contar === 'rana' ? ((window.__rana?.().fotogramas ?? 0) - r0) / seg : contar === 'robot' ? ((window.__robot?.().fotogramas ?? 0) - b0) / seg : contar === 'trailer' ? ((window.__trailer?.().fotogramas ?? 0) - t0) / seg : contar === 'canas' ? ((window.__canas?.().fotogramas ?? 0) - ca0) / seg : contar === 'canto' ? ((window.__canto?.().fotogramas ?? 0) - cn0) / seg : contar === 'tragaperras' ? ((window.__tragaperras?.().fotogramas ?? 0) - tg0) / seg : n / seg);
+      res(contar === 'cerdos' ? ((window.__cerdos?.().fotogramas ?? 0) - f0) / seg : contar === 'palabras' ? ((window.__palabras?.().fotogramas ?? 0) - p0) / seg : contar === 'rana' ? ((window.__rana?.().fotogramas ?? 0) - r0) / seg : contar === 'robot' ? ((window.__robot?.().fotogramas ?? 0) - b0) / seg : contar === 'pang' ? ((window.__pang?.().fotogramas ?? 0) - g0) / seg : contar === 'trailer' ? ((window.__trailer?.().fotogramas ?? 0) - t0) / seg : contar === 'canas' ? ((window.__canas?.().fotogramas ?? 0) - ca0) / seg : contar === 'canto' ? ((window.__canto?.().fotogramas ?? 0) - cn0) / seg : contar === 'tragaperras' ? ((window.__tragaperras?.().fotogramas ?? 0) - tg0) / seg : n / seg);
     }, seg * 1000);
   }), { seg: SEG, contar });
   const cpu = ((cpuChrome() - c0) / SEG) * 100;
@@ -224,6 +225,23 @@ if (toca('robot')) {
     };
     setTimeout(juega, 6000);
   })()`, 'robot');
+}
+if (toca('pang')) {
+  // The short Pang of chapter 2: the entrance (foam and pixels) is part of the run; a bot plays stage 3 (Fran's flat) by itself.
+  await medir('Pang corto (fase del piso)', `(async () => {
+    clearInterval(window.__paseo);
+    const g = window.__cyc.g;
+    const { jugarPangCapitulo } = await import('/src/pang/capitulo.ts');
+    g.pausado = true;
+    void jugarPangCapitulo(g.root, { sonido: g.sound, fase: 1, control: 'bot' });
+  })()`, 'pang');
+  await medir('Pang corto (Las Vegas, jefe)', `(async () => {
+    document.querySelectorAll('.cubierta.minijuego .cerrar').forEach((b) => b.click());
+    const g = window.__cyc.g;
+    const { jugarPangCapitulo } = await import('/src/pang/capitulo.ts');
+    g.pausado = true;
+    void jugarPangCapitulo(g.root, { sonido: g.sound, fase: 2, control: 'bot' });
+  })()`, 'pang');
 }
 if (toca('rana')) {
   await medir('minijuego de la rana', `(async () => {

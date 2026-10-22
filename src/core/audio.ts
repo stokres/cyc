@@ -52,6 +52,9 @@ export interface SonidoMinijuego {
   lista?(id: Pista): Promise<void>;
   efecto?(id: Pista, volumen?: number): void;
   prepararEfectos?(...ids: Pista[]): Promise<void>;
+  /** The Pang's own effects (src/pang/sonido.ts); `Sound` has them, a stand-in may not. */
+  tono?(freq: number, dur: number, type: OscillatorType, vol: number, when?: number, slide?: number): void;
+  ruido?(dur: number, vol: number, filtroHz: number): void;
 }
 
 /** A track playing, or still loading (no source yet). */
@@ -352,6 +355,32 @@ export class Sound {
     o.connect(g).connect(this.fx);
     o.start(t);
     o.stop(t + dur + 0.02);
+  }
+
+  /** A short tone for the games' own effects (the Pang): `slide` is the final pitch as a multiple of `freq`. */
+  tono(freq: number, dur: number, type: OscillatorType, vol: number, when = 0, slide = 0) {
+    this.tone(freq, dur, type, vol, when, slide);
+  }
+
+  /** A burst of noise through a low-pass filter (pops, crashes). */
+  ruido(dur: number, vol: number, filtroHz: number) {
+    const ac = this.ac;
+    if (!ac || !this.fx) return;
+    const n = Math.max(1, Math.floor(ac.sampleRate * dur));
+    const buf = ac.createBuffer(1, n, ac.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    const src = ac.createBufferSource();
+    src.buffer = buf;
+    const f = ac.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.value = filtroHz;
+    const g = ac.createGain();
+    const t = ac.currentTime;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f).connect(g).connect(this.fx);
+    src.start(t);
   }
 
   tap() {
