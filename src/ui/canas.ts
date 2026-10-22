@@ -19,7 +19,8 @@
 import { h } from './hud';
 import { esVertical } from './orientacion';
 import { texto } from '../juego/textos';
-import { REPARTO, type PjId } from '../juego/reparto';
+import { REPARTO, retrato, type PjId } from '../juego/reparto';
+import { svgABitmap } from '../motor/sprites';
 import { FONTS } from '../motor/escena';
 import { elipse, lienzo, pintarBar, pintarCana, type Cana } from './bar-pintura';
 import { crearFicha } from './fichas';
@@ -81,8 +82,9 @@ interface Gota {
   espuma: boolean;
 }
 
-/** Vero's bust, behind the bar on the left: dark hair in a bun, brown skin, big lips, hoops, black tee. */
-function pintarVero(x: CanvasRenderingContext2D, cx: number, H: number) {
+/** Vero's bust, behind the bar on the left: her black tee and, on top, her own front portrait
+ *  (src/arte/personajes/vero.mjs, through reparto.ts), turned into an image once. */
+function pintarVero(x: CanvasRenderingContext2D, cx: number, H: number, cara: HTMLCanvasElement | null) {
   const r = H * 0.115;
   const cy = H * 0.3;
   // Black tee: the shoulders, cut off by the counter.
@@ -94,55 +96,10 @@ function pintarVero(x: CanvasRenderingContext2D, cx: number, H: number) {
   x.quadraticCurveTo(cx + r * 2.05, cy + r * 1.35, cx + r * 2.1, H * 0.6);
   x.closePath();
   x.fill();
-  x.fillStyle = '#2a2230';
-  x.fillRect(cx - r * 0.05, cy + r * 1.3, r * 0.1, H * 0.2);
-  // Neck.
-  x.fillStyle = '#8a5230';
-  x.beginPath();
-  x.roundRect(cx - r * 0.3, cy + r * 0.7, r * 0.6, r * 0.7, r * 0.2);
-  x.fill();
-  // Hair behind, and the bun.
-  elipse(x, cx, cy - r * 1.18, r * 0.44, r * 0.4, '#1d1411');
-  elipse(x, cx, cy - r * 0.08, r * 1.04, r * 1.08, '#1d1411');
-  // Face.
-  elipse(x, cx, cy + r * 0.08, r * 0.9, r * 1.0, '#a46a40');
-  elipse(x, cx - r * 0.5, cy + r * 0.3, r * 0.22, r * 0.14, 'rgba(176,84,64,0.35)');
-  elipse(x, cx + r * 0.5, cy + r * 0.3, r * 0.22, r * 0.14, 'rgba(176,84,64,0.35)');
-  // Fringe pulled back.
-  x.fillStyle = '#1d1411';
-  x.beginPath();
-  x.ellipse(cx, cy - r * 0.72, r * 0.98, r * 0.42, 0, Math.PI, 0);
-  x.fill();
-  // Eyes, brows, nose.
-  for (const lado of [-1, 1]) {
-    elipse(x, cx + lado * r * 0.37, cy - r * 0.04, r * 0.19, r * 0.12, '#f6eee2');
-    elipse(x, cx + lado * r * 0.37, cy - r * 0.04, r * 0.09, r * 0.095, '#2a1710');
-    x.strokeStyle = '#1d1411';
-    x.lineWidth = Math.max(1.5, r * 0.07);
-    x.lineCap = 'round';
-    x.beginPath();
-    x.moveTo(cx + lado * r * 0.2, cy - r * 0.27);
-    x.quadraticCurveTo(cx + lado * r * 0.4, cy - r * 0.36, cx + lado * r * 0.6, cy - r * 0.26);
-    x.stroke();
-  }
-  elipse(x, cx, cy + r * 0.28, r * 0.1, r * 0.07, 'rgba(110,60,36,0.5)');
-  // Big lips, smiling.
-  elipse(x, cx, cy + r * 0.56, r * 0.33, r * 0.14, '#7e2d2e');
-  elipse(x, cx, cy + r * 0.52, r * 0.2, r * 0.05, 'rgba(255,255,255,0.18)');
-  x.strokeStyle = '#4a1a1a';
-  x.lineWidth = Math.max(1, r * 0.04);
-  x.beginPath();
-  x.moveTo(cx - r * 0.3, cy + r * 0.56);
-  x.quadraticCurveTo(cx, cy + r * 0.62, cx + r * 0.3, cy + r * 0.56);
-  x.stroke();
-  // Small hoops.
-  x.strokeStyle = '#e8b84a';
-  x.lineWidth = Math.max(1.5, r * 0.06);
-  for (const lado of [-1, 1]) {
-    x.beginPath();
-    x.arc(cx + lado * r * 0.94, cy + r * 0.34, r * 0.15, 0, Math.PI * 2);
-    x.stroke();
-  }
+  if (!cara) return;
+  // The portrait's box is 124×164 with the face around its 0,0: scaled so the head is about 2.2r wide.
+  const k = (r * 2.9) / 124;
+  x.drawImage(cara, cx - 62 * k, cy - 96 * k + r * 0.15, 124 * k, 164 * k);
 }
 
 export function jugarCanas(parent: HTMLElement, o: OpcionesCanas = {}): Promise<Resultado> {
@@ -161,6 +118,7 @@ export function jugarCanas(parent: HTMLElement, o: OpcionesCanas = {}): Promise<
   let H = 390;
   let dpr = 1;
   let fondo: HTMLCanvasElement | null = null;
+  let caraVero: HTMLCanvasElement | null = null;
   let vaso: Cana | null = null;
   let brillo: HTMLCanvasElement | null = null;
   const fichas: Array<Partial<Record<Animo, HTMLCanvasElement>>> = AMIGOS.map(() => ({}));
@@ -172,7 +130,7 @@ export function jugarCanas(parent: HTMLElement, o: OpcionesCanas = {}): Promise<
     const [c, x] = lienzo(W, H, dp);
     // The bar as in the trailer, as wide as the screen.
     x.drawImage(pintarBar(W / 1.5, H, dp).img, 0, 0, W, H);
-    pintarVero(x, W * 0.085, H);
+    pintarVero(x, W * 0.085, H, caraVero);
     // The coasters, with the name of each friend under them.
     const tam = Math.max(14, Math.round(H * 0.046));
     x.font = `400 ${tam}px ${FONTS.display}`;
@@ -220,6 +178,14 @@ export function jugarCanas(parent: HTMLElement, o: OpcionesCanas = {}): Promise<
     bx.fillStyle = halo;
     bx.fillRect(0, 0, rad * 2, rad * 2);
     brillo = b;
+    // Vero's face, once per screen size; the background is painted again when it is ready.
+    const lado = Math.ceil(H * 0.115 * 2.9 * dp);
+    void svgABitmap(retrato('vero', { mood: 'happy' }).replace('<svg ', `<svg xmlns="http://www.w3.org/2000/svg" width="${lado}" height="${Math.ceil((lado * 164) / 124)}" `), lado, Math.ceil((lado * 164) / 124))
+      .then((c) => {
+        caraVero = c;
+        pintarFondo();
+      })
+      .catch(() => {});
     // The friends' faces in a ring of their colour, one bitmap for each mood.
     AMIGOS.forEach((id, i) => {
       for (const animo of ANIMOS) {
