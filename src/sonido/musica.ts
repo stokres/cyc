@@ -14,6 +14,9 @@ import pasodoble from './pasodoble.mp3?url';
 import bolilandia from './bolilandia.mp3?url';
 import bolilandiaLuz from './bolilandia-luz.mp3?url';
 import trailer from './trailer.mp3?url';
+import pangUsera from './pang-usera.mp3?url';
+import pangCalle from './pang-calle.mp3?url';
+import pangRonda from './pang-ronda.mp3?url';
 
 export const MUSICA = {
   /** The farm polka on banjo, from Guille's radio (banjo.py radio). */
@@ -38,6 +41,12 @@ export const MUSICA = {
   pasodoble: { url: pasodoble, entrada: 0, inicio: 12.413787, fin: 79.65517 },
   /** «Próximamente», the chapter 2 trailer's action music, once through; then a low drone loops while the title stays up (trailer.py). */
   trailer: { url: trailer, entrada: 0, inicio: 39.4, fin: 47.4 },
+  /** The Pang's three themes (tools/musica/pang.py), taking turns stage by stage. «A tope por Usera», chiptune; also the title's. */
+  pangUsera: { url: pangUsera, inicio: 0.5, fin: 58.1 },
+  /** «La calle de la penúltima», FM house in the manner of Streets of Rage 2. */
+  pangCalle: { url: pangCalle, inicio: 0.5, fin: 53.833333 },
+  /** «Última ronda», the bosses' theme. */
+  pangRonda: { url: pangRonda, inicio: 0.5, fin: 49.071429 },
 } as const;
 
 export type Pista = keyof typeof MUSICA;
