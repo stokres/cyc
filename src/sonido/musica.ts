@@ -14,6 +14,16 @@ import pasodoble from './pasodoble.mp3?url';
 import bolilandia from './bolilandia.mp3?url';
 import bolilandiaLuz from './bolilandia-luz.mp3?url';
 import trailer from './trailer.mp3?url';
+import cantoA from './canto-a.mp3?url';
+import cantoB from './canto-b.mp3?url';
+import cantoPablo from './canto-pablo.mp3?url';
+import cantoFran from './canto-fran.mp3?url';
+import cantoChuchi from './canto-chuchi.mp3?url';
+import cantoGuille from './canto-guille.mp3?url';
+import cantoFallo from './canto-fallo.mp3?url';
+import cantoFinal from './canto-final.mp3?url';
+import tragaperrasSin from './tragaperras-sin.mp3?url';
+import tragaperrasPremio from './tragaperras-premio.mp3?url';
 
 export const MUSICA = {
   /** The farm polka on banjo, from Guille's radio (banjo.py radio). */
@@ -38,6 +48,24 @@ export const MUSICA = {
   pasodoble: { url: pasodoble, entrada: 0, inicio: 12.413787, fin: 79.65517 },
   /** «Próximamente», the chapter 2 trailer's action music, once through; then a low drone loops while the title stays up (trailer.py). */
   trailer: { url: trailer, entrada: 0, inicio: 39.4, fin: 47.4 },
+  /** «El canto a cuatro», the first time round: a festive pasodoble bed, four bars of 2/4 at 92 bpm in a loop (canto.py). */
+  cantoA: { url: cantoA, inicio: 0.5, fin: 5.717392 },
+  /** The same, the second time round: quicker (112 bpm), louder and fuller (canto.py). */
+  cantoB: { url: cantoB, inicio: 0.5, fin: 4.785714 },
+  /**
+   * Short sounds, played once with Sound.efecto (not as music; `inicio` and `fin` are not used): each singer's two
+   * brass stabs, the sour «wah-wah» of a mistake and the last big chord (canto.py).
+   */
+  cantoPablo: { url: cantoPablo, inicio: 0, fin: 1.8 },
+  cantoFran: { url: cantoFran, inicio: 0, fin: 1.8 },
+  cantoChuchi: { url: cantoChuchi, inicio: 0, fin: 1.8 },
+  cantoGuille: { url: cantoGuille, inicio: 0, fin: 1.8 },
+  cantoFallo: { url: cantoFallo, inicio: 0, fin: 1.8 },
+  cantoFinal: { url: cantoFinal, inicio: 0, fin: 4 },
+  /** The slot machine close-up with no prize, once through from its first frame (a silent half second loops at the end; tragaperras.py). */
+  tragaperrasSin: { url: tragaperrasSin, entrada: 0, inicio: 4.2, fin: 4.7 },
+  /** The same with the jackpot: reels, bells and a shower of coins (tragaperras.py). */
+  tragaperrasPremio: { url: tragaperrasPremio, entrada: 0, inicio: 7.5, fin: 8 },
 } as const;
 
 export type Pista = keyof typeof MUSICA;

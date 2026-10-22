@@ -15,7 +15,7 @@
 // without it, to compare.
 //
 // Usage: node scripts/rendimiento.mjs [escena...]   (against npm run dev on :5173)
-//   escenas: prologo, piso, calle, granja, cerdos, backstage, palabras, rana, parque, robot, sinfin, trailer (all by default)
+//   escenas: prologo, piso, calle, granja, cerdos, backstage, palabras, rana, parque, robot, sinfin, trailer, canas, canto, tragaperras (all by default)
 import { chromium } from 'playwright';
 import { readFileSync, readdirSync } from 'node:fs';
 
@@ -77,6 +77,7 @@ async function medir(nombre, prep, contar = 'escena') {
   await page.evaluate(() => {
     document.querySelectorAll('.cubierta.minijuego .cerrar, .cubierta.prologo .saltar').forEach((b) => b.click());
     window.__trailer?.().cerrar();
+    window.__tragaperras?.().cerrar();
     // The minigames started here do not unpause the scene themselves.
     window.__cyc.g.pausado = false;
   });
@@ -102,9 +103,12 @@ async function medir(nombre, prep, contar = 'escena') {
     const r0 = window.__rana?.().fotogramas ?? 0;
     const b0 = window.__robot?.().fotogramas ?? 0;
     const t0 = window.__trailer?.().fotogramas ?? 0;
+    const ca0 = window.__canas?.().fotogramas ?? 0;
+    const cn0 = window.__canto?.().fotogramas ?? 0;
+    const tg0 = window.__tragaperras?.().fotogramas ?? 0;
     setTimeout(() => {
       m.dibujar = d;
-      res(contar === 'cerdos' ? ((window.__cerdos?.().fotogramas ?? 0) - f0) / seg : contar === 'palabras' ? ((window.__palabras?.().fotogramas ?? 0) - p0) / seg : contar === 'rana' ? ((window.__rana?.().fotogramas ?? 0) - r0) / seg : contar === 'robot' ? ((window.__robot?.().fotogramas ?? 0) - b0) / seg : contar === 'trailer' ? ((window.__trailer?.().fotogramas ?? 0) - t0) / seg : n / seg);
+      res(contar === 'cerdos' ? ((window.__cerdos?.().fotogramas ?? 0) - f0) / seg : contar === 'palabras' ? ((window.__palabras?.().fotogramas ?? 0) - p0) / seg : contar === 'rana' ? ((window.__rana?.().fotogramas ?? 0) - r0) / seg : contar === 'robot' ? ((window.__robot?.().fotogramas ?? 0) - b0) / seg : contar === 'trailer' ? ((window.__trailer?.().fotogramas ?? 0) - t0) / seg : contar === 'canas' ? ((window.__canas?.().fotogramas ?? 0) - ca0) / seg : contar === 'canto' ? ((window.__canto?.().fotogramas ?? 0) - cn0) / seg : contar === 'tragaperras' ? ((window.__tragaperras?.().fotogramas ?? 0) - tg0) / seg : n / seg);
     }, seg * 1000);
   }), { seg: SEG, contar });
   const cpu = ((cpuChrome() - c0) / SEG) * 100;
@@ -276,6 +280,62 @@ if (toca('trailer')) {
       g.pausado = true;
       void mostrarTrailer(g.root.parentElement, g.sound, false, { desde: ${desde}, hasta: ${hasta} });
     })()`, 'trailer');
+  }
+}
+
+if (toca('canas')) {
+  // Chapter 2: the beers along the bar (the trailer's bar, the friends' faces, a beer sliding with its
+  // ring and trail, falling with a splash). Plays by itself: brakes the first two beers of each round
+  // on the coaster and lets the third one go, so it never ends while it is measured.
+  await medir('minijuego de las cañas', `(async () => {
+    clearInterval(window.__paseo);
+    const g = window.__cyc.g;
+    const { jugarCanas } = await import('/src/ui/canas.ts');
+    g.pausado = true;
+    void jugarCanas(g.root, { sonido: g.sound });
+    const juega = () => {
+      const e = window.__canas?.();
+      if (!e) return;
+      if (e.listo && e.indice < 2 && e.parada >= e.objetivo) document.querySelector('.lienzo-canas')?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1 }));
+      requestAnimationFrame(juega);
+    };
+    setTimeout(juega, 3000);
+  })()`, 'canas');
+}
+if (toca('canto')) {
+  // Chapter 2: the chant. Plays by itself: sings the first two turns on the beat and misses the third,
+  // so the phrase starts again and again (the first pass never ends while it is measured).
+  await medir('minijuego del canto', `(async () => {
+    clearInterval(window.__paseo);
+    const g = window.__cyc.g;
+    const { jugarCanto } = await import('/src/ui/canto.ts');
+    g.pausado = true;
+    void jugarCanto(g.root, { sonido: g.sound });
+    const juega = () => {
+      const e = window.__canto?.();
+      if (!e) return;
+      if (e.estado === 'canta' && e.cantor >= 0 && e.cantor < 2 && Math.abs(e.tm - e.proximo) < 0.03) {
+        const c = e.caras[e.cantor];
+        const lienzo = document.querySelector('.lienzo-canto');
+        const r = lienzo.getBoundingClientRect();
+        lienzo.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: r.left + c.x, clientY: r.top + c.y, pointerId: 1 }));
+      }
+      requestAnimationFrame(juega);
+    };
+    setTimeout(juega, 3000);
+  })()`, 'canto');
+}
+if (toca('tragaperras')) {
+  // Chapter 2: the slot machine up close (the painted machine, the reels scrolling, the bulbs; with the
+  // jackpot, the coins pouring). Each stretch plays in a loop while it is measured.
+  for (const [nombre, premio, desde, hasta] of [['tragaperras, sin premio', false, 0, 3.6], ['tragaperras, premio y monedas', true, 2.4, 6.8]]) {
+    await medir(nombre, `(async () => {
+      clearInterval(window.__paseo);
+      const g = window.__cyc.g;
+      const { mostrarTragaperras } = await import('/src/ui/tragaperras.ts');
+      g.pausado = true;
+      void mostrarTragaperras(g.root, { premio: ${premio}, sonido: g.sound, prueba: { desde: ${desde}, hasta: ${hasta} } });
+    })()`, 'tragaperras');
   }
 }
 
