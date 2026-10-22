@@ -169,7 +169,8 @@ export function crearConsola(root: HTMLElement, textos: { marca: string; modelo:
     const dpr = window.devicePixelRatio || 1;
     const W = window.innerWidth;
     const H = window.innerHeight;
-    k = Math.max(1, Math.floor(Math.min(((W - 200) * dpr) / 240, ((H - 10) * dpr) / 160)));
+    // The screen leaves each side band at least ~135 px for a D-pad big enough for a thumb.
+    k = Math.max(1, Math.floor(Math.min(((W - 270) * dpr) / 240, ((H - 10) * dpr) / 160)));
     lienzo.width = 240 * k;
     lienzo.height = 160 * k;
     g.imageSmoothingEnabled = false;
@@ -185,7 +186,7 @@ export function crearConsola(root: HTMLElement, textos: { marca: string; modelo:
     const pos = (el: HTMLElement, x: number, y: number, w: number, hh: number) => {
       el.style.cssText = `left:${Math.round(x - w / 2)}px;top:${Math.round(y - hh / 2)}px;width:${w}px;height:${hh}px`;
     };
-    const dp = Math.max(70, Math.min(116, banda - 14, H * 0.3));
+    const dp = Math.max(84, Math.min(160, banda - 6, H * 0.42));
     pos(cruceta, izq, H * 0.6, dp, dp);
     const bt = Math.max(44, Math.min(60, (banda - 16) / 2.1, H * 0.15));
     pos(bA, der + bt * 0.55, H * 0.55 - bt * 0.42, bt, bt);
@@ -222,8 +223,11 @@ export function crearConsola(root: HTMLElement, textos: { marca: string; modelo:
     const dx = e.clientX - (r.left + r.width / 2);
     const dy = e.clientY - (r.top + r.height / 2);
     if (Math.hypot(dx, dy) < r.width * 0.12) return { x: 0, y: 0 };
-    const a = Math.atan2(dy, dx);
-    const i = ((Math.round(a / (Math.PI / 4)) % 8) + 8) % 8; // 0 = east, clockwise
+    // Straight lines are easy: each of the four directions takes 66° and a diagonal only the 24°
+    // around its own angle, so a thumb a little off the line still walks straight.
+    const a = (Math.atan2(dy, dx) * 180) / Math.PI;
+    const recta = Math.round(a / 90) * 90;
+    const i = (((Math.abs(a - recta) <= 33 ? recta / 45 : Math.round(a / 45)) % 8) + 8) % 8; // 0 = east, clockwise
     return [
       { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }, { x: -1, y: 1 },
       { x: -1, y: 0 }, { x: -1, y: -1 }, { x: 0, y: -1 }, { x: 1, y: -1 },
