@@ -7,6 +7,14 @@ import { MUSICA } from '../sonido/musica';
 
 /** The village theme (musica.ts: `solPueblo`). */
 export const PISTA_PUEBLO = 'solPueblo' as unknown as Pista;
+/** The road to the theatre (musica.ts: `solCamino`). */
+export const PISTA_CAMINO = 'solCamino' as unknown as Pista;
+/** The fight theme (musica.ts: `solCombate`). */
+export const PISTA_COMBATE = 'solCombate' as unknown as Pista;
+/** The victory fanfare (musica.ts: `solVictoria`). */
+export const PISTA_VICTORIA = 'solVictoria' as unknown as Pista;
+/** The level-up jingle (musica.ts: `solNivel`). */
+export const PISTA_NIVEL = 'solNivel' as unknown as Pista;
 /** The letter blip of the text (musica.ts: `solTexto`). */
 export const EFECTO_TEXTO = 'solTexto' as unknown as Pista;
 /** The psynergy cast (musica.ts: `solPoder`). */
@@ -15,13 +23,31 @@ export const EFECTO_PODER = 'solPoder' as unknown as Pista;
 export const EFECTO_MENU = 'solMenu' as unknown as Pista;
 /** A door (musica.ts: `solPuerta`). */
 export const EFECTO_PUERTA = 'solPuerta' as unknown as Pista;
+/** The swirl into a fight (musica.ts: `solEncuentro`). */
+export const EFECTO_ENCUENTRO = 'solEncuentro' as unknown as Pista;
+/** A hit landing (musica.ts: `solGolpe`). */
+export const EFECTO_GOLPE = 'solGolpe' as unknown as Pista;
+/** A heal (musica.ts: `solCura`). */
+export const EFECTO_CURA = 'solCura' as unknown as Pista;
+/** A prompter released or set (musica.ts: `solApuntador`). */
+export const EFECTO_APUNTADOR = 'solApuntador' as unknown as Pista;
+/** An enemy (or a friend) falling (musica.ts: `solCae`). */
+export const EFECTO_CAE = 'solCae' as unknown as Pista;
+/** Running away (musica.ts: `solHuir`). */
+export const EFECTO_HUIR = 'solHuir' as unknown as Pista;
 
 const hay = (id: Pista) => id in MUSICA;
 
 /** What the game asks of the sound, every call guarded: no sound, or no such id, does nothing. */
 export class SonidoSol {
+  /** The track playing now (so a fight can give the world its music back). */
+  actual: Pista | null = null;
+
   constructor(private readonly s?: SonidoMinijuego) {
-    const ids = [EFECTO_TEXTO, EFECTO_PODER, EFECTO_MENU, EFECTO_PUERTA].filter(hay);
+    const ids = [
+      EFECTO_TEXTO, EFECTO_PODER, EFECTO_MENU, EFECTO_PUERTA,
+      EFECTO_ENCUENTRO, EFECTO_GOLPE, EFECTO_CURA, EFECTO_APUNTADOR, EFECTO_CAE, EFECTO_HUIR,
+    ].filter(hay);
     if (ids.length) void s?.prepararEfectos?.(...ids)?.catch?.(() => {});
   }
 
@@ -34,18 +60,21 @@ export class SonidoSol {
     }
   }
 
-  musica() {
-    if (!hay(PISTA_PUEBLO)) return;
+  /** Plays a track (the village's by default). A track that does not exist yet does nothing. */
+  musica(id: Pista = PISTA_PUEBLO) {
+    if (!hay(id)) return;
+    this.actual = id;
     try {
-      this.s?.musica(PISTA_PUEBLO);
+      this.s?.musica(id);
     } catch {
       /* ditto */
     }
   }
 
-  parar() {
+  parar(fundido?: number) {
+    this.actual = null;
     try {
-      this.s?.pararMusica();
+      this.s?.pararMusica(fundido);
     } catch {
       /* ditto */
     }

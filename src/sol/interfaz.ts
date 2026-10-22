@@ -401,9 +401,9 @@ export class Dialogo {
 
 }
 
-/** The pointing hand (a white glove with a dark outline), 10×8. */
-function mano(g: CanvasRenderingContext2D, x: number, y: number) {
-  const m = una('manoMenu', () => {
+/** The pointing hand (a white glove with a dark outline), 11×8, pointing right. */
+export const manoCursor = () =>
+  una('manoMenu', () => {
     const c = lienzo(11, 9);
     const k = ctx(c);
     const filas = [
@@ -424,7 +424,9 @@ function mano(g: CanvasRenderingContext2D, x: number, y: number) {
     });
     return c;
   });
-  g.drawImage(m, x, y);
+
+function mano(g: CanvasRenderingContext2D, x: number, y: number) {
+  g.drawImage(manoCursor(), x, y);
 }
 
 // ---------------------------------------------------------------- the IP counter and the psynergy banner
