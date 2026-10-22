@@ -405,9 +405,11 @@ export class Hud {
     this.cerrarBandeja();
     this.plegarReparto();
     return new Promise((resolve) => {
+      // A tap meant for the line before must not pick an option the moment they appear.
+      const desde = performance.now();
       const el = h(
         'div',
-        { class: 'opciones' },
+        { class: 'opciones-dialogo' },
         ...lista.map((t, i) =>
           h(
             'button',
@@ -415,6 +417,7 @@ export class Hud {
               class: 'opcion-dialogo vidrio',
               onclick: (e) => {
                 e.stopPropagation();
+                if (performance.now() - desde < 450) return;
                 el.remove();
                 resolve(i);
               },
@@ -423,6 +426,9 @@ export class Hud {
           ),
         ),
       );
+      // Just above the line being answered, if there is one on screen.
+      const d = this.dialogoEl?.isConnected ? this.dialogoEl.getBoundingClientRect() : null;
+      if (d && d.height) el.style.bottom = `${this.root.getBoundingClientRect().bottom - d.top + 10}px`;
       this.root.append(el);
     });
   }

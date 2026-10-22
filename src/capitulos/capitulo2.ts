@@ -88,6 +88,23 @@ async function subirNivel(g: Aventura, n: number) {
   flash.remove();
 }
 
+/**
+ * Whoever is standing where the active one has just gone (the machine, the counter by Vero) goes back
+ * to their place at the counter: two in the same spot hide each other.
+ */
+function hacerSitio(g: Aventura) {
+  const yo = g.activo;
+  for (const id of g.estado.jugables) {
+    const p = g.pjs.get(id);
+    if (id === g.estado.activo || !p || Math.abs(p.X - yo.X) > 130) continue;
+    // Back to their place, or, if that is right here too, a step aside.
+    const casa = spots()[id];
+    const lejos = Math.abs(casa.X - yo.X) > 130;
+    const X = lejos ? casa.X : yo.X + (Math.sign(casa.X - yo.X) || 1) * 170;
+    void g.andar(X, lejos ? casa.y : p.y, id).then(() => p.lookAt(yo.X));
+  }
+}
+
 /** Someone who is not the one for this step: a line of their own pointing at who is. */
 async function noEres(g: Aventura, paso: string) {
   await g.hablar(`c2.${paso}.noeres`);
@@ -113,6 +130,7 @@ async function ronda(g: Aventura) {
 /** Vero, tapped (or the counter): what she says depends on who and when. */
 async function vero(g: Aventura, item: string | null) {
   const quien = g.estado.activo;
+  hacerSitio(g);
   if (item === 'duro') return g.hablar('c2.vero.duro');
   if (item) return g.hablar('c2.vero.objeto');
   if (!g.flag('c2.ronda')) return quien === 'fran' ? ronda(g) : noEres(g, 'ronda');
@@ -143,6 +161,7 @@ async function fresquitos(g: Aventura) {
 /** The slot machine: out of order, then pulled from the wall, then the duro. */
 async function tragaperras(g: Aventura) {
   const quien = g.estado.activo;
+  hacerSitio(g);
   if (!g.flag('c2.separada')) {
     if (!g.flag('c2.diagnostico')) {
       if (quien !== 'chuchi') return g.hablar('c2.tragaperras.rota');
@@ -172,6 +191,7 @@ async function tragaperras(g: Aventura) {
 
 /** The duro into the machine: no pesetas, until the fresquitos; then a spin, and the song. */
 async function meterDuro(g: Aventura) {
+  hacerSitio(g);
   if (!g.flag('c2.fresquitos')) {
     g.poner('c2.duroProbado');
     g.sound.nope();

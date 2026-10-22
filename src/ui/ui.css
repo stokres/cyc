@@ -451,8 +451,9 @@ button:focus-visible {
   z-index: 6;
 }
 
-/* Lines to choose in a conversation (Hud.opciones): stacked over where the dialogue box goes. */
-.opciones {
+/* Lines to choose in a conversation (Hud.opciones): stacked just above the dialogue box, which keeps the
+   question on screen (Hud.opciones sets `bottom` from its height). */
+.opciones-dialogo {
   position: absolute;
   left: 50%;
   bottom: calc(var(--safe-b) + 12px);

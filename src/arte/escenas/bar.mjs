@@ -37,7 +37,8 @@ const CORNISA = 62;
 export const BAR = { X: 1560, L: 1260, y: 868, alto: 262 }; // counter: centre, length, floor line of its front, height
 export const KB = P.f(BAR.y);
 const VERO = { X: 1625, y: 826 };
-const AMIGOS = { chuchi: 1250, pablo: 1500, fran: 1750, guille: 2000 };
+// Two on each side of Vero, so she is seen (and can be tapped) between them, at the taps.
+const AMIGOS = { chuchi: 1080, pablo: 1330, fran: 1920, guille: 2170 };
 const YA = 930; // the four friends stand here, in front of the counter
 const TABURETES = { X: 1625, y: 922, xs: [-500, -250, 0, 250, 500] }; // offsets from X
 
@@ -50,7 +51,7 @@ const TRAS = { x0: 990, x1: 2150, top: 104, mostrador: 548 }; // back bar: shelv
 const PORRA = { x: 1990, y: 168, w: 330, h: 392 };
 const TELE = { x: 2590, y: 74, w: 250, h: 150 };
 const TRAGA = { X: 2455, y: 818, w: 168, h: 440 }; // slot machine against the wall
-const TRAGA_FUERA = { X: 2330, y: 858 };
+const TRAGA_FUERA = { X: 2400, y: 858 };
 const ENCHUFE = { X: 2548, y: 748 };
 const DURO = { X: 2495, y: 814 };
 const BANO = { x: 2610, y: 300, w: 200, h: 500 };
@@ -1350,7 +1351,7 @@ function construir(nivel) {
       fran: { X: AMIGOS.fran, y: YA, face: -1 },
       guille: { X: AMIGOS.guille, y: YA, face: -1 },
       entrada: { X: 560, y: 905 },
-      tragaperras: { X: 2250, y: 906, face: 1 },
+      tragaperras: { X: 2200, y: 906, face: 1 },
       tragaperrasSeparada: { X: TRAGA_FUERA.X, y: TRAGA_FUERA.y },
       duro: { X: DURO.X, y: DURO.y },
     },
@@ -1365,7 +1366,7 @@ function construir(nivel) {
       estanteria: { u: 1570, k: 1, w: 1160, top: TRAS.top - 10, bottom: 540, X: 1570, y: 905 },
       tele: { u: TELE.x + TELE.w / 2, k: 1, w: TELE.w + 20, top: TELE.y - 10, bottom: TELE.y + TELE.h + 10, X: 2560, y: 905 },
       porra: { u: PORRA.x + PORRA.w / 2, k: 1, w: PORRA.w, top: PORRA.y - 10, bottom: PORRA.y + PORRA.h, X: 2150, y: 905 },
-      tragaperras: { u: (tk.u + P.uOf(TRAGA_FUERA.X, P.f(TRAGA_FUERA.y))) / 2, k: tk.k, w: 330, top: TRAGA.y - TRAGA.h - 20, bottom: 800, X: 2250, y: 906 },
+      tragaperras: { u: (tk.u + P.uOf(TRAGA_FUERA.X, P.f(TRAGA_FUERA.y))) / 2, k: tk.k, w: 330, top: TRAGA.y - TRAGA.h - 20, bottom: 800, X: 2200, y: 906 },
       bano: { u: BANO.x + BANO.w / 2, k: 1, w: BANO.w + 30, top: BANO.y - 70, bottom: 790, X: BANO.x + BANO.w / 2, y: 905 },
     },
   };

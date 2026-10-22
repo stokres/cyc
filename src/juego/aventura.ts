@@ -604,8 +604,9 @@ export class Aventura {
         if (actor !== this.estado.activo) {
           const otro = actor === 'aceituna' ? this.perro! : actor === 'sombra' ? this.sombra! : esNpc(actor) ? this.npcs.get(actor)! : this.pjs.get(actor)!;
           const lado = me.X < otro.X ? -1 : 1;
-          // Someone behind a counter is spoken to from the front of it, not walked round.
-          if (esNpc(actor)) await this.andar(otro.X + lado * 60, Math.max(this.S.walk.y0, otro.y + 6));
+          // Someone behind a counter is spoken to from the front of it, not walked round, and from
+          // a little to one side: standing right in front would hide them (and take their taps).
+          if (esNpc(actor)) await this.andar(otro.X + lado * 170, Math.max(this.S.walk.y0, otro.y + 6));
           else await this.andar(otro.X + lado * 150, otro.y + 6);
           me.lookAt(otro.X);
           if (actor !== 'aceituna') otro.lookAt(me.X);

@@ -319,7 +319,10 @@ export function dibujarBarVivo(g: Aventura, ctx: CanvasRenderingContext2D, capa:
     const v = fuera ? L.maquina.fuera : L.maquina.pared;
     const k = m.f(lugar.y);
     const sx = m.screenX(lugar.X, k);
-    if (sx > -300 && sx < vw + 300) {
+    // This layer is in front of everyone: with someone standing before the machine, it stays unlit
+    // rather than shine through them.
+    const tapada = [...g.pjs.values(), ...g.npcs.values()].some((a) => a.visible && a.y > lugar.y && Math.abs(a.X - lugar.X) < 160);
+    if (!tapada && sx > -300 && sx < vw + 300) {
       ctx.save();
       ctx.setTransform(px * k, 0, 0, px * k, sx * px, lugar.y * px);
       const pulso = nivel === 3 ? 1 + 0.05 * Math.sin(t * 5) : 1;
