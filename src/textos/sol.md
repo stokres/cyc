@@ -12,6 +12,11 @@ Todo lo que se lee en «Alacant Sun» está aquí. Mismo formato que capitulo1.m
 
 La letra del juego es de píxeles y solo tiene A-Z, a-z, 0-9, las tildes, la ü, la ñ, ¿ ¡ y . , : ; ! ? ' " - ( )
 Un texto largo se parte solo en ventanas de tres líneas. Mejor corto que largo.
+
+El combate (src/sol/combate.ts) usa: combate.* (menús, la línea de arriba y el final), orden.* (los seis iconos),
+poder.<id>.nombre, apuntador.*, invocacion.*, objeto.*, enemigo.<id>.nombre y enemigo.<id>.<ataque>, etiqueta.*
+y ovacion.grito.*. Los huecos entre llaves ({quien}, {n}...) los rellena el juego. La línea de arriba admite unas
+36 letras: mejor corta.
 Los textos son provisionales: los revisará Jesús junto con el resto.
 -->
 
@@ -91,3 +96,149 @@ aldeano.luego.1 = ¡Ya pasa la gente! Sí, y encima ha empezado la orquesta. ¡A
 fin.1 = [contento] ¡La plaza! Luces, turrón y todo el pueblo esperando.
 fin.2 = Sí, y la noche acaba de empezar.
 fin.continuara = CONTINUARÁ...
+
+// ---------------------------------------------------------------- el grupo (nombres de los cuatro en combate)
+
+nombre.fran = Fran
+nombre.chuchi = Chuchi
+nombre.guille = Guille
+
+// ---------------------------------------------------------------- combate: menús
+
+// Los textos pueden llevar huecos entre llaves que rellena el juego: {quien}, {poder}, {n}...
+combate.aparece.uno = ¡Aparece {nombre}!
+combate.aparece.varios = ¡{nombre} y su pandilla!
+combate.luchar = Luchar
+combate.huir = Huir
+combate.estado = Estado
+
+// Los seis iconos de órdenes de cada amigo
+orden.atacar = Atacar
+orden.poder = Impronergía
+orden.apuntadores = Apuntadores
+orden.invocar = Invocar
+orden.objeto = Objeto
+orden.defender = Defender
+
+// Lo que sale si eliges un icono apagado
+combate.nada.poder = No sabe ninguna impronergía.
+combate.nada.apuntadores = No tiene apuntadores a mano.
+combate.nada.invocar = No hay apuntadores en espera.
+combate.nada.objeto = No quedan objetos.
+
+// ---------------------------------------------------------------- combate: la línea de arriba
+
+combate.ataca = ¡{quien} ataca!
+combate.usa = ¡{quien} usa {poder}!
+combate.defiende = {quien} se defiende.
+combate.suelta = ¡{quien} suelta a {apuntador}!
+combate.pone = {quien} vuelve a poner a {apuntador}.
+combate.invoca = ¡{quien} invoca {invocacion}!
+combate.objeto = {quien} usa {objeto}.
+combate.critico = ¡Golpe crítico!
+combate.sin.ip = No hay impronergía suficiente.
+combate.sin.apuntadores = Ya no están los apuntadores.
+combate.sin.huida = ¡Esta vez no se puede huir!
+combate.huye.intento = ¡Intentáis huir!
+combate.huye.ok = ¡Habéis escapado!
+combate.huye.no = ¡No hay forma de huir!
+combate.vuelve = {apuntador} vuelve con {quien}.
+
+// ---------------------------------------------------------------- combate: el final
+
+combate.victoria = ¡Victoria! La función continúa.
+combate.exp = Cada uno gana {n} de experiencia.
+combate.monedas = Encontráis {n} monedas.
+combate.hallado = Encontráis {objeto}.
+combate.nivel = ¡{quien} sube al nivel {n}!
+combate.aprende = {quien} aprende {poder}.
+combate.derrota = Los cuatro se han quedado en el suelo...
+
+// ---------------------------------------------------------------- estado y etiquetas
+
+etiqueta.pv = PV
+etiqueta.ip = IP
+etiqueta.atk = Ataque
+etiqueta.def = Defensa
+etiqueta.agi = Agilidad
+etiqueta.exp = Exp.
+estado.nivel = Nv
+estado.ninguno = Sin apuntadores
+elemento.tierra = Tierra
+elemento.fuego = Fuego
+elemento.agua = Agua
+elemento.viento = Viento
+
+// ---------------------------------------------------------------- impronergía de combate
+
+poder.siy.nombre = Sí, y...
+poder.cajonazo.nombre = Cajonazo
+poder.fresquito.nombre = Fresquito
+poder.otracana.nombre = Otra caña
+poder.cierzo.nombre = Cierzo
+poder.abrazo.nombre = Abrazo de oso
+poder.cincominutos.nombre = Cinco minutos
+poder.chupito.nombre = Chupito flambeado
+
+efecto.y = y...
+efecto.chist = ¡Chist!
+
+// ---------------------------------------------------------------- apuntadores e invocaciones
+
+apuntador.chist.nombre = Chist
+apuntador.accion.puesto = Soltar
+apuntador.accion.espera = Poner
+apuntador.accion.recupera = Dormido
+apuntador.estado.puesto = Puesto
+apuntador.estado.espera = En espera
+apuntador.estado.recupera = Recuperando
+
+invocacion.ovacion.nombre = La ovación
+invocacion.calderon.nombre = Calderón
+
+ovacion.grito.1 = ¡Bravo!
+ovacion.grito.2 = ¡Otra!
+ovacion.grito.3 = ¡Olé!
+ovacion.grito.4 = ¡Guapo!
+
+// ---------------------------------------------------------------- objetos
+
+objeto.turron.nombre = Turrón blando
+objeto.chupito.nombre = Chupito
+
+// ---------------------------------------------------------------- enemigos (nombre y el nombre de cada ataque)
+
+enemigo.petardo.nombre = Petardo
+enemigo.petardo.chispazo = Chispazo
+enemigo.petardo.traca = Traca final
+enemigo.traca.nombre = Traca gorda
+enemigo.traca.chispazo = Chispazo
+enemigo.traca.traca = Traca final
+
+enemigo.movil.nombre = Móvil sonando
+enemigo.movil.vibracion = Vibración
+enemigo.movil.politono = Politono
+enemigo.movil2.nombre = Móvil a tope
+enemigo.movil2.vibracion = Vibración
+enemigo.movil2.politono = Politono
+
+enemigo.spoiler.nombre = Spoiler
+enemigo.spoiler.destripe = Destripe
+enemigo.spoiler.susurro = Susurro
+enemigo.spoiler2.nombre = Spoiler de serie
+enemigo.spoiler2.destripe = Destripe
+enemigo.spoiler2.susurro = Susurro
+
+enemigo.critico.nombre = Crítico
+enemigo.critico.tachon = Tachón
+enemigo.critico.critica = Mala crítica
+enemigo.critico2.nombre = Crítico de prensa
+enemigo.critico2.tachon = Tachón
+enemigo.critico2.critica = Mala crítica
+
+enemigo.mosquito.nombre = Mosquito huertano
+enemigo.mosquito.picotazo = Picotazo
+enemigo.mosquito.zumbido = Zumbido
+enemigo.mosquito2.nombre = Mosquito tigre
+enemigo.mosquito2.picotazo = Picotazo
+enemigo.mosquito2.zumbido = Zumbido

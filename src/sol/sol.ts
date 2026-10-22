@@ -14,9 +14,12 @@ import { cargarTextos, hayTexto, texto } from '../juego/textos';
 import textosSol from '../textos/sol.md?raw';
 import { esVertical } from '../ui/orientacion';
 import { caja as spriteCaja, chispa, destello, lluvia, manoLuz, puntito, T } from './arte';
+import { Combate, empezarCombate, type EstadoCombate, type ResultadoCombate } from './combate';
 import { crearConsola, Mandos } from './consola';
 import { ALTO_CUARTO, ANCHO_CUARTO, BASE_PARED, CUARTO_X, CUARTO_Y, cuarto } from './cuarto';
+import { type FondoCombate } from './fondo';
 import { escribir, anchoTexto } from './fuente';
+import { crearGrupo, expTotal, statsDe, type Grupo } from './grupo';
 import { cartelito, contadorIP, Dialogo, dibujarEmocion, type Emocion, type Icono, type Linea, PANTALLA_H, PANTALLA_W } from './interfaz';
 import { solidoBaldosa, pueblo, type Lectura, type Mundo, type Rect } from './mapas';
 import { CICLO, dirDe, marco, PIES, sombraPies, vectorDe, type Dir, type Pose, type Quien } from './personajes';
@@ -49,6 +52,16 @@ export interface EstadoSol {
   /** Puts Pablo on this spot (feet), in the scene he is in. */
   poner(x: number, y: number): void;
   ip(n: number): void;
+  /** The fight in progress (phase, round, health...), or null. See combate.ts. */
+  combate: EstadoCombate | null;
+  /** Gives an order to the friend who is choosing: 'atacar', 'poder:<id>', 'soltar', 'poner', 'invocar', 'objeto:<id>', 'defender', 'huir'. */
+  elegir(orden: string, objetivo?: number): boolean;
+  /** Beats all the enemies / knocks the whole party down. */
+  ganar(): void;
+  perder(): void;
+  /** Starts a fight now (the test fight of `?sol&combate` is this with a mixed group). */
+  luchar(enemigos: string[], fondo?: FondoCombate): Promise<ResultadoCombate>;
+  grupo: Grupo;
 }
 
 // ---------------------------------------------------------------- constants
@@ -160,6 +173,9 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
   let avisoNada = 0;
   let yaSaludoPablo = false;
   let abrio = false;
+  // the party and the fight in progress (combate.ts: the world only calls `luchar` and lets it run)
+  const grupo = crearGrupo({ nivel: 1 });
+  let combate: Combate | null = null;
 
   // lightning: seconds until the next, and the flash being played
   const RAYO = [0.5, 0.08, 0.6, 0.3, 0.14, 0.07, 0.03];
@@ -342,6 +358,15 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
         void bloquear(() => decir('pablo', 'pablo.atasca'));
       }
     }
+  };
+
+  /** A fight: the loop hands the screen and the buttons to it until it ends (see combate.ts). */
+  const luchar = async (enemigos: string[], fondo: FondoCombate = 'campo', sinHuida = false): Promise<ResultadoCombate> => {
+    combate = empezarCombate({ grupo, enemigos, fondo, sonido, mandos, sinHuida, rapido: VEL > 1 });
+    const r = await combate.resultado;
+    combate = null;
+    mandos.soltar();
+    return r;
   };
 
   // ------------------------------------------------------------ scenes
@@ -615,6 +640,10 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
   const actualizar = (dtReal: number) => {
     const dt = dtReal;
     t += dt;
+    if (combate) {
+      combate.update(dt);
+      return;
+    }
     // timers of the scripts
     for (let i = esperas.length - 1; i >= 0; i--) {
       esperas[i].resta -= dt * VEL;
@@ -991,6 +1020,11 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
   };
 
   const dibujar = () => {
+    if (combate) {
+      combate.dibujar(g);
+      consola.g.drawImage(pantalla, 0, 0, PANTALLA_W * consola.escala(), PANTALLA_H * consola.escala());
+      return;
+    }
     if (escena === 'titulo') dibujarTitulo();
     else if (escena === 'cuarto') dibujarCuarto();
     else if (escena === 'pueblo') dibujarPueblo();
@@ -1040,6 +1074,12 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     ip: (n) => {
       ip = n;
     },
+    combate: combate?.estado() ?? null,
+    elegir: (orden, objetivo) => combate?.elegir(orden, objetivo) ?? false,
+    ganar: () => combate?.ganar(),
+    perder: () => combate?.perder(),
+    luchar: (enemigos, fondo) => luchar(enemigos, fondo),
+    grupo,
   });
 
   const bucle = () =>
@@ -1066,8 +1106,29 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
       requestAnimationFrame(paso);
     });
 
+  // `?sol&combate`: straight into a test fight (the four friends at level 2 against a mixed group)
+  const pruebaCombate = new URLSearchParams(location.search).has('combate');
+  if (pruebaCombate) {
+    for (const m of grupo.miembros) {
+      m.nivel = 2;
+      m.exp = expTotal(2);
+      const st = statsDe(grupo, m);
+      m.pv = st.pv;
+      m.ip = st.ip;
+    }
+    preparaPueblo();
+    ponerEnPuerta();
+    cama = 'vacia';
+    yaSaludoPablo = true;
+    fade = { a: 0, desde: 0, hasta: 0, t: 0, dur: 0, res: null };
+    escena = 'pueblo';
+    actualizar(0.016);
+    dibujar();
+    void luchar(['petardo', 'movil', 'critico', 'mosquito', 'spoiler']);
+  }
+
   return (async () => {
-    void fundirA(0, 0.8);
+    if (!pruebaCombate) void fundirA(0, 0.8);
     await bucle();
     delete (window as unknown as { __sol?: unknown }).__sol;
     sonido.parar();

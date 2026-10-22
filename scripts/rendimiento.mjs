@@ -15,7 +15,7 @@
 // without it, to compare.
 //
 // Usage: node scripts/rendimiento.mjs [escena...]   (against npm run dev on :5173)
-//   escenas: prologo, piso, calle, bar, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, tragaperras, sol (all by default)
+//   escenas: prologo, piso, calle, bar, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, tragaperras, sol, solcombate (all by default)
 import { chromium } from 'playwright';
 import { readFileSync, readdirSync } from 'node:fs';
 
@@ -78,6 +78,7 @@ async function medir(nombre, prep, contar = 'escena') {
     document.querySelectorAll('.cubierta.minijuego .cerrar, .cubierta.prologo .saltar').forEach((b) => b.click());
     window.__trailer?.().cerrar();
     window.__tragaperras?.().cerrar();
+    clearInterval(window.__lucha);
     window.__sol?.().cerrar();
     // The minigames started here do not unpause the scene themselves.
     window.__cyc.g.pausado = false;
@@ -399,6 +400,36 @@ if (toca('sol')) {
       window.__sol?.().mando.fijarDir(d, 0);
     }, 2500);
     s.mando.fijarDir(1, 0);
+  })()`, 'sol');
+}
+
+if (toca('solcombate')) {
+  // Combat of «Alacant Sun» (src/sol/combate.ts): the camera swaying round the night field, the status
+  // boxes, and the hero orders (attacks, psynergy, the apuntador, La ovación) one after another; when
+  // a fight ends the party rests and another one starts.
+  await medir('solcombate: combate por turnos', `(async () => {
+    clearInterval(window.__paseo);
+    clearInterval(window.__lucha);
+    const g = window.__cyc.g;
+    g.pausado = true;
+    const { jugarSol } = await import('/src/sol/sol.ts');
+    const { descansar } = await import('/src/sol/grupo.ts');
+    void jugarSol(g.root, { sonido: g.sound });
+    await new Promise((r) => setTimeout(r, 400));
+    const s = window.__sol();
+    await s.irAlPueblo();
+    const orden = ['atacar', 'poder', 'soltar', 'atacar', 'invocar:ovacion', 'poner', 'defender'];
+    let i = 0;
+    window.__lucha = setInterval(() => {
+      const so = window.__sol?.();
+      if (!so) return;
+      if (!so.combate) {
+        descansar(so.grupo);
+        void so.luchar(['petardo', 'movil', 'critico', 'mosquito', 'spoiler']);
+        return;
+      }
+      if (so.elegir(orden[i % orden.length], i % 3)) i++;
+    }, 300);
   })()`, 'sol');
 }
 
