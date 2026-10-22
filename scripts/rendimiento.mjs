@@ -15,7 +15,7 @@
 // without it, to compare.
 //
 // Usage: node scripts/rendimiento.mjs [escena...]   (against npm run dev on :5173)
-//   escenas: prologo, piso, calle, bar, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, tragaperras (all by default)
+//   escenas: prologo, piso, calle, bar, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, tragaperras, sol (all by default)
 import { chromium } from 'playwright';
 import { readFileSync, readdirSync } from 'node:fs';
 
@@ -78,6 +78,7 @@ async function medir(nombre, prep, contar = 'escena') {
     document.querySelectorAll('.cubierta.minijuego .cerrar, .cubierta.prologo .saltar').forEach((b) => b.click());
     window.__trailer?.().cerrar();
     window.__tragaperras?.().cerrar();
+    window.__sol?.().cerrar();
     // The minigames started here do not unpause the scene themselves.
     window.__cyc.g.pausado = false;
   });
@@ -107,9 +108,10 @@ async function medir(nombre, prep, contar = 'escena') {
     const cn0 = window.__canto?.().fotogramas ?? 0;
     const tg0 = window.__tragaperras?.().fotogramas ?? 0;
     const g0 = window.__pang?.().fotogramas ?? 0;
+    const so0 = window.__sol?.().fotogramas ?? 0;
     setTimeout(() => {
       m.dibujar = d;
-      res(contar === 'cerdos' ? ((window.__cerdos?.().fotogramas ?? 0) - f0) / seg : contar === 'palabras' ? ((window.__palabras?.().fotogramas ?? 0) - p0) / seg : contar === 'rana' ? ((window.__rana?.().fotogramas ?? 0) - r0) / seg : contar === 'robot' ? ((window.__robot?.().fotogramas ?? 0) - b0) / seg : contar === 'pang' ? ((window.__pang?.().fotogramas ?? 0) - g0) / seg : contar === 'trailer' ? ((window.__trailer?.().fotogramas ?? 0) - t0) / seg : contar === 'canas' ? ((window.__canas?.().fotogramas ?? 0) - ca0) / seg : contar === 'canto' ? ((window.__canto?.().fotogramas ?? 0) - cn0) / seg : contar === 'tragaperras' ? ((window.__tragaperras?.().fotogramas ?? 0) - tg0) / seg : n / seg);
+      res(contar === 'cerdos' ? ((window.__cerdos?.().fotogramas ?? 0) - f0) / seg : contar === 'palabras' ? ((window.__palabras?.().fotogramas ?? 0) - p0) / seg : contar === 'rana' ? ((window.__rana?.().fotogramas ?? 0) - r0) / seg : contar === 'robot' ? ((window.__robot?.().fotogramas ?? 0) - b0) / seg : contar === 'pang' ? ((window.__pang?.().fotogramas ?? 0) - g0) / seg : contar === 'trailer' ? ((window.__trailer?.().fotogramas ?? 0) - t0) / seg : contar === 'canas' ? ((window.__canas?.().fotogramas ?? 0) - ca0) / seg : contar === 'canto' ? ((window.__canto?.().fotogramas ?? 0) - cn0) / seg : contar === 'tragaperras' ? ((window.__tragaperras?.().fotogramas ?? 0) - tg0) / seg : contar === 'sol' ? ((window.__sol?.().fotogramas ?? 0) - so0) / seg : n / seg);
     }, seg * 1000);
   }), { seg: SEG, contar });
   const cpu = ((cpuChrome() - c0) / SEG) * 100;
@@ -376,6 +378,28 @@ if (toca('tragaperras')) {
       void mostrarTragaperras(g.root, { premio: ${premio}, sonido: g.sound, prueba: { desde: ${desde}, hasta: ${hasta} } });
     })()`, 'tragaperras');
   }
+}
+
+if (toca('sol')) {
+  // «Sol de Levante» (src/sol/): the village at night in the rain, Pablo walking back and forth along the
+  // road (the cached tiles and sprites, two rain layers, the strings of lights, lightning now and then).
+  await medir('sol: pueblo con lluvia', `(async () => {
+    clearInterval(window.__paseo);
+    const g = window.__cyc.g;
+    g.pausado = true;
+    const { jugarSol } = await import('/src/sol/sol.ts');
+    void jugarSol(g.root, { sonido: g.sound });
+    await new Promise((r) => setTimeout(r, 400));
+    const s = window.__sol();
+    await s.irAlPueblo();
+    s.poner(100, 328);
+    let d = 1;
+    window.__paseo = setInterval(() => {
+      d = -d;
+      window.__sol?.().mando.fijarDir(d, 0);
+    }, 2500);
+    s.mando.fijarDir(1, 0);
+  })()`, 'sol');
 }
 
 // Memory after the whole tour (docs/ESTILO.md, T5.11): baked scenery and decoded music are

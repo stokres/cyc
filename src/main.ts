@@ -59,6 +59,17 @@ function cargarAjustes(): Ajustes {
 async function arrancar() {
   cargarTextos(textosInterfaz, textosCapitulo, textosCapitulo2);
   const root = document.getElementById('game')!;
+  // «Sol de Levante» (src/sol/), the friends' parody, opened by itself: the address ending in ?sol.
+  if (new URLSearchParams(location.search).has('sol')) {
+    const [{ jugarSol }, { Sound }] = await Promise.all([import('./sol/sol'), import('./core/audio')]);
+    const sonido = new Sound();
+    // Sound needs a tap first (browsers): the console's first press starts it.
+    addEventListener('pointerdown', () => sonido.start(), { once: true });
+    addEventListener('keydown', () => sonido.start(), { once: true });
+    await jugarSol(root, { sonido });
+    location.href = location.pathname;
+    return;
+  }
   const ajustes = cargarAjustes();
   const guardarAjustes = () => storageSet('cyc.ajustes', JSON.stringify(ajustes));
   // ---------------------------------------------------------- the saved game
