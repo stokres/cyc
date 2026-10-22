@@ -57,7 +57,7 @@ Todos con la forma de los del capítulo 1 (`src/ui/rana.ts`, `cerdos.ts`): una c
 
 ## Cómo se juega mientras no está publicado
 
-Con `?capitulo2` en la dirección se juega el capítulo 2 desde el principio, con su propia partida guardada aparte; el capítulo 1 no cambia. Enlazarlo con el final del capítulo 1 queda para cuando Jesús lo apruebe.
+Con `?capitulo2` en la dirección se juega el capítulo 2 desde el principio, con su propia partida guardada aparte; el capítulo 1 no cambia. `node scripts/capitulo2.mjs` (contra `npm run dev`) lo juega entero una vez, por toques, y saca capturas; si cambias el puzle, actualízalo. Enlazarlo con el final del capítulo 1 queda para cuando Jesús lo apruebe.
 
 ## Rendimiento
 
