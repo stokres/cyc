@@ -15,7 +15,7 @@
 // without it, to compare.
 //
 // Usage: node scripts/rendimiento.mjs [escena...]   (against npm run dev on :5173)
-//   escenas: prologo, piso, calle, granja, cerdos, backstage, palabras, rana, parque, robot, sinfin, trailer (all by default)
+//   escenas: prologo, piso, calle, bar, granja, cerdos, backstage, palabras, rana, parque, robot, sinfin, trailer (all by default)
 import { chromium } from 'playwright';
 import { readFileSync, readdirSync } from 'node:fs';
 
@@ -141,6 +141,27 @@ if (toca('piso')) {
 if (toca('calle')) {
   await medir('calle, los cuatro quietos', ir('calle', `e.final = true; e.activo = 'fran'; e.donde.fran = { escena: 'calle', X: 6640, y: 905, face: 1 }; e.donde.pablo = { escena: 'calle', X: 6330, y: 872, face: 1 }; e.donde.chuchi = { escena: 'calle', X: 6980, y: 875, face: -1 }; e.donde.guille = { escena: 'calle', X: 7160, y: 930, face: -1 }`));
   await medir('calle, Fran andando', paseo(5600, 7600, 900));
+}
+if (toca('bar')) {
+  // The Bar del Brío inside, level 0 (as it always is) and level 3 (warped, the dragon and the spinning pieces),
+  // with the four friends in their places and then one of them walking along the counter.
+  const preparar = (n) => ir(`bar${n}`, `e.final = true; e.activo = 'fran'; ${['chuchi', 'pablo', 'fran', 'guille'].map((id, i) => `e.donde.${id} = { escena: 'bar${n}', X: ${1250 + i * 250}, y: 930, face: ${i < 2 ? 1 : -1} }`).join('; ')}`, `
+    const { escena } = await import('/src/arte/escenas/bar.mjs');
+    const { dibujarBarVivo } = await import('/src/capitulos/bar-vivo.ts');
+    for (let k = 0; k < 4; k++) g.cap.escenas['bar' + k] = () => escena(k);
+    if (!g.cap.__barVivo) {
+      g.cap.__barVivo = true;
+      const orig = g.cap.dibujar;
+      g.cap.dibujar = (gg, c2, capa) => {
+        orig?.(gg, c2, capa);
+        if (gg.escena.startsWith('bar')) dibujarBarVivo(gg, c2, capa, +gg.escena.slice(3));
+      };
+    }
+    for (const id of ['fran', 'pablo', 'chuchi', 'guille']) { const F = g.pjs.get(id); if (F) { F.enCapa = null; F.rot = 0; F.eyesClosed = false; } }`);
+  await medir('bar nivel 0, los cuatro quietos', preparar(0));
+  await medir('bar nivel 0, Fran andando', paseo(1000, 2300, 960));
+  await medir('bar nivel 3, los cuatro quietos', preparar(3));
+  await medir('bar nivel 3, Fran andando', paseo(1000, 2300, 960));
 }
 if (toca('granja')) {
   await medir('granja, Guille quieto con moscas', ir('granja', `e.final = false; for (const id of ['fran','pablo','chuchi']) delete e.donde[id]; e.activo = 'guille'; e.donde.guille = { escena: 'granja', X: 1000, y: 890, face: 1 }`, `g.poner('g.olor')`));
