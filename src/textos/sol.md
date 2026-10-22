@@ -9,10 +9,14 @@ Todo lo que se lee en «Alacant Sun» está aquí. Mismo formato que capitulo1.m
   [contento] texto             al principio de un texto, el que habla sonríe (ojos en ^^)
   madre.no.1, madre.no.2...    se van usando por turnos cada vez que Pablo dice que no
   clave.1, clave.2, clave.3    líneas de una conversación: salen una tras otra, cada una en su ventana
+  @fran texto                  al principio de un texto, habla ese personaje (@pablo, @narrador, @tendera...);
+                               @nadie = el narrador de siempre, sin retrato. Va antes que [contento]
 
 La letra del juego es de píxeles y solo tiene A-Z, a-z, 0-9, las tildes, la ü, la ñ, ¿ ¡ y . , : ; ! ? ' " - ( )
 Un texto largo se parte solo en ventanas de tres líneas. Mejor corto que largo.
 
+El mundo usa: charla.<amigo>.N (cada amigo se une al grupo), une.<amigo>, narrador.*, tienda.*, posada.*, menu.*
+(el menú START), chist.*, cofre.*, escondite.*, madre.derrota.* y derrota.*; los letreros son lectura.* y letrero.*.
 El combate (src/sol/combate.ts) usa: combate.* (menús, la línea de arriba y el final), orden.* (los seis iconos),
 poder.<id>.nombre, apuntador.*, invocacion.*, objeto.*, enemigo.<id>.nombre y enemigo.<id>.<ataque>, etiqueta.*
 y ovacion.grito.*. Los huecos entre llaves ({quien}, {n}...) los rellena el juego. La línea de arriba admite unas
@@ -35,6 +39,9 @@ poder.nombre = Sí, y...
 nombre.pablo = Pablo
 nombre.madre = Mamá
 nombre.aldeano = Tío Vicent
+nombre.narrador = Sombra
+nombre.tendera = Tendera
+nombre.posadero = Posadero
 opcion.si = Sí
 opcion.no = No
 
@@ -53,6 +60,7 @@ madre.no.4 = Sí, y yo de aquí no me muevo hasta que me digas que sí.
 pablo.si = [contento] Vale, vale... Sí, y además me pongo la chaqueta.
 madre.si.1 = ¡Así me gusta! Anda, baja a la plaza, que ya han encendido las luces.
 madre.si.2 = La puerta está abajo, ¿eh? Por si te pierdes en tu propia casa.
+madre.monedas = Y toma 40 monedas para las fiestas. ¡No te las gastes todas en el mismo puesto!
 
 madre.fuera.1 = Anda, ve a la plaza. Yo me quedo por si vuelve a tronar.
 madre.fuera.2 = ¿Todavía aquí? ¡La plaza, Pablo!
@@ -94,8 +102,100 @@ aldeano.luego.1 = ¡Ya pasa la gente! Sí, y encima ha empezado la orquesta. ¡A
 // ---------------------------------------------------------------- final de esta parte
 
 fin.1 = [contento] ¡La plaza! Luces, turrón y todo el pueblo esperando.
-fin.2 = Sí, y la noche acaba de empezar.
 fin.continuara = CONTINUARÁ...
+
+// ---------------------------------------------------------------- la sombra se queda con el final
+
+narrador.hola.1 = Qué escena tan bonita. La plaza, las luces, el héroe que llega justo a tiempo...
+narrador.hola.2 = Soy yo, Pablo. Tu sombra. El que cuenta lo que haces mientras tú lo haces.
+narrador.obra.1 = Y tu obra, esos cuatro actos tuyos, es una historia estupenda. Demasiado buena para ti.
+narrador.obra.2 = Mira, ya vuelan las páginas. Me las llevo al Teatro.
+pablo.mias = ¡Eh! ¡Esos actos son míos! ¡Devuélvemelos!
+narrador.final = Esta historia la acabo yo.
+pablo.amigos.1 = Se ha llevado mi obra... Solo no puedo con él.
+pablo.amigos.2 = Los demás andarán por el pueblo. Voy a buscarlos.
+pablo.antes = Primero, la plaza. Algo me dice que ahí pasa algo.
+pablo.falta = No me voy sin los demás. ¡Hay que buscarlos por el pueblo!
+
+// ---------------------------------------------------------------- los amigos se unen
+
+charla.fran.1 = ¡Aupa, Pablo! Aquí, con mi caña, esperando a que alguien se eche otra.
+charla.fran.2 = @pablo Fran, una sombra se ha llevado mi obra al Teatro. Te necesito.
+charla.fran.3 = ¡Ene! Eso se arregla con otra caña. Bueno, primero la obra. ¡Voy contigo!
+charla.guille.1 = ¡Pablo, maño! Aquí, mirando la fuente. Se parece a la del Pilar, pero con más turrón.
+charla.guille.2 = @pablo Guille, me han robado el final de la obra. Hay que ir al Teatro.
+charla.guille.3 = Cuenta conmigo. Pesé cerdos todo un año; una sombra no me da miedo.
+charla.guille.4 = Eso sí: si huelo a purín, no es culpa mía.
+une.fran = Fran se une al grupo.
+une.guille = Guille se une al grupo.
+une.chuchi = Chuchi se une al grupo.
+consejo.start = Pulsa START para abrir el menú: impronergía, apuntadores, objetos y estado.
+pablo.chuchi = Solo falta Chuchi. Seguro que llega tarde.
+charla.chuchi.1 = ¡Perdón, perdón! Llego tarde, pero llego.
+charla.chuchi.2 = @pablo Chuchi, ¿y las niñas?
+charla.chuchi.3 = Dormidas. Por fin. Cuéntame qué me he perdido.
+charla.chuchi.4 = @pablo Casi todo. Una sombra me ha quitado el final. Vamos al Teatro.
+charla.chuchi.5 = Pues vamos. Y si por el camino hay algún chupito, mejor.
+pablo.todos = Ya estamos los cuatro. El camino al Teatro sale por el este de la plaza.
+
+// ---------------------------------------------------------------- la peña y la posada
+
+tienda.hola = ¡Bienvenido a la peña! Turrón blando y chupitos, lo mejor del pueblo.
+tienda.comprar = Comprar
+tienda.salir = Salir
+tienda.adios = ¡Vuelve cuando quieras!
+tienda.sinmonedas = No tienes monedas.
+tienda.gracias = Compras {objeto}.
+posada.hola = Una cama para los cuatro cuesta {n} monedas. ¿Descansáis?
+posada.no = Cuando queráis. La cama no se va a ninguna parte.
+posada.pobre = Pues sin monedas no hay cama, majo.
+posada.listo = ¡Buenos días! Estáis como nuevos.
+
+// ---------------------------------------------------------------- el menú START
+
+menu.impronergia = Impronergía
+menu.apuntadores = Apuntadores
+menu.objetos = Objetos
+menu.estado = Estado
+menu.monedas = Monedas
+menu.poner = Poner
+menu.quitar = Quitar
+menu.siy = Pulsa R mirando a algo para usar Sí, y...
+menu.soloCombate = Esa impronergía es solo para combatir.
+menu.nohace = No hace falta.
+menu.recupera = Todavía se está recuperando.
+menu.sinapuntadores = Aún no tenéis apuntadores.
+menu.cura = {quien} recupera {n} PV.
+menu.usa = {quien} usa {objeto}.
+menu.puesto = {apuntador} se pone en {quien}.
+menu.quitado = {apuntador} queda en espera.
+apuntador.dueno = Dueño
+apuntador.estado = Estado
+apuntador.bono = Bono
+
+// ---------------------------------------------------------------- el camino al Teatro
+
+letrero.teatro = TEATRO
+lectura.cartelInicio = CAMINO DEL TEATRO. Cuidado con los petardos, que andan sueltos.
+lectura.cartelCamino = CAMINO DEL TEATRO. Solo ida: el final os espera allí.
+lectura.granja = La granja duerme. Huele a naranjas y a paja.
+pablo.camino = El camino del Teatro, de noche y sin lluvia. Aquí se ve hasta la luna.
+chist.aparece = ¡Un apuntador salvaje! Susurra algo desde su rincón.
+chist.unido = Chist, el apuntador, se une al grupo.
+consejo.apuntador = Ponlo o quítalo en START. En combate, suéltalo para un ataque especial.
+cofre.monedas = Encuentras {n} monedas.
+cofre.objeto = Encuentras {objeto} x{n}.
+cofre.vacio = El cofre está vacío.
+escondite.hallado = ¡Un chupito perdido! Encuentras {objeto}.
+pablo.teatro.1 = El Teatro. Las puertas están abiertas, y dentro suenan unas páginas.
+pablo.teatro.2 = Ahí dentro está mi sombra con mi final. Esto no acaba aquí.
+
+// ---------------------------------------------------------------- si pierden
+
+madre.derrota.1 = Ay, hijo, qué susto. Os han traído a casa hechos un trapo.
+madre.derrota.2 = Dormid, descansad y a la próxima os lleváis el paraguas.
+derrota.monedas = Por el camino se han perdido {n} monedas.
+pablo.derrota = Estoy bien, mamá. Sí, y además voy a volver.
 
 // ---------------------------------------------------------------- el grupo (nombres de los cuatro en combate)
 
@@ -236,6 +336,10 @@ enemigo.critico2.nombre = Crítico de prensa
 enemigo.critico2.tachon = Tachón
 enemigo.critico2.critica = Mala crítica
 
+enemigo.chist.nombre = Chist
+enemigo.chist.soplo = Soplo
+enemigo.chist.chistido = Chistido
+enemigo.chist.notaalpie = Nota al pie
 enemigo.mosquito.nombre = Mosquito huertano
 enemigo.mosquito.picotazo = Picotazo
 enemigo.mosquito.zumbido = Zumbido

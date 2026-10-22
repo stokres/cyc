@@ -15,7 +15,7 @@
 // without it, to compare.
 //
 // Usage: node scripts/rendimiento.mjs [escena...]   (against npm run dev on :5173)
-//   escenas: prologo, piso, calle, bar, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, tragaperras, sol, solcombate (all by default)
+//   escenas: prologo, piso, calle, bar, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, tragaperras, sol, solcombate, solcamino (all by default)
 import { chromium } from 'playwright';
 import { readFileSync, readdirSync } from 'node:fs';
 
@@ -430,6 +430,33 @@ if (toca('solcombate')) {
       }
       if (so.elegir(orden[i % orden.length], i % 3)) i++;
     }, 300);
+  })()`, 'sol');
+}
+
+if (toca('solcamino')) {
+  // The road to the theatre of «Alacant Sun» (src/sol/camino.ts): the countryside at night, the four friends in a
+  // line along Pablo's path, the fireflies, back and forth along the road with the random fights off (the steps
+  // counter keeps running).
+  await medir('solcamino: el camino con la fila de amigos', `(async () => {
+    clearInterval(window.__paseo);
+    clearInterval(window.__lucha);
+    const g = window.__cyc.g;
+    g.pausado = true;
+    const { jugarSol } = await import('/src/sol/sol.ts');
+    void jugarSol(g.root, { sonido: g.sound });
+    await new Promise((r) => setTimeout(r, 400));
+    const s = window.__sol();
+    await s.irAlCamino();
+    s.encuentros(false);
+    s.poner(100, 208);
+    let d = 1;
+    window.__paseo = setInterval(() => {
+      const so = window.__sol?.();
+      if (!so) return;
+      d = -d;
+      so.mando.fijarDir(d, 0);
+    }, 2500);
+    s.mando.fijarDir(1, 0);
   })()`, 'sol');
 }
 

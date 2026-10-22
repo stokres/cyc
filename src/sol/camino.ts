@@ -130,11 +130,14 @@ function construir(letrero: string): MundoCamino {
   };
 
   // Free ground for a tree or a rock: tiles of plain grass, away from every path and clearing.
+  // the clearings of the chest, of the prompter and of the shot glass stay free of trees (columns and rows, inclusive)
+  const claros = [[10, 19, 19, 23], [32, 41, 2, 6], [54, 63, 5, 8]];
   const libre = (c: number, r: number, ancho = 2, alto = 2, margen = 1): boolean => {
     for (let y = r - alto + 1 - margen; y <= r + margen; y++) {
       for (let x = c - margen; x < c + ancho + margen; x++) {
         const k = g[y]?.[x];
         if (k !== 'g') return false;
+        if (claros.some(([c0, c1, r0, r1]) => x >= c0 && x <= c1 && y >= r0 && y <= r1)) return false;
       }
     }
     return true;

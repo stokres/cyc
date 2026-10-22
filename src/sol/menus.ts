@@ -190,26 +190,26 @@ export function dibujarEstado(g: CanvasRenderingContext2D, grupo: Grupo, idx: nu
   ];
   filas.forEach(([l, v], i) => {
     const cx = x0 + 126 + Math.floor(i / 3) * 0;
-    const cy = y0 + 8 + i * 11;
+    const cy = y0 + 8 + i * 10;
     escribir(g, l, cx, cy, lab, sh);
-    escribir(g, v, cx + 44, cy, '#ffffff', sh);
+    escribir(g, v, cx + 50, cy, '#ffffff', sh);
   });
   // what he knows: the powers
-  escribir(g, texto('orden.poder'), x0 + 10, y0 + 56, lab, sh);
+  escribir(g, texto('orden.poder'), x0 + 10, y0 + 74, lab, sh);
   const poderes = poderesDe(m.q, m.nivel);
   poderes.forEach((p, i) => {
-    escribir(g, texto(`poder.${p.id}.nombre`), x0 + 16, y0 + 68 + i * 11, '#ffffff', sh);
-    escribir(g, String(p.ip), x0 + 100 - anchoTexto(String(p.ip)), y0 + 68 + i * 11, '#ffe27a', sh);
+    escribir(g, texto(`poder.${p.id}.nombre`), x0 + 16, y0 + 87 + i * 11, '#ffffff', sh);
+    escribir(g, String(p.ip), x0 + 100 - anchoTexto(String(p.ip)), y0 + 87 + i * 11, '#ffe27a', sh);
   });
   // his prompters
-  escribir(g, texto('orden.apuntadores'), x0 + 126, y0 + 56, lab, sh);
+  escribir(g, texto('orden.apuntadores'), x0 + 126, y0 + 74, lab, sh);
   const mias = grupo.apuntadores.filter((a) => a.dueno === m.q);
   mias.forEach((a, i) => {
-    g.drawImage(imgApuntador(apuntadorPorId(a.id).el, Math.floor(t * 2) % 2), x0 + 128, y0 + 66 + i * 18);
-    escribir(g, texto(`apuntador.${a.id}.nombre`), x0 + 144, y0 + 68 + i * 18, '#ffffff', sh);
-    escribir(g, texto(`apuntador.estado.${a.estado}`), x0 + 144, y0 + 78 + i * 18, a.estado === 'puesto' ? '#8cf08c' : '#ffe27a', sh);
+    g.drawImage(imgApuntador(apuntadorPorId(a.id).el, Math.floor(t * 2) % 2), x0 + 128, y0 + 84 + i * 20);
+    escribir(g, texto(`apuntador.${a.id}.nombre`), x0 + 144, y0 + 86 + i * 20, '#ffffff', sh);
+    escribir(g, texto(`apuntador.estado.${a.estado}`), x0 + 144, y0 + 96 + i * 20, a.estado === 'puesto' ? '#8cf08c' : '#ffe27a', sh);
   });
-  if (!mias.length) escribir(g, texto('estado.ninguno'), x0 + 128, y0 + 68, '#7a86c0', sh);
+  if (!mias.length) escribir(g, texto('estado.ninguno'), x0 + 128, y0 + 87, '#7a86c0', sh);
   // arrows to change friend
   if (grupo.miembros.length > 1) {
     const bob = Math.floor(t / 0.35) % 2;
@@ -221,9 +221,9 @@ export function dibujarEstado(g: CanvasRenderingContext2D, grupo: Grupo, idx: nu
 // ---------------------------------------------------------------- the prompters' screen
 
 /** The detail of a prompter: its sprite, its element, whose it is, how it is and the bonus it gives. */
-export function dibujarDetalleApuntador(g: CanvasRenderingContext2D, id: string, dueno: Amigo, estado: string, turnos: number, bono: string, x: number, y: number, t: number) {
+export function dibujarDetalleApuntador(g: CanvasRenderingContext2D, id: string, dueno: Amigo, estado: string, turnos: number, bonos: string[], x: number, y: number, t: number) {
   const sh = '#0a1450';
-  g.drawImage(ventana(150, 74), x, y);
+  g.drawImage(ventana(150, 102), x, y);
   const def = apuntadorPorId(id);
   g.drawImage(imgApuntador(def.el, Math.floor(t * 2) % 2), x + 10, y + 10);
   escribir(g, texto(`apuntador.${id}.nombre`), x + 30, y + 8, '#ffe27a', sh);
@@ -234,5 +234,5 @@ export function dibujarDetalleApuntador(g: CanvasRenderingContext2D, id: string,
   const est = texto(`apuntador.estado.${estado}`) + (estado === 'recupera' ? ` ${turnos}` : '');
   escribir(g, est, x + 66, y + 45, estado === 'puesto' ? '#8cf08c' : '#ffe27a', sh);
   escribir(g, texto('apuntador.bono'), x + 10, y + 56, '#9ab4ff', sh);
-  escribir(g, bono, x + 66, y + 56, '#ffffff', sh);
+  bonos.forEach((b, i) => escribir(g, b, x + 14 + (i % 2) * 66, y + 67 + Math.floor(i / 2) * 11, '#ffffff', sh));
 }

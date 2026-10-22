@@ -1,7 +1,10 @@
 // «Alacant Sun»: a short, affectionate parody of the first *Golden Sun* for Pablo (docs: the proposal in
 // /capitulo2/golden-sun-pablo.md). This slice: the GBA screen and its console, Pablo's bedroom (the mother who
 // will not take a «no»), the village in fiestas at night in a storm, one psynergy («Sí, y...», our Move) that
-// pushes a crate of soft turrón with a hand of stage light, and the plaza where the slice ends.
+// pushes a crate of soft turrón with a hand of stage light, the plaza where the narrator (Pablo's shadow) steals
+// the end of the play, the three friends who join him one by one (they follow him in a line along the path he
+// walks), the peña's shop and the inn, the road to the theatre with its random fights, chests and a wild
+// prompter, and the START menu. The slice ends at the theatre's door.
 //
 // A minigame of the story, like src/pang/capitulo.ts: it ends with 'hecho' (the plaza reached), 'saltado'
 // or 'cancelado' (the × button). Everything is our own drawing and our own names.
@@ -14,17 +17,24 @@ import { cargarTextos, hayTexto, texto } from '../juego/textos';
 import textosSol from '../textos/sol.md?raw';
 import { esVertical } from '../ui/orientacion';
 import { caja as spriteCaja, chispa, destello, lluvia, manoLuz, puntito, T } from './arte';
+import { chupitoSuelo, cofre as spriteCofre } from './artecampo';
+import { spriteEnemigo } from './enemigos';
+import { camino, type Cofre, type Escondite, type MundoCamino, type ZonaEncuentro } from './camino';
 import { Combate, empezarCombate, type EstadoCombate, type ResultadoCombate } from './combate';
 import { crearConsola, Mandos } from './consola';
 import { ALTO_CUARTO, ANCHO_CUARTO, BASE_PARED, CUARTO_X, CUARTO_Y, cuarto } from './cuarto';
+import { pagina } from './efectos';
 import { type FondoCombate } from './fondo';
 import { escribir, anchoTexto } from './fuente';
-import { crearGrupo, expTotal, statsDe, type Grupo } from './grupo';
+import { BONO_APUNTADOR, crearGrupo, darApuntador, descansar, expTotal, statsDe, unirAmigo, vivo, ajustar, type Grupo, type Miembro } from './grupo';
 import { cartelito, contadorIP, Dialogo, dibujarEmocion, type Emocion, type Icono, type Linea, PANTALLA_H, PANTALLA_W } from './interfaz';
-import { solidoBaldosa, pueblo, type Lectura, type Mundo, type Rect } from './mapas';
-import { CICLO, dirDe, marco, PIES, sombraPies, vectorDe, type Dir, type Pose, type Quien } from './personajes';
+import { ENTRADA, fondoSala, frenteSala, TENDERO, type Sala } from './interior';
+import { solidoBaldosa, pueblo, type Lectura, type Mundo, type MundoBase, type Rect } from './mapas';
+import { dibujarCartas, dibujarCartel, dibujarDetalleApuntador, dibujarEstado, dibujarLista, dibujarMonedas, Teclas, type ItemLista } from './menus';
+import { CICLO, dirDe, marco, PIES, sombraPies, vectorDe, type Amigo, type Dir, type Pose, type Quien } from './personajes';
 import { ctx, girar, lienzo } from './pixel';
-import { SonidoSol, EFECTO_PODER, EFECTO_PUERTA } from './sonido';
+import { OBJETOS, poderesDe, poderPorId } from './poderes';
+import { SonidoSol, EFECTO_APUNTADOR, EFECTO_CURA, EFECTO_MENU, EFECTO_PODER, EFECTO_PUERTA, PISTA_CAMINO, PISTA_PUEBLO } from './sonido';
 import { dibujarLogo, portada } from './titulo';
 
 export type Resultado = 'hecho' | 'saltado' | 'cancelado';
@@ -47,6 +57,30 @@ export interface EstadoSol {
   mando: Mandos;
   /** Skips the title and the bedroom: Pablo outside his door, in the village. */
   irAlPueblo(): Promise<void>;
+  /** Straight to the road to the theatre (Pablo at its start, the friends who have joined behind him). */
+  irAlCamino(): Promise<void>;
+  /** The three friends join the party now (no scenes) and the narrator's scene counts as seen. */
+  unirTodos(): void;
+  /** One friend joins the party now (no scene). */
+  unirA(q: Amigo): void;
+  /** Plays the narrator's scene on the plaza. */
+  narrador(): Promise<void>;
+  /** Opens the START menu. */
+  abrirMenu(): Promise<void>;
+  /** Walks into the peña (the shop) or the inn. */
+  entrar(sala: Sala): Promise<void>;
+  /** Starts a random fight now (a group of the zone Pablo is in, or the one given); the hook's answer is its result. */
+  encuentro(grupo?: string[]): Promise<ResultadoCombate | null>;
+  /** Turns the random fights of the road on or off (the steps counter still runs). */
+  encuentros(si: boolean): void;
+  /** Steps (pixels) left until the next random fight. */
+  pasos(): number;
+  /** The road's state: prompter beaten, chests opened, glints taken. */
+  estadoCamino(): { chistVencido: boolean; cofres: string[]; escondites: string[]; seguidores: string[] };
+  /** Where things are on the road, for a test script to walk to. */
+  lugaresCamino(): { chist: { x: number; y: number }; cofres: Array<{ id: string; x: number; y: number }>; escondites: Array<{ id: string; x: number; y: number }>; puertaTeatro: Rect };
+  /** The party's friends in the village and where they wait. */
+  estadoPueblo(): { narradorHecho: boolean; unidos: string[]; amigos: Record<string, { x: number; y: number; visible: boolean }> };
   /** Closes the game as if the × button had been pressed. */
   cerrar(): void;
   /** Puts Pablo on this spot (feet), in the scene he is in. */
@@ -68,10 +102,16 @@ export interface EstadoSol {
 
 const WALK = 56;
 const RUN = 100;
-const IP_MAX = 12;
-const IP_COSTE = 4;
-/** Pixels walked to recover one point of IP (slowly, as in the original). */
+/** What «Sí, y...» costs in IP (the same number as in a fight). */
+const IP_COSTE = poderPorId('siy').ip;
+/** Pixels walked to recover one point of IP, for the whole party (slowly, as in the original). */
 const PX_POR_IP = 52;
+/** Pixels walked between two random fights on the road: the first is longer. */
+const PASOS_ENCUENTRO: [number, number] = [260, 520];
+/** Distance (pixels along Pablo's path) between two friends of the line. */
+const SEPARACION = 15;
+/** Coins the inn charges for the night. */
+const PRECIO_POSADA = 10;
 const ALCANCE = 56;
 const SILENCIO: SonidoMinijuego = { musica() {}, pararMusica() {} };
 /** The shadow, hit box (feet) of a character: 10 wide, 5 tall. */
@@ -148,18 +188,54 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
   });
 
   // ------------------------------------------------------------ state
-  let escena: 'titulo' | 'cuarto' | 'pueblo' | 'fin' = 'titulo';
+  let escena: 'titulo' | 'cuarto' | 'pueblo' | 'camino' | 'interior' | 'fin' = 'titulo';
   let fotogramas = 0;
   let t = 0;
   let tPueblo = 0;
   const cuartoM = cuarto();
-  let mundo: Mundo | null = null;
+  /** The map Pablo walks in (the village or the road). */
+  let mundo: MundoBase | null = null;
+  /** The room he is in when `escena` is «interior». */
+  let sala: Sala = 'tienda';
+  // the party (combate.ts reads it) and its members' walking sprites
+  const grupo = crearGrupo({ amigos: ['pablo'], nivel: 1, apuntadores: false });
+  const mPablo = (): Miembro => grupo.miembros[0];
+  const ipMax = () => statsDe(grupo, mPablo()).ip;
 
   const pablo = nuevoPj('pablo', 0, 0, 'S');
   const madre = nuevoPj('madre', cuartoM.madre.x, cuartoM.madre.y, 'W');
   const aldeano = nuevoPj('aldeano', 0, 0, 'S');
-  let ip = IP_MAX;
+  const narrador = nuevoPj('narrador', 0, 0, 'S');
+  const tendera = nuevoPj('tendera', TENDERO.x, TENDERO.y, 'S');
+  const posadero = nuevoPj('posadero', TENDERO.x, TENDERO.y, 'S');
+  const amigosM: Record<'fran' | 'guille' | 'chuchi', Pj> = { fran: nuevoPj('fran', 0, 0, 'N'), guille: nuevoPj('guille', 0, 0, 'W'), chuchi: nuevoPj('chuchi', 0, 0, 'S') };
   let ipPaso = 0;
+  // the story's progress
+  let narradorHecho = false;
+  let narradorVisible = false;
+  let paginasT = -1;
+  let chuchiAndando = false;
+  let narradorA = 1;
+  let caminoVisto = false;
+  let camSuave = false;
+  /** Chuchi's walk into the village: waypoints, then Pablo. */
+  let chuchiRuta: null | { pts: Array<{ x: number; y: number }>; res: () => void; t: number; atasco: number } = null;
+  /** Walks of the cutscenes. */
+  const marchas: Array<{ p: Pj; pts: Array<{ x: number; y: number }>; vel: number; res: () => void }> = [];
+  /** A short note at the top and the little windows the menus keep open (the friends' cards, the coins). */
+  let aviso: string | null = null;
+  const cartasUI = { ver: false, sel: -1, mano: false };
+  let monedasUI: null | { x: number; y: number } = null;
+  /** The friends who follow Pablo, in order, and the path he has walked (they walk along it). */
+  const seguidores: Pj[] = [];
+  const rastro: Array<{ x: number; y: number }> = [];
+  // the road
+  let pasosEnc = PASOS_ENCUENTRO[1];
+  let encuentrosOn = true;
+  const estadoCaminoM = { chistVencido: false, chistArmado: true, chistT: 0, cofres: new Set<string>(), escondites: new Set<string>() };
+  // the menus: layers drawn over the world, and the buttons as events
+  const capas: Array<(g: CanvasRenderingContext2D) => void> = [];
+  const teclas = new Teclas();
   let ipDestello = 0;
   let cama: 'dormido' | 'sentado' | 'vacia' = 'dormido';
 
@@ -173,8 +249,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
   let avisoNada = 0;
   let yaSaludoPablo = false;
   let abrio = false;
-  // the party and the fight in progress (combate.ts: the world only calls `luchar` and lets it run)
-  const grupo = crearGrupo({ nivel: 1 });
+  // the fight in progress (combate.ts: the world only calls `luchar` and lets it run)
   let combate: Combate | null = null;
 
   // lightning: seconds until the next, and the flash being played
@@ -202,21 +277,31 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     }
   };
 
-  /** A line of the texts: «[contento] …» makes the speaker smile. */
-  const lineaDe = (quien: Quien | null, clave: string): Linea => {
-    let s = texto(clave);
+  /**
+   * A line of the texts. At the start of the text: «@fran » makes that character speak (whoever the script
+   * said), «@nadie » the narrator without a portrait; then «[contento] » makes the speaker smile.
+   * `vars` fill the {holes} of the text.
+   */
+  const lineaDe = (quien: Quien | null, clave: string, vars: Record<string, string | number> = {}): Linea => {
+    let s = texto(clave, vars);
+    let q = quien;
+    const a = s.match(/^@(\w+)\s+/);
+    if (a) {
+      q = a[1] === 'nadie' ? null : (a[1] as Quien);
+      s = s.slice(a[0].length);
+    }
     let animo: 'normal' | 'contento' = 'normal';
     const m = s.match(/^\[(\w+)\]\s*/);
     if (m) {
       if (m[1] === 'contento') animo = 'contento';
       s = s.slice(m[0].length);
     }
-    return { quien, texto: s, animo };
+    return { quien: q, texto: s, animo };
   };
-  const decir = (quien: Quien | null, clave: string) => dialogo.decir(lineaDe(quien, clave));
+  const decir = (quien: Quien | null, clave: string, vars?: Record<string, string | number>) => dialogo.decir(lineaDe(quien, clave, vars));
   /** A conversation: clave.1, clave.2... one window each. */
-  const serie = async (quien: Quien | null, clave: string) => {
-    for (let i = 1; hayTexto(`${clave}.${i}`); i++) await decir(quien, `${clave}.${i}`);
+  const serie = async (quien: Quien | null, clave: string, vars?: Record<string, string | number>) => {
+    for (let i = 1; hayTexto(`${clave}.${i}`); i++) await decir(quien, `${clave}.${i}`, vars);
   };
 
   const emocionar = (p: Pj, tipo: Icono, dura = 1) => {
@@ -225,6 +310,12 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
 
   const rectPj = (p: { x: number; y: number }): Rect => ({ x: p.x - CAJA_PIES.w / 2, y: p.y - CAJA_PIES.h, w: CAJA_PIES.w, h: CAJA_PIES.h });
   const rectCaja = (): Rect => ({ x: caja.x, y: caja.y, w: T, h: T });
+  /** Has this friend joined the party? */
+  const unido = (q: Amigo) => grupo.miembros.some((m) => m.q === q);
+  /** A friend who has not joined is in the village once the narrator has gone (Chuchi only when he arrives). */
+  const npcVisible = (q: 'fran' | 'guille' | 'chuchi') => escena === 'pueblo' && narradorHecho && !unido(q) && (q !== 'chuchi' || chuchiAndando);
+  const puebloM = () => pueblo();
+  const caminoM = () => camino(texto('letrero.teatro'));
 
   /** Does a box (feet of somebody) hit something solid in this scene? `yo` is not counted. */
   const choca = (r: Rect, yo?: Pj): boolean => {
@@ -244,9 +335,15 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     const ty1 = Math.floor((r.y + r.h - 0.01) / T);
     for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) if (solidoBaldosa(m.grid[ty]?.[tx])) return true;
     for (const q of m.rects) if (solapa(r, q)) return true;
-    if (solapa(r, rectCaja())) return true;
-    if (yo !== pablo && solapa(r, rectPj(pablo))) return true;
-    if (yo !== aldeano && solapa(r, rectPj(aldeano))) return true;
+    if (escena === 'camino') {
+      for (const c of caminoM().cofres) if (solapa(r, rectCofre(c))) return true;
+    }
+    if (escena === 'pueblo') {
+      if (solapa(r, rectCaja())) return true;
+      if (yo !== pablo && solapa(r, rectPj(pablo))) return true;
+      if (yo !== aldeano && solapa(r, rectPj(aldeano))) return true;
+      for (const q of ['fran', 'guille', 'chuchi'] as const) if (npcVisible(q) && yo !== amigosM[q] && solapa(r, rectPj(amigosM[q]))) return true;
+    }
     return false;
   };
 
@@ -314,11 +411,11 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
       if (avisoNada++ === 0) void bloquear(() => decir('pablo', 'pablo.nada'));
       return;
     }
-    if (ip < IP_COSTE) {
+    if (mPablo().ip < IP_COSTE) {
       void bloquear(() => decir('pablo', 'pablo.sinip'));
       return;
     }
-    ip -= IP_COSTE;
+    mPablo().ip -= IP_COSTE;
     ipDestello = 1.2;
     pablo.dir = ob.dir;
     pablo.mov = false;
@@ -366,27 +463,155 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     const r = await combate.resultado;
     combate = null;
     mandos.soltar();
+    teclas.vaciar();
+    // the fight ends in black: the world comes back out of it (after a defeat the script that follows decides)
+    if (r !== 'derrota') {
+      fade = { a: 1, desde: 1, hasta: 1, t: 0, dur: 0, res: null };
+      void fundirA(0, 0.45);
+    }
     return r;
   };
 
+  // ------------------------------------------------------------ the party in a line
+  /** The point of Pablo's path `dist` pixels behind him (walking back along it). */
+  const puntoDelRastro = (dist: number): { x: number; y: number } => {
+    let resto = dist;
+    let px = pablo.x;
+    let py = pablo.y;
+    for (let i = rastro.length - 1; i >= 0; i--) {
+      const d = Math.hypot(rastro[i].x - px, rastro[i].y - py);
+      if (d >= resto && d > 0) {
+        const k = resto / d;
+        return { x: px + (rastro[i].x - px) * k, y: py + (rastro[i].y - py) * k };
+      }
+      resto -= d;
+      px = rastro[i].x;
+      py = rastro[i].y;
+    }
+    return { x: px, y: py };
+  };
+
+  /** Pablo has moved: his path gets a new point (they are 2 pixels apart, and the oldest ones are forgotten). */
+  const anotarRastro = () => {
+    const u = rastro[rastro.length - 1];
+    if (u && Math.hypot(pablo.x - u.x, pablo.y - u.y) < 2) return;
+    rastro.push({ x: pablo.x, y: pablo.y });
+    if (rastro.length > 80) rastro.shift();
+  };
+
+  /** Puts the friends in a line straight behind Pablo (away from where he faces): they come out of doors behind him. */
+  const alinearSeguidores = () => {
+    rastro.length = 0;
+    const [vx, vy] = vectorDe(pablo.dir);
+    const n = Math.hypot(vx, vy) || 1;
+    for (let k = 40; k >= 1; k--) rastro.push({ x: pablo.x - (vx / n) * k * 2, y: pablo.y - (vy / n) * k * 2 });
+    rastro.push({ x: pablo.x, y: pablo.y });
+    seguidores.forEach((s, i) => {
+      const p = puntoDelRastro(SEPARACION * (i + 1));
+      s.x = p.x;
+      s.y = p.y;
+      s.dir = pablo.dir;
+      s.mov = false;
+    });
+  };
+
+  const actualizarSeguidores = (dt: number) => {
+    if (escena !== 'pueblo' && escena !== 'camino') return;
+    seguidores.forEach((s, i) => {
+      const meta = puntoDelRastro(SEPARACION * (i + 1));
+      const dx = meta.x - s.x;
+      const dy = meta.y - s.y;
+      const d = Math.hypot(dx, dy);
+      if (d < 0.4) {
+        s.mov = false;
+        return;
+      }
+      const paso = Math.min(d, Math.max(RUN * 1.1, d * 7) * dt);
+      s.x += (dx / d) * paso;
+      s.y += (dy / d) * paso;
+      s.dir = dirDe(dx, dy, s.dir);
+      s.mov = paso > 0.05;
+      s.t += dt * (d > 18 ? 1.55 : 1);
+    });
+  };
+
+  /** A friend joins the party: his data, and from now on he follows Pablo's path. */
+  const incorporar = (q: 'fran' | 'guille' | 'chuchi') => {
+    unirAmigo(grupo, q);
+    if (!seguidores.includes(amigosM[q])) seguidores.push(amigosM[q]);
+  };
+
   // ------------------------------------------------------------ scenes
+  const moverCamara = (dt = 0) => {
+    if (!mundo || (escena !== 'pueblo' && escena !== 'camino')) return;
+    // the camera follows Pablo, or Chuchi while he walks in (then it glides)
+    const foco = chuchiRuta && chuchiRuta.pts.length ? amigosM.chuchi : pablo;
+    const tx = limitar(Math.round(foco.x - PANTALLA_W / 2), 0, mundo.w - PANTALLA_W);
+    const ty = limitar(Math.round(foco.y - 14 - PANTALLA_H / 2), 0, mundo.h - PANTALLA_H);
+    if (camSuave && dt > 0) {
+      cam.x = Math.round(cam.x + (tx - cam.x) * Math.min(1, dt * 3.5));
+      cam.y = Math.round(cam.y + (ty - cam.y) * Math.min(1, dt * 3.5));
+      if (!chuchiRuta && Math.abs(tx - cam.x) < 2 && Math.abs(ty - cam.y) < 2) camSuave = false;
+    } else {
+      cam.x = tx;
+      cam.y = ty;
+    }
+  };
+
   const preparaPueblo = () => {
-    mundo = pueblo();
+    const m = puebloM();
+    mundo = m;
     escena = 'pueblo';
     tPueblo = 0;
-    caja.x = mundo.caja.x;
-    caja.y = mundo.caja.y;
+    // the first time only: afterwards the crate and the people stay where they were left
     if (!abrio) {
-      aldeano.x = mundo.aldeano.x;
-      aldeano.y = mundo.aldeano.y;
+      caja.x = m.caja.x;
+      caja.y = m.caja.y;
+      aldeano.x = m.aldeano.x;
+      aldeano.y = m.aldeano.y;
+      for (const q of ['fran', 'guille', 'chuchi'] as const) {
+        amigosM[q].x = m.amigos[q].x;
+        amigosM[q].y = m.amigos[q].y;
+      }
+      narrador.x = m.narrador.x;
+      narrador.y = m.narrador.y;
       abrio = true;
     }
   };
   const ponerEnPuerta = () => {
-    pablo.x = mundo!.salida.x;
-    pablo.y = mundo!.salida.y;
+    pablo.x = (mundo as Mundo).salida.x;
+    pablo.y = (mundo as Mundo).salida.y;
     pablo.dir = 'S';
     pablo.mov = false;
+    alinearSeguidores();
+    moverCamara();
+  };
+
+  const preparaCamino = () => {
+    const m = caminoM();
+    mundo = m;
+    escena = 'camino';
+    pablo.x = m.inicio.x;
+    pablo.y = m.inicio.y;
+    pablo.dir = 'E';
+    pablo.mov = false;
+    estadoCaminoM.chistArmado = true;
+    alinearSeguidores();
+    moverCamara();
+    sonido.musica(PISTA_CAMINO);
+  };
+
+  /** Back in the village from the road: Pablo comes out of the opening in the east, facing the plaza. */
+  const volverAlPueblo = () => {
+    preparaPueblo();
+    const m = mundo as Mundo;
+    pablo.x = m.llegadaCamino.x;
+    pablo.y = m.llegadaCamino.y;
+    pablo.dir = 'W';
+    pablo.mov = false;
+    alinearSeguidores();
+    moverCamara();
+    sonido.musica(PISTA_PUEBLO);
   };
 
   const irACuartoDentro = async () => {
@@ -405,6 +630,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
       await fundirA(1, 0.45);
       preparaPueblo();
       ponerEnPuerta();
+      if (sonido.actual !== PISTA_PUEBLO) sonido.musica(PISTA_PUEBLO);
       await espera(0.3);
       await fundirA(0, 0.6);
       if (!yaSaludoPablo) {
@@ -448,6 +674,8 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
       await espera(0.7);
       await decir('pablo', 'pablo.si');
       await serie('madre', 'madre.si');
+      grupo.monedas += 40;
+      await decir('madre', 'madre.monedas');
       cama = 'vacia';
       pablo.dir = 'S';
       pablo.mov = false;
@@ -501,6 +729,417 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     });
   };
 
+  // ------------------------------------------------------------ cutscene walks
+  /** Walks a character along some points on his own (no collisions: for scenes, with the world locked). */
+  const caminar = (p: Pj, pts: Array<{ x: number; y: number }>, vel = WALK) =>
+    new Promise<void>((res) => {
+      marchas.push({ p, pts: [...pts], vel, res });
+    });
+
+  const actualizarMarchas = (dt: number) => {
+    for (let i = marchas.length - 1; i >= 0; i--) {
+      const m = marchas[i];
+      const meta = m.pts[0];
+      const dx = meta.x - m.p.x;
+      const dy = meta.y - m.p.y;
+      const d = Math.hypot(dx, dy);
+      const paso = m.vel * dt * VEL;
+      if (d <= paso) {
+        m.p.x = meta.x;
+        m.p.y = meta.y;
+        m.pts.shift();
+        if (!m.pts.length) {
+          m.p.mov = false;
+          marchas.splice(i, 1);
+          m.res();
+        }
+        continue;
+      }
+      m.p.x += (dx / d) * paso;
+      m.p.y += (dy / d) * paso;
+      m.p.dir = dirDe(dx, dy, m.p.dir);
+      m.p.mov = true;
+      m.p.t += dt * VEL;
+    }
+  };
+
+  // ------------------------------------------------------------ small windows and menus
+  /** A short note in a small window at the top, for `dura` seconds. */
+  const avisar = async (txt: string, dura = 1.3) => {
+    aviso = txt;
+    await espera(dura);
+    aviso = null;
+    teclas.vaciar();
+  };
+
+  interface OpcionesLista {
+    cursor?: number;
+    anchoMin?: number;
+    /** More to draw with the list (a detail window...). */
+    extra?: (gg: CanvasRenderingContext2D, cursor: number) => void;
+  }
+  /** A list with the hand: the index chosen with A, or −1 with B or START. */
+  const elegirLista = async (items: ItemLista[], x: number, y: number, o: OpcionesLista = {}): Promise<number> => {
+    let c = limitar(o.cursor ?? 0, 0, items.length - 1);
+    const capa = (gg: CanvasRenderingContext2D) => {
+      dibujarLista(gg, items, c, x, y, t, o.anchoMin);
+      o.extra?.(gg, c);
+    };
+    capas.push(capa);
+    teclas.vaciar();
+    try {
+      for (;;) {
+        const k = await teclas.siguiente();
+        if (k === 'arriba' || k === 'abajo') {
+          c = (c + (k === 'abajo' ? 1 : items.length - 1)) % items.length;
+          sonido.efecto(EFECTO_MENU, 0.7);
+        } else if (k === 'a') {
+          sonido.efecto(EFECTO_MENU);
+          return c;
+        } else if (k === 'b' || k === 'start') return -1;
+      }
+    } finally {
+      capas.splice(capas.indexOf(capa), 1);
+    }
+  };
+
+  /** The hand over the friends' cards: the friend chosen, or −1. */
+  const elegirAmigo = async (inicio = 0): Promise<number> => {
+    let c = limitar(inicio, 0, grupo.miembros.length - 1);
+    const antes = { ...cartasUI };
+    cartasUI.ver = true;
+    cartasUI.mano = true;
+    cartasUI.sel = c;
+    const capa = () => {};
+    capas.push(capa);
+    teclas.vaciar();
+    try {
+      for (;;) {
+        const k = await teclas.siguiente();
+        if (k === 'arriba' || k === 'abajo') {
+          c = (c + (k === 'abajo' ? 1 : grupo.miembros.length - 1)) % grupo.miembros.length;
+          cartasUI.sel = c;
+          sonido.efecto(EFECTO_MENU, 0.7);
+        } else if (k === 'a') {
+          sonido.efecto(EFECTO_MENU);
+          return c;
+        } else if (k === 'b' || k === 'start') return -1;
+      }
+    } finally {
+      capas.splice(capas.indexOf(capa), 1);
+      Object.assign(cartasUI, antes);
+    }
+  };
+
+  const nombreDe = (q: Amigo) => texto(`nombre.${q}`);
+  const reajustar = () => {
+    for (const m of grupo.miembros) ajustar(grupo, m);
+  };
+
+  /** What a prompter adds to its owner, one entry per number. */
+  const bonosDe = (id: string): string[] => {
+    const b = BONO_APUNTADOR[id] ?? {};
+    return (['pv', 'ip', 'atk', 'def', 'agi'] as const).filter((k) => b[k]).map((k) => `+${b[k]} ${texto(`etiqueta.${k}`)}`);
+  };
+
+  // ------------------------------------------------------------ the START menu
+  const menuImpronergia = async () => {
+    let q = 0;
+    for (;;) {
+      q = await elegirAmigo(q);
+      if (q < 0) return;
+      const m = grupo.miembros[q];
+      const ps = poderesDe(m.q, m.nivel);
+      if (!ps.length) {
+        await avisar(texto('combate.nada.poder'));
+        continue;
+      }
+      let c = 0;
+      for (;;) {
+        const items: ItemLista[] = ps.map((p) => ({ txt: texto(`poder.${p.id}.nombre`), der: String(p.ip), gris: p.modo !== 'cura' }));
+        c = await elegirLista(items, 6, 6, { cursor: c, anchoMin: 96 });
+        if (c < 0) break;
+        const p = ps[c];
+        if (p.modo !== 'cura') {
+          await avisar(texto(p.id === 'siy' ? 'menu.siy' : 'menu.soloCombate'));
+          continue;
+        }
+        if (m.ip < p.ip) {
+          await avisar(texto('combate.sin.ip'));
+          continue;
+        }
+        const t2 = await elegirAmigo(q);
+        if (t2 < 0) continue;
+        const dest = grupo.miembros[t2];
+        const max = statsDe(grupo, dest).pv;
+        if (!vivo(dest) || dest.pv >= max) {
+          await avisar(texto('menu.nohace'));
+          continue;
+        }
+        m.ip -= p.ip;
+        const antes = dest.pv;
+        dest.pv = Math.min(max, dest.pv + Math.round(p.pot + statsDe(grupo, m).atk));
+        sonido.efecto(EFECTO_CURA);
+        await avisar(texto('menu.cura', { quien: nombreDe(dest.q), n: dest.pv - antes }), 1.5);
+      }
+    }
+  };
+
+  const menuApuntadores = async () => {
+    if (!grupo.apuntadores.length) {
+      await avisar(texto('menu.sinapuntadores'));
+      return;
+    }
+    let c = 0;
+    const antes = { ...cartasUI };
+    cartasUI.ver = false;
+    try {
+      for (;;) {
+        const items: ItemLista[] = grupo.apuntadores.map((a) => ({ txt: texto(`apuntador.${a.id}.nombre`), der: texto(`apuntador.estado.${a.estado}`) }));
+        const detalle = (gg: CanvasRenderingContext2D, k: number) => {
+          const a = grupo.apuntadores[k];
+          dibujarDetalleApuntador(gg, a.id, a.dueno, a.estado, a.turnos, bonosDe(a.id), 6, 40, t);
+        };
+        c = await elegirLista(items, 6, 6, { cursor: c, anchoMin: 150, extra: detalle });
+        if (c < 0) return;
+        const a = grupo.apuntadores[c];
+        const acciones: ItemLista[] = [
+          { txt: texto('menu.poner'), gris: a.estado === 'recupera' },
+          { txt: texto('menu.quitar'), gris: a.estado !== 'puesto' },
+        ];
+        const k = await elegirLista(acciones, 160, 6, { anchoMin: 70, extra: detalle ? (gg) => detalle(gg, c) : undefined });
+        if (k < 0) continue;
+        if (a.estado === 'recupera') {
+          await avisar(texto('menu.recupera'));
+          continue;
+        }
+        if (k === 0) {
+          cartasUI.ver = true;
+          const q = await elegirAmigo(Math.max(0, grupo.miembros.findIndex((m) => m.q === a.dueno)));
+          cartasUI.ver = false;
+          if (q < 0) continue;
+          a.dueno = grupo.miembros[q].q;
+          a.estado = 'puesto';
+          reajustar();
+          sonido.efecto(EFECTO_APUNTADOR);
+          await avisar(texto('menu.puesto', { apuntador: texto(`apuntador.${a.id}.nombre`), quien: nombreDe(a.dueno) }), 1.5);
+        } else if (a.estado === 'puesto') {
+          a.estado = 'espera';
+          reajustar();
+          sonido.efecto(EFECTO_APUNTADOR);
+          await avisar(texto('menu.quitado', { apuntador: texto(`apuntador.${a.id}.nombre`) }), 1.5);
+        } else await avisar(texto('menu.nohace'));
+      }
+    } finally {
+      Object.assign(cartasUI, antes);
+    }
+  };
+
+  const menuObjetos = async () => {
+    let c = 0;
+    for (;;) {
+      const lista = OBJETOS.filter((o) => (grupo.objetos[o.id] ?? 0) > 0);
+      if (!lista.length) {
+        await avisar(texto('combate.nada.objeto'));
+        return;
+      }
+      const items: ItemLista[] = lista.map((o) => ({ txt: texto(`objeto.${o.id}.nombre`), der: `x${grupo.objetos[o.id]}` }));
+      c = await elegirLista(items, 6, 6, { cursor: c, anchoMin: 96 });
+      if (c < 0) return;
+      const o = lista[c];
+      const q = await elegirAmigo(0);
+      if (q < 0) continue;
+      const d = grupo.miembros[q];
+      const s = statsDe(grupo, d);
+      const sirve = vivo(d) && ((!!o.pv && d.pv < s.pv) || (!!o.ip && d.ip < s.ip));
+      if (!sirve) {
+        await avisar(texto('menu.nohace'));
+        continue;
+      }
+      grupo.objetos[o.id]--;
+      d.pv += o.pv ?? 0;
+      d.ip += o.ip ?? 0;
+      ajustar(grupo, d);
+      sonido.efecto(EFECTO_CURA);
+      await avisar(texto('menu.usa', { quien: nombreDe(d.q), objeto: texto(`objeto.${o.id}.nombre`) }), 1.4);
+    }
+  };
+
+  const menuEstado = async () => {
+    let idx = 0;
+    const antes = { ...cartasUI };
+    const monedas = monedasUI;
+    cartasUI.ver = false;
+    monedasUI = null;
+    const capa = (gg: CanvasRenderingContext2D) => dibujarEstado(gg, grupo, idx, t);
+    capas.push(capa);
+    teclas.vaciar();
+    try {
+      for (;;) {
+        const k = await teclas.siguiente();
+        if (k === 'izq' || k === 'der') {
+          idx = (idx + (k === 'der' ? 1 : grupo.miembros.length - 1)) % grupo.miembros.length;
+          sonido.efecto(EFECTO_MENU, 0.7);
+        } else if (k === 'b' || k === 'start') return;
+      }
+    } finally {
+      capas.splice(capas.indexOf(capa), 1);
+      Object.assign(cartasUI, antes);
+      monedasUI = monedas;
+    }
+  };
+
+  /** START: the four sections of the original (Impronergía, Apuntadores, Objetos, Estado), with the friends' cards. */
+  const menuPrincipal = async () => {
+    await bloquear(async () => {
+      sonido.efecto(EFECTO_MENU);
+      teclas.vaciar();
+      cartasUI.ver = true;
+      cartasUI.mano = false;
+      monedasUI = { x: 6, y: 62 };
+      let c = 0;
+      try {
+        for (;;) {
+          const items: ItemLista[] = ['menu.impronergia', 'menu.apuntadores', 'menu.objetos', 'menu.estado'].map((k) => ({ txt: texto(k) }));
+          c = await elegirLista(items, 6, 6, { cursor: c, anchoMin: 74 });
+          if (c < 0) break;
+          if (c === 0) await menuImpronergia();
+          else if (c === 1) await menuApuntadores();
+          else if (c === 2) await menuObjetos();
+          else await menuEstado();
+        }
+      } finally {
+        cartasUI.ver = false;
+        cartasUI.mano = false;
+        monedasUI = null;
+        teclas.vaciar();
+      }
+    });
+  };
+
+  // ------------------------------------------------------------ the peña and the inn
+  const comprar = async () => {
+    let c = 0;
+    for (;;) {
+      const items: ItemLista[] = OBJETOS.map((o) => ({ txt: texto(`objeto.${o.id}.nombre`), der: String(o.precio), gris: grupo.monedas < o.precio }));
+      c = await elegirLista(items, 6, 38, { cursor: c, anchoMin: 120 });
+      if (c < 0) return;
+      const o = OBJETOS[c];
+      if (grupo.monedas < o.precio) {
+        await avisar(texto('tienda.sinmonedas'));
+        continue;
+      }
+      grupo.monedas -= o.precio;
+      grupo.objetos[o.id] = (grupo.objetos[o.id] ?? 0) + 1;
+      sonido.efecto(EFECTO_APUNTADOR, 0.8);
+      await avisar(texto('tienda.gracias', { objeto: texto(`objeto.${o.id}.nombre`) }), 1.2);
+    }
+  };
+
+  const tiendaMenu = async () => {
+    await decir('tendera', 'tienda.hola');
+    for (;;) {
+      const i = await elegirLista([{ txt: texto('tienda.comprar') }, { txt: texto('tienda.salir') }], 6, 6, { anchoMin: 74 });
+      if (i !== 0) break;
+      await comprar();
+    }
+    await decir('tendera', 'tienda.adios');
+  };
+
+  const posadaMenu = async () => {
+    const i = await dialogo.preguntar(lineaDe('posadero', 'posada.hola', { n: PRECIO_POSADA }), [texto('opcion.si'), texto('opcion.no')]);
+    if (i !== 0) {
+      await decir('posadero', 'posada.no');
+      return;
+    }
+    if (grupo.monedas < PRECIO_POSADA) {
+      await decir('posadero', 'posada.pobre');
+      return;
+    }
+    grupo.monedas -= PRECIO_POSADA;
+    await fundirA(1, 0.7);
+    descansar(grupo);
+    sonido.efecto(EFECTO_CURA);
+    await espera(1.4);
+    await fundirA(0, 0.9);
+    await decir('posadero', 'posada.listo');
+  };
+
+  /** Walks into the peña or the inn: a still room, the keeper behind his counter, a menu. */
+  const entrarSala = async (s: Sala) => {
+    await bloquear(async () => {
+      sonido.efecto(EFECTO_PUERTA);
+      await fundirA(1, 0.35);
+      escena = 'interior';
+      sala = s;
+      pablo.x = ENTRADA.x;
+      pablo.y = ENTRADA.y;
+      pablo.dir = 'N';
+      pablo.mov = false;
+      seguidores.forEach((f, i) => {
+        f.x = ENTRADA.x + (i % 2 === 0 ? -1 : 1) * (Math.floor(i / 2) + 1) * 20;
+        f.y = ENTRADA.y;
+        f.dir = 'N';
+        f.mov = false;
+      });
+      (s === 'tienda' ? tendera : posadero).dir = 'S';
+      monedasUI = { x: PANTALLA_W - 80, y: 6 };
+      await fundirA(0, 0.35);
+      if (s === 'tienda') await tiendaMenu();
+      else await posadaMenu();
+      monedasUI = null;
+      sonido.efecto(EFECTO_PUERTA);
+      await fundirA(1, 0.35);
+      escena = 'pueblo';
+      const m = puebloM();
+      const sal = s === 'tienda' ? m.salidaTienda : m.salidaPosada;
+      pablo.x = sal.x;
+      pablo.y = sal.y;
+      pablo.dir = 'S';
+      alinearSeguidores();
+      moverCamara();
+      await fundirA(0, 0.35);
+    });
+  };
+
+  // ------------------------------------------------------------ the narrator steals the ending
+  const escenaNarrador = async () => {
+    await bloquear(async () => {
+      const m = puebloM();
+      pablo.mov = false;
+      narrador.x = m.narrador.x;
+      narrador.y = m.narrador.y;
+      narrador.dir = dirDe(pablo.x - narrador.x, pablo.y - narrador.y, 'S');
+      // a flash of lightning and the shadow is there
+      rayoT = 0;
+      rayoProx = 9;
+      await espera(0.5);
+      narradorVisible = true;
+      narradorA = 0;
+      sonido.efecto(EFECTO_PODER);
+      await espera(1);
+      pablo.dir = dirDe(narrador.x - pablo.x, narrador.y - pablo.y, pablo.dir);
+      emocionar(pablo, 'exclama', 1);
+      await espera(0.7);
+      await serie('narrador', 'narrador.hola');
+      // he takes the four acts: the pages fly round him
+      paginasT = 0;
+      sonido.efecto(EFECTO_APUNTADOR);
+      await espera(1.6);
+      await serie('narrador', 'narrador.obra');
+      await decir('pablo', 'pablo.mias');
+      await decir('narrador', 'narrador.final');
+      // and off he goes, east, towards the theatre
+      await caminar(narrador, [{ x: narrador.x + 70, y: narrador.y + 8 }, { x: m.salidaCamino.x + 40, y: narrador.y + 8 }], WALK * 1.3);
+      narradorVisible = false;
+      paginasT = -1;
+      narradorHecho = true;
+      pablo.dir = 'E';
+      await espera(0.6);
+      await serie('pablo', 'pablo.amigos');
+    });
+  };
+
   const alLlegarALaPlaza = async () => {
     await bloquear(async () => {
       pablo.mov = false;
@@ -508,7 +1147,244 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
       emocionar(pablo, 'exclama', 1);
       await espera(0.8);
       await decir('pablo', 'fin.1');
-      await decir('pablo', 'fin.2');
+      await escenaNarrador();
+    });
+  };
+
+  // ------------------------------------------------------------ the friends join
+  const unirseAlGrupo = async (q: 'fran' | 'guille' | 'chuchi') => {
+    incorporar(q);
+    sonido.efecto(EFECTO_APUNTADOR);
+    emocionar(amigosM[q], 'exclama', 0.9);
+    await decir(null, `une.${q}`);
+    if (seguidores.length === 1) await decir(null, 'consejo.start');
+  };
+
+  /** Chuchi comes in at the gate, late, and walks to Pablo. */
+  const llegaChuchi = async () => {
+    await decir('pablo', 'pablo.chuchi');
+    const c = amigosM.chuchi;
+    const puerta = puebloM().amigos.chuchi;
+    c.x = puerta.x;
+    c.y = puerta.y;
+    c.dir = 'E';
+    chuchiAndando = true;
+    camSuave = true;
+    await new Promise<void>((res) => {
+      chuchiRuta = { pts: [{ x: puerta.x + 16, y: puerta.y }, { x: puerta.x + 20, y: puerta.y - 80 }], res, t: 0, atasco: 0 };
+    });
+    chuchiRuta = null;
+    c.mov = false;
+    c.dir = dirDe(pablo.x - c.x, pablo.y - c.y, c.dir);
+    pablo.dir = dirDe(c.x - pablo.x, c.y - pablo.y, pablo.dir);
+    await serie('chuchi', 'charla.chuchi');
+    await unirseAlGrupo('chuchi');
+    await decir('pablo', 'pablo.todos');
+  };
+
+  const actualizarChuchi = (dt: number) => {
+    const r = chuchiRuta;
+    if (!r) return;
+    const c = amigosM.chuchi;
+    r.t += dt;
+    const hacia = r.pts.length ? r.pts[0] : { x: pablo.x, y: pablo.y };
+    const dx = hacia.x - c.x;
+    const dy = hacia.y - c.y;
+    const d = Math.hypot(dx, dy);
+    if (r.pts.length ? d <= 3 : d <= 22) {
+      if (r.pts.length) {
+        r.pts.shift();
+        return;
+      }
+      chuchiRuta = null;
+      r.res();
+      return;
+    }
+    const paso = Math.min(d, WALK * 1.25 * dt * VEL);
+    const hecho = mover(c, (dx / d) * paso, (dy / d) * paso);
+    c.mov = hecho > 0.01;
+    c.dir = dirDe(dx, dy, c.dir);
+    c.t += dt * VEL;
+    r.atasco = hecho > 0.01 ? 0 : r.atasco + dt;
+    // stuck behind a bench? he has been late enough: he steps beside Pablo
+    if (r.atasco > 1.2 || r.t > 25) {
+      c.x = pablo.x - 20;
+      c.y = pablo.y + 6;
+      chuchiRuta = null;
+      r.res();
+    }
+  };
+
+  const hablarConAmigo = async (q: 'fran' | 'guille') => {
+    const a = amigosM[q];
+    a.dir = dirDe(pablo.x - a.x, pablo.y - a.y, a.dir);
+    pablo.dir = dirDe(a.x - pablo.x, a.y - pablo.y, pablo.dir);
+    await bloquear(async () => {
+      await serie(q, `charla.${q}`);
+      await unirseAlGrupo(q);
+      if (unido('fran') && unido('guille') && !unido('chuchi')) await llegaChuchi();
+    });
+  };
+
+  // ------------------------------------------------------------ the road
+  /** The zone of the road Pablo is in. */
+  const zonaDe = (): ZonaEncuentro | undefined => {
+    const c = Math.floor(pablo.x / T);
+    const r = Math.floor((pablo.y - 1) / T);
+    return caminoM().zonas.find((z) => c >= z.c0 && c <= z.c1 && (z.r0 === undefined || r >= z.r0) && (z.r1 === undefined || r <= z.r1));
+  };
+
+  const siguientePaso = () => PASOS_ENCUENTRO[0] + Math.random() * (PASOS_ENCUENTRO[1] - PASOS_ENCUENTRO[0]);
+
+  /** Defeat: the party wakes up at home, rested, with half the coins lost and a line from the mother. */
+  const derrotado = async () => {
+    await bloquear(async () => {
+      fade = { a: 1, desde: 1, hasta: 1, t: 0, dur: 0, res: null };
+      const perdidas = Math.floor(grupo.monedas / 2);
+      grupo.monedas -= perdidas;
+      descansar(grupo);
+      escena = 'cuarto';
+      cama = 'dormido';
+      pablo.x = 36;
+      pablo.y = 84;
+      pablo.mov = false;
+      pasosEnc = siguientePaso();
+      sonido.musica(PISTA_PUEBLO);
+      await espera(0.6);
+      await fundirA(0, 1.1);
+      await espera(1);
+      await serie('madre', 'madre.derrota');
+      if (perdidas > 0) await decir(null, 'derrota.monedas', { n: perdidas });
+      cama = 'sentado';
+      emocionar(pablo, 'exclama', 0.8);
+      await espera(0.8);
+      await decir('pablo', 'pablo.derrota');
+      cama = 'vacia';
+      pablo.dir = 'S';
+      madre.dir = dirDe(pablo.x - madre.x, pablo.y - madre.y, 'S');
+    });
+  };
+
+  /** A wild group (the zone's, or the one given) now: the result of the fight, or null if this is no place for one. */
+  const encuentroAleatorio = async (forzado?: string[]): Promise<ResultadoCombate | null> => {
+    const z = zonaDe();
+    let enemigos = forzado;
+    if (!enemigos) {
+      if (!z || z.seguro || !z.grupos.length) {
+        pasosEnc = 90;
+        return null;
+      }
+      enemigos = z.grupos[Math.floor(Math.random() * z.grupos.length)];
+    }
+    pasosEnc = siguientePaso();
+    return bloquear(async () => {
+      pablo.mov = false;
+      emocionar(pablo, 'exclama', 0.7);
+      await espera(0.7);
+      const r = await luchar(enemigos!, 'campo');
+      if (r === 'derrota') await derrotado();
+      return r;
+    });
+  };
+
+  const encontrarChist = async () => {
+    const ch = caminoM().chist;
+    estadoCaminoM.chistArmado = false;
+    await bloquear(async () => {
+      pablo.mov = false;
+      pablo.dir = dirDe(ch.x - pablo.x, ch.y - pablo.y, pablo.dir);
+      emocionar(pablo, 'exclama', 0.9);
+      await espera(0.8);
+      await decir(null, 'chist.aparece');
+      const r = await luchar(['chist'], 'campo');
+      if (r === 'victoria') {
+        estadoCaminoM.chistVencido = true;
+        await espera(0.6);
+        darApuntador(grupo, 'chist', 'pablo');
+        sonido.efecto(EFECTO_APUNTADOR);
+        await decir(null, 'chist.unido');
+        await decir(null, 'consejo.apuntador');
+      } else if (r === 'derrota') await derrotado();
+    });
+  };
+
+  const rectCofre = (c: Cofre): Rect => ({ x: c.x - 8, y: c.y - 6, w: 16, h: 6 });
+
+  const abrirCofre = async (c: Cofre) => {
+    await bloquear(async () => {
+      pablo.mov = false;
+      if (estadoCaminoM.cofres.has(c.id)) {
+        await decir(null, 'cofre.vacio');
+        return;
+      }
+      estadoCaminoM.cofres.add(c.id);
+      sonido.efecto(EFECTO_APUNTADOR);
+      for (let i = 0; i < 10; i++) chispaNueva({ cx: c.x + (Math.random() - 0.5) * 12, cy: c.y - 12, vx: (Math.random() - 0.5) * 20, vy: -14 - Math.random() * 14, dura: 0.7, col: COLORES[i % COLORES.length], grande: i % 3 === 0 });
+      await espera(0.6);
+      if (c.monedas) {
+        grupo.monedas += c.monedas;
+        await decir(null, 'cofre.monedas', { n: c.monedas });
+      }
+      if (c.objeto) {
+        const n = c.cantidad ?? 1;
+        grupo.objetos[c.objeto] = (grupo.objetos[c.objeto] ?? 0) + n;
+        await decir(null, 'cofre.objeto', { n, objeto: texto(`objeto.${c.objeto}.nombre`) });
+      }
+    });
+  };
+
+  const recogerEscondite = async (e: Escondite) => {
+    await bloquear(async () => {
+      pablo.mov = false;
+      estadoCaminoM.escondites.add(e.id);
+      grupo.objetos[e.objeto] = (grupo.objetos[e.objeto] ?? 0) + 1;
+      sonido.efecto(EFECTO_APUNTADOR);
+      await decir(null, 'escondite.hallado', { objeto: texto(`objeto.${e.objeto}.nombre`) });
+    });
+  };
+
+  const alCamino = async () => {
+    await bloquear(async () => {
+      pablo.mov = false;
+      await fundirA(1, 0.45);
+      preparaCamino();
+      pasosEnc = PASOS_ENCUENTRO[1];
+      await fundirA(0, 0.5);
+      if (!caminoVisto) {
+        caminoVisto = true;
+        await decir('pablo', 'pablo.camino');
+      }
+    });
+  };
+
+  /** The opening in the east: out to the road once the three are in the party, otherwise Pablo turns back. */
+  const salidaDelPueblo = async () => {
+    if (unido('fran') && unido('guille') && unido('chuchi')) return alCamino();
+    await bloquear(async () => {
+      pablo.mov = false;
+      await decir('pablo', narradorHecho ? 'pablo.falta' : 'pablo.antes');
+      pablo.x = (mundo as Mundo).salidaCamino.x - 8;
+      pablo.dir = 'W';
+      alinearSeguidores();
+    });
+  };
+
+  const alPueblo = async () => {
+    await bloquear(async () => {
+      pablo.mov = false;
+      await fundirA(1, 0.45);
+      volverAlPueblo();
+      await fundirA(0, 0.5);
+    });
+  };
+
+  const alTeatro = async () => {
+    await bloquear(async () => {
+      pablo.mov = false;
+      pablo.dir = 'N';
+      emocionar(pablo, 'exclama', 1);
+      await espera(0.8);
+      await serie('pablo', 'pablo.teatro');
       await fundirA(1, 0.8);
       escena = 'fin';
       await fundirA(0, 0.8);
@@ -532,7 +1408,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
 
   const actualizarAldeano = (dt: number) => {
     if (escena !== 'pueblo') return;
-    const zona = mundo!.aldeano.zona;
+    const zona = (mundo as Mundo).aldeano.zona;
     ia.nota -= dt;
     if (ia.nota <= 0) {
       ia.nota = 9 + Math.random() * 6;
@@ -610,13 +1486,20 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
       const hecho = mover(pablo, vx * v, vy * v);
       pablo.mov = hecho > 0;
       pablo.t += dt * (mandos.b ? 1.55 : 1);
+      if (hecho > 0) {
+        anotarRastro();
+        if (escena === 'camino') pasosEnc -= hecho;
+      }
       // the IP comes back slowly while walking
       ipPaso += hecho;
       if (ipPaso >= PX_POR_IP) {
         ipPaso -= PX_POR_IP;
-        if (ip < IP_MAX) {
-          ip = Math.min(IP_MAX, ip + 1);
-          ipDestello = 0.8;
+        // the whole party recovers IP as they walk
+        for (const m of grupo.miembros) {
+          if (m.pv > 0 && m.ip < statsDe(grupo, m).ip) {
+            m.ip++;
+            if (m === mPablo()) ipDestello = 0.8;
+          }
         }
       }
     } else pablo.mov = false;
@@ -631,10 +1514,22 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
       for (const l of cuartoM.lecturas) if (solapa({ x: pablo.x - 2, y: pablo.y - 5, w: 4, h: 5 }, l.rect) && vy <= 0) return void leer(l);
       return;
     }
+    const apoyado = { x: pablo.x - 2, y: pablo.y - 5, w: 4, h: 5 };
+    if (escena === 'camino') {
+      const m = caminoM();
+      for (const c of m.cofres) if (solapa(sonda, { x: c.x - 11, y: c.y - 12, w: 22, h: 16 })) return void abrirCofre(c);
+      for (const e of m.escondites) if (!estadoCaminoM.escondites.has(e.id) && Math.hypot(pablo.x - e.x, pablo.y - e.y) < 22) return void recogerEscondite(e);
+      for (const l of m.lecturas) if (solapa(apoyado, l.rect) && vy <= 0) return void leer(l);
+      return;
+    }
     if (solapa(sonda, { x: aldeano.x - 9, y: aldeano.y - 9, w: 18, h: 14 })) return void hablarConAldeano();
+    for (const q of ['fran', 'guille'] as const) {
+      const a = amigosM[q];
+      if (npcVisible(q) && solapa(sonda, { x: a.x - 9, y: a.y - 9, w: 18, h: 14 })) return void hablarConAmigo(q);
+    }
     const c = rectCaja();
     if (solapa(sonda, { x: c.x - 2, y: c.y - 2, w: c.w + 4, h: c.h + 4 })) return void leer({ rect: c, clave: 'lectura.caja', quien: null });
-    for (const l of mundo!.lecturas) if (solapa({ x: pablo.x - 2, y: pablo.y - 5, w: 4, h: 5 }, l.rect) && vy <= 0) return void leer(l);
+    for (const l of mundo!.lecturas) if (solapa(apoyado, l.rect) && vy <= 0) return void leer(l);
   };
 
   const actualizar = (dtReal: number) => {
@@ -666,7 +1561,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     }
     // lightning: now and then, a flash over everything
     rayoProx -= dt;
-    if (rayoProx <= 0 && rayoT < 0 && escena !== 'titulo') {
+    if (rayoProx <= 0 && rayoT < 0 && (escena === 'pueblo' || escena === 'cuarto')) {
       rayoT = 0;
       rayoProx = 5 + Math.random() * 9;
     }
@@ -686,6 +1581,8 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     }
 
     dialogo.update(dt * VEL, mandos);
+    // a menu open: the buttons become events for its script
+    if (capas.length && !dialogo.activo) teclas.leer(dt, mandos);
     const libre = !dialogo.activo && fade.dur === 0 && !poder && guion === 0;
 
     if (libre) {
@@ -695,19 +1592,32 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
       actualizarJugador(dt);
       if (mandos.tomarA()) interactuar();
       else if (mandos.tomarR()) lanzarPoder();
-      else if (mandos.tomarStart()) {
-        /* START has nothing to open in this slice */
-      }
+      else if (mandos.tomarStart() && (escena === 'pueblo' || escena === 'camino')) void menuPrincipal();
       // places that react to Pablo
       if (escena === 'cuarto') {
         if (pablo.y >= ALTO_CUARTO - 6 && pablo.x > cuartoM.puerta.x && pablo.x < cuartoM.puerta.x + cuartoM.puerta.w && cama === 'vacia') void salirDelCuarto();
       } else if (escena === 'pueblo') {
-        const m = mundo!;
+        const m = mundo as Mundo;
+        const pr = rectPj(pablo);
+        const enPuerta = (r: Rect) => pablo.x > r.x && pablo.x < r.x + r.w && pablo.y <= r.y + 12 && pablo.y >= r.y;
         if (!caja.visto && Math.hypot(pablo.x - (caja.x + 8), pablo.y - (caja.y + 8)) < 44) void verLaCaja();
-        const pu = m.puerta;
-        if (pablo.x > pu.x && pablo.x < pu.x + pu.w && pablo.y <= pu.y + 12 && !caja.visto === false) void entrarEnCasa();
-        else if (pablo.x > pu.x && pablo.x < pu.x + pu.w && pablo.y <= pu.y + 12) void entrarEnCasa();
-        if (caja.movida && solapa(rectPj(pablo), m.plaza) && pablo.y < 13 * T) void alLlegarALaPlaza();
+        else if (enPuerta(m.puerta)) void entrarEnCasa();
+        else if (enPuerta(m.tienda)) void entrarSala('tienda');
+        else if (enPuerta(m.posada)) void entrarSala('posada');
+        else if (!narradorHecho && caja.movida && solapa(pr, m.plaza) && pablo.y < 13 * T) void alLlegarALaPlaza();
+        else if (solapa(pr, m.salidaCamino)) void salidaDelPueblo();
+      } else if (escena === 'camino') {
+        const m = mundo as MundoCamino;
+        const pr = rectPj(pablo);
+        const ch = m.chist;
+        if (!estadoCaminoM.chistVencido) {
+          const d = Math.hypot(pablo.x - ch.x, pablo.y - ch.y);
+          if (d > 80) estadoCaminoM.chistArmado = true;
+          else if (d < 40 && estadoCaminoM.chistArmado) void encontrarChist();
+        }
+        if (solapa(pr, m.puertaTeatro)) void alTeatro();
+        else if (solapa(pr, m.salidaOeste) && pablo.dir.includes('W')) void alPueblo();
+        else if (encuentrosOn && pasosEnc <= 0) void encuentroAleatorio();
       }
     } else {
       mandos.tomarA();
@@ -735,8 +1645,13 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     // the others
     if (escena === 'pueblo') actualizarAldeano(dt);
     if (escena === 'pueblo') tPueblo += dt;
+    actualizarSeguidores(dt);
+    actualizarMarchas(dt);
+    actualizarChuchi(dt);
+    if (narradorVisible && narradorA < 1) narradorA = Math.min(1, narradorA + dt / 0.8);
+    if (paginasT >= 0) paginasT += dt;
     // emotions
-    for (const p of [pablo, madre, aldeano]) {
+    for (const p of [pablo, madre, aldeano, narrador, ...Object.values(amigosM)]) {
       if (p.emocion) {
         p.emocion.t += dt;
         if (p.emocion.t >= p.emocion.dura) p.emocion = null;
@@ -758,16 +1673,13 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
         c.cy += c.vy * dt;
       }
     }
-    // the camera follows Pablo
-    if (escena === 'pueblo') {
-      cam.x = limitar(Math.round(pablo.x - PANTALLA_W / 2), 0, mundo!.w - PANTALLA_W);
-      cam.y = limitar(Math.round(pablo.y - 14 - PANTALLA_H / 2), 0, mundo!.h - PANTALLA_H);
-    }
+    // the camera follows Pablo (Chuchi, while he comes in)
+    moverCamara(dt);
     // R lights up when the power can be used now
-    consola.resaltarR(libre && escena === 'pueblo' && ip >= IP_COSTE && !caja.movida && !!buscarObjetivo());
+    consola.resaltarR(libre && escena === 'pueblo' && mPablo().ip >= IP_COSTE && !caja.movida && !!buscarObjetivo());
     // the shortcut for scripts of a hidden tab? nothing: the loop stops
     if (!libre && !poder) pablo.mov = false;
-    if (escena === 'pueblo' && tPueblo > 30) consola.saltar.hidden = false;
+    if ((escena === 'pueblo' || escena === 'camino') && t > 40) consola.saltar.hidden = false;
   };
 
   // ------------------------------------------------------------ drawing
@@ -779,11 +1691,19 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     g.drawImage(img, Math.round(p.x - dx - PIES.x), Math.round(p.y - dy - PIES.y));
   };
 
+  /** Is somebody drawn now (so his emotion is too)? */
+  const visible = (p: Pj): boolean => {
+    if (p === pablo) return true;
+    if (p === madre) return escena === 'cuarto';
+    if (p === aldeano) return escena === 'pueblo';
+    if (p === narrador) return escena === 'pueblo' && narradorVisible;
+    if (escena !== 'pueblo' && escena !== 'camino') return false;
+    return seguidores.includes(p) || (escena === 'pueblo' && (Object.keys(amigosM) as Array<'fran' | 'guille' | 'chuchi'>).some((q) => amigosM[q] === p && npcVisible(q)));
+  };
+
   const dibujarEmociones = (dx: number, dy: number) => {
-    for (const p of [pablo, madre, aldeano]) {
-      if (!p.emocion) continue;
-      if (p === madre && escena !== 'cuarto') continue;
-      if (p === aldeano && escena !== 'pueblo') continue;
+    for (const p of [pablo, madre, aldeano, narrador, ...Object.values(amigosM)]) {
+      if (!p.emocion || !visible(p)) continue;
       dibujarEmocion(g, p.emocion, Math.round(p.x - dx), Math.round(p.y - dy - 22));
     }
   };
@@ -834,13 +1754,11 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     if (p.t < 0.3 || p.t > 1.5) return;
     const c = rectCaja();
     // where the hand is: behind the crate (as seen from Pablo) and it goes with it
-    const k = p.t < 0.75 ? 0 : p.bloqueado ? Math.sin(Math.min(1, (p.t - 0.75) / 0.5) * Math.PI) * 0.18 : easeOut(Math.min(1, (p.t - 0.75) / 0.5));
-    const cx = c.x + 8 - (caja.moviendo ? 0 : 0);
+    const cx = c.x + 8;
     const cy = c.y + 8;
     // when the crate has already moved (caja.x updated), the hand stays on its trailing side
     const hx = cx - p.dx * 4;
     const hy = cy - p.dy * 4;
-    void k;
     let alfa = limitar((p.t - 0.3) / 0.35, 0, 1);
     if (p.t > 1.2) alfa = limitar((1.5 - p.t) / 0.3, 0, 1);
     const cuartos = p.dir === 'N' ? 0 : p.dir === 'E' ? 1 : p.dir === 'S' ? 2 : 3;
@@ -882,8 +1800,22 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     return c;
   };
 
-  const dibujarPueblo = () => {
+  /** The four pages of the play flying round the narrator. */
+  const dibujarPaginas = (dx: number, dy: number) => {
+    const img = pagina();
+    for (let i = 0; i < 4; i++) {
+      const a = paginasT * 2.6 + (i * Math.PI) / 2;
+      const r = 14 + Math.min(10, paginasT * 8);
+      const px = narrador.x + Math.cos(a) * r - dx;
+      const py = narrador.y - 16 + Math.sin(a) * r * 0.55 - dy;
+      g.drawImage(img, Math.round(px - 6), Math.round(py - 7), 12, 14);
+    }
+  };
+
+  /** The village and the road: ground, depth-sorted objects and people, fiesta lights or fireflies, rain or clear sky. */
+  const dibujarMundo = () => {
     const m = mundo!;
+    const enCamino = escena === 'camino';
     const dx = cam.x;
     const dy = cam.y;
     g.drawImage(m.suelo, dx, dy, PANTALLA_W, PANTALLA_H, 0, 0, PANTALLA_W, PANTALLA_H);
@@ -896,27 +1828,74 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
       g.drawImage(destello(ph < 0.08 ? 2 : ph < 0.17 ? 1 : 0), Math.round(bx - dx - 2), Math.round(by - dy - 2));
     }
     // the objects in order of depth, with the characters among them
-    const dinamicos: Array<{ base: number; f: () => void }> = [
-      { base: pablo.y, f: () => dibujarPj(pablo, dx, dy) },
-      { base: aldeano.y, f: () => dibujarPj(aldeano, dx, dy) },
-      { base: caja.y + T, f: () => g.drawImage(spriteCaja(), Math.round(caja.x - dx), Math.round(caja.y + T - 20 - dy)) },
-    ].sort((a, b) => a.base - b.base);
+    const dinamicos: Array<{ base: number; f: () => void }> = [{ base: pablo.y, f: () => dibujarPj(pablo, dx, dy) }];
+    for (const s of seguidores) dinamicos.push({ base: s.y, f: () => dibujarPj(s, dx, dy) });
+    if (!enCamino) {
+      dinamicos.push({ base: aldeano.y, f: () => dibujarPj(aldeano, dx, dy) });
+      dinamicos.push({ base: caja.y + T, f: () => g.drawImage(spriteCaja(), Math.round(caja.x - dx), Math.round(caja.y + T - 20 - dy)) });
+      for (const q of ['fran', 'guille', 'chuchi'] as const) {
+        if (!npcVisible(q)) continue;
+        const a = amigosM[q];
+        // they turn to look at Pablo when he is near (the one who walks keeps his heading)
+        if (!a.mov && Math.hypot(pablo.x - a.x, pablo.y - a.y) < 60) a.dir = dirDe(pablo.x - a.x, pablo.y - a.y, a.dir);
+        dinamicos.push({ base: a.y, f: () => dibujarPj(a, dx, dy) });
+      }
+      if (narradorVisible) {
+        dinamicos.push({
+          base: narrador.y,
+          f: () => {
+            g.globalAlpha = narradorA;
+            dibujarPj(narrador, dx, dy);
+            g.globalAlpha = 1;
+            if (paginasT >= 0) dibujarPaginas(dx, dy);
+          },
+        });
+      }
+    } else {
+      const mc = m as MundoCamino;
+      if (!estadoCaminoM.chistVencido) {
+        dinamicos.push({
+          base: mc.chist.y,
+          f: () => {
+            const salto = Math.abs(Math.sin(t * 3.2)) * 4;
+            g.drawImage(sombraPies(), Math.round(mc.chist.x - dx - 7), Math.round(mc.chist.y - dy - 4));
+            const img = spriteEnemigo('chist', Math.floor(t * 3));
+            g.drawImage(img, Math.round(mc.chist.x - dx - img.width / 2), Math.round(mc.chist.y - dy - img.height + 2 - salto));
+          },
+        });
+      }
+      for (const c of mc.cofres) {
+        const img = spriteCofre(estadoCaminoM.cofres.has(c.id));
+        dinamicos.push({ base: c.y, f: () => g.drawImage(img, Math.round(c.x - dx - img.width / 2), Math.round(c.y - dy - img.height)) });
+      }
+      for (const e of mc.escondites) {
+        if (estadoCaminoM.escondites.has(e.id)) continue;
+        const d = Math.hypot(pablo.x - e.x, pablo.y - e.y);
+        if (d > 90) continue;
+        dinamicos.push({
+          base: e.y,
+          f: () => {
+            g.drawImage(chupitoSuelo(), Math.round(e.x - dx - 3), Math.round(e.y - dy - 9));
+            const k = Math.floor(t * 4) % 3;
+            g.drawImage(destello(k as 0 | 1 | 2), Math.round(e.x - dx - 2 + (k === 1 ? 3 : 0)), Math.round(e.y - dy - 12));
+          },
+        });
+      }
+    }
+    dinamicos.sort((a, b) => a.base - b.base);
     let di = 0;
     for (const o of m.objetos) {
       const img = o.frames[o.vel ? Math.floor(t * o.vel) % o.frames.length : 0];
       const sx = o.x - dx;
       const sy = o.y - dy;
-      if (sx > PANTALLA_W || sy > PANTALLA_H || sx + img.width < 0 || sy + img.height < 0) {
-        // off screen, but the dynamic ones before its depth still have to be drawn in order
-        while (di < dinamicos.length && dinamicos[di].base <= o.base) dinamicos[di++].f();
-        continue;
-      }
+      // the dynamic ones before its depth still have to be drawn in order, even if it is off screen
       while (di < dinamicos.length && dinamicos[di].base <= o.base) dinamicos[di++].f();
+      if (sx > PANTALLA_W || sy > PANTALLA_H || sx + img.width < 0 || sy + img.height < 0) continue;
       g.drawImage(img, Math.round(sx), Math.round(sy));
     }
     while (di < dinamicos.length) dinamicos[di++].f();
     // the crate's hint: four little sparkles on its corners when the power would reach it
-    if (!poder && !caja.movida && !dialogo.activo && guion === 0 && ip >= IP_COSTE && buscarObjetivo()) {
+    if (!enCamino && !poder && !caja.movida && !dialogo.activo && guion === 0 && mPablo().ip >= IP_COSTE && buscarObjetivo()) {
       const f = Math.floor(t * 4) % 2;
       const cx = caja.x - dx;
       const cy = caja.y - dy - 4;
@@ -924,30 +1903,63 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     }
     if (poder) dibujarManoDeLuz(dx, dy);
     dibujarChispas(dx, dy);
-    // strings of fiesta lights
-    g.drawImage(m.cordones!, dx, dy, PANTALLA_W, PANTALLA_H, 0, 0, PANTALLA_W, PANTALLA_H);
-    const cols = ['#ff5a5a', '#ffd84a', '#5ae08a', '#5ab4ff', '#ff7ad0'];
-    const n = Math.floor(t * 2.2);
-    m.bombillas.forEach((b, i) => {
-      const bx = b.x - dx;
-      const by = b.y - dy;
-      if (bx < -3 || bx > PANTALLA_W + 3 || by < -3 || by > PANTALLA_H + 3) return;
-      const viva = (n + i) % 3 !== 0;
-      g.fillStyle = viva ? cols[b.color] : '#3a2c4a';
-      g.fillRect(Math.round(bx) - 1, Math.round(by), 3, 3);
-      if (viva) {
-        g.fillStyle = '#ffffff';
-        g.fillRect(Math.round(bx), Math.round(by), 1, 1);
-        g.fillStyle = 'rgba(255,230,160,0.16)';
-        g.fillRect(Math.round(bx) - 2, Math.round(by) - 1, 5, 5);
+    if (!enCamino) {
+      const mp = m as Mundo;
+      // strings of fiesta lights
+      g.drawImage(mp.cordones!, dx, dy, PANTALLA_W, PANTALLA_H, 0, 0, PANTALLA_W, PANTALLA_H);
+      const cols = ['#ff5a5a', '#ffd84a', '#5ae08a', '#5ab4ff', '#ff7ad0'];
+      const n = Math.floor(t * 2.2);
+      mp.bombillas.forEach((b, i) => {
+        const bx = b.x - dx;
+        const by = b.y - dy;
+        if (bx < -3 || bx > PANTALLA_W + 3 || by < -3 || by > PANTALLA_H + 3) return;
+        const viva = (n + i) % 3 !== 0;
+        g.fillStyle = viva ? cols[b.color] : '#3a2c4a';
+        g.fillRect(Math.round(bx) - 1, Math.round(by), 3, 3);
+        if (viva) {
+          g.fillStyle = '#ffffff';
+          g.fillRect(Math.round(bx), Math.round(by), 1, 1);
+          g.fillStyle = 'rgba(255,230,160,0.16)';
+          g.fillRect(Math.round(bx) - 2, Math.round(by) - 1, 5, 5);
+        }
+      });
+    } else {
+      // fireflies drifting over the fields
+      for (const [fx, fy, fase] of (m as MundoCamino).luciernagas) {
+        const x = fx + Math.sin(t * 0.7 + fase) * 7 - dx;
+        const y = fy + Math.cos(t * 0.9 + fase * 2) * 5 - dy;
+        if (x < -3 || x > PANTALLA_W + 3 || y < -3 || y > PANTALLA_H + 3) continue;
+        const v = (Math.sin(t * 2.4 + fase * 3) + 1) / 2;
+        if (v < 0.25) continue;
+        g.fillStyle = `rgba(255,248,150,${0.18 * v})`;
+        g.fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3);
+        g.fillStyle = `rgba(255,255,200,${0.4 + 0.6 * v})`;
+        g.fillRect(Math.round(x), Math.round(y), 1, 1);
       }
-    });
+    }
     dibujarEmociones(dx, dy);
-    dibujarLluvia();
+    if (!enCamino) dibujarLluvia();
     rayoEnPantalla();
     // the IP counter, top left
-    if (!dialogo.activo) g.drawImage(contadorIP(ip, IP_MAX, ipDestello > 0, texto('hud.ip')), 4, 4);
+    if (!dialogo.activo && !capas.length && guion === 0) g.drawImage(contadorIP(mPablo().ip, ipMax(), ipDestello > 0, texto('hud.ip')), 4, 4);
     if (poder && poder.t < 1.3) cartelito(g, texto('poder.nombre'), PANTALLA_W / 2, 6);
+  };
+
+  /** Inside the peña or the inn: the still room, the keeper behind his counter, Pablo and his friends at the door. */
+  const dibujarInterior = () => {
+    g.drawImage(fondoSala(sala), 0, 0);
+    dibujarPj(sala === 'tienda' ? tendera : posadero, 0, 0);
+    g.drawImage(frenteSala(sala), 0, 0);
+    const fila = [pablo, ...seguidores].sort((a, b) => a.y - b.y);
+    for (const p of fila) dibujarPj(p, 0, 0);
+  };
+
+  /** The menus' windows over the world. */
+  const dibujarCapas = () => {
+    if (cartasUI.ver) dibujarCartas(g, grupo, cartasUI.sel, cartasUI.mano, t);
+    if (monedasUI) dibujarMonedas(g, grupo.monedas, monedasUI.x, monedasUI.y);
+    for (const c of capas) c(g);
+    if (aviso) dibujarCartel(g, aviso, Math.round((PANTALLA_W - anchoTexto(aviso) - 16) / 2), 6);
   };
 
   const dibujarCuarto = () => {
@@ -1027,13 +2039,15 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     }
     if (escena === 'titulo') dibujarTitulo();
     else if (escena === 'cuarto') dibujarCuarto();
-    else if (escena === 'pueblo') dibujarPueblo();
+    else if (escena === 'pueblo' || escena === 'camino') dibujarMundo();
+    else if (escena === 'interior') dibujarInterior();
     else {
       g.fillStyle = '#000';
       g.fillRect(0, 0, PANTALLA_W, PANTALLA_H);
       const s = texto('fin.continuara');
       escribir(g, s, Math.round((PANTALLA_W - anchoTexto(s)) / 2), 74, '#ffe27a', '#3a1a10');
     }
+    dibujarCapas();
     dialogo.dibujar(g);
     if (fade.a > 0.001) {
       g.fillStyle = `rgba(0,0,0,${fade.a})`;
@@ -1051,11 +2065,11 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     corte.abort();
   };
 
-  (window as unknown as { __sol?: () => EstadoSol }).__sol = () => ({
+  const gancho = (): EstadoSol => ({
     fotogramas,
     escena,
     modo: dialogo.preguntando ? 'pregunta' : dialogo.activo ? 'dialogo' : fade.dur > 0 ? 'fundido' : poder ? 'poder' : guion > 0 ? 'guion' : 'libre',
-    pablo: { x: pablo.x, y: pablo.y, dir: pablo.dir, ip },
+    pablo: { x: pablo.x, y: pablo.y, dir: pablo.dir, ip: mPablo().ip },
     caja: { x: caja.x, y: caja.y, movida: caja.movida },
     aldeano: { x: aldeano.x, y: aldeano.y },
     mando: mandos,
@@ -1072,7 +2086,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
       pablo.y = y;
     },
     ip: (n) => {
-      ip = n;
+      mPablo().ip = n;
     },
     combate: combate?.estado() ?? null,
     elegir: (orden, objetivo) => combate?.elegir(orden, objetivo) ?? false,
@@ -1080,7 +2094,49 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     perder: () => combate?.perder(),
     luchar: (enemigos, fondo) => luchar(enemigos, fondo),
     grupo,
+    irAlCamino: async () => {
+      preparaPueblo();
+      yaSaludoPablo = true;
+      cama = 'vacia';
+      narradorHecho = true;
+      caja.movida = true;
+      caja.visto = true;
+      for (const q of ['fran', 'guille', 'chuchi'] as const) incorporar(q);
+      fade = { a: 0, desde: 0, hasta: 0, t: 0, dur: 0, res: null };
+      preparaCamino();
+      pasosEnc = PASOS_ENCUENTRO[1];
+      caminoVisto = true;
+    },
+    unirTodos: () => {
+      narradorHecho = true;
+      for (const q of ['fran', 'guille', 'chuchi'] as const) incorporar(q);
+      alinearSeguidores();
+    },
+    unirA: (q) => {
+      if (q === 'pablo') return;
+      incorporar(q);
+      alinearSeguidores();
+    },
+    narrador: () => escenaNarrador(),
+    abrirMenu: () => menuPrincipal(),
+    entrar: (s) => entrarSala(s),
+    encuentro: (enemigos) => encuentroAleatorio(enemigos),
+    encuentros: (si) => {
+      encuentrosOn = si;
+    },
+    pasos: () => pasosEnc,
+    estadoCamino: () => ({ chistVencido: estadoCaminoM.chistVencido, cofres: [...estadoCaminoM.cofres], escondites: [...estadoCaminoM.escondites], seguidores: seguidores.map((x) => x.q) }),
+    lugaresCamino: () => {
+      const m = caminoM();
+      return { chist: m.chist, cofres: m.cofres.map((c) => ({ id: c.id, x: c.x, y: c.y })), escondites: m.escondites.map((e) => ({ id: e.id, x: e.x, y: e.y })), puertaTeatro: m.puertaTeatro };
+    },
+    estadoPueblo: () => ({
+      narradorHecho,
+      unidos: grupo.miembros.filter((m) => m.q !== 'pablo').map((m) => m.q),
+      amigos: Object.fromEntries((['fran', 'guille', 'chuchi'] as const).map((q) => [q, { x: amigosM[q].x, y: amigosM[q].y, visible: npcVisible(q) }])),
+    }),
   });
+  (window as unknown as { __sol?: () => EstadoSol }).__sol = gancho;
 
   const bucle = () =>
     new Promise<void>((fin) => {
@@ -1109,6 +2165,10 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
   // `?sol&combate`: straight into a test fight (the four friends at level 2 against a mixed group)
   const pruebaCombate = new URLSearchParams(location.search).has('combate');
   if (pruebaCombate) {
+    mPablo().nivel = 2;
+    mPablo().exp = expTotal(2);
+    for (const q of ['fran', 'guille', 'chuchi'] as const) incorporar(q);
+    darApuntador(grupo, 'chist', 'pablo');
     for (const m of grupo.miembros) {
       m.nivel = 2;
       m.exp = expTotal(2);
@@ -1116,6 +2176,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
       m.pv = st.pv;
       m.ip = st.ip;
     }
+    narradorHecho = true;
     preparaPueblo();
     ponerEnPuerta();
     cama = 'vacia';
@@ -1130,7 +2191,8 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
   return (async () => {
     if (!pruebaCombate) void fundirA(0, 0.8);
     await bucle();
-    delete (window as unknown as { __sol?: unknown }).__sol;
+    // (a game started right after this one has already put its own hook there)
+    if ((window as unknown as { __sol?: unknown }).__sol === gancho) delete (window as unknown as { __sol?: unknown }).__sol;
     sonido.parar();
     consola.destruir();
     return motivo;
