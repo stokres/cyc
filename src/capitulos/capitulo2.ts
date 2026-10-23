@@ -232,22 +232,15 @@ async function ojosDeFran(g: Aventura) {
   await g.hablar('c2.fran.ojos');
   g.hud.cerrarDialogo();
   g.hud.setVisible(false);
-  // The zoom is a CSS scale of the whole game layer: free, and the scene stays as it is.
-  const capa = g.root;
-  const k = F ? g.motor.f(F.y) : 1;
-  const ox = F ? (g.motor.screenX(F.X, k) / g.motor.vw) * 100 : 50;
-  const oy = F ? (((F.y - 230 * g.motor.escala(k)) / 1080) * 100) : 45;
-  capa.style.transformOrigin = `${ox}% ${oy}%`;
-  capa.style.transition = 'transform 1.8s cubic-bezier(.5,0,.2,1)';
-  requestAnimationFrame(() => (capa.style.transform = 'scale(2.4)'));
+  // A slow push onto his face with the camera tools (src/juego/camara.ts): free, and the scene stays as it is.
+  void g.plano.zoom('fran', 2.4, 1800);
   await g.esperar(900);
   if (F) F.eyesClosed = true;
   await g.esperar(1000);
   g.pausado = true;
   const r = await jugarPangCapitulo(g.root.parentElement!, { rapido: g.rapido, sonido: g.sound }).finally(() => (g.pausado = false));
   if (r === 'hecho') g.minijuegoSuperado('pang');
-  capa.style.transition = 'none';
-  capa.style.transform = '';
+  await g.plano.reset(0);
   if (F) F.eyesClosed = false;
   g.poner('c2.pang');
   g.hud.setVisible(true);

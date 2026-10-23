@@ -6,6 +6,7 @@
 //   FRAN (contento): texto        ...with a mood
 //   PABLO [20:12]: texto          a chat message with its time
 //   > texto                       narrator
+//   @zoom pablo 2.4               a camera mark between lines (chapter 2: src/juego/camara.ts)
 //   ---                           next variant (each use plays the next one)
 //   clave = texto                 a single string (names, objectives, hints, menus)
 //   {hora}                        placeholders filled in by the game
@@ -19,6 +20,8 @@ export interface Linea {
   animo?: string;
   hora?: string;
   texto: string;
+  /** Not a line of talk but a camera mark (`@zoom pablo 2.4`, see src/juego/camara.ts): the words after the «@». */
+  camara?: string[];
 }
 
 const QUIEN: Record<string, Quien> = { FRAN: 'fran', PABLO: 'pablo', CHUCHI: 'chuchi', GUILLE: 'guille', ACEITUNA: 'aceituna', SOMBRA: 'sombra', VERO: 'vero', NARRADOR: null };
@@ -74,6 +77,10 @@ export function cargarTextos(...fuentes: string[]) {
         return;
       }
       const ultima = variantes[variantes.length - 1];
+      if (linea.startsWith('@')) {
+        ultima.push({ quien: null, texto: '', camara: linea.slice(1).trim().split(/\s+/) });
+        return;
+      }
       if (linea.startsWith('>')) {
         ultima.push({ quien: null, texto: linea.slice(1).trim() });
         return;

@@ -12,6 +12,7 @@ import { NPCS, PROTAS, REPARTO, esNpc, type NpcId, type PjId } from './reparto';
 import type { Estado } from './estado';
 import { OBJETOS } from '../arte/objetos.mjs';
 import { mostrarTutorial } from '../ui/tutorial';
+import { Camara } from './camara';
 import type { Ambiente } from '../core/audio';
 
 export interface ZonaLogica {
@@ -74,6 +75,8 @@ export class Aventura {
   readonly motor: Motor;
   readonly hud: Hud;
   readonly sound = new Sound();
+  /** The wild camera (src/juego/camara.ts): Dutch angles, zooms, whip pans and shakes over the baked scenery. */
+  readonly plano: Camara;
   readonly velo: HTMLDivElement;
   escena = '';
   S!: Escena;
@@ -113,6 +116,7 @@ export class Aventura {
   constructor(readonly root: HTMLElement, readonly cap: Capitulo, public estado: Estado) {
     reparar(cap, estado);
     this.motor = new Motor(root);
+    this.plano = new Camara(this);
     // Characters become bitmaps at the size they are drawn on this screen (the nearest one, ~k 1.3).
     setEscalaSprites((Math.min(window.devicePixelRatio || 1, 3) * this.motor.cssH * this.motor.escala(1.3)) / H);
     restaurarUsos(estado.usos);
@@ -428,6 +432,7 @@ export class Aventura {
       await fn();
     } catch (e) {
       console.error(e);
+      this.plano.reset(0);
       // Never leave the player behind the loading curtain: back to the scene there was.
       if (this.S && this.velo.classList.contains('on')) void this.velar(false);
     } finally {
@@ -480,6 +485,8 @@ export class Aventura {
   }
 
   async linea(l: Linea) {
+    // A camera mark of the texts («@zoom pablo 2.4»), not a line of talk.
+    if (l.camara) return this.plano.marca(l.camara);
     await this.decir(l.quien, l.texto, l.animo, l.hora);
   }
 

@@ -46,6 +46,23 @@ body {
   background: var(--ink);
 }
 
+.escenario {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+}
+
+.barrido {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.14s;
+  background:
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0) 0 9px, rgba(255, 255, 255, 0.2) 9px 11px, rgba(255, 255, 255, 0) 11px 23px),
+    linear-gradient(90deg, rgba(10, 12, 24, 0.8), rgba(10, 12, 24, 0.4) 50%, rgba(10, 12, 24, 0.8));
+}
+
 .capa {
   position: absolute;
   inset: 0;

@@ -45,6 +45,11 @@ export class Motor {
   private vfctx: CanvasRenderingContext2D;
   private glB: RenderGL | null = null;
   private glF: RenderGL | null = null;
+  /**
+   * All the scenery layers together (canvases and characters), one element: what the camera tools
+   * (src/juego/camara.ts) tilt, zoom and shake with a CSS transform, without touching the interface.
+   */
+  readonly escenario: HTMLDivElement;
   readonly svg: SVGSVGElement;
   readonly defs: SVGDefsElement;
   readonly world: SVGGElement;
@@ -105,7 +110,10 @@ export class Motor {
     this.defs = document.createElementNS(NS, 'defs') as SVGDefsElement;
     this.world = document.createElementNS(NS, 'g') as SVGGElement;
     this.svg.append(this.defs, this.world);
-    root.prepend(this.back2d, this.backGL, this.vivoB, this.svg, this.front2d, this.frontGL, this.vivoF);
+    this.escenario = document.createElement('div');
+    this.escenario.className = 'escenario';
+    this.escenario.append(this.back2d, this.backGL, this.vivoB, this.svg, this.front2d, this.frontGL, this.vivoF);
+    root.prepend(this.escenario);
     this.bctx = this.back2d.getContext('2d', { alpha: false })!;
     this.fctx = this.front2d.getContext('2d')!;
     this.vbctx = this.vivoB.getContext('2d')!;
