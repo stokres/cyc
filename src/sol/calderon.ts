@@ -10,7 +10,7 @@
 //  after                              the stage again, a rain of pages and roses, Calderón fading out above
 //
 // Everything is a cached picture (calderonArte.ts); per frame only drawImage, a few rectangles and a bounded bag of
-// particles. If the music reports its position, the sequence follows it; if there is no music, its own clock.
+// particles. The music is played as an effect from its first sample at the same moment, so the sequence runs on its own clock.
 import { texto } from '../juego/textos';
 import { anillo, easeIn, easeOut, limitar, persona, Particulas, rosa } from './efectos';
 import type { Donde, Escena } from './efectosPoderes';

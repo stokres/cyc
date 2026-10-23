@@ -1682,7 +1682,7 @@ export class Combate implements Escena {
     for (const m of this.g.miembros) subidas.push(...darExp(this.g, m, exp));
     for (const h of this.heroes) if (!subidas.some((s) => s.q === h.m.q)) h.previo = null;
     await dlg('combate.exp', { n: exp });
-    await dlg('combate.monedas', { n: monedas });
+    if (monedas > 0) await dlg('combate.monedas', { n: monedas });
     for (const b of botin) await dlg('combate.hallado', { objeto: texto(`objeto.${b}.nombre`) });
     for (const s of subidas) {
       this.sonido.musica(PISTA_NIVEL);

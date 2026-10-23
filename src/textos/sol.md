@@ -19,7 +19,7 @@ El mundo usa: charla.<amigo>.N (cada amigo se une al grupo), une.<amigo>, narrad
 (el menú START), chist.*, cofre.*, escondite.*, madre.derrota.* y derrota.*; los letreros son lectura.* y letrero.*.
 El combate (src/sol/combate.ts) usa: combate.* (menús, la línea de arriba y el final), orden.* (los seis iconos),
 poder.<id>.nombre, apuntador.*, invocacion.*, objeto.*, enemigo.<id>.nombre y enemigo.<id>.<ataque>, etiqueta.*
-y ovacion.grito.*. Los huecos entre llaves ({quien}, {n}...) los rellena el juego. La línea de arriba admite unas
+y ovacion.grito.*, jefe.*, calderon.*, efecto.* y creditos.* / final.* (el final, src/sol/final.ts). Los huecos entre llaves ({quien}, {n}...) los rellena el juego. La línea de arriba admite unas
 36 letras: mejor corta.
 Los textos son provisionales: los revisará Jesús junto con el resto.
 -->
