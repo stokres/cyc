@@ -25,12 +25,18 @@
 //   @foco tragaperras         the real camera travels to a place or a person (the long bar is longer than the
 //                             screen) and the talk waits until it lands; @foco libre lets it follow whoever plays
 //   @espera 400               waits (the other line that makes the talk wait)
+//   @manga pablo:ojos:suplica vero:boca chuchi:cara:sorpresa !gogogo
+//                             the manga shot (src/juego/manga.ts): 1 to 3 tilted black-and-white panels that cut in
+//                             while the talk goes on in its box. `personaje:tipo:expresion` (tipo: cara, ojos, boca,
+//                             mano; the expression is optional; sombra is Pablo's shadow), `!gogogo` `!don` `!ha`
+//                             `!zas` are the drawn onomatopoeias, `solo` takes it away after the next line.
+//                             `@manga fin`, another @manga or any mark that changes the framing cuts back.
 //
 // Targets: fran, pablo, chuchi, guille, vero (their faces), `centro`, or the id of a zone of the
-// scene (tragaperras, tele, barra, porra...). The `// ANIME:` hook in capitulo2.ts is where the
-// close-up in another drawing style will plug in later: a `@anime` line would go here.
+// scene (tragaperras, tele, barra, porra...).
 import type { Aventura } from './aventura';
 import { H } from '../motor/motor';
+import { PlanoManga } from './manga';
 
 /** Where the camera is looking: everything but `x`/`y` normalised to the screen (0 to 1). */
 interface Encuadre {
@@ -68,12 +74,15 @@ export class Camara {
   private raf = 0;
   private ultimo = 0;
   private readonly rayas: HTMLDivElement;
+  /** The manga shot (panels in black and white over the scene). */
+  readonly manga: PlanoManga;
   private escrito = '';
 
   constructor(private readonly g: Aventura) {
     this.rayas = document.createElement('div');
     this.rayas.className = 'barrido';
     g.root.insertBefore(this.rayas, g.motor.escenario.nextSibling);
+    this.manga = new PlanoManga(g, this.rayas.nextSibling);
   }
 
   /** The camera is doing something other than a plain shot. */
@@ -205,6 +214,7 @@ export class Camara {
 
   /** Back to a plain shot. */
   reset(ms = 0) {
+    this.manga.ocultar();
     this.temblor = null;
     this.rayas.style.opacity = '0';
     return this.ir({ ...PLANO }, ms, suave);
@@ -221,6 +231,9 @@ export class Camara {
    */
   async marca(p: string[]) {
     const [que, ...a] = p;
+    // Every mark that changes the framing cuts back from the manga shot (the waits and the shake do not).
+    if (que === 'manga') return this.manga.mostrar(a);
+    if (que !== 'espera' && que !== 'temblor') this.manga.ocultar();
     const n = (i: number, d: number) => (a[i] !== undefined && !Number.isNaN(Number(a[i])) ? Number(a[i]) : d);
     switch (que) {
       case 'holandes':

@@ -488,6 +488,7 @@ export class Aventura {
     // A camera mark of the texts («@zoom pablo 2.4»), not a line of talk.
     if (l.camara) return this.plano.marca(l.camara);
     await this.decir(l.quien, l.texto, l.animo, l.hora);
+    this.plano.manga.lineaDicha();
   }
 
   hayDialogo(clave: string) {

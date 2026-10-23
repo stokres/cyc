@@ -505,3 +505,6 @@ GUILLE (contento): ¡Qué bien! Yo he soñado que pesaba una nube y daba tres ki
 FRAN (sorprendido): Un momento. Si Pablo ha vuelto, ¿por qué seguimos del revés?
 @contrapicado 10 700
 VERO: Porque la noche no ha terminado, mi amor. Ni de lejos.
+
+// ---------------------------------------------------------------- manga (onomatopeyas en castellano; las japonesas son dibujo)
+manga.ono.zas = ¡ZAS!
