@@ -36,6 +36,21 @@ export const EFECTO_CAE = 'solCae' as unknown as Pista;
 /** Running away (musica.ts: `solHuir`). */
 export const EFECTO_HUIR = 'solHuir' as unknown as Pista;
 
+/** The Teatro's theme (musica.ts: `solTeatro`). */
+export const PISTA_TEATRO = 'solTeatro' as unknown as Pista;
+/** A puzzle solved (musica.ts: `solPuzle`). */
+export const EFECTO_PUZLE = 'solPuzle' as unknown as Pista;
+/** Ice forming (musica.ts: `solHielo`). */
+export const EFECTO_HIELO = 'solHielo' as unknown as Pista;
+/** A gust of cierzo (musica.ts: `solViento`). */
+export const EFECTO_VIENTO = 'solViento' as unknown as Pista;
+/** A cardboard rock lifted and set down (musica.ts: `solRoca`). */
+export const EFECTO_ROCA = 'solRoca' as unknown as Pista;
+/** Reading the chat: a phone's pop (musica.ts: `solChat`). */
+export const EFECTO_CHAT = 'solChat' as unknown as Pista;
+/** The curtain opening (musica.ts: `solTelon`). */
+export const EFECTO_TELON = 'solTelon' as unknown as Pista;
+
 const hay = (id: Pista) => id in MUSICA;
 
 /** What the game asks of the sound, every call guarded: no sound, or no such id, does nothing. */
@@ -47,6 +62,7 @@ export class SonidoSol {
     const ids = [
       EFECTO_TEXTO, EFECTO_PODER, EFECTO_MENU, EFECTO_PUERTA,
       EFECTO_ENCUENTRO, EFECTO_GOLPE, EFECTO_CURA, EFECTO_APUNTADOR, EFECTO_CAE, EFECTO_HUIR,
+      EFECTO_PUZLE, EFECTO_HIELO, EFECTO_VIENTO, EFECTO_ROCA, EFECTO_CHAT, EFECTO_TELON,
     ].filter(hay);
     if (ids.length) void s?.prepararEfectos?.(...ids)?.catch?.(() => {});
   }

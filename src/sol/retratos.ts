@@ -253,16 +253,20 @@ function madre(e: Estado, v: PaletaMadre = MADRE_NORMAL) {
 
 // ---------------------------------------------------------------- the villager
 
-interface PaletaAldeano { chaleco: string; chalecoO: string; panuelo: string; panueloO: string; sombrero: string; sombreroO: string; cinta: string; cintaO: string }
+interface PaletaAldeano { piel?: string; sombra?: string; chaleco: string; chalecoO: string; panuelo: string; panueloO: string; sombrero: string; sombreroO: string; cinta: string; cintaO: string }
 const ALDEANO_NORMAL: PaletaAldeano = { chaleco: '#b5472f', chalecoO: '#8a3224', panuelo: '#c64b3a', panueloO: '#8a2a20', sombrero: '#ecc96c', sombreroO: '#bd9540', cinta: '#c64b3a', cintaO: '#8a2a20' };
 /** The innkeeper: a dark blue cap, a green waistcoat. */
 const POSADERO: PaletaAldeano = { chaleco: '#3f8a5a', chalecoO: '#2a6440', panuelo: '#e6c24a', panueloO: '#b08a2a', sombrero: '#4a5a8a', sombreroO: '#33406a', cinta: '#e6c24a', cintaO: '#b08a2a' };
 
+/** The Teatro's ghosts: the stagehand (pale blue) and the usher (pale violet). */
+const TRAMOYISTA: PaletaAldeano = { piel: '#c4d4ec', sombra: '#98aacc', chaleco: '#5e6e9c', chalecoO: '#414e78', panuelo: '#a8b6d8', panueloO: '#7a88b0', sombrero: '#4a5a80', sombreroO: '#303c5c', cinta: '#a8b6d8', cintaO: '#7a88b0' };
+const ACOMODADOR: PaletaAldeano = { piel: '#d6cae8', sombra: '#aa9ccc', chaleco: '#a8324e', chalecoO: '#74223a', panuelo: '#e6c24a', panueloO: '#b08a2a', sombrero: '#9a2e4c', sombreroO: '#6e1e36', cinta: '#e6c24a', cintaO: '#b08a2a' };
+
 function aldeano(e: Estado, v: PaletaAldeano = ALDEANO_NORMAL) {
   const c = lienzo(32, 32);
   const x = ctx(c);
-  const piel = '#dc9d6c';
-  const sombra = '#b97b4e';
+  const piel = v.piel ?? '#dc9d6c';
+  const sombra = v.sombra ?? '#b97b4e';
   const blanco = '#f4f4f6';
   // waistcoat, shirt and a red neckerchief
   elip(x, v.chalecoO, 16, 36, 15, 11);
@@ -527,6 +531,8 @@ const FUNCS: Record<Quien, (e: Estado) => HTMLCanvasElement> = {
   narrador: (e) => pablo(e, PABLO_SOMBRA),
   tendera: (e) => madre(e, TENDERA),
   posadero: (e) => aldeano(e, POSADERO),
+  tramoyista: (e) => aldeano(e, TRAMOYISTA),
+  acomodador: (e) => aldeano(e, ACOMODADOR),
 };
 
 /** One portrait: eyes open or shut, mouth open or shut, and a smile if `contento`. */
