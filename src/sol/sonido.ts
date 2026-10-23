@@ -36,6 +36,29 @@ export const EFECTO_CAE = 'solCae' as unknown as Pista;
 /** Running away (musica.ts: `solHuir`). */
 export const EFECTO_HUIR = 'solHuir' as unknown as Pista;
 
+/** The boss fight (musica.ts: `solJefe`). */
+export const PISTA_JEFE = 'solJefe' as unknown as Pista;
+/** Calderón's summon, played once from the first beat (musica.ts: `solCalderon`). */
+export const PISTA_CALDERON = 'solCalderon' as unknown as Pista;
+/** The ending and the credits (musica.ts: `solFinal`). */
+export const PISTA_FINAL = 'solFinal' as unknown as Pista;
+/** The boss changes shape (musica.ts: `solTransforma`). */
+export const EFECTO_TRANSFORMA = 'solTransforma' as unknown as Pista;
+/** A curtain pulled (musica.ts: `solTelon`). */
+export const EFECTO_TELON = 'solTelon' as unknown as Pista;
+/** A gust of wind (musica.ts: `solViento`). */
+export const EFECTO_VIENTO = 'solViento' as unknown as Pista;
+/** Ice cracking, used for water (musica.ts: `solHielo`). */
+export const EFECTO_HIELO = 'solHielo' as unknown as Pista;
+
+/**
+ * The second of `solCalderon` at which its closing blow lands (the music agent tells it; change it here only).
+ * The whole summon is timed to it: the sky opens, Calderón comes down, writes, and drops the quill on this beat.
+ */
+export const CALDERON_GOLPE = 17;
+/** Seconds the summon goes on after the blow (the last notes of the track). */
+export const CALDERON_COLA = 5;
+
 const hay = (id: Pista) => id in MUSICA;
 
 /** What the game asks of the sound, every call guarded: no sound, or no such id, does nothing. */
@@ -47,8 +70,14 @@ export class SonidoSol {
     const ids = [
       EFECTO_TEXTO, EFECTO_PODER, EFECTO_MENU, EFECTO_PUERTA,
       EFECTO_ENCUENTRO, EFECTO_GOLPE, EFECTO_CURA, EFECTO_APUNTADOR, EFECTO_CAE, EFECTO_HUIR,
+      EFECTO_TRANSFORMA, EFECTO_TELON, EFECTO_VIENTO, EFECTO_HIELO,
     ].filter(hay);
     if (ids.length) void s?.prepararEfectos?.(...ids)?.catch?.(() => {});
+  }
+
+  /** Is this track or effect registered (the music is made in parallel)? */
+  existe(id: Pista) {
+    return hay(id);
   }
 
   efecto(id: Pista, volumen = 1) {

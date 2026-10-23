@@ -1,12 +1,14 @@
 // The enemies of «Alacant Sun»: the night of the fiestas and the theatre, and the narrator who has stolen
-// the end of the play. Five kinds, each with a second colour variant (a harder one with another name, as the
-// original does), drawn once in pixel art into cached canvases (24 to 44 px) with a dark outline of their
-// own colour. Data (stats, attacks, rewards) and drawing live here; the names and the lines of their
+// the end of the play. Five kinds on the road and four in the Teatro (enemigosTeatro.ts), each with a second
+// colour variant (a harder one with another name, as the original does), the prompters, and the boss (jefeArte.ts),
+// drawn once in pixel art into cached canvases (24 to 64 px) with a dark outline of their own colour. Data (stats, attacks, rewards) and drawing live here; the names and the lines of their
 // attacks are in src/textos/sol.md (`enemigo.<id>.nombre`, `enemigo.<id>.<ataque>`).
 import { type Elemento } from './grupo';
 import { contorno } from './contorno';
 import { apuntador } from './iconos';
 import { ctx, elipse, lienzo, rect, una } from './pixel';
+import { butaca, foco, PALETAS_TEATRO, programa, tramoyista } from './enemigosTeatro';
+import { narrador, PALETAS_NARRADOR } from './jefeArte';
 
 /** How an enemy attack works. */
 export type TipoAtaque =
@@ -30,9 +32,11 @@ export interface AtaqueEnemigo {
   el?: Elemento | null;
   /** Only when the enemy has half its health or less. */
   herido?: boolean;
+  /** Its own animation (efectosTeatro.ts / efectosJefe.ts); without it the attack uses the plain one of its type. */
+  fx?: string;
 }
 
-export type Pintor = 'petardo' | 'movil' | 'spoiler' | 'critico' | 'mosquito' | 'apuntador';
+export type Pintor = 'petardo' | 'movil' | 'spoiler' | 'critico' | 'mosquito' | 'apuntador' | 'foco' | 'butaca' | 'tramoyista' | 'programa' | 'narrador';
 
 export interface DefEnemigo {
   id: string;
@@ -52,6 +56,10 @@ export interface DefEnemigo {
   flota: number;
   /** Frames of its idle animation. */
   frames: number;
+  /** The boss: it takes the middle of the field, has phases and ends in the script (combate.ts, jefe). */
+  jefe?: boolean;
+  /** Times it acts in a round (1 by default). */
+  veces?: number;
 }
 
 export const ENEMIGOS: Record<string, DefEnemigo> = {
@@ -138,35 +146,125 @@ export const ENEMIGOS: Record<string, DefEnemigo> = {
       { id: 'notaalpie', tipo: 'todos', pot: 0.55, peso: 2, el: 'tierra' },
     ],
   },
-  // The three prompters hidden in the Teatro (same rule: beaten, they join). PROVISIONAL numbers and attacks.
+  // The three prompters hidden in the Teatro (same rule as Chist: beaten, they join). Each one has its own element,
+  // its own three attacks and its own way of being let go (poderes.ts).
   ejem: {
-    id: 'ejem', pintor: 'apuntador', paleta: 1, el: 'fuego', pv: 110, atk: 18, def: 8, agi: 12, exp: 60, monedas: 0, flota: 0, frames: 2,
+    id: 'ejem', pintor: 'apuntador', paleta: 1, el: 'fuego', pv: 125, atk: 21, def: 9, agi: 12, exp: 70, monedas: 0, flota: 0, frames: 2,
     ataques: [
-      { id: 'soplo', tipo: 'golpe', pot: 1, peso: 3, el: 'fuego' },
-      { id: 'chistido', tipo: 'chupa', pot: 0.8, peso: 2 },
-      { id: 'notaalpie', tipo: 'todos', pot: 0.55, peso: 2, el: 'fuego' },
+      { id: 'carraspeo', tipo: 'golpe', pot: 1.05, peso: 3, el: 'fuego', fx: 'brasa' },
+      { id: 'tos', tipo: 'todos', pot: 0.6, peso: 2, el: 'fuego', fx: 'llamarada' },
+      { id: 'entrada', tipo: 'chupa', pot: 0.8, peso: 2, herido: true },
     ],
   },
   psst: {
-    id: 'psst', pintor: 'apuntador', paleta: 2, el: 'agua', pv: 110, atk: 18, def: 8, agi: 12, exp: 60, monedas: 0, flota: 0, frames: 2,
+    id: 'psst', pintor: 'apuntador', paleta: 2, el: 'agua', pv: 135, atk: 19, def: 10, agi: 11, exp: 70, monedas: 0, flota: 0, frames: 2,
     ataques: [
-      { id: 'soplo', tipo: 'golpe', pot: 1, peso: 3, el: 'agua' },
-      { id: 'chistido', tipo: 'chupa', pot: 0.8, peso: 2 },
-      { id: 'notaalpie', tipo: 'todos', pot: 0.55, peso: 2, el: 'agua' },
+      { id: 'salivazo', tipo: 'golpe', pot: 1, peso: 3, el: 'agua', fx: 'chorro' },
+      { id: 'aguacero', tipo: 'todos', pot: 0.55, peso: 2, el: 'agua', fx: 'aguacero' },
+      { id: 'cuchicheo', tipo: 'chupa', pot: 0.8, peso: 2 },
     ],
   },
   shhh: {
-    id: 'shhh', pintor: 'apuntador', paleta: 3, el: 'viento', pv: 110, atk: 18, def: 8, agi: 12, exp: 60, monedas: 0, flota: 0, frames: 2,
+    id: 'shhh', pintor: 'apuntador', paleta: 3, el: 'viento', pv: 115, atk: 20, def: 8, agi: 15, exp: 70, monedas: 0, flota: 0, frames: 2,
     ataques: [
-      { id: 'soplo', tipo: 'golpe', pot: 1, peso: 3, el: 'viento' },
-      { id: 'chistido', tipo: 'chupa', pot: 0.8, peso: 2 },
-      { id: 'notaalpie', tipo: 'todos', pot: 0.55, peso: 2, el: 'viento' },
+      { id: 'racha', tipo: 'golpe', pot: 1, peso: 3, el: 'viento', fx: 'racha' },
+      { id: 'corriente', tipo: 'todos', pot: 0.55, peso: 2, el: 'viento', fx: 'corriente' },
+      { id: 'mutis', tipo: 'perfora', pot: 1.15, peso: 2, herido: true },
+    ],
+  },
+  // ---- the Teatro: the harder ones with their second colour
+  foco: {
+    id: 'foco', pintor: 'foco', paleta: 0, el: 'fuego', pv: 62, atk: 19, def: 9, agi: 11, exp: 30, monedas: 14, flota: 0, frames: 2,
+    ataques: [
+      { id: 'deslumbron', tipo: 'golpe', pot: 1, peso: 3, el: 'fuego', fx: 'deslumbron' },
+      { id: 'barrido', tipo: 'todos', pot: 0.6, peso: 2, el: 'fuego', fx: 'barrido' },
+    ],
+  },
+  foco2: {
+    id: 'foco2', pintor: 'foco', paleta: 1, el: 'fuego', pv: 80, atk: 22, def: 11, agi: 12, exp: 44, monedas: 20, flota: 0, frames: 2,
+    botin: { objeto: 'turron', prob: 0.3 },
+    ataques: [
+      { id: 'deslumbron', tipo: 'golpe', pot: 1.05, peso: 3, el: 'fuego', fx: 'deslumbron' },
+      { id: 'barrido', tipo: 'todos', pot: 0.65, peso: 2, el: 'fuego', fx: 'barrido' },
+    ],
+  },
+  butaca: {
+    id: 'butaca', pintor: 'butaca', paleta: 0, el: 'tierra', pv: 78, atk: 20, def: 12, agi: 8, exp: 32, monedas: 15, flota: 0, frames: 2,
+    ataques: [
+      { id: 'mordisco', tipo: 'golpe', pot: 1.1, peso: 3, fx: 'mordisco' },
+      { id: 'palomitas', tipo: 'todos', pot: 0.55, peso: 2, fx: 'palomitas' },
+    ],
+  },
+  butaca2: {
+    id: 'butaca2', pintor: 'butaca', paleta: 1, el: 'tierra', pv: 98, atk: 23, def: 14, agi: 9, exp: 46, monedas: 21, flota: 0, frames: 2,
+    botin: { objeto: 'chupito', prob: 0.3 },
+    ataques: [
+      { id: 'mordisco', tipo: 'golpe', pot: 1.15, peso: 3, fx: 'mordisco' },
+      { id: 'palomitas', tipo: 'todos', pot: 0.6, peso: 2, fx: 'palomitas' },
+    ],
+  },
+  tramoyista: {
+    id: 'tramoyista', pintor: 'tramoyista', paleta: 0, el: 'agua', pv: 54, atk: 18, def: 7, agi: 14, exp: 31, monedas: 14, flota: 5, frames: 2,
+    ataques: [
+      { id: 'saco', tipo: 'golpe', pot: 1.15, peso: 3, fx: 'saco' },
+      { id: 'aullido', tipo: 'todos', pot: 0.55, peso: 2, el: 'agua', fx: 'aullido' },
+    ],
+  },
+  tramoyista2: {
+    id: 'tramoyista2', pintor: 'tramoyista', paleta: 1, el: 'agua', pv: 72, atk: 21, def: 8, agi: 15, exp: 45, monedas: 20, flota: 5, frames: 2,
+    botin: { objeto: 'turron', prob: 0.3 },
+    ataques: [
+      { id: 'saco', tipo: 'golpe', pot: 1.2, peso: 3, fx: 'saco' },
+      { id: 'aullido', tipo: 'todos', pot: 0.6, peso: 2, el: 'agua', fx: 'aullido' },
+    ],
+  },
+  programa: {
+    id: 'programa', pintor: 'programa', paleta: 0, el: 'viento', pv: 40, atk: 17, def: 5, agi: 17, exp: 26, monedas: 11, flota: 10, frames: 2,
+    ataques: [
+      { id: 'corte', tipo: 'perfora', pot: 1.05, peso: 3, fx: 'corte' },
+      { id: 'cartelera', tipo: 'todos', pot: 0.5, peso: 2, el: 'viento', fx: 'paginas' },
+    ],
+  },
+  programa2: {
+    id: 'programa2', pintor: 'programa', paleta: 1, el: 'viento', pv: 54, atk: 20, def: 6, agi: 18, exp: 38, monedas: 16, flota: 10, frames: 2,
+    botin: { objeto: 'chupito', prob: 0.25 },
+    ataques: [
+      { id: 'corte', tipo: 'perfora', pot: 1.1, peso: 3, fx: 'corte' },
+      { id: 'cartelera', tipo: 'todos', pot: 0.55, peso: 2, el: 'viento', fx: 'paginas' },
+    ],
+  },
+  // ---- the boss: the narrator, Pablo's shadow, in two phases (combate.ts changes `narrador` for `narrador2` when it
+  // falls below half its health; the health is carried over, so `pv` of phase 2 is the whole bar's maximum).
+  narrador: {
+    id: 'narrador', pintor: 'narrador', paleta: 0, el: null, pv: 520, atk: 27, def: 12, agi: 13, exp: 150, monedas: 0, flota: 4, frames: 2, jefe: true,
+    ataques: [
+      { id: 'tachon', tipo: 'golpe', pot: 1.1, peso: 3, fx: 'tachon' },
+      { id: 'cambio', tipo: 'todos', pot: 0.62, peso: 3, fx: 'cambio' },
+      { id: 'omnisciente', tipo: 'perfora', pot: 1.2, peso: 2, fx: 'omnisciente' },
+      { id: 'elipsis', tipo: 'chupa', pot: 0.7, peso: 2, fx: 'elipsis' },
+    ],
+  },
+  narrador2: {
+    id: 'narrador2', pintor: 'narrador', paleta: 1, el: null, pv: 520, atk: 30, def: 14, agi: 15, exp: 150, monedas: 0, flota: 4, frames: 2, jefe: true, veces: 2,
+    ataques: [
+      { id: 'final', tipo: 'todos', pot: 0.62, peso: 3, fx: 'final' },
+      { id: 'spoiler', tipo: 'perfora', pot: 1.2, peso: 3, fx: 'spoiler' },
+      { id: 'fundido', tipo: 'todos', pot: 0.7, peso: 2, fx: 'fundido' },
+      { id: 'borron', tipo: 'golpe', pot: 1.15, peso: 2, fx: 'borron' },
+      { id: 'tachon', tipo: 'golpe', pot: 1.2, peso: 1, fx: 'tachon' },
     ],
   },
 };
 
 /** The kinds that can turn up in the wild (a random fight picks from these). */
 export const ENEMIGOS_COMUNES = ['petardo', 'movil', 'spoiler', 'critico', 'mosquito'] as const;
+
+/**
+ * The enemies of the Teatro, for its encounters: a spotlight gone mad (`foco`), a seat that bites (`butaca`), the ghost
+ * of a stagehand (`tramoyista`) and a flying programme (`programa`), each with its harder second colour (`foco2`...).
+ * Fight them on the 'teatro' background (or 'escenario' on the stage).
+ */
+export const ENEMIGOS_TEATRO = ['foco', 'foco2', 'butaca', 'butaca2', 'tramoyista', 'tramoyista2', 'programa', 'programa2'] as const;
 
 // ---------------------------------------------------------------- painting
 
@@ -378,6 +476,11 @@ function apuntadorGrande(p: Paleta, f: number): HTMLCanvasElement {
 }
 
 const PALETAS: Record<Pintor, Paleta[]> = {
+  foco: PALETAS_TEATRO.foco as unknown as Paleta[],
+  butaca: PALETAS_TEATRO.butaca as unknown as Paleta[],
+  tramoyista: PALETAS_TEATRO.tramoyista as unknown as Paleta[],
+  programa: PALETAS_TEATRO.programa as unknown as Paleta[],
+  narrador: PALETAS_NARRADOR as unknown as Paleta[],
   // The prompters' «palette» is only their element: the art is the icon's, in its colour.
   apuntador: [{ el: 'tierra' }, { el: 'fuego' }, { el: 'agua' }, { el: 'viento' }],
   petardo: [
@@ -402,7 +505,7 @@ const PALETAS: Record<Pintor, Paleta[]> = {
   ],
 };
 
-const PINTORES: Record<Pintor, (p: Paleta, f: number) => HTMLCanvasElement> = { petardo, movil, spoiler, critico, mosquito, apuntador: apuntadorGrande };
+const PINTORES: Record<Pintor, (p: Paleta, f: number) => HTMLCanvasElement> = { petardo, movil, spoiler, critico, mosquito, apuntador: apuntadorGrande, foco, butaca, tramoyista, programa, narrador };
 
 /** One frame of an enemy's idle animation, with its outline. */
 export function spriteEnemigo(id: string, frame = 0): HTMLCanvasElement {

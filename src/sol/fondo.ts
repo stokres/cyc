@@ -7,8 +7,9 @@
 import { azar, ctx, elipse, lienzo, rect, una } from './pixel';
 import { linea } from './iconos';
 import { PANTALLA_H, PANTALLA_W } from './interfaz';
+import { lejosEscenario, lejosTeatro, medioEscenario, medioTeatro, sueloEscenario, sueloTeatro, Y_MEDIO_ESCENARIO } from './fondoTeatro';
 
-export type FondoCombate = 'campo';
+export type FondoCombate = 'campo' | 'teatro' | 'escenario';
 
 const W_LEJOS = 360;
 const W_MEDIO = 420;
@@ -255,7 +256,14 @@ const capa = (g: CanvasRenderingContext2D, img: HTMLCanvasElement, y: number, an
  * Draws the background for a camera turned `giro` radians. `t` is the time in seconds (a little shimmer on the sea).
  * The turn is the same number the fighters are placed with.
  */
-export function dibujarFondo(g: CanvasRenderingContext2D, _fondo: FondoCombate, giro: number, t: number) {
+export function dibujarFondo(g: CanvasRenderingContext2D, fondo: FondoCombate, giro: number, t: number) {
+  if (fondo !== 'campo') {
+    const teatro = fondo === 'teatro';
+    capa(g, teatro ? lejosTeatro() : lejosEscenario(), Y_LEJOS, W_LEJOS, giro * VEL_LEJOS + 90);
+    capa(g, teatro ? sueloTeatro() : sueloEscenario(), Y_SUELO, W_SUELO, giro * VEL_SUELO + 60);
+    capa(g, teatro ? medioTeatro() : medioEscenario(), teatro ? Y_MEDIO : Y_MEDIO_ESCENARIO, W_MEDIO, giro * VEL_MEDIO + 130);
+    return;
+  }
   capa(g, lejos(), Y_LEJOS, W_LEJOS, giro * VEL_LEJOS + 90);
   capa(g, suelo(), Y_SUELO, W_SUELO, giro * VEL_SUELO + 60);
   capa(g, medio(), Y_MEDIO, W_MEDIO, giro * VEL_MEDIO + 130);
