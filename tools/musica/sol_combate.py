@@ -1,4 +1,4 @@
-# «Sol de Levante», the road and the fights: the second half of the sound of Pablo's Golden Sun parody
+# «Alacant Sun», the road and the fights: the second half of the sound of Pablo's Golden Sun parody
 # (chapter 2, src/sol/). Like sol.py, all of it is our own: no melody, chord progression or motif of the original
 # (nor of any other song), written in the manner of a 2001 Game Boy Advance fantasy RPG (progressive rock squeezed
 # into a tiny sound chip: bright pulse leads, flute, synth strings, picked synth bass, harp and music-box

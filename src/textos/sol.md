@@ -29,7 +29,7 @@ Los textos son provisionales: los revisará Jesús junto con el resto.
 titulo.pie = PARA PABLO, CON CARIÑO
 titulo.pulsa = PULSA A
 consola.marca = CAMIONES Y CARAVANAS
-consola.modelo = SOL PORTÁTIL
+consola.modelo = ALACANT SUN
 consola.start = START
 
 // ---------------------------------------------------------------- interfaz
@@ -286,6 +286,9 @@ efecto.chist = ¡Chist!
 // ---------------------------------------------------------------- apuntadores e invocaciones
 
 apuntador.chist.nombre = Chist
+apuntador.ejem.nombre = Ejem
+apuntador.psst.nombre = Psst
+apuntador.shhh.nombre = Shhh
 apuntador.accion.puesto = Soltar
 apuntador.accion.espera = Poner
 apuntador.accion.recupera = Dormido
@@ -340,6 +343,18 @@ enemigo.chist.nombre = Chist
 enemigo.chist.soplo = Soplo
 enemigo.chist.chistido = Chistido
 enemigo.chist.notaalpie = Nota al pie
+enemigo.ejem.nombre = Ejem
+enemigo.ejem.soplo = Soplo
+enemigo.ejem.chistido = Chistido
+enemigo.ejem.notaalpie = Nota al pie
+enemigo.psst.nombre = Psst
+enemigo.psst.soplo = Soplo
+enemigo.psst.chistido = Chistido
+enemigo.psst.notaalpie = Nota al pie
+enemigo.shhh.nombre = Shhh
+enemigo.shhh.soplo = Soplo
+enemigo.shhh.chistido = Chistido
+enemigo.shhh.notaalpie = Nota al pie
 enemigo.mosquito.nombre = Mosquito huertano
 enemigo.mosquito.picotazo = Picotazo
 enemigo.mosquito.zumbido = Zumbido

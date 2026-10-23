@@ -38,7 +38,7 @@ export interface DefEnemigo {
   id: string;
   pintor: Pintor;
   /** Which palette of the painter. */
-  paleta: 0 | 1;
+  paleta: number;
   el: Elemento | null;
   pv: number;
   atk: number;
@@ -136,6 +136,31 @@ export const ENEMIGOS: Record<string, DefEnemigo> = {
       { id: 'soplo', tipo: 'golpe', pot: 1, peso: 3, el: 'tierra' },
       { id: 'chistido', tipo: 'chupa', pot: 0.8, peso: 2 },
       { id: 'notaalpie', tipo: 'todos', pot: 0.55, peso: 2, el: 'tierra' },
+    ],
+  },
+  // The three prompters hidden in the Teatro (same rule: beaten, they join). PROVISIONAL numbers and attacks.
+  ejem: {
+    id: 'ejem', pintor: 'apuntador', paleta: 1, el: 'fuego', pv: 110, atk: 18, def: 8, agi: 12, exp: 60, monedas: 0, flota: 0, frames: 2,
+    ataques: [
+      { id: 'soplo', tipo: 'golpe', pot: 1, peso: 3, el: 'fuego' },
+      { id: 'chistido', tipo: 'chupa', pot: 0.8, peso: 2 },
+      { id: 'notaalpie', tipo: 'todos', pot: 0.55, peso: 2, el: 'fuego' },
+    ],
+  },
+  psst: {
+    id: 'psst', pintor: 'apuntador', paleta: 2, el: 'agua', pv: 110, atk: 18, def: 8, agi: 12, exp: 60, monedas: 0, flota: 0, frames: 2,
+    ataques: [
+      { id: 'soplo', tipo: 'golpe', pot: 1, peso: 3, el: 'agua' },
+      { id: 'chistido', tipo: 'chupa', pot: 0.8, peso: 2 },
+      { id: 'notaalpie', tipo: 'todos', pot: 0.55, peso: 2, el: 'agua' },
+    ],
+  },
+  shhh: {
+    id: 'shhh', pintor: 'apuntador', paleta: 3, el: 'viento', pv: 110, atk: 18, def: 8, agi: 12, exp: 60, monedas: 0, flota: 0, frames: 2,
+    ataques: [
+      { id: 'soplo', tipo: 'golpe', pot: 1, peso: 3, el: 'viento' },
+      { id: 'chistido', tipo: 'chupa', pot: 0.8, peso: 2 },
+      { id: 'notaalpie', tipo: 'todos', pot: 0.55, peso: 2, el: 'viento' },
     ],
   },
 };
@@ -343,8 +368,8 @@ function mosquito(p: Paleta, f: number): HTMLCanvasElement {
 }
 
 /** The wild prompter: the little prompter of the icons, twice as big. */
-function apuntadorGrande(_p: Paleta, f: number): HTMLCanvasElement {
-  const src = apuntador('tierra', f);
+function apuntadorGrande(p: Paleta, f: number): HTMLCanvasElement {
+  const src = apuntador((p.el as Elemento | undefined) ?? 'tierra', f);
   const c = lienzo(src.width * 2, src.height * 2);
   const x = ctx(c);
   x.imageSmoothingEnabled = false;
@@ -352,8 +377,9 @@ function apuntadorGrande(_p: Paleta, f: number): HTMLCanvasElement {
   return c;
 }
 
-const PALETAS: Record<Pintor, [Paleta, Paleta]> = {
-  apuntador: [{}, {}],
+const PALETAS: Record<Pintor, Paleta[]> = {
+  // The prompters' «palette» is only their element: the art is the icon's, in its colour.
+  apuntador: [{ el: 'tierra' }, { el: 'fuego' }, { el: 'agua' }, { el: 'viento' }],
   petardo: [
     { base: '#e04a3a', luz: '#f48a6a', sombra: '#a82a2a', banda: '#f4c438', bandaSombra: '#b88a20', mecha: '#4a3a30', pie: '#7a2020', linea: '#3a1018' },
     { base: '#7a46c8', luz: '#a47ae8', sombra: '#4a2a8a', banda: '#7ae0a0', bandaSombra: '#3a9a68', mecha: '#4a3a30', pie: '#3a1c6a', linea: '#1c0c3a' },

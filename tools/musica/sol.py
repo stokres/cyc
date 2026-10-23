@@ -1,4 +1,4 @@
-# «Sol de Levante», the sound of Pablo's Golden Sun parody (chapter 2, src/sol/): the village theme at night in
+# «Alacant Sun», the sound of Pablo's Golden Sun parody (chapter 2, src/sol/): the village theme at night in
 # fiestas and four short effects. All of it is our own: no melody, chord progression or motif of the original
 # (nor of any other song). It is written in the manner of a 2001 Game Boy Advance fantasy RPG (progressive rock
 # squeezed into a tiny sound chip): bright pulse leads, a breathy flute, synth strings, a picked synth bass,

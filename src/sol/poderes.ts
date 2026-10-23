@@ -63,7 +63,13 @@ export interface DefApuntador {
   fx: FxId;
 }
 
-export const APUNTADORES: DefApuntador[] = [{ id: 'chist', el: 'tierra', pot: 22, fx: 'chist' }];
+export const APUNTADORES: DefApuntador[] = [
+  { id: 'chist', el: 'tierra', pot: 22, fx: 'chist' },
+  // The Teatro's three; PROVISIONAL: they borrow Chist's effect until they have their own.
+  { id: 'ejem', el: 'fuego', pot: 24, fx: 'chist' },
+  { id: 'psst', el: 'agua', pot: 24, fx: 'chist' },
+  { id: 'shhh', el: 'viento', pot: 24, fx: 'chist' },
+];
 export const apuntadorPorId = (id: string) => APUNTADORES.find((a) => a.id === id)!;
 /** Rounds a prompter takes to come back after a summon. */
 export const TURNOS_RECUPERA = 3;
