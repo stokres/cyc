@@ -290,7 +290,7 @@ export class Final {
 
   private dibujarCreditos(g: CanvasRenderingContext2D) {
     this.dibujarEscenario(g, 0.25, 0.5);
-    g.fillStyle = 'rgba(4,2,16,0.55)';
+    g.fillStyle = 'rgba(4,2,16,0.72)';
     g.fillRect(0, 0, 240, 160);
     const y0 = 166 - this.scroll;
     const titulo = texto('creditos.titulo');

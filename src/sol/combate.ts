@@ -297,7 +297,7 @@ export class Combate implements Escena {
     });
     this.jefe = this.enemigos.find((e) => e.def.jefe) ?? null;
     // the summon's music is fetched while the fight goes on, so that it starts on its beat
-    if (this.jefe) void o.sonido.lista(PISTA_CALDERON);
+    if (this.jefe) void o.sonido.preparar(PISTA_CALDERON);
     // a friend who comes in already down stays down
     for (const h of this.heroes) if (h.m.pv <= 0) this.ponerPose(h, 'caido');
     this.resultado = this.correr();
@@ -1518,8 +1518,9 @@ export class Combate implements Escena {
   /** Calderón's summon: its own music from the first beat, the whole screen, and the blow on the beat. */
   private async escenaCalderon(donde: Donde[], dano: (i: number) => void) {
     this.sonido.parar(0.2);
-    await this.sonido.lista(PISTA_CALDERON);
-    this.sonido.musica(PISTA_CALDERON);
+    // an effect, not music: it starts from its first sample and does not fade or loop, so the animation keeps its beat
+    await this.sonido.preparar(PISTA_CALDERON);
+    this.sonido.efecto(PISTA_CALDERON, 1);
     const amigos = this.heroes.map((h) => ({ donde: this.donde(h), el: AMIGOS[h.m.q].elemento }));
     await fxCalderon(this, amigos, donde, dano);
     // (if he were still there, the fight goes on with its own music)
@@ -1804,6 +1805,17 @@ export class Combate implements Escena {
   elegir(orden: string, objetivo = 0): boolean {
     if (this.fase !== 'menu' && this.fase !== 'ordenes') return false;
     this.emitirForzado({ forzada: orden, objetivo });
+    return true;
+  }
+  /** Test hook: puts the boss at the threshold of his script moment (it comes after the next action). False without a boss. */
+  forzarGuion(): boolean {
+    const j = this.jefe;
+    if (!j || !j.vivo || this.guion === 'abierto') return false;
+    if (!this.transformado) {
+      this.transformado = true;
+      j.def = ENEMIGOS.narrador2;
+    }
+    j.pv = Math.max(1, Math.floor(j.pvMax * UMBRAL_GUION * 0.9));
     return true;
   }
   /** Beats every enemy at once and goes through the victory. */

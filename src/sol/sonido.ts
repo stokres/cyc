@@ -38,7 +38,7 @@ export const EFECTO_HUIR = 'solHuir' as unknown as Pista;
 
 /** The boss fight (musica.ts: `solJefe`). */
 export const PISTA_JEFE = 'solJefe' as unknown as Pista;
-/** Calderón's summon, played once from the first beat (musica.ts: `solCalderon`). */
+/** Calderón's summon, played once from its first beat AS AN EFFECT (musica.ts: `solCalderon`, 22 s, the blow at second 16). */
 export const PISTA_CALDERON = 'solCalderon' as unknown as Pista;
 /** The ending and the credits (musica.ts: `solFinal`). */
 export const PISTA_FINAL = 'solFinal' as unknown as Pista;
@@ -55,9 +55,9 @@ export const EFECTO_HIELO = 'solHielo' as unknown as Pista;
  * The second of `solCalderon` at which its closing blow lands (the music agent tells it; change it here only).
  * The whole summon is timed to it: the sky opens, Calderón comes down, writes, and drops the quill on this beat.
  */
-export const CALDERON_GOLPE = 17;
+export const CALDERON_GOLPE = 16;
 /** Seconds the summon goes on after the blow (the last notes of the track). */
-export const CALDERON_COLA = 5;
+export const CALDERON_COLA = 6;
 
 const hay = (id: Pista) => id in MUSICA;
 
@@ -70,7 +70,7 @@ export class SonidoSol {
     const ids = [
       EFECTO_TEXTO, EFECTO_PODER, EFECTO_MENU, EFECTO_PUERTA,
       EFECTO_ENCUENTRO, EFECTO_GOLPE, EFECTO_CURA, EFECTO_APUNTADOR, EFECTO_CAE, EFECTO_HUIR,
-      EFECTO_TRANSFORMA, EFECTO_TELON, EFECTO_VIENTO, EFECTO_HIELO,
+      EFECTO_TRANSFORMA, EFECTO_TELON, EFECTO_VIENTO, EFECTO_HIELO, PISTA_CALDERON,
     ].filter(hay);
     if (ids.length) void s?.prepararEfectos?.(...ids)?.catch?.(() => {});
   }
@@ -78,6 +78,16 @@ export class SonidoSol {
   /** Is this track or effect registered (the music is made in parallel)? */
   existe(id: Pista) {
     return hay(id);
+  }
+
+  /** Resolves once an effect is fetched and decoded, so that it starts on its beat when played (at once without sound). */
+  async preparar(id: Pista) {
+    if (!hay(id)) return;
+    try {
+      await this.s?.prepararEfectos?.(id);
+    } catch {
+      /* ditto */
+    }
   }
 
   /** Seconds into a track playing now (from its first beat); null when it is not playing or there is no sound. */

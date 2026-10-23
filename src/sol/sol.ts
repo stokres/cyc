@@ -100,6 +100,8 @@ export interface EstadoSol {
   jefe(): Promise<ResultadoCombate>;
   /** Where the boss fight is: 'jefe1' | 'jefe2' | 'guion' (Calderón on offer) | 'victoria' | 'final' | '' (none). */
   fase(): string;
+  /** Puts the boss at the edge of his script moment (the next action triggers it); false without a boss fight. */
+  guion(): boolean;
   grupo: Grupo;
 }
 
@@ -2139,6 +2141,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
       if (combate!.estado().fase === 'victoria') return 'victoria';
       return j.guion === 'abierto' ? 'guion' : j.fase === 2 ? 'jefe2' : 'jefe1';
     },
+    guion: () => combate?.forzarGuion() ?? false,
     grupo,
     irAlCamino: async () => {
       preparaPueblo();

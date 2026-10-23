@@ -23,7 +23,7 @@ import { ventana } from './interfaz';
 import { anchoTexto, escribir } from './fuente';
 import { pagina } from './efectos';
 import { paginaGrande } from './jefeArte';
-import { CALDERON_COLA, CALDERON_GOLPE, EFECTO_APUNTADOR, EFECTO_GOLPE, EFECTO_PODER, PISTA_CALDERON } from './sonido';
+import { CALDERON_COLA, CALDERON_GOLPE, EFECTO_APUNTADOR, EFECTO_GOLPE, EFECTO_PODER } from './sonido';
 
 const pt = (d: Donde) => d();
 /** The centre of the opening in the sky. */
@@ -74,8 +74,8 @@ export async function fxCalderon(e: Escena, amigos: Array<{ donde: Donde; el: El
   let tPrev = 0;
   let nib = { x: 40, y: 80 };
   const sacudidas = { t: 0 };
-  /** Seconds into the music if it says (it counts from its first beat), else this clock. */
-  const reloj = (t: number) => e.sonido.posicion?.(PISTA_CALDERON) ?? t;
+  /** The summon's clock: the music (played as an effect from its first sample) starts together with this animation. */
+  const reloj = (t: number) => t;
   /** Progress (0..1) between two points of the way to the blow. */
   const f = (T: number, a: number, b: number) => limitar((T - a * TG) / ((b - a) * TG), 0, 1);
   const golpe = () => {
@@ -193,12 +193,12 @@ export async function fxCalderon(e: Escena, amigos: Array<{ donde: Donde; el: El
       }
       // ---- Calderón comes down, in his halo
       const baja = easeOut(f(T, 0.3, 0.52));
-      const base = u < 1 ? 1 : 1 - f(T, 1, 1 + 1.4 / TG * 1) * 0.0;
+      const sube = u >= 1 ? easeIn(limitar((T - TG - 0.5) / 2.1, 0, 1)) : 0;
+      // where his bust is (its top edge): coming down, then floating, then rising away after the blow
+      const cy = Math.round(-CALDERON_H + (10 + CALDERON_H) * baja + Math.sin(T * 2.2) * (baja >= 1 ? 1.5 : 0) - sube * 50);
       if (u >= 0.3 && (cubierto || T < TG + 2.6)) {
-        const sube = u >= 1 ? easeIn(limitar((T - TG - 0.5) / 2.1, 0, 1)) : 0;
-        const cy = Math.round(-CALDERON_H + (10 + CALDERON_H) * baja + Math.sin(T * 2.2) * (baja >= 1 ? 1.5 : 0) - sube * 50);
         const alfa = u < 1 ? 1 : 0.85 * (1 - sube);
-        g.globalAlpha = alfa * base;
+        g.globalAlpha = alfa;
         const pulso = 1 + Math.sin(T * 4) * 0.04;
         g.drawImage(aura(), Math.round(120 - 105 * pulso), Math.round(cy + 36 - 105 * pulso), Math.round(210 * pulso), Math.round(210 * pulso));
         g.drawImage(calderon(), 120 - CALDERON_W / 2, cy);
@@ -225,12 +225,11 @@ export async function fxCalderon(e: Escena, amigos: Array<{ donde: Donde; el: El
       }
       // ---- the quill: raised while he comes down, writing, gathering the spell, and falling
       const escribe = f(T, 0.58, 0.84);
-      const hombro = { x: 120 - 30, y: 10 + 84 };
+      const hombro = { x: 120 - 30, y: cy + 84 };
       let ang = -0.3;
       if (u < 0.58) {
-        nib = { x: 52 + Math.sin(T * 1.8) * 2, y: 70 + Math.sin(T * 1.3) * 3 + (1 - baja) * -CALDERON_H * 0 };
-        if (u < 0.3) nib = { x: 52, y: 70 - (1 - baja) * 120 };
-        else nib.y = 70 + (baja < 1 ? (baja - 1) * CALDERON_H * 0 : 0);
+        // the quill goes down with him, held up at his side
+        nib = { x: 52 + Math.sin(T * 1.8) * 2, y: cy + 60 + Math.sin(T * 1.3) * 3 };
         ang = -0.3;
       } else if (u < 0.84) {
         const n = Math.floor(escribe * letras);
@@ -253,12 +252,19 @@ export async function fxCalderon(e: Escena, amigos: Array<{ donde: Donde; el: El
       // the line he has written (before the blow it is drawn lit; after it, it fades with the sky)
       if (u >= 0.58 && cubierto) {
         const n = u >= 0.84 ? letras : Math.floor(escribe * letras);
-        const dim = u >= 0.84 && u < 1 ? 1 : 1;
-        g.globalAlpha = dim;
+        // a band of night under the line, so that the gold letters read over his dark coat
+        const banda = easeOut(f(T, 0.58, 0.64)) * (u < 1 ? 1 : 1 - limitar((T - TG) / 0.4, 0, 1));
+        g.globalAlpha = 0.8 * banda;
+        g.fillStyle = '#140626';
+        g.fillRect(0, 99, 240, 51);
+        g.globalAlpha = banda;
+        g.fillStyle = '#ffe27a';
+        g.fillRect(0, 99, 240, 1);
+        g.fillRect(0, 149, 240, 1);
         textoGrande(g, frase, n, 120, 124, '#fff0a0', '#6a4208', K_FRASE);
         g.globalAlpha = 1;
       }
-      if (u < 1.0 + 0.55 / TG * 1 && T < TG + 0.45) dibujarPluma(g, nib.x, nib.y, ang, hombro);
+      if (u >= 0.3 && u < 1.0 + 0.55 / TG && T < TG + 0.45) dibujarPluma(g, nib.x, nib.y, ang, hombro);
       // ---- the held breath: the light drops just before the blow
       if (u > 0.88 && u < 1) {
         const k = limitar((u - 0.88) / 0.1, 0, 1);
