@@ -153,6 +153,18 @@ FRAN (nervioso): Será la caña. Las cañas no hacen eso. Creo.
 ## c2.mirar.porra.3
 FRAN (sorprendido): ¡Todos los números son sietes! Ahora sí que toca seguro.
 
+## c2.mirar.barra.4
+GUILLE (nervioso): Llevo diez minutos andando por la barra y sigo en la misma caña.
+
+## c2.mirar.barra.5
+CHUCHI (sorprendido): La barra cuelga del techo. Por lo menos las cañas ya no se derraman: se quedan quietas por orgullo.
+
+## c2.mirar.estanteria.5
+PABLO: Las botellas siguen en su sitio. Es el sitio el que ha cambiado de sitio.
+
+## c2.mirar.porra.4
+CHUCHI (sorprendido): La porra se repite. Esta es la tercera vez que veo el nombre de Fran con un siete.
+
 ## c2.mirar.tragaperras
 GUILLE: «Fuera de servicio». Con lo bonita que es.
 
@@ -382,9 +394,114 @@ FRAN (contento): Que no pare. Que no pare nunca.
 FRAN (contento): Cinco minutitos. Solo cinco. Como los profesionales.
 > La espuma de su caña empezó a crecer. Y a botar.
 
-## c2.despues
-> Fran abrió los ojos. Seguía en el Brío. Más o menos.
-FRAN (sorprendido): ¡Aupa! ¿Cuánto rato he estado fuera?
-CHUCHI: ¿Fuera? Si no te has movido del taburete.
-GUILLE (contento): Has dicho «¡una más!» en sueños. Tres veces.
-PABLO (chulo): Y la tragaperras sigue dando vueltas. Sola.
+// ---------------------------------------------------------------- el resto de la noche (primera parte)
+// Provisional. Las líneas que empiezan por @ no se dicen: son la cámara loca (src/juego/camara.ts):
+//   @holandes 8 500 · @nivelar · @zoom pablo 2.4 · @corte chuchi 2.6 -7 · @general · @contrapicado 14
+//   @barrido vero 1.8 · @temblor 14 700 · @foco tragaperras (la cámara de verdad viaja hasta allí) · @espera 400
+// El bar 4 es un pasillo que no se acaba, con el suelo inclinado; el bar 5, el Brío del revés.
+
+## c2.noche.despierta
+@holandes 7 0
+@temblor 16 900
+FRAN (sorprendido): ¡AUPA! ¡Un dragón! ¡Había un dragón!
+@corte fran 2.4 -6
+FRAN (nervioso): Estaba en Usera. Y el dragón salía de la tele, ¿vale? Verde, enorme, con cara de no haber cenado.
+@corte chuchi 2.2 5
+CHUCHI: Fran, has cerrado los ojos hace un minuto. Un minuto y poco.
+@corte fran 2.6 -9
+FRAN (enfadado): ¡Dos minutos de dragón, Chuchi! Se comía mi piso. Se comía Las Vegas. ¡Y al final venía La Penúltima, una caña de siete metros!
+@barrido pablo 2.1
+PABLO (chulo): Dragón, piso, Las Vegas, caña final. Tiene estructura. Quita el portal y tienes un monólogo.
+@corte guille 2.4 8
+GUILLE (contento): Yo creo que era un cerdo grande. Los cerdos grandes tienen ese efecto en la gente.
+@corte fran 2.8 -4
+FRAN (triste): No me creéis.
+@corte chuchi 2.2 -6
+CHUCHI: Yo te creo lo del cerdo.
+@general 500
+@contrapicado 12 700
+FRAN (sorprendido): Un momento. ¿Por qué la barra no se acaba?
+@corte guille 2.2 6
+GUILLE (nervioso): Lleva así un rato. No quise decir nada para no cortar el rollo.
+CHUCHI (nervioso): Y el suelo baja. Yo me llevo agarrado a este taburete desde hace diez minutos.
+@barrido vero 1.8 -1
+VERO: Yo de eso no sé nada, mi amor. Yo solo pongo las cañas.
+
+## c2.noche.maquina
+@nivelar 400
+@foco tragaperras
+> Allá al fondo del pasillo, que está muy al fondo, algo hace «clic».
+@zoom tragaperras 1.7
+> La tragaperras, que nadie ha tocado, empieza a girar. Sola. Otra vez.
+CHUCHI (nervioso): Nadie ha echado un duro. Yo no he tocado nada. Lo juro por mis hijas.
+GUILLE (nervioso): ¿Me va a salir otro cerdo?
+
+## c2.noche.pablo
+@general 500
+@temblor 12 600
+> La máquina se apaga de golpe. Se oye caer el último rodillo, como una puerta.
+@foco pablo
+@corte pablo 2.6 -7
+PABLO (nervioso): Esa cara...
+@corte chuchi 2.2 5
+CHUCHI: Es la tuya, Pablo.
+@corte pablo 3 8
+PABLO (triste): Ya sé que es la mía. Lo que me preocupa es que ahora esté mirándome desde dentro.
+@corte guille 2.2 -6
+GUILLE (nervioso): A mí me ha parecido que guiñaba.
+@general 400
+@temblor 22 900
+> Las luces del Brío parpadean. Una, dos, tres veces. A la tercera, el mundo se da la vuelta.
+
+## c2.noche.reves
+@holandes 5 0
+@temblor 26 1300
+@contrapicado 14 900
+GUILLE (nervioso): ¡Los taburetes están en el techo!
+CHUCHI (sorprendido): No. El techo está en el suelo. Es distinto.
+@corte fran 2.4 -8
+FRAN (sorprendido): ¿Y yo sobre qué estoy de pie?
+VERO: Sobre el techo, mi vida. Pásate la fregona por los pies, que ahí arriba se pega.
+@barrido pablo 2
+PABLO (nervioso): Esto ya no es un sueño. Esto es una enmienda a la totalidad.
+@zoom pablo 2.8
+> Y detrás de Pablo, su sombra se despega de sus pies y se estira, desperezándose.
+
+## c2.noche.narrador
+@zoom pablo 2.2 900
+SOMBRA (chulo): Qué escena tan bonita. Un bar del revés, cuatro amigos, una máquina con tu cara...
+PABLO (sorprendido): ¡Tú! ¿No te habías quedado en el capítulo uno?
+SOMBRA (chulo): Los narradores no nos quedamos en ningún capítulo. Nos reservamos.
+@corte fran 2.4 6
+FRAN: ¿Y este quién es?
+CHUCHI: La sombra de Pablo. El narrador. Es largo de explicar.
+// ANIME: aquí entrará el primer plano en estilo anime (¡la sombra, a cámara!): una marca @anime sombra, cuando exista.
+@corte pablo 3 -10
+SOMBRA (chulo): Os habéis puesto a soñar y a ninguno se le da bien acabarlo. Así que tranquilos.
+@temblor 20 700
+SOMBRA (chulo): Esta historia la acabo yo.
+
+## c2.noche.consola
+@temblor 18 1000
+> La pantalla se marea. Pierde píxeles. Se encoge, y se encoge, hasta caber entera en una consola de las de antes.
+
+## c2.noche.sueno
+> Y en algún sitio, alguien abrió los ojos.
+
+## c2.noche.pablo.ojos
+@zoom pablo 3 0
+PABLO (sorprendido): «La vida es sueño, y los sueños, sueños son».
+@holandes -9 600
+PABLO: Calderón lo dijo con más gracia. Yo me he enterado con menos luz.
+@barrido chuchi 2.3
+CHUCHI: ¿Estás bien? Te has quedado mirando la máquina y te has ido.
+@corte pablo 2.8 8
+PABLO (triste): Me he metido en una consola, Chuchi. Con una sombra, un teatro y un cuarto con mi madre.
+@corte guille 2.2 -7
+GUILLE (contento): ¡Qué bien! Yo he soñado que pesaba una nube y daba tres kilos.
+@temblor 10 500
+@nivelar 600
+@general 700
+FRAN (sorprendido): Un momento. Si Pablo ha vuelto, ¿por qué seguimos del revés?
+@contrapicado 10 700
+VERO: Porque la noche no ha terminado, mi amor. Ni de lejos.

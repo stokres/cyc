@@ -12,8 +12,13 @@
 //
 // Each round raises «el nivel de la noche» and the bar turns into a dream: the
 // scenes bar0…bar3 are the same bar baked with its dream gone further, and the
-// live bits (src/capitulos/bar-vivo.ts) move on top. Every line comes from
-// src/textos/capitulo2.md.
+// live bits (src/capitulos/bar-vivo.ts) move on top. After the Pang the night gets
+// out of hand (`elRestoDeLaNoche`): Fran wakes in bar4, a corridor with no end and a
+// sloping floor, and tells the dragon; the slot machine spins alone and stops on
+// Pablo's face; the bar turns upside down (bar5), Pablo's shadow, the narrator of
+// chapter 1, takes over («Esta historia la acabo yo») and the picture is squeezed
+// into the console of Alacant Sun; Pablo opens his eyes. The camera goes wild from
+// the texts (src/juego/camara.ts). Every line comes from src/textos/capitulo2.md.
 import { escena as bar } from '../arte/escenas/bar.mjs';
 import { escena as calle } from '../arte/escenas/calle.mjs';
 import type { Aventura, Capitulo, ZonaLogica } from '../juego/aventura';
@@ -21,6 +26,7 @@ import type { Estado } from '../juego/estado';
 import type { PjId } from '../juego/reparto';
 import type { Escena } from '../motor/escena';
 import { texto } from '../juego/textos';
+import { entrarEnConsola } from '../juego/pixelado';
 import { h } from '../ui/hud';
 import { jugarCanas } from '../ui/canas';
 import { jugarCanto } from '../ui/canto';
@@ -58,7 +64,7 @@ function estadoInicial(): Estado {
   };
 }
 
-/** How far the night has gone (0–3): which of the four bars is on. */
+/** How far the night has gone (0–5): which of the six bars is on. */
 const nivel = (g: Aventura) => Number(g.estado.flags['c2.nivel'] ?? 0);
 
 /**
@@ -69,17 +75,22 @@ async function subirNivel(g: Aventura, n: number) {
   if (nivel(g) >= n) return;
   g.poner('c2.nivel', n);
   const escena = `bar${n}`;
+  // The long bar and the upside-down one are not the same size: everyone goes back to their place at the
+  // counter, and the camera with them.
+  const sitios = n >= 4 ? (bar(n) as unknown as Escena).spots : null;
   for (const id of g.estado.jugables) {
     const p = g.pjs.get(id);
     const d = g.estado.donde[id];
-    if (d) Object.assign(d, { escena, ...(p ? { X: p.X, y: p.y, face: p.face } : {}) });
+    if (!d) continue;
+    if (sitios) Object.assign(d, { escena, X: sitios[id].X, y: sitios[id].y, face: sitios[id].face ?? 1 });
+    else Object.assign(d, { escena, ...(p ? { X: p.X, y: p.y, face: p.face } : {}) });
   }
   g.hud.cerrarDialogo();
   const flash = h('div', { style: 'position:absolute;inset:0;z-index:30;pointer-events:none;background:#fff6e0;opacity:0;transition:opacity 350ms ease-in' });
   g.root.append(flash);
   requestAnimationFrame(() => (flash.style.opacity = '1'));
   await g.esperar(380);
-  const cam = g.motor.cam;
+  const cam = sitios ? sitios.fran.X : g.motor.cam;
   await g.irA(escena, false);
   g.motor.seguir(cam, true);
   flash.style.transition = 'opacity 900ms ease-out';
@@ -98,7 +109,7 @@ function hacerSitio(g: Aventura) {
     const p = g.pjs.get(id);
     if (id === g.estado.activo || !p || Math.abs(p.X - yo.X) > 130) continue;
     // Back to their place, or, if that is right here too, a step aside.
-    const casa = spots()[id];
+    const casa = g.S.spots[id];
     const lejos = Math.abs(casa.X - yo.X) > 130;
     const X = lejos ? casa.X : yo.X + (Math.sign(casa.X - yo.X) || 1) * 170;
     void g.andar(X, lejos ? casa.y : p.y, id).then(() => p.lookAt(yo.X));
@@ -244,9 +255,71 @@ async function ojosDeFran(g: Aventura) {
   if (F) F.eyesClosed = false;
   g.poner('c2.pang');
   g.hud.setVisible(true);
-  await g.hablar('c2.despues');
   g.foco = null;
+  await elRestoDeLaNoche(g);
   await fin(g);
+}
+
+/**
+ * What happens after the Pang (first part of «el resto de la noche»): the night gets out of hand, and the
+ * picture and the bar with it. The camera tools come from the texts (`@` lines, src/juego/camara.ts).
+ */
+async function elRestoDeLaNoche(g: Aventura) {
+  // Fran wakes in the long bar, with the dragon still in his head; the others do not believe him.
+  await subirNivel(g, 4);
+  await g.hablar('c2.noche.despierta');
+  // The slot machine, at the far end of the corridor, spins alone: it stops on Pablo's face and dies.
+  await g.hablar('c2.noche.maquina');
+  g.hud.cerrarDialogo();
+  g.pausado = true;
+  await mostrarTragaperras(g.root, { premio: false, cara: 'pablo', rapido: g.rapido, sonido: g.sound }).finally(() => (g.pausado = false));
+  await g.hablar('c2.noche.pablo');
+  // The bar turns upside down.
+  await g.plano.reset(0);
+  await subirNivel(g, 5);
+  await g.hablar('c2.noche.reves');
+  // The narrator of chapter 1, Pablo's shadow, peels off his feet and takes the story over.
+  g.sacarSombra(true);
+  await g.esperar(900);
+  await g.hablar('c2.noche.narrador');
+  await g.hablar('c2.noche.consola');
+  await alacantSun(g);
+  // Pablo opens his eyes at the bar.
+  const P = g.pjs.get('pablo');
+  if (P) P.eyesClosed = true;
+  g.hud.setVisible(true);
+  await g.hablar('c2.noche.sueno');
+  await g.plano.zoom('pablo', 3, 1400);
+  await g.esperar(500);
+  if (P) P.eyesClosed = false;
+  await g.hablar('c2.noche.pablo.ojos');
+  await g.plano.reset(500);
+  // RESTO: here come, in this order, the rest of the games of the night (the texts, the camera and the bars
+  // 4 and 5 are ready for them; each one is launched like the Pang and Alacant Sun, with `g.pausado` and
+  // `g.minijuegoSuperado`):
+  //   1. Chuchi: *Space Invaders*.
+  //   2. Vero swallows Fran (the machine of the bar, the bar and the camera at their wildest).
+  //   3. Guille: *Street Fighter*.
+  //   4. The last song (the whole bar sings).
+  //   5. Nevada.
+  // Then «Continuará…» goes after the last one.
+}
+
+/**
+ * Alacant Sun (src/sol/), the second game of the night, played by Pablo on the console that the picture of the
+ * bar has been squeezed into: the reverse of the way the Sol ends, when the console shrinks and the bar comes back.
+ * 'saltado' and 'cancelado' go on anyway: the story does not wait for the game.
+ */
+async function alacantSun(g: Aventura) {
+  g.hud.cerrarDialogo();
+  g.hud.setVisible(false);
+  await g.plano.reset(0);
+  g.pausado = true;
+  const { jugarSol } = await import('../sol/sol');
+  const r = await entrarEnConsola(g, () => jugarSol(g.root, { sonido: g.sound })).finally(() => (g.pausado = false));
+  // The shadow went into the story with the console; the bar is as it was.
+  g.quitarSombra();
+  if (r === 'hecho') g.minijuegoSuperado('sol');
 }
 
 /** «Continuará…»: the end of what there is of chapter 2 so far. */

@@ -22,9 +22,9 @@ Camarera del Brío, personaje no jugable. Cubana, joven, alta, guapa, piel moren
 - Arte: `src/arte/personajes/vero.mjs`, con la misma forma que los cuatro (`body`, `headFront`, `INFO`, `JOINTS`, `OUTFITS`) y el cuerpo de la segunda versión.
 - En el bar está detrás de la barra (`spots.vero`); la barra que la tapa de cintura para abajo es un objeto del suelo (`props`), que se ordena por profundidad con los personajes.
 
-## El bar: escenas `bar0` a `bar3`
+## El bar: escenas `bar0` a `bar5`
 
-`src/arte/escenas/bar.mjs` exporta `escena(nivel)` (0–3). Las cuatro tienen la misma distribución y las mismas zonas; cambia la paleta y lo que el sueño deforma. El `id` de cada una es `bar0`…`bar3`. Subir de nivel es cargar la siguiente (`vecinas` la hornea por adelantado); solo hay un bar horneado en pantalla.
+`src/arte/escenas/bar.mjs` exporta `escena(nivel)` (0–5; el 4 y el 5 están más abajo, después del Pang). Las cuatro tienen la misma distribución y las mismas zonas; cambia la paleta y lo que el sueño deforma. El `id` de cada una es `bar0`…`bar3`. Subir de nivel es cargar la siguiente (`vecinas` la hornea por adelantado); solo hay un bar horneado en pantalla.
 
 | Nivel | Cuándo | Qué cambia en el horneado |
 |---|---|---|
@@ -40,6 +40,43 @@ Camarera del Brío, personaje no jugable. Cubana, joven, alta, guapa, piel moren
 **Props**: `barra` (frente de la barra, por delante de Vero y por detrás de los cuatro), `tragaperras` (`si: '!c2.separada'`) y `tragaperrasFuera` (`si: 'c2.separada'`), `duro` (`si: 'c2.duroVisible'`).
 
 **Piezas vivas** (se pintan encima del decorado horneado, en `src/capitulos/bar-vivo.ts`, `dibujarBarVivo(g, ctx, capa, nivel)`): la pantalla de la tele (en el nivel 2, el dragón de Usera), las luces de la tragaperras (solo con `c2.encendida`), el número de la porra que cambia de casilla (desde el nivel 1), las tapas que respiran (nivel 2 y 3) y el giro lento de unas pocas piezas (nivel 3). Todo pasado a imagen una vez.
+
+## El resto de la noche, primera parte (después del Pang)
+
+Jesús (23 de octubre de 2026): «según avanza la noche, el absurdo y visualmente el juego tiene que volverse loquísimo; el bar también tiene que transformarse y tiene que haber cambios de plano, la cámara [...] sobre todo la parte final». Orden del capítulo a partir del Pang: **Pang (Fran) → Alacant Sun (Pablo) → Space Invaders (Chuchi) → Vero se traga a Fran → Street Fighter (Guille) → la última canción → Nevada**. Hecho hasta Alacant Sun y el despertar de Pablo; el resto está marcado con `// RESTO:` en `elRestoDeLaNoche` (`src/capitulos/capitulo2.ts`).
+
+1. **Fran despierta en el bar 4** y cuenta el dragón (Usera, su piso, Las Vegas, La Penúltima). Los demás no le creen. Cortes y planos inclinados.
+2. **La tragaperras gira sola** (la cámara viaja hasta el fondo del pasillo) y **para en la cara de Pablo**, las tres ruedas, y se apaga. `mostrarTragaperras(root, { premio: false, cara: 'pablo' })`; el guion `GuionTragaperras.apagon` apaga las bombillas y funde a negro.
+3. **Bar 5, el Brío del revés.** Vuelve el narrador del capítulo 1: la sombra de Pablo se despega de sus pies. «Esta historia la acabo yo.»
+4. **La pantalla se pixela y se encoge hasta entrar en la consola** (`src/juego/pixelado.ts`, `entrarEnConsola`): el revés de la salida de Alacant Sun. Una instantánea del bar con los personajes (`Motor.instantanea`), un canvas pequeño que baja de resolución a golpes y una animación CSS que lo encoge, aplastado, sobre la pantalla de la consola, que esperaba debajo.
+5. **Alacant Sun** (`jugarSol(root, { sonido })`, lanzado como el Pang: `g.pausado` y `minijuegoSuperado('sol')`; `'saltado'` y `'cancelado'` siguen igual). Al acabar, la consola se encoge y vuelve el bar.
+6. **Pablo abre los ojos** en el bar («La vida es sueño...») con la cámara loca, y vendrían los demás juegos antes del «Continuará».
+
+Hueco para los primeros planos en estilo anime (otra prueba en curso): `// ANIME:` en `c2.noche.narrador` (texto) y en `src/juego/camara.ts` (una marca `@anime`).
+
+### La cámara loca (`src/juego/camara.ts`)
+
+Una sola transformación CSS sobre `Motor.escenario` (el contenedor de los lienzos y los personajes): nada de filtros por fotograma ni SVG dibujado de nuevo; el bucle (solo mientras algo se mueve) va a 60 fps como mucho y la transformación se quita en un plano normal. La interfaz (diálogo, selector) no se inclina. Desde el guion: `g.plano.holandes(10, 600)`, `await g.plano.barrido('pablo')`... Desde los textos, líneas que empiezan por `@` entre dos de diálogo:
+
+| Marca | Qué hace |
+|---|---|
+| `@holandes 10 600` | Plano holandés: 10 grados, en 600 ms (`@nivelar` lo endereza) |
+| `@zoom pablo 2.4` | Zoom de golpe a la cara de alguien o a una zona (`@zoom tragaperras 1.8`); con ms, empujón lento |
+| `@corte chuchi 2.6 -7` | Corte seco a otro encuadre, con inclinación; `@corte general` vuelve al plano abierto |
+| `@contrapicado 14` | Contrapicado (`@picado` al revés) |
+| `@barrido vero 1.8` | Barrido: el plano se va en rayas y vuelve sobre Vero; espera a aterrizar |
+| `@temblor 14 700` | Sacudida que se apaga en 700 ms |
+| `@foco tragaperras` | La cámara de verdad viaja hasta ahí (el bar 4 es más largo que la pantalla) y espera; `@foco libre` |
+| `@espera 400` | Espera |
+
+### Los bares 4 y 5 (`escena(4)` y `escena(5)`)
+
+Mismas zonas y mismos puntos que los demás (las zonas y los sitios se mueven con las piezas), horneados una vez, sin filtros.
+
+- **Bar 4, el pasillo.** Mide 5 700 (los demás, 3 000): el centro del bar (estantería, porra, barra, taburetes, tubos y lámparas) se repite tres veces; la puerta y la máquina de tabaco quedan en un extremo y la tele, la tragaperras y el baño en el otro. La barra no se acaba: cinco módulos que salen de la escena por los dos lados. **El suelo está inclinado** (cizalla vertical, `INCL`): todo lo estático se inclina y, para que los pies sigan en el suelo, el motor levanta a los personajes con `Escena.pendiente` (`Motor.alzada`; los toques sobre el suelo y la cámara loca lo tienen en cuenta). Paleta ácida (`pasillo`).
+- **Bar 5, del revés.** La pared está volteada (el techo abajo, los azulejos arriba), la barra, los taburetes y las botellas cuelgan del techo (capa `colgante`), las lámparas de techo son lámparas de pie y el suelo que pisan es un techo de escayola con sus fluorescentes. Paleta del revés (`reves`: luces oscuras, oscuros claros, tonos opuestos).
+- Las piezas vivas (`src/capitulos/bar-vivo.ts`) siguen a su copia de la pared: `desp` (dónde está cada copia), `inclina` (la pendiente) y `volteo`.
+- Al subir a estos niveles los cuatro vuelven a sus sitios de la barra (los bares tienen tamaños distintos).
 
 ## Minijuegos y piezas a pantalla completa
 
@@ -61,4 +98,4 @@ Con `?capitulo2` en la dirección se juega el capítulo 2 desde el principio, co
 
 ## Rendimiento
 
-`node scripts/rendimiento.mjs bar canas canto tragaperras pang` (con `PUERTO=` si el servidor no está en el 5173). Mismas reglas que el resto (`docs/ESTILO.md`, T5 y T6).
+`node scripts/rendimiento.mjs bar canas canto tragaperras pang`; el bloque `bar` mide también los niveles 4 y 5, y `tragaperras` la cara de Pablo con el apagón (con `PUERTO=` si el servidor no está en el 5173). Mismas reglas que el resto (`docs/ESTILO.md`, T5 y T6).

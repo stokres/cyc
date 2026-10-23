@@ -8,6 +8,7 @@
 import { depth, drawLateral, hexRGB, hornear, lienzo, tirasLateral, type Escena, type Horneado, type Lateral, type Modo, type RGB, type Zona } from './escena';
 import { esquinas, RenderGL } from './gl';
 import { VIVO } from './vivo';
+import { svgABitmap } from './sprites';
 import type { Actor } from './actores';
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -122,6 +123,33 @@ export class Motor {
     this.elegirModo();
     this.resize();
     new ResizeObserver(() => this.resize()).observe(root);
+  }
+
+  /**
+   * A picture of what is on screen now, scenery and characters, once, for a transition that needs one (the
+   * pixelated shrink into the console). `ancho` is the width in pixels (the height follows).
+   * The characters are rasterised from their layer a single time here, never per frame.
+   */
+  async instantanea(ancho: number): Promise<HTMLCanvasElement> {
+    if (this.modo === 'gl') this.dibujar(); // a GL buffer can only be read in the task that drew it
+    const w0 = this.vivoF.width;
+    const h0 = this.vivoF.height;
+    const c = document.createElement('canvas');
+    c.width = Math.max(2, Math.round(ancho));
+    c.height = Math.max(2, Math.round((ancho * h0) / w0));
+    const x = c.getContext('2d')!;
+    const pon = (l: HTMLCanvasElement) => l.width > 1 && x.drawImage(l, 0, 0, c.width, c.height);
+    pon(this.back);
+    pon(this.vivoB);
+    try {
+      const xml = new XMLSerializer().serializeToString(this.svg).replace('<svg ', `<svg width="${c.width}" height="${c.height}" `);
+      x.drawImage(await svgABitmap(xml, c.width, c.height), 0, 0);
+    } catch {
+      /* without the characters */
+    }
+    pon(this.modo === 'gl' ? this.frontGL : this.front2d);
+    pon(this.vivoF);
+    return c;
   }
 
   /** The canvas behind the characters that is on screen now. */

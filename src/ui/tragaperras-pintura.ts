@@ -7,11 +7,13 @@ import { azar, elipse, lienzo, suave } from './bar-pintura';
 
 // ---------------------------------------------------------------- the slot machine
 
-export type Simbolo = 'siete' | 'cereza' | 'campana' | 'limon' | 'diamante' | 'estrella' | 'cerdo';
+export type Simbolo = 'siete' | 'cereza' | 'campana' | 'limon' | 'diamante' | 'estrella' | 'cerdo' | 'cara';
 /** The symbols on each reel, top to bottom, in the trailer; the jackpot is three sevens. */
 export const SIMBOLOS_TRAILER: readonly Simbolo[] = ['siete', 'cereza', 'campana', 'limon', 'diamante', 'estrella'];
 /** The close-up's reels have the pig too (and a lemon and a bell to land on). */
 export const SIMBOLOS_CERCA: readonly Simbolo[] = ['siete', 'cereza', 'campana', 'limon', 'diamante', 'estrella', 'cerdo'];
+/** The close-up's reels with a face among the symbols (the night's last spin: the machine stops on a friend). */
+export const SIMBOLOS_CARA: readonly Simbolo[] = [...SIMBOLOS_CERCA, 'cara'];
 /** Symbols a second while a reel spins. */
 const GIRO = 16;
 
@@ -26,6 +28,8 @@ export interface GuionTragaperras {
   premio: number | null;
   monedas: number;
   pasoMonedas: number;
+  /** When the machine dies (seconds): the bulbs go out and the picture fades to black over 0.8 s. None: it never does. */
+  apagon?: number;
 }
 
 /** The trailer's: on the beat, the third reel on the jackpot (three sevens). */
@@ -160,7 +164,7 @@ function simbolo(x: CanvasRenderingContext2D, que: Simbolo, cx: number, cy: numb
  * the reels' strip (the six symbols, once more at the end so it wraps); the glass over the
  * reels, darker at the top and bottom, with the pay line.
  */
-export function pintarTragaperras(W: number, H: number, dpr: number, simbolos: readonly Simbolo[] = SIMBOLOS_TRAILER): Tragaperras {
+export function pintarTragaperras(W: number, H: number, dpr: number, simbolos: readonly Simbolo[] = SIMBOLOS_TRAILER, cara: HTMLCanvasElement | null = null): Tragaperras {
   const [maquina, x] = lienzo(W, H, dpr);
   const fondo = x.createRadialGradient(W / 2, H * 0.5, H * 0.2, W / 2, H * 0.5, W * 0.7);
   fondo.addColorStop(0, '#2a0e1e');
@@ -247,7 +251,13 @@ export function pintarTragaperras(W: number, H: number, dpr: number, simbolos: r
   marfil.addColorStop(1, '#cfc6b0');
   t.fillStyle = marfil;
   t.fillRect(0, 0, rw, celda * (n + 1));
-  for (let k = 0; k <= n; k++) simbolo(t, simbolos[k % n], rw / 2, celda * (k + 0.5), celda * 0.9, cerca);
+  for (let k = 0; k <= n; k++) {
+    const que = simbolos[k % n];
+    if (que === 'cara') {
+      // A friend's face in its round frame, as a bitmap made before (src/ui/fichas.ts); an empty cell until it is there.
+      if (cara) t.drawImage(cara, rw / 2 - celda * 0.46, celda * (k + 0.5) - celda * 0.46, celda * 0.92, celda * 0.92);
+    } else simbolo(t, que, rw / 2, celda * (k + 0.5), celda * 0.9, cerca);
+  }
 
   // The glass: shade at the top and bottom of the drum, the gaps between reels, the pay line.
   const [cristal, g] = lienzo(vw, vh, dpr);
@@ -350,7 +360,7 @@ export function dibujarTragaperras(x: CanvasRenderingContext2D, W: number, H: nu
   }
   // The marquee's bulbs: chasing round while it spins, all flashing on the jackpot.
   m.bombillas.forEach(([bx, by], k) => {
-    const on = premio ? (Math.floor((s - t0) * 12) + k) % 2 === 0 : (k + Math.floor(s * 14)) % 4 === 0;
+    const on = g.apagon !== undefined && s >= g.apagon ? false : premio ? (Math.floor((s - t0) * 12) + k) % 2 === 0 : (k + Math.floor(s * 14)) % 4 === 0;
     elipse(x, bx, by, H * 0.012, H * 0.012, on ? '#fff0b0' : '#6a4a2a');
     if (on && premio && k % 3 === 0) elipse(x, bx, by, H * 0.024, H * 0.024, 'rgba(255,220,120,0.25)');
   });
@@ -368,5 +378,11 @@ export function dibujarTragaperras(x: CanvasRenderingContext2D, W: number, H: nu
     }
   }
   x.restore();
+  // It dies: everything goes dark, slowly, with a last flicker of the marquee.
+  if (g.apagon !== undefined && s >= g.apagon) {
+    const u = Math.min(1, (s - g.apagon) / 0.8);
+    x.fillStyle = `rgba(0,0,0,${(u * u * (3 - 2 * u)).toFixed(3)})`;
+    x.fillRect(0, 0, W, H);
+  }
 }
 

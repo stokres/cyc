@@ -1,7 +1,10 @@
 // Plays the start of chapter 2 once, from the Brío's door to «Continuará…» (docs/CAPITULO2.md), on a
 // phone-sized viewport and by touch, like a player: the round (the beers minigame, skipped after two
 // misses), the slot machine (Chuchi, Guille), the duro, the fresquitos (Pablo's two wrong lines first),
-// the spin, the chant (skipped) and the Pang (closed with ×). Screenshots of each level of the night.
+// the spin, the chant (skipped) and the Pang (closed with ×). Then the rest of the night (first part): Fran wakes in
+// the long bar (bar4) and tells the dragon, the slot machine spins alone and stops on Pablo's face, the bar turns
+// upside down (bar5), the narrator takes over, the picture is squeezed into the console of Alacant Sun (which is
+// skipped, closed with window.__sol().cerrar()) and Pablo opens his eyes. Screenshots of each level of the night.
 // Fails on any console error or if a step does not do what it should.
 // Usage: node scripts/capitulo2.mjs [url] [outDir]   (against npm run dev; the url gets ?capitulo2&nueva)
 import { chromium } from 'playwright';
@@ -27,6 +30,10 @@ const wait = (ms) => page.waitForTimeout(ms);
 const flag = (k) => page.evaluate((k) => !!window.__cyc.g.estado.flags[k], k);
 const check = (ok, msg) => ok || errors.push('PASO FALLIDO: ' + msg);
 
+/** Screenshots to take when a line of the dialogue shows (a piece of its text, the name of the file): the camera has time to land. */
+const fotos = [];
+const fotoAl = (trozo, nombre) => fotos.push([trozo, nombre]);
+
 /** Tap through dialogue until the running script ends, or a choice or a full-screen piece comes up. */
 async function charla() {
   let last = '';
@@ -49,7 +56,15 @@ async function charla() {
     }
     if (s.d !== null) {
       const t = s.d.replace(/\s*▸\s*$/, '').replace(/\n/g, ' · ');
-      if (t !== last) console.log('   »', t);
+      if (t !== last) {
+        console.log('   »', t);
+        const i = fotos.findIndex(([trozo]) => t.includes(trozo));
+        if (i >= 0) {
+          await wait(900);
+          await shot(fotos[i][1]);
+          fotos.splice(i, 1);
+        }
+      }
       last = t;
       await page.touchscreen.tap(420, 150);
       continue;
@@ -236,6 +251,16 @@ await paso('El duro, la tirada, el canto y el premio', async () => {
 }, 'c2.premio');
 check((await nivel()) === 3, 'tras el premio la noche no está en el nivel 3');
 
+fotoAl('Dos minutos de dragón', 'noche-fran-dragon-corte');
+fotoAl('Yo te creo lo del cerdo', 'noche-chuchi-cerdo-inclinado');
+fotoAl('¿Por qué la barra no se acaba', 'noche-bar4-contrapicado');
+fotoAl('Esa cara', 'noche-pablo-cara-cerca');
+fotoAl('Los taburetes están en el techo', 'noche-bar5-reves');
+fotoAl('Qué escena tan bonita', 'noche-narrador');
+fotoAl('Esta historia la acabo yo', 'noche-narrador-final');
+fotoAl('La vida es sueño', 'noche-pablo-despierta');
+fotoAl('seguimos del revés', 'noche-bar5-cierre');
+
 await paso('Fran cierra los ojos: el Pang', async () => {
   await page.waitForSelector('.cubierta.minijuego.pang', { timeout: 30000 });
   await wait(1200);
@@ -244,11 +269,51 @@ await paso('Fran cierra los ojos: el Pang', async () => {
   await shot('pang');
   await page.click('.cubierta.minijuego.pang .cerrar');
   await page.waitForSelector('.cubierta.minijuego.pang', { state: 'detached', timeout: 10000 });
-  await page.waitForSelector('.dialogo', { timeout: 10000 }).catch(() => {});
-  await wait(800);
-  await shot('bar3');
+  await page.waitForFunction(() => window.__cyc.g.escena === 'bar4', null, { timeout: 40000 });
   await charla();
 }, 'c2.pang');
+check((await nivel()) === 4, 'tras el Pang la noche no está en el nivel 4');
+await shot('bar4');
+
+await paso('La tragaperras gira sola y para en la cara de Pablo', async () => {
+  await page.waitForSelector('.cubierta.tragaperras', { timeout: 40000 });
+  // The face lands with the last reel (2.4 s) and the machine dies at 3.1 s.
+  await wait(2750);
+  await shot('noche-maquina-cara-pablo');
+  await wait(900);
+  await shot('noche-maquina-apagada');
+  await page.waitForSelector('.cubierta.tragaperras', { state: 'detached', timeout: 10000 });
+  await charla();
+  await page.waitForFunction(() => window.__cyc.g.escena === 'bar5', null, { timeout: 40000 });
+  await charla();
+});
+check((await nivel()) === 5, 'tras la tragaperras la noche no está en el nivel 5');
+await shot('bar5');
+
+await paso('El narrador, la consola y Alacant Sun', async () => {
+  // The pixelated shrink: a few pictures on the way, then the console.
+  await page.waitForSelector('.pixelado', { timeout: 60000 });
+  await wait(250);
+  await shot('noche-consola-pixeles');
+  await wait(650);
+  await shot('noche-consola-encoge');
+  await page.waitForSelector('.sol-capa', { timeout: 20000 });
+  await page.waitForSelector('.pixelado', { state: 'detached', timeout: 20000 });
+  await wait(1500);
+  await shot('noche-consola-sol');
+  check(await page.evaluate(() => !!window.__sol), 'Alacant Sun no arranca');
+  // Alacant Sun is not played here: closed from the hook, the story goes on.
+  await page.evaluate(() => window.__sol().cerrar());
+  await page.waitForSelector('.sol-capa', { state: 'detached', timeout: 10000 });
+  await charla();
+});
+await paso('Pablo abre los ojos', async () => {
+  await wait(500);
+  await charla();
+});
+check(!(await page.$('.pixelado')), 'se queda la capa del pixelado');
+await shot('bar5-final');
+
 await paso('Continuará', async () => {
   // «Continuará…» goes with a tap; then the end card.
   for (let i = 0; i < 60 && !(await page.$('#fin-seguir')); i++) {

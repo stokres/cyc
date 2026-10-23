@@ -151,12 +151,13 @@ if (toca('calle')) {
   await medir('calle, Fran andando', paseo(5600, 7600, 900));
 }
 if (toca('bar')) {
-  // The Bar del Brío inside, level 0 (as it always is) and level 3 (warped, the dragon and the spinning pieces),
-  // with the four friends in their places and then one of them walking along the counter.
-  const preparar = (n) => ir(`bar${n}`, `e.final = true; e.activo = 'fran'; ${['chuchi', 'pablo', 'fran', 'guille'].map((id, i) => `e.donde.${id} = { escena: 'bar${n}', X: ${1250 + i * 250}, y: 930, face: ${i < 2 ? 1 : -1} }`).join('; ')}`, `
+  // The Bar del Brío inside, level 0 (as it always is), level 3 (warped, the dragon and the spinning pieces),
+  // level 4 (the corridor with no end and the sloping floor) and level 5 (upside down), with the four friends in
+  // their places and then one of them walking along the counter.
+  const preparar = (n) => ir(`bar${n}`, `e.final = true; e.activo = 'fran'; ${['chuchi', 'pablo', 'fran', 'guille'].map((id, i) => `e.donde.${id} = { escena: 'bar${n}', X: ${(n === 4 ? 2600 : 1250) + i * 250}, y: 930, face: ${i < 2 ? 1 : -1} }`).join('; ')}`, `
     const { escena } = await import('/src/arte/escenas/bar.mjs');
     const { dibujarBarVivo } = await import('/src/capitulos/bar-vivo.ts');
-    for (let k = 0; k < 4; k++) g.cap.escenas['bar' + k] = () => escena(k);
+    for (let k = 0; k < 6; k++) g.cap.escenas['bar' + k] = () => escena(k);
     if (!g.cap.__barVivo) {
       g.cap.__barVivo = true;
       const orig = g.cap.dibujar;
@@ -170,6 +171,10 @@ if (toca('bar')) {
   await medir('bar nivel 0, Fran andando', paseo(1000, 2300, 960));
   await medir('bar nivel 3, los cuatro quietos', preparar(3));
   await medir('bar nivel 3, Fran andando', paseo(1000, 2300, 960));
+  await medir('bar nivel 4, los cuatro quietos', preparar(4));
+  await medir('bar nivel 4, Fran andando', paseo(1500, 4300, 960));
+  await medir('bar nivel 5, los cuatro quietos', preparar(5));
+  await medir('bar nivel 5, Fran andando', paseo(1000, 2300, 960));
 }
 if (toca('granja')) {
   await medir('granja, Guille quieto con moscas', ir('granja', `e.final = false; for (const id of ['fran','pablo','chuchi']) delete e.donde[id]; e.activo = 'guille'; e.donde.guille = { escena: 'granja', X: 1000, y: 890, face: 1 }`, `g.poner('g.olor')`));
@@ -370,13 +375,13 @@ if (toca('canto')) {
 if (toca('tragaperras')) {
   // Chapter 2: the slot machine up close (the painted machine, the reels scrolling, the bulbs; with the
   // jackpot, the coins pouring). Each stretch plays in a loop while it is measured.
-  for (const [nombre, premio, desde, hasta] of [['tragaperras, sin premio', false, 0, 3.6], ['tragaperras, premio y monedas', true, 2.4, 6.8]]) {
+  for (const [nombre, premio, desde, hasta, cara] of [['tragaperras, sin premio', false, 0, 3.6], ['tragaperras, premio y monedas', true, 2.4, 6.8], ['tragaperras, cara de Pablo y apagón', false, 1.2, 4.1, 'pablo']]) {
     await medir(nombre, `(async () => {
       clearInterval(window.__paseo);
       const g = window.__cyc.g;
       const { mostrarTragaperras } = await import('/src/ui/tragaperras.ts');
       g.pausado = true;
-      void mostrarTragaperras(g.root, { premio: ${premio}, sonido: g.sound, prueba: { desde: ${desde}, hasta: ${hasta} } });
+      void mostrarTragaperras(g.root, { premio: ${premio}, ${cara ? `cara: '${cara}', ` : ''}sonido: g.sound, prueba: { desde: ${desde}, hasta: ${hasta} } });
     })()`, 'tragaperras');
   }
 }

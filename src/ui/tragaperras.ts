@@ -17,7 +17,9 @@ import { h } from './hud';
 import { esVertical } from './orientacion';
 import type { SonidoMinijuego } from '../core/audio';
 import type { Pista } from '../sonido/musica';
-import { SIMBOLOS_CERCA, dibujarTragaperras, pintarTragaperras, type GuionTragaperras, type Tragaperras } from './tragaperras-pintura';
+import { crearFicha } from './fichas';
+import type { PjId } from '../juego/reparto';
+import { SIMBOLOS_CARA, SIMBOLOS_CERCA, dibujarTragaperras, pintarTragaperras, type GuionTragaperras, type Tragaperras } from './tragaperras-pintura';
 
 /** When each reel stops (seconds), the same as the sound's. */
 const PARADAS = [1.0, 1.7, 2.4];
@@ -29,6 +31,10 @@ const CERDO = SIMBOLOS_CERCA.indexOf('cerdo');
 const SIN_PREMIO: GuionTragaperras = { paradas: PARADAS, destinos: [LIMON, CAMPANA, CERDO], premio: null, monedas: 0, pasoMonedas: 0 };
 /** The jackpot: three sevens, and 110 coins, one every 32 ms (3.5 s of shower; the sound's lasts 4). */
 const CON_PREMIO: GuionTragaperras = { paradas: PARADAS, destinos: [SIETE, SIETE, SIETE], premio: PARADAS[2], monedas: 110, pasoMonedas: 0.032 };
+/** The night's last spin, alone: all three reels land on a friend's face; a moment later the machine dies. */
+const CARA = SIMBOLOS_CARA.indexOf('cara');
+const A_CARA: GuionTragaperras = { paradas: PARADAS, destinos: [CARA, CARA, CARA], premio: null, monedas: 0, pasoMonedas: 0, apagon: 3.1 };
+const FIN_CARA = 4.2;
 /** When it closes by itself (seconds): a moment after the last reel, or once the coins have fallen. */
 const FIN_SIN = 3.9;
 const FIN_PREMIO = 7.3;
@@ -38,6 +44,8 @@ const TOCABLE = 0.5;
 export interface OpcionesTragaperras {
   /** Three sevens and the shower of coins, or lemon, bell and pig. */
   premio: boolean;
+  /** Instead: the three reels stop on this friend's face and the machine goes dark (chapter 2, the end of the night). */
+  cara?: PjId;
   /** For the tests and the quick playthrough: skip it. */
   rapido?: boolean;
   /** For the sound of the reels, the bells and the coins. */
@@ -49,9 +57,10 @@ export interface OpcionesTragaperras {
 export function mostrarTragaperras(parent: HTMLElement, o: OpcionesTragaperras): Promise<void> {
   if (o.rapido) return Promise.resolve();
   const { sonido } = o;
-  const guion = o.premio ? CON_PREMIO : SIN_PREMIO;
-  const fin = o.premio ? FIN_PREMIO : FIN_SIN;
-  const pista: Pista = o.premio ? 'tragaperrasPremio' : 'tragaperrasSin';
+  const guion = o.cara ? A_CARA : o.premio ? CON_PREMIO : SIN_PREMIO;
+  const fin = o.cara ? FIN_CARA : o.premio ? FIN_PREMIO : FIN_SIN;
+  // The face spin has the clunks of the one without a prize: the same stops.
+  const pista: Pista = o.premio && !o.cara ? 'tragaperrasPremio' : 'tragaperrasSin';
   const canvas = h('canvas', { class: 'plano', 'aria-hidden': 'true' });
   const ctx = canvas.getContext('2d')!;
   const capa = h('div', { class: 'cubierta tragaperras' }, canvas);
@@ -62,6 +71,12 @@ export function mostrarTragaperras(parent: HTMLElement, o: OpcionesTragaperras):
   let H = 0;
   let dpr = 1;
   let maquina: Tragaperras | null = null;
+  let acabado = false;
+  // The face on the reels, in a round frame as big as a cell: made once the size is known.
+  let cara: HTMLCanvasElement | null = null;
+  let caraLista: Promise<unknown> = Promise.resolve();
+  const simbolos = o.cara ? SIMBOLOS_CARA : SIMBOLOS_CERCA;
+  const pintar = () => (maquina = pintarTragaperras(W, H, Math.min(dpr, 1.5), simbolos, cara));
   const medir = () => {
     const caja = capa.getBoundingClientRect();
     const w = Math.max(2, caja.width);
@@ -73,14 +88,23 @@ export function mostrarTragaperras(parent: HTMLElement, o: OpcionesTragaperras):
     dpr = d;
     canvas.width = Math.round(W * dpr);
     canvas.height = Math.round(H * dpr);
-    maquina = pintarTragaperras(W, H, Math.min(dpr, 1.5), SIMBOLOS_CERCA);
+    pintar();
+    if (o.cara) {
+      const R = Math.max(8, Math.round(H * 0.43 * 0.62 * 0.46));
+      caraLista = crearFicha(o.cara, { mood: 'neutral' }, R, Math.min(dpr, 1.5))
+        .then((f) => {
+          cara = f;
+          if (!acabado) pintar();
+        })
+        .catch(() => {});
+    }
   };
   medir();
   const ro = new ResizeObserver(medir);
   ro.observe(capa);
   // The sign is in the titles' font: painted again once it has loaded.
   void document.fonts?.load('400 32px Graduate').then(() => {
-    if (maquina) maquina = pintarTragaperras(W, H, Math.min(dpr, 1.5), SIMBOLOS_CERCA);
+    if (maquina) pintar();
   });
 
   const dibujar = (t: number) => {
@@ -91,7 +115,6 @@ export function mostrarTragaperras(parent: HTMLElement, o: OpcionesTragaperras):
   return new Promise((resolve) => {
     const desde = o.prueba?.desde ?? 0;
     let t = desde;
-    let acabado = false;
     let empezado = false;
     let ultimo = 0;
     let fotogramas = 0;
@@ -142,7 +165,7 @@ export function mostrarTragaperras(parent: HTMLElement, o: OpcionesTragaperras):
     };
     // The first frame at once; the clock starts when the sound has loaded (it is asked for in advance).
     dibujar(desde);
-    void Promise.race([sonido?.lista?.(pista) ?? Promise.resolve(), new Promise((r) => setTimeout(r, 2500))]).then(empezar);
+    void Promise.race([Promise.all([sonido?.lista?.(pista) ?? Promise.resolve(), caraLista]), new Promise((r) => setTimeout(r, 2500))]).then(empezar);
     capa.addEventListener('click', (e) => {
       e.stopPropagation();
       if (t >= TOCABLE) cerrar();

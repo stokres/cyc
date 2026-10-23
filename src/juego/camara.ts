@@ -22,7 +22,9 @@
 //   @contrapicado 14 500      low angle (looking up): 14 degrees; @picado is the opposite
 //   @barrido vero 1.8         whip pan to Vero (waits until it lands)
 //   @temblor 14 700           shake: 14 px at first, dying out in 700 ms
-//   @espera 400               waits (the only other line that makes the talk wait)
+//   @foco tragaperras         the real camera travels to a place or a person (the long bar is longer than the
+//                             screen) and the talk waits until it lands; @foco libre lets it follow whoever plays
+//   @espera 400               waits (the other line that makes the talk wait)
 //
 // Targets: fran, pablo, chuchi, guille, vero (their faces), `centro`, or the id of a zone of the
 // scene (tragaperras, tele, barra, porra...). The `// ANIME:` hook in capitulo2.ts is where the
@@ -51,7 +53,7 @@ interface Encuadre {
 
 const PLANO: Encuadre = { z: 1, r: 0, rx: 0, sk: 0, fx: 0.5, fy: 0.5, tx: 0.5, ty: 0.5, ox: 0 };
 const CLAVES = Object.keys(PLANO) as Array<keyof Encuadre>;
-const PERSPECTIVA = 1100;
+const PERSPECTIVA = 560;
 
 const suave = (u: number) => u * u * (3 - 2 * u);
 const sale = (u: number) => 1 - (1 - u) ** 3;
@@ -184,6 +186,23 @@ export class Camara {
     await this.ir(a, 260, sale);
   }
 
+  /** The scene's own camera to a target (a person or a zone), waiting until it lands; `libre`: it follows whoever plays again. */
+  async foco(objetivo: string) {
+    const g = this.g;
+    if (objetivo === 'libre') {
+      g.foco = null;
+      return;
+    }
+    const a = g.pjs.get(objetivo as never) ?? g.npcs.get(objetivo as never);
+    const X = a ? a.X : g.S?.zonas[objetivo]?.X;
+    if (X === undefined) return;
+    g.foco = X;
+    if (g.rapido) return void g.motor.seguir(X, true);
+    const t0 = performance.now();
+    await g.esperar(150);
+    while (g.motor.camaraMoviendose && performance.now() - t0 < 5000) await g.esperar(100);
+  }
+
   /** Back to a plain shot. */
   reset(ms = 0) {
     this.temblor = null;
@@ -233,6 +252,9 @@ export class Camara {
         break;
       case 'espera':
         await this.espera(n(0, 300));
+        break;
+      case 'foco':
+        await this.foco(a[0] ?? 'libre');
         break;
       default:
         console.error(`[cámara] marca desconocida «@${p.join(' ')}»`);
@@ -310,7 +332,7 @@ export class Camara {
     }
     // Zoom enough that the roll and the tilt never show the edge of the picture.
     const ang = (Math.abs(e.r) * Math.PI) / 180;
-    const cubre = Math.cos(ang) + Math.sin(ang) * Math.max(W / Hh, Hh / W) + Math.abs(e.rx) * 0.016 + Math.abs(e.sk) * 0.006;
+    const cubre = Math.cos(ang) + Math.sin(ang) * Math.max(W / Hh, Hh / W) + Math.abs(e.rx) * 0.03 + Math.abs(e.sk) * 0.006;
     const z = Math.max(e.z, cubre);
     const r = (e.r * Math.PI) / 180;
     const sk = Math.tan((e.sk * Math.PI) / 180);
