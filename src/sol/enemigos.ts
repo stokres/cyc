@@ -236,7 +236,7 @@ export const ENEMIGOS: Record<string, DefEnemigo> = {
   // ---- the boss: the narrator, Pablo's shadow, in two phases (combate.ts changes `narrador` for `narrador2` when it
   // falls below half its health; the health is carried over, so `pv` of phase 2 is the whole bar's maximum).
   narrador: {
-    id: 'narrador', pintor: 'narrador', paleta: 0, el: null, pv: 520, atk: 27, def: 12, agi: 13, exp: 150, monedas: 0, flota: 4, frames: 2, jefe: true,
+    id: 'narrador', pintor: 'narrador', paleta: 0, el: null, pv: 700, atk: 29, def: 12, agi: 13, exp: 150, monedas: 0, flota: 4, frames: 2, jefe: true,
     ataques: [
       { id: 'tachon', tipo: 'golpe', pot: 1.1, peso: 3, fx: 'tachon' },
       { id: 'cambio', tipo: 'todos', pot: 0.62, peso: 3, fx: 'cambio' },
@@ -245,7 +245,7 @@ export const ENEMIGOS: Record<string, DefEnemigo> = {
     ],
   },
   narrador2: {
-    id: 'narrador2', pintor: 'narrador', paleta: 1, el: null, pv: 520, atk: 30, def: 14, agi: 15, exp: 150, monedas: 0, flota: 4, frames: 2, jefe: true, veces: 2,
+    id: 'narrador2', pintor: 'narrador', paleta: 1, el: null, pv: 700, atk: 33, def: 14, agi: 15, exp: 150, monedas: 0, flota: 4, frames: 2, jefe: true, veces: 2,
     ataques: [
       { id: 'final', tipo: 'todos', pot: 0.62, peso: 3, fx: 'final' },
       { id: 'spoiler', tipo: 'perfora', pot: 1.2, peso: 3, fx: 'spoiler' },

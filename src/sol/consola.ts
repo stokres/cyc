@@ -65,6 +65,8 @@ export interface Consola {
   escala: () => number;
   /** R lights up (a hint that the power can be used now). */
   resaltarR(si: boolean): void;
+  /** The whole console shrinks to a point and goes out (the end of the game: the screen «returns to its size»). Resolves when it is gone. */
+  encoger(seg: number): Promise<void>;
   destruir(): void;
 }
 
@@ -331,6 +333,25 @@ export function crearConsola(root: HTMLElement, textos: { marca: string; modelo:
     saltar,
     escala: () => k,
     resaltarR: (si) => bR.classList.toggle('sol-lista', si),
+    encoger: (seg) =>
+      new Promise<void>((fin) => {
+        if (typeof capa.animate !== 'function') {
+          capa.style.display = 'none';
+          return fin();
+        }
+        capa.style.pointerEvents = 'none';
+        const a = capa.animate(
+          [
+            { transform: 'scale(1)', opacity: 1, offset: 0 },
+            { transform: 'scale(0.46)', opacity: 1, offset: 0.55 },
+            { transform: 'scale(0.04)', opacity: 0.9, offset: 0.92 },
+            { transform: 'scale(0)', opacity: 0, offset: 1 },
+          ],
+          { duration: Math.max(50, seg * 1000), easing: 'cubic-bezier(.55,.05,.35,1)', fill: 'forwards' },
+        );
+        a.onfinish = () => fin();
+        a.oncancel = () => fin();
+      }),
     destruir() {
       removeEventListener('keydown', abajo);
       removeEventListener('keyup', arriba);

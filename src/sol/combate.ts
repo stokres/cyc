@@ -18,7 +18,9 @@
 //    state of the prompters («apuntadores»). After a victory the friends who were down stand up with 1 PV.
 //  - After a defeat everybody is at 0 PV: the world decides (an inn, a game over); `descansar(grupo)` heals all.
 //  - `enemigos` are ids of ENEMIGOS (enemigos.ts), one to five; `sinHuida: true` for a boss.
-//  - `fondo` is a FondoCombate (fondo.ts); only 'campo' exists now.
+//  - `fondo` is a FondoCombate (fondo.ts): 'campo', 'teatro' (the corridors) or 'escenario' (the stage).
+//  - A `jefe` enemy (enemigos.ts, the narrator) makes it a boss fight: his own music, two phases (he changes shape below half his
+//    health), the «script moment» (he writes «Y entonces los cuatro perdieron» and only Calderón can end it) and a page-burst death.
 //  - The fight swirls in from whatever the screen last showed (draw the world once before starting), stops
 //    the world's music and puts back the track it found when it ends. Texts: src/textos/sol.md (combate.*).
 //  - The window of the fight takes the buttons while `activo`; the world must not read them.
@@ -30,12 +32,16 @@ import { texto } from '../juego/textos';
 import { type Mandos } from './consola';
 import { dibujarRemolino, easeInOut, easeOut, limitar, Numeros, Particulas, blanco, type TipoNumero } from './efectos';
 import * as FX from './efectosPoderes';
+import { fxApagon, fxEnemigoTodos, fxEnemigoUno } from './efectosTeatro';
+import { fxJefeTodos, fxJefeUno, fxTransformar, textoGrande } from './efectosJefe';
+import { fxCalderon } from './calderon';
+import { paginaGrande } from './jefeArte';
 import type { Donde, Escena, OpcionesAnim, Punto } from './efectosPoderes';
 import { ENEMIGOS, siluetaEnemigo, spriteEnemigo, type AtaqueEnemigo, type DefEnemigo, MECHA_PETARDO } from './enemigos';
 import { anchoTexto, escribir } from './fuente';
 import { dibujarFondo, type FondoCombate } from './fondo';
 import {
-  AMIGOS, ajustar, darExp, eficacia, expTotal, statsDe, vivo, type ApuntadorGrupo, type Elemento, type Grupo, type Miembro,
+  AMIGOS, ajustar, darApuntador, darExp, eficacia, expTotal, statsDe, vivo, type ApuntadorGrupo, type Elemento, type Grupo, type Miembro,
   type SubidaDeNivel,
 } from './grupo';
 import { apuntador as imgApuntador, escudito, flechita, iconoOrden, ORDENES, type Orden } from './iconos';
@@ -48,7 +54,8 @@ import {
   apuntadorPorId, INVOCACIONES, OBJETOS, poderesDe, TURNOS_RECUPERA, VECINOS, type Invocacion, type Objeto, type Poder,
 } from './poderes';
 import {
-  EFECTO_CAE, EFECTO_ENCUENTRO, EFECTO_GOLPE, EFECTO_HUIR, EFECTO_MENU, PISTA_COMBATE, PISTA_NIVEL, PISTA_VICTORIA, type SonidoSol,
+  EFECTO_APUNTADOR, EFECTO_CAE, EFECTO_ENCUENTRO, EFECTO_GOLPE, EFECTO_HUIR, EFECTO_MENU, EFECTO_TELON, EFECTO_TEXTO, PISTA_CALDERON, PISTA_COMBATE, PISTA_JEFE,
+  PISTA_NIVEL, PISTA_VICTORIA, type SonidoSol,
 } from './sonido';
 
 export type ResultadoCombate = 'victoria' | 'derrota' | 'huida';
@@ -83,6 +90,8 @@ export interface EstadoCombate {
   monedas: number;
   camara: number;
   resultado: ResultadoCombate | null;
+  /** The boss fight: his phase (1 or 2), how the script goes ('no' | 'abierto') and whether Calderón is on offer; null without a boss. */
+  jefe: { fase: 1 | 2; guion: string; calderon: boolean; pv: number; pvMax: number } | null;
 }
 
 // ---------------------------------------------------------------- geometry of the field
@@ -94,6 +103,16 @@ const CENTRO_ENEMIGOS = 0.6;
 /** Where the friends stand (feet), from the leader in front to the last one at the back, on a diagonal. */
 const FILA_AMIGOS = [{ x: 108, y: 119 }, { x: 85, y: 111 }, { x: 62, y: 103 }, { x: 39, y: 95 }];
 const CAJA_Y = 123;
+/** The boss changes shape with this share of his health left. */
+const UMBRAL_TRANSFORMA = 0.5;
+/** ...and breaks his own script («Y entonces los cuatro perdieron») with this share. */
+const UMBRAL_GUION = 0.12;
+/** Seconds the boss takes to fall apart into pages. */
+const MUERTE_JEFE = 2.4;
+/** The four prompters the script hands out if the party lacks any of them: id and the friend who gets it. */
+const APUNTADORES_GUION: Array<[string, Amigo]> = [['chist', 'pablo'], ['ejem', 'chuchi'], ['psst', 'fran'], ['shhh', 'guille']];
+/** Frames per second of each painter's idle animation. */
+const RITMO: Record<string, number> = { mosquito: 14, movil: 7, petardo: 5, foco: 6, butaca: 4, tramoyista: 3, programa: 12, narrador: 2 };
 
 interface Heroe {
   lado: 'heroe';
@@ -206,6 +225,14 @@ export class Combate implements Escena {
   private readonly heroes: Heroe[];
   private readonly enemigos: Enemigo[];
   private readonly musicaPrevia: SonidoSol['actual'];
+  private readonly fondoBase: FondoCombate;
+  /** Another set shown for a while (the boss's «Cambio de guion»). */
+  private fondoTemp: FondoCombate | null = null;
+  /** The boss, if there is one. */
+  private readonly jefe: Enemigo | null;
+  private transformado = false;
+  /** 'no' until the script moment; 'abierto' after it (the boss cannot fall to anything but Calderón). */
+  private guion: 'no' | 'abierto' = 'no';
 
   private t = 0;
   private fase = 'entrada';
@@ -242,6 +269,7 @@ export class Combate implements Escena {
     this.sinHuida = !!o.sinHuida;
     this.VEL = o.rapido ? 4 : 1;
     this.musicaPrevia = o.sonido.actual;
+    this.fondoBase = o.fondo ?? 'campo';
     this.dialogo = new Dialogo(o.sonido, (q) => nombreAmigo(q as Amigo));
     this.heroes = o.grupo.miembros.map((m, i) => ({
       lado: 'heroe', m, idx: i, angulo: Math.PI + 0.35 + i * 0.34, pose: 'quieto', tPose: 0, frameFijo: -1, dx: 0, dy: 0, flash: 0, defiende: false,
@@ -256,8 +284,8 @@ export class Combate implements Escena {
         lado: 'enemigo',
         def: d,
         idx: i,
-        angulo: centro + (i - (n - 1) / 2) * sep,
-        radio: i % 2 ? 0.84 : 1,
+        angulo: d.jefe ? 0 : centro + (i - (n - 1) / 2) * sep,
+        radio: d.jefe ? 1 : i % 2 ? 0.84 : 1,
         pv: d.pv,
         pvMax: d.pv,
         vivo: true,
@@ -267,6 +295,9 @@ export class Combate implements Escena {
         dy: 0,
       };
     });
+    this.jefe = this.enemigos.find((e) => e.def.jefe) ?? null;
+    // the summon's music is fetched while the fight goes on, so that it starts on its beat
+    if (this.jefe) void o.sonido.lista(PISTA_CALDERON);
     // a friend who comes in already down stays down
     for (const h of this.heroes) if (h.m.pv <= 0) this.ponerPose(h, 'caido');
     this.resultado = this.correr();
@@ -291,12 +322,16 @@ export class Combate implements Escena {
   ocultarUI(si: boolean) {
     this.ui.oculta = si;
   }
+  fondo(f: FondoCombate | null) {
+    this.fondoTemp = f;
+  }
 
   // ------------------------------------------------------------ positions
 
   private pies(l: Luchador): Punto {
     if (l.lado === 'enemigo') {
       const a = l.angulo - this.cam.th;
+      if (l.def.jefe) return { x: 150 + 30 * Math.sin(a) + l.dx, y: 104 - 5 * Math.cos(a) + l.dy };
       return { x: PE.x + PE.rx * l.radio * Math.sin(a) + l.dx, y: PE.y - PE.ry * l.radio * Math.cos(a) + l.dy };
     }
     // the four stand on a diagonal (the leader nearest, in front); the camera's turn moves them along the ring
@@ -378,7 +413,8 @@ export class Combate implements Escena {
       if (e.flash > 0) e.flash -= dt;
       if (e.muriendo >= 0) {
         e.muriendo += dt;
-        if (e.muriendo > 0.9) e.vivo = false;
+        if (e.def.jefe && e.vivo && e.muriendo < MUERTE_JEFE - 0.5) this.paginasDeMuerte(e, dt);
+        if (e.muriendo > (e.def.jefe ? MUERTE_JEFE : 0.9)) e.vivo = false;
       }
     }
   }
@@ -461,7 +497,7 @@ export class Combate implements Escena {
           if (this.snap) dibujarRemolino(g, this.snap, t / 1.55);
         },
       });
-      this.sonido.musica(PISTA_COMBATE);
+      this.sonido.musica(this.pistaDeCombate());
       // the scene comes in from the black, with the camera swinging round to the front
       this.cam.th = 0.95;
       this.cam.obj = 0;
@@ -676,7 +712,8 @@ export class Combate implements Escena {
   }
 
   private invocacionesPosibles(): Invocacion[] {
-    return INVOCACIONES.filter((inv) => inv.lista && this.apsPara(inv) !== null);
+    // Calderón is offered only after the boss's script moment
+    return INVOCACIONES.filter((inv) => (inv.lista || (inv.id === 'calderon' && this.guion === 'abierto')) && this.apsPara(inv) !== null);
   }
   /** The prompters «en espera» that would pay a summon, or null if they are not there. */
   private apsPara(inv: Invocacion): ApuntadorGrupo[] | null {
@@ -939,7 +976,12 @@ export class Combate implements Escena {
         if (o.tipo === 'defender') h.defiende = true;
       }
     }
-    for (const e of this.enemigos) if (e.vivo && e.pv > 0) acciones.push({ actor: e, orden: null, p: this.prioridad(null, e.def.agi) });
+    for (const e of this.enemigos) {
+      if (!e.vivo || e.pv <= 0) continue;
+      acciones.push({ actor: e, orden: null, p: this.prioridad(null, e.def.agi) });
+      // some act more than once in a round (the second time half way through it)
+      for (let k = 1; k < (e.def.veces ?? 1); k++) acciones.push({ actor: e, orden: null, p: this.prioridad(null, e.def.agi) * 0.45 });
+    }
     acciones.sort((a, b) => b.p - a.p);
     this.cam.rapida = 4;
     await this.espera(0.25);
@@ -957,6 +999,8 @@ export class Combate implements Escena {
       this.cam.obj = 0;
       if (!this.objetivosEnemigos().length) return this.victoria();
       if (!this.heroes.some((h) => vivo(h.m))) return this.derrota();
+      // the boss changes shape, or breaks his own script: the round stops there
+      if (await this.revisarJefe()) break;
     }
     // end of the round: a little IP back, the prompters that were coming back, the guards down
     for (const h of this.heroes) {
@@ -983,7 +1027,7 @@ export class Combate implements Escena {
   }
 
   private async esperarBajas() {
-    if (this.enemigos.some((e) => e.muriendo >= 0 && e.vivo)) await this.espera(0.95);
+    if (this.enemigos.some((e) => e.muriendo >= 0 && e.vivo)) await this.espera(this.enemigos.some((e) => e.def.jefe && e.muriendo >= 0 && e.vivo) ? MUERTE_JEFE + 0.1 : 0.95);
   }
 
   // ------------------------------------------------------------ poses and damage
@@ -1001,7 +1045,8 @@ export class Combate implements Escena {
     this.numeros.nuevo(d, tipo, c.x, c.y - this.alto(o) / 2 - 1);
     this.sonido.efecto(EFECTO_GOLPE, 0.8);
     if (o.lado === 'enemigo') {
-      o.pv = Math.max(0, o.pv - d);
+      // the boss does not fall by himself: the script keeps him at 1 until Calderón's blow
+      o.pv = Math.max(o.def.jefe && !this.golpeFinal ? 1 : 0, o.pv - d);
       o.flash = 0.32;
       if (o.pv <= 0) this.matar(o);
     } else {
@@ -1022,6 +1067,10 @@ export class Combate implements Escena {
     if (e.muriendo >= 0) return;
     e.muriendo = 0;
     this.sonido.efecto(EFECTO_CAE);
+    if (e.def.jefe) {
+      this.sacudir(4, 0.8);
+      this.destello('#ffffff', 0.7, 0.4);
+    }
   }
 
   private curar(h: Heroe, pv: number) {
@@ -1202,10 +1251,16 @@ export class Combate implements Escena {
       this.cam.obj = this.giroA(e);
       this.cam.rapida = 5;
       const objetivo = e;
+      // Shhh's gust reaches the neighbours too; Psst's cool water heals the friends who are standing
+      const objs: Enemigo[] = def.abanico ? [objetivo, ...this.vecinosDe(objetivo)] : [objetivo];
       await FX.fxApuntador(this, def.el, this.donde(h), this.donde(objetivo), () => {
-        const d = Math.max(1, Math.round((def.pot + sAntes.atk * 0.6 - objetivo.def.def * 0.3) * azar(0.93, 1.07) * eficacia(def.el, objetivo.def.el)));
-        this.herir(objetivo, d);
-      });
+        objs.forEach((x, i) => {
+          if (x.pv <= 0) return;
+          const d = Math.max(1, Math.round((def.pot + sAntes.atk * 0.6 - x.def.def * 0.3) * azar(0.93, 1.07) * eficacia(def.el, x.def.el) * (i === 0 ? 1 : VECINOS)));
+          this.herir(x, d);
+        });
+        if (def.cura) for (const amigo of this.heroes.filter((x) => vivo(x.m))) this.curar(amigo, def.cura);
+      }, def.id);
       this.ponerPose(h, 'quieto');
       await this.espera(0.2);
       return;
@@ -1236,14 +1291,21 @@ export class Combate implements Escena {
       this.ponerPose(h, 'poder');
       await this.espera(0.7);
       const vivos = this.objetivosEnemigos();
-      if (inv.fx === 'ovacion') {
-        await FX.fxOvacion(this, vivos.map((x) => this.donde(x)), (i) => {
-          const e = vivos[i];
-          if (e.pv <= 0) return;
-          const d = Math.max(1, Math.round((inv.pot + s.atk - e.def.def * 0.2) * azar(0.93, 1.07) * eficacia(inv.el, e.def.el)));
-          this.herir(e, d);
-        });
-      }
+      const dano = (i: number) => {
+        const e = vivos[i];
+        if (e.pv <= 0) return;
+        let d = Math.max(1, Math.round((inv.pot + s.atk - e.def.def * 0.2) * azar(0.93, 1.07) * eficacia(inv.el, e.def.el)));
+        const final = inv.fx === 'calderon';
+        // Calderón's blow does not leave the narrator standing
+        if (final && e.def.jefe) d = Math.max(d, e.pv);
+        this.golpeFinal = final;
+        this.herir(e, d);
+        this.golpeFinal = false;
+      };
+      const donde = vivos.map((x) => this.donde(x));
+      if (inv.fx === 'ovacion') await FX.fxOvacion(this, donde, dano);
+      else if (inv.fx === 'apagon') await fxApagon(this, donde, dano);
+      else if (inv.fx === 'calderon') await this.escenaCalderon(donde, dano);
       this.ponerPose(h, 'quieto');
       await this.espera(0.3);
       return;
@@ -1259,6 +1321,209 @@ export class Combate implements Escena {
       if (ob.ip) await FX.fxIP(this, this.donde(obj), () => this.darIP(obj, ob.ip!));
       await this.espera(0.2);
     }
+  }
+
+  // ------------------------------------------------------------ the boss
+
+  private pistaDeCombate() {
+    return this.jefe && this.sonido.existe(PISTA_JEFE) ? PISTA_JEFE : PISTA_COMBATE;
+  }
+  /** True only while Calderón's blow lands: the one thing that can bring the boss to 0. */
+  private golpeFinal = false;
+  private pagAcum = 0;
+
+  /** Pages thrown off the boss while he falls apart. */
+  private paginasDeMuerte(e: Enemigo, dt: number) {
+    const p = this.pies(e);
+    const img = spriteEnemigo(e.def.id);
+    this.pagAcum += dt * 38;
+    while (this.pagAcum >= 1) {
+      this.pagAcum--;
+      this.parts.nueva({
+        x: p.x + (Math.random() - 0.5) * img.width * 0.7,
+        y: p.y - e.def.flota - img.height * Math.random() * 0.9,
+        vx: (Math.random() - 0.5) * 80,
+        vy: -25 - Math.random() * 70,
+        ay: 25,
+        dura: 1.5 + Math.random() * 0.7,
+        img: paginaGrande(Math.floor(Math.random() * 3)),
+        parpadea: false,
+      });
+    }
+  }
+
+  /** After every action: below half his health the boss changes shape, and later he breaks his own script. True = the round ends. */
+  private async revisarJefe(): Promise<boolean> {
+    const j = this.jefe;
+    if (!j || !j.vivo || j.muriendo >= 0) return false;
+    if (!this.transformado && j.pv <= j.pvMax * UMBRAL_TRANSFORMA) await this.transformar(j);
+    if (this.transformado && this.guion === 'no' && j.pv <= j.pvMax * UMBRAL_GUION) {
+      await this.momentoGuion(j);
+      return true;
+    }
+    return false;
+  }
+
+  /** Phase 2: his pages whirl, the picture is swapped for the new one, and he comes back harder. */
+  private async transformar(j: Enemigo) {
+    this.transformado = true;
+    this.msg = texto('jefe.transforma');
+    this.cam.obj = this.giroA(j);
+    this.cam.rapida = 3;
+    await this.espera(0.6);
+    await fxTransformar(this, this.donde(j), () => {
+      j.def = ENEMIGOS.narrador2;
+      // he comes back with some strength, so that the second phase is a fight of its own
+      j.pv = Math.max(j.pv, Math.round(j.pvMax * 0.34));
+    });
+    this.msg = texto('jefe.transformado');
+    await this.espera(1);
+    this.msg = '';
+    this.cam.obj = 0;
+  }
+
+  /**
+   * The script moment: the narrator, cornered, writes «Y entonces los cuatro perdieron». Everybody drops to 1 PV,
+   * Pablo answers «Sí, y...», the four prompters come on standby by themselves (and the script hands out the ones the
+   * party lacks) and Calderón can be summoned.
+   */
+  private async momentoGuion(j: Enemigo) {
+    this.guion = 'abierto';
+    const frase = texto('jefe.perdieron');
+    const total = [...frase].length;
+    const T_ESCRIBE = 0.9;
+    const T_LETRAS = 2.3;
+    const T_CAE = 3.6;
+    const T_FIN = 5.4;
+    this.msg = '';
+    this.cam.obj = this.giroA(j);
+    this.cam.rapida = 3;
+    this.ocultarUI(true);
+    this.sonido.efecto(EFECTO_TELON, 1);
+    let escritas = 0;
+    const lluvia = new Particulas();
+    await this.animar(T_FIN, {
+      capa: 'tope',
+      tick: (t, dt) => {
+        lluvia.update(dt);
+        const n = Math.floor(limitar((t - T_ESCRIBE) / T_LETRAS, 0, 1) * total);
+        if (n !== escritas) {
+          escritas = n;
+          this.sonido.efecto(EFECTO_TEXTO, 0.5);
+        }
+        // the quill scribbles on him: he trembles and sheds pages
+        j.dx = t > T_ESCRIBE && t < T_CAE ? Math.round(Math.sin(t * 38)) : 0;
+        if (t > T_ESCRIBE && t < T_CAE && Math.random() < 0.3) {
+          lluvia.nueva({ x: 40 + Math.random() * 160, y: -8, vx: (Math.random() - 0.5) * 30, vy: 40 + Math.random() * 40, dura: 2.6, img: paginaGrande(Math.floor(Math.random() * 3)), parpadea: false });
+        }
+      },
+      eventos: [
+        {
+          t: T_CAE,
+          f: () => {
+            // «...perdieron»: everybody drops
+            for (const h of this.heroes) {
+              h.m.pv = 1;
+              h.pvVisto = Math.min(h.pvVisto, h.m.pv + 6);
+              this.ponerPose(h, 'caido');
+              h.flash = 0.4;
+            }
+            this.sacudir(6, 0.7);
+            this.destello('#ffffff', 0.8, 0.35);
+            this.sonido.efecto(EFECTO_CAE);
+          },
+        },
+      ],
+      draw: (g, t) => {
+        const sale = 1 - limitar((t - (T_FIN - 0.6)) / 0.6, 0, 1);
+        g.fillStyle = `rgba(10,2,18,${0.72 * easeOut(limitar(t / 0.6, 0, 1)) * sale})`;
+        g.fillRect(0, 0, 240, 160);
+        lluvia.dibujar(g);
+        // the strip of paper where the line is written
+        const a = easeOut(limitar((t - 0.3) / 0.5, 0, 1)) * sale;
+        g.globalAlpha = a;
+        g.fillStyle = '#2a0a1c';
+        g.fillRect(0, 40, 240, 50);
+        rect(g, '#ffe27a', 0, 40, 240, 1);
+        rect(g, '#ffe27a', 0, 89, 240, 1);
+        g.globalAlpha = 1;
+        const caido = t >= T_CAE;
+        const temblor = caido && t < T_CAE + 0.9 ? Math.round(Math.sin(t * 50) * 2) : 0;
+        g.globalAlpha = sale;
+        textoGrande(g, frase, escritas, 120 + temblor, 64 + (caido ? Math.min(6, Math.round((t - T_CAE) * 12)) : 0), caido ? '#ff8a8a' : '#ffffff', '#3a0a1a', 2);
+        g.globalAlpha = 1;
+      },
+    });
+    j.dx = 0;
+    this.ocultarUI(false);
+    // Pablo stirs and answers
+    const pablo = this.heroes.find((h) => h.m.q === 'pablo') ?? this.heroes[0];
+    await this.espera(0.5);
+    this.ponerPose(pablo, 'herido');
+    await this.espera(0.6);
+    this.ponerPose(pablo, 'quieto');
+    await this.dialogo.decir({ quien: pablo.m.q, texto: texto('jefe.pablo.siy') });
+    await this.dialogo.decir({ quien: 'narrador', texto: texto('jefe.narrador.no') });
+    await this.dialogo.decir({ quien: pablo.m.q, texto: texto('jefe.pablo.llama') });
+    // the script hands out the prompters the party lacks, and all four come on standby by themselves
+    for (const [id, dueno] of APUNTADORES_GUION) {
+      if (this.g.apuntadores.some((a) => a.id === id)) continue;
+      darApuntador(this.g, id, dueno);
+      this.sonido.efecto(EFECTO_APUNTADOR);
+      this.msg = texto('jefe.guion.da', { apuntador: texto(`apuntador.${id}.nombre`), quien: nombreAmigo(dueno) });
+      await this.espera(1.1);
+    }
+    this.msg = texto('jefe.apuntadores');
+    for (const [id] of APUNTADORES_GUION) {
+      const a = this.g.apuntadores.find((x) => x.id === id)!;
+      a.estado = 'espera';
+      a.turnos = 0;
+    }
+    for (const h of this.heroes) {
+      ajustar(this.g, h.m);
+      h.m.pv = 1;
+    }
+    await Promise.all(
+      this.heroes.map((h, i) =>
+        this.espera(i * 0.18).then(() => {
+          this.ponerPose(h, 'quieto');
+          return FX.fxPonerApuntador(this, AMIGOS[h.m.q].elemento, this.donde(h));
+        }),
+      ),
+    );
+    this.msg = '';
+    await this.dialogo.decir({ quien: null, texto: texto('jefe.aviso') });
+    this.cam.obj = 0;
+  }
+
+  /** What the narrator does once he has no more script: he crosses out and rewrites, and nothing happens. */
+  private async garabato(e: Enemigo) {
+    this.msg = texto('jefe.garabato');
+    this.cam.obj = this.giroA(e);
+    this.cam.rapida = 4;
+    await this.animar(1.4, {
+      tick: (t) => {
+        e.dx = Math.round(Math.sin(t * 30) * 1.5);
+        if (Math.random() < 0.35) {
+          const p = this.pies(e);
+          this.parts.nueva({ x: p.x + (Math.random() - 0.5) * 30, y: p.y - 30 - Math.random() * 30, vx: (Math.random() - 0.5) * 30, vy: -10, ay: 40, dura: 0.7, col: '#2a1040', w: 2, h: 2 });
+        }
+      },
+    });
+    e.dx = 0;
+    this.cam.obj = 0;
+    await this.espera(0.2);
+  }
+
+  /** Calderón's summon: its own music from the first beat, the whole screen, and the blow on the beat. */
+  private async escenaCalderon(donde: Donde[], dano: (i: number) => void) {
+    this.sonido.parar(0.2);
+    await this.sonido.lista(PISTA_CALDERON);
+    this.sonido.musica(PISTA_CALDERON);
+    const amigos = this.heroes.map((h) => ({ donde: this.donde(h), el: AMIGOS[h.m.q].elemento }));
+    await fxCalderon(this, amigos, donde, dano);
+    // (if he were still there, the fight goes on with its own music)
+    if (this.objetivosEnemigos().length) this.sonido.musica(this.pistaDeCombate());
   }
 
   // ------------------------------------------------------------ the actions of the enemies
@@ -1285,6 +1550,8 @@ export class Combate implements Escena {
   }
 
   private async accionEnemigo(e: Enemigo) {
+    // after the script moment the narrator can only scribble
+    if (e.def.jefe && this.guion === 'abierto') return this.garabato(e);
     const a = this.elegirAtaque(e);
     const vivos = this.heroes.filter((h) => vivo(h.m));
     if (!vivos.length) return;
@@ -1306,30 +1573,40 @@ export class Combate implements Escena {
       let h = elegir();
       this.cam.obj = 0;
       this.cam.rapida = 3;
-      // it hops forward, hits and comes back (the others stay)
+      // it hops forward, hits and comes back (the others stay); an attack with its own animation casts from where it stands
+      const salta = !a.fx || a.fx === 'mordisco';
       const ir = 0.26;
       const home = this.pies(this.sinDesvio(e));
-      await this.animar(ir, {
-        tick: (t) => {
-          const k = easeOut(limitar(t / ir, 0, 1));
-          const m = this.pies(h);
-          e.dx = (m.x - home.x) * 0.35 * k;
-          e.dy = (m.y - 28 - home.y) * 0.35 * k;
-        },
-      });
-      if (!vivo(h.m)) h = vivos.find((x) => vivo(x.m)) ?? h;
-      if (a.tipo === 'perfora') await FX.fxHaz(this, this.donde(e), this.donde(h), () => golpear(h));
-      else if (a.tipo === 'chupa') {
-        await FX.fxChupa(this, this.donde(e), this.donde(h), () => {
-          golpear(h);
-          const robo = Math.min(h.m.ip, 3);
-          if (robo > 0) {
-            h.m.ip -= robo;
-            const c = this.centro(h);
-            this.numeros.nuevo(robo, 'ip', c.x + 10, c.y - 12);
-          }
+      if (salta) {
+        await this.animar(ir, {
+          tick: (t) => {
+            const k = easeOut(limitar(t / ir, 0, 1));
+            const m = this.pies(h);
+            e.dx = (m.x - home.x) * 0.35 * k;
+            e.dy = (m.y - 28 - home.y) * 0.35 * k;
+          },
         });
-      } else await FX.fxGolpeEnemigo(this, this.donde(h), () => golpear(h));
+      }
+      if (!vivo(h.m)) h = vivos.find((x) => vivo(x.m)) ?? h;
+      const robar = () => {
+        const robo = Math.min(h.m.ip, 3);
+        if (robo > 0) {
+          h.m.ip -= robo;
+          const c = this.centro(h);
+          this.numeros.nuevo(robo, 'ip', c.x + 10, c.y - 12);
+        }
+      };
+      const impactoUno = () => {
+        golpear(h);
+        if (a.tipo === 'chupa') robar();
+      };
+      let hecho = false;
+      if (a.fx) hecho = (await fxEnemigoUno(a.fx, this, this.donde(e), this.donde(h), impactoUno)) || (await fxJefeUno(a.fx, this, this.donde(e), this.donde(h), impactoUno));
+      if (!hecho) {
+        if (a.tipo === 'perfora') await FX.fxHaz(this, this.donde(e), this.donde(h), impactoUno);
+        else if (a.tipo === 'chupa') await FX.fxChupa(this, this.donde(e), this.donde(h), impactoUno);
+        else await FX.fxGolpeEnemigo(this, this.donde(h), impactoUno);
+      }
       const vuelve = 0.25;
       const dx0 = e.dx;
       const dy0 = e.dy;
@@ -1345,8 +1622,16 @@ export class Combate implements Escena {
     } else if (a.tipo === 'todos') {
       const objs = vivos.slice();
       const hacer = (i: number) => golpear(objs[i]);
-      if (e.def.pintor === 'mosquito') await FX.fxZumbido(this, this.donde(e), objs.map((h) => this.donde(h)), hacer);
-      else await FX.fxTimbre(this, this.donde(e), objs.map((h) => this.donde(h)), hacer);
+      const donde = objs.map((h) => this.donde(h));
+      let hecho = false;
+      if (a.fx) {
+        const otro = this.fondoBase === 'campo' ? 'escenario' : 'campo';
+        hecho = (await fxEnemigoTodos(a.fx, this, this.donde(e), donde, hacer)) || (await fxJefeTodos(a.fx, this, this.donde(e), donde, hacer, [otro]));
+      }
+      if (!hecho) {
+        if (e.def.pintor === 'mosquito') await FX.fxZumbido(this, this.donde(e), donde, hacer);
+        else await FX.fxTimbre(this, this.donde(e), donde, hacer);
+      }
     } else if (a.tipo === 'estallido') {
       const objs = vivos.slice();
       await FX.fxEstallido(this, this.donde(e), objs.map((h) => this.donde(h)), (i) => golpear(objs[i]), () => {
@@ -1505,6 +1790,9 @@ export class Combate implements Escena {
       monedas: this.g.monedas,
       camara: this.cam.th,
       resultado: this.resultadoFinal,
+      jefe: this.jefe
+        ? { fase: this.transformado ? 2 : 1, guion: this.guion, calderon: this.guion === 'abierto', pv: this.jefe.pv, pvMax: this.jefe.pvMax }
+        : null,
     };
   }
 
@@ -1547,7 +1835,7 @@ export class Combate implements Escena {
       const a = this.sacudida.amp * (1 - this.sacudida.t / Math.max(0.01, this.sacudida.dur));
       g.translate(Math.round((Math.random() - 0.5) * 2 * a), Math.round((Math.random() - 0.5) * 2 * a));
     }
-    dibujarFondo(g, 'campo', this.cam.th, this.t);
+    dibujarFondo(g, this.fondoTemp ?? this.fondoBase, this.cam.th, this.t);
     this.dibujarAnims(g, 'bajo');
     this.dibujarLuchadores(g);
     this.dibujarAnims(g, 'sobre');
@@ -1589,7 +1877,7 @@ export class Combate implements Escena {
 
   private dibujarEnemigo(g: CanvasRenderingContext2D, e: Enemigo, p: Punto) {
     const d = e.def;
-    const rate = d.pintor === 'mosquito' ? 14 : d.pintor === 'movil' ? 7 : d.pintor === 'petardo' ? 5 : 2.5;
+    const rate = RITMO[d.pintor] ?? 2.5;
     const frame = Math.floor(this.t * rate + e.idx);
     const img = spriteEnemigo(d.id, frame);
     const bob = d.flota ? Math.round(Math.sin(this.t * 3 + e.idx * 1.7) * 2) : Math.round(Math.sin(this.t * 2.2 + e.idx) * 0.6);
@@ -1598,6 +1886,10 @@ export class Combate implements Escena {
     // its shadow stays on the ground
     const sw = Math.max(12, Math.round(img.width * 0.8));
     g.drawImage(sombraImg(sw), Math.round(p.x - sw / 2), Math.round(p.y - 2));
+    if (e.muriendo >= 0 && d.jefe) {
+      this.dibujarMuerteJefe(g, e, img, x, y, frame);
+      return;
+    }
     if (e.muriendo >= 0) {
       // it melts: each row slides down and the whole thing fades
       const k = limitar(e.muriendo / 0.85, 0, 1);
@@ -1611,14 +1903,46 @@ export class Combate implements Escena {
       g.globalAlpha = 1;
       return;
     }
+    if (d.jefe) this.paginasOrbita(g, e, p, img, false);
     if (e.flash > 0 && Math.floor(e.flash * 24) % 2 === 0) g.drawImage(siluetaEnemigo(d.id, frame), x, y);
     else if (e.flash > 0) {
       // the blink: it vanishes on every other step
     } else g.drawImage(img, x, y);
+    if (d.jefe) this.paginasOrbita(g, e, p, img, true);
     // a lit fuse sparkles
     if (d.pintor === 'petardo' && Math.floor(this.t * 14 + e.idx) % 2 === 0) {
       g.drawImage(chispa(Math.floor(this.t * 9) % 2 ? '#ffd84a' : '#ffffff'), x + MECHA_PETARDO.x - 2, y + MECHA_PETARDO.y - 3);
     }
+  }
+
+  /** The pages that circle the boss: four in the first phase, seven in the second. Those at the back go behind him. */
+  private paginasOrbita(g: CanvasRenderingContext2D, e: Enemigo, p: Punto, img: HTMLCanvasElement, delante: boolean) {
+    const n = e.def.id === 'narrador2' ? 7 : 4;
+    const vel = e.def.id === 'narrador2' ? 1.5 : 0.9;
+    const cx = p.x;
+    const cy = p.y - e.def.flota - img.height * 0.5;
+    const rx = img.width * 0.6 + 5;
+    for (let i = 0; i < n; i++) {
+      const a = this.t * vel + (i * Math.PI * 2) / n;
+      const s = Math.sin(a);
+      if (s > 0 !== delante) continue;
+      const x = cx + Math.cos(a) * rx;
+      const y = cy + s * 9 + ((i % 3) - 1) * 13 + Math.sin(this.t * 2 + i) * 2;
+      g.drawImage(paginaGrande(i % 3), Math.round(x - 5), Math.round(y - 6));
+    }
+  }
+
+  /** The narrator falls apart into pages: from the top, row by row, each one sliding away and fading. */
+  private dibujarMuerteJefe(g: CanvasRenderingContext2D, e: Enemigo, img: HTMLCanvasElement, x: number, y: number, frame: number) {
+    const k = limitar(e.muriendo / (MUERTE_JEFE - 0.3), 0, 1);
+    const fuente = k < 0.08 ? siluetaEnemigo(e.def.id, frame) : img;
+    for (let j = 0; j < img.height; j++) {
+      const kj = limitar(k * 1.4 - (j / img.height) * 0.4, 0, 1);
+      if (kj >= 1) continue;
+      g.globalAlpha = 1 - kj;
+      g.drawImage(fuente, 0, j, img.width, 1, x + Math.round(kj * kj * (6 + (j % 5) * 3) * (j % 2 ? 1 : -1)), y + j - Math.round(kj * 16), img.width, 1);
+    }
+    g.globalAlpha = 1;
   }
 
   private dibujarHeroe(g: CanvasRenderingContext2D, h: Heroe, p: Punto) {

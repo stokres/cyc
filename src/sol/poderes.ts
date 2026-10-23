@@ -98,7 +98,8 @@ export const INVOCACIONES: Invocacion[] = [
   // Two prompters (fire and wind): the lights go out and a short circuit hits every enemy.
   { id: 'apagon', req: { fuego: 1, viento: 1 }, el: 'fuego', pot: 55, fx: 'apagon', lista: true },
   // The big one with all four friends' prompters: Calderón de la Barca coming down from the sky.
-  { id: 'calderon', req: { tierra: 1, fuego: 1, agua: 1, viento: 1 }, el: 'tierra', pot: 90, fx: 'calderon', lista: true },
+  // It is not offered in a normal fight: the boss's script moment opens it (combate.ts, `momentoGuion`).
+  { id: 'calderon', req: { tierra: 1, fuego: 1, agua: 1, viento: 1 }, el: 'tierra', pot: 90, fx: 'calderon', lista: false },
 ];
 export const invocacionPorId = (id: string) => INVOCACIONES.find((i) => i.id === id)!;
 
