@@ -21,6 +21,8 @@ export interface Texto {
   emissive?: boolean;
   glow?: string;
   blur?: number;
+  /** Turned this many radians around its centre (the bar of level 4 slopes; that of level 5 is upside down). */
+  rot?: number;
 }
 
 export interface Pieza {
@@ -132,6 +134,8 @@ export interface Escena {
   zonas: Record<string, Zona>;
   /** Key light (towards the light, y down), for relief: the moon, the dusk window... */
   clave?: [number, number, number];
+  /** Slope of a floor that leans (rise per unit of run, to the right): the characters follow it on screen (bar4). */
+  pendiente?: number;
 }
 
 /** Textures the WebGL renderer made for a piece (see gl.ts). */
@@ -250,6 +254,7 @@ function drawTexts(ctx: CanvasRenderingContext2D, texts: Texto[], x0: number, y0
     if (!!t.emissive !== emissive) continue;
     ctx.save();
     ctx.translate(t.x, t.y);
+    if (t.rot) ctx.rotate(t.rot);
     ctx.font = `${t.weight ?? 400} ${t.size}px ${FONTS[t.font ?? 'body']}`;
     ctx.textAlign = t.align ?? 'center';
     ctx.textBaseline = 'middle';

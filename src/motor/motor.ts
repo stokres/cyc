@@ -360,10 +360,24 @@ export class Motor {
     return this.vw / 2 + k * (X - this.cam);
   }
 
+  /** How far a floor point is lifted on screen by a sloping floor (`Escena.pendiente`): what the floor's own shear does there. */
+  alzada(X: number, k: number) {
+    const p = this.S?.pendiente;
+    return p ? p * k * (X - this.S!.CX) : 0;
+  }
+
   /** Floor point under a screen position, with y clamped into the walk band. */
   floorAt(sx: number, sy: number, fallbackY: number) {
     const S = this.S!;
-    const y = sy > S.BASE ? Math.max(S.walk.y0, Math.min(S.walk.y1, sy)) : fallbackY;
+    const entre = (v: number) => Math.max(S.walk.y0, Math.min(S.walk.y1, v));
+    let y = sy > S.BASE ? entre(sy) : fallbackY;
+    if (S.pendiente && sy > S.BASE) {
+      // The floor leans: the point under the finger is where the lifted floor meets it.
+      for (let i = 0; i < 3; i++) {
+        const k = this.f(y);
+        y = entre(sy - this.alzada(this.cam + (sx - this.vw / 2) / k, k));
+      }
+    }
     const k = this.f(y);
     return { X: this.cam + (sx - this.vw / 2) / k, y };
   }
@@ -452,7 +466,7 @@ export class Motor {
         a.place(a.enCapa.u + this.off(a.enCapa.k), a.enCapa.y, s);
       } else {
         const k = this.f(a.y);
-        a.place(this.screenX(a.X, k), a.y, this.escala(k));
+        a.place(this.screenX(a.X, k), a.y + this.alzada(a.X, k), this.escala(k));
       }
       a.setTint(this.tintAt(a.X, a.y - 250));
       a.setRelieve(this.conRelieve ? this.luzPrincipal(a.X, a.y - 250) : null);

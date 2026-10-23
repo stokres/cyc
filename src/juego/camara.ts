@@ -94,7 +94,7 @@ export class Camara {
     const a = g.pjs.get(objetivo as never) ?? g.npcs.get(objetivo as never);
     if (a) {
       const k = m.f(a.y);
-      return { x: m.screenX(a.X, k) / m.vw, y: (a.y - 235 * m.escala(k)) / H };
+      return { x: m.screenX(a.X, k) / m.vw, y: (a.y + m.alzada(a.X, k) - 235 * m.escala(k)) / H };
     }
     const z = g.S?.zonas[objetivo];
     if (z) {

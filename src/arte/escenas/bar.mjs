@@ -128,7 +128,7 @@ function sueno(hex) {
   return deHSL(318, Math.min(0.85, s * 1.1 + 0.1), L);
 }
 
-const PALETA = [null, null, psicodelico, sueno];
+const PALETA = [null, null, psicodelico, sueno, pasillo, reves];
 
 /** Colours of the generated SVG (fill, stroke and gradient stops) through `fn`. */
 function recolor(svg, fn) {
@@ -702,20 +702,24 @@ function enchufe() {
 
 // ---------------------------------------------------------------- textos (canvas lettering)
 
-function textos(nivel) {
-  const t = [
+function textosCrudos(nivel) {
+  return [
     { x: TAB.x + TAB.w / 2, y: TAB.y + 30, s: 'TABACO', size: 24, font: 'display', color: '#fff4e0', emissive: true, maxW: TAB.w - 36 },
     { x: 473, y: 248, s: 'SALIDA', size: 17, font: 'body', weight: 800, color: '#eaffea', emissive: true, maxW: 70 },
     { x: 907, y: 346, s: 'TAPAS', size: 19, font: 'display', color: '#f0e8d0', maxW: 96 },
     ...['Ensaladilla', 'Boquerones', 'Oreja', 'Tortilla', 'Croquetas'].map((s, i) => ({ x: 907, y: 372 + i * 22, s, size: 15, font: 'body', weight: 700, color: i % 2 ? '#f0e8d0' : '#f2c878', maxW: 96 })),
     ...textosPorra(nivel),
-  ];
-  return t.filter((q) => q.s).map((q) => nivelarTexto(q, nivel));
+  ].filter((q) => q.s);
+}
+
+function textos(nivel) {
+  return textosCrudos(nivel).map((q) => nivelarTexto(q, nivel));
 }
 
 // ---------------------------------------------------------------- the wall as a whole
 
-function pared(nivel) {
+/** The back wall as drawn, in the neutral palette and not bent: what `pared` and the levels 4 and 5 start from. */
+function paredCruda(nivel) {
   const base = [plano(), fachada(), maquinaTabaco(), reloj(705, 150), cartelToros(), pizarra()];
   const est = estanteria(nivel, true);
   base.push(est.svg, porraArte(nivel), soporteTele(), enchufe(), bano(), extintor(2915));
@@ -723,7 +727,12 @@ function pared(nivel) {
   const todos = base.join('');
   const huecos = [...WIN_HUECOS, ...DOOR_HUECOS].map(([x, y, w, h]) => rect(x, y, w, h, 'black')).join('');
   const cuerpo = `<mask id="huecos" maskUnits="userSpaceOnUse" x="-200" y="-100" width="${W + 400}" height="1300"><rect x="-200" y="-100" width="${W + 400}" height="1300" fill="white"/>${huecos}</mask><g mask="url(#huecos)">${todos}</g>${fachadaFrente()}`;
-  return { svg: nivelar(cuerpo, nivel), giran: est.giran };
+  return { cuerpo, giran: est.giran };
+}
+
+function pared(nivel) {
+  const c = paredCruda(nivel);
+  return { svg: nivelar(c.cuerpo, nivel), giran: c.giran };
 }
 
 function paredEmisiva(nivel) {
@@ -741,12 +750,12 @@ const kxLcd = () => ({ x: TAB.x + 146 + 3, y: TAB.y + 62 + 3 });
 // ---------------------------------------------------------------- floor
 
 /** u-range a layer at depth factor k must cover for any phone width (16:9 to 21:9 and 4:3). */
-function uRange(k, pad = 60) {
+function uRange(k, pad = 60, P_ = P, W_ = W) {
   let lo = Infinity;
   let hi = -Infinity;
   for (const vw of [1440, 1920, 2400, 2560]) {
-    for (const c of [vw / 2, Math.max(vw / 2, W - vw / 2)]) {
-      const off = vw / 2 - P.CX + k * (P.CX - c);
+    for (const c of [vw / 2, Math.max(vw / 2, W_ - vw / 2)]) {
+      const off = vw / 2 - P_.CX + k * (P_.CX - c);
       lo = Math.min(lo, -off);
       hi = Math.max(hi, vw - off);
     }
@@ -755,13 +764,13 @@ function uRange(k, pad = 60) {
 }
 
 /** u-range of the street layer: what can be seen through the window and the door from any camera. */
-function calleRango(k) {
+function calleRango(k, P_ = P, W_ = W) {
   let lo = Infinity;
   let hi = -Infinity;
   for (const vw of [1440, 1920, 2400, 2560]) {
-    for (const c of [vw / 2, Math.max(vw / 2, W - vw / 2)]) {
+    for (const c of [vw / 2, Math.max(vw / 2, W_ - vw / 2)]) {
       for (const X of [WIN.x, DOOR.x + DOOR.w]) {
-        const u = P.CX + (X - c) - k * (P.CX - c);
+        const u = P_.CX + (X - c) - k * (P_.CX - c);
         lo = Math.min(lo, u);
         hi = Math.max(hi, u);
       }
@@ -976,11 +985,13 @@ function barra() {
 }
 
 /** The things on the counter: glass case (frame and glass only, the tapas inside are live), taps, dome, napkins. */
-function barraEncima() {
+function barraEncima(vitrinaFija = false) {
   const out = [];
   const yc = CIMA + 4; // near edge of the top, where things stand
-  // Glass case on the left: the tapas inside are drawn live under this (bar-vivo.ts).
+  // Glass case on the left: the tapas inside are drawn live under this (bar-vivo.ts). `vitrinaFija`
+  // (the long bar's other counters, and the one on the ceiling): its inside is part of the drawing.
   const ex = EXPO;
+  if (vitrinaFija) out.push(expositorFondo(), ...TAPAS.map((t) => tapaArte(t.id, t.x, t.y)));
   out.push(path(polyD([[ex.x - 6, ex.y - 2], [ex.x + ex.w + 6, ex.y - 2], [ex.x + ex.w - 4, ex.y - 24], [ex.x + 4, ex.y - 24]]), '#cfe6f0', { opacity: 0.28 }));
   out.push(stroke(`M${ex.x + 4} ${ex.y - 24}L${ex.x + ex.w - 4} ${ex.y - 24}`, INOX.base, 3), stroke(`M${ex.x + 4} ${ex.y - 24}L${ex.x - 6} ${ex.y - 2}M${ex.x + ex.w - 4} ${ex.y - 24}L${ex.x + ex.w + 6} ${ex.y - 2}`, INOX.base, 3));
   out.push(rect(ex.x - 6, ex.y - 5, ex.w + 12, 6, INOX.base, { rx: 3 }), rect(ex.x - 6, ex.y - 5, ex.w + 12, 2, '#fff', { opacity: 0.6 }));
@@ -1028,9 +1039,9 @@ function barraEncima() {
   return out.join('');
 }
 
-function taburetes() {
+function taburetes(xs = TABURETES.xs) {
   const out = [];
-  for (const x of TABURETES.xs) {
+  for (const x of xs) {
     out.push(sombra(x + 6, 4, 40, 8, 0.5));
     out.push(shape(E(x, -3, 34, 8), '#6c727a', [rect(x - 34, -3, 68, 6, '#4a5058')], '#2e3338', 1.2), path(E(x, -6, 28, 5), '#9aa1a9'));
     out.push(rect(x - 4.5, -150, 9, 146, '#aab0b6'), rect(x - 4.5, -150, 3, 146, '#fff', { opacity: 0.7 }), rect(x + 1.5, -150, 3, 146, '#555c64', { opacity: 0.6 }));
@@ -1110,11 +1121,11 @@ function maquinaPared() {
 
 /** Pulled out of the wall and turned a little: the left side shows, the plug is on its way to the wall. */
 const FUERA_M = 'matrix(0.86 0.05 0 1 14 0)';
-function maquinaFuera() {
+function maquinaFuera(CXe = P.CX, d = 0) {
   const out = [];
   const k = P.f(TRAGA_FUERA.y);
-  const um = P.CX + k * (TRAGA_FUERA.X - P.CX);
-  const lx = (ENCHUFE.X - um) / k;
+  const um = CXe + k * (TRAGA_FUERA.X + d - CXe);
+  const lx = (ENCHUFE.X + d - um) / k;
   const ly = (ENCHUFE.y - TRAGA_FUERA.y) / k;
   out.push(sombra(-6, 6, 110, 14, 0.55));
   // Cable first (behind): from the rear of the cabinet to the socket, with a loop on the floor.
@@ -1223,14 +1234,24 @@ function marcadorPorra(nivel) {
   };
 }
 
-/** Everything live in the bar, as drawings in the frames the scene uses (bar-vivo.ts turns them into bitmaps). */
+/**
+ * Everything live in the bar, as drawings in the frames the scene uses (bar-vivo.ts turns them into bitmaps).
+ * @returns {ReturnType<typeof piezasVivasBase> & { desp?: object, inclina?: object, volteo?: number, sinVitrina?: boolean }}
+ */
 export function piezasVivas(nivel) {
+  const datos = piezasVivasBase(nivel);
+  return nivel >= 4 ? adaptarNoche(nivel, datos) : datos;
+}
+
+function piezasVivasBase(nivel) {
+  // Levels 4 and 5 have the content of level 3 (sevens, spinning bottles) in their own palette and place.
+  const N = nivel >= 4 ? 3 : nivel;
   const cl = (svg) => nivelar(svg, nivel === 3 ? 0 : nivel);
   const tele = teleArte();
   const sc = tele.pantalla;
   const dr = dragonArte();
-  const giran = estanteria(nivel, true).giran;
-  const marcador = marcadorPorra(nivel);
+  const giran = estanteria(N, true).giran;
+  const marcador = marcadorPorra(N);
   const centro = [tele.x + tele.w / 2, tele.y + tele.h / 2];
   return {
     nivel,
@@ -1259,7 +1280,7 @@ export function piezasVivas(nivel) {
 const escenas = new Map();
 
 export function escena(nivel = 0) {
-  if (!escenas.has(nivel)) escenas.set(nivel, construir(nivel));
+  if (!escenas.has(nivel)) escenas.set(nivel, nivel === 4 ? construir4() : nivel === 5 ? construir5() : construir(nivel));
   return escenas.get(nivel);
 }
 
@@ -1370,4 +1391,424 @@ function construir(nivel) {
       bano: { u: BANO.x + BANO.w / 2, k: 1, w: BANO.w + 30, top: BANO.y - 70, bottom: 790, X: BANO.x + BANO.w / 2, y: 905 },
     },
   };
+}
+
+// ---------------------------------------------------------------- levels 4 and 5: the night gets out of hand
+//
+// Level 4, the corridor: the bar is stretched. The middle of it (the shelves, the pool sheet, the counter,
+// the stools, the tubes and the lamps) repeats along the wall, with the door and the tobacco machine far
+// away at one end and the telly, the slot machine and the toilet at the other, and the counter has no
+// end: five modules side by side, running out of the scene on both sides. And the floor slopes: every static
+// piece leans by the same slope (a vertical shear), the people stay straight. The drawings are the
+// ones of level 3's content (sevens, spinning bottles) cut into stretches and laid again, in a new palette: no filters.
+//
+// Level 5, upside down: the wall is turned over (its ceiling is at the bottom, the tiles at the top); the
+// counter, the stools and the bottles hang from the real floor, which is now the ceiling; the pendant lamps stand on the
+// floor as standing lamps, and the floor the friends walk on is a ceiling of plaster with its fluorescent panels.
+//
+// Same zones and spots as the other levels; the zones and the places move with the pieces they belong to.
+
+const SH = 1350; // how far each repeat of the middle of the bar goes
+const W4 = W + 2 * SH;
+const CX4 = W4 / 2;
+const P4 = persp({ HOR: 200, BASE: 800, CX: CX4 });
+/** The slope of level 4 (rise per unit of run). */
+const INCL = 0.055;
+/** The stretch of the wall that repeats: the shelves and the pool sheet. */
+const TRAMO = [980, 2330];
+const ladear = `matrix(1 ${INCL} 0 1 0 ${f2(-INCL * CX4)})`;
+/** Where level 4's pieces of the original go: the left part (the door, the tobacco machine) stays, the middle repeats, the right part moves. */
+const MOVER4 = { puerta: 0, tabaco: 0, barra: 1, grifos: 1, expositor: 1, estanteria: 1, porra: 1, tele: 2, tragaperras: 2, bano: 2 };
+
+/** Level 4: acid. Magenta, acid lime, teal, electric blue and violet over cold indigo greys, like a corridor in a club. */
+function pasillo(hex) {
+  const [h, s, l] = aHSL(hex);
+  if (l < 0.045 || l > 0.97) return hex;
+  if (s < 0.16) return deHSL(232 + 24 * l, 0.36 + 0.3 * (1 - Math.abs(2 * l - 1)), l * 0.92);
+  if (h < 22 || h >= 340) return deHSL(326, Math.min(1, s * 1.1 + 0.2), l);
+  if (h < 70) return deHSL(h < 44 ? 66 : 80, Math.min(1, s * 1.15 + 0.3), Math.min(0.88, l * 1.02));
+  if (h < 175) return deHSL(172, Math.min(1, s * 1.2 + 0.3), l);
+  if (h < 265) return deHSL(208, Math.min(1, s * 1.2 + 0.2), l);
+  return deHSL(286, Math.min(1, s * 1.2 + 0.2), l);
+}
+
+/** Level 5: the other way round. Lights go dark and darks go light, and every hue goes to its opposite. */
+function reves(hex) {
+  const [h, s, l] = aHSL(hex);
+  if (l < 0.045) return deHSL(h + 180, s, 0.82);
+  if (l > 0.97) return deHSL(h + 180, 0.3, 0.16);
+  return deHSL(h + 180, Math.min(1, s * 1.1 + 0.05), Math.max(0.08, Math.min(0.9, 1.03 - l * 0.94)));
+}
+
+/** A drawing of the wall cut in stretches: the left part, the middle three times and the right part, moved apart. */
+function tramos(cuerpo, id) {
+  const clip = (n, x0, x1) => `<clipPath id="${id}${n}"><rect x="${x0}" y="-900" width="${x1 - x0}" height="3000"/></clipPath>`;
+  const trozo = (n, d) => `<g clip-path="url(#${id}${n})" transform="translate(${d} 0)">${cuerpo}</g>`;
+  return `<defs>${clip('a', -600, TRAMO[1])}${clip('b', TRAMO[0], TRAMO[1])}${clip('c', TRAMO[1], 3600)}</defs>${trozo('a', 0)}${trozo('b', SH)}${trozo('b', 2 * SH)}${trozo('c', 2 * SH)}`;
+}
+
+/** Where a piece of the original goes in level 4, by its X: [shift of each copy]. */
+const copias4 = (X) => (X < TRAMO[0] ? [0] : X < TRAMO[1] ? [0, SH, 2 * SH] : [2 * SH]);
+
+function paredLarga() {
+  const c = paredCruda(3);
+  const arriba = rect(-1400, -900, W4 + 2800, 900, '#cbbfae');
+  const svg = recolor(`<g transform="${ladear}">${arriba}${tramos(c.cuerpo, 'tr')}</g>`, pasillo);
+  const emisivo = recolor(`<g transform="${ladear}">${tramos(paredEmisiva(0), 'te')}</g>`, pasillo);
+  const hueco = recolor(`<g transform="${ladear}"><g transform="translate(${2 * SH} 0)">${huellaTragaperras()}</g></g>`, pasillo);
+  return { svg, emisivo, hueco, giran: c.giran };
+}
+
+function textosLargos() {
+  const out = [];
+  for (const t of textosCrudos(3)) {
+    for (const d of copias4(t.x)) {
+      const x = t.x + d;
+      out.push({ ...t, x, y: t.y + INCL * (x - CX4), rot: Math.atan(INCL), color: t.color.startsWith('#') ? pasillo(t.color) : t.color });
+    }
+  }
+  return out;
+}
+
+/** The floor of the corridor: the bar's tiles, longer, with the shadows and the litter along the whole counter, and sloped. */
+function sueloLargo() {
+  const out = [];
+  const { gp, uOf, yOf } = P4;
+  const kMax = P4.f(1290);
+  const quad = (X0, X1, k0, k1) => polyD([gp(X0, k0), gp(X1, k0), gp(X1, k1), gp(X0, k1)]);
+  const r = rng(61);
+  const X0 = -800;
+  const X1 = W4 + 800;
+  out.push(path(quad(X0, X1, 1, kMax), '#a39a84'));
+  const prof = [];
+  for (let z = 1; z > 1 / kMax - 0.06; z -= 0.05) prof.push(1 / z);
+  const paso = 100;
+  for (let X = X0, i = 0; X < X1; X += paso, i++) {
+    for (let j = 0; j < prof.length - 1; j++) {
+      const k0 = prof[j];
+      const k1 = prof[j + 1];
+      const par = (i + j) % 2;
+      const tono = par ? '#c6bda6' : '#b9af97';
+      out.push(path(quad(X + 1.6, X + paso - 1.6, k0 + 0.003, k1 - 0.003), r() < 0.2 ? (par ? '#cdc4ae' : '#c0b69f') : tono));
+      if (j < 3) out.push(path(quad(X + 1.6, X + paso - 1.6, k0 + 0.003, k0 + (k1 - k0) * 0.3), '#ffffff', { opacity: 0.06 }));
+    }
+  }
+  out.push(gpath(polyD([gp(X0, 1), gp(X1, 1), gp(X1, 1.06), gp(X0, 1.06)]), lin(0, 800, 0, 836, [[0, '#2a1e16', 0.4], [1, '#2a1e16', 0]])));
+  const pie = (x0, x1, a = 0.4, fondo = 0.05, k = 1) => sombra(uOf((x0 + x1) / 2, k + fondo / 3), yOf(k + fondo / 3), ((x1 - x0) / 2 + 20) * (k + fondo / 3), (yOf(k + fondo) - yOf(k)) * 1.2, a);
+  out.push(pie(TAB.x, TAB.x + TAB.w, 0.5, 0.05), pie(TRAGA.X - 90 + 2 * SH, TRAGA.X + 90 + 2 * SH, 0.5, 0.05, P.f(TRAGA.y)), pie(2896 + 2 * SH, 2934 + 2 * SH, 0.4, 0.04), pie(BANO.x + 2 * SH, BANO.x + BANO.w + 2 * SH, 0.25, 0.03));
+  const kb = KB;
+  out.push(gpath(polyD([gp(-200, kb - 0.002), gp(W4 + 200, kb - 0.002), gp(W4 + 200, kb + 0.05), gp(-200, kb + 0.05)]), lin(0, BAR.y, 0, yOf(kb + 0.05), [[0, '#1a1222', 0.5], [1, '#1a1222', 0]])));
+  out.push(gpath(polyD([gp(-200, kb + 0.02), gp(W4 + 200, kb + 0.02), gp(W4 + 280, kb + 0.24), gp(-280, kb + 0.24)]), lin(0, yOf(kb + 0.02), 0, yOf(kb + 0.24), [[0, '#ffb45a', 0.22], [1, '#ffb45a', 0]])));
+  out.push(path(quad(386, 560, 1.0, 1.12), '#2f3036'), path(quad(394, 552, 1.012, 1.108), '#3c3e46'));
+  for (let k = 1.02; k < 1.105; k += 0.02) out.push(path(quad(396, 550, k, k + 0.007), '#23242a'));
+  const q = rng(9);
+  for (let n = 0; n < 120; n++) {
+    const X = 100 + q() * (W4 - 200);
+    const k = kb + 0.016 + q() * 0.17;
+    const [u, y] = gp(X, k);
+    const s = k * (0.8 + q() * 0.6);
+    const tipo = q();
+    if (tipo < 0.4) out.push(path(E(u + 2 * s, y + 2.5 * s, 9 * s, 3.4 * s), '#000', { opacity: 0.14 }), path(smooth([[u - 8 * s, y], [u - 4 * s, y - 3.4 * s], [u + 3 * s, y - 4 * s], [u + 8 * s, y - 1 * s], [u + 6 * s, y + 2.4 * s], [u - 3 * s, y + 3 * s]]), '#f1ede2'));
+    else if (tipo < 0.6) out.push(stroke(`M${f2(u - 5 * s)} ${f2(y)}Q${f2(u)} ${f2(y - 6 * s)} ${f2(u + 5 * s)} ${f2(y + 0.5 * s)}`, '#e0834a', 2.6 * s));
+    else if (tipo < 0.8) out.push(path(E(u, y, 3.2 * s, 2 * s), '#7a8a3a'));
+    else out.push(line(u - 7 * s, y, u + 7 * s, y - 1.6 * s, '#d8b878', 1.5 * s));
+  }
+  return recolor(`<g transform="${ladear}">${out.join('')}</g>`, pasillo);
+}
+
+/** The ceiling of the corridor: the tubes and the lamps of the bar, repeated, each leaning with the slope. */
+function techoLargo() {
+  const base = techoPiezas(0);
+  const piezas = [];
+  const desp = [-0.4 * SH, SH, 2.4 * SH];
+  const ult = base.piezas.length - 1;
+  const poner = (q, sh) => {
+    const dyA = INCL * ((q.x0 + sh) - CX4);
+    const dyB = INCL * ((q.x1 + sh) - CX4);
+    const m = `matrix(1 ${INCL} 0 1 ${f2(sh)} ${f2(INCL * (sh - CX4))})`;
+    const env = (b) => recolor(`<g transform="${m}">${b}</g>`, pasillo);
+    piezas.push({ x0: q.x0 + sh, x1: q.x1 + sh, y0: q.y0 + Math.min(dyA, dyB) - 4, y1: q.y1 + Math.max(dyA, dyB) + 4, body: env(q.body), emissive: q.emissive ? env(q.emissive) : undefined });
+  };
+  base.piezas.forEach((q, i) => {
+    if (i === ult) poner(q, -0.4 * SH);
+    else for (const sh of desp) poner(q, sh);
+  });
+  const glows = [];
+  for (const q of base.glows) for (const sh of desp) glows.push({ ...q, x: q.x + sh, y: q.y + INCL * (q.x + sh - CX4) });
+  const tubos = TUBOS.flatMap((t) => desp.map((sh) => ({ u: t.u + sh, y: t.y + INCL * (t.u + sh - CX4), len: t.len })));
+  return { piezas, glows, tubos };
+}
+
+/** The counter's long module `m` (from -2 to 2) and the stools along it, as props. */
+function modulosBarra4() {
+  const out = [];
+  const MOD = BAR.L;
+  for (let m = -2; m <= 2; m++) {
+    const X = BAR.X + SH + m * MOD;
+    const dy = INCL * (X - CX4);
+    const inclina = (c) => `<g transform="matrix(1 ${INCL} 0 1 0 ${f2(dy)})">${c}</g>`;
+    const cuerpo = `<clipPath id="cm${m + 2}"><rect x="${-MOD / 2 - 2}" y="-520" width="${MOD + 4}" height="640"/></clipPath><g clip-path="url(#cm${m + 2})">${barra() + barraEncima(m !== 0)}</g>`;
+    out.push({ id: m === 0 ? 'barra' : `barra${m}`, X, y: BAR.y, svg: propSvg(recolor(inclina(cuerpo), pasillo)), z: 0 });
+    const XT = TABURETES.X + SH + m * MOD;
+    out.push({ id: `taburetes${m}`, X: XT, y: TABURETES.y, svg: propSvg(recolor(`<g transform="matrix(1 ${INCL} 0 1 0 ${f2(INCL * (XT - CX4))})">${taburetes()}</g>`, pasillo)), z: 0 });
+  }
+  return out;
+}
+
+function luces4() {
+  const out = [];
+  for (const l of luces(0)) {
+    for (const d of copias4(l.X)) {
+      const X = l.X + d;
+      const dy = INCL * (X - CX4);
+      out.push({ ...l, X, y: l.y + dy, fy: l.fy === undefined ? undefined : l.fy + dy, color: pasillo(l.color) });
+    }
+  }
+  return out;
+}
+
+/** The base scene's zone, moved to level 4: its group's shift, and the slope. */
+function zona4(id, z) {
+  const d = (MOVER4[id] ?? 1) * SH;
+  const u = z.u + SH + z.k * (d - SH);
+  const dy = INCL * (u - CX4);
+  return { ...z, u, X: z.X + d, top: z.top + dy, bottom: z.bottom + dy };
+}
+
+function construir4() {
+  const base = escena(0);
+  const pa = paredLarga();
+  const top = techoLargo();
+  const ext = calleRango(0.5, P4, W4);
+  const fl = uRange(P4.f(1080), 400, P4, W4);
+  const col = pasillo;
+  const spots = {};
+  for (const [id, v] of Object.entries(base.spots)) {
+    const d = id === 'entrada' ? 0 : id === 'tragaperras' || id === 'tragaperrasSeparada' || id === 'duro' ? 2 * SH : SH;
+    spots[id] = { ...v, X: v.X + d };
+  }
+  const zonas = {};
+  for (const [id, z] of Object.entries(base.zonas)) zonas[id] = zona4(id, z);
+  const textosL = textosLargos();
+  return {
+    id: 'bar4',
+    name: 'Bar del Brío',
+    W: W4,
+    H: 1080,
+    HOR: P4.HOR,
+    BASE: P4.BASE,
+    CX: P4.CX,
+    M,
+    clave: [0.1, -0.8, 0.55],
+    pendiente: INCL,
+    ambient: col('#5a5670'),
+    walk: { y0: 892, y1: 985, x0: 140, x1: W4 - 140 },
+    start: { X: 560, y: 905 },
+    layers: [
+      { id: 'calle', k: 0.5, x0: ext[0], x1: ext[1], y0: 0, y1: 800, body: recolor(calle(), col), emissive: recolor(calleEmisiva(), col), glows: CALLE_GLOWS.map((q) => ({ ...q, color: col(q.color) })), lit: false },
+      {
+        id: 'pared', k: 1, textura: 0.2, x0: -60, x1: W4 + 60, y0: 0, y1: 990,
+        pieces: [
+          { x0: -60, x1: W4 + 60, y0: 0, y1: 990, body: pa.svg, emissive: pa.emisivo },
+          { x0: 2380 + 2 * SH, x1: 2600 + 2 * SH, y0: 300, y1: 990, body: pa.hueco, si: 'c2.separada' },
+        ],
+        lit: true,
+        texts: textosL,
+        glows: [
+          { x: 473, y: 248 + INCL * (473 - CX4), r: 70, color: col('#6aff9a'), a: 0.4 },
+          { x: TAB.x + TAB.w / 2, y: TAB.y + 30 + INCL * (TAB.x + TAB.w / 2 - CX4), r: 110, color: col('#ff6a5a'), a: 0.38 },
+          { x: BANO.x + BANO.w / 2 + 2 * SH, y: FLOOR - 4 + INCL * (BANO.x + BANO.w / 2 + SH), r: 110, color: col('#ffd27a'), a: 0.3 },
+        ],
+      },
+      { id: 'suelo', floor: true, x0: fl[0], x1: fl[1], y0: 580, y1: 1240, body: sueloLargo(), lit: true, textura: 0.3 },
+      { id: 'techo', k: KT, z: 'front', lit: true, textura: 0.25, pieces: top.piezas, glows: top.glows.map((q) => ({ ...q, color: col(q.color) })) },
+    ],
+    props: [
+      ...modulosBarra4(),
+      { id: 'tragaperras', X: TRAGA.X + 2 * SH, y: TRAGA.y, svg: propSvg(recolor(`<g transform="matrix(1 ${INCL} 0 1 0 ${f2(INCL * (TRAGA.X + 2 * SH - CX4))})">${maquinaPared()}</g>`, col)), z: 0, si: '!c2.separada' },
+      { id: 'tragaperrasFuera', X: TRAGA_FUERA.X + 2 * SH, y: TRAGA_FUERA.y, svg: propSvg(recolor(`<g transform="matrix(1 ${INCL} 0 1 0 ${f2(INCL * (TRAGA_FUERA.X + 2 * SH - CX4))})">${maquinaFuera(CX4, 2 * SH)}</g>`, col)), z: 0, si: 'c2.separada' },
+      { id: 'duro', X: DURO.X + 2 * SH, y: DURO.y, svg: propSvg(recolor(duroArte(), col)), z: -20, si: 'c2.duroVisible' },
+    ],
+    lights: luces4(),
+    shafts: [{ X0: 388, X1: 556, dX: 420, k1: 1.36, color: col('#ffb056'), power: 0.3 }],
+    spots,
+    zonas,
+    // Where the live pieces are (bar-vivo.ts), not in the scene's data.
+    noche: { tubos: top.tubos },
+  };
+}
+
+// ---------------------------------------------------------------- level 5
+
+/** A standing lamp: the pendant lamp turned over, on the floor: a dish of light on a stick. */
+function lamparaPie() {
+  const out = [];
+  out.push(sombra(4, 6, 58, 11, 0.5));
+  out.push(shape(E(0, -4, 44, 10), '#3a3e46', [path(E(0, -7, 36, 6), '#565b63')], '#1c1e22', 1.2));
+  out.push(rect(-4, -318, 8, 312, '#c9a14f'), rect(-4, -318, 3, 312, '#f2d98a', { opacity: 0.8 }), rect(1.5, -318, 3, 312, '#5e4719', { opacity: 0.5 }));
+  out.push(circle(0, -214, 7, '#c9a14f'));
+  // The dish, open to the ceiling, lit inside.
+  out.push(shape(smooth([[-62, -352, 'c'], [-52, -330], [-22, -314], [22, -314], [52, -330], [62, -352, 'c']]), '#d9a441', [path(smooth([[14, -314], [52, -330], [62, -352], [10, -352]]), '#b8862c')], '#7a5714', 1.4));
+  out.push(gpath(E(0, -352, 60, 12), lin(0, -362, 0, -342, [[0, '#fff6d8'], [1, '#ffcf70']])));
+  out.push(path(E(0, -354, 36, 5), '#ffffff', { opacity: 0.7 }));
+  out.push(rect(-64, -358, 128, 7, '#c9a14f', { rx: 3.5 }));
+  return out.join('');
+}
+
+/** What the friends walk on in level 5: the ceiling of the bar, in panels of plaster with their fluorescent lights. */
+function sueloReves() {
+  const out = [];
+  const lit = [];
+  const { gp, yOf } = P;
+  const kMax = P.f(1080) + 0.3;
+  const quad = (X0, X1, k0, k1) => polyD([gp(X0, k0), gp(X1, k0), gp(X1, k1), gp(X0, k1)]);
+  out.push(path(quad(-500, 3500, 1, kMax), '#7c7868'));
+  const prof = [];
+  for (let z = 1; z > 1 / kMax - 0.06; z -= 0.06) prof.push(1 / z);
+  const paso = 150;
+  const r = rng(31);
+  for (let X = -500, i = 0; X < 3500; X += paso, i++) {
+    for (let j = 0; j < prof.length - 1; j++) {
+      const k0 = prof[j];
+      const k1 = prof[j + 1];
+      out.push(path(quad(X + 2.4, X + paso - 2.4, k0 + 0.004, k1 - 0.004), r() < 0.25 ? '#dcd6c6' : '#e4dfd0'));
+      // A light panel every fourth column and third row, with its two tubes.
+      if (i % 4 === 1 && j % 3 === 1) {
+        out.push(path(quad(X + 14, X + paso - 14, k0 + 0.012, k1 - 0.012), '#f8f9ff'));
+        lit.push(path(quad(X + 14, X + paso - 14, k0 + 0.012, k1 - 0.012), '#ffffff'));
+        out.push(path(quad(X + 44, X + 50, k0 + 0.012, k1 - 0.012), '#c4cad8', { opacity: 0.7 }), path(quad(X + paso - 50, X + paso - 44, k0 + 0.012, k1 - 0.012), '#c4cad8', { opacity: 0.7 }));
+      } else if (r() < 0.1) out.push(path(quad(X + 40, X + 54, k0 + 0.02, k0 + 0.03), '#8a8672', { opacity: 0.8 }));
+    }
+  }
+  out.push(gpath(polyD([gp(-500, 1), gp(3500, 1), gp(3500, 1.06), gp(-500, 1.06)]), lin(0, 800, 0, 836, [[0, '#2a1e16', 0.4], [1, '#2a1e16', 0]])));
+  return { svg: recolor(out.join(''), reves), emisivo: recolor(lit.join(''), (c) => c) };
+}
+
+/** The upside-down counter, stools and bottles of level 5, hanging from the ceiling at the top of the screen (`CEIL5`). */
+const CEIL5 = 64;
+function colgante5() {
+  const out = [];
+  const k = KB;
+  const uc = (X) => P.CX + k * (X - P.CX);
+  const [x0, x1] = uRange(k, 160);
+  // The ceiling: the floor's tiles seen from below, in a darkening band.
+  const tw = 100 * k;
+  for (let x = Math.floor(x0 / tw) * tw, i = 0; x < x1; x += tw, i++) {
+    for (let j = 0; j < 3; j++) out.push(rect(x + 1.4, -80 + j * 48, tw - 2.8, 46, (i + j) % 2 ? '#c6bda6' : '#b9af97'));
+  }
+  out.push(gpath(rectD(x0, CEIL5 - 40, x1 - x0, 130), lin(0, CEIL5 - 40, 0, CEIL5 + 90, [[0, '#1a1222', 0.0], [0.3, '#1a1222', 0.35], [1, '#1a1222', 0]])));
+  out.push(rect(x0, CEIL5 - 2, x1 - x0, 6, '#6c727a'));
+  const colgado = (X, contenido) => `<g transform="translate(${f2(uc(X))} ${CEIL5}) scale(${f2(k)} ${f2(-k)})">${contenido}</g>`;
+  // The counter, turned over: its foot on the ceiling, the things on it hanging underneath.
+  out.push(colgado(BAR.X, barra() + barraEncima(true)));
+  out.push(colgado(TABURETES.X, taburetes()));
+  // Bottles standing on the ceiling, upside down.
+  const r = rng(5);
+  for (let i = 0; i < 17; i++) {
+    const b = BOTELLAS[Math.floor(r() * BOTELLAS.length)];
+    out.push(colgado(260 + i * 150 + r() * 60, botella(b, -b.w / 2, 0)));
+  }
+  return { svg: recolor(out.join(''), reves), x0, x1 };
+}
+
+/** Big stools hanging in front of the picture, level 5. */
+function techo5() {
+  const piezas = [];
+  for (const X of [420, 1010, 2730]) {
+    const u = uT(X);
+    piezas.push({ x0: Math.floor(u - 110), x1: Math.ceil(u + 110), y0: -20, y1: 330, body: recolor(`<g transform="translate(${f2(u)} 6) scale(${KT} ${-KT})">${taburetes([0])}</g>`, reves) });
+  }
+  return piezas;
+}
+
+const volteoY = (y) => 810 - y;
+
+function construir5() {
+  const base = escena(0);
+  const col = reves;
+  const c = paredCruda(3);
+  const volteo = `<g transform="translate(0 810) scale(1 -1)">`;
+  const ext = calleRango(0.5);
+  const fl = uRange(P.f(1080));
+  const cg = colgante5();
+  const sl = sueloReves();
+  const tx = textosCrudos(3).map((t) => ({ ...t, y: volteoY(t.y), rot: Math.PI, color: t.color.startsWith('#') ? col(t.color) : t.color }));
+  const lampX = [760, 1210, 2045, 2420];
+  const spots = {};
+  for (const [id, v] of Object.entries(base.spots)) spots[id] = { ...v };
+  // Zones: those on the wall turn over with it; the counter's now hang from the ceiling.
+  const zonas = {};
+  const ky = KB;
+  for (const [id, z] of Object.entries(base.zonas)) {
+    if (id === 'barra') zonas[id] = { ...z, top: CEIL5 + 10, bottom: CEIL5 + 262 * ky + 30 };
+    else if (id === 'grifos') zonas[id] = { ...z, top: CEIL5 + 262 * ky + 30, bottom: CEIL5 + 262 * ky + 190 * ky };
+    else if (id === 'expositor') zonas[id] = { ...z, top: CEIL5 + 262 * ky + 30, bottom: CEIL5 + 262 * ky + 140 * ky };
+    else zonas[id] = { ...z, top: volteoY(z.bottom), bottom: volteoY(z.top) };
+  }
+  return {
+    id: 'bar5',
+    name: 'Bar del Brío',
+    W,
+    H: 1080,
+    HOR: P.HOR,
+    BASE: P.BASE,
+    CX: P.CX,
+    M,
+    clave: [0.1, 0.8, 0.55],
+    ambient: col('#5a5670'),
+    walk: { y0: 892, y1: 1010, x0: 140, x1: 2860 },
+    start: { X: 560, y: 905 },
+    layers: [
+      { id: 'calle', k: 0.5, x0: ext[0], x1: ext[1], y0: 0, y1: 800, body: recolor(`<g transform="translate(0 800) scale(1 -1)">${calle()}</g>`, col), emissive: recolor(`<g transform="translate(0 800) scale(1 -1)">${calleEmisiva()}</g>`, col), glows: CALLE_GLOWS.map((q) => ({ ...q, y: 800 - q.y, color: col(q.color) })), lit: false },
+      {
+        id: 'pared', k: 1, textura: 0.2, x0: -60, x1: W + 60, y0: 0, y1: 845,
+        pieces: [
+          { x0: -60, x1: W + 60, y0: 0, y1: 845, body: recolor(`${volteo}${c.cuerpo}</g>`, col), emissive: recolor(`${volteo}${paredEmisiva(0)}</g>`, col) },
+          { x0: 2380, x1: 2600, y0: 0, y1: 460, body: recolor(`${volteo}${huellaTragaperras()}</g>`, col), si: 'c2.separada' },
+        ],
+        lit: true,
+        texts: tx,
+        glows: [
+          { x: 473, y: volteoY(248), r: 70, color: col('#6aff9a'), a: 0.4 },
+          { x: TAB.x + TAB.w / 2, y: volteoY(TAB.y + 30), r: 110, color: col('#ff6a5a'), a: 0.38 },
+          { x: BANO.x + BANO.w / 2, y: volteoY(FLOOR - 4), r: 110, color: col('#ffd27a'), a: 0.3 },
+        ],
+      },
+      { id: 'colgante', k: KB, textura: 0.2, lit: true, pieces: [{ x0: cg.x0, x1: cg.x1, y0: -90, y1: 640, body: cg.svg }] },
+      { id: 'suelo', floor: true, x0: fl[0], x1: fl[1], y0: 800, y1: 1080, body: sl.svg, emissive: sl.emisivo, lit: true, textura: 0.3 },
+      { id: 'techo', k: KT, z: 'front', lit: true, textura: 0.25, pieces: techo5() },
+    ],
+    props: [
+      ...lampX.map((X, i) => ({ id: `lampara${i}`, X, y: 905, svg: propSvg(recolor(lamparaPie(), col)), z: 0 })),
+      { id: 'tragaperras', X: TRAGA.X, y: TRAGA.y, svg: propNivel(recolor(maquinaPared(), col), 5, TRAGA.X, TRAGA.y, false), z: 0, si: '!c2.separada' },
+      { id: 'tragaperrasFuera', X: TRAGA_FUERA.X, y: TRAGA_FUERA.y, svg: propNivel(recolor(maquinaFuera(), col), 5, TRAGA_FUERA.X, TRAGA_FUERA.y, false), z: 0, si: 'c2.separada' },
+      { id: 'duro', X: DURO.X, y: DURO.y, svg: propNivel(recolor(duroArte(), col), 5, DURO.X, DURO.y, false), z: -20, si: 'c2.duroVisible' },
+    ],
+    lights: [
+      ...luces(0).map((l) => ({ ...l, y: l.y < 700 ? volteoY(l.y) : l.y, color: col(l.color) })),
+      ...lampX.map((X) => ({ X, y: 560, r: 520, color: col('#ffc27a'), power: 0.45, fy: 930 })),
+    ],
+    shafts: [{ X0: 388, X1: 556, dX: 420, k1: 1.36, color: col('#ffb056'), power: 0.3 }],
+    spots,
+    zonas,
+    noche: { tubos: [] },
+  };
+}
+
+/** The live pieces of the levels 4 and 5, in the place and the drawing of their level: where each moves to (bar-vivo.ts). */
+function adaptarNoche(nivel, d) {
+  if (nivel === 4) {
+    const top = techoLargo();
+    return {
+      ...d,
+      desp: { tele: [2 * SH], porra: [0, SH, 2 * SH], botellas: [0, SH, 2 * SH] },
+      bar: { X: BAR.X + SH, y: BAR.y, k: KB },
+      maquinaPared: { X: TRAGA.X + 2 * SH, y: TRAGA.y },
+      maquinaFuera: { X: TRAGA_FUERA.X + 2 * SH, y: TRAGA_FUERA.y },
+      duro: { X: DURO.X + 2 * SH, y: DURO.y },
+      tubos: top.tubos,
+      inclina: { S: INCL, xc: CX4 },
+    };
+  }
+  return { ...d, volteo: 810, sinVitrina: true, tubos: [] };
 }

@@ -6,6 +6,9 @@
 //   level 2    the telly shows the Usera dragon dancing; the tapas in the case breathe
 //   level 3    the telly swings, three small bottles spin on their shelves, the slot machine
 //              throbs and the sheet is all sevens (that part is baked)
+//   level 4    the long bar: the same, with each live piece in the place and the slope of its
+//              copy of the wall (`inclina`, `desp`)
+//   level 5    upside down: the live pieces of the wall are turned over (`volteo`)
 //
 // Docs/ESTILO.md, T5: every piece is turned into a bitmap once per level (the SVG comes
 // from src/arte/escenas/bar.mjs) and a frame only draws those bitmaps; there is no SVG drawn
@@ -32,6 +35,14 @@ interface Listo {
   estrella: HTMLCanvasElement;
   tubo: HTMLCanvasElement;
   datos: ReturnType<typeof piezasVivas>;
+}
+
+/** What the levels 4 and 5 add to the live pieces: where each copy goes, the slope, the turn (src/arte/escenas/bar.mjs, `adaptarNoche`). */
+interface Noche {
+  desp?: { tele: number[]; porra: number[]; botellas: number[] };
+  inclina?: { S: number; xc: number };
+  volteo?: number;
+  sinVitrina?: boolean;
 }
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -168,7 +179,17 @@ export function dibujarBarVivo(g: Aventura, ctx: CanvasRenderingContext2D, capa:
   if (!L) return;
   const t = m.t;
   const d = L.datos;
+  const nz = d as unknown as Noche;
   const vw = m.vw;
+  const S = nz.inclina?.S ?? 0;
+  const xc = nz.inclina?.xc ?? 0;
+  /** Puts what follows in the copy of the wall shifted by `dx`: its slope (level 4) and its turn (level 5). */
+  const copia = (dx: number) => {
+    if (S) ctx.transform(1, S, 0, 1, dx, S * (dx - xc));
+    else if (dx) ctx.translate(dx, 0);
+    if (nz.volteo) ctx.transform(1, 0, 0, -1, 0, nz.volteo);
+  };
+  const girando = nivel >= 3;
   // Layer coordinates to the canvas: x = u + offset of the layer.
   const capaU = (k: number) => ctx.setTransform(px, 0, 0, px, m.off(k) * px, 0);
   const visible = (x0: number, x1: number, k: number) => {
@@ -180,11 +201,12 @@ export function dibujarBarVivo(g: Aventura, ctx: CanvasRenderingContext2D, capa:
     // ---- The telly.
     const T = L.tele;
     const P = T.pantalla;
-    if (visible(P.x - 260, P.x + P.w + 260, 1)) {
+    for (const dx of nz.desp?.tele ?? [0]) {
+      if (!visible(P.x + dx - 260, P.x + dx + P.w + 260, 1)) continue;
       ctx.save();
       capaU(1);
+      copia(dx);
       const [cx, cy] = T.centro;
-      const girando = nivel === 3;
       // Its light on the wall, flickering (nothing else on the wall changes).
       const fl = 0.55 + 0.45 * Math.sin(t * 7.3) * Math.sin(t * 2.9 + 1) * 0.5 + 0.2 * Math.sin(t * 17);
       ctx.globalCompositeOperation = 'lighter';
@@ -215,7 +237,7 @@ export function dibujarBarVivo(g: Aventura, ctx: CanvasRenderingContext2D, capa:
         }
       } else {
         // The Usera dragon, dancing on a colour that goes round: its body follows the head along a loop.
-        ctx.fillStyle = `hsl(${((t * 38) % 360).toFixed(0)} ${nivel === 3 ? 55 : 80}% ${nivel === 3 ? 45 : 38}%)`;
+        ctx.fillStyle = `hsl(${((t * 38) % 360).toFixed(0)} ${girando ? 55 : 80}% ${girando ? 45 : 38}%)`;
         ctx.fillRect(P.x, P.y, P.w, P.h);
         const mx = P.x + P.w / 2;
         const my = P.y + P.h / 2 + 4;
@@ -252,9 +274,10 @@ export function dibujarBarVivo(g: Aventura, ctx: CanvasRenderingContext2D, capa:
     const bx = m.screenX(d.bar.X, kb);
     {
       const ex = E.fondo;
-      if (bx + (ex.x + ex.w) * kb > -40 && bx + ex.x * kb < vw + 40) {
+      if (!nz.sinVitrina && bx + (ex.x + ex.w) * kb > -40 && bx + ex.x * kb < vw + 40) {
         ctx.save();
         ctx.setTransform(px * kb, 0, 0, px * kb, bx * px, d.bar.y * px);
+        if (S) ctx.transform(1, S, 0, 1, 0, S * (d.bar.X - xc));
         ctx.drawImage(ex.c, ex.x, ex.y, ex.w, ex.h);
         const respira = nivel >= 2;
         for (const p of E.tapas) {
@@ -274,13 +297,15 @@ export function dibujarBarVivo(g: Aventura, ctx: CanvasRenderingContext2D, capa:
     // ---- The pool sheet: from level 1 a number hops from square to square.
     if (nivel >= 1) {
       const celdas = L.porra.celdas;
-      if (visible(1990, 2320, 1)) {
+      for (const [n, dx] of (nz.desp?.porra ?? [0]).entries()) {
+        if (!visible(1990 + dx, 2320 + dx, 1)) continue;
         ctx.save();
         capaU(1);
-        const marcas = nivel === 3 ? 2 : 1;
+        copia(dx);
+        const marcas = girando ? 2 : 1;
         for (let q = 0; q < marcas; q++) {
-          const ciclo = 3.4 - q * 0.5;
-          const paso = Math.floor(t / ciclo) + q * 31;
+          const ciclo = 3.4 - q * 0.5 + n * 0.37;
+          const paso = Math.floor(t / ciclo) + q * 31 + n * 97;
           const u = (t % ciclo) / ciclo;
           const c = celdas[Math.floor(azar(paso + 1) * celdas.length)];
           const a = suave(0, 0.12, u) * (1 - suave(0.86, 1, u));
@@ -295,18 +320,21 @@ export function dibujarBarVivo(g: Aventura, ctx: CanvasRenderingContext2D, capa:
     }
 
     // ---- Level 3: a few small bottles turn slowly on their shelves.
-    if (nivel === 3) {
-      ctx.save();
-      capaU(1);
-      L.botellas.forEach((b, i) => {
-        if (!visible(b.x - 60, b.x + 60, 1)) return;
+    if (girando) {
+      for (const dx of nz.desp?.botellas ?? [0]) {
         ctx.save();
-        ctx.translate(b.x, b.y);
-        ctx.rotate(t * (0.55 + i * 0.12) + i * 2);
-        ctx.drawImage(b.c, b.ox, b.oy, b.w, b.h);
+        capaU(1);
+        copia(dx);
+        L.botellas.forEach((b, i) => {
+          if (!visible(b.x + dx - 60, b.x + dx + 60, 1)) return;
+          ctx.save();
+          ctx.translate(b.x, b.y);
+          ctx.rotate(t * (0.55 + i * 0.12) + i * 2 + dx * 0.01);
+          ctx.drawImage(b.c, b.ox, b.oy, b.w, b.h);
+          ctx.restore();
+        });
         ctx.restore();
-      });
-      ctx.restore();
+      }
     }
     return;
   }
@@ -325,10 +353,11 @@ export function dibujarBarVivo(g: Aventura, ctx: CanvasRenderingContext2D, capa:
     if (!tapada && sx > -300 && sx < vw + 300) {
       ctx.save();
       ctx.setTransform(px * k, 0, 0, px * k, sx * px, lugar.y * px);
-      const pulso = nivel === 3 ? 1 + 0.05 * Math.sin(t * 5) : 1;
+      if (S) ctx.transform(1, S, 0, 1, 0, S * (lugar.X - xc));
+      const pulso = girando ? 1 + 0.05 * Math.sin(t * 5) : 1;
       // Its glow on what is around it, then the lit marquee and reels.
       ctx.globalCompositeOperation = 'lighter';
-      ctx.globalAlpha = (nivel === 3 ? 0.4 + 0.2 * Math.sin(t * 5) : 0.3) * (0.8 + 0.2 * Math.sin(t * 9));
+      ctx.globalAlpha = (girando ? 0.4 + 0.2 * Math.sin(t * 5) : 0.3) * (0.8 + 0.2 * Math.sin(t * 9));
       ctx.drawImage(L.maquina.halo, -150, -480, 300, 280);
       ctx.globalCompositeOperation = 'source-over';
       ctx.globalAlpha = 1;
@@ -363,13 +392,18 @@ export function dibujarBarVivo(g: Aventura, ctx: CanvasRenderingContext2D, capa:
   const lapso = 7.5;
   const slot = Math.floor(t / lapso);
   const u = (t % lapso) / lapso;
-  if (u < 0.05) {
+  if (u < 0.05 && d.tubos.length) {
     const tubo = d.tubos[Math.floor(azar(slot) * d.tubos.length)];
     const o = m.off(1.4);
     if (tubo.u + o > -300 && tubo.u + o < vw + 300) {
       const f = Math.sin((u / 0.05) * Math.PI * 5) > 0 ? 1 : 0.25;
       ctx.save();
       ctx.setTransform(px, 0, 0, px, o * px, 0);
+      if (S) {
+        ctx.translate(tubo.u, tubo.y);
+        ctx.rotate(Math.atan(S));
+        ctx.translate(-tubo.u, -tubo.y);
+      }
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = 0.4 * f * Math.sin((u / 0.05) * Math.PI);
       ctx.drawImage(L.tubo, tubo.u - tubo.len / 2, tubo.y - 52, tubo.len, 104);

@@ -291,6 +291,8 @@ export const capitulo2: Capitulo = {
     bar1: () => bar(1) as unknown as Escena,
     bar2: () => bar(2) as unknown as Escena,
     bar3: () => bar(3) as unknown as Escena,
+    bar4: () => bar(4) as unknown as Escena,
+    bar5: () => bar(5) as unknown as Escena,
   },
 
   estadoInicial,
@@ -373,7 +375,7 @@ export const capitulo2: Capitulo = {
 
   vecinas: (escena) => {
     const m = escena.match(/^bar(\d)$/);
-    return m && Number(m[1]) < 3 ? [`bar${Number(m[1]) + 1}`] : [];
+    return m && Number(m[1]) < 5 ? [`bar${Number(m[1]) + 1}`] : [];
   },
 
   musica(g) {
