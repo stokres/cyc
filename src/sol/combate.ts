@@ -1993,8 +1993,8 @@ export class Combate implements Escena {
       g.drawImage(ventana(w, 17), Math.round(120 - w / 2), 2);
       escribir(g, this.msg, Math.round(120 - anchoTexto(this.msg) / 2), 5, '#ffffff', '#0a1450');
     }
-    // the status boxes of the four friends
-    this.heroes.forEach((h, i) => this.dibujarCaja(g, h, i));
+    // the status boxes of the four friends, in the order they stand on screen (the leader, in front, is the rightmost)
+    this.heroes.forEach((h, i) => this.dibujarCaja(g, h, this.heroes.length - 1 - i));
     // the menus
     const u = this.ui;
     if (u.modo === 'luchar') this.dibujarMenu(g, u.menu.items, u.menu.cursor, u.menu.x, u.menu.y);
