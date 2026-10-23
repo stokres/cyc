@@ -29,6 +29,7 @@ import tragaperrasPremio from './tragaperras-premio.mp3?url';
 import pangUsera from './pang-usera.mp3?url';
 import pangCalle from './pang-calle.mp3?url';
 import pangRonda from './pang-ronda.mp3?url';
+import kartCarrera from './kart-carrera.mp3?url';
 import solPueblo from './sol-pueblo.mp3?url';
 import solTexto from './sol-texto.mp3?url';
 import solPoder from './sol-poder.mp3?url';
@@ -107,6 +108,8 @@ export const MUSICA = {
   pangCalle: { url: pangCalle, inicio: 0.5, fin: 53.833333 },
   /** «Última ronda», the bosses' theme. */
   pangRonda: { url: pangRonda, inicio: 0.5, fin: 49.071429 },
+  /** Impropios Kart's race: 150 bpm, C major, a country guitar and a drag-party kit, 32 bars (tools/musica/kart.py). */
+  kartCarrera: { url: kartCarrera, inicio: 0.5, fin: 51.7 },
   /**
    * «Alacant Sun», Pablo's Golden Sun parody (chapter 2, tools/musica/sol.py). «Pueblo»: the village at night in the
    * fiestas, 108 bpm, 32 bars; the 4-bar intro (the storm and the build's last two bars) plays once and then the 71.1 s
