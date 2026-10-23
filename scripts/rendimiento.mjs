@@ -15,7 +15,7 @@
 // without it, to compare.
 //
 // Usage: node scripts/rendimiento.mjs [escena...]   (against npm run dev on :5173)
-//   escenas: prologo, piso, calle, bar, manga, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, tragaperras, sol, solcombate, solcamino, solteatro, soljefe, solcalderon (all by default)
+//   escenas: prologo, piso, calle, bar, manga, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, tragaperras, sol, solcombate, solcamino, solteatro, soljefe, solcalderon, kart (all by default)
 import { chromium } from 'playwright';
 import { readFileSync, readdirSync } from 'node:fs';
 
@@ -80,6 +80,7 @@ async function medir(nombre, prep, contar = 'escena') {
     window.__tragaperras?.().cerrar();
     clearInterval(window.__lucha);
     window.__sol?.().cerrar();
+    window.__kart?.().cerrar();
     // The minigames started here do not unpause the scene themselves.
     window.__cyc.g.pausado = false;
   });
@@ -110,9 +111,10 @@ async function medir(nombre, prep, contar = 'escena') {
     const tg0 = window.__tragaperras?.().fotogramas ?? 0;
     const g0 = window.__pang?.().fotogramas ?? 0;
     const so0 = window.__sol?.().fotogramas ?? 0;
+    const ka0 = window.__kart?.().fotogramas ?? 0;
     setTimeout(() => {
       m.dibujar = d;
-      res(contar === 'cerdos' ? ((window.__cerdos?.().fotogramas ?? 0) - f0) / seg : contar === 'palabras' ? ((window.__palabras?.().fotogramas ?? 0) - p0) / seg : contar === 'rana' ? ((window.__rana?.().fotogramas ?? 0) - r0) / seg : contar === 'robot' ? ((window.__robot?.().fotogramas ?? 0) - b0) / seg : contar === 'pang' ? ((window.__pang?.().fotogramas ?? 0) - g0) / seg : contar === 'trailer' ? ((window.__trailer?.().fotogramas ?? 0) - t0) / seg : contar === 'canas' ? ((window.__canas?.().fotogramas ?? 0) - ca0) / seg : contar === 'canto' ? ((window.__canto?.().fotogramas ?? 0) - cn0) / seg : contar === 'tragaperras' ? ((window.__tragaperras?.().fotogramas ?? 0) - tg0) / seg : contar === 'sol' ? ((window.__sol?.().fotogramas ?? 0) - so0) / seg : n / seg);
+      res(contar === 'cerdos' ? ((window.__cerdos?.().fotogramas ?? 0) - f0) / seg : contar === 'palabras' ? ((window.__palabras?.().fotogramas ?? 0) - p0) / seg : contar === 'rana' ? ((window.__rana?.().fotogramas ?? 0) - r0) / seg : contar === 'robot' ? ((window.__robot?.().fotogramas ?? 0) - b0) / seg : contar === 'pang' ? ((window.__pang?.().fotogramas ?? 0) - g0) / seg : contar === 'trailer' ? ((window.__trailer?.().fotogramas ?? 0) - t0) / seg : contar === 'canas' ? ((window.__canas?.().fotogramas ?? 0) - ca0) / seg : contar === 'canto' ? ((window.__canto?.().fotogramas ?? 0) - cn0) / seg : contar === 'tragaperras' ? ((window.__tragaperras?.().fotogramas ?? 0) - tg0) / seg : contar === 'sol' ? ((window.__sol?.().fotogramas ?? 0) - so0) / seg : contar === 'kart' ? ((window.__kart?.().fotogramas ?? 0) - ka0) / seg : n / seg);
     }, seg * 1000);
   }), { seg: SEG, contar });
   const cpu = ((cpuChrome() - c0) / SEG) * 100;
@@ -276,6 +278,22 @@ if (toca('pang')) {
     g.pausado = true;
     void jugarPangCapitulo(g.root, { sonido: g.sound, fase: 2, control: 'bot' });
   })()`, 'pang');
+}
+if (toca('kart')) {
+  // Impropios Kart: a bot drives Chuchi (the computer's line) through the first stretches; the mode-7 floor, sprites and HUD are all in the run.
+  await medir('Impropios Kart (carrera)', `(async () => {
+    clearInterval(window.__paseo);
+    const g = window.__cyc.g;
+    const { jugarKart } = await import('/src/kart/kart.ts');
+    g.pausado = true;
+    void jugarKart(g.root, { sonido: g.sound });
+    const espera = () => {
+      const k = window.__kart?.();
+      if (k?.carrera) k.auto(true);
+      else setTimeout(espera, 200);
+    };
+    espera();
+  })()`, 'kart');
 }
 if (toca('rana')) {
   await medir('minijuego de la rana', `(async () => {

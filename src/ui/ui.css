@@ -1424,6 +1424,43 @@ button:focus-visible {
   z-index: 8;
 }
 
+/* ------------------------------------------------------------ Impropios Kart (chapter 2, src/kart/) */
+
+/* The race is a small pixel canvas centred on black, blown up in whole multiples without smoothing (kart.ts);
+   the touch buttons are the game's own (src/kart/entrada.ts). «Saltar» goes top left (the bottom right is the item
+   button) and the instructions strip sits over the sky. */
+.minijuego.kart {
+  display: block;
+  padding: 0;
+  background: #0a0612;
+}
+
+.minijuego.kart .kart-lienzo {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  display: block;
+  image-rendering: pixelated;
+}
+
+.minijuego.kart .instrucciones {
+  z-index: 2;
+  max-width: min(calc(100% - 2 * (var(--safe-r) + 58px)), 560px);
+  font-size: clamp(12px, 3.4vh, 16px);
+}
+
+.minijuego.kart .cerrar {
+  z-index: 8;
+}
+
+.minijuego.kart .btn.saltar {
+  top: var(--safe-t);
+  left: var(--safe-l);
+  right: auto;
+  bottom: auto;
+  z-index: 8;
+}
+
 /* ------------------------------------------------------------ ball cannon minigame (Chuchi) */
 
 .minijuego.robot {

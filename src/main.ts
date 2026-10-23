@@ -70,6 +70,17 @@ async function arrancar() {
     location.href = location.pathname;
     return;
   }
+  // «Impropios Kart» (src/kart/), opened by itself: the address ending in ?kart.
+  if (new URLSearchParams(location.search).has('kart')) {
+    const [{ jugarKart }, { Sound }] = await Promise.all([import('./kart/kart'), import('./core/audio')]);
+    const sonido = new Sound();
+    // Sound needs a tap first (browsers): the first press or key starts it.
+    addEventListener('pointerdown', () => sonido.start(), { once: true });
+    addEventListener('keydown', () => sonido.start(), { once: true });
+    await jugarKart(root, { sonido });
+    location.href = location.pathname;
+    return;
+  }
   const ajustes = cargarAjustes();
   const guardarAjustes = () => storageSet('cyc.ajustes', JSON.stringify(ajustes));
   // ---------------------------------------------------------- the saved game
@@ -336,6 +347,8 @@ async function arrancar() {
     { id: 'palabras', quien: 'pablo' },
     { id: 'robot', quien: 'chuchi' },
     { id: 'cerdos', quien: 'guille' },
+    // A single race, not endless: always open (chapter 2's progress is not kept yet), no record.
+    { id: 'kart', quien: 'chuchi' },
   ];
   const tarjeta = (...kids: Node[]) => g.hud.cubrir('', h('div', { class: 'tarjeta vidrio' }, ...kids));
   const boton = (etiqueta: string, clase: string, alTocar: () => void, id?: string) => {
@@ -355,8 +368,8 @@ async function arrancar() {
     g.pausado = true;
     const fila = ({ id, quien }: (typeof MINIJUEGOS)[number]) => {
       const mj = partida.progreso.minijuegos[id];
-      const abierto = !!mj?.superado;
-      const estado = !abierto ? texto('minijuegos.bloqueado', { quien: REPARTO[quien].nombre }) : mj.record ? texto('minijuegos.record', { n: mj.record }) : texto('minijuegos.sinrecord');
+      const abierto = id === 'kart' || !!mj?.superado;
+      const estado = id === 'kart' ? texto('minijuegos.suelto') : !abierto ? texto('minijuegos.bloqueado', { quien: REPARTO[quien].nombre }) : mj.record ? texto('minijuegos.record', { n: mj.record }) : texto('minijuegos.sinrecord');
       return h(
         'div',
         { class: `capitulo-fila minijuego-fila${abierto ? ' superado' : ' bloqueado'}` },
@@ -365,7 +378,7 @@ async function arrancar() {
           ? [
               boton(texto('minijuegos.jugar'), 'primario', () => {
                 el.remove();
-                void jugarInfinito(id);
+                void (id === 'kart' ? jugarKartSuelto() : jugarInfinito(id));
               }, `mj-${id}`),
             ]
           : []),
@@ -377,6 +390,14 @@ async function arrancar() {
       h('p', { class: 'pequeno' }, texto('minijuegos.nota')),
       h('div', { class: 'fila' }, boton(texto('menu.continuar'), 'fantasma', () => volverAlJuego(el))),
     );
+  };
+
+  /** Impropios Kart from the list: one race, and back to the list whatever happens. */
+  const jugarKartSuelto = async () => {
+    g.pausado = true;
+    const { jugarKart } = await import('./kart/kart');
+    await jugarKart(g.root, { rapido: g.rapido, sonido: g.sound });
+    menuMinijuegos();
   };
 
   const jugarInfinito = async (id: string) => {
