@@ -237,10 +237,10 @@ export function mano(c, quien, k = 1) {
 
 /** Caja que encuadra la mano de cada uno: [x0, y0, x1, y1]. */
 export const CAJA_MANO = {
-  pablo: [-150, -150, 150, 260],
-  fran: [-150, -90, 150, 280],
-  chuchi: [-150, -200, 150, 280],
-  guille: [-150, -190, 150, 280],
-  vero: [-130, -150, 130, 260],
-  sombra: [-150, -150, 150, 260],
+  pablo: [-150, -150, 150, 200],
+  fran: [-140, -90, 140, 230],
+  chuchi: [-140, -230, 140, 210],
+  guille: [-140, -200, 140, 210],
+  vero: [-130, -150, 130, 200],
+  sombra: [-150, -150, 150, 200],
 };

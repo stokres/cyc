@@ -87,7 +87,7 @@ function ojo(c, tn, r, tipo, { sombraSup = true, seed = 1 } = {}) {
     const oo = [
       G([P(formaR, BLANCO), P(ellipse(w * 0.02, h * 0.04, rr, rr * 1.15), T), P(ellipse(w * 0.02 - rr * 0.34, h * 0.04 - rr * 0.4, rr * 0.5, rr * 0.4), BLANCO)].join(''), { 'clip-path': c.clip(formaR) }),
       S(formaR, T, grueso * 0.8),
-      S(smooth(G8.slice(7, 12).concat([G8[0]]).map((p) => p), false), T, grueso * 1.6),
+      S(smooth(G8.slice(7, 12).concat([G8[0]]).map((p) => p), false), T, grueso * 1.25),
     ];
     for (let i = 0; i < pest; i++) oo.push(S(`M${f(rxo * (0.5 + 0.12 * i))} ${f(-ryo * (0.7 - 0.2 * i))}l${f(w * 0.12)} ${f(-h * 0.1)}`, T, 3.2));
     if (flick) oo.push(P(`M${f(rxo * 0.6)} ${f(-ryo * 0.7)}Q${f(rxo)} ${f(-ryo * 0.7)} ${f(rxo + flick)} ${f(-ryo - flick * 0.4)}Q${f(rxo + 6)} ${f(-ryo * 0.2)} ${f(rxo * 0.9)} ${f(-ryo * 0.2)}Z`, T));
@@ -368,9 +368,6 @@ function pabloPelo(tn, relleno, soloNegro = false) {
     o.push(S(mechonEje(x + w * 0.12, y, tx, ty, cu, 0.22, 0.8), PAPEL, Math.max(2, w * 0.07)));
   }
   o.push(S('M-60 -122Q-30 -136 8 -132', PAPEL, 2.6), S('M-20 -108Q10 -122 40 -110', PAPEL, 2));
-  // Mechón suelto sobre la frente.
-  o.push(mecho([30, -100, 46, -54, 20, 0.2], relleno));
-  o.push(mecho([-28, -96, -34, -58, 14, 0.15], relleno));
   return o.join('');
 }
 
@@ -491,14 +488,14 @@ function guille(c, tn, e, opc) {
   const torso = smooth([[-260, 290], [-244, 200], [-150, 166], [-64, 152], [64, 152], [150, 166], [244, 200], [260, 290]]);
   o.push(P(torso, PAPEL), P(torso, tn.punto(0.24, 45)), S(torso, T, 3.2));
   const motivos = [];
-  for (const [x, y, s, rot] of [[-176, 214, 1.5, 0.2], [-110, 262, 1.2, 1], [170, 210, 1.6, 0.5], [112, 260, 1.2, 0.1], [-236, 270, 1.1, 0.6], [236, 262, 1.1, 1.2], [-52, 290, 1, 0.8]]) motivos.push(flor(x, y, s, tn, rot));
-  for (const [x, y, s, rot] of [[-210, 168, 1.4, 200], [-136, 238, 1.4, 30], [110, 176, 1.4, 20], [150, 252, 1.3, 150], [-250, 232, 1.2, 190], [226, 224, 1.3, 200]]) motivos.push(hoja(x, y, s, rot));
+  for (const [x, y, s, rot] of [[-130, 226, 1.45, 0.2], [-60, 270, 1.1, 1], [134, 222, 1.5, 0.5], [62, 270, 1.1, 0.1], [-196, 240, 1.2, 0.6], [200, 232, 1.2, 1.2]]) motivos.push(flor(x, y, s, tn, rot));
+  for (const [x, y, s, rot] of [[-176, 196, 1.3, 200], [-92, 250, 1.3, 30], [172, 200, 1.3, 20], [96, 252, 1.3, 150], [-230, 232, 1.2, 190], [226, 224, 1.3, 200]]) motivos.push(hoja(x, y, s, rot));
   o.push(G(motivos.join(''), { 'clip-path': c.clip(torso) }));
   o.push(cuello(tn, 40, 92, 200));
   // Cuello de la camisa: dos solapas abiertas, con rayas de tela.
   const solapa = (s) => {
     const d = smooth([[s * 40, 146, 'c'], [s * 104, 152, 'c'], [s * 130, 222, 'c'], [s * 62, 196, 'c']]);
-    return [P(d, PAPEL), P(d, tn.punto(0.16)), flor(s * 96, 188, 0.62, tn, s * 0.6), S(d, T, 3.4)].join('');
+    return [P(d, PAPEL), P(d, tn.punto(0.16)), flor(s * 94, 190, 0.78, tn, s * 0.6), S(d, T, 3.4)].join('');
   };
   o.push(solapa(-1), solapa(1));
   o.push(S('M-46 196L-40 290', T, 3.2), S('M46 196L40 290', T, 3.2));
@@ -518,6 +515,8 @@ function guille(c, tn, e, opc) {
   }
   o.push(P(smooth([[-70, 16], [-50, 50], [-30, 78], [-20, 70], [-40, 40], [-60, 0]]), tn.punto(0.26)));
   o.push(S(cara, T, 3.4));
+  // La mandíbula marcada: dos trazos en las esquinas del maxilar.
+  o.push(S('M-84 92Q-74 116 -52 136', T, 2.2, { opacity: 0.8 }), S('M84 92Q74 116 52 136', T, 2.2, { opacity: 0.8 }), S('M-66 70Q-60 84 -56 96', T, 1.6, { opacity: 0.6 }), S('M66 70Q60 84 56 96', T, 1.6, { opacity: 0.6 }));
   o.push(nariz(r));
   o.push(G(boca(c, tn, r, expr2(e).boca, { barba: false }), { transform: `translate(0 ${r.ym})` }));
   o.push(ojos(c, tn, r, e), cejas(r, e));
@@ -635,7 +634,7 @@ export const CAJAS = {
   pablo: { cara: [-170, -200, 170, 215], ojos: [-122, -78, 122, 24], boca: [-110, 46, 110, 150] },
   fran: { cara: [-190, -170, 190, 215], ojos: [-122, -74, 122, 24], boca: [-120, 40, 120, 190] },
   chuchi: { cara: [-170, -170, 170, 215], ojos: [-122, -84, 122, 34], boca: [-110, 44, 110, 150] },
-  guille: { cara: [-190, -170, 190, 215], ojos: [-122, -76, 122, 26], boca: [-110, 46, 110, 160] },
+  guille: { cara: [-190, -170, 190, 240], ojos: [-122, -76, 122, 26], boca: [-110, 46, 110, 160] },
   vero: { cara: [-170, -215, 170, 215], ojos: [-120, -82, 120, 24], boca: [-100, 50, 100, 140] },
   sombra: { cara: [-170, -205, 170, 215], ojos: [-122, -80, 122, 26], boca: [-110, 46, 110, 150] },
 };

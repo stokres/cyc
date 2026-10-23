@@ -25,14 +25,19 @@ await page.waitForFunction(() => window.__cyc, null, { timeout: 30000 });
 await page.evaluate(() => window.__cyc.listo());
 
 let n = 0;
-const shot = (name) => page.screenshot({ path: `${out}/${String(++n).padStart(2, '0')}-${name}.png` });
+const shot = async (name) => {
+  await page.screenshot({ path: `${out}/${String(++n).padStart(2, '0')}-${name}.png` });
+  // The manga shots also go where Jesús looks at them (MANGA_OUT=/mnt/project-files/capitulo2/anime).
+  if (name.startsWith('manga-en-juego') && process.env.MANGA_OUT) await page.screenshot({ path: `${process.env.MANGA_OUT}/${name}.png` });
+};
 const wait = (ms) => page.waitForTimeout(ms);
 const flag = (k) => page.evaluate((k) => !!window.__cyc.g.estado.flags[k], k);
 const check = (ok, msg) => ok || errors.push('PASO FALLIDO: ' + msg);
 
 /** Screenshots to take when a line of the dialogue shows (a piece of its text, the name of the file): the camera has time to land. */
 const fotos = [];
-const fotoAl = (trozo, nombre) => fotos.push([trozo, nombre]);
+const fotoAl = (trozo, nombre, manga) => fotos.push([trozo, nombre, manga]);
+const mangaActivo = () => page.evaluate(() => window.__cyc.g.plano.manga.activo);
 
 /** Tap through dialogue until the running script ends, or a choice or a full-screen piece comes up. */
 async function charla() {
@@ -61,7 +66,10 @@ async function charla() {
         const i = fotos.findIndex(([trozo]) => t.includes(trozo));
         if (i >= 0) {
           await wait(900);
-          await shot(fotos[i][1]);
+          const [, nombre, manga] = fotos[i];
+          // The manga shots: on screen (and the hud away) in the lines that have one, gone in the ones that do not.
+          if (manga !== undefined) check((await mangaActivo()) === manga, `${nombre}: el plano manga ${manga ? 'no sale' : 'no se va'}`);
+          await shot(nombre);
           fotos.splice(i, 1);
         }
       }
@@ -239,6 +247,18 @@ await paso('Pablo y los fresquitos (dos frases malas y la buena)', async () => {
 check((await nivel()) === 2, 'tras los fresquitos la noche no está en el nivel 2');
 await shot('bar2');
 
+// The manga shots of the night (src/textos/capitulo2.md, «@manga»): one picture of each, and the 'solo' one goes away.
+fotoAl('Esto no paga en monedas', 'manga-en-juego-1-premio', true);
+fotoAl('Oye, mi niño', 'noche-premio-sin-manga', false);
+fotoAl('has cerrado los ojos hace un minuto', 'manga-en-juego-2-chuchi-un-minuto', true);
+fotoAl('Dos minutos de dragón', 'manga-en-juego-3-fran-dragon', true);
+fotoAl('No me creéis', 'manga-en-juego-4-fran-triste', true);
+fotoAl('Esa cara', 'manga-en-juego-5-ojos-de-pablo', true);
+fotoAl('Os habéis puesto a soñar', 'manga-en-juego-6-sombra', true);
+fotoAl('Esta historia la acabo yo', 'manga-en-juego-7-sombra-ojos', true);
+fotoAl('La vida es sueño', 'manga-en-juego-8-pablo-despierta', true);
+fotoAl('La pantalla se marea', 'noche-sin-manga', false);
+
 await paso('El duro, la tirada, el canto y el premio', async () => {
   // The duro is in the pocket of whoever picked it up.
   await como(await page.evaluate(() => window.__cyc.g.estado.jugables.find((id) => window.__cyc.g.tiene('duro', id))));
@@ -251,14 +271,10 @@ await paso('El duro, la tirada, el canto y el premio', async () => {
 }, 'c2.premio');
 check((await nivel()) === 3, 'tras el premio la noche no está en el nivel 3');
 
-fotoAl('Dos minutos de dragón', 'noche-fran-dragon-corte');
 fotoAl('Yo te creo lo del cerdo', 'noche-chuchi-cerdo-inclinado');
 fotoAl('¿Por qué la barra no se acaba', 'noche-bar4-contrapicado');
-fotoAl('Esa cara', 'noche-pablo-cara-cerca');
 fotoAl('Los taburetes están en el techo', 'noche-bar5-reves');
 fotoAl('Qué escena tan bonita', 'noche-narrador');
-fotoAl('Esta historia la acabo yo', 'noche-narrador-final');
-fotoAl('La vida es sueño', 'noche-pablo-despierta');
 fotoAl('seguimos del revés', 'noche-bar5-cierre');
 
 await paso('Fran cierra los ojos: el Pang', async () => {

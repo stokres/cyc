@@ -437,6 +437,7 @@ export class Aventura {
       if (this.S && this.velo.classList.contains('on')) void this.velar(false);
     } finally {
       this.ocupado = false;
+      this.plano.manga.ocultar();
       this.hud.cerrarDialogo();
       for (const p of [...this.pjs.values(), ...this.npcs.values()]) p.talking = false;
       this.refrescar();

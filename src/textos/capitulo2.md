@@ -384,6 +384,7 @@ GUILLE (contento): ¡Me encanta! ¡Otra vez, todos!
 
 ## c2.premio
 GUILLE (contento): ¡PREMIO GORDO!
+@manga guille:cara:risa chuchi:ojos:sorpresa !don solo
 CHUCHI (sorprendido): ¡Esto no paga en monedas desde 2002!
 VERO (sorprendido): Oye, mi niño... ¿y desde cuándo las paredes son redondas?
 FRAN (contento): Que no pare. Que no pare nunca.
@@ -398,6 +399,11 @@ FRAN (contento): Cinco minutitos. Solo cinco. Como los profesionales.
 // Provisional. Las líneas que empiezan por @ no se dicen: son la cámara loca (src/juego/camara.ts):
 //   @holandes 8 500 · @nivelar · @zoom pablo 2.4 · @corte chuchi 2.6 -7 · @general · @contrapicado 14
 //   @barrido vero 1.8 · @temblor 14 700 · @foco tragaperras (la cámara de verdad viaja hasta allí) · @espera 400
+// El plano manga (src/juego/manga.ts): 1 a 3 viñetas inclinadas en blanco y negro, con el diálogo en su cuadro:
+//   @manga pablo:ojos:suplica vero:boca chuchi:cara:sorpresa !gogogo      personaje:tipo:expresión (cara · ojos · boca · mano)
+//   !gogogo !don !ha !zas son onomatopeyas dibujadas · solo: se va al acabar la siguiente línea · @manga fin: vuelve
+//   Expresiones: pablo suplica sorpresa seriedad risa · fran enfado sorpresa triste risa · chuchi sorpresa duda seriedad
+//   risa · guille risa sorpresa nervioso seriedad · vero picara sorpresa risa seriedad · sombra burla seriedad
 // El bar 4 es un pasillo que no se acaba, con el suelo inclinado; el bar 5, el Brío del revés.
 
 ## c2.noche.despierta
@@ -406,15 +412,15 @@ FRAN (contento): Cinco minutitos. Solo cinco. Como los profesionales.
 FRAN (sorprendido): ¡AUPA! ¡Un dragón! ¡Había un dragón!
 @corte fran 2.4 -6
 FRAN (nervioso): Estaba en Usera. Y el dragón salía de la tele, ¿vale? Verde, enorme, con cara de no haber cenado.
-@corte chuchi 2.2 5
+@manga chuchi:cara:duda chuchi:mano
 CHUCHI: Fran, has cerrado los ojos hace un minuto. Un minuto y poco.
-@corte fran 2.6 -9
+@manga fran:mano fran:cara:enfado !zas
 FRAN (enfadado): ¡Dos minutos de dragón, Chuchi! Se comía mi piso. Se comía Las Vegas. ¡Y al final venía La Penúltima, una caña de siete metros!
 @barrido pablo 2.1
 PABLO (chulo): Dragón, piso, Las Vegas, caña final. Tiene estructura. Quita el portal y tienes un monólogo.
 @corte guille 2.4 8
 GUILLE (contento): Yo creo que era un cerdo grande. Los cerdos grandes tienen ese efecto en la gente.
-@corte fran 2.8 -4
+@manga fran:cara:triste chuchi:ojos:duda
 FRAN (triste): No me creéis.
 @corte chuchi 2.2 -6
 CHUCHI: Yo te creo lo del cerdo.
@@ -441,7 +447,7 @@ GUILLE (nervioso): ¿Me va a salir otro cerdo?
 @temblor 12 600
 > La máquina se apaga de golpe. Se oye caer el último rodillo, como una puerta.
 @foco pablo
-@corte pablo 2.6 -7
+@manga pablo:ojos:sorpresa sombra:ojos:seriedad !gogogo
 PABLO (nervioso): Esa cara...
 @corte chuchi 2.2 5
 CHUCHI: Es la tuya, Pablo.
@@ -475,11 +481,12 @@ SOMBRA (chulo): Los narradores no nos quedamos en ningún capítulo. Nos reserva
 @corte fran 2.4 6
 FRAN: ¿Y este quién es?
 CHUCHI: La sombra de Pablo. El narrador. Es largo de explicar.
-// ANIME: aquí entrará el primer plano en estilo anime (¡la sombra, a cámara!): una marca @anime sombra, cuando exista.
-@corte pablo 3 -10
+@manga sombra:cara:burla pablo:ojos:sorpresa !gogogo
 SOMBRA (chulo): Os habéis puesto a soñar y a ninguno se le da bien acabarlo. Así que tranquilos.
 @temblor 20 700
+@manga sombra:ojos:seriedad !don
 SOMBRA (chulo): Esta historia la acabo yo.
+@manga fin
 
 ## c2.noche.consola
 @temblor 18 1000
@@ -489,8 +496,9 @@ SOMBRA (chulo): Esta historia la acabo yo.
 > Y en algún sitio, alguien abrió los ojos.
 
 ## c2.noche.pablo.ojos
-@zoom pablo 3 0
+@manga pablo:ojos:sorpresa pablo:cara:seriedad pablo:mano !gogogo
 PABLO (sorprendido): «La vida es sueño, y los sueños, sueños son».
+@zoom pablo 3 0
 @holandes -9 600
 PABLO: Calderón lo dijo con más gracia. Yo me he enterado con menos luz.
 @barrido chuchi 2.3

@@ -163,7 +163,7 @@ const FONDO_MANO = { pablo: 'gris', fran: 'rafaga', chuchi: 'luz', guille: 'luz'
 
 // ------------------------------------------------------------------ una viñeta
 /** Cuánto se acerca cada tipo hacia «cubrir» el hueco (0: entra entero; 1: llena y recorta). */
-const CUBRE = { cara: 0, ojos: 0.85, boca: 0.55, mano: 0.25 };
+const CUBRE = { cara: 0, ojos: 0.5, boca: 0.45, mano: 0 };
 
 /**
  * Dibuja el contenido de una viñeta dentro del polígono `poli`. `vis` es el hueco que se ve (no lo tapa el cuadro
@@ -232,7 +232,7 @@ export function plano(m, W = W0, H = H0, textos = {}) {
   const ono = m.ono.map((tipo, i) => {
     const [x, y] = cortes[i % cortes.length] ?? [W / 2, H * 0.3];
     const rot = (i % 2 ? 1 : -1) * 4;
-    const alto = tipo === 'gogogo' ? 170 : tipo === 'zas' ? 74 : 96;
+    const alto = tipo === 'gogogo' ? 190 : tipo === 'zas' ? 96 : tipo === 'ha' ? 120 : 140;
     const bloque = [];
     if (tipo === 'zas' || tipo === 'don') bloque.push(impacto(x, y, alto * (tipo === 'zas' ? 1.5 : 1.1), { seed: 4 + i }));
     bloque.push(onomatopeya(tipo, { x, y, alto, rot, palabra: textos[tipo] ?? '' }));
