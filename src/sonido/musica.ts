@@ -44,6 +44,17 @@ import solCura from './sol-cura.mp3?url';
 import solApuntador from './sol-apuntador.mp3?url';
 import solCae from './sol-cae.mp3?url';
 import solHuir from './sol-huir.mp3?url';
+import solTeatro from './sol-teatro.mp3?url';
+import solJefe from './sol-jefe.mp3?url';
+import solCalderon from './sol-calderon.mp3?url';
+import solFinal from './sol-final.mp3?url';
+import solHielo from './sol-hielo.mp3?url';
+import solViento from './sol-viento.mp3?url';
+import solRoca from './sol-roca.mp3?url';
+import solPuzle from './sol-puzle.mp3?url';
+import solChat from './sol-chat.mp3?url';
+import solTelon from './sol-telon.mp3?url';
+import solTransforma from './sol-transforma.mp3?url';
 
 export const MUSICA = {
   /** The farm polka on banjo, from Guille's radio (banjo.py radio). */
@@ -125,6 +136,29 @@ export const MUSICA = {
   solApuntador: { url: solApuntador, inicio: 0, fin: 0.8 },
   solCae: { url: solCae, inicio: 0, fin: 0.6 },
   solHuir: { url: solHuir, inicio: 0, fin: 0.6 },
+  /**
+   * «Alacant Sun», the end (tools/musica/sol_final.py). «Teatro»: the dungeon, an old theatre at night, C# minor, 84 bpm,
+   * 24 bars; the 2-bar intro (5.7 s) plays once and then the 68.6 s round loops from `inicio` to `fin`.
+   */
+  solTeatro: { url: solTeatro, entrada: 0, inicio: 5.714286, fin: 74.285714 },
+  /** «Jefe»: the fight against the narrator, B minor, 144 bpm, 36 bars; a 2-bar intro (3.3 s) heard once, then the 60 s round loops. */
+  solJefe: { url: solJefe, entrada: 0, inicio: 3.333333, fin: 63.333333 },
+  /**
+   * Heard once through (start it with Sound.efecto so it begins at sample 0, or with musica and a stop): Calderón de la
+   * Barca coming down from the sky, D major, 120 bpm, 22 s. THE FINAL STRIKE FALLS AT 16.000 s (bar 9, beat 1), after
+   * three quarters of a beat of near silence; what follows is the chord settling and fading out.
+   */
+  solCalderon: { url: solCalderon, inicio: 0, fin: 22 },
+  /** Heard once through: the way out and the credits, D major, 72 bpm, 78 s; it begins soft, as a dream ending, and the last chord fades away (it also loops cleanly through silence if played as music). */
+  solFinal: { url: solFinal, inicio: 0, fin: 78 },
+  /** The Theatre's puzzle and boss effects, played once with Sound.efecto (`inicio` and `fin` are not used): freezing a puddle (0.9 s), the cierzo blowing out candles (1 s), lifting or dropping a papier-mâché rock (0.6 s), a puzzle solved (1.2 s), the bubble of a message when a mind is read (0.3 s), a curtain opening (1.2 s) and the boss changing phase (1.5 s). */
+  solHielo: { url: solHielo, inicio: 0, fin: 0.9 },
+  solViento: { url: solViento, inicio: 0, fin: 1 },
+  solRoca: { url: solRoca, inicio: 0, fin: 0.6 },
+  solPuzle: { url: solPuzle, inicio: 0, fin: 1.2 },
+  solChat: { url: solChat, inicio: 0, fin: 0.3 },
+  solTelon: { url: solTelon, inicio: 0, fin: 1.2 },
+  solTransforma: { url: solTransforma, inicio: 0, fin: 1.5 },
 } as const;
 
 export type Pista = keyof typeof MUSICA;
