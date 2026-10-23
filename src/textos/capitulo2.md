@@ -496,7 +496,7 @@ SOMBRA (chulo): Esta historia la acabo yo.
 > Y en algún sitio, alguien abrió los ojos.
 
 ## c2.noche.pablo.ojos
-@manga pablo:ojos:sorpresa pablo:cara:seriedad pablo:mano !gogogo
+@manga pablo:ojos:sorpresa pablo:cara:seriedad pablo:boca:seriedad !gogogo
 PABLO (sorprendido): «La vida es sueño, y los sueños, sueños son».
 @zoom pablo 3 0
 @holandes -9 600

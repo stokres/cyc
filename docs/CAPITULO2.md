@@ -52,7 +52,7 @@ Jesús (23 de octubre de 2026): «según avanza la noche, el absurdo y visualmen
 5. **Alacant Sun** (`jugarSol(root, { sonido })`, lanzado como el Pang: `g.pausado` y `minijuegoSuperado('sol')`; `'saltado'` y `'cancelado'` siguen igual). Al acabar, la consola se encoge y vuelve el bar.
 6. **Pablo abre los ojos** en el bar («La vida es sueño...») con la cámara loca, y vendrían los demás juegos antes del «Continuará».
 
-Hueco para los primeros planos en estilo anime (otra prueba en curso): `// ANIME:` en `c2.noche.narrador` (texto) y en `src/juego/camara.ts` (una marca `@anime`).
+Los primeros planos son el **plano manga** (más abajo): estilo C de Jesús, el que eligió entre tres pruebas («lo más reconocible posible»).
 
 ### La cámara loca (`src/juego/camara.ts`)
 
@@ -68,6 +68,17 @@ Una sola transformación CSS sobre `Motor.escenario` (el contenedor de los lienz
 | `@temblor 14 700` | Sacudida que se apaga en 700 ms |
 | `@foco tragaperras` | La cámara de verdad viaja hasta ahí (el bar 4 es más largo que la pantalla) y espera; `@foco libre` |
 | `@espera 400` | Espera |
+| `@manga pablo:ojos:suplica vero:boca !gogogo` | Plano manga (más abajo); `@manga fin` o cualquier otra marca de encuadre vuelve al plano de siempre |
+
+### El plano manga (`src/juego/manga.ts`, `src/arte/anime/manga*.mjs`)
+
+Una a tres viñetas inclinadas en blanco y negro (tinta, tramas de punto y de raya, líneas de concentración, onomatopeyas) que ocupan la pantalla y entran de golpe con un corte (un empujón de 190 ms y un fogonazo, solo CSS) mientras el diálogo sigue en su cuadro (el resto de la interfaz se oculta). El dibujo es un módulo puro de cadenas SVG; el juego lo **hornea una vez a bitmap** (`svgABitmap`, a la resolución de la pantalla, 3 planos guardados como mucho) y pone ese lienzo quieto: nada por fotograma, sin filtros.
+
+- **Marca:** `@manga pablo:ojos:suplica vero:boca chuchi:cara:sorpresa !gogogo`. Cada viñeta es `personaje:tipo:expresión` (la expresión es opcional; sin ella, la primera del personaje). Personajes: `pablo fran chuchi guille vero sombra` (la sombra de Pablo: negro con ojos blancos; sin manos). Tipos: `cara`, `ojos` (franja estrecha), `boca`, `mano`. Expresiones: Pablo `suplica sorpresa seriedad risa`; Fran `enfado sorpresa triste risa`; Chuchi `sorpresa duda seriedad risa` (con `seriedad`, las gafas brillan y tapan los ojos); Guille `risa sorpresa nervioso seriedad`; Vero `picara sorpresa risa seriedad`; sombra `burla seriedad`. Onomatopeyas dibujadas: `!gogogo` (ゴゴゴ), `!don` (ドン), `!ha` (ハハハ) y `!zas` (la palabra, ¡ZAS!, está en `manga.ono.zas` de `capitulo2.md` y se dibuja con un alfabeto de trazos). `solo`: se va al acabar la siguiente línea de diálogo.
+- **Cuándo vuelve el plano de siempre:** `@manga fin`, otra `@manga`, o cualquier marca que cambie el encuadre (`@corte`, `@zoom`, `@barrido`, `@general`...). Al acabar el guion también se quita.
+- **Reparto de las viñetas:** una, a toda pantalla; dos, en columnas inclinadas; tres, en tres columnas, o, si hay unos `ojos`, los ojos arriba a la izquierda, la alta a la derecha y la tercera abajo a la izquierda (la tapa en parte el cuadro de diálogo).
+- **Hoja de revisión:** `node tools/anime/manga-hoja.mjs` (todos los personajes y expresiones) o `node tools/anime/manga-hoja.mjs salida.png "pablo:ojos:suplica vero:boca !gogogo"` (un plano de 844×390).
+- **En el guion** (`capitulo2.md`): tras el premio gordo (nivel 3, corto y `solo`); el dragón de Fran y la incredulidad de Chuchi (nivel 4, tres planos); los ojos de Pablo y los ojos blancos de la cara de la tragaperras; la sombra narradora; y Pablo al despertar con «La vida es sueño».
 
 ### Los bares 4 y 5 (`escena(4)` y `escena(5)`)
 
@@ -98,4 +109,4 @@ Con `?capitulo2` en la dirección se juega el capítulo 2 desde el principio, co
 
 ## Rendimiento
 
-`node scripts/rendimiento.mjs bar canas canto tragaperras pang`; el bloque `bar` mide también los niveles 4 y 5, y `tragaperras` la cara de Pablo con el apagón (con `PUERTO=` si el servidor no está en el 5173). Mismas reglas que el resto (`docs/ESTILO.md`, T5 y T6).
+`node scripts/rendimiento.mjs bar canas canto tragaperras pang manga`; el bloque `bar` mide también los niveles 4 y 5, `tragaperras` la cara de Pablo con el apagón y `manga` tres planos manga sobre el bar 4 (con lo que tarda en hornearse cada uno) (con `PUERTO=` si el servidor no está en el 5173). Mismas reglas que el resto (`docs/ESTILO.md`, T5 y T6).

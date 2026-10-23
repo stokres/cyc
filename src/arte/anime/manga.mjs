@@ -145,7 +145,7 @@ function fondo(c, kind, b, foco, semilla) {
     case 'gris':
       return P(area, PAPEL) + P(area, tn.punto(0.34, 45)) + lineasCaida(x0, x1, y0, y1, { n: 22, seed: semilla, grosor: 1.8 });
     case 'seriedad':
-      return P(area, PAPEL) + P(area, tn.punto(0.46, 45)) + P(area, tn.raya(0.28, 90, T, 5), { opacity: 0.8 }) + concentracion(fx, fy, { n: 70, interior: 160, color: T, seed: semilla, grosor: 0.012, R });
+      return P(area, PAPEL) + P(area, tn.punto(0.3, 45)) + concentracion(fx, fy, { n: 70, interior: 160, color: T, seed: semilla, grosor: 0.012, R });
     case 'sombra':
       return P(area, PAPEL) + P(area, tn.punto(0.5, 45)) + concentracion(fx, fy, { n: 120, interior: 100, color: T, seed: semilla, grosor: 0.03, R });
     case 'luz':
@@ -177,14 +177,15 @@ export function dibujarVineta(c, p, poli, { vis, rot = 0, semilla = 1 } = {}) {
   const vh = v.y1 - v.y0;
   const [c0, c1, c2, c3] = p.tipo === 'mano' ? CAJA_MANO[p.quien] : CAJAS[p.quien][p.tipo];
   const cw = c2 - c0;
-  const ch = c3 - c1;
+  // De una cara cuenta la cabeza hasta el pecho (el resto, hombros y camisa, se queda tras el cuadro de diálogo).
+  const ch = p.tipo === 'cara' ? (c3 - c1) * 0.8 : c3 - c1;
   // Cuadro de la marca de los costados: el recorte en diagonal se come un poco del ancho.
   const util = Math.max(40, vw * 0.9);
   const kCont = Math.min(util / cw, vh / ch);
   const kCub = Math.max(util / cw, vh / ch);
   const k = kCont + (kCub - kCont) * CUBRE[p.tipo];
   const ccx = (c0 + c2) / 2;
-  const ccy = p.tipo === 'cara' ? c1 + ch * 0.46 : (c1 + c3) / 2;
+  const ccy = p.tipo === 'cara' ? c1 + ch * 0.5 : (c1 + c3) / 2;
   const cx = (v.x0 + v.x1) / 2;
   const cy = p.tipo === 'cara' ? v.y0 + vh * 0.5 : (v.y0 + v.y1) / 2;
   const kind = p.tipo === 'mano' ? FONDO_MANO[p.quien] : FONDO[p.expr] ?? 'luz';

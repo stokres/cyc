@@ -15,7 +15,7 @@
 // without it, to compare.
 //
 // Usage: node scripts/rendimiento.mjs [escena...]   (against npm run dev on :5173)
-//   escenas: prologo, piso, calle, bar, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, tragaperras, sol, solcombate, solcamino, solteatro, soljefe, solcalderon (all by default)
+//   escenas: prologo, piso, calle, bar, manga, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, tragaperras, sol, solcombate, solcamino, solteatro, soljefe, solcalderon (all by default)
 import { chromium } from 'playwright';
 import { readFileSync, readdirSync } from 'node:fs';
 
@@ -175,6 +175,32 @@ if (toca('bar')) {
   await medir('bar nivel 4, Fran andando', paseo(1500, 4300, 960));
   await medir('bar nivel 5, los cuatro quietos', preparar(5));
   await medir('bar nivel 5, Fran andando', paseo(1000, 2300, 960));
+}
+if (toca('manga')) {
+  // Chapter 2: the manga shot (src/juego/manga.ts) over the long bar of level 4, with the four friends in their places:
+  // one panel, three panels with onomatopoeias and the shadow of Pablo. The panels are baked ONCE to a bitmap and a
+  // still canvas goes over the scene, so the cost has to be the bar's own (and no SVG drawn into a canvas each frame).
+  // Also prints how long it takes to bake each shot (a one-off cost, in the first moment the shot is asked for).
+  const sitios = ['chuchi', 'pablo', 'fran', 'guille'].map((id, i) => `e.donde.${id} = { escena: 'bar4', X: ${2600 + i * 250}, y: 930, face: ${i < 2 ? 1 : -1} }`).join('; ');
+  const manga = (marca) => ir('bar4', `e.final = true; e.activo = 'fran'; ${sitios}`, `
+    const { escena } = await import('/src/arte/escenas/bar.mjs');
+    for (let k = 0; k < 6; k++) g.cap.escenas['bar' + k] = () => escena(k);
+    for (const id of ['fran', 'pablo', 'chuchi', 'guille']) { const F = g.pjs.get(id); if (F) { F.enCapa = null; F.rot = 0; F.eyesClosed = false; } }
+    g.plano.manga.ocultar();
+    window.__mangaListo = false;`).replace(/\}\)\(\)$/, `
+      const t0 = performance.now();
+      await g.plano.manga.mostrar(${JSON.stringify(marca.split(' '))});
+      window.__mangaMs = Math.round(performance.now() - t0);
+      window.__mangaListo = true;
+    })()`);
+  for (const [nombre, marca] of [['manga, una viñeta (ojos)', 'pablo:ojos:suplica'], ['manga, tres viñetas y onomatopeyas', 'pablo:ojos:suplica vero:boca:picara chuchi:cara:sorpresa !gogogo !zas'], ['manga, la sombra de Pablo', 'sombra:cara:burla pablo:ojos:sorpresa !don']]) {
+    await medir(nombre, manga(marca));
+    const ms = await page.evaluate(() => window.__mangaMs);
+    const activo = await page.evaluate(() => window.__cyc.g.plano.manga.activo);
+    if (!activo) filas.push([`${nombre}: el plano manga no está en pantalla`]), console.log(`   ✗ ${nombre}: el plano manga no está en pantalla`);
+    console.log(`   · horneado y puesto en ${ms} ms (una vez)`);
+  }
+  await page.evaluate(() => window.__cyc.g.plano.manga.ocultar());
 }
 if (toca('granja')) {
   await medir('granja, Guille quieto con moscas', ir('granja', `e.final = false; for (const id of ['fran','pablo','chuchi']) delete e.donde[id]; e.activo = 'guille'; e.donde.guille = { escena: 'granja', X: 1000, y: 890, face: 1 }`, `g.poner('g.olor')`));
