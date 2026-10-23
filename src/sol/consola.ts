@@ -25,6 +25,10 @@ export class Mandos {
   tomarR() {
     return this.tomar('r');
   }
+  /** L (changes the map power) was pressed since the last time this was asked. */
+  tomarL() {
+    return this.tomar('l');
+  }
   tomarStart() {
     return this.tomar('start');
   }
@@ -273,7 +277,7 @@ export function crearConsola(root: HTMLElement, textos: { marca: string; modelo:
     sostener(bS, 'sol-on', (p) => p && mandos.pulsar('start')),
   ];
 
-  // ---- keyboard: arrows or WASD, Z/Enter/Space = A, X/Shift = B, R = the shortcut power
+  // ---- keyboard: arrows or WASD, Z/Enter/Space = A, X/Shift = B, R = uses the chosen map power, Q = L (changes it)
   const teclas = new Set<string>();
   const leerTeclas = () => {
     const x = (teclas.has('ArrowRight') || teclas.has('KeyD') ? 1 : 0) - (teclas.has('ArrowLeft') || teclas.has('KeyA') ? 1 : 0);

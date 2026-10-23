@@ -15,7 +15,7 @@
 // without it, to compare.
 //
 // Usage: node scripts/rendimiento.mjs [escena...]   (against npm run dev on :5173)
-//   escenas: prologo, piso, calle, bar, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, tragaperras, sol, solcombate, solcamino (all by default)
+//   escenas: prologo, piso, calle, bar, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, tragaperras, sol, solcombate, solcamino, solteatro (all by default)
 import { chromium } from 'playwright';
 import { readFileSync, readdirSync } from 'node:fs';
 
@@ -458,6 +458,41 @@ if (toca('solcamino')) {
     }, 2500);
     s.mando.fijarDir(1, 0);
   })()`, 'sol');
+}
+
+if (toca('solteatro')) {
+  // The Teatro of «Alacant Sun» (src/sol/teatro.ts, arteteatro.ts): the bambalinas with their candles lit (flames,
+  // halos, the ghost-free planks), Pablo and the friends walking along the footlights with the random fights off, a
+  // map power cast now and then (the wind swirls and the leaves fly as particles); then the same room in the dark
+  // (the candles out: darkness over everything, the safe planks glowing).
+  const empieza = (oscuro) => `(async () => {
+    clearInterval(window.__paseo);
+    clearInterval(window.__lucha);
+    const g = window.__cyc.g;
+    g.pausado = true;
+    const { jugarSol } = await import('/src/sol/sol.ts');
+    void jugarSol(g.root, { sonido: g.sound });
+    await new Promise((r) => setTimeout(r, 400));
+    const s = window.__sol();
+    await s.irAlTeatro('bam');
+    s.encuentros(false);
+    ${oscuro ? "s.resolver('velas');" : ''}
+    s.poner(40, 203);
+    s.elegirPoder('cierzo');
+    let d = 1;
+    let k = 0;
+    window.__paseo = setInterval(() => {
+      const so = window.__sol?.();
+      if (!so) return;
+      d = -d;
+      so.mando.fijarDir(d, 0);
+      // every other turn, a gust at the candles (facing north in front of one)
+      if (++k % 3 === 0) so.mando.pulsar('r');
+    }, 2500);
+    s.mando.fijarDir(1, 0);
+  })()`;
+  await medir('solteatro: bambalinas con velas', empieza(false), 'sol');
+  await medir('solteatro: bambalinas a oscuras', empieza(true), 'sol');
 }
 
 // Memory after the whole tour (docs/ESTILO.md, T5.11): baked scenery and decoded music are

@@ -18,6 +18,7 @@ import textosSol from '../textos/sol.md?raw';
 import { esVertical } from '../ui/orientacion';
 import { caja as spriteCaja, chispa, destello, lluvia, manoLuz, puntito, T } from './arte';
 import { chupitoSuelo, cofre as spriteCofre } from './artecampo';
+import { brazoOso, candelabro, charco as spriteCharco, copo, estatua as spriteEstatua, halo, hielo as spriteHielo, hojas as spriteHojas, hojaVuela, hueco as spriteHueco, humo, llama, marca as spriteMarca, parche as spriteParche, polvoMota, puertaEscenario, reja, remolino, rocaCarton } from './arteteatro';
 import { spriteEnemigo } from './enemigos';
 import { camino, type Cofre, type Escondite, type MundoCamino, type ZonaEncuentro } from './camino';
 import { Combate, empezarCombate, type EstadoCombate, type ResultadoCombate } from './combate';
@@ -26,15 +27,17 @@ import { ALTO_CUARTO, ANCHO_CUARTO, BASE_PARED, CUARTO_X, CUARTO_Y, cuarto } fro
 import { pagina } from './efectos';
 import { type FondoCombate } from './fondo';
 import { escribir, anchoTexto } from './fuente';
-import { BONO_APUNTADOR, crearGrupo, darApuntador, descansar, expTotal, statsDe, unirAmigo, vivo, ajustar, type Grupo, type Miembro } from './grupo';
-import { cartelito, contadorIP, Dialogo, dibujarEmocion, type Emocion, type Icono, type Linea, PANTALLA_H, PANTALLA_W } from './interfaz';
+import { BONO_APUNTADOR, COLOR_ELEMENTO, crearGrupo, darApuntador, descansar, expTotal, statsDe, unirAmigo, vivo, ajustar, type Grupo, type Miembro } from './grupo';
+import { cartelito, Dialogo, dibujarEmocion, type Emocion, type Icono, type Linea, PANTALLA_H, PANTALLA_W } from './interfaz';
 import { ENTRADA, fondoSala, frenteSala, TENDERO, type Sala } from './interior';
 import { solidoBaldosa, pueblo, type Lectura, type Mundo, type MundoBase, type Rect } from './mapas';
 import { dibujarCartas, dibujarCartel, dibujarDetalleApuntador, dibujarEstado, dibujarLista, dibujarMonedas, Teclas, type ItemLista } from './menus';
+import { contadorPoder, dibujarChat, esPoderMapa, PODERES_MAPA, poderMapa, type IdPoderMapa, type MensajeChat } from './mapapoderes';
+import { GRUPOS_TEATRO, SALAS, teatro, type ApuntadorDef, type IdSala, type PensadorDef, type PuzleTeatro, type Rotulos, type SalaTeatro } from './teatro';
 import { CICLO, dirDe, marco, PIES, sombraPies, vectorDe, type Amigo, type Dir, type Pose, type Quien } from './personajes';
-import { ctx, girar, lienzo } from './pixel';
-import { OBJETOS, poderesDe, poderPorId } from './poderes';
-import { SonidoSol, EFECTO_APUNTADOR, EFECTO_CURA, EFECTO_MENU, EFECTO_PODER, EFECTO_PUERTA, PISTA_CAMINO, PISTA_PUEBLO } from './sonido';
+import { ctx, elipse, girar, lienzo, reflejar, una } from './pixel';
+import { OBJETOS, PODERES, poderesDe } from './poderes';
+import { SonidoSol, EFECTO_APUNTADOR, EFECTO_CAE, EFECTO_CHAT, EFECTO_CURA, EFECTO_HIELO, EFECTO_MENU, EFECTO_PODER, EFECTO_PUERTA, EFECTO_PUZLE, EFECTO_ROCA, EFECTO_TELON, EFECTO_VIENTO, PISTA_CAMINO, PISTA_PUEBLO, PISTA_TEATRO } from './sonido';
 import { dibujarLogo, portada } from './titulo';
 
 export type Resultado = 'hecho' | 'saltado' | 'cancelado';
@@ -96,14 +99,46 @@ export interface EstadoSol {
   /** Starts a fight now (the test fight of `?sol&combate` is this with a mixed group). */
   luchar(enemigos: string[], fondo?: FondoCombate): Promise<ResultadoCombate>;
   grupo: Grupo;
+  /** Straight to the Teatro (everybody joined, level 4, Chist with Pablo, no scenes), in the room given (the vestíbulo by default). */
+  irAlTeatro(sala?: IdSala): Promise<void>;
+  /** Puts Pablo at the arrival of a room of the Teatro (the Teatro's state stays as it is). */
+  sala(n: IdSala): void;
+  /** Solves a puzzle as the game would have left it (statues on their marks, ice, rock in the hole, candles out, door open), without the scene. */
+  resolver(puzle: PuzleTeatro): void;
+  /** Chooses the map power R uses (what L does, but straight). */
+  elegirPoder(id: IdPoderMapa): void;
+  /** The Teatro's state: the room, the puzzles, where the statues and rocks are, what has been picked up. */
+  estadoTeatro(): {
+    sala: IdSala;
+    puzles: Record<PuzleTeatro, boolean>;
+    estatuas: Array<{ id: string; c: number; r: number; moviendo: boolean }>;
+    rocas: Array<{ id: string; c: number; r: number; estado: string }>;
+    hielo: string[];
+    huecos: string[];
+    velas: string[];
+    hojas: string[];
+    cofres: string[];
+    chupitos: string[];
+    apuntadores: string[];
+    visto: string[];
+    poderSel: IdPoderMapa;
+    hechizo: boolean;
+    chatLeido: boolean;
+    escenarioHecho: boolean;
+    oscuridad: number;
+    rejaAlt: number;
+    ips: Record<string, number>;
+  };
+  /** The map of the Teatro, for a script to plan a walk: rooms, doors, props and where they start. */
+  lugaresTeatro(): Record<IdSala, Omit<SalaTeatro, 'suelo' | 'objetos' | 'luces' | 'lecturas' | 'brillo'>>;
 }
 
 // ---------------------------------------------------------------- constants
 
 const WALK = 56;
 const RUN = 100;
-/** What «Sí, y...» costs in IP (the same number as in a fight). */
-const IP_COSTE = poderPorId('siy').ip;
+/** What «Sí, y...» costs in IP on the map (a bit less than in a fight: the Teatro's statues take seven pushes). */
+const IP_COSTE = poderMapa('siy').ip;
 /** Pixels walked to recover one point of IP, for the whole party (slowly, as in the original). */
 const PX_POR_IP = 52;
 /** Pixels walked between two random fights on the road: the first is longer. */
@@ -188,7 +223,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
   });
 
   // ------------------------------------------------------------ state
-  let escena: 'titulo' | 'cuarto' | 'pueblo' | 'camino' | 'interior' | 'fin' = 'titulo';
+  let escena: 'titulo' | 'cuarto' | 'pueblo' | 'camino' | 'interior' | 'teatro' | 'fin' = 'titulo';
   let fotogramas = 0;
   let t = 0;
   let tPueblo = 0;
@@ -200,7 +235,6 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
   // the party (combate.ts reads it) and its members' walking sprites
   const grupo = crearGrupo({ amigos: ['pablo'], nivel: 1, apuntadores: false });
   const mPablo = (): Miembro => grupo.miembros[0];
-  const ipMax = () => statsDe(grupo, mPablo()).ip;
 
   const pablo = nuevoPj('pablo', 0, 0, 'S');
   const madre = nuevoPj('madre', cuartoM.madre.x, cuartoM.madre.y, 'W');
@@ -328,6 +362,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
       if (yo !== madre && cama !== null && solapa(r, rectPj(madre))) return true;
       return false;
     }
+    if (escena === 'teatro') return chocaTeatro(r);
     const m = mundo!;
     const tx0 = Math.floor(r.x / T);
     const tx1 = Math.floor((r.x + r.w - 0.01) / T);
@@ -516,7 +551,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
   };
 
   const actualizarSeguidores = (dt: number) => {
-    if (escena !== 'pueblo' && escena !== 'camino') return;
+    if (escena !== 'pueblo' && escena !== 'camino' && escena !== 'teatro') return;
     seguidores.forEach((s, i) => {
       const meta = puntoDelRastro(SEPARACION * (i + 1));
       const dx = meta.x - s.x;
@@ -543,6 +578,12 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
 
   // ------------------------------------------------------------ scenes
   const moverCamara = (dt = 0) => {
+    if (escena === 'teatro') {
+      const sa = salaT();
+      cam.x = limitar(Math.round(pablo.x - PANTALLA_W / 2), 0, Math.max(0, sa.w - PANTALLA_W));
+      cam.y = limitar(Math.round(pablo.y - 14 - PANTALLA_H / 2), 0, Math.max(0, sa.h - PANTALLA_H));
+      return;
+    }
     if (!mundo || (escena !== 'pueblo' && escena !== 'camino')) return;
     // the camera follows Pablo, or Chuchi while he walks in (then it glides)
     const foco = chuchiRuta && chuchiRuta.pts.length ? amigosM.chuchi : pablo;
@@ -843,25 +884,44 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
   };
 
   // ------------------------------------------------------------ the START menu
-  const menuImpronergia = async () => {
+  /** The map power chosen in the menu: it is cast as soon as the menu closes. */
+  let poderDelMenu: IdPoderMapa | null = null;
+  /** The powers of a friend that work on the map: the ones he also has in a fight and the ones only the map has. */
+  const poderesDeMapa = (q: Amigo, nivel: number) => PODERES_MAPA.filter((mp) => mp.quien === q && (!PODERES.some((x) => x.id === mp.id) || poderesDe(q, nivel).some((x) => x.id === mp.id)));
+
+  const menuImpronergia = async (): Promise<boolean> => {
     let q = 0;
     for (;;) {
       q = await elegirAmigo(q);
-      if (q < 0) return;
+      if (q < 0) return false;
       const m = grupo.miembros[q];
       const ps = poderesDe(m.q, m.nivel);
-      if (!ps.length) {
+      const soloMapa = poderesDeMapa(m.q, m.nivel).filter((mp) => !ps.some((p) => p.id === mp.id));
+      if (!ps.length && !soloMapa.length) {
         await avisar(texto('combate.nada.poder'));
         continue;
       }
       let c = 0;
       for (;;) {
-        const items: ItemLista[] = ps.map((p) => ({ txt: texto(`poder.${p.id}.nombre`), der: String(p.ip), gris: p.modo !== 'cura' }));
+        const items: ItemLista[] = [
+          ...ps.map((p) => {
+            const mp = esPoderMapa(p.id) ? poderMapa(p.id) : null;
+            return { txt: texto(`poder.${p.id}.nombre`), der: String(mp ? mp.ip : p.ip), gris: p.modo !== 'cura' && !mp };
+          }),
+          ...soloMapa.map((mp) => ({ txt: texto(`poder.${mp.id}.nombre`), der: String(mp.ip), gris: false })),
+        ];
         c = await elegirLista(items, 6, 6, { cursor: c, anchoMin: 96 });
         if (c < 0) break;
         const p = ps[c];
+        const mapa = p ? (esPoderMapa(p.id) ? poderMapa(p.id) : null) : soloMapa[c - ps.length];
+        if (mapa) {
+          poderSel = mapa.id;
+          poderDelMenu = mapa.id;
+          avisoPoder = 1.3;
+          return true;
+        }
         if (p.modo !== 'cura') {
-          await avisar(texto(p.id === 'siy' ? 'menu.siy' : 'menu.soloCombate'));
+          await avisar(texto('menu.soloCombate'));
           continue;
         }
         if (m.ip < p.ip) {
@@ -1003,8 +1063,9 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
           const items: ItemLista[] = ['menu.impronergia', 'menu.apuntadores', 'menu.objetos', 'menu.estado'].map((k) => ({ txt: texto(k) }));
           c = await elegirLista(items, 6, 6, { cursor: c, anchoMin: 74 });
           if (c < 0) break;
-          if (c === 0) await menuImpronergia();
-          else if (c === 1) await menuApuntadores();
+          if (c === 0) {
+            if (await menuImpronergia()) break;
+          } else if (c === 1) await menuApuntadores();
           else if (c === 2) await menuObjetos();
           else await menuEstado();
         }
@@ -1015,6 +1076,11 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
         teclas.vaciar();
       }
     });
+    // a map power chosen from the menu is cast now, with the menu gone
+    if (poderDelMenu) {
+      poderDelMenu = null;
+      lanzarSeleccionado();
+    }
   };
 
   // ------------------------------------------------------------ the peña and the inn
@@ -1267,7 +1333,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
 
   /** A wild group (the zone's, or the one given) now: the result of the fight, or null if this is no place for one. */
   const encuentroAleatorio = async (forzado?: string[]): Promise<ResultadoCombate | null> => {
-    const z = zonaDe();
+    const z = escena === 'teatro' ? { seguro: salaT().seguro, grupos: GRUPOS_TEATRO[tt.sala] ?? [] } : zonaDe();
     let enemigos = forzado;
     if (!enemigos) {
       if (!z || z.seguro || !z.grupos.length) {
@@ -1384,12 +1450,14 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
       pablo.dir = 'N';
       emocionar(pablo, 'exclama', 1);
       await espera(0.8);
-      await serie('pablo', 'pablo.teatro');
+      if (!tt.visto.has('ves')) await serie('pablo', 'pablo.teatro');
       await fundirA(1, 0.8);
-      escena = 'fin';
+      const primera = await entrarAlTeatro();
       await fundirA(0, 0.8);
-      await espera(2.6);
-      terminar('hecho');
+      if (primera) {
+        await decir(null, 'teatro.sala.ves');
+        await decir(null, 'consejo.poderes');
+      }
     });
   };
 
@@ -1398,6 +1466,796 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
       await fundirA(1, 0.3);
     });
     await empezarHistoria();
+  };
+
+  // ============================================================ EL TEATRO
+  // The dungeon. src/sol/teatro.ts has the rooms and their baked art; here is what moves in them (statues, ice,
+  // rocks, flames), the map powers with their effects and the five puzzles. Written as its own block.
+  const fantasmas: Record<'tramoyista' | 'acomodador', Pj> = { tramoyista: nuevoPj('tramoyista', 0, 0, 'S'), acomodador: nuevoPj('acomodador', 0, 0, 'S') };
+
+  interface EstatuaT {
+    id: string;
+    tipo: 'comedia' | 'tragedia';
+    c: number;
+    r: number;
+    mov: null | { t: number; dur: number; x0: number; y0: number; x1: number; y1: number };
+  }
+  interface RocaT {
+    id: string;
+    c: number;
+    r: number;
+    c2: number;
+    r2: number;
+    /** 'puesta': set into a hole; 'fija': set down on the floor and left there. */
+    estado: 'quieta' | 'vuela' | 'puesta' | 'fija';
+    vuelo: null | { t: number; dur: number; x0: number; y0: number; x1: number; y1: number };
+  }
+  const tt = {
+    sala: 'ves' as IdSala,
+    visto: new Set<IdSala>(),
+    estatuas: [] as EstatuaT[],
+    rocas: [] as RocaT[],
+    /** Frozen puddles: 'sala:c,r' → the time they froze. */
+    hielo: new Map<string, number>(),
+    /** Holes filled by a rock. */
+    huecos: new Set<string>(),
+    velas: new Set<string>(),
+    /** Heaps of leaves blown away: id → time. */
+    hojas: new Map<string, number>(),
+    puzles: { estatuas: false, hielo: false, roca: false, velas: false, chat: false } as Record<PuzleTeatro, boolean>,
+    cofres: new Set<string>(),
+    chupitos: new Set<string>(),
+    apuntadores: new Set<string>(),
+    armados: {} as Record<string, boolean>,
+    chatLeido: false,
+    oscuridad: 0,
+    rejaAlt: 1,
+    seguro: { x: 0, y: 0 },
+    escenarioHecho: false,
+    avisos: {} as Record<string, number>,
+    ciclo: 0,
+  };
+  /** The map power R uses now, and the banner that says so for a moment after L changes it. */
+  let poderSel: IdPoderMapa = 'siy';
+  let avisoPoder = 0;
+
+  const kt = (sala: IdSala, c: number, r: number) => `${sala}:${c},${r}`;
+  const rotulos = (): Rotulos => ({ taquilla: texto('teatro.taquilla'), cartel1: texto('teatro.cartel1'), cartel2: texto('teatro.cartel2'), escenario: texto('teatro.escenario') });
+  const teatroM = () => teatro(rotulos());
+  const salaT = (): SalaTeatro => teatroM().salas[tt.sala];
+  const tileRect = (c: number, r: number): Rect => ({ x: c * T, y: r * T, w: T, h: T });
+
+  const iniciarTeatro = () => {
+    if (tt.estatuas.length) return;
+    tt.estatuas = teatroM().salas.ves.estatuas.map((e) => ({ ...e, mov: null }));
+    tt.rocas = teatroM().salas.pal.rocas.map((r) => ({ ...r, estado: 'quieta' as const, vuelo: null }));
+  };
+
+  // ---- the floor under Pablo's feet
+  const heladoListo = (sala: IdSala, c: number, r: number) => {
+    const t0 = tt.hielo.get(kt(sala, c, r));
+    return t0 !== undefined && t - t0 >= 0.6;
+  };
+  /** Does the tile stop whoever walks (the walls, the pits, what has not been frozen or filled yet, closed gates)? */
+  const solidoT = (s: SalaTeatro, c: number, r: number): boolean => {
+    const ch = s.filas[r]?.[c];
+    if (ch === undefined || ch === '#' || ch === 'X' || ch === 'o') return true;
+    if (ch === 'c') return !heladoListo(s.id, c, r);
+    if (ch === 'h') return !tt.huecos.has(kt(s.id, c, r));
+    if (ch === '=') return !tt.puzles.estatuas;
+    if (ch === 'P') return !tt.puzles.chat;
+    return false;
+  };
+
+  const rectPensador = (p: PensadorDef): Rect => ({ x: p.x - 6, y: p.y - 6, w: 12, h: 6 });
+  const rectCofreT = (c: { x: number; y: number }): Rect => ({ x: c.x - 8, y: c.y - 6, w: 16, h: 6 });
+
+  /** The solid things that are not tiles (statues, rocks, heaps, ghosts, chests) in the room. */
+  const solidosT = (s: SalaTeatro): Rect[] => {
+    const l: Rect[] = [];
+    if (s.id === 'ves') for (const e of tt.estatuas) l.push(tileRect(e.c, e.r));
+    if (s.id === 'pal') for (const r of tt.rocas) if (r.estado === 'quieta' || r.estado === 'fija') l.push(tileRect(r.c, r.r));
+    for (const h of s.hojas) if (!tt.hojas.has(h.id)) l.push({ x: h.c * T, y: h.r * T, w: h.w * T, h: h.h * T });
+    for (const p of s.pensadores) l.push(rectPensador(p));
+    for (const c of s.cofres) l.push(rectCofreT(c));
+    return l;
+  };
+
+  const chocaTeatro = (r: Rect): boolean => {
+    const s = salaT();
+    const tx0 = Math.floor(r.x / T);
+    const tx1 = Math.floor((r.x + r.w - 0.01) / T);
+    const ty0 = Math.floor(r.y / T);
+    const ty1 = Math.floor((r.y + r.h - 0.01) / T);
+    for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) if (solidoT(s, tx, ty)) return true;
+    for (const q of solidosT(s)) if (solapa(r, q)) return true;
+    return false;
+  };
+
+  /** Can you walk from one tile to another (4 directions), as things are now? */
+  const alcanzableT = (sala: IdSala, de: [number, number], a: [number, number]): boolean => {
+    const s = teatroM().salas[sala];
+    const vistos = new Set<string>([`${de[0]},${de[1]}`]);
+    const cola: Array<[number, number]> = [de];
+    const rs = solidosT(s);
+    while (cola.length) {
+      const [c, r] = cola.shift()!;
+      if (c === a[0] && r === a[1]) return true;
+      for (const [vx, vy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const n: [number, number] = [c + vx, r + vy];
+        const k = `${n[0]},${n[1]}`;
+        if (vistos.has(k) || solidoT(s, n[0], n[1])) continue;
+        if (rs.some((q) => solapa({ x: n[0] * T + 2, y: n[1] * T + 2, w: T - 4, h: T - 4 }, q))) continue;
+        vistos.add(k);
+        cola.push(n);
+      }
+    }
+    return false;
+  };
+
+  // ---- what each power can reach
+  interface ObjT {
+    tipo: 'estatua' | 'charco' | 'vela' | 'hojas' | 'roca' | 'pensador';
+    id: string;
+    rect: Rect;
+    c: number;
+    r: number;
+  }
+  const candidatosT = (id: IdPoderMapa): ObjT[] => {
+    const s = salaT();
+    const l: ObjT[] = [];
+    if (id === 'siy') {
+      if (s.id === 'ves' && !tt.puzles.estatuas) for (const e of tt.estatuas) if (!e.mov) l.push({ tipo: 'estatua', id: e.id, rect: tileRect(e.c, e.r), c: e.c, r: e.r });
+    } else if (id === 'fresquito') {
+      s.filas.forEach((f, r) => {
+        for (let c = 0; c < f.length; c++) if (f[c] === 'c' && !tt.hielo.has(kt(s.id, c, r))) l.push({ tipo: 'charco', id: kt(s.id, c, r), rect: tileRect(c, r), c, r });
+      });
+    } else if (id === 'cierzo') {
+      for (const v of s.velas) if (!tt.velas.has(v.id)) l.push({ tipo: 'vela', id: v.id, rect: tileRect(v.c, v.r), c: v.c, r: v.r });
+      for (const h of s.hojas) if (!tt.hojas.has(h.id)) l.push({ tipo: 'hojas', id: h.id, rect: { x: h.c * T, y: h.r * T, w: h.w * T, h: h.h * T }, c: h.c, r: h.r });
+    } else if (id === 'abrazo') {
+      if (s.id === 'pal') for (const r of tt.rocas) if (r.estado === 'quieta') l.push({ tipo: 'roca', id: r.id, rect: tileRect(r.c, r.r), c: r.c, r: r.r });
+    } else {
+      for (const p of s.pensadores) l.push({ tipo: 'pensador', id: p.id, rect: { x: p.x - 8, y: p.y - 22, w: 16, h: 24 }, c: Math.floor(p.x / T), r: Math.floor(p.y / T) });
+    }
+    return l;
+  };
+
+  /** The nearest thing in front of Pablo (in the strip his hand sweeps) the power can act on. */
+  const buscarT = (id: IdPoderMapa): { ob: ObjT; dir: Dir; dx: number; dy: number; dist: number; nota: number } | null => {
+    const cands = candidatosT(id);
+    if (!cands.length) return null;
+    const pr = rectPj(pablo);
+    let mejor: { ob: ObjT; dir: Dir; dx: number; dy: number; dist: number; nota: number } | null = null;
+    for (const d of cardinales(pablo.dir)) {
+      const [vx, vy] = vectorDe(d);
+      const franja: Rect = {
+        x: vx > 0 ? pr.x + pr.w : vx < 0 ? pr.x - ALCANCE : pr.x - 3,
+        y: vy > 0 ? pr.y + pr.h : vy < 0 ? pr.y - ALCANCE : pr.y - 5,
+        w: vx ? ALCANCE : pr.w + 6,
+        h: vy ? ALCANCE : pr.h + 8,
+      };
+      for (const ob of cands) {
+        if (!solapa(franja, ob.rect)) continue;
+        const dist = vx > 0 ? ob.rect.x - (pr.x + pr.w) : vx < 0 ? pr.x - (ob.rect.x + ob.rect.w) : vy > 0 ? ob.rect.y - (pr.y + pr.h) : pr.y - (ob.rect.y + ob.rect.h);
+        if (dist < -6) continue;
+        // what is straight in front of Pablo (his box overlaps it) beats what is only close; then the nearest wins
+        const lado = vx ? Math.abs(ob.rect.y + ob.rect.h / 2 - (pr.y + pr.h / 2)) : Math.abs(ob.rect.x + ob.rect.w / 2 - (pr.x + pr.w / 2));
+        const alineado = lado <= (vx ? ob.rect.h + pr.h : ob.rect.w + pr.w) / 2 - 3;
+        const nota = dist + (alineado ? 0 : 1000) + lado * 0.05;
+        if (!mejor || nota < mejor.nota) mejor = { ob, dir: d, dx: vx, dy: vy, dist, nota };
+      }
+    }
+    return mejor;
+  };
+
+  // ---- the powers: R uses the chosen one, L changes it
+  const disponibles = () => PODERES_MAPA.filter((p) => unido(p.quien));
+  const miembroDe = (q: Amigo) => grupo.miembros.find((m) => m.q === q);
+  const pjDe = (q: Amigo): Pj => (q === 'pablo' ? pablo : amigosM[q]);
+
+  const ciclarPoder = () => {
+    const l = disponibles();
+    if (l.length < 2) return;
+    const i = l.findIndex((p) => p.id === poderSel);
+    poderSel = l[(i + 1) % l.length].id;
+    avisoPoder = 1.3;
+    sonido.efecto(EFECTO_MENU, 0.8);
+  };
+
+  interface Hechizo {
+    id: IdPoderMapa;
+    q: Amigo;
+    t: number;
+    dir: Dir;
+    dx: number;
+    dy: number;
+    ob: ObjT;
+    bloqueado: boolean;
+    hecho: boolean;
+    /** Time the target's own reaction started (the rock's flight, the leaves flying). */
+    marca: number;
+  }
+  let hechizo: Hechizo | null = null;
+  const DURA_HECHIZO: Record<IdPoderMapa, number> = { siy: 1.55, fresquito: 1.75, cierzo: 1.5, abrazo: 2.5, chat: 1.3 };
+
+  /** Is the tile after a statue free for it to go to? */
+  const estatuaLibre = (e: EstatuaT, dx: number, dy: number): boolean => {
+    const s = salaT();
+    const c = e.c + dx;
+    const r = e.r + dy;
+    if (solidoT(s, c, r)) return false;
+    return !solidosT(s).some((q) => solapa({ x: c * T + 2, y: r * T + 2, w: T - 4, h: T - 4 }, q) && !(q.x === e.c * T && q.y === e.r * T));
+  };
+
+  const lanzarMapa = (id: IdPoderMapa) => {
+    const def = poderMapa(id);
+    const m = miembroDe(def.quien);
+    if (!m) return;
+    const hit = escena === 'teatro' ? buscarT(id) : null;
+    if (!hit) {
+      emocionar(pablo, 'puntos', 1);
+      tt.avisos[id] = (tt.avisos[id] ?? 0) + 1;
+      if (tt.avisos[id] % 4 === 1) void bloquear(() => decir(def.quien, `poder.${id}.nada`));
+      return;
+    }
+    if (m.ip < def.ip) {
+      void bloquear(() => decir(def.quien, 'mapa.sinip'));
+      return;
+    }
+    m.ip -= def.ip;
+    ipDestello = 1.2;
+    pablo.dir = hit.dir;
+    pablo.mov = false;
+    let bloqueado = false;
+    if (id === 'siy') {
+      const e = tt.estatuas.find((x) => x.id === hit.ob.id)!;
+      bloqueado = !estatuaLibre(e, hit.dx, hit.dy);
+    }
+    hechizo = { id, q: def.quien, t: 0, dir: hit.dir, dx: hit.dx, dy: hit.dy, ob: hit.ob, bloqueado, hecho: false, marca: 0 };
+    sonido.efecto(EFECTO_PODER);
+  };
+
+  const lanzarSeleccionado = () => {
+    if (poderSel === 'siy' && escena !== 'teatro') lanzarPoder();
+    else lanzarMapa(poderSel);
+  };
+
+  // ---- small sprites that fly (flakes, leaves, smoke, dust)
+  interface Particula {
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    g: number;
+    t: number;
+    dura: number;
+    img: HTMLCanvasElement;
+  }
+  const parts: Particula[] = [];
+  const particula = (p: Omit<Particula, 't'>) => {
+    parts.push({ ...p, t: 0 });
+    if (parts.length > 90) parts.shift();
+  };
+  const actualizarParts = (dt: number) => {
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const p = parts[i];
+      p.t += dt;
+      if (p.t >= p.dura) {
+        parts.splice(i, 1);
+        continue;
+      }
+      p.vy += p.g * dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+    }
+  };
+  const dibujarParts = (dx: number, dy: number) => {
+    for (const p of parts) {
+      const k = p.t / p.dura;
+      g.globalAlpha = k > 0.7 ? Math.max(0, (1 - k) / 0.3) : 1;
+      g.drawImage(p.img, Math.round(p.x - dx - p.img.width / 2), Math.round(p.y - dy - p.img.height / 2));
+    }
+    g.globalAlpha = 1;
+  };
+
+  /** A ring of dots round (cx, cy), growing: the burst of ice, the rings of the mind reading. */
+  const anillo = (cx: number, cy: number, r: number, col: string, n = 16) => {
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + r * 0.05;
+      g.fillStyle = col;
+      g.fillRect(Math.round(cx + Math.cos(a) * r), Math.round(cy + Math.sin(a) * r * 0.7), 1, 1);
+    }
+  };
+
+  const actualizarHechizo = (dt: number) => {
+    const h = hechizo!;
+    h.t += dt;
+    const def = poderMapa(h.id);
+    const el = COLOR_ELEMENTO[def.el];
+    const quien = pjDe(h.q);
+    quien.dir = h.dir;
+    quien.mov = false;
+    quien.pose = h.t < DURA_HECHIZO[h.id] - 0.12 ? 'poder' : 'normal';
+    if (h.t < 1.2) {
+      for (let i = 0; i < 2; i++) {
+        chispaNueva({ cx: quien.x, cy: quien.y - 12, r: 15, a: Math.random() * 6.28, va: 7 + Math.random() * 3, vr: -9, dura: 0.55, col: Math.random() > 0.5 ? el.claro : el.medio, grande: Math.random() > 0.6 });
+      }
+    }
+    const o = h.ob;
+    const cx = o.rect.x + o.rect.w / 2;
+    const cy = o.rect.y + o.rect.h / 2;
+    const ox = pablo.x + h.dx * 8;
+    const oy = pablo.y - 12 + h.dy * 4;
+    const s = salaT();
+    switch (h.id) {
+      case 'siy': {
+        if (h.t >= 0.75 && !h.hecho) {
+          h.hecho = true;
+          if (!h.bloqueado) {
+            const e = tt.estatuas.find((x) => x.id === o.id)!;
+            e.mov = { t: 0, dur: 0.5, x0: e.c * T, y0: e.r * T, x1: (e.c + h.dx) * T, y1: (e.r + h.dy) * T };
+            e.c += h.dx;
+            e.r += h.dy;
+          }
+        }
+        break;
+      }
+      case 'fresquito': {
+        // a stream of flakes from Pablo's hands to the puddle
+        if (h.t > 0.3 && h.t < 0.95) {
+          for (let i = 0; i < 3; i++) {
+            const k = Math.random();
+            const vel = 1 / 0.45;
+            particula({ x: ox + (Math.random() - 0.5) * 5, y: oy + (Math.random() - 0.5) * 5, vx: (cx - ox) * vel * (0.8 + k * 0.4), vy: (cy - oy) * vel * (0.8 + k * 0.4) - 4, g: 0, dura: 0.42 + k * 0.08, img: copo(Math.floor(Math.random() * 3)) });
+          }
+        }
+        if (h.t >= 0.95 && !h.hecho) {
+          h.hecho = true;
+          h.marca = h.t;
+          tt.hielo.set(o.id, t);
+          sonido.efecto(EFECTO_HIELO);
+          for (let i = 0; i < 12; i++) chispaNueva({ cx, cy: cy - 6, vx: (Math.random() - 0.5) * 50, vy: -8 - Math.random() * 26, dura: 0.7, col: i % 2 ? '#e6f8ff' : '#9adaf8', grande: i % 3 === 0 });
+        }
+        break;
+      }
+      case 'cierzo': {
+        if (h.t >= 0.85 && !h.hecho) {
+          h.hecho = true;
+          h.marca = h.t;
+          sonido.efecto(EFECTO_VIENTO);
+          if (o.tipo === 'vela') {
+            tt.velas.add(o.id);
+            for (let i = 0; i < 6; i++) particula({ x: o.c * T + 8 + (i % 2) * 2, y: (o.r + 1) * T - 34 - i * 2, vx: h.dx * 14 + (Math.random() - 0.5) * 6, vy: -14 - Math.random() * 8, g: 0, dura: 0.9 + i * 0.1, img: humo(i) });
+          } else {
+            tt.hojas.set(o.id, t);
+            for (let i = 0; i < 30; i++) {
+              const k = Math.random();
+              particula({ x: o.rect.x + Math.random() * o.rect.w, y: o.rect.y + 4 + Math.random() * o.rect.h, vx: h.dx * (60 + k * 90) + (Math.random() - 0.5) * 30, vy: h.dy * (60 + k * 90) - 24 - Math.random() * 30, g: 70, dura: 0.9 + k * 0.4, img: hojaVuela(i) });
+            }
+          }
+        }
+        break;
+      }
+      case 'abrazo': {
+        const r = tt.rocas.find((x) => x.id === o.id)!;
+        if (h.t >= 1.15 && !h.hecho) {
+          // the rock leaves the floor and goes over to where it must land
+          h.hecho = true;
+          h.marca = h.t;
+          r.estado = 'vuela';
+          r.vuelo = { t: 0, dur: 0.7, x0: r.c * T, y0: r.r * T, x1: r.c2 * T, y1: r.r2 * T };
+        }
+        if (r.vuelo) {
+          r.vuelo.t += dt;
+          if (r.vuelo.t >= r.vuelo.dur) {
+            const llega = tileRect(r.c2, r.r2);
+            r.vuelo = null;
+            r.c = r.c2;
+            r.r = r.r2;
+            sonido.efecto(EFECTO_ROCA);
+            const hoyo = s.filas[r.r2]?.[r.c2] === 'h';
+            if (hoyo) {
+              tt.huecos.add(kt(s.id, r.c2, r.r2));
+              r.estado = 'puesta';
+            } else r.estado = 'fija';
+            if (solapa(rectPj(pablo), llega)) pablo.y += T;
+            for (let i = 0; i < 12; i++) particula({ x: llega.x + 8 + (Math.random() - 0.5) * 12, y: llega.y + 10, vx: (Math.random() - 0.5) * 44, vy: -10 - Math.random() * 22, g: 50, dura: 0.6, img: polvoMota() });
+          }
+        }
+        break;
+      }
+      case 'chat': {
+        if (h.t >= 0.6 && !h.hecho) {
+          h.hecho = true;
+          sonido.efecto(EFECTO_CHAT);
+        }
+        break;
+      }
+    }
+    if (h.t >= DURA_HECHIZO[h.id]) {
+      quien.pose = 'normal';
+      hechizo = null;
+      void alTerminarHechizo(h);
+    }
+  };
+
+  // ---- the puzzles
+  const puzleResuelto = async (id: PuzleTeatro) => {
+    if (tt.puzles[id]) return;
+    tt.puzles[id] = true;
+    await bloquear(async () => {
+      sonido.efecto(EFECTO_PUZLE);
+      for (let i = 0; i < 16; i++) chispaNueva({ cx: pablo.x + (Math.random() - 0.5) * 30, cy: pablo.y - 10, vx: (Math.random() - 0.5) * 50, vy: -10 - Math.random() * 30, dura: 0.9, col: COLORES[i % COLORES.length], grande: i % 3 === 0 });
+      await espera(0.8);
+      await decir(null, `puzle.${id}`);
+    });
+  };
+
+  const comprobarEstatuas = async () => {
+    const ves = teatroM().salas.ves;
+    if (ves.marcas.every((m) => tt.estatuas.some((e) => !e.mov && e.c === m.c && e.r === m.r))) await puzleResuelto('estatuas');
+  };
+  const comprobarHielo = async () => {
+    if (tt.sala === 'pat' && !tt.puzles.hielo && alcanzableT('pat', [10, 8], [11, 4])) await puzleResuelto('hielo');
+  };
+  const comprobarRoca = async () => {
+    if (tt.sala === 'pal' && !tt.puzles.roca && alcanzableT('pal', [6, 7], [12, 7])) await puzleResuelto('roca');
+  };
+  const comprobarVelas = async () => {
+    const bam = teatroM().salas.bam;
+    if (tt.sala === 'bam' && !tt.puzles.velas && bam.velas.every((v) => tt.velas.has(v.id))) await puzleResuelto('velas');
+  };
+
+  const alTerminarHechizo = async (h: Hechizo) => {
+    if (h.id === 'siy') {
+      if (h.bloqueado) {
+        emocionar(pablo, 'puntos', 1);
+        await bloquear(() => decir('pablo', 'estatua.atasca'));
+      } else await comprobarEstatuas();
+    } else if (h.id === 'fresquito') await comprobarHielo();
+    else if (h.id === 'abrazo') await comprobarRoca();
+    else if (h.id === 'cierzo') await comprobarVelas();
+    else if (h.id === 'chat') {
+      const p = salaT().pensadores.find((x) => x.id === h.ob.id);
+      if (p) await leerChat(p);
+    }
+  };
+
+  /** «Leer el chat»: what the thinker thinks comes up as a conversation of bubbles, one by one. */
+  const leerChat = async (p: PensadorDef) => {
+    const msgs: MensajeChat[] = [];
+    for (let i = 1; hayTexto(`chat.${p.id}.${i}`); i++) {
+      const m = /^([<>])\s*(\d\d:\d\d)\s*\|\s*(.*)$/.exec(texto(`chat.${p.id}.${i}`));
+      if (m) msgs.push({ yo: m[1] === '>', hora: m[2], txt: m[3] });
+    }
+    await bloquear(async () => {
+      const est = { vistos: 0, escribiendo: false, fin: false };
+      const titulo = texto(`chat.titulo.${p.id}`);
+      const cierre = texto('chat.cerrar');
+      const capa = (gg: CanvasRenderingContext2D) => dibujarChat(gg, titulo, msgs, est.vistos, est.escribiendo, t, est.fin ? cierre : '');
+      capas.push(capa);
+      teclas.vaciar();
+      try {
+        await espera(0.4);
+        for (let i = 0; i < msgs.length; i++) {
+          est.escribiendo = true;
+          await espera(0.55 + Math.min(0.5, msgs[i].txt.length / 140));
+          est.escribiendo = false;
+          est.vistos = i + 1;
+          sonido.efecto(EFECTO_CHAT, 0.8);
+          await espera(0.55);
+        }
+        est.fin = true;
+        teclas.vaciar();
+        for (;;) {
+          const k = await teclas.siguiente();
+          if (k === 'a' || k === 'b') break;
+        }
+      } finally {
+        capas.splice(capas.indexOf(capa), 1);
+      }
+      if (p.id === 'tramoyista') {
+        tt.chatLeido = true;
+        await decir('chuchi', 'chat.tramoyista.fin');
+      }
+    });
+  };
+
+  const hablarConFantasma = async (p: PensadorDef) => {
+    const f = fantasmas[p.q];
+    f.dir = dirDe(pablo.x - f.x, pablo.y - f.y, f.dir);
+    pablo.dir = dirDe(f.x - pablo.x, f.y - pablo.y, pablo.dir);
+    await bloquear(async () => {
+      emocionar(f, 'puntos', 0.9);
+      await decir(p.q, tt.chatLeido || p.q === 'acomodador' ? `fantasma.${p.id}.otra` : `fantasma.${p.id}`);
+    });
+  };
+
+  const abrirCofreT = async (c: { id: string; x: number; y: number; objeto?: string; cantidad?: number; monedas?: number }) => {
+    await bloquear(async () => {
+      pablo.mov = false;
+      if (tt.cofres.has(c.id)) {
+        await decir(null, 'cofre.vacio');
+        return;
+      }
+      tt.cofres.add(c.id);
+      sonido.efecto(EFECTO_APUNTADOR);
+      for (let i = 0; i < 10; i++) chispaNueva({ cx: c.x + (Math.random() - 0.5) * 12, cy: c.y - 12, vx: (Math.random() - 0.5) * 20, vy: -14 - Math.random() * 14, dura: 0.7, col: COLORES[i % COLORES.length], grande: i % 3 === 0 });
+      await espera(0.6);
+      if (c.monedas) {
+        grupo.monedas += c.monedas;
+        await decir(null, 'cofre.monedas', { n: c.monedas });
+      }
+      if (c.objeto) {
+        const n = c.cantidad ?? 1;
+        grupo.objetos[c.objeto] = (grupo.objetos[c.objeto] ?? 0) + n;
+        await decir(null, 'cofre.objeto', { n, objeto: texto(`objeto.${c.objeto}.nombre`) });
+      }
+    });
+  };
+
+  const recogerChupitoT = async (id: string) => {
+    await bloquear(async () => {
+      pablo.mov = false;
+      tt.chupitos.add(id);
+      grupo.objetos.chupito = (grupo.objetos.chupito ?? 0) + 1;
+      sonido.efecto(EFECTO_APUNTADOR);
+      await decir(null, 'escondite.hallado', { objeto: texto('objeto.chupito.nombre') });
+    });
+  };
+
+  /** The three prompters of the Teatro: seen on the map, fought and, once beaten, they join. */
+  const encontrarApuntadorT = async (a: ApuntadorDef) => {
+    tt.armados[a.id] = false;
+    await bloquear(async () => {
+      pablo.mov = false;
+      pablo.dir = dirDe(a.x - pablo.x, a.y - pablo.y, pablo.dir);
+      emocionar(pablo, 'exclama', 0.9);
+      await espera(0.8);
+      await decir(null, `apuntador.${a.id}.aparece`);
+      // TEATRO: el fondo de combate será 'teatro' cuando exista (agente del jefe).
+      const r = await luchar([a.id], 'campo');
+      if (r === 'victoria') {
+        tt.apuntadores.add(a.id);
+        await espera(0.6);
+        darApuntador(grupo, a.id, a.dueno);
+        sonido.efecto(EFECTO_APUNTADOR);
+        await decir(null, `apuntador.${a.id}.unido`);
+      } else if (r === 'derrota') await derrotado();
+    });
+  };
+
+  // The password of the stage door: the right word is the third of the list.
+  const PALABRA_BUENA = 2;
+  const puertaEscenario_ = async () => {
+    await bloquear(async () => {
+      pablo.mov = false;
+      await decir(null, 'puerta.cerrada');
+      const items: ItemLista[] = [1, 2, 3, 4].map((i) => ({ txt: texto(`puerta.op.${i}`) }));
+      const i = await elegirLista(items, 6, 6, { anchoMin: 80 });
+      if (i < 0) return;
+      if (i !== PALABRA_BUENA) {
+        emocionar(pablo, 'gota', 1);
+        await decir(null, 'puerta.mal');
+        return;
+      }
+      sonido.efecto(EFECTO_TELON);
+      tt.puzles.chat = true;
+      sonido.efecto(EFECTO_PUZLE);
+      for (let k = 0; k < 18; k++) chispaNueva({ cx: 7.5 * T + (Math.random() - 0.5) * 30, cy: 2 * T + 8, vx: (Math.random() - 0.5) * 60, vy: -6 - Math.random() * 28, dura: 0.9, col: COLORES[k % COLORES.length], grande: k % 3 === 0 });
+      await espera(0.8);
+      await decir(null, 'puerta.bien');
+    });
+  };
+
+  // ---- moving between the rooms
+  /** Back to the start positions the statues of an unsolved puzzle (leaving the room is the way to try again). */
+  const reiniciarEstatuas = () => {
+    if (tt.puzles.estatuas) return;
+    tt.estatuas = teatroM().salas.ves.estatuas.map((e) => ({ ...e, mov: null }));
+  };
+
+  const ponerEnSala = (id: IdSala, desde: IdSala | 'camino') => {
+    tt.sala = id;
+    escena = 'teatro';
+    const s = salaT();
+    const ll = s.llegadas[desde] ?? Object.values(s.llegadas)[0]!;
+    pablo.x = ll.x;
+    pablo.y = ll.y;
+    pablo.dir = ll.dir;
+    pablo.mov = false;
+    tt.seguro = { x: pablo.x, y: pablo.y };
+    for (const p of s.pensadores) {
+      const f = fantasmas[p.q];
+      f.x = p.x;
+      f.y = p.y;
+      f.dir = 'S';
+    }
+    alinearSeguidores();
+    moverCamara();
+    pasosEnc = Math.max(pasosEnc, 140);
+    if (sonido.actual !== PISTA_TEATRO) sonido.musica(PISTA_TEATRO);
+  };
+
+  const cambiarSala = async (id: IdSala, desde: IdSala) => {
+    await bloquear(async () => {
+      pablo.mov = false;
+      sonido.efecto(EFECTO_PUERTA);
+      await fundirA(1, 0.35);
+      if (desde === 'ves') reiniciarEstatuas();
+      ponerEnSala(id, desde);
+      await fundirA(0, 0.35);
+      if (!tt.visto.has(id)) {
+        tt.visto.add(id);
+        await decir(null, `teatro.sala.${id}`);
+      }
+    });
+  };
+
+  const entrarAlTeatro = async () => {
+    iniciarTeatro();
+    ponerEnSala('ves', 'camino');
+    if (!tt.visto.has('ves')) {
+      tt.visto.add('ves');
+      return true;
+    }
+    return false;
+  };
+
+  const salirDelTeatro = async () => {
+    await bloquear(async () => {
+      pablo.mov = false;
+      sonido.efecto(EFECTO_PUERTA);
+      await fundirA(1, 0.45);
+      reiniciarEstatuas();
+      const m = caminoM();
+      mundo = m;
+      escena = 'camino';
+      pablo.x = m.puertaTeatro.x + m.puertaTeatro.w / 2;
+      pablo.y = m.puertaTeatro.y + m.puertaTeatro.h + 14;
+      pablo.dir = 'S';
+      pablo.mov = false;
+      estadoCaminoM.chistArmado = true;
+      alinearSeguidores();
+      moverCamara();
+      sonido.musica(PISTA_CAMINO);
+      await fundirA(0, 0.5);
+    });
+  };
+
+  /** A loose plank gives way: back to the last firm spot. */
+  const caerPorTablon = async () => {
+    await bloquear(async () => {
+      pablo.mov = false;
+      emocionar(pablo, 'exclama', 0.6);
+      sonido.efecto(EFECTO_CAE);
+      await fundirA(1, 0.25);
+      pablo.x = tt.seguro.x;
+      pablo.y = tt.seguro.y;
+      alinearSeguidores();
+      await fundirA(0, 0.3);
+      await avisar(texto('bambalinas.cae'), 1.2);
+    });
+  };
+
+  // ---- the stage
+  // PROVISIONAL: la sustituye la del agente del jefe (jefeYFinal: el narrador en dos fases, Calderón y la salida).
+  const jefeYFinal = async () => {
+    // TEATRO: el fondo será 'escenario' cuando exista.
+    const r = await luchar(['petardo'], 'campo', true);
+    if (r === 'derrota') {
+      await derrotado();
+      return;
+    }
+    await fundirA(1, 0.8);
+    escena = 'fin';
+    await fundirA(0, 0.8);
+    await espera(2.6);
+    terminar('hecho');
+  };
+
+  const alEscenario = async () => {
+    tt.escenarioHecho = true;
+    await bloquear(async () => {
+      pablo.mov = false;
+      pablo.dir = 'N';
+      narrador.x = 8 * T;
+      narrador.y = 4 * T + 8;
+      narrador.dir = 'S';
+      narradorVisible = true;
+      narradorA = 0;
+      sonido.efecto(EFECTO_TELON);
+      await espera(1.1);
+      emocionar(pablo, 'exclama', 0.9);
+      await espera(0.7);
+      await serie('narrador', 'escenario.sombra');
+      paginasT = 0;
+      sonido.efecto(EFECTO_APUNTADOR);
+      await espera(1.2);
+      await decir('narrador', 'escenario.final');
+      await decir('fran', 'escenario.fran');
+      await decir('guille', 'escenario.guille');
+      await decir('chuchi', 'escenario.chuchi');
+      await decir('pablo', 'escenario.pablo');
+      await decir('narrador', 'escenario.telon');
+      await jefeYFinal();
+    });
+  };
+
+  // ---- A near something in the Teatro
+  const interactuarTeatro = () => {
+    const s = salaT();
+    const [vx, vy] = vectorDe(pablo.dir);
+    const sonda: Rect = { x: pablo.x + vx * 11 - 7, y: pablo.y + vy * 9 - 8, w: 14, h: 12 };
+    for (const c of s.cofres) if (solapa(sonda, { x: c.x - 11, y: c.y - 12, w: 22, h: 16 })) return void abrirCofreT(c);
+    for (const c of s.chupitos) if (!tt.chupitos.has(c.id) && Math.hypot(pablo.x - c.x, pablo.y - c.y) < 22) return void recogerChupitoT(c.id);
+    for (const p of s.pensadores) if (solapa(sonda, { x: p.x - 10, y: p.y - 22, w: 20, h: 26 })) return void hablarConFantasma(p);
+    if (s.id === 'fos' && !tt.puzles.chat && pablo.y < 4 * T && pablo.x > 6.4 * T && pablo.x < 9.6 * T && vy <= 0) return void puertaEscenario_();
+    if (s.id === 'ves') for (const e of tt.estatuas) if (solapa(sonda, { x: e.c * T - 2, y: e.r * T - 2, w: T + 4, h: T + 4 })) return void bloquear(() => decir(null, 'lectura.estatua'));
+    if (s.id === 'pal') for (const r of tt.rocas) if (r.estado === 'quieta' && solapa(sonda, { x: r.c * T - 2, y: r.r * T - 2, w: T + 4, h: T + 4 })) return void bloquear(() => decir(null, 'lectura.roca'));
+    const apoyado = { x: pablo.x - 2, y: pablo.y - 5, w: 4, h: 5 };
+    for (const l of s.lecturas) if (solapa(apoyado, l.rect) && vy <= 0) return void leer(l);
+  };
+
+  const actualizarTeatro = () => {
+    const s = salaT();
+    const centro = { x: pablo.x, y: pablo.y - 1 };
+    // the doors
+    for (const pt of s.puertas) {
+      if (pt.abre && !tt.puzles[pt.abre]) continue;
+      if (centro.x >= pt.c0 * T && centro.x < (pt.c1 + 1) * T && centro.y >= pt.r0 * T && centro.y < (pt.r1 + 1) * T) {
+        if (pt.a === 'camino') void salirDelTeatro();
+        else void cambiarSala(pt.a, s.id);
+        return;
+      }
+    }
+    // the prompters
+    for (const a of s.apuntadores) {
+      if (tt.apuntadores.has(a.id)) continue;
+      const d = Math.hypot(pablo.x - a.x, pablo.y - a.y);
+      if (tt.armados[a.id] === undefined) tt.armados[a.id] = true;
+      if (d > 80) tt.armados[a.id] = true;
+      else if (d < 40 && tt.armados[a.id]) {
+        void encontrarApuntadorT(a);
+        return;
+      }
+    }
+    if (s.id === 'bam') {
+      const c = Math.floor(centro.x / T);
+      const r = Math.floor(centro.y / T);
+      const ch = s.filas[r]?.[c];
+      if (ch === 't') {
+        void caerPorTablon();
+        return;
+      }
+      if (ch !== undefined && ch !== 'X' && ch !== '#') tt.seguro = { x: pablo.x, y: pablo.y };
+    }
+    if (s.id === 'esc' && !tt.escenarioHecho && pablo.y < 6.3 * T) {
+      void alEscenario();
+      return;
+    }
+    if (encuentrosOn && !s.seguro && pasosEnc <= 0) void encuentroAleatorio();
+  };
+
+  /** Time passing in the Teatro: statues sliding, rocks flying, the gate rising, the room darkening. */
+  const avanzarTeatro = (dt: number) => {
+    for (const e of tt.estatuas) {
+      if (!e.mov) continue;
+      e.mov.t += dt;
+      if (e.mov.t >= e.mov.dur) e.mov = null;
+    }
+    if (tt.puzles.estatuas && tt.rejaAlt > 0) tt.rejaAlt = Math.max(0, tt.rejaAlt - dt / 1.2);
+    const bam = teatroM().salas.bam;
+    const oscura = bam.velas.every((v) => tt.velas.has(v.id));
+    tt.oscuridad = Math.max(0, Math.min(1, tt.oscuridad + (oscura ? dt / 1.1 : -dt / 0.6)));
+    for (const f of Object.values(fantasmas)) f.t += dt;
+    // the ice lifts whoever stands on it
+    for (const p of [pablo, ...seguidores]) {
+      const sobre = salaT().filas[Math.floor((p.y - 1) / T)]?.[Math.floor(p.x / T)] === 'c';
+      const a = alturas.get(p) ?? 0;
+      alturas.set(p, sobre ? Math.min(12, a + dt * 60) : Math.max(0, a - dt * 60));
+    }
   };
 
   // ------------------------------------------------------------ update
@@ -1488,7 +2346,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
       pablo.t += dt * (mandos.b ? 1.55 : 1);
       if (hecho > 0) {
         anotarRastro();
-        if (escena === 'camino') pasosEnc -= hecho;
+        if (escena === 'camino' || escena === 'teatro') pasosEnc -= hecho;
       }
       // the IP comes back slowly while walking
       ipPaso += hecho;
@@ -1514,6 +2372,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
       for (const l of cuartoM.lecturas) if (solapa({ x: pablo.x - 2, y: pablo.y - 5, w: 4, h: 5 }, l.rect) && vy <= 0) return void leer(l);
       return;
     }
+    if (escena === 'teatro') return interactuarTeatro();
     const apoyado = { x: pablo.x - 2, y: pablo.y - 5, w: 4, h: 5 };
     if (escena === 'camino') {
       const m = caminoM();
@@ -1573,6 +2432,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
       else rayoT = -1;
     }
     if (ipDestello > 0) ipDestello -= dt;
+    if (avisoPoder > 0) avisoPoder -= dt;
 
     // title
     if (escena === 'titulo') {
@@ -1583,7 +2443,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     dialogo.update(dt * VEL, mandos);
     // a menu open: the buttons become events for its script
     if (capas.length && !dialogo.activo) teclas.leer(dt, mandos);
-    const libre = !dialogo.activo && fade.dur === 0 && !poder && guion === 0;
+    const libre = !dialogo.activo && fade.dur === 0 && !poder && !hechizo && guion === 0;
 
     if (libre) {
       if (mandos.tomarB()) {
@@ -1591,8 +2451,10 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
       }
       actualizarJugador(dt);
       if (mandos.tomarA()) interactuar();
-      else if (mandos.tomarR()) lanzarPoder();
-      else if (mandos.tomarStart() && (escena === 'pueblo' || escena === 'camino')) void menuPrincipal();
+      else if (mandos.tomarR()) lanzarSeleccionado();
+      else if (mandos.tomarL()) {
+        if (escena === 'pueblo' || escena === 'camino' || escena === 'teatro') ciclarPoder();
+      } else if (mandos.tomarStart() && (escena === 'pueblo' || escena === 'camino' || escena === 'teatro')) void menuPrincipal();
       // places that react to Pablo
       if (escena === 'cuarto') {
         if (pablo.y >= ALTO_CUARTO - 6 && pablo.x > cuartoM.puerta.x && pablo.x < cuartoM.puerta.x + cuartoM.puerta.w && cama === 'vacia') void salirDelCuarto();
@@ -1618,15 +2480,19 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
         if (solapa(pr, m.puertaTeatro)) void alTeatro();
         else if (solapa(pr, m.salidaOeste) && pablo.dir.includes('W')) void alPueblo();
         else if (encuentrosOn && pasosEnc <= 0) void encuentroAleatorio();
-      }
+      } else if (escena === 'teatro') actualizarTeatro();
     } else {
       mandos.tomarA();
       mandos.tomarB();
       mandos.tomarR();
+      mandos.tomarL();
       mandos.tomarStart();
       if (!poder) pablo.mov = pablo.mov && false;
     }
     if (poder) actualizarPoder(dt);
+    if (hechizo) actualizarHechizo(dt);
+    actualizarParts(dt);
+    if (escena === 'teatro') avanzarTeatro(dt);
 
     // the crate, sliding
     if (caja.moviendo) {
@@ -1651,7 +2517,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     if (narradorVisible && narradorA < 1) narradorA = Math.min(1, narradorA + dt / 0.8);
     if (paginasT >= 0) paginasT += dt;
     // emotions
-    for (const p of [pablo, madre, aldeano, narrador, ...Object.values(amigosM)]) {
+    for (const p of [pablo, madre, aldeano, narrador, ...Object.values(amigosM), ...Object.values(fantasmas)]) {
       if (p.emocion) {
         p.emocion.t += dt;
         if (p.emocion.t >= p.emocion.dura) p.emocion = null;
@@ -1676,10 +2542,10 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     // the camera follows Pablo (Chuchi, while he comes in)
     moverCamara(dt);
     // R lights up when the power can be used now
-    consola.resaltarR(libre && escena === 'pueblo' && mPablo().ip >= IP_COSTE && !caja.movida && !!buscarObjetivo());
+    consola.resaltarR(libre && (escena === 'pueblo' ? poderSel === 'siy' && mPablo().ip >= IP_COSTE && !caja.movida && !!buscarObjetivo() : escena === 'teatro' && (miembroDe(poderMapa(poderSel).quien)?.ip ?? 0) >= poderMapa(poderSel).ip && !!buscarT(poderSel)));
     // the shortcut for scripts of a hidden tab? nothing: the loop stops
     if (!libre && !poder) pablo.mov = false;
-    if ((escena === 'pueblo' || escena === 'camino') && t > 40) consola.saltar.hidden = false;
+    if ((escena === 'pueblo' || escena === 'camino' || escena === 'teatro') && t > 40) consola.saltar.hidden = false;
   };
 
   // ------------------------------------------------------------ drawing
@@ -1696,13 +2562,15 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     if (p === pablo) return true;
     if (p === madre) return escena === 'cuarto';
     if (p === aldeano) return escena === 'pueblo';
-    if (p === narrador) return escena === 'pueblo' && narradorVisible;
+    if (p === narrador) return (escena === 'pueblo' || escena === 'teatro') && narradorVisible;
+    if (p === fantasmas.tramoyista || p === fantasmas.acomodador) return escena === 'teatro' && salaT().pensadores.some((x) => fantasmas[x.q] === p);
+    if (escena === 'teatro') return seguidores.includes(p);
     if (escena !== 'pueblo' && escena !== 'camino') return false;
     return seguidores.includes(p) || (escena === 'pueblo' && (Object.keys(amigosM) as Array<'fran' | 'guille' | 'chuchi'>).some((q) => amigosM[q] === p && npcVisible(q)));
   };
 
   const dibujarEmociones = (dx: number, dy: number) => {
-    for (const p of [pablo, madre, aldeano, narrador, ...Object.values(amigosM)]) {
+    for (const p of [pablo, madre, aldeano, narrador, ...Object.values(amigosM), ...Object.values(fantasmas)]) {
       if (!p.emocion || !visible(p)) continue;
       dibujarEmocion(g, p.emocion, Math.round(p.x - dx), Math.round(p.y - dy - 22));
     }
@@ -1940,9 +2808,369 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     dibujarEmociones(dx, dy);
     if (!enCamino) dibujarLluvia();
     rayoEnPantalla();
-    // the IP counter, top left
-    if (!dialogo.activo && !capas.length && guion === 0) g.drawImage(contadorIP(mPablo().ip, ipMax(), ipDestello > 0, texto('hud.ip')), 4, 4);
-    if (poder && poder.t < 1.3) cartelito(g, texto('poder.nombre'), PANTALLA_W / 2, 6);
+    // the IP counter of the chosen power, top left
+    dibujarHud();
+  };
+
+  // ---------------------------------------------------------------- drawing the Teatro
+  const alturas = new Map<Pj, number>();
+  /** The ice raises whoever walks on it; the rise is smooth. */
+  const alturaDe = (p: Pj): number => alturas.get(p) ?? 0;
+
+  const brazos: Record<number, HTMLCanvasElement> = {};
+  const brazoGirado = (d: Dir) => {
+    const q = d === 'E' ? 0 : d === 'S' ? 1 : d === 'W' ? 2 : 3;
+    return (brazos[q] ??= q === 2 ? reflejar(brazoOso()) : girar(brazoOso(), q));
+  };
+  const remolinos: Record<string, HTMLCanvasElement> = {};
+  const remolinoDir = (f: number, izq: boolean) => (remolinos[`${f % 3}${izq}`] ??= izq ? reflejar(remolino(f)) : remolino(f));
+
+  /** A hole of darkness (soft, in steps) that follows Pablo in the dark room: twice the screen so it covers any position. */
+  const oscuridadCanvas = () =>
+    una('tt.oscuridad', () => {
+      const c = lienzo(PANTALLA_W * 2, PANTALLA_H * 2);
+      const x = ctx(c);
+      x.fillStyle = 'rgba(5,3,16,0.8)';
+      x.fillRect(0, 0, c.width, c.height);
+      x.globalCompositeOperation = 'destination-out';
+      for (let i = 0; i < 6; i++) elipse(x, 'rgba(0,0,0,0.2)', PANTALLA_W, PANTALLA_H - 10, 66 - i * 9, 46 - i * 6.5);
+      return c;
+    });
+
+  const estatuaPos = (e: EstatuaT) => {
+    if (!e.mov) return { x: e.c * T, y: e.r * T };
+    const k = easeOut(Math.min(1, e.mov.t / e.mov.dur));
+    return { x: e.mov.x0 + (e.mov.x1 - e.mov.x0) * k, y: e.mov.y0 + (e.mov.y1 - e.mov.y0) * k };
+  };
+
+  /** Where the rock is drawn: its tile, lifted while the hug closes, or somewhere on its flight. */
+  const rocaPos = (r: RocaT): { x: number; y: number; alto: number; vuela: boolean } => {
+    if (r.vuelo) {
+      const k = Math.min(1, r.vuelo.t / r.vuelo.dur);
+      return { x: r.vuelo.x0 + (r.vuelo.x1 - r.vuelo.x0) * k, y: r.vuelo.y0 + (r.vuelo.y1 - r.vuelo.y0) * k, alto: 10 + Math.sin(k * Math.PI) * 22, vuela: true };
+    }
+    let alto = 0;
+    let x = r.c * T;
+    if (hechizo && hechizo.id === 'abrazo' && hechizo.ob.id === r.id && !hechizo.hecho) {
+      alto = limitar((hechizo.t - 0.55) * 18, 0, 10);
+      if (hechizo.t > 0.55) x += Math.floor(hechizo.t * 30) % 2 ? 1 : -1;
+    }
+    return { x, y: r.r * T, alto, vuela: false };
+  };
+
+  const esquinasT = (r: Rect, dx: number, dy: number) => {
+    const f = Math.floor(t * 4) % 2;
+    for (const [ex, ey] of [[0, 0], [r.w, 0], [0, r.h], [r.w, r.h]]) g.drawImage(destello(f ? 2 : 1), Math.round(r.x + ex - dx - 2), Math.round(r.y + ey - dy - 2));
+  };
+
+  const dibujarHechizo = (dx: number, dy: number) => {
+    const h = hechizo!;
+    const def = poderMapa(h.id);
+    const el = COLOR_ELEMENTO[def.el];
+    const o = h.ob;
+    const quien = pjDe(h.q);
+    const ox = quien.x + h.dx * 6;
+    const oy = quien.y - 12 + h.dy * 3;
+    let cx = o.rect.x + o.rect.w / 2;
+    let cy = o.rect.y + o.rect.h / 2;
+    switch (h.id) {
+      case 'siy': {
+        const e = tt.estatuas.find((x) => x.id === o.id);
+        if (e) {
+          const p = estatuaPos(e);
+          cx = p.x + 8;
+          cy = p.y + 8;
+        }
+        if (h.t < 0.25 || h.t > 1.5) break;
+        let alfa = limitar((h.t - 0.25) / 0.35, 0, 1);
+        if (h.t > 1.2) alfa = limitar((1.5 - h.t) / 0.3, 0, 1);
+        const cuartos = h.dir === 'N' ? 0 : h.dir === 'E' ? 1 : h.dir === 'S' ? 2 : 3;
+        const img = una_mano(cuartos);
+        g.globalAlpha = alfa * 0.5;
+        g.drawImage(conoFoco(), Math.round(cx - dx - 28), Math.round(cy - dy - 100));
+        g.globalAlpha = 1;
+        for (let i = 0; i < 3; i++) {
+          g.fillStyle = `rgba(255,226,120,${0.1 * alfa})`;
+          const rx = 20 - i * 5;
+          g.fillRect(Math.round(cx - dx - rx), Math.round(cy - dy + 6 - i * 3), rx * 2, 8 + i * 6);
+        }
+        g.globalAlpha = alfa * 0.82;
+        g.drawImage(img, Math.round(cx - dx - img.width / 2 - h.dx * 13), Math.round(cy - dy - img.height / 2 - h.dy * 13));
+        g.globalAlpha = 1;
+        if (h.bloqueado && h.t > 0.75 && h.t < 1.1 && Math.floor(h.t * 24) % 2) {
+          // it will not move: a little puff where it was pushed
+          g.fillStyle = 'rgba(255,255,255,0.7)';
+          g.fillRect(Math.round(cx - dx + h.dx * 9), Math.round(cy - dy + h.dy * 9), 2, 2);
+        }
+        if (h.t > 0.7 && h.t < 1.25 && Math.random() > 0.3) chispaNueva({ cx: cx + (Math.random() - 0.5) * 14, cy: cy + (Math.random() - 0.5) * 14, vx: -h.dx * 12, vy: -h.dy * 12 - 8, dura: 0.5, col: COLORES[Math.floor(Math.random() * COLORES.length)], grande: Math.random() > 0.5 });
+        break;
+      }
+      case 'fresquito': {
+        if (h.hecho) {
+          const k = (h.t - h.marca) / 0.55;
+          if (k < 1) {
+            anillo(cx - dx, cy - 4 - dy, 4 + k * 16, '#e6f8ff', 14);
+            anillo(cx - dx, cy - 4 - dy, 2 + k * 11, '#9adaf8', 10);
+          }
+        } else {
+          // the cold gathers over the puddle
+          const k = limitar((h.t - 0.3) / 0.65, 0, 1);
+          g.globalAlpha = 0.35 * k;
+          g.drawImage(halo('140,210,255'), Math.round(cx - dx - 32), Math.round(cy - dy - 20));
+          g.globalAlpha = 1;
+        }
+        break;
+      }
+      case 'cierzo': {
+        if (h.t > 0.15 && h.t < 1.1) {
+          for (let i = 0; i < 3; i++) {
+            const k = limitar((h.t - 0.15 - i * 0.12) / 0.55, 0, 1);
+            if (k <= 0 || k >= 1) continue;
+            const img = remolinoDir(Math.floor(h.t * 12) + i, h.dx < 0);
+            const sx = ox + (cx - ox) * k + (h.dy ? (i - 1) * 6 : 0);
+            const sy = oy + (cy - oy) * k + (h.dx ? (i - 1) * 4 : 0) - 4;
+            g.globalAlpha = Math.sin(k * Math.PI);
+            g.drawImage(img, Math.round(sx - dx - 13), Math.round(sy - dy - 7));
+          }
+          g.globalAlpha = 1;
+        }
+        break;
+      }
+      case 'abrazo': {
+        const r = tt.rocas.find((x) => x.id === o.id);
+        if (!r) break;
+        const p = rocaPos(r);
+        const rcx = p.x + 8;
+        const rcy = p.y + 8 - p.alto;
+        let alfa = limitar((h.t - 0.2) / 0.35, 0, 1);
+        if (h.t > 1.3) alfa = limitar((1.9 - h.t) / 0.6, 0, 1);
+        if (alfa > 0) {
+          const arm = brazoGirado(h.dir);
+          // the paw closes on the rock from Pablo's side: it starts a little further back
+          const cierre = limitar((h.t - 0.2) / 0.7, 0, 1);
+          const sep = 8 * (1 - cierre);
+          const w = arm.width;
+          const hh = arm.height;
+          const ax = h.dir === 'E' ? rcx - w + 3 - sep : h.dir === 'W' ? rcx - 3 + sep : rcx - w / 2;
+          const ay = h.dir === 'S' ? rcy - hh + 3 - sep : h.dir === 'N' ? rcy - 3 + sep : rcy - hh / 2 + 2;
+          g.globalAlpha = alfa;
+          g.drawImage(arm, Math.round(ax - dx), Math.round(ay - dy));
+          g.globalAlpha = 1;
+        }
+        if (h.t > 0.5 && h.t < 1.3 && Math.random() > 0.5) chispaNueva({ cx: rcx + (Math.random() - 0.5) * 16, cy: rcy + (Math.random() - 0.5) * 10, vx: (Math.random() - 0.5) * 18, vy: -10 - Math.random() * 10, dura: 0.45, col: el.claro, grande: false });
+        break;
+      }
+      case 'chat': {
+        const k = h.t / DURA_HECHIZO.chat;
+        const hx = o.rect.x + o.rect.w / 2;
+        const hy = o.rect.y + 6;
+        for (let i = 0; i < 3; i++) {
+          const r = ((k * 1.6 + i / 3) % 1) * 22;
+          if (r > 3) anillo(hx - dx, hy - dy, r, i % 2 ? el.claro : '#ffffff', 16);
+        }
+        // the three dots of someone typing, over his head
+        for (let i = 0; i < 3; i++) {
+          const on = Math.floor(h.t * 7) % 3 === i;
+          g.fillStyle = on ? '#ffffff' : el.claro;
+          g.fillRect(Math.round(hx - dx - 5 + i * 5), Math.round(hy - dy - 10 - (on ? 1 : 0)), 3, 3);
+        }
+        break;
+      }
+    }
+  };
+
+  /** The IP counter of the chosen power (top left) and the banner that says which it is for a moment after L. */
+  const dibujarHud = () => {
+    if (!dialogo.activo && !capas.length && guion === 0) {
+      const def = poderMapa(poderSel);
+      const m = miembroDe(def.quien) ?? mPablo();
+      g.drawImage(contadorPoder(poderSel, texto(`poder.${poderSel}.nombre`), m.ip, statsDe(grupo, m).ip, ipDestello > 0 || avisoPoder > 0, texto('hud.ip'), disponibles().length > 1), 4, 4);
+    }
+    // the village's old banner (the name of «Sí, y...»); in the Teatro the counter itself says which power is chosen
+    if (poder && poder.t < 1.3) cartelito(g, texto('poder.nombre'), PANTALLA_W / 2 + 30, 6);
+  };
+
+  const dibujarTeatro = () => {
+    const s = salaT();
+    const dx = cam.x;
+    const dy = cam.y;
+    g.drawImage(s.suelo, dx, dy, PANTALLA_W, PANTALLA_H, 0, 0, PANTALLA_W, PANTALLA_H);
+    const enPantalla = (x: number, y: number, w: number, h: number) => x - dx < PANTALLA_W && y - dy < PANTALLA_H && x - dx + w > 0 && y - dy + h > 0;
+    const poner = (img: HTMLCanvasElement, x: number, y: number) => {
+      if (enPantalla(x, y, img.width, img.height)) g.drawImage(img, Math.round(x - dx), Math.round(y - dy));
+    };
+
+    // ---- on the floor: marks, holes, rocks set in the holes, puddles
+    for (const m of s.marcas) poner(spriteMarca(tt.estatuas.some((e) => !e.mov && e.c === m.c && e.r === m.r)), m.c * T, m.r * T);
+    s.filas.forEach((f, r) => {
+      for (let c = 0; c < f.length; c++) {
+        const ch = f[c];
+        if (ch === 'h') poner(tt.huecos.has(kt(s.id, c, r)) ? spriteParche() : spriteHueco(), c * T, r * T);
+        else if (ch === 'c' && !tt.hielo.has(kt(s.id, c, r))) poner(spriteCharco(), c * T, r * T + Math.round(Math.sin(t * 2 + c)));
+      }
+    });
+    // the gate and the stage door sit in the wall
+    if (s.id === 'ves' && tt.rejaAlt > 0) {
+      const lift = (1 - tt.rejaAlt) * 36;
+      g.save();
+      g.beginPath();
+      g.rect(7 * T - dx, 8 - dy, 32, 40);
+      g.clip();
+      g.drawImage(reja(), 7 * T - dx, Math.round(8 - lift - dy));
+      g.restore();
+    }
+    if (s.id === 'fos') poner(puertaEscenario(tt.puzles.chat), 7 * T, 8);
+
+    // ---- what stands up, by depth
+    const dinamicos: Array<{ base: number; f: () => void }> = [];
+    const persona = (p: Pj) => dinamicos.push({ base: p.y, f: () => dibujarPj(p, dx, dy + alturaDe(p)) });
+    persona(pablo);
+    for (const sg of seguidores) persona(sg);
+    if (s.id === 'ves') {
+      for (const e of tt.estatuas) {
+        const p = estatuaPos(e);
+        dinamicos.push({ base: p.y + T, f: () => poner(spriteEstatua(e.tipo), p.x, p.y + T - 32) });
+      }
+    }
+    if (s.id === 'pal') {
+      for (const r of tt.rocas) {
+        if (r.estado === 'puesta') continue;
+        const p = rocaPos(r);
+        dinamicos.push({
+          base: p.vuela ? 9999 : p.y + T,
+          f: () => {
+            if (p.alto > 0.5) g.drawImage(sombraPies(), Math.round(p.x + 8 - 7 - dx), Math.round(p.y + T - 6 - dy));
+            g.drawImage(rocaCarton(), Math.round(p.x + 8 - 11 - dx), Math.round(p.y + T - 19 - p.alto - dy));
+          },
+        });
+      }
+    }
+    for (const v of s.velas) {
+      const apagada = tt.velas.has(v.id);
+      dinamicos.push({
+        base: (v.r + 1) * T,
+        f: () => {
+          const x0 = v.c * T;
+          const y0 = (v.r + 1) * T - 32;
+          poner(candelabro(), x0, y0);
+          if (apagada) return;
+          // the flame leans away from the wind; a warm halo on the floor
+          const sopla = hechizo && hechizo.id === 'cierzo' && hechizo.ob.id === v.id && hechizo.t > 0.4 ? hechizo.dx : 0;
+          g.globalAlpha = 0.8 + 0.2 * Math.sin(t * 9 + v.c);
+          g.drawImage(halo('255,214,120'), Math.round(x0 + 8 - 32 - dx), Math.round((v.r + 1) * T - 6 - 20 - dy));
+          g.globalAlpha = 1;
+          poner(llama(Math.floor(t * 8 + v.c)), x0 + 6 + sopla, y0 - 3);
+        },
+      });
+    }
+    for (const h of s.hojas) {
+      if (tt.hojas.has(h.id)) continue;
+      dinamicos.push({ base: (h.r + h.h) * T, f: () => poner(spriteHojas(h.w, h.h), h.c * T, h.r * T - 6) });
+    }
+    for (const p of s.pensadores) {
+      const f = fantasmas[p.q];
+      dinamicos.push({
+        base: p.y,
+        f: () => {
+          const flota = Math.sin(t * 2 + p.x) * 2 - 3;
+          g.globalAlpha = 0.5;
+          g.drawImage(sombraPies(), Math.round(p.x - dx - 7), Math.round(p.y - dy - 4));
+          g.globalAlpha = 0.62 + 0.14 * Math.sin(t * 1.6 + 1);
+          g.drawImage(marco(f.q, f.dir, 0, f.pose), Math.round(p.x - dx - PIES.x), Math.round(p.y - dy - PIES.y + flota));
+          g.globalAlpha = 1;
+        },
+      });
+    }
+    for (const a of s.apuntadores) {
+      if (tt.apuntadores.has(a.id)) continue;
+      dinamicos.push({
+        base: a.y,
+        f: () => {
+          const salto = Math.abs(Math.sin(t * 3.2 + a.x)) * 4;
+          g.drawImage(sombraPies(), Math.round(a.x - dx - 7), Math.round(a.y - dy - 4));
+          const img = spriteEnemigo(a.id, Math.floor(t * 3));
+          g.drawImage(img, Math.round(a.x - dx - img.width / 2), Math.round(a.y - dy - img.height + 2 - salto));
+        },
+      });
+    }
+    for (const c of s.cofres) {
+      const img = spriteCofre(tt.cofres.has(c.id));
+      dinamicos.push({ base: c.y, f: () => poner(img, c.x - img.width / 2, c.y - img.height) });
+    }
+    for (const e of s.chupitos) {
+      if (tt.chupitos.has(e.id) || Math.hypot(pablo.x - e.x, pablo.y - e.y) > 90) continue;
+      dinamicos.push({
+        base: e.y,
+        f: () => {
+          g.drawImage(chupitoSuelo(), Math.round(e.x - dx - 3), Math.round(e.y - dy - 9));
+          const k = Math.floor(t * 4) % 3;
+          g.drawImage(destello(k as 0 | 1 | 2), Math.round(e.x - dx - 2 + (k === 1 ? 3 : 0)), Math.round(e.y - dy - 12));
+        },
+      });
+    }
+    // the columns of ice, growing from their foot the first moment
+    s.filas.forEach((f, r) => {
+      for (let c = 0; c < f.length; c++) {
+        const t0 = tt.hielo.get(kt(s.id, c, r));
+        if (f[c] !== 'c' || t0 === undefined) continue;
+        dinamicos.push({
+          base: r * T,
+          f: () => {
+            const img = spriteHielo();
+            const sh = Math.max(1, Math.ceil(img.height * easeOut(limitar((t - t0) / 0.6, 0, 1))));
+            g.drawImage(img, 0, img.height - sh, img.width, sh, Math.round(c * T - dx), Math.round(r * T - 12 + img.height - sh - dy), img.width, sh);
+          },
+        });
+      }
+    });
+    if (s.id === 'esc' && narradorVisible) {
+      dinamicos.push({
+        base: narrador.y,
+        f: () => {
+          g.globalAlpha = narradorA;
+          dibujarPj(narrador, dx, dy);
+          g.globalAlpha = 1;
+          if (paginasT >= 0) dibujarPaginas(dx, dy);
+        },
+      });
+    }
+    dinamicos.sort((a, b) => a.base - b.base);
+    let di = 0;
+    for (const o of s.objetos) {
+      while (di < dinamicos.length && dinamicos[di].base <= o.base) dinamicos[di++].f();
+      const img = o.frames[0];
+      if (enPantalla(o.x, o.y, img.width, img.height)) g.drawImage(img, Math.round(o.x - dx), Math.round(o.y - dy));
+    }
+    while (di < dinamicos.length) dinamicos[di++].f();
+
+    // the wall lamps flicker a little
+    for (const l of s.lamparas) {
+      if (!enPantalla(l.x - 32, l.y - 20, 64, 40)) continue;
+      g.globalAlpha = 0.14 + 0.1 * Math.sin(t * 8 + l.x);
+      g.drawImage(halo('255,214,120'), Math.round(l.x - 32 - dx), Math.round(l.y - 20 - dy));
+    }
+    g.globalAlpha = 1;
+    // ---- the hint: the corners of what the chosen power would reach
+    if (!hechizo && !dialogo.activo && guion === 0 && !capas.length && (miembroDe(poderMapa(poderSel).quien)?.ip ?? 0) >= poderMapa(poderSel).ip) {
+      const hit = buscarT(poderSel);
+      if (hit) esquinasT(hit.ob.rect, dx, dy);
+    }
+    if (hechizo) dibujarHechizo(dx, dy);
+    dibujarParts(dx, dy);
+    dibujarChispas(dx, dy);
+
+    // ---- the dark: the candles are out, only the planks that hold glow and a circle of light follows Pablo
+    if (s.id === 'bam' && tt.oscuridad > 0.01) {
+      g.globalAlpha = tt.oscuridad;
+      g.drawImage(oscuridadCanvas(), Math.round(pablo.x - dx - PANTALLA_W), Math.round(pablo.y - 8 - dy - PANTALLA_H + 10));
+      if (s.brillo) {
+        g.globalAlpha = tt.oscuridad * (0.8 + 0.2 * Math.sin(t * 3));
+        g.drawImage(s.brillo, dx, dy, PANTALLA_W, PANTALLA_H, 0, 0, PANTALLA_W, PANTALLA_H);
+      }
+      g.globalAlpha = 1;
+    }
+    dibujarEmociones(dx, dy);
+    dibujarHud();
   };
 
   /** Inside the peña or the inn: the still room, the keeper behind his counter, Pablo and his friends at the door. */
@@ -2040,6 +3268,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     if (escena === 'titulo') dibujarTitulo();
     else if (escena === 'cuarto') dibujarCuarto();
     else if (escena === 'pueblo' || escena === 'camino') dibujarMundo();
+    else if (escena === 'teatro') dibujarTeatro();
     else if (escena === 'interior') dibujarInterior();
     else {
       g.fillStyle = '#000';
@@ -2065,10 +3294,60 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     corte.abort();
   };
 
+  /** Test hooks of the Teatro: the whole party at level 4, in the room asked, no scenes. */
+  const prepararPruebaTeatro = (sala: IdSala = 'ves') => {
+    preparaPueblo();
+    yaSaludoPablo = true;
+    cama = 'vacia';
+    narradorHecho = true;
+    caja.movida = true;
+    caja.visto = true;
+    caminoVisto = true;
+    for (const q of ['fran', 'guille', 'chuchi'] as const) if (!unido(q)) incorporar(q);
+    if (!grupo.apuntadores.some((a) => a.id === 'chist')) darApuntador(grupo, 'chist', 'pablo');
+    for (const m of grupo.miembros) {
+      m.nivel = 4;
+      m.exp = expTotal(4);
+      const st = statsDe(grupo, m);
+      m.pv = st.pv;
+      m.ip = st.ip;
+    }
+    reajustar();
+    fade = { a: 0, desde: 0, hasta: 0, t: 0, dur: 0, res: null };
+    iniciarTeatro();
+    tt.visto.add(sala);
+    ponerEnSala(sala, 'camino');
+  };
+
+  const resolverTeatro = (puzle: PuzleTeatro) => {
+    iniciarTeatro();
+    const m = teatroM().salas;
+    if (puzle === 'estatuas') {
+      m.ves.marcas.forEach((mk, i) => {
+        tt.estatuas[i].c = mk.c;
+        tt.estatuas[i].r = mk.r;
+        tt.estatuas[i].mov = null;
+      });
+    } else if (puzle === 'hielo') {
+      m.pat.filas.forEach((f, r) => {
+        for (let c = 0; c < f.length; c++) if (f[c] === 'c') tt.hielo.set(kt('pat', c, r), t - 2);
+      });
+    } else if (puzle === 'roca') {
+      const r = tt.rocas[0];
+      r.c = r.c2;
+      r.r = r.r2;
+      r.estado = 'puesta';
+      tt.huecos.add(kt('pal', r.c2, r.r2));
+    } else if (puzle === 'velas') {
+      for (const v of m.bam.velas) tt.velas.add(v.id);
+    } else tt.chatLeido = true;
+    tt.puzles[puzle] = true;
+  };
+
   const gancho = (): EstadoSol => ({
     fotogramas,
     escena,
-    modo: dialogo.preguntando ? 'pregunta' : dialogo.activo ? 'dialogo' : fade.dur > 0 ? 'fundido' : poder ? 'poder' : guion > 0 ? 'guion' : 'libre',
+    modo: dialogo.preguntando ? 'pregunta' : dialogo.activo ? 'dialogo' : fade.dur > 0 ? 'fundido' : poder || hechizo ? 'poder' : guion > 0 ? 'guion' : 'libre',
     pablo: { x: pablo.x, y: pablo.y, dir: pablo.dir, ip: mPablo().ip },
     caja: { x: caja.x, y: caja.y, movida: caja.movida },
     aldeano: { x: aldeano.x, y: aldeano.y },
@@ -2094,6 +3373,40 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     perder: () => combate?.perder(),
     luchar: (enemigos, fondo) => luchar(enemigos, fondo),
     grupo,
+    irAlTeatro: async (sala = 'ves') => prepararPruebaTeatro(sala),
+    sala: (n) => ponerEnSala(n, 'ves'),
+    resolver: (puzle) => resolverTeatro(puzle),
+    elegirPoder: (id) => {
+      poderSel = id;
+    },
+    estadoTeatro: () => ({
+      sala: tt.sala,
+      puzles: { ...tt.puzles },
+      estatuas: tt.estatuas.map((e) => ({ id: e.id, c: e.c, r: e.r, moviendo: !!e.mov })),
+      rocas: tt.rocas.map((r) => ({ id: r.id, c: r.c, r: r.r, estado: r.estado })),
+      hielo: [...tt.hielo.keys()],
+      huecos: [...tt.huecos],
+      velas: [...tt.velas],
+      hojas: [...tt.hojas.keys()],
+      cofres: [...tt.cofres],
+      chupitos: [...tt.chupitos],
+      apuntadores: [...tt.apuntadores],
+      visto: [...tt.visto],
+      poderSel,
+      hechizo: !!hechizo,
+      chatLeido: tt.chatLeido,
+      escenarioHecho: tt.escenarioHecho,
+      oscuridad: tt.oscuridad,
+      rejaAlt: tt.rejaAlt,
+      ips: Object.fromEntries(grupo.miembros.map((m) => [m.q, m.ip])),
+    }),
+    lugaresTeatro: () => {
+      iniciarTeatro();
+      return Object.fromEntries(SALAS.map((id) => {
+        const { suelo: _s, objetos: _o, luces: _l, lecturas: _t, brillo: _b, ...resto } = teatroM().salas[id];
+        return [id, resto];
+      })) as ReturnType<EstadoSol['lugaresTeatro']>;
+    },
     irAlCamino: async () => {
       preparaPueblo();
       yaSaludoPablo = true;
@@ -2188,8 +3501,17 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     void luchar(['petardo', 'movil', 'critico', 'mosquito', 'spoiler']);
   }
 
+  // `?sol&teatro`: straight into the Teatro (all four friends at level 4 with Chist), for tests
+  const pruebaTeatro = new URLSearchParams(location.search).has('teatro');
+  if (pruebaTeatro) {
+    prepararPruebaTeatro('ves');
+    sonido.musica(PISTA_TEATRO);
+    actualizar(0.016);
+    dibujar();
+  }
+
   return (async () => {
-    if (!pruebaCombate) void fundirA(0, 0.8);
+    if (!pruebaCombate && !pruebaTeatro) void fundirA(0, 0.8);
     await bucle();
     // (a game started right after this one has already put its own hook there)
     if ((window as unknown as { __sol?: unknown }).__sol === gancho) delete (window as unknown as { __sol?: unknown }).__sol;

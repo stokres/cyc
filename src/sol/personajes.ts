@@ -14,7 +14,7 @@
 // mop and a loud mustard shirt full of hibiscus. The build (arms, torso, legs) is in the moulds' optional fields.
 import { ctx, lienzo, mezcla, noche, reflejar, una, type Pal } from './pixel';
 
-export type Quien = 'pablo' | 'madre' | 'aldeano' | 'chuchi' | 'fran' | 'guille' | 'narrador' | 'tendera' | 'posadero';
+export type Quien = 'pablo' | 'madre' | 'aldeano' | 'chuchi' | 'fran' | 'guille' | 'narrador' | 'tendera' | 'posadero' | 'tramoyista' | 'acomodador';
 /** The four friends, the party of the fights. */
 export type Amigo = 'pablo' | 'chuchi' | 'fran' | 'guille';
 export type Dir = 'S' | 'SE' | 'E' | 'NE' | 'N' | 'NW' | 'W' | 'SW';
@@ -568,7 +568,26 @@ const POSADERO: Molde = {
   pal: { ...ALDEANO.pal, t: '#4a5a8a', T: '#33406a', r: '#e6c24a', c: '#3f8a5a', C: '#2a6440', p: '#4a4458', P: '#322d40' },
 };
 
-const MOLDES: Record<Quien, Molde> = { pablo: PABLO, madre: MADRE, aldeano: ALDEANO, chuchi: CHUCHI, fran: FRAN, guille: GUILLE, narrador: NARRADOR, tendera: TENDERA, posadero: POSADERO };
+// The Teatro's two ghosts (drawn translucent by the game): the stagehand (pale blue, flat cap) and the usher
+// (pale violet, a red pillbox cap). Same build as the villager's.
+const TRAMOYISTA: Molde = {
+  ...ALDEANO,
+  pal: {
+    ...ALDEANO.pal,
+    s: '#c4d4ec', S: '#98aacc', m: '#7a88b0', h: '#e4ecf8', H: '#b8c6e0', b: '#eef2fa', B: '#c8d2e6',
+    t: '#4a5a80', T: '#303c5c', r: '#a8b6d8', c: '#5e6e9c', C: '#414e78', d: '#dce6f6', D: '#b4c2dc', p: '#4a5474', P: '#363e58', o: '#2e3550', O: '#1e233a',
+  },
+};
+const ACOMODADOR: Molde = {
+  ...ALDEANO,
+  pal: {
+    ...ALDEANO.pal,
+    s: '#d6cae8', S: '#aa9ccc', m: '#8a78b0', h: '#ece6f6', H: '#c4b8dc', b: '#f2eef8', B: '#cfc6e2',
+    t: '#9a2e4c', T: '#6e1e36', r: '#e6c24a', c: '#a8324e', C: '#74223a', d: '#e8e0f4', D: '#c0b4d8', p: '#4e4268', P: '#382f4c', o: '#2e2640', O: '#1e182c',
+  },
+};
+
+const MOLDES: Record<Quien, Molde> = { pablo: PABLO, madre: MADRE, aldeano: ALDEANO, chuchi: CHUCHI, fran: FRAN, guille: GUILLE, narrador: NARRADOR, tendera: TENDERA, posadero: POSADERO, tramoyista: TRAMOYISTA, acomodador: ACOMODADOR };
 
 // ---------------------------------------------------------------- painting into a grid
 

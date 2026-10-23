@@ -17,6 +17,8 @@ Un texto largo se parte solo en ventanas de tres líneas. Mejor corto que largo.
 
 El mundo usa: charla.<amigo>.N (cada amigo se une al grupo), une.<amigo>, narrador.*, tienda.*, posada.*, menu.*
 (el menú START), chist.*, cofre.*, escondite.*, madre.derrota.* y derrota.*; los letreros son lectura.* y letrero.*.
+El Teatro usa: teatro.*, puzle.*, fantasma.*, chat.* (cada mensaje es «< hora | texto» si lo dice el otro o «> hora | texto» si
+lo dice el que piensa), puerta.*, bambalinas.*, apuntador.<id>.aparece/unido, escenario.*, poder.<id>.nada y mapa.*.
 El combate (src/sol/combate.ts) usa: combate.* (menús, la línea de arriba y el final), orden.* (los seis iconos),
 poder.<id>.nombre, apuntador.*, invocacion.*, objeto.*, enemigo.<id>.nombre y enemigo.<id>.<ataque>, etiqueta.*
 y ovacion.grito.*. Los huecos entre llaves ({quien}, {n}...) los rellena el juego. La línea de arriba admite unas
@@ -160,7 +162,6 @@ menu.estado = Estado
 menu.monedas = Monedas
 menu.poner = Poner
 menu.quitar = Quitar
-menu.siy = Pulsa R mirando a algo para usar Sí, y...
 menu.soloCombate = Esa impronergía es solo para combatir.
 menu.nohace = No hace falta.
 menu.recupera = Todavía se está recuperando.
@@ -189,6 +190,100 @@ cofre.vacio = El cofre está vacío.
 escondite.hallado = ¡Un chupito perdido! Encuentras {objeto}.
 pablo.teatro.1 = El Teatro. Las puertas están abiertas, y dentro suenan unas páginas.
 pablo.teatro.2 = Ahí dentro está mi sombra con mi final. Esto no acaba aquí.
+
+// ---------------------------------------------------------------- el Teatro (mazmorra con un puzle por impronergía)
+
+// Palabras pintadas en los carteles (muy cortas: caben en 24 píxeles)
+teatro.taquilla = TAQUILLA
+teatro.cartel1 = ACTO IV
+teatro.cartel2 = ESTRENO
+teatro.escenario = ESCENARIO
+
+// La primera vez que se entra en cada sala
+teatro.sala.ves = El vestíbulo. Una verja dorada cierra el paso al patio de butacas, y en el suelo hay dos marcas de actor.
+teatro.sala.pat = El patio de butacas. Entre las filas hay un foso lleno de cerveza vieja. Huele a función de hace cien años.
+teatro.sala.pal = Los palcos. Al puente le falta un trozo, y por aquí hay rocas que parecen de las que no pesan.
+teatro.sala.bam = Las bambalinas. Los candelabros deslumbran y las tablas crujen. Ojo dónde se pisa.
+teatro.sala.fos = El foso, bajo el escenario. Al fondo, una puerta con una estrella pide una contraseña.
+teatro.sala.esc = El escenario. Un foco redondo, el telón a medio abrir y alguien esperando en el centro.
+consejo.poderes = Pulsa R para usar la impronergía elegida y L para cambiarla. Gastan IP, que vuelve al andar.
+
+// La impronergía del mapa (los nombres de Sí, y... Fresquito, Cierzo y Abrazo de oso están más abajo)
+poder.chat.nombre = Leer el chat
+poder.siy.nada = Nada que empujar por aquí. Sí, y si lo hubiera, ¡lo empujaba!
+poder.fresquito.nada = ¡Aupa! No hay ningún charco que enfriar. Qué pena, con lo que me gusta lo fresquito.
+poder.cierzo.nada = Aquí no hay velas que apagar ni hojas que soplar. El cierzo se me queda en el pecho.
+poder.abrazo.nada = No hay nada que abrazar por aquí. Ni un mal cerdo.
+poder.chat.nada = Aquí nadie piensa en voz alta. Mejor: así no me llegan notificaciones.
+mapa.sinip = Me he quedado sin IP. Habrá que andar un rato para que vuelva.
+estatua.atasca = No se mueve. Detrás hay algo que no le deja pasar.
+
+// Lo que se lee en el sitio
+lectura.estatua = Una máscara de teatro sobre un pedestal. A mano no se mueve ni un milímetro.
+lectura.roca = Una roca de cartón piedra, hueca por dentro. Pesa lo que un suspiro, pero necesita un buen abrazo.
+lectura.taquilla = TAQUILLA. Entradas agotadas desde hace cien años.
+lectura.foso = El foso de la orquesta, lleno de cerveza. A nado ni de broma. Algo frío lo arreglaría.
+lectura.puente = Un puente de madera al que le falta un trozo del tamaño de una roca.
+lectura.aviso = CUIDADO. Solo pisan seguro los tramoyistas: sus huellas brillan en la oscuridad. Con tanta vela no se ven.
+
+// Puzles resueltos
+puzle.estatuas = Las dos máscaras encajan en sus marcas y la verja dorada sube. ¡Qué buen atrezzo!
+puzle.hielo = Los charcos se hielan en una escalera de cubitos. Ya se puede cruzar el foso.
+puzle.roca = La roca cae en el hueco y el puente aguanta. Se puede pasar.
+puzle.velas = Sin velas, las huellas de los tramoyistas brillan en las tablas. Hay camino seguro.
+
+// Los fantasmas y el chat
+nombre.tramoyista = Tramoyista
+nombre.acomodador = Acomodador
+fantasma.acomodador.otra = Llevo cien años sin decir ni pío, pero lo pienso todo muy alto. Quien sepa leer el chat de un fantasma se entera de todo.
+fantasma.tramoyista = Uuuh... el telón... la clave... no me acuerdo... uuuh.
+fantasma.tramoyista.otra = Uuuh... ¿te lo he dicho ya? Qué cabeza la mía. Ya no la tengo.
+chat.titulo.tramoyista = Tramoyista
+chat.titulo.acomodador = Acomodador
+chat.cerrar = Pulsa A para cerrar
+chat.tramoyista.1 = < 23:38 | Jefe, el telón se ha vuelto a atascar.
+chat.tramoyista.2 = > 23:39 | Pues dale con la palanca del foso, anda.
+chat.tramoyista.3 = < 23:40 | Ya. Oye, y la clave de la puerta del escenario, ¿cuál era?
+chat.tramoyista.4 = > 23:41 | ¿Otra vez? Es lo que se hace al salir de escena sin decir ni pío.
+chat.tramoyista.5 = < 23:41 | ¿Foro?
+chat.tramoyista.6 = > 23:42 | ¡No! El foro es por donde se sale. Lo que se hace es el... bueno, ya me entiendes.
+chat.tramoyista.7 = < 23:42 | Ah, ya. Gracias, jefe.
+chat.tramoyista.8 = > 23:43 | Y apúntalo, que yo no soy inmortal. Bueno. Ya no.
+chat.tramoyista.fin = Salir sin decir ni pío, y por el foro... Creo que ya sé la contraseña de la puerta.
+chat.acomodador.1 = > 00:02 | ¿Tramoyista? ¿Sigues abajo, en el foso?
+chat.acomodador.2 = < 00:02 | Aquí, con mis cuerdas.
+chat.acomodador.3 = > 00:03 | Cien años sin hablar con nadie.
+chat.acomodador.4 = < 00:03 | Pues a mí me dejaron la clave del escenario y no se la cuento ni al apuntador.
+chat.acomodador.5 = > 00:04 | Habrá que leerte la cabeza a ti, entonces.
+
+// La puerta del escenario (la contraseña buena es la tercera)
+puerta.cerrada = La puerta del escenario tiene una estrella y una cerradura de palabra. ¿Cuál es la contraseña?
+puerta.op.1 = Telón
+puerta.op.2 = Foro
+puerta.op.3 = Mutis
+puerta.op.4 = Bambalina
+puerta.mal = La estrella parpadea en rojo. Esa no es. Alguien aquí abajo la sabe y piensa muy alto.
+puerta.bien = La estrella se enciende y el pestillo hace clic. ¡Mutis por el foro!
+
+bambalinas.cae = ¡Crac! La tabla cede y vuelves atrás.
+
+// Los tres apuntadores del Teatro
+apuntador.ejem.aparece = ¡Un apuntador! Ejem tose desde su rincón, como si fuera a decir algo.
+apuntador.ejem.unido = Ejem, el apuntador del fuego, se une al grupo.
+apuntador.psst.aparece = ¡Un apuntador! Psst chista bajito para que no se entere nadie.
+apuntador.psst.unido = Psst, el apuntador del agua, se une al grupo.
+apuntador.shhh.aparece = ¡Un apuntador! Shhh pide silencio con el dedo en los labios.
+apuntador.shhh.unido = Shhh, el apuntador del viento, se une al grupo.
+
+// El escenario: la sombra y los cuatro
+escenario.sombra.1 = Habéis llegado hasta el escenario. Qué constancia. Me gusta el público que no se va.
+escenario.sombra.2 = Tus actos, Pablo: cuatro actos y ni un final decente. Yo se lo voy a dar.
+escenario.final = Esta historia la acabo yo.
+escenario.fran = ¡Aupa, sombra! Esto se arregla con una caña y un poco de calma. Y si no, con dos.
+escenario.guille = ¿Un final escrito por una sombra? Maño, eso no cuaja ni en Zaragoza.
+escenario.chuchi = Yo solo quiero volver antes de que se despierten las niñas. Así que, sin ofender, aparta.
+escenario.pablo = Mi obra y mis amigos. El final lo escribimos entre todos. ¡Sí, y...!
+escenario.telon = Pues que suba el telón. A ver quién improvisa mejor.
 
 // ---------------------------------------------------------------- si pierden
 
