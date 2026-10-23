@@ -7,7 +7,7 @@ import { chispa, manoLuz } from './arte';
 import { apuntador as imgApuntador, linea } from './iconos';
 import { cana, cajon, cometa, cono, columnaHielo, chupito, corazon, easeIn, easeOut, globo, grito, haz, hoja, limitar, llama, pagina, anillo, persona, Particulas, rosa, telonArriba, telonLado, zarpa } from './efectos';
 import { dibujarEmocion } from './interfaz';
-import { girar, reflejar, una } from './pixel';
+import { girar, rect, reflejar, una } from './pixel';
 import { EFECTO_APUNTADOR, EFECTO_CURA, EFECTO_GOLPE, EFECTO_PODER, type SonidoSol } from './sonido';
 import type { Elemento } from './grupo';
 import { COLOR_ELEMENTO } from './grupo';
@@ -40,6 +40,8 @@ export interface Escena {
   destello(col: string, alfa: number, dur: number): void;
   /** Hides the windows (a big summon takes the whole screen). */
   ocultarUI(si: boolean): void;
+  /** Shows another background for a while (the boss changes the set); `null` puts the fight's own back. */
+  fondo?(f: 'campo' | 'teatro' | 'escenario' | null): void;
 }
 
 const pt = (d: Donde) => d();
@@ -439,7 +441,7 @@ export async function fxChupito(e: Escena, quien: Donde, objetivos: Donde[], imp
 // ---------------------------------------------------------------- the prompters
 
 /** The prompter pops out of the floor next to its owner, shouts and throws pages of the script at the target. */
-export async function fxApuntador(e: Escena, el: Elemento, quien: Donde, objetivo: Donde, impacto: () => void) {
+export async function fxApuntador(e: Escena, el: Elemento, quien: Donde, objetivo: Donde, impacto: () => void, id = 'chist') {
   const col = COLOR_ELEMENTO[el];
   const pag = pagina();
   e.sonido.efecto(EFECTO_APUNTADOR);
@@ -480,15 +482,23 @@ export async function fxApuntador(e: Escena, el: Elemento, quien: Donde, objetiv
       const alto = Math.round(img.height * sale * (1 - baja));
       if (alto > 0) g.drawImage(img, 0, 0, img.width, alto, px, py - alto, img.width, alto);
       // the shout
-      if (t > 0.3 && t < 1.1) globo(g, texto('efecto.chist'), px + 12, py - img.height - 2);
-      // the pages in flight
+      if (t > 0.3 && t < 1.1) globo(g, texto(`efecto.${id}`), px + 12, py - img.height - 2);
+      // what each one throws: Chist pages, Ejem fireballs, Psst a jet of water, Shhh a gust with leaves
       if (t > 0.65 && t < 1.12) {
         for (let i = 0; i < 4; i++) {
           const k = limitar((t - 0.65 - i * 0.05) / 0.4, 0, 1);
           if (k <= 0 || k >= 1) continue;
           const x = px + 12 + (o.x - px - 12) * k;
           const y = py - 16 + (o.y - py + 16) * k - Math.sin(k * Math.PI) * 18 + i * 3;
-          g.drawImage(pag, Math.round(x - 3), Math.round(y - 3));
+          if (id === 'ejem') {
+            g.drawImage(i % 2 ? llama(Math.floor(t * 12) + i) : cometa(), Math.round(x - 6), Math.round(y - 7));
+          } else if (id === 'psst') {
+            for (let j = 0; j < 3; j++) rect(g, j % 2 ? '#bff0ff' : '#4ab4f0', Math.round(x - 3 + j * 3), Math.round(y - 2 + (j % 2) * 3), 2, 2);
+          } else if (id === 'shhh') {
+            rect(g, '#e0c8ff', Math.round(x - 6), Math.round(y), 9, 1);
+            rect(g, '#ffffff', Math.round(x - 3), Math.round(y + 2), 6, 1);
+            if (i % 2) g.drawImage(hoja('#a8d868'), Math.round(x), Math.round(y - 4));
+          } else g.drawImage(pag, Math.round(x - 3), Math.round(y - 3));
         }
       }
     },

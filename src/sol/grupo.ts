@@ -87,9 +87,9 @@ export interface Grupo {
 /** Bonus of the prompters set on a friend, by id (kept here so the data stays next to the stats). */
 export const BONO_APUNTADOR: Record<string, Partial<Stats>> = {
   chist: { pv: 6, ip: 2, atk: 3, def: 2, agi: 2 },
-  ejem: { pv: 4, ip: 3, atk: 4, def: 1, agi: 2 },
-  psst: { pv: 8, ip: 3, atk: 2, def: 3, agi: 1 },
-  shhh: { pv: 5, ip: 2, atk: 3, def: 1, agi: 4 },
+  ejem: { pv: 4, ip: 3, atk: 5, def: 1, agi: 2 },
+  psst: { pv: 10, ip: 3, atk: 1, def: 3, agi: 1 },
+  shhh: { pv: 5, ip: 2, atk: 3, def: 1, agi: 5 },
 };
 
 /** Base stats of a friend at a level, with no prompters. */

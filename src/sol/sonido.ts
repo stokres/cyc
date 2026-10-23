@@ -80,6 +80,26 @@ export class SonidoSol {
     return hay(id);
   }
 
+  /** Seconds into a track playing now (from its first beat); null when it is not playing or there is no sound. */
+  posicion(id: Pista): number | null {
+    if (!hay(id)) return null;
+    try {
+      return this.s?.posicion?.(id) ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Resolves once the track has loaded (at once without sound or without that track). */
+  async lista(id: Pista) {
+    if (!hay(id)) return;
+    try {
+      await this.s?.lista?.(id);
+    } catch {
+      /* ditto */
+    }
+  }
+
   efecto(id: Pista, volumen = 1) {
     if (!hay(id)) return;
     try {
