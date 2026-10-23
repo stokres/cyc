@@ -7,7 +7,7 @@ import type { Amigo } from './personajes';
 /** Which visual effect a power plays (efectos.ts). */
 export type FxId =
   | 'siy' | 'cajonazo' | 'fresquito' | 'otracana' | 'cierzo' | 'abrazo' | 'cincominutos' | 'chupito'
-  | 'chist' | 'ovacion' | 'calderon';
+  | 'chist' | 'ejem' | 'psst' | 'shhh' | 'ovacion' | 'apagon' | 'calderon';
 
 export type ModoPoder =
   /** One enemy. */
@@ -61,14 +61,19 @@ export interface DefApuntador {
   /** Power of the special attack when released (damage `pot + atk × 0.6 − def × 0.3`, one enemy). */
   pot: number;
   fx: FxId;
+  /** It also hits the two neighbours of the target (with `VECINOS` of the damage). */
+  abanico?: boolean;
+  /** It also heals every friend who is standing by this much (Psst's cool water). */
+  cura?: number;
 }
 
 export const APUNTADORES: DefApuntador[] = [
+  // Chist (earth): the plain one. Ejem (fire): a big single hit. Psst (water): a weak hit and a heal for everybody.
+  // Shhh (wind): a gust that reaches the target and its neighbours.
   { id: 'chist', el: 'tierra', pot: 22, fx: 'chist' },
-  // The Teatro's three; PROVISIONAL: they borrow Chist's effect until they have their own.
-  { id: 'ejem', el: 'fuego', pot: 24, fx: 'chist' },
-  { id: 'psst', el: 'agua', pot: 24, fx: 'chist' },
-  { id: 'shhh', el: 'viento', pot: 24, fx: 'chist' },
+  { id: 'ejem', el: 'fuego', pot: 34, fx: 'ejem' },
+  { id: 'psst', el: 'agua', pot: 18, fx: 'psst', cura: 24 },
+  { id: 'shhh', el: 'viento', pot: 24, fx: 'shhh', abanico: true },
 ];
 export const apuntadorPorId = (id: string) => APUNTADORES.find((a) => a.id === id)!;
 /** Rounds a prompter takes to come back after a summon. */
@@ -90,7 +95,10 @@ export interface Invocacion {
 
 export const INVOCACIONES: Invocacion[] = [
   { id: 'ovacion', req: { tierra: 1 }, el: 'tierra', pot: 30, fx: 'ovacion', lista: true },
-  // The big one with all four friends' prompters: Calderón de la Barca coming down from the sky (to do).
+  // Two prompters (fire and wind): the lights go out and a short circuit hits every enemy.
+  { id: 'apagon', req: { fuego: 1, viento: 1 }, el: 'fuego', pot: 55, fx: 'apagon', lista: true },
+  // The big one with all four friends' prompters: Calderón de la Barca coming down from the sky.
+  // It is not offered in a normal fight: the boss's script moment opens it (combate.ts, `momentoGuion`).
   { id: 'calderon', req: { tierra: 1, fuego: 1, agua: 1, viento: 1 }, el: 'tierra', pot: 90, fx: 'calderon', lista: false },
 ];
 export const invocacionPorId = (id: string) => INVOCACIONES.find((i) => i.id === id)!;

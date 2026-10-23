@@ -23,6 +23,7 @@ import { spriteEnemigo } from './enemigos';
 import { camino, type Cofre, type Escondite, type MundoCamino, type ZonaEncuentro } from './camino';
 import { Combate, empezarCombate, type EstadoCombate, type ResultadoCombate } from './combate';
 import { crearConsola, Mandos } from './consola';
+import { empezarFinal, type Final } from './final';
 import { ALTO_CUARTO, ANCHO_CUARTO, BASE_PARED, CUARTO_X, CUARTO_Y, cuarto } from './cuarto';
 import { pagina } from './efectos';
 import { type FondoCombate } from './fondo';
@@ -98,6 +99,12 @@ export interface EstadoSol {
   perder(): void;
   /** Starts a fight now (the test fight of `?sol&combate` is this with a mixed group). */
   luchar(enemigos: string[], fondo?: FondoCombate): Promise<ResultadoCombate>;
+  /** The boss fight on the stage and, if it is won, the ending (what `?sol&jefe` runs); resolves with the fight's result. */
+  jefe(): Promise<ResultadoCombate>;
+  /** Where the boss fight is: 'jefe1' | 'jefe2' | 'guion' (Calderón on offer) | 'victoria' | 'final' | '' (none). */
+  fase(): string;
+  /** Puts the boss at the edge of his script moment (the next action triggers it); false without a boss fight. */
+  guion(): boolean;
   grupo: Grupo;
   /** Straight to the Teatro (everybody joined, level 4, Chist with Pablo, no scenes), in the room given (the vestíbulo by default). */
   irAlTeatro(sala?: IdSala): Promise<void>;
@@ -285,6 +292,8 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
   let abrio = false;
   // the fight in progress (combate.ts: the world only calls `luchar` and lets it run)
   let combate: Combate | null = null;
+  // the ending (final.ts): another mode of the loop, after the boss
+  let final: Final | null = null;
 
   // lightning: seconds until the next, and the flash being played
   const RAYO = [0.5, 0.08, 0.6, 0.3, 0.14, 0.07, 0.03];
@@ -503,6 +512,28 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     if (r !== 'derrota') {
       fade = { a: 1, desde: 1, hasta: 1, t: 0, dur: 0, res: null };
       void fundirA(0, 0.45);
+    }
+    return r;
+  };
+
+  /**
+   * The boss on the stage and the ending. Fights the narrator (no running away; Calderón's music, the script moment...),
+   * and if he is beaten the Sombra has already fallen into pages: the ending plays (final.ts) and the game closes with
+   * `terminar('hecho')`. If the party loses it is rested and `alPerder` takes it back (the Teatro passes the stage entrance;
+   * without it, the usual defeat of the world). Returns the result of the fight.
+   */
+  const jefeYFinal = async (alPerder?: () => Promise<void>): Promise<ResultadoCombate> => {
+    const r = await luchar(['narrador'], 'escenario', true);
+    if (r === 'victoria') {
+      final = empezarFinal({ sonido, mandos, rapido: VEL > 1, encoger: (seg) => consola.encoger(seg) });
+      await final.resultado;
+      final = null;
+      terminar('hecho');
+    } else if (r === 'derrota') {
+      if (alPerder) {
+        descansar(grupo);
+        await alPerder();
+      } else await derrotado();
     }
     return r;
   };
@@ -1347,7 +1378,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
       pablo.mov = false;
       emocionar(pablo, 'exclama', 0.7);
       await espera(0.7);
-      const r = await luchar(enemigos!, 'campo');
+      const r = await luchar(enemigos!, escena === 'teatro' ? 'teatro' : 'campo');
       if (r === 'derrota') await derrotado();
       return r;
     });
@@ -2014,8 +2045,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
       emocionar(pablo, 'exclama', 0.9);
       await espera(0.8);
       await decir(null, `apuntador.${a.id}.aparece`);
-      // TEATRO: el fondo de combate será 'teatro' cuando exista (agente del jefe).
-      const r = await luchar([a.id], 'campo');
+      const r = await luchar([a.id], 'teatro');
       if (r === 'victoria') {
         tt.apuntadores.add(a.id);
         await espera(0.6);
@@ -2140,19 +2170,13 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
   };
 
   // ---- the stage
-  // PROVISIONAL: la sustituye la del agente del jefe (jefeYFinal: el narrador en dos fases, Calderón y la salida).
-  const jefeYFinal = async () => {
-    // TEATRO: el fondo será 'escenario' cuando exista.
-    const r = await luchar(['petardo'], 'campo', true);
-    if (r === 'derrota') {
-      await derrotado();
-      return;
-    }
-    await fundirA(1, 0.8);
-    escena = 'fin';
-    await fundirA(0, 0.8);
-    await espera(2.6);
-    terminar('hecho');
+  /** Lost to the narrator: back at the stage's entrance (rested by jefeYFinal), and the Sombra waits again. */
+  const volverAlEscenario = async () => {
+    await fundirA(1, 0.5);
+    tt.escenarioHecho = false;
+    narradorVisible = false;
+    ponerEnSala('esc', 'fos');
+    await fundirA(0, 0.5);
   };
 
   const alEscenario = async () => {
@@ -2179,7 +2203,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
       await decir('chuchi', 'escenario.chuchi');
       await decir('pablo', 'escenario.pablo');
       await decir('narrador', 'escenario.telon');
-      await jefeYFinal();
+      await jefeYFinal(volverAlEscenario);
     });
   };
 
@@ -2394,6 +2418,10 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
   const actualizar = (dtReal: number) => {
     const dt = dtReal;
     t += dt;
+    if (final) {
+      final.update(dt);
+      return;
+    }
     if (combate) {
       combate.update(dt);
       return;
@@ -3260,6 +3288,11 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
   };
 
   const dibujar = () => {
+    if (final) {
+      final.dibujar(g);
+      consola.g.drawImage(pantalla, 0, 0, PANTALLA_W * consola.escala(), PANTALLA_H * consola.escala());
+      return;
+    }
     if (combate) {
       combate.dibujar(g);
       consola.g.drawImage(pantalla, 0, 0, PANTALLA_W * consola.escala(), PANTALLA_H * consola.escala());
@@ -3372,6 +3405,15 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     ganar: () => combate?.ganar(),
     perder: () => combate?.perder(),
     luchar: (enemigos, fondo) => luchar(enemigos, fondo),
+    jefe: () => jefeYFinal(),
+    fase: () => {
+      if (final) return 'final';
+      const j = combate?.estado().jefe;
+      if (!j) return '';
+      if (combate!.estado().fase === 'victoria') return 'victoria';
+      return j.guion === 'abierto' ? 'guion' : j.fase === 2 ? 'jefe2' : 'jefe1';
+    },
+    guion: () => combate?.forzarGuion() ?? false,
     grupo,
     irAlTeatro: async (sala = 'ves') => prepararPruebaTeatro(sala),
     sala: (n) => ponerEnSala(n, 'ves'),
@@ -3510,8 +3552,36 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     dibujar();
   }
 
+  // `?sol&jefe`: straight into the boss fight on the stage with the four at level 6 and the four prompters set (`&sinap`:
+  // only Chist, so that the script moment hands out the rest), and on to the ending
+  const params = new URLSearchParams(location.search);
+  const pruebaJefe = params.has('jefe');
+  if (pruebaJefe) {
+    for (const q of ['fran', 'guille', 'chuchi'] as const) incorporar(q);
+    const todos: Array<[string, 'pablo' | 'fran' | 'guille' | 'chuchi']> = [['chist', 'pablo'], ['ejem', 'chuchi'], ['psst', 'fran'], ['shhh', 'guille']];
+    for (const [id, dueno] of params.has('sinap') ? todos.slice(0, 1) : todos) darApuntador(grupo, id, dueno);
+    for (const m of grupo.miembros) {
+      m.nivel = 6;
+      m.exp = expTotal(6);
+      const st = statsDe(grupo, m);
+      m.pv = st.pv;
+      m.ip = st.ip;
+    }
+    grupo.objetos = { turron: 3, chupito: 2 };
+    narradorHecho = true;
+    preparaPueblo();
+    ponerEnPuerta();
+    cama = 'vacia';
+    yaSaludoPablo = true;
+    fade = { a: 0, desde: 0, hasta: 0, t: 0, dur: 0, res: null };
+    escena = 'pueblo';
+    actualizar(0.016);
+    dibujar();
+    void jefeYFinal();
+  }
+
   return (async () => {
-    if (!pruebaCombate && !pruebaTeatro) void fundirA(0, 0.8);
+    if (!pruebaCombate && !pruebaTeatro && !pruebaJefe) void fundirA(0, 0.8);
     await bucle();
     // (a game started right after this one has already put its own hook there)
     if ((window as unknown as { __sol?: unknown }).__sol === gancho) delete (window as unknown as { __sol?: unknown }).__sol;

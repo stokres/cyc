@@ -21,7 +21,7 @@ El Teatro usa: teatro.*, puzle.*, fantasma.*, chat.* (cada mensaje es «< hora |
 lo dice el que piensa), puerta.*, bambalinas.*, apuntador.<id>.aparece/unido, escenario.*, poder.<id>.nada y mapa.*.
 El combate (src/sol/combate.ts) usa: combate.* (menús, la línea de arriba y el final), orden.* (los seis iconos),
 poder.<id>.nombre, apuntador.*, invocacion.*, objeto.*, enemigo.<id>.nombre y enemigo.<id>.<ataque>, etiqueta.*
-y ovacion.grito.*. Los huecos entre llaves ({quien}, {n}...) los rellena el juego. La línea de arriba admite unas
+y ovacion.grito.*, jefe.*, calderon.*, efecto.* y creditos.* / final.* (el final, src/sol/final.ts). Los huecos entre llaves ({quien}, {n}...) los rellena el juego. La línea de arriba admite unas
 36 letras: mejor corta.
 Los textos son provisionales: los revisará Jesús junto con el resto.
 -->
@@ -439,20 +439,109 @@ enemigo.chist.soplo = Soplo
 enemigo.chist.chistido = Chistido
 enemigo.chist.notaalpie = Nota al pie
 enemigo.ejem.nombre = Ejem
-enemigo.ejem.soplo = Soplo
-enemigo.ejem.chistido = Chistido
-enemigo.ejem.notaalpie = Nota al pie
+enemigo.ejem.carraspeo = Carraspeo
+enemigo.ejem.tos = Tos de humo
+enemigo.ejem.entrada = Entrada en escena
 enemigo.psst.nombre = Psst
-enemigo.psst.soplo = Soplo
-enemigo.psst.chistido = Chistido
-enemigo.psst.notaalpie = Nota al pie
+enemigo.psst.salivazo = Salivazo
+enemigo.psst.aguacero = Aguacero
+enemigo.psst.cuchicheo = Cuchicheo
 enemigo.shhh.nombre = Shhh
-enemigo.shhh.soplo = Soplo
-enemigo.shhh.chistido = Chistido
-enemigo.shhh.notaalpie = Nota al pie
+enemigo.shhh.racha = Racha
+enemigo.shhh.corriente = Corriente
+enemigo.shhh.mutis = Mutis por el foro
 enemigo.mosquito.nombre = Mosquito huertano
 enemigo.mosquito.picotazo = Picotazo
 enemigo.mosquito.zumbido = Zumbido
 enemigo.mosquito2.nombre = Mosquito tigre
 enemigo.mosquito2.picotazo = Picotazo
 enemigo.mosquito2.zumbido = Zumbido
+
+// ---------------------------------------------------------------- enemigos del Teatro
+
+enemigo.foco.nombre = Foco loco
+enemigo.foco.deslumbron = Deslumbrón
+enemigo.foco.barrido = Barrido de luz
+enemigo.foco2.nombre = Foco de gala
+enemigo.foco2.deslumbron = Deslumbrón
+enemigo.foco2.barrido = Barrido de luz
+
+enemigo.butaca.nombre = Butaca mordedora
+enemigo.butaca.mordisco = Mordisco
+enemigo.butaca.palomitas = Palomitas
+enemigo.butaca2.nombre = Butaca de palco
+enemigo.butaca2.mordisco = Mordisco
+enemigo.butaca2.palomitas = Palomitas
+
+enemigo.tramoyista.nombre = Tramoyista fantasma
+enemigo.tramoyista.saco = Saco de arena
+enemigo.tramoyista.aullido = Aullido
+enemigo.tramoyista2.nombre = Jefe de tramoya
+enemigo.tramoyista2.saco = Saco de arena
+enemigo.tramoyista2.aullido = Aullido
+
+enemigo.programa.nombre = Programa volador
+enemigo.programa.corte = Corte de papel
+enemigo.programa.cartelera = Cartelera
+enemigo.programa2.nombre = Programa doble
+enemigo.programa2.corte = Corte de papel
+enemigo.programa2.cartelera = Cartelera
+
+// ---------------------------------------------------------------- el jefe: la Sombra, el narrador
+
+enemigo.narrador.nombre = Sombra
+enemigo.narrador.tachon = Tachón
+enemigo.narrador.cambio = Cambio de guion
+enemigo.narrador.omnisciente = Narrador omnisciente
+enemigo.narrador.elipsis = Elipsis
+enemigo.narrador2.nombre = El Narrador
+enemigo.narrador2.final = Final alternativo
+enemigo.narrador2.spoiler = Spoiler final
+enemigo.narrador2.fundido = Fundido a negro
+enemigo.narrador2.borron = Borrón y cuenta nueva
+enemigo.narrador2.tachon = Tachón
+
+jefe.transforma = ¡La Sombra reescribe su papel!
+jefe.transformado = ¡Ahora es El Narrador!
+jefe.perdieron = Y entonces los cuatro perdieron.
+jefe.pablo.siy = Sí, y...
+jefe.narrador.no = ¡Alto! Eso no estaba en mi guion.
+jefe.pablo.llama = Sí, y... los cuatro llamaron a alguien que sí sabe escribir.
+jefe.guion.da = El guion le da {apuntador} a {quien}.
+jefe.apuntadores = ¡Los cuatro apuntadores acuden!
+jefe.aviso = Calderón de la Barca ya puede subir al escenario. Lo tienes en Invocar.
+jefe.garabato = El Narrador tacha y reescribe...
+
+// ---------------------------------------------------------------- apuntadores, apagón y Calderón en combate
+
+invocacion.apagon.nombre = Apagón
+efecto.ejem = ¡Ejem!
+efecto.psst = ¡Psst!
+efecto.shhh = ¡Shhh!
+efecto.apagon = ¡Apagón!
+efecto.spoiler = ¡Spoiler!
+calderon.frase = Y entonces los cuatro ganaron
+calderon.nombre.largo = Calderón de la Barca
+
+// ---------------------------------------------------------------- el final (src/sol/final.ts)
+
+final.1 = Las páginas de la Sombra caen despacio, y el Teatro vuelve a oler a madera.
+final.2 = Mi sombra tenía razón en una cosa: toda historia necesita un final.
+final.3 = Y lo hemos escrito entre los cuatro.
+final.4 = Con la ayuda de un señor con golilla.
+final.5 = Pues a mí me ha gustado. Y que conste que he llegado a tiempo.
+final.6 = Qué raro... Todo esto me suena a sueño.
+final.cita = La vida es sueño, y los sueños, sueños son.
+final.autor = Calderón de la Barca
+creditos.titulo = Alacant Sun
+creditos.1 = Un juego de Pablo
+creditos.2 = Con Fran, Guille y Chuchi
+creditos.3 = La Sombra
+creditos.4 = Pablo, también
+creditos.5 = Los apuntadores
+creditos.6 = Chist, Ejem, Psst y Shhh
+creditos.7 = Invitado de honor
+creditos.8 = Calderón de la Barca
+creditos.9 = El público
+creditos.10 = Siempre aplaude
+creditos.fin = Gracias por jugar

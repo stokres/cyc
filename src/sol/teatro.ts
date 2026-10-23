@@ -252,11 +252,11 @@ for (const [id, f] of Object.entries(FILAS)) {
   });
 }
 
-const GRUPOS_PATIO: string[][] = [['critico', 'spoiler'], ['movil', 'spoiler', 'petardo'], ['traca', 'mosquito2'], ['critico', 'movil']];
-const GRUPOS_PALCOS: string[][] = [['movil', 'spoiler', 'petardo'], ['traca', 'mosquito2'], ['critico', 'movil'], ['spoiler', 'spoiler', 'mosquito']];
-const GRUPOS_BAMBALINAS: string[][] = [['critico', 'spoiler', 'movil'], ['traca', 'mosquito2', 'petardo'], ['critico', 'critico'], ['movil', 'traca']];
-const GRUPOS_FOSO: string[][] = [['traca', 'critico'], ['critico', 'spoiler', 'movil'], ['traca', 'mosquito2', 'mosquito2'], ['movil', 'critico', 'spoiler']];
-// TEATRO: cambiar estos grupos por los de ENEMIGOS_TEATRO (enemigos.ts) cuando el agente del jefe los exporte.
+// The Teatro's own monsters (enemigos.ts, ENEMIGOS_TEATRO), harder room by room; the patio still lets a few of the road's in.
+const GRUPOS_PATIO: string[][] = [['programa', 'programa'], ['foco', 'spoiler'], ['programa', 'movil', 'programa'], ['tramoyista', 'critico']];
+const GRUPOS_PALCOS: string[][] = [['butaca', 'programa'], ['foco', 'programa', 'foco'], ['tramoyista', 'butaca'], ['programa2', 'programa']];
+const GRUPOS_BAMBALINAS: string[][] = [['tramoyista', 'tramoyista', 'programa'], ['foco2', 'butaca'], ['programa2', 'tramoyista', 'foco'], ['butaca', 'butaca']];
+const GRUPOS_FOSO: string[][] = [['tramoyista2', 'butaca'], ['foco2', 'programa2', 'tramoyista'], ['butaca2', 'foco'], ['tramoyista2', 'programa2', 'programa2']];
 export const GRUPOS_TEATRO: Partial<Record<IdSala, string[][]>> = { pat: GRUPOS_PATIO, pal: GRUPOS_PALCOS, bam: GRUPOS_BAMBALINAS, fos: GRUPOS_FOSO };
 
 const px = (c: number) => c * T;

@@ -50,6 +50,22 @@ export const EFECTO_ROCA = 'solRoca' as unknown as Pista;
 export const EFECTO_CHAT = 'solChat' as unknown as Pista;
 /** The curtain opening (musica.ts: `solTelon`). */
 export const EFECTO_TELON = 'solTelon' as unknown as Pista;
+/** The boss fight (musica.ts: `solJefe`). */
+export const PISTA_JEFE = 'solJefe' as unknown as Pista;
+/** Calderón's summon, played once from its first beat AS AN EFFECT (musica.ts: `solCalderon`, 22 s, the blow at second 16). */
+export const PISTA_CALDERON = 'solCalderon' as unknown as Pista;
+/** The ending and the credits (musica.ts: `solFinal`). */
+export const PISTA_FINAL = 'solFinal' as unknown as Pista;
+/** The boss changes shape (musica.ts: `solTransforma`). */
+export const EFECTO_TRANSFORMA = 'solTransforma' as unknown as Pista;
+
+/**
+ * The second of `solCalderon` at which its closing blow lands (the music agent tells it; change it here only).
+ * The whole summon is timed to it: the sky opens, Calderón comes down, writes, and drops the quill on this beat.
+ */
+export const CALDERON_GOLPE = 16;
+/** Seconds the summon goes on after the blow (the last notes of the track). */
+export const CALDERON_COLA = 6;
 
 const hay = (id: Pista) => id in MUSICA;
 
@@ -63,8 +79,44 @@ export class SonidoSol {
       EFECTO_TEXTO, EFECTO_PODER, EFECTO_MENU, EFECTO_PUERTA,
       EFECTO_ENCUENTRO, EFECTO_GOLPE, EFECTO_CURA, EFECTO_APUNTADOR, EFECTO_CAE, EFECTO_HUIR,
       EFECTO_PUZLE, EFECTO_HIELO, EFECTO_VIENTO, EFECTO_ROCA, EFECTO_CHAT, EFECTO_TELON,
+      EFECTO_TRANSFORMA, PISTA_CALDERON,
     ].filter(hay);
     if (ids.length) void s?.prepararEfectos?.(...ids)?.catch?.(() => {});
+  }
+
+  /** Is this track or effect registered (the music is made in parallel)? */
+  existe(id: Pista) {
+    return hay(id);
+  }
+
+  /** Resolves once an effect is fetched and decoded, so that it starts on its beat when played (at once without sound). */
+  async preparar(id: Pista) {
+    if (!hay(id)) return;
+    try {
+      await this.s?.prepararEfectos?.(id);
+    } catch {
+      /* ditto */
+    }
+  }
+
+  /** Seconds into a track playing now (from its first beat); null when it is not playing or there is no sound. */
+  posicion(id: Pista): number | null {
+    if (!hay(id)) return null;
+    try {
+      return this.s?.posicion?.(id) ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Resolves once the track has loaded (at once without sound or without that track). */
+  async lista(id: Pista) {
+    if (!hay(id)) return;
+    try {
+      await this.s?.lista?.(id);
+    } catch {
+      /* ditto */
+    }
   }
 
   efecto(id: Pista, volumen = 1) {

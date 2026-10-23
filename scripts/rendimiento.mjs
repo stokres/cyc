@@ -15,7 +15,7 @@
 // without it, to compare.
 //
 // Usage: node scripts/rendimiento.mjs [escena...]   (against npm run dev on :5173)
-//   escenas: prologo, piso, calle, bar, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, tragaperras, sol, solcombate, solcamino, solteatro (all by default)
+//   escenas: prologo, piso, calle, bar, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, tragaperras, sol, solcombate, solcamino, solteatro, soljefe, solcalderon (all by default)
 import { chromium } from 'playwright';
 import { readFileSync, readdirSync } from 'node:fs';
 
@@ -493,6 +493,75 @@ if (toca('solteatro')) {
   })()`;
   await medir('solteatro: bambalinas con velas', empieza(false), 'sol');
   await medir('solteatro: bambalinas a oscuras', empieza(true), 'sol');
+}
+
+// The little player of the boss scenes: answers the dialogues with A and each menu with an order.
+const BOT_JEFE = `
+    window.__lucha = setInterval(() => {
+      const so = window.__sol?.();
+      if (!so) return;
+      const c = so.combate;
+      if (!c) return void so.mando.pulsar('a');
+      if (c.menu === '' || c.menu === 'nivel') return void so.mando.pulsar('a');
+      if (c.menu !== 'luchar' && c.menu !== 'ordenes') return;
+      const q = c.turno;
+      if (!q) return void so.mando.pulsar('a');
+      const intentos = (window.__intentos ??= {});
+      const clave = c.ronda + ':' + q;
+      const n = (intentos[clave] = (intentos[clave] ?? 0) + 1);
+      const ph = so.fase();
+      let o = 'atacar';
+      if (n > 1) o = 'atacar';
+      else if (ph === 'guion') o = q === 'pablo' ? 'invocar:calderon' : 'defender';
+      else if (q === 'pablo') o = c.ronda % 2 ? 'soltar' : 'poder:siy';
+      else if (q === 'fran') o = c.ronda % 3 === 0 ? 'soltar' : 'poder:fresquito';
+      else if (q === 'guille') o = c.ronda % 2 ? 'poder:cierzo' : 'soltar';
+      else o = c.ronda % 2 ? 'poder:cincominutos' : 'soltar';
+      so.elegir(o, 0);
+    }, 200);`;
+
+const PREP_JEFE = (alGuion) => `(async () => {
+    clearInterval(window.__paseo);
+    clearInterval(window.__lucha);
+    const g = window.__cyc.g;
+    g.pausado = true;
+    const { jugarSol } = await import('/src/sol/sol.ts');
+    const { expTotal, statsDe, darApuntador } = await import('/src/sol/grupo.ts');
+    void jugarSol(g.root, { sonido: g.sound });
+    await new Promise((r) => setTimeout(r, 400));
+    const s = window.__sol();
+    await s.irAlPueblo();
+    s.unirTodos();
+    for (const [id, dueno] of [['chist', 'pablo'], ['ejem', 'chuchi'], ['psst', 'fran'], ['shhh', 'guille']]) darApuntador(s.grupo, id, dueno);
+    for (const m of s.grupo.miembros) {
+      m.nivel = 6;
+      m.exp = expTotal(6);
+      const st = statsDe(s.grupo, m);
+      m.pv = st.pv;
+      m.ip = st.ip;
+    }
+    void s.jefe();
+    ${BOT_JEFE}
+    ${alGuion ? `
+    // straight to the script moment, and then to Calderón's summon: it lasts 22 s, longer than the measuring window
+    await new Promise((r) => setTimeout(r, 7000));
+    window.__sol().guion();
+    for (let i = 0; i < 600; i++) {
+      await new Promise((r) => setTimeout(r, 200));
+      if (window.__sol?.().combate?.mensaje.includes('Calder')) break;
+    }` : ''}
+  })()`;
+
+if (toca('soljefe')) {
+  // The boss of «Alacant Sun» (combate.ts, jefe; jefeArte.ts, efectosJefe.ts): the stage, the narrator with his orbiting
+  // pages and his rewriting attacks, rounds with the four friends' orders.
+  await medir('soljefe: el narrador en el escenario', PREP_JEFE(false), 'sol');
+}
+
+if (toca('solcalderon')) {
+  // The long summon of Calderón de la Barca (calderon.ts): the sky opening, the rotating rays, the huge bust, the quill
+  // writing in the air and the blow. The measure starts a few seconds into it.
+  await medir('solcalderon: la invocacion de Calderon', PREP_JEFE(true), 'sol');
 }
 
 // Memory after the whole tour (docs/ESTILO.md, T5.11): baked scenery and decoded music are
