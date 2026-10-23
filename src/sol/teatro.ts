@@ -744,7 +744,7 @@ function construir(rot: Rotulos): MundoTeatro {
     { c0: 17, r0: 2, c1: 18, r1: 2, a: 'pal' },
   ];
   S.pat.llegadas = { ves: { x: 10 * T - 8 + 8, y: 13 * T + 8, dir: 'N' }, pal: { x: 18 * T, y: 3 * T + 12, dir: 'S' } };
-  S.pat.apuntadores = [{ id: 'psst', x: px(6) + 8, y: px(7) + 12, dueno: 'fran' }];
+  S.pat.apuntadores = [{ id: 'psst', x: px(4) + 8, y: px(4) + 12, dueno: 'fran' }];
   S.pat.chupitos = [{ id: 'pat.chupito', x: px(18) + 8, y: px(12) + 8 }];
   S.pat.lamparas = [];
   lect.pat.push({ rect: { x: px(8), y: px(8) - 2, w: 3 * T, h: 12 }, clave: 'lectura.foso', quien: null });

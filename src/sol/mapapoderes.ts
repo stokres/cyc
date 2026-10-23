@@ -11,7 +11,6 @@ import { COLOR_ELEMENTO, type Elemento } from './grupo';
 import { anchoTexto, escribir, partir } from './fuente';
 import { ventana } from './interfaz';
 import type { Amigo } from './personajes';
-import { poderPorId } from './poderes';
 import { ctx, elipse, lienzo, pintar, rect, una } from './pixel';
 
 export type IdPoderMapa = 'siy' | 'fresquito' | 'cierzo' | 'abrazo' | 'chat';
@@ -26,7 +25,7 @@ export interface PoderMapa {
 
 /** In the order L cycles through them. */
 export const PODERES_MAPA: readonly PoderMapa[] = [
-  { id: 'siy', quien: 'pablo', ip: poderPorId('siy').ip, el: 'tierra' },
+  { id: 'siy', quien: 'pablo', ip: 2, el: 'tierra' },
   { id: 'fresquito', quien: 'fran', ip: 3, el: 'agua' },
   { id: 'cierzo', quien: 'guille', ip: 3, el: 'viento' },
   { id: 'abrazo', quien: 'guille', ip: 4, el: 'viento' },

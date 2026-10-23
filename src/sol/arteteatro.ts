@@ -225,19 +225,24 @@ export const reja = () =>
 
 // ---------------------------------------------------------------- the puzzles' pieces
 
-/** A puddle of beer with foam, 16×16. */
+/** A puddle of beer with foam, 16×16: amber with a dark rim, a glint and a crown of white bubbles. */
 export const charco = () =>
   una('tt.charco', () => {
     const c = lienzo(16, 16);
     const x = ctx(c);
-    elipse(x, '#8a5a10', 8, 9, 7.5, 5);
-    elipse(x, '#c88a1c', 8, 8.5, 7, 4.5);
-    elipse(x, '#f0b838', 8, 8, 5.5, 3.2);
-    elipse(x, '#ffd86a', 7, 7.5, 3, 1.8);
-    // foam
-    for (const [px, py, r] of [[4, 8, 1.4], [6, 10, 1.1], [11, 7, 1.5], [9, 10, 1], [12, 9, 1.2], [8, 6, 1]]) elipse(x, '#fff8e0', px, py, r, r);
-    rect(x, '#ffffff', 11, 6, 1, 1);
-    rect(x, '#ffffff', 4, 7, 1, 1);
+    elipse(x, '#6a3c08', 8, 9, 7.8, 5.4);
+    elipse(x, '#b8761a', 8, 8.6, 7.2, 4.8);
+    elipse(x, '#e8a02a', 8, 8.2, 6, 3.8);
+    elipse(x, '#f8c850', 7, 7.6, 3.6, 2);
+    // the white glint on the liquid
+    rect(x, '#fff4c0', 4, 8, 3, 1);
+    rect(x, '#ffffff', 5, 7, 1, 1);
+    // foam: bubbles along the top edge
+    for (const [px, py, r] of [[3, 7, 1.3], [5.5, 5.5, 1.4], [8.5, 5, 1.6], [11.5, 6, 1.4], [13, 8, 1.1], [10, 7, 1]]) {
+      elipse(x, '#fffbe8', px, py, r, r);
+      rect(x, '#d8c890', Math.round(px), Math.round(py + r), 1, 1);
+    }
+    rect(x, '#ffffff', 9, 4, 1, 1);
     return c;
   });
 
@@ -390,25 +395,34 @@ export const hojas = (w: number, h: number) =>
     const c = lienzo(W, H);
     const x = ctx(c);
     const r = azar(w * 31 + h * 7 + 5);
-    const cols = ['#c8641a', '#e08a24', '#a8421a', '#e8b030', '#8a4a1a', '#d4742a', '#f0c850'];
-    // the mound: dark underneath, then layers of coloured leaves
-    elipse(x, '#4a2a10', W / 2, H - 6, W / 2, h * 8 + 1);
-    elipse(x, '#6a3a14', W / 2, H - 8, W / 2 - 1, h * 8);
-    for (let i = 0; i < W * h * 2.2; i++) {
-      const px = Math.floor(r() * (W - 4)) + 1;
-      const py = Math.floor(r() * (H - 5)) + 1;
-      // keep the leaves inside the mound's ellipse
-      const nx = (px + 1 - W / 2) / (W / 2);
-      const ny = (py + 1 - (H - 8)) / (h * 8 + 1);
-      if (nx * nx + ny * ny > 0.95) continue;
-      const col = cols[Math.floor(r() * cols.length)];
-      rect(x, col, px, py, 3, 2);
-      if (r() > 0.5) rect(x, col, px + 1, py - 1, 1, 1);
-      rect(x, '#5a2a10', px + 2, py + 1, 1, 1);
+    const cols = ['#e8742a', '#f09a30', '#c8501c', '#f4c442', '#d4742a', '#ffd866'];
+    const cy = H - 8;
+    const ry = h * 8 + 1;
+    // the mound: a dark outline, an earthy base and, over it, leaves that get lighter towards the top
+    elipse(x, '#2e1608', W / 2, cy + 1, W / 2, ry + 1);
+    elipse(x, '#7a3e16', W / 2, cy, W / 2 - 1, ry);
+    for (let i = 0; i < W * h * 1.6; i++) {
+      const px = Math.floor(r() * (W - 6)) + 1;
+      const py = Math.floor(r() * (H - 7)) + 1;
+      const nx = (px + 2 - W / 2) / (W / 2 - 1);
+      const ny = (py + 1 - cy) / ry;
+      if (nx * nx + ny * ny > 0.9) continue;
+      // lighter near the top of the mound, darker down at the foot
+      const claro = ny < -0.25 ? 3 : ny > 0.35 ? 0 : 2;
+      const col = cols[Math.min(cols.length - 1, Math.floor(r() * 3) + claro)];
+      // a leaf: a little diamond with its vein
+      rect(x, col, px + 1, py, 2, 1);
+      rect(x, col, px, py + 1, 4, 1);
+      rect(x, col, px + 1, py + 2, 2, 1);
+      rect(x, '#7a3612', px + 1, py + 1, 2, 1);
+      if (r() > 0.6) rect(x, '#fff0a0', px + 1, py, 1, 1);
     }
-    // a few stray leaves in front
-    for (let i = 0; i < w * 3; i++) rect(x, cols[Math.floor(r() * cols.length)], Math.floor(r() * (W - 3)), H - 3 - Math.floor(r() * 2), 3, 1);
-    noche(c, [0.78, 0.76, 0.92]);
+    // a few stray leaves in front of the foot
+    for (let i = 0; i < w * 3; i++) {
+      const lx = Math.floor(r() * (W - 4));
+      rect(x, cols[Math.floor(r() * cols.length)], lx, H - 2 - Math.floor(r() * 2), 3, 1);
+    }
+    noche(c, [0.9, 0.88, 0.98]);
     return c;
   });
 
@@ -481,35 +495,42 @@ export const remolino = (f: number) =>
     return c;
   });
 
-/** A bear's arm closing in for the hug: translucent brown fur and a big paw, 22×26, reaching to the right. */
+/** A bear's arm closing in for the hug: thick furry forearm and a big paw with claws, 30×18, reaching to the right. */
 export const brazoOso = () =>
   una('tt.brazoOso', () => {
-    const c = lienzo(22, 26);
+    const c = lienzo(30, 18);
     const x = ctx(c);
-    const pal = { f: 'rgba(168,104,58,0.88)', g: 'rgba(120,70,36,0.9)', l: 'rgba(214,150,92,0.9)', p: 'rgba(60,34,22,0.92)', w: 'rgba(255,240,208,0.95)' };
-    pintar(
-      x,
-      [
-        '.........ffff.........',
-        '.......ffllllff.......',
-        '......fllllllllf......',
-        '.....fllllllllllff....',
-        '....fllllllllllllff...',
-        '...fllllllllllllfffp..',
-        '..fllllllllllllfflfp..',
-        '..fllllllllllllllffwp.',
-        '.fgllllllllllllllfffp.',
-        '.fgllllllllllllllffwp.',
-        '.fgfllllllllllllfffp..',
-        '.ffgffllllllllfffpp...',
-        '..fgfffffffffffpp.....',
-        '...ffgggffffggp.......',
-        '....fffffffffff.......',
-      ].map((f) => f.padEnd(22, '.')),
-      pal,
-      0,
-      4,
-    );
+    const O = '#2e1a0e';
+    const F = '#8a5630';
+    const L = '#b8804a';
+    const H = '#dca872';
+    const G = '#62391c';
+    // forearm: outline, fur, a light top, a dark belly
+    rect(x, O, 0, 4, 19, 11);
+    rect(x, F, 0, 5, 19, 9);
+    rect(x, L, 0, 5, 19, 3);
+    rect(x, H, 2, 5, 12, 1);
+    rect(x, G, 0, 11, 19, 3);
+    // tufts of fur along the arm
+    for (const px of [2, 6, 10, 14]) {
+      rect(x, O, px, 3, 1, 1);
+      rect(x, F, px + 1, 4, 1, 1);
+      rect(x, O, px + 2, 15, 1, 1);
+      rect(x, G, px + 1, 14, 1, 1);
+    }
+    // the paw
+    elipse(x, O, 23, 9, 7.5, 8);
+    elipse(x, F, 23, 9, 6.5, 7);
+    elipse(x, L, 22, 7, 5, 4);
+    elipse(x, H, 21, 5.5, 2.5, 1.5);
+    // pad and toe beans
+    elipse(x, '#4a2430', 24, 11, 3, 2.5);
+    for (const [px, py] of [[26, 6], [27, 9], [26, 12]]) elipse(x, '#4a2430', px, py, 1.5, 1.5);
+    // claws
+    for (const [px, py] of [[28, 3], [29, 8], [28, 13]]) {
+      rect(x, '#fff3d6', px, py, 2, 2);
+      rect(x, O, px + 1, py + 1, 1, 1);
+    }
     return c;
   });
 

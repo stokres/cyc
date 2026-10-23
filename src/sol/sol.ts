@@ -36,7 +36,7 @@ import { contadorPoder, dibujarChat, esPoderMapa, PODERES_MAPA, poderMapa, type 
 import { GRUPOS_TEATRO, SALAS, teatro, type ApuntadorDef, type IdSala, type PensadorDef, type PuzleTeatro, type Rotulos, type SalaTeatro } from './teatro';
 import { CICLO, dirDe, marco, PIES, sombraPies, vectorDe, type Amigo, type Dir, type Pose, type Quien } from './personajes';
 import { ctx, elipse, girar, lienzo, reflejar, una } from './pixel';
-import { OBJETOS, PODERES, poderesDe, poderPorId } from './poderes';
+import { OBJETOS, PODERES, poderesDe } from './poderes';
 import { SonidoSol, EFECTO_APUNTADOR, EFECTO_CAE, EFECTO_CHAT, EFECTO_CURA, EFECTO_HIELO, EFECTO_MENU, EFECTO_PODER, EFECTO_PUERTA, EFECTO_PUZLE, EFECTO_ROCA, EFECTO_TELON, EFECTO_VIENTO, PISTA_CAMINO, PISTA_PUEBLO, PISTA_TEATRO } from './sonido';
 import { dibujarLogo, portada } from './titulo';
 
@@ -137,8 +137,8 @@ export interface EstadoSol {
 
 const WALK = 56;
 const RUN = 100;
-/** What «Sí, y...» costs in IP (the same number as in a fight). */
-const IP_COSTE = poderPorId('siy').ip;
+/** What «Sí, y...» costs in IP on the map (a bit less than in a fight: the Teatro's statues take seven pushes). */
+const IP_COSTE = poderMapa('siy').ip;
 /** Pixels walked to recover one point of IP, for the whole party (slowly, as in the original). */
 const PX_POR_IP = 52;
 /** Pixels walked between two random fights on the road: the first is longer. */
@@ -1605,7 +1605,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     const s = salaT();
     const l: ObjT[] = [];
     if (id === 'siy') {
-      if (s.id === 'ves') for (const e of tt.estatuas) if (!e.mov) l.push({ tipo: 'estatua', id: e.id, rect: tileRect(e.c, e.r), c: e.c, r: e.r });
+      if (s.id === 'ves' && !tt.puzles.estatuas) for (const e of tt.estatuas) if (!e.mov) l.push({ tipo: 'estatua', id: e.id, rect: tileRect(e.c, e.r), c: e.c, r: e.r });
     } else if (id === 'fresquito') {
       s.filas.forEach((f, r) => {
         for (let c = 0; c < f.length; c++) if (f[c] === 'c' && !tt.hielo.has(kt(s.id, c, r))) l.push({ tipo: 'charco', id: kt(s.id, c, r), rect: tileRect(c, r), c, r });
@@ -1622,11 +1622,11 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
   };
 
   /** The nearest thing in front of Pablo (in the strip his hand sweeps) the power can act on. */
-  const buscarT = (id: IdPoderMapa): { ob: ObjT; dir: Dir; dx: number; dy: number; dist: number } | null => {
+  const buscarT = (id: IdPoderMapa): { ob: ObjT; dir: Dir; dx: number; dy: number; dist: number; nota: number } | null => {
     const cands = candidatosT(id);
     if (!cands.length) return null;
     const pr = rectPj(pablo);
-    let mejor: { ob: ObjT; dir: Dir; dx: number; dy: number; dist: number } | null = null;
+    let mejor: { ob: ObjT; dir: Dir; dx: number; dy: number; dist: number; nota: number } | null = null;
     for (const d of cardinales(pablo.dir)) {
       const [vx, vy] = vectorDe(d);
       const franja: Rect = {
@@ -1639,7 +1639,11 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
         if (!solapa(franja, ob.rect)) continue;
         const dist = vx > 0 ? ob.rect.x - (pr.x + pr.w) : vx < 0 ? pr.x - (ob.rect.x + ob.rect.w) : vy > 0 ? ob.rect.y - (pr.y + pr.h) : pr.y - (ob.rect.y + ob.rect.h);
         if (dist < -6) continue;
-        if (!mejor || dist < mejor.dist) mejor = { ob, dir: d, dx: vx, dy: vy, dist };
+        // what is straight in front of Pablo (his box overlaps it) beats what is only close; then the nearest wins
+        const lado = vx ? Math.abs(ob.rect.y + ob.rect.h / 2 - (pr.y + pr.h / 2)) : Math.abs(ob.rect.x + ob.rect.w / 2 - (pr.x + pr.w / 2));
+        const alineado = lado <= (vx ? ob.rect.h + pr.h : ob.rect.w + pr.w) / 2 - 3;
+        const nota = dist + (alineado ? 0 : 1000) + lado * 0.05;
+        if (!mejor || nota < mejor.nota) mejor = { ob, dir: d, dx: vx, dy: vy, dist, nota };
       }
     }
     return mejor;
@@ -1943,6 +1947,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
           await espera(0.55);
         }
         est.fin = true;
+        teclas.vaciar();
         for (;;) {
           const k = await teclas.siguiente();
           if (k === 'a' || k === 'b') break;
@@ -2186,7 +2191,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     for (const c of s.cofres) if (solapa(sonda, { x: c.x - 11, y: c.y - 12, w: 22, h: 16 })) return void abrirCofreT(c);
     for (const c of s.chupitos) if (!tt.chupitos.has(c.id) && Math.hypot(pablo.x - c.x, pablo.y - c.y) < 22) return void recogerChupitoT(c.id);
     for (const p of s.pensadores) if (solapa(sonda, { x: p.x - 10, y: p.y - 22, w: 20, h: 26 })) return void hablarConFantasma(p);
-    if (s.id === 'fos' && !tt.puzles.chat && pablo.y < 3.4 * T && pablo.x > 6.4 * T && pablo.x < 9.6 * T && vy <= 0) return void puertaEscenario_();
+    if (s.id === 'fos' && !tt.puzles.chat && pablo.y < 4 * T && pablo.x > 6.4 * T && pablo.x < 9.6 * T && vy <= 0) return void puertaEscenario_();
     if (s.id === 'ves') for (const e of tt.estatuas) if (solapa(sonda, { x: e.c * T - 2, y: e.r * T - 2, w: T + 4, h: T + 4 })) return void bloquear(() => decir(null, 'lectura.estatua'));
     if (s.id === 'pal') for (const r of tt.rocas) if (r.estado === 'quieta' && solapa(sonda, { x: r.c * T - 2, y: r.r * T - 2, w: T + 4, h: T + 4 })) return void bloquear(() => decir(null, 'lectura.roca'));
     const apoyado = { x: pablo.x - 2, y: pablo.y - 5, w: 4, h: 5 };
@@ -2979,11 +2984,10 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     if (!dialogo.activo && !capas.length && guion === 0) {
       const def = poderMapa(poderSel);
       const m = miembroDe(def.quien) ?? mPablo();
-      g.drawImage(contadorPoder(poderSel, texto(`poder.${poderSel}.nombre`), m.ip, statsDe(grupo, m).ip, ipDestello > 0, texto('hud.ip'), disponibles().length > 1), 4, 4);
+      g.drawImage(contadorPoder(poderSel, texto(`poder.${poderSel}.nombre`), m.ip, statsDe(grupo, m).ip, ipDestello > 0 || avisoPoder > 0, texto('hud.ip'), disponibles().length > 1), 4, 4);
     }
-    if (poder && poder.t < 1.3) cartelito(g, texto('poder.nombre'), PANTALLA_W / 2, 6);
-    else if (hechizo && hechizo.t < 1.3) cartelito(g, texto(`poder.${hechizo.id}.nombre`), PANTALLA_W / 2, 6);
-    else if (avisoPoder > 0 && !dialogo.activo && !capas.length) cartelito(g, texto(`poder.${poderSel}.nombre`), PANTALLA_W / 2, 6);
+    // the village's old banner (the name of «Sí, y...»); in the Teatro the counter itself says which power is chosen
+    if (poder && poder.t < 1.3) cartelito(g, texto('poder.nombre'), PANTALLA_W / 2 + 30, 6);
   };
 
   const dibujarTeatro = () => {
@@ -3139,6 +3143,13 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     }
     while (di < dinamicos.length) dinamicos[di++].f();
 
+    // the wall lamps flicker a little
+    for (const l of s.lamparas) {
+      if (!enPantalla(l.x - 32, l.y - 20, 64, 40)) continue;
+      g.globalAlpha = 0.14 + 0.1 * Math.sin(t * 8 + l.x);
+      g.drawImage(halo('255,214,120'), Math.round(l.x - 32 - dx), Math.round(l.y - 20 - dy));
+    }
+    g.globalAlpha = 1;
     // ---- the hint: the corners of what the chosen power would reach
     if (!hechizo && !dialogo.activo && guion === 0 && !capas.length && (miembroDe(poderMapa(poderSel).quien)?.ip ?? 0) >= poderMapa(poderSel).ip) {
       const hit = buscarT(poderSel);
@@ -3304,7 +3315,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     reajustar();
     fade = { a: 0, desde: 0, hasta: 0, t: 0, dur: 0, res: null };
     iniciarTeatro();
-    for (const id of SALAS) tt.visto.add(id);
+    tt.visto.add(sala);
     ponerEnSala(sala, 'camino');
   };
 
@@ -3336,7 +3347,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
   const gancho = (): EstadoSol => ({
     fotogramas,
     escena,
-    modo: dialogo.preguntando ? 'pregunta' : dialogo.activo ? 'dialogo' : fade.dur > 0 ? 'fundido' : poder ? 'poder' : guion > 0 ? 'guion' : 'libre',
+    modo: dialogo.preguntando ? 'pregunta' : dialogo.activo ? 'dialogo' : fade.dur > 0 ? 'fundido' : poder || hechizo ? 'poder' : guion > 0 ? 'guion' : 'libre',
     pablo: { x: pablo.x, y: pablo.y, dir: pablo.dir, ip: mPablo().ip },
     caja: { x: caja.x, y: caja.y, movida: caja.movida },
     aldeano: { x: aldeano.x, y: aldeano.y },
