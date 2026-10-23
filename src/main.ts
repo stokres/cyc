@@ -347,7 +347,8 @@ async function arrancar() {
     { id: 'palabras', quien: 'pablo' },
     { id: 'robot', quien: 'chuchi' },
     { id: 'cerdos', quien: 'guille' },
-    // A single race, not endless: always open (chapter 2's progress is not kept yet), no record.
+    // A single race, not endless, with no record. Chapter 2 is still hidden (?capitulo2), so the row only shows
+    // once the race is won in the story; meanwhile it opens by itself with ?kart.
     { id: 'kart', quien: 'chuchi' },
   ];
   const tarjeta = (...kids: Node[]) => g.hud.cubrir('', h('div', { class: 'tarjeta vidrio' }, ...kids));
@@ -368,7 +369,7 @@ async function arrancar() {
     g.pausado = true;
     const fila = ({ id, quien }: (typeof MINIJUEGOS)[number]) => {
       const mj = partida.progreso.minijuegos[id];
-      const abierto = id === 'kart' || !!mj?.superado;
+      const abierto = !!mj?.superado;
       const estado = id === 'kart' ? texto('minijuegos.suelto') : !abierto ? texto('minijuegos.bloqueado', { quien: REPARTO[quien].nombre }) : mj.record ? texto('minijuegos.record', { n: mj.record }) : texto('minijuegos.sinrecord');
       return h(
         'div',
@@ -386,7 +387,7 @@ async function arrancar() {
     };
     const el = tarjeta(
       h('h2', {}, texto('minijuegos.titulo')),
-      h('div', { class: 'lista-capitulos' }, ...MINIJUEGOS.map(fila)),
+      h('div', { class: 'lista-capitulos' }, ...MINIJUEGOS.filter(({ id }) => id !== 'kart' || partida.progreso.minijuegos[id]?.superado).map(fila)),
       h('p', { class: 'pequeno' }, texto('minijuegos.nota')),
       h('div', { class: 'fila' }, boton(texto('menu.continuar'), 'fantasma', () => volverAlJuego(el))),
     );
