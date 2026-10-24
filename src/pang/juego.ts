@@ -15,7 +15,7 @@ import { dibujarAbajo, dibujarArriba, actualizarEspecial, proximaAceituna, usarP
 import { circuloRect, moverCuerpo } from './fisica';
 import { centrado, Marcador, ORO, pintarTexto, rotulo } from './hud';
 import { actualizarJefe, crearJefe, marcoJefe } from './jefes';
-import { BARRA_LLENA, CAJA, GRAVEDAD, PASO, type JugadorVivo, type Mundo } from './mundo';
+import { BARRA_LLENA, CAJA, GRAVEDAD, PASO, VIENTO_BURBUJAS, VIENTO_JUGADOR, type JugadorVivo, type Mundo } from './mundo';
 import { actualizarObjetos, objetoVisible } from './objetos';
 import { herir, recoger } from './reglas';
 import { Efectos } from './sonido';
@@ -45,7 +45,14 @@ export interface OpcionesFase {
   /** Index of the player this screen belongs to (the local buttons and keyboard; the little arrow). */
   yo: number;
   sonido: SonidoMinijuego;
-  /** Aborting it ends the stage at once (cleans up, resolves 'salir'). */
+  /**
+   * The full game's pause menu (pantallas.ts): opens when the player presses the pause button, Esc or P, and resolves with what
+   * he chose. Absent (the chapter's short Pang): no pause button, no pause.
+   */
+  pausa?: () => Promise<'seguir' | 'salir'>;
+  /** Title-screen attract mode: bots play, no input, no sound, never ends on its own. */
+  demo?: boolean;
+  /** Aborting it ends the stage at once (cleans up, resolves 'salir'): the title screen stops its demo. */
   senal?: AbortSignal;
   /** Seconds a bot takes between decisions (bot.ts). */
   reaccion?: number;
@@ -75,6 +82,8 @@ const PUNTOS_SEGUNDO = 20;
 const TICK_BONUS = 0.016;
 const POP_FRAME = 0.06;
 const MAX_PASOS = 12;
+/** The title screen's demo: the lives a bot gets again when it runs out. */
+const VIDAS_DEMO = 3;
 /** Several players: seconds a hurt player lies down, and the blinking invulnerability after it. */
 const DURA_CAIDO = 1.2;
 const INV_REAPARECE = 2;
@@ -92,7 +101,7 @@ export class Partida {
   /** The buttons of each player (index = player). The local one is the keyboard/touch layer's own. */
   readonly mandos: Mandos[] = [];
   private readonly bots: Array<Bot | null> = [];
-  /** Index of the player the local buttons drive, or -1 (all bots). */
+  /** Index of the player the local buttons drive, or -1 (demo or all bots). */
   private readonly local: number;
   private readonly m: Mundo;
   private readonly marcador: Marcador;
@@ -114,6 +123,9 @@ export class Partida {
   private ultimoDibujo = 0;
   private acum = 0;
   private fotogramas = 0;
+  private enPausa = false;
+  /** When the pause menu last closed (ms): the key that closes it must not open it again. */
+  private menuCerrado = 0;
   private fin = false;
   private readonly alAjustar = () => this.ajustar();
   private readonly alAbortar = () => this.terminar('salir');
@@ -138,11 +150,11 @@ export class Partida {
     this.m = this.crearMundo();
     this.marcador = new Marcador(this.m);
     // The local buttons drive the player of this screen (`yo`); bots get a Bot each.
-    this.local = o.controles[o.yo] === 'local' ? o.yo : o.controles.indexOf('local');
-    if (this.local >= 0) this.entrada = crearEntrada(this.raiz, { escaleras: this.fase.escaleras.length > 0 });
+    this.local = o.demo ? -1 : o.controles[o.yo] === 'local' ? o.yo : o.controles.indexOf('local');
+    if (this.local >= 0) this.entrada = crearEntrada(this.raiz, { escaleras: this.fase.escaleras.length > 0, pausa: !!o.pausa });
     for (let i = 0; i < o.jugadores.length; i++) {
       this.mandos.push(i === this.local ? this.entrada!.mandos : mandosNuevos());
-      this.bots.push(o.controles[i] === 'bot' ? new Bot(i, o.reaccion) : null);
+      this.bots.push(o.demo || o.controles[i] === 'bot' ? new Bot(i, o.reaccion) : null);
     }
     this.cargarFase();
     // Test hook (the chapter's, capitulo.ts, adds its own on top of this).
@@ -168,7 +180,7 @@ export class Partida {
     // The pixel font must be there before the first text is painted; do not hang if it never comes.
     await Promise.race([document.fonts.load('8px "Press Start 2P"').catch(() => undefined), new Promise((r) => setTimeout(r, 1500))]);
     if (this.fin) return;
-    this.o.sonido.musica(this.fase.musica);
+    if (!this.o.demo) this.o.sonido.musica(this.fase.musica);
     this.ultimo = performance.now();
     this.raf = requestAnimationFrame(this.cuadro);
   }
@@ -190,10 +202,10 @@ export class Partida {
   // --- the world -------------------------------------------------------------------------
 
   private crearMundo(): Mundo {
-    const { fase, sonido } = this.o;
+    const { fase, sonido, demo } = this.o;
     return {
       fase,
-      sfx: new Efectos(sonido, true),
+      sfx: new Efectos(sonido, !demo),
       t: 0,
       tiempo: fase.tiempo,
       canaDada: false,
@@ -284,12 +296,20 @@ export class Partida {
   // --- loop ------------------------------------------------------------------------------
 
   private cuadro = (t: number) => {
-    if (this.fin) return;
+    if (this.fin || this.enPausa) return;
     this.raf = requestAnimationFrame(this.cuadro);
     let dt = (t - this.ultimo) / 1000;
     this.ultimo = t;
     // Nothing runs behind the page being hidden or the phone upright.
     if (document.hidden || esVertical()) return;
+    const mandos = this.entrada?.mandos;
+    if (mandos?.pausa) {
+      mandos.pausa = false;
+      if (this.o.pausa && t - this.menuCerrado > 300) {
+        void this.pausar();
+        return;
+      }
+    }
     if (dt > 0.1) dt = 0.1;
     this.acum += dt;
     let pasos = 0;
@@ -319,6 +339,24 @@ export class Partida {
     }
   }
 
+  /** The pause menu over the stage, which stops (the key that closes the menu must not reopen it). */
+  private async pausar() {
+    this.enPausa = true;
+    cancelAnimationFrame(this.raf);
+    this.entrada?.soltarTodo();
+    this.entrada?.mostrar(false);
+    this.raiz.style.zIndex = '-1';
+    const r = await this.o.pausa!();
+    if (this.fin) return;
+    if (r === 'salir') return this.terminar('salir');
+    this.raiz.style.zIndex = '0';
+    this.entrada?.mostrar(true);
+    this.enPausa = false;
+    this.menuCerrado = performance.now();
+    this.ultimo = performance.now();
+    this.raf = requestAnimationFrame(this.cuadro);
+  }
+
   private terminar(r: ResultadoFase | 'salir') {
     if (this.fin) return;
     this.fin = true;
@@ -327,7 +365,7 @@ export class Partida {
     this.o.senal?.removeEventListener('abort', this.alAbortar);
     this.entrada?.destruir();
     this.raiz.remove();
-    this.o.sonido.pararMusica();
+    if (!this.o.demo) this.o.sonido.pararMusica();
     this.resolver(r);
   }
 
@@ -412,7 +450,8 @@ export class Partida {
     const m = this.m;
     for (const j of m.jugadores) {
       if (j.fuera || j.vidas > 0) continue;
-      j.fuera = true;
+      if (this.o.demo) j.vidas = VIDAS_DEMO;
+      else j.fuera = true;
     }
     if (this.todosFuera()) return this.terminar(this.resultado(false));
     this.cargarFase();
@@ -434,9 +473,12 @@ export class Partida {
   private levantarse(j: JugadorVivo) {
     this.m.hudSucio = true;
     if (j.vidas <= 0) {
-      j.fuera = true;
-      if (this.todosFuera()) this.terminar(this.resultado(false));
-      return;
+      if (!this.o.demo) {
+        j.fuera = true;
+        if (this.todosFuera()) this.terminar(this.resultado(false));
+        return;
+      }
+      j.vidas = VIDAS_DEMO;
     }
     j.inv = INV_REAPARECE;
   }
@@ -444,12 +486,12 @@ export class Partida {
   private superar() {
     const m = this.m;
     m.sfx.fanfarria();
-    this.o.sonido.pararMusica();
+    if (!this.o.demo) this.o.sonido.pararMusica();
     for (const j of m.jugadores) {
       // A player still lying down gets up (or is out, if that hit was his last life).
       if (j.caido > 0) {
         j.caido = 0;
-        if (j.vidas <= 0) j.fuera = true;
+        if (j.vidas <= 0 && !this.o.demo) j.fuera = true;
       }
       j.animT = 0;
       j.escalera = -1;
@@ -475,7 +517,10 @@ export class Partida {
     }
     if (this.bonusRestante > 0) this.tEstado = 0;
     else if (this.tEstado >= DURA.bonus) {
-      this.terminar(this.resultado(true));
+      if (!this.o.demo) return this.terminar(this.resultado(true));
+      // The demo plays the same stage again.
+      this.cargarFase();
+      this.ir('listo');
     }
   }
 
@@ -534,7 +579,7 @@ export class Partida {
       m.congelado -= dt;
       if (m.jefe && m.jefe.golpeT > 0) m.jefe.golpeT -= dt;
     } else {
-      const viento = m.viento * 20;
+      const viento = m.viento * VIENTO_BURBUJAS;
       for (let i = 0; i < m.burbujas.length; i++) moverCuerpo(m.burbujas[i], dt, m.bloques, viento);
       actualizarJefe(m, dt);
     }
@@ -596,7 +641,7 @@ export class Partida {
       j.x += dir * j.estilo.paso * dt;
       j.anda = true;
     }
-    j.x += m.viento * 22 * dt;
+    j.x += m.viento * VIENTO_JUGADOR * dt;
     j.x = Math.max(AREA.izq + CAJA.semi, Math.min(AREA.der - CAJA.semi, j.x));
     // Standing on the floor or a platform; walking off an edge falls.
     const suelo = this.apoyo(j.x, j.y);

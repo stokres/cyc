@@ -137,6 +137,8 @@ Cada pocos aciertos sale «¡Nivel N!». Al acabar, una tarjeta enseña los punt
 
 Equilibrio: `node scripts/robot-sim.mjs` también simula la versión sin fin (un jugador hábil hace unos 70 aciertos de media, uno normal unos 23 y quien dispara sin parar unos 3).
 
+Además, tres minijuegos del capítulo 2 salen en el menú **cuando se superan en la historia** (todavía oculta, `?capitulo2`) y se juegan **enteros**, no en versión sin fin, sin puntos de este menú ni récord (el Pang lleva el suyo): **Pang** (Fran: la recreativa completa con sus doce fases, los cuatro amigos y su propio guardado, sin modo online; ver `docs/PANG.md`), **Alacant Sun** (Pablo: empieza siempre desde el cuarto de Pablo, no guarda partida) e **Impropios Kart** (Chuchi: una carrera). Al salir o cerrar, vuelve el menú. Detalles en `docs/CAPITULO2.md`.
+
 ### La ronda (aparcada)
 
 Llevar cuatro cañas de la barra a la terraza inclinando el móvil o deslizando el dedo. Estaba en el mockup; volverá cuando la crew esté en el Brío, con el arte nuevo.

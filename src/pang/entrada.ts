@@ -1,6 +1,6 @@
 // Controls of the Pang: touch buttons (a DOM overlay over the canvas, multi-touch) and the
 // keyboard. Both write into the same `Mandos`, which the game reads on every step.
-// The held buttons are plain booleans; `disparo` and `especial` are presses the
+// The held buttons are plain booleans; `disparo`, `especial` and `pausa` are presses the
 // game takes (sets back to false) once.
 import { texto } from '../juego/textos';
 
@@ -16,9 +16,10 @@ export interface Mandos {
   especial: boolean;
   /** ↑ pressed on the keyboard: climbs at a ladder, otherwise fires the special (Jesús, 12 October 2026). */
   subeOEspecial: boolean;
+  pausa: boolean;
 }
 
-export const mandosNuevos = (): Mandos => ({ izq: false, der: false, arriba: false, abajo: false, fuego: false, disparo: false, especial: false, subeOEspecial: false });
+export const mandosNuevos = (): Mandos => ({ izq: false, der: false, arriba: false, abajo: false, fuego: false, disparo: false, especial: false, subeOEspecial: false, pausa: false });
 
 export interface Entrada {
   mandos: Mandos;
@@ -32,18 +33,19 @@ export interface Entrada {
 }
 
 const CSS = `
-.pg-capa{--b:clamp(44px,12vh,64px);--f:clamp(64px,24vh,100px);--e:clamp(46px,13vh,58px);--m:max(10px,env(safe-area-inset-left,0px));display:contents}
+.pg-capa{--b:clamp(46px,14vh,68px);--f:clamp(64px,24vh,100px);--e:clamp(46px,14vh,60px);--m:max(14px,env(safe-area-inset-left,0px));display:contents}
 .pg-ctl{position:absolute;box-sizing:border-box;border:1.5px solid #c9a24a;background:rgba(10,14,30,.45);color:#fff;font:700 clamp(18px,6vh,28px)/1 'Alegreya Sans',sans-serif;display:flex;align-items:center;justify-content:center;touch-action:none;-webkit-tap-highlight-color:transparent;border-radius:14px;pointer-events:auto;text-align:center}
 .pg-ctl.pg-on{background:rgba(201,162,74,.5)}
-.pg-pad{left:var(--m);bottom:max(10px,env(safe-area-inset-bottom,0px));display:flex;gap:6px;background:none;border:0;padding:0}
+.pg-pad{left:var(--m);bottom:max(14px,env(safe-area-inset-bottom,0px));display:flex;gap:10px;background:none;border:0;padding:0}
 .pg-pad>div{width:var(--b);height:var(--b);box-sizing:border-box;border:1.5px solid #c9a24a;background:rgba(10,14,30,.45);border-radius:14px;display:flex;align-items:center;justify-content:center;pointer-events:none}
 .pg-pad>div.pg-on{background:rgba(201,162,74,.5)}
 .pg-vert{position:absolute;left:var(--m);bottom:calc(max(14px,env(safe-area-inset-bottom,0px)) + var(--b) + 10px);display:flex;flex-direction:column;gap:8px;background:none;border:0;padding:0;margin-left:calc((var(--b) * 2 + 10px - var(--b)) / 2)}
 .pg-vert>.pg-ctl{position:static;width:var(--b);height:calc(var(--b) * .8)}
 .pg-fuego{right:max(14px,env(safe-area-inset-right,0px));bottom:max(14px,env(safe-area-inset-bottom,0px));width:var(--f);height:var(--f);border-radius:50%;font-size:clamp(13px,4.2vh,18px);letter-spacing:.02em;text-transform:uppercase}
-.pg-esp{right:calc(max(14px,env(safe-area-inset-right,0px)) + (var(--f) - var(--e)) / 2);bottom:calc(max(14px,env(safe-area-inset-bottom,0px)) + var(--f) + 10px);width:var(--e);height:var(--e);border-radius:50%;font-size:clamp(10px,3.2vh,14px);opacity:.4}
+.pg-esp{right:calc(max(14px,env(safe-area-inset-right,0px)) + var(--f) + 12px);bottom:calc(max(14px,env(safe-area-inset-bottom,0px)) + var(--f) * .55);width:var(--e);height:var(--e);border-radius:50%;font-size:clamp(10px,3.2vh,14px);opacity:.4}
 .pg-esp.pg-listo{opacity:1;background:rgba(201,162,74,.55);animation:pg-late .7s ease-in-out infinite alternate}
 @keyframes pg-late{from{transform:scale(1)}to{transform:scale(1.1)}}
+.pg-boton-pausa{top:max(10px,env(safe-area-inset-top,0px));right:max(10px,env(safe-area-inset-right,0px));width:44px;height:44px;border-radius:10px;font-size:16px}
 .pg-oculto .pg-ctl,.pg-oculto .pg-pad,.pg-oculto .pg-vert{display:none}
 `;
 
@@ -76,7 +78,7 @@ function sostener(el: HTMLElement, cambio: (pulsado: boolean) => void) {
   };
 }
 
-export function crearEntrada(raiz: HTMLElement, opc: { escaleras: boolean }): Entrada {
+export function crearEntrada(raiz: HTMLElement, opc: { escaleras: boolean; pausa?: boolean }): Entrada {
   const mandos = mandosNuevos();
   const teclas = new Set<string>();
   const tactil = { izq: false, der: false, arriba: false, abajo: false, fuego: false };
@@ -180,11 +182,23 @@ export function crearEntrada(raiz: HTMLElement, opc: { escaleras: boolean }): En
     }),
   );
 
+  // The pause button is for the full game; the chapter's short Pang has no pause.
+  if (opc.pausa) {
+    const pausa = caja('pg-ctl pg-boton-pausa', '❚❚');
+    pausa.setAttribute('aria-label', texto('boton.pausa'));
+    pausa.title = texto('boton.pausa');
+    sueltas.push(
+      sostener(pausa, (p) => {
+        if (p) mandos.pausa = true;
+      }),
+    );
+  }
+
   // Keyboard.
   const MAPA: Record<string, string> = {
     ArrowLeft: 'izq', KeyA: 'izq', ArrowRight: 'der', KeyD: 'der', ArrowUp: 'arriba', KeyW: 'arriba', ArrowDown: 'abajo', KeyS: 'abajo',
     Space: 'fuego', KeyZ: 'fuego', KeyJ: 'fuego', KeyX: 'especial', KeyK: 'especial', ShiftLeft: 'especial', ShiftRight: 'especial',
-    ControlLeft: 'especial', ControlRight: 'especial', MetaLeft: 'especial', MetaRight: 'especial',
+    ControlLeft: 'especial', ControlRight: 'especial', MetaLeft: 'especial', MetaRight: 'especial', Escape: 'pausa', KeyP: 'pausa',
   };
   const abajo = (e: KeyboardEvent) => {
     const k = MAPA[e.code];
@@ -192,6 +206,7 @@ export function crearEntrada(raiz: HTMLElement, opc: { escaleras: boolean }): En
     e.preventDefault();
     if (e.repeat) return;
     if (k === 'especial') mandos.especial = true;
+    else if (k === 'pausa') mandos.pausa = true;
     else {
       teclas.add(k);
       if (k === 'fuego') mandos.disparo = true;
@@ -209,7 +224,7 @@ export function crearEntrada(raiz: HTMLElement, opc: { escaleras: boolean }): En
   const soltarTodo = () => {
     teclas.clear();
     for (const f of sueltas) f();
-    mandos.disparo = mandos.especial = mandos.subeOEspecial = false;
+    mandos.disparo = mandos.especial = mandos.subeOEspecial = mandos.pausa = false;
     sumar();
   };
   const alOcultar = () => {

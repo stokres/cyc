@@ -81,6 +81,25 @@ async function arrancar() {
     location.href = location.pathname;
     return;
   }
+  // The whole «Pang» (src/pang/completo.ts), opened by itself: the address ending in ?pangcompleto. For testing it also takes
+  // &fase=N (plays that stage and the ones after it, no menus), &pj=fran|pablo|chuchi|guille and &bot (the computer plays).
+  if (new URLSearchParams(location.search).has('pangcompleto')) {
+    const q = new URLSearchParams(location.search);
+    const [{ jugarPangCompleto }, { Sound }] = await Promise.all([import('./pang/completo'), import('./core/audio')]);
+    const sonido = new Sound();
+    // Sound needs a tap first (browsers): the first press or key starts it.
+    addEventListener('pointerdown', () => sonido.start(), { once: true });
+    addEventListener('keydown', () => sonido.start(), { once: true });
+    const pj = q.get('pj') as PjId | null;
+    await jugarPangCompleto(document.body, {
+      sonido,
+      fase: q.has('fase') ? Number(q.get('fase')) || 1 : undefined,
+      pj: pj && pj in REPARTO ? pj : undefined,
+      control: q.has('bot') ? 'bot' : 'local',
+    });
+    location.href = location.pathname;
+    return;
+  }
   const ajustes = cargarAjustes();
   const guardarAjustes = () => storageSet('cyc.ajustes', JSON.stringify(ajustes));
   // ---------------------------------------------------------- the saved game
@@ -120,9 +139,9 @@ async function arrancar() {
     guardar();
   };
   g.onProgreso = ({ capitulo, minijuego }) => {
-    if (cap2) return;
     const { capitulos, minijuegos } = partida.progreso;
-    if (capitulo) capitulos[capitulo] = { ...capitulos[capitulo], superado: true, fecha: capitulos[capitulo]?.fecha ?? new Date().toISOString() };
+    // Chapter 2 (hidden for now) keeps its own game, but the minigames it wins do count: they open in the minigames menu.
+    if (capitulo && !cap2) capitulos[capitulo] = { ...capitulos[capitulo], superado: true, fecha: capitulos[capitulo]?.fecha ?? new Date().toISOString() };
     if (minijuego) minijuegos[minijuego] = { ...minijuegos[minijuego], superado: true };
     guardar();
   };
@@ -347,10 +366,14 @@ async function arrancar() {
     { id: 'palabras', quien: 'pablo' },
     { id: 'robot', quien: 'chuchi' },
     { id: 'cerdos', quien: 'guille' },
-    // A single race, not endless, with no record. Chapter 2 is still hidden (?capitulo2), so the row only shows
-    // once the race is won in the story; meanwhile it opens by itself with ?kart.
+    // Chapter 2's three games, played whole and not endless, with no record. Chapter 2 is still hidden (?capitulo2), so
+    // their rows only show once each is won in the story (SUELTOS); meanwhile they open by themselves with ?pangcompleto,
+    // ?sol and ?kart. The Pang is the whole arcade game (twelve stages, the four friends), not the chapter's five.
+    { id: 'pang', quien: 'fran' },
+    { id: 'sol', quien: 'pablo' },
     { id: 'kart', quien: 'chuchi' },
   ];
+  const SUELTOS = ['pang', 'sol', 'kart'];
   const tarjeta = (...kids: Node[]) => g.hud.cubrir('', h('div', { class: 'tarjeta vidrio' }, ...kids));
   const boton = (etiqueta: string, clase: string, alTocar: () => void, id?: string) => {
     const b = h('button', { class: `btn ${clase}`, ...(id ? { id } : {}) }, etiqueta);
@@ -370,7 +393,7 @@ async function arrancar() {
     const fila = ({ id, quien }: (typeof MINIJUEGOS)[number]) => {
       const mj = partida.progreso.minijuegos[id];
       const abierto = !!mj?.superado;
-      const estado = id === 'kart' ? texto('minijuegos.suelto') : !abierto ? texto('minijuegos.bloqueado', { quien: REPARTO[quien].nombre }) : mj.record ? texto('minijuegos.record', { n: mj.record }) : texto('minijuegos.sinrecord');
+      const estado = SUELTOS.includes(id) ? texto(`minijuegos.suelto.${id}`) : !abierto ? texto('minijuegos.bloqueado', { quien: REPARTO[quien].nombre }) : mj.record ? texto('minijuegos.record', { n: mj.record }) : texto('minijuegos.sinrecord');
       return h(
         'div',
         { class: `capitulo-fila minijuego-fila${abierto ? ' superado' : ' bloqueado'}` },
@@ -379,7 +402,7 @@ async function arrancar() {
           ? [
               boton(texto('minijuegos.jugar'), 'primario', () => {
                 el.remove();
-                void (id === 'kart' ? jugarKartSuelto() : jugarInfinito(id));
+                void (SUELTOS.includes(id) ? jugarSuelto(id) : jugarInfinito(id));
               }, `mj-${id}`),
             ]
           : []),
@@ -387,17 +410,28 @@ async function arrancar() {
     };
     const el = tarjeta(
       h('h2', {}, texto('minijuegos.titulo')),
-      h('div', { class: 'lista-capitulos' }, ...MINIJUEGOS.filter(({ id }) => id !== 'kart' || partida.progreso.minijuegos[id]?.superado).map(fila)),
+      h('div', { class: 'lista-capitulos' }, ...MINIJUEGOS.filter(({ id }) => !SUELTOS.includes(id) || partida.progreso.minijuegos[id]?.superado).map(fila)),
       h('p', { class: 'pequeno' }, texto('minijuegos.nota')),
       h('div', { class: 'fila' }, boton(texto('menu.continuar'), 'fantasma', () => volverAlJuego(el))),
     );
   };
 
-  /** Impropios Kart from the list: one race, and back to the list whatever happens. */
-  const jugarKartSuelto = async () => {
+  /**
+   * One of chapter 2's games from the list, played whole (Impropios Kart: one race; Alacant Sun: from the bedroom, it keeps
+   * no save; the Pang: the arcade with its twelve stages and its own save), and back to the list whatever happens.
+   */
+  const jugarSuelto = async (id: string) => {
     g.pausado = true;
-    const { jugarKart } = await import('./kart/kart');
-    await jugarKart(g.root, { rapido: g.rapido, sonido: g.sound });
+    if (id === 'kart') {
+      const { jugarKart } = await import('./kart/kart');
+      await jugarKart(g.root, { rapido: g.rapido, sonido: g.sound });
+    } else if (id === 'sol') {
+      const { jugarSol } = await import('./sol/sol');
+      await jugarSol(g.root, { rapido: g.rapido, sonido: g.sound });
+    } else {
+      const { jugarPangCompleto } = await import('./pang/completo');
+      await jugarPangCompleto(document.body, { sonido: g.sound, volumenes: { musica: ajustes.musica, efectos: ajustes.efectos } });
+    }
     menuMinijuegos();
   };
 

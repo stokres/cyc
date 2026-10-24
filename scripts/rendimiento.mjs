@@ -15,7 +15,7 @@
 // without it, to compare.
 //
 // Usage: node scripts/rendimiento.mjs [escena...]   (against npm run dev on :5173)
-//   escenas: prologo, piso, calle, bar, manga, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, tragaperras, sol, solcombate, solcamino, solteatro, soljefe, solcalderon, kart, boca, conceptos, caos (all by default)
+//   escenas: prologo, piso, calle, bar, manga, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, tragaperras, sol, solcombate, solcamino, solteatro, soljefe, solcalderon, kart, boca, conceptos, caos, pangcompleto (all by default)
 import { chromium } from 'playwright';
 import { readFileSync, readdirSync } from 'node:fs';
 
@@ -117,9 +117,10 @@ async function medir(nombre, prep, contar = 'escena') {
     const so0 = window.__sol?.().fotogramas ?? 0;
     const ka0 = window.__kart?.().fotogramas ?? 0;
     const bo0 = window.__boca?.().fotogramas ?? 0;
+    const pf0 = window.__pangFase?.().fotogramas ?? 0;
     setTimeout(() => {
       m.dibujar = d;
-      res(contar === 'cerdos' ? ((window.__cerdos?.().fotogramas ?? 0) - f0) / seg : contar === 'palabras' ? ((window.__palabras?.().fotogramas ?? 0) - p0) / seg : contar === 'rana' ? ((window.__rana?.().fotogramas ?? 0) - r0) / seg : contar === 'robot' ? ((window.__robot?.().fotogramas ?? 0) - b0) / seg : contar === 'pang' ? ((window.__pang?.().fotogramas ?? 0) - g0) / seg : contar === 'trailer' ? ((window.__trailer?.().fotogramas ?? 0) - t0) / seg : contar === 'canas' ? ((window.__canas?.().fotogramas ?? 0) - ca0) / seg : contar === 'canto' ? ((window.__canto?.().fotogramas ?? 0) - cn0) / seg : contar === 'tragaperras' ? ((window.__tragaperras?.().fotogramas ?? 0) - tg0) / seg : contar === 'sol' ? ((window.__sol?.().fotogramas ?? 0) - so0) / seg : contar === 'kart' ? ((window.__kart?.().fotogramas ?? 0) - ka0) / seg : contar === 'boca' ? ((window.__boca?.().fotogramas ?? 0) - bo0) / seg : n / seg);
+      res(contar === 'cerdos' ? ((window.__cerdos?.().fotogramas ?? 0) - f0) / seg : contar === 'palabras' ? ((window.__palabras?.().fotogramas ?? 0) - p0) / seg : contar === 'rana' ? ((window.__rana?.().fotogramas ?? 0) - r0) / seg : contar === 'robot' ? ((window.__robot?.().fotogramas ?? 0) - b0) / seg : contar === 'pang' ? ((window.__pang?.().fotogramas ?? 0) - g0) / seg : contar === 'trailer' ? ((window.__trailer?.().fotogramas ?? 0) - t0) / seg : contar === 'canas' ? ((window.__canas?.().fotogramas ?? 0) - ca0) / seg : contar === 'canto' ? ((window.__canto?.().fotogramas ?? 0) - cn0) / seg : contar === 'tragaperras' ? ((window.__tragaperras?.().fotogramas ?? 0) - tg0) / seg : contar === 'sol' ? ((window.__sol?.().fotogramas ?? 0) - so0) / seg : contar === 'kart' ? ((window.__kart?.().fotogramas ?? 0) - ka0) / seg : contar === 'boca' ? ((window.__boca?.().fotogramas ?? 0) - bo0) / seg : contar === 'pangfase' ? ((window.__pangFase?.().fotogramas ?? 0) - pf0) / seg : n / seg);
     }, seg * 1000);
   }), { seg: SEG, contar });
   const cpu = ((cpuChrome() - c0) / SEG) * 100;
@@ -269,7 +270,7 @@ if (toca('robot')) {
   })()`, 'robot');
 }
 if (toca('pang')) {
-  // The short Pang of chapter 2: the entrance (foam and pixels) is part of the run; a bot plays stage 3 (Fran's flat) by itself.
+  // The short Pang of chapter 2 (five stages): the entrance (foam and pixels) is part of the run; a bot plays the stage by itself.
   await medir('Pang corto (fase del piso)', `(async () => {
     clearInterval(window.__paseo);
     const g = window.__cyc.g;
@@ -277,12 +278,27 @@ if (toca('pang')) {
     g.pausado = true;
     void jugarPangCapitulo(g.root, { sonido: g.sound, fase: 1, control: 'bot' });
   })()`, 'pang');
-  await medir('Pang corto (Las Vegas, jefe)', `(async () => {
+  // Zaragoza: the cierzo's gusts, with the streaks and the arrow.
+  await medir('Pang corto (Zaragoza, cierzo)', `(async () => {
     document.querySelectorAll('.cubierta.minijuego .cerrar').forEach((b) => b.click());
     const g = window.__cyc.g;
     const { jugarPangCapitulo } = await import('/src/pang/capitulo.ts');
     g.pausado = true;
     void jugarPangCapitulo(g.root, { sonido: g.sound, fase: 2, control: 'bot' });
+  })()`, 'pang');
+  await medir('Pang corto (Nevada, caravana)', `(async () => {
+    document.querySelectorAll('.cubierta.minijuego .cerrar').forEach((b) => b.click());
+    const g = window.__cyc.g;
+    const { jugarPangCapitulo } = await import('/src/pang/capitulo.ts');
+    g.pausado = true;
+    void jugarPangCapitulo(g.root, { sonido: g.sound, fase: 3, control: 'bot' });
+  })()`, 'pang');
+  await medir('Pang corto (Las Vegas, jefe)', `(async () => {
+    document.querySelectorAll('.cubierta.minijuego .cerrar').forEach((b) => b.click());
+    const g = window.__cyc.g;
+    const { jugarPangCapitulo } = await import('/src/pang/capitulo.ts');
+    g.pausado = true;
+    void jugarPangCapitulo(g.root, { sonido: g.sound, fase: 4, control: 'bot' });
   })()`, 'pang');
 }
 if (toca('kart')) {
@@ -620,7 +636,7 @@ if (toca('solcalderon')) {
 }
 
 // Chapter 2, last stretch: these need the chapter-2 game itself (?capitulo2), so the page is reloaded; they go last.
-if (toca('boca') || toca('conceptos') || toca('caos')) {
+if (toca('boca') || toca('conceptos') || toca('caos') || toca('pangcompleto')) {
   await page.goto(`http://localhost:${process.env.PUERTO ?? 5173}/?capitulo2&nueva`);
   await page.waitForFunction(() => window.__cyc);
   await page.evaluate(() => window.__cyc.listo());
@@ -695,6 +711,31 @@ if (toca('caos')) {
     window.__cortes = await prepararCortes(g, null, ['fran:cara:enfado', 'vero:boca:picara', 'chuchi:ojos:seriedad', '!gogogo']);
     window.__cortes.iniciar();
     void g.plano.girar(1000, 3500000);`));
+}
+
+if (toca('pangcompleto')) {
+  // The whole Pang (src/pang/completo.ts, from the minigames menu): a bot plays the last stage with the DOM layers over it, then the title
+  // with its attract demo behind (a bot too) and the screens (plain DOM) over the canvas. Both are counted by the stage's own hook.
+  await medir('Pang completo (Las Vegas, jefe)', `(async () => {
+    clearInterval(window.__paseo);
+    const g = window.__cyc.g;
+    const { jugarPangCompleto } = await import('/src/pang/completo.ts');
+    g.pausado = true;
+    window.__cierraPang = new AbortController();
+    void jugarPangCompleto(document.body, { sonido: g.sound, fase: 12, control: 'bot', senal: window.__cierraPang.signal });
+  })()`, 'pangfase');
+  await medir('Pang completo (título con demo)', `(async () => {
+    window.__cierraPang?.abort();
+    const g = window.__cyc.g;
+    const { jugarPangCompleto } = await import('/src/pang/completo.ts');
+    g.pausado = true;
+    window.__cierraPang = new AbortController();
+    void jugarPangCompleto(document.body, { sonido: g.sound, senal: window.__cierraPang.signal });
+  })()`, 'pangfase');
+  await page.evaluate(() => {
+    window.__cierraPang?.abort();
+    window.__cyc.g.pausado = false;
+  });
 }
 
 // Memory after the whole tour (docs/ESTILO.md, T5.11): baked scenery and decoded music are
