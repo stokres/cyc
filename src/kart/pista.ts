@@ -7,7 +7,11 @@
 // each tramo of the house paints its own look: gravel at the door, the garden around the pool, the rug and sofas of
 // the lounge, the kitchen tiles and the oil, and the drag gala's catwalk with its lights, public and turbo pads.
 // Nothing here runs per frame; `construirPista` is awaited once, in slices, while the race is being prepared.
+import { K } from './texturas';
+
 export const TAM = 1024;
+/** The ceiling map has one cell per this many texels. */
+export const CELDA_TECHO = 4;
 
 /** Surface types, as stored in the surface map. */
 export const SUP = { PISTA: 0, HIERBA: 1, AGUA: 2, MURO: 3, ACEITE: 4, TURBO: 5, CAJA: 6, RESBALA: 7 } as const;
@@ -89,13 +93,48 @@ export interface PuntoLinea {
 
 /** A thing standing on the floor that is seen from the camera as a sprite. */
 export interface Decorado {
-  tipo: 'palmera' | 'sombrilla' | 'flamenco' | 'planta' | 'lampara' | 'altavoz' | 'foco' | 'bola' | 'arco' | 'tumbona' | 'cactus';
+  tipo:
+    | 'olivo'
+    | 'sombrilla'
+    | 'flamenco'
+    | 'planta'
+    | 'lampara'
+    | 'altavoz'
+    | 'foco'
+    | 'bola'
+    | 'arco'
+    | 'tumbona'
+    | 'pozo'
+    | 'maceta'
+    | 'cipres'
+    | 'publico'
+    | 'neon'
+    | 'focoTecho'
+    | 'jamon'
+    | 'ajos'
+    | 'colgante'
+    | 'ventilador'
+    | 'baston';
+  /** Variant of the drawing (the audience, the lounge...). */
+  v?: number;
   x: number;
   y: number;
   /** Size relative to its drawing. */
   escala: number;
   /** Height above the floor in world units (the disco ball hangs). */
   alto?: number;
+}
+
+/** A doorway: a flat frame across the corridor at (x, y), perpendicular to the unit tangent (tx, ty). */
+export interface Puerta {
+  x: number;
+  y: number;
+  tx: number;
+  ty: number;
+  /** Half the width of the frame. */
+  medio: number;
+  /** Index into PUERTA (texturas.ts). */
+  tipo: number;
 }
 
 export interface Caja {
@@ -117,6 +156,12 @@ export interface Pista {
   decorado: Decorado[];
   /** Positions of the six places on the grid, best first. */
   parrilla: Array<{ x: number; y: number; ang: number }>;
+  /** The walls the camera sees: the kind of wall of every texel that is a wall in `sup` (0 = none), and the column of its texture ×4 and the heading of the wall there (7 bits of angle, the top bit set on the right-hand walls). */
+  paredes: { kind: Uint8Array; col: Uint16Array; dir: Uint8Array };
+  /** The ceiling over the rooms: one cell per CELDA_TECHO texels, 0 = open sky, 1 lounge, 2 kitchen, 3 gala. */
+  techo: Uint8Array;
+  /** The doorways between the rooms (see-through frames). */
+  puertas: Puerta[];
   /** The minimap, painted once. */
   mapa: HTMLCanvasElement;
   /** Zone at an arc length. */
@@ -207,17 +252,18 @@ const pausa = () => new Promise<void>((r) => setTimeout(r, 0));
 /** Furniture of the lounge: [first control point, last control point, side (-1 left, 1 right, 0 both), kind]. */
 const MUEBLES: Array<[number, number, number, string]> = [
   [10, 11.4, -1, 'sofa'],
-  [10.2, 11.6, 1, 'estanteria'],
+  [10.3, 11.5, 1, 'sofa'],
   [11.5, 12.6, -1, 'chimenea'],
-  [11.7, 13, 1, 'sofa'],
-  [12.8, 13.8, -1, 'estanteria'],
-  [13.2, 14.3, 1, 'sofa'],
-  [14.2, 15, -1, 'sofa'],
-  [14.4, 15.4, 1, 'estanteria'],
-  [15.2, 16.4, -1, 'estanteria'],
-  [15.6, 16.8, 1, 'sofa'],
-  [16.6, 17.8, -1, 'sofa'],
-  [17, 18.4, 1, 'estanteria'],
+  [12, 13, 1, 'estanteria'],
+  [12.9, 13.9, -1, 'estanteria'],
+  [13.4, 14.5, 1, 'sofa'],
+  [14.3, 15.4, -1, 'sofa'],
+  [15.2, 16.2, 1, 'sofa'],
+  [15.7, 16.4, -1, 'mesa'],
+  [16.7, 17.8, -1, 'sofa'],
+  [16.8, 17.6, 1, 'estanteria'],
+  [17.9, 18.55, -1, 'mesa'],
+  [18.1, 18.9, 1, 'mesa'],
 ];
 
 export async function construirPista(avance: (f: number) => void = () => {}): Promise<Pista> {
@@ -254,6 +300,17 @@ export async function construirPista(avance: (f: number) => void = () => {}): Pr
       await pausa();
     }
   }
+
+  /** Arc length at a (fractional) control point. */
+  const sAt = (c: number) => {
+    const i = Math.floor(c);
+    const s0 = sCtrl[i];
+    const s1 = i + 1 >= CONTROL.length ? longitud : sCtrl[i + 1];
+    return s0 + (s1 - s0) * (c - i);
+  };
+  // the house's front door sits at the end of the catwalk: from there on it is outside again
+  const sFront = sAt(27.78);
+  for (const p of muestras) if (p.zona === ZONA.GALA && p.s >= sFront) p.zona = ZONA.SALIDA;
 
   // ---- the line of the computer, a waypoint every ~18 units
   const linea: PuntoLinea[] = [];
@@ -297,20 +354,16 @@ export async function construirPista(avance: (f: number) => void = () => {}): Pr
     [27.3, 18], [25.4, 18], [26.3, 18], [5.55, 15], [21.5, 18], [2.6, 18],
   ];
 
-  /** Arc length at a (fractional) control point. */
-  const sAt = (c: number) => {
-    const i = Math.floor(c);
-    const s0 = sCtrl[i];
-    const s1 = i + 1 >= CONTROL.length ? longitud : sCtrl[i + 1];
-    return s0 + (s1 - s0) * (c - i);
-  };
   const sTurbos = turbos.map(([c, w]) => ({ s: sAt(c), w }));
   const sMuebles = MUEBLES.map(([a, b, lado, tipo], k) => ({ s0: sAt(a), s1: sAt(b), lado, tipo, k }));
-  const sUmbral = [sCtrl[4], sCtrl[10], sCtrl[19], sCtrl[24], sCtrl[0]];
+  const sUmbral = [sCtrl[10], sCtrl[19], sCtrl[24], sFront];
 
   // ---- paint
   const color = new Uint32Array(T * T);
   const sup = new Uint8Array(T * T);
+  const pKind = new Uint8Array(T * T);
+  const pCol = new Uint16Array(T * T);
+  const pDir = new Uint8Array(T * T);
   const PISTA = SUP.PISTA;
 
   for (let ty = 0; ty < T; ty++) {
@@ -324,11 +377,14 @@ export async function construirPista(avance: (f: number) => void = () => {}): Pr
         c = ((tx >> 2) + (ty >> 2)) & 1 ? col(0x8a6a44) : col(0x6e5234);
         color[o] = c;
         sup[o] = SUP.MURO;
+        pKind[o] = K.TAPIA;
         continue;
       }
       if (i < 0) {
         color[o] = fondoLejos(tx, ty);
         sup[o] = SUP.MURO;
+        pKind[o] = K.TAPIA;
+        pCol[o] = ((tx + ty) * 4) & 0xffff;
         continue;
       }
       const p = muestras[i];
@@ -343,7 +399,7 @@ export async function construirPista(avance: (f: number) => void = () => {}): Pr
         s = z === ZONA.COCINA ? SUP.RESBALA : PISTA;
         // zone thresholds: a strip of floor crossing the road where the house changes room
         for (const su of sUmbral) {
-          if (Math.abs(u - su) < 3 && su !== sCtrl[0]) {
+          if (Math.abs(u - su) < 3) {
             c = mod(Math.floor(u - su), 2) ? col(0x7a4a28) : col(0x8d5a32);
           }
         }
@@ -351,7 +407,12 @@ export async function construirPista(avance: (f: number) => void = () => {}): Pr
         c = hombro(z, tx, ty, u, d, ad - p.semi);
         s = SUP.HIERBA;
       } else {
-        c = muro(z, tx, ty, u, d, ad - p.semi - p.hombro, sMuebles);
+        const w = ad - p.semi - p.hombro;
+        paredDe(z, d >= 0, w, u, sMuebles);
+        pKind[o] = _kind;
+        pCol[o] = _col;
+        pDir[o] = (Math.round((mod(Math.atan2(p.ty, p.tx), Math.PI * 2) / (Math.PI * 2)) * 128) & 127) | (d >= 0 ? 128 : 0);
+        c = muro(z, tx, ty, u, d, w, sMuebles);
       }
       color[o] = c;
       sup[o] = s;
@@ -363,7 +424,7 @@ export async function construirPista(avance: (f: number) => void = () => {}): Pr
   }
 
   // ---- the pool (a hole in the hedge and the shoulder, never in the road)
-  for (let ty = PISCINA.y0 - COPING; ty < PISCINA.y1 + COPING; ty++) {
+  for (let ty = PISCINA.y0 - COPING; ty < PISCINA.y1 + COPING + 10; ty++) {
     for (let tx = PISCINA.x0 - COPING; tx < PISCINA.x1 + COPING; tx++) {
       const o = ty * T + tx;
       const i = idx[o];
@@ -376,10 +437,13 @@ export async function construirPista(avance: (f: number) => void = () => {}): Pr
         color[o] = agua(tx, ty, PISCINA);
         sup[o] = SUP.AGUA;
       } else {
-        // the coping: pale stone tiles, driveable only where it was shoulder
-        const par = ((tx >> 3) + (ty >> 3)) & 1;
-        color[o] = par ? col(0xf4ecdc) : col(0xe6dcc6);
-        if (sup[o] === SUP.MURO) sup[o] = SUP.MURO;
+        // the coping: pale stone tiles (a low kerb for the camera), driveable only where it was shoulder
+        if (ty >= PISCINA.y1 + COPING && sup[o] !== SUP.MURO) continue;
+        color[o] = copete(tx, ty);
+        if (sup[o] === SUP.MURO) {
+          pKind[o] = K.BORDILLO;
+          pCol[o] = (tx * 4) & 0xffff;
+        }
       }
     }
   }
@@ -471,6 +535,43 @@ export async function construirPista(avance: (f: number) => void = () => {}): Pr
     }
   }
 
+  const iEn = (s: number) => {
+    let lo = 0;
+    let hi = N - 1;
+    const ss = mod(s, longitud);
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (muestras[mid].s <= ss) lo = mid;
+      else hi = mid - 1;
+    }
+    return lo;
+  };
+
+  // ---- the walls the camera sees must be exactly the walls of the surface map
+  for (let o = 0; o < T * T; o++) {
+    if (sup[o] !== SUP.MURO) pKind[o] = K.NADA;
+    else if (pKind[o] === K.NADA) pKind[o] = K.TAPIA;
+  }
+
+  // ---- the ceiling: over the lounge, the kitchen and the gala, from the patio door to the front door
+  const nT = T / CELDA_TECHO;
+  const techo = new Uint8Array(nT * nT);
+  for (let cy = 0; cy < nT; cy++)
+    for (let cx = 0; cx < nT; cx++) {
+      const i = idx[(cy * CELDA_TECHO + CELDA_TECHO / 2) * T + cx * CELDA_TECHO + CELDA_TECHO / 2];
+      if (i < 0) continue;
+      const z = muestras[i].zona;
+      if (z >= ZONA.SALON && z <= ZONA.GALA) techo[cy * nT + cx] = z - 1;
+    }
+
+  // ---- the doorways, at the changes of room
+  const puertas: Puerta[] = [];
+  for (const [sd, tipo] of [[sCtrl[10], 0], [sCtrl[19], 1], [sCtrl[24], 2], [sFront, 3]] as const) {
+    const i = iEn(sd);
+    const p = muestras[i];
+    puertas.push({ x: p.x, y: p.y, tx: p.tx, ty: p.ty, medio: p.semi + p.hombro + 3, tipo });
+  }
+
   avance(0.85);
   await pausa();
 
@@ -516,57 +617,102 @@ export async function construirPista(avance: (f: number) => void = () => {}): Pr
   };
   for (const c of cajas) poner(c.x, c.y, 8, SUP.CAJA);
 
-  // ---- the standing scenery (sprites), along both sides
+  // ---- the standing scenery (sprites), where nothing drives: behind the low walls, hanging from the ceiling, in the pool
   const decorado: Decorado[] = [];
   const lateral = (i: number, lado: number, extra: number) => {
     const p = muestras[i];
     const dd = p.semi + p.hombro + extra;
     return { x: p.x + p.nx * lado * dd, y: p.y + p.ny * lado * dd };
   };
-  for (let i = 0; i < N; i += 17) {
+  const enPiscina = (x: number, y: number, m = 20) => x > PISCINA.x0 - m && x < PISCINA.x1 + m && y > PISCINA.y0 - m && y < PISCINA.y1 + m;
+  // outside: olive trees and cypresses on the lawn behind the garden wall, a well, pots
+  for (let k = 0; k < 40; k++) {
+    const s0 = sCtrl[0] + k * 66 + hash(k, 3) * 22;
+    const sd = mod(s0, longitud);
+    if (sd > sFront - 120 && sd < sFront + 40) continue;
+    const i = iEn(sd);
     const p = muestras[i];
-    const r = hash(i, 91);
-    const lado = i % 34 === 0 ? 1 : -1;
-    const sd = desdeMeta(p.s);
-    if (p.zona === ZONA.JARDIN) {
-      const q = lateral(i, lado, 10 + r * 6);
-      const outer = hash(i, 4);
-      if (!(q.x > PISCINA.x0 - 20 && q.x < PISCINA.x1 + 20 && q.y > PISCINA.y0 - 20 && q.y < PISCINA.y1 + 20)) {
-        decorado.push({ tipo: outer < 0.45 ? 'palmera' : outer < 0.75 ? 'sombrilla' : 'flamenco', x: q.x, y: q.y, escala: 1 });
-      }
-    } else if (p.zona === ZONA.SALON) {
-      const q = lateral(i, lado, 6 + r * 6);
-      decorado.push({ tipo: r < 0.5 ? 'lampara' : 'planta', x: q.x, y: q.y, escala: 1 });
-    } else if (p.zona === ZONA.COCINA) {
-      const q = lateral(i, lado, 8 + r * 6);
-      decorado.push({ tipo: r < 0.5 ? 'planta' : 'cactus', x: q.x, y: q.y, escala: 0.9 });
-    } else if (p.zona === ZONA.GALA) {
-      const q = lateral(i, lado, 8 + r * 4);
-      decorado.push({ tipo: 'altavoz', x: q.x, y: q.y, escala: 1.1 });
-    } else if (p.zona === ZONA.SALIDA && sd > 60 && sd < longitud - 60) {
-      const q = lateral(i, lado, 8);
-      decorado.push({ tipo: 'planta', x: q.x, y: q.y, escala: 1 });
-    }
-  }
-  // spotlights on poles and the disco ball over the catwalk
-  for (let k = 0; k < 6; k++) {
-    const c = 24.4 + k * 0.62;
-    const q = enLinea(sAt(c), (k % 2 ? 1 : -1) * 66);
-    decorado.push({ tipo: 'foco', x: q.x, y: q.y, escala: 1.15 });
+    if (p.zona !== ZONA.JARDIN && p.zona !== ZONA.SALIDA) continue;
+    const q = lateral(i, 1, 10 + hash(k, 4) * 10);
+    if (enPiscina(q.x, q.y, 14)) continue;
+    const r = hash(k, 5);
+    decorado.push({ tipo: r < 0.7 ? 'olivo' : 'cipres', x: q.x, y: q.y, escala: 0.9 + hash(k, 6) * 0.35, v: k });
   }
   {
-    const q = enLinea(sCtrl[26] - 30, 0);
-    decorado.push({ tipo: 'bola', x: q.x, y: q.y, escala: 1.4, alto: 62 });
+    // the well, behind the wall near the start
+    const i = iEn(sMeta + 95);
+    const q = lateral(i, 1, 11);
+    decorado.push({ tipo: 'pozo', x: q.x, y: q.y, escala: 1 });
+    for (const dsd of [-110, 30, 190]) {
+      const j = iEn(sMeta + dsd);
+      if (muestras[j].zona !== ZONA.SALIDA && muestras[j].zona !== ZONA.JARDIN) continue;
+      const m2 = lateral(j, 1, 18);
+      decorado.push({ tipo: 'maceta', x: m2.x, y: m2.y, escala: 1.1 });
+    }
+  }
+  // on the pool's terrace: loungers and parasols, flamingos floating in it
+  // (east of the springboard, which starts at the road near x = 300)
+  for (const [x, v] of [[348, 0], [408, 1], [468, 0]] as const) decorado.push({ tipo: 'tumbona', x, y: 841, escala: 0.95, v });
+  for (const x of [378, 438]) decorado.push({ tipo: 'sombrilla', x, y: 842, escala: 0.95, v: x });
+  decorado.push({ tipo: 'maceta', x: 333, y: 839, escala: 0.9 });
+  decorado.push({ tipo: 'maceta', x: 496, y: 839, escala: 0.9 });
+  decorado.push({ tipo: 'flamenco', x: 330, y: 745, escala: 1.4, alto: 0 });
+  decorado.push({ tipo: 'flamenco', x: 420, y: 790, escala: 1.2, alto: 0 });
+  decorado.push({ tipo: 'flamenco', x: 250, y: 700, escala: 1.1, alto: 0 });
+  // the lounge: a lamp and a plant behind the sofas, pendant lamps down the middle
+  for (const m of sMuebles) {
+    if (m.tipo !== 'sofa') continue;
+    const lado = m.lado === 0 ? 1 : m.lado;
+    const l1 = lateral(iEn(m.s0 + 9), lado, 8);
+    decorado.push({ tipo: 'lampara', x: l1.x, y: l1.y, escala: 1, v: m.k });
+    const l2 = lateral(iEn(m.s1 - 9), lado, 10);
+    decorado.push({ tipo: 'planta', x: l2.x, y: l2.y, escala: 0.9, v: m.k });
+  }
+  for (let sd = sCtrl[10] + 70; sd < sCtrl[19] - 40; sd += 150) {
+    const q = enLinea(sd, 0);
+    decorado.push({ tipo: 'colgante', x: q.x, y: q.y, escala: 1, alto: 45, v: 0 });
+  }
+  // the kitchen: hams and garlic braids over the island, pots on it, pendant lamps
+  for (let sd = sCtrl[19] + 30; sd < sCtrl[24] - 20; sd += 58) {
+    const i = iEn(sd);
+    const q = lateral(i, 1, 9 + hash(i, 2) * 6);
+    const k = Math.floor((sd - sCtrl[19]) / 58);
+    if (k % 3 === 2) decorado.push({ tipo: 'planta', x: q.x, y: q.y, escala: 0.8, alto: 22 });
+    else decorado.push({ tipo: k % 3 === 0 ? 'jamon' : 'ajos', x: q.x, y: q.y, escala: 1, alto: 40 });
+  }
+  for (let sd = sCtrl[19] + 80; sd < sCtrl[24] - 40; sd += 140) {
+    const q = enLinea(sd, 0);
+    decorado.push({ tipo: 'colgante', x: q.x, y: q.y, escala: 1, alto: 45, v: 1 });
+  }
+  // the drag gala: the audience behind the ropes on both sides, speakers, rigs and the disco ball
+  for (let sd = sCtrl[24] + 26; sd < sFront - 36; sd += 21) {
+    for (const lado of [-1, 1]) {
+      const i = iEn(sd + (lado > 0 ? 9 : 0));
+      const q = lateral(i, lado, 10 + hash(i, lado) * 8);
+      decorado.push({ tipo: 'publico', x: q.x, y: q.y, escala: 1, v: Math.floor(hash(i, lado + 5) * 6) });
+    }
+  }
+  for (let k = 0; k < 5; k++) {
+    for (const lado of [-1, 1]) {
+      const q = lateral(iEn(sCtrl[24] + 70 + k * 104 + (lado > 0 ? 40 : 0)), lado, 21);
+      decorado.push({ tipo: 'altavoz', x: q.x, y: q.y, escala: 1.0 });
+    }
+  }
+  for (let k = 0; k < 6; k++) {
+    const q = enLinea(sCtrl[24] + 60 + k * 82, k % 2 ? 30 : -30);
+    decorado.push({ tipo: 'focoTecho', x: q.x, y: q.y, escala: 1, alto: 46, v: k });
+  }
+  {
+    const q = enLinea(sCtrl[24] + (sFront - sCtrl[24]) * 0.52, 0);
+    decorado.push({ tipo: 'bola', x: q.x, y: q.y, escala: 1.2, alto: 38 });
+    const n = enLinea(sFront - 70, 0);
+    decorado.push({ tipo: 'neon', x: n.x, y: n.y, escala: 1.7, alto: 40 });
   }
   // the banner over the start line
   {
     const q = enLinea(sMeta, 0);
     decorado.push({ tipo: 'arco', x: q.x, y: q.y, escala: 1 });
   }
-  // sun loungers on the lawn beside the pool, and a few more flamingos in it
-  for (const [x, y] of [[225, 880], [300, 884], [372, 886]]) decorado.push({ tipo: 'tumbona', x, y: y - 8, escala: 1 });
-  decorado.push({ tipo: 'flamenco', x: 330, y: 745, escala: 1.4, alto: 0 });
-  decorado.push({ tipo: 'flamenco', x: 420, y: 790, escala: 1.2, alto: 0 });
 
   // ---- the grid: three rows of two, behind the line
   const parrilla: Pista['parrilla'] = [];
@@ -597,7 +743,7 @@ export async function construirPista(avance: (f: number) => void = () => {}): Pr
     mips.push(a);
   }
 
-  // ---- the minimap: the road as seen from above, one pixel per ~21 texels
+  // ---- the minimap: the house seen from above, one pixel per ~21 texels (a colour for each room)
   const MAPA = 48;
   const mapa = document.createElement('canvas');
   mapa.width = MAPA;
@@ -607,18 +753,26 @@ export async function construirPista(avance: (f: number) => void = () => {}): Pr
     const img = x.createImageData(MAPA, MAPA);
     const u32 = new Uint32Array(img.data.buffer);
     const k = T / MAPA;
+    const colorZona = [col(0xf0e2bc), col(0xe0b888), col(0xd05060), col(0xf0a868), col(0xd070f0)];
     for (let y = 0; y < MAPA; y++)
       for (let xx = 0; xx < MAPA; xx++) {
         // the road wins if any texel of the cell is road
         let camino = 0;
         let agua = 0;
+        let pared = 0;
+        let zona = 0;
         for (let sy = 0; sy < k; sy += 5)
           for (let sx = 0; sx < k; sx += 5) {
-            const v = sup[Math.floor(y * k + sy) * T + Math.floor(xx * k + sx)];
-            if (v === SUP.PISTA || v === SUP.RESBALA || v === SUP.TURBO || v === SUP.CAJA || v === SUP.ACEITE) camino++;
-            else if (v === SUP.AGUA) agua++;
+            const o = Math.floor(y * k + sy) * T + Math.floor(xx * k + sx);
+            const v = sup[o];
+            if (v === SUP.PISTA || v === SUP.RESBALA || v === SUP.TURBO || v === SUP.CAJA || v === SUP.ACEITE) {
+              camino++;
+              const ii = idx[o];
+              if (ii >= 0) zona = muestras[ii].zona;
+            } else if (v === SUP.AGUA) agua++;
+            else if (pKind[o] === K.SALON || pKind[o] === K.COCINA || pKind[o] === K.GALA || pKind[o] === K.FACHADA) pared++;
           }
-        u32[y * MAPA + xx] = camino >= 3 ? col(0xf2e3c0) : agua >= 6 ? col(0x3b7fb8) : col(0x2a2038);
+        u32[y * MAPA + xx] = camino >= 3 ? colorZona[zona] : agua >= 6 ? col(0x3b9fe0) : pared >= 3 ? col(0x6a5878) : col(0x2a2038);
       }
     x.putImageData(img, 0, 0);
   }
@@ -646,6 +800,9 @@ export async function construirPista(avance: (f: number) => void = () => {}): Pr
     cajas,
     decorado,
     parrilla,
+    paredes: { kind: pKind, col: pCol, dir: pDir },
+    techo,
+    puertas,
     mapa,
     zonaEn: (s) => {
       const ss = mod(s, longitud);
@@ -671,10 +828,104 @@ export async function construirPista(avance: (f: number) => void = () => {}): Pr
 
 // ---------------------------------------------------------------- the looks of each tramo
 
+// What kind of wall stands at a point of the wall band, and the column of its texture ×4 (set by `paredDe`).
+let _kind: number = K.NADA;
+let _col = 0;
+
+type Mueble = { s0: number; s1: number; lado: number; tipo: string; k: number };
+
+/**
+ * The kind of wall of the cell at lateral distance `w` beyond the shoulder (`der`: on the right of the travel) and arc
+ * length `u`. Low things (a sofa, the island, a velvet rope) come first and the room's real wall stands behind them.
+ */
+function paredDe(z: number, der: boolean, w: number, u: number, muebles: Mueble[]) {
+  // the texture runs with the travel on the left wall and against it on the right wall, so that both read left to right
+  _col = Math.floor((der ? -u : u) * 4) & 0xffff;
+  switch (z) {
+    case ZONA.SALIDA:
+    case ZONA.JARDIN:
+      if (!der) _kind = w < 8 ? K.JARDINERA : K.FACHADA;
+      else _kind = w < 8 ? K.MURETE : w < BANDA ? K.CESPED : K.TAPIA;
+      return;
+    case ZONA.SALON: {
+      _kind = K.SALON;
+      if (w >= BANDA) return;
+      const lado = der ? 1 : -1;
+      for (const m of muebles) {
+        if (u < m.s0 || u >= m.s1 || (m.lado !== 0 && m.lado !== lado)) continue;
+        const a = u - m.s0;
+        const largo = m.s1 - m.s0;
+        switch (m.tipo) {
+          case 'sofa':
+            _kind = K.SOFA;
+            break;
+          case 'estanteria':
+            _kind = K.ESTANTERIA;
+            break;
+          case 'mesa':
+            _kind = K.MESA;
+            break;
+          default:
+            // the fireplace: its 128-wide texture stretched over the length of the piece
+            _kind = K.CHIMENEA;
+            _col = Math.floor(((der ? largo - a : a) / largo) * 128 * 4) & 0xffff;
+            return;
+        }
+        _col = Math.floor((der ? -a : a) * 4) & 0xffff;
+        return;
+      }
+      return;
+    }
+    case ZONA.COCINA:
+      _kind = der && w < BANDA ? K.ISLA : K.COCINA;
+      return;
+    default:
+      _kind = w < BANDA ? K.VALLA : K.GALA;
+  }
+}
+
+/** The pool's coping seen from above: pale stone slabs. */
+function copete(x: number, y: number): number {
+  const loseta = ((x >> 4) + (y >> 4)) & 1;
+  if (mod(x, 16) < 1 || mod(y, 16) < 1) return col(0xc8c0ac);
+  return loseta ? col(0xf6efe0) : col(0xeae1cc);
+}
+
 function fondoLejos(x: number, y: number): number {
-  // behind everything: the house's far walls, dark so that the road stands out
-  const n = bloque(x, y, 4);
-  return ((x >> 5) + (y >> 5)) & 1 ? (n < 0.5 ? col(0x5a4636) : col(0x543f31)) : n < 0.5 ? col(0x4c3a30) : col(0x473629);
+  // behind everything (never seen, the walls stand in front): a plain dark tone
+  return ((x >> 5) + (y >> 5)) & 1 ? col(0x54443a) : col(0x4a3c32);
+}
+
+/** Terracotta floor tiles (baldosas de barro cocido), 12×12. */
+function barro(x: number, y: number, oscuro = 1): number {
+  const bx = Math.floor(x / 12);
+  const by = Math.floor(y / 12);
+  const lx = mod(x, 12);
+  const ly = mod(y, 12);
+  const v = hash(bx, by);
+  let c = pick([0xc86a3c, 0xbf6035, 0xd27644, 0xc46438], v);
+  if (lx === 11 || ly === 11) c = 0x8a4a2a;
+  else if (lx === 0 || ly === 0) c = 0xdc8858;
+  else if (hash(x, y) > 0.97) c = 0xb05a32;
+  return col(oscuro < 1 ? mezclaHex(c, 0x000000, 1 - oscuro) : c);
+}
+
+/** One 16×16 encaustic (hydraulic) tile of the kitchen: calm, with a small motif on every other one. */
+function hidraulica(a: number, b: number, lx: number, ly: number): number {
+  const claroT = (a + b) & 1;
+  if (lx === 15 || ly === 15) return col(0xcfb48a);
+  const dx = Math.abs(lx - 7.5);
+  const dy = Math.abs(ly - 7.5);
+  if (claroT) {
+    // cream with a small blue flower
+    if (dx + dy < 1.8) return col(0xe8b838);
+    if (dx + dy < 4.6 && (dx < 1.6 || dy < 1.6 || dx + dy < 3)) return col(0x3a68b0);
+    if (dx > 5.6 && dy > 5.6) return col(0x8cb0d8);
+    return col(0xf6ecd2);
+  }
+  // sand with a thin terracotta frame
+  if (Math.max(dx, dy) > 5.4 && Math.max(dx, dy) < 6.6) return col(0xd8946a);
+  return col(0xeccaa0);
 }
 
 function calzada(z: number, x: number, y: number, u: number, d: number, ad: number, semi: number, desdeMeta: number): number {
@@ -687,9 +938,9 @@ function calzada(z: number, x: number, y: number, u: number, d: number, ad: numb
       }
       const rodada = Math.abs(Math.abs(d) - 14) < 2.5;
       const n = hash(x >> 1, y >> 1);
-      let c = rodada ? col(0xc9b48a) : col(0xdac7a0);
-      if (n < 0.1) c = col(0xb8a37c);
-      else if (n > 0.92) c = col(0xf1e3be);
+      let c = rodada ? col(0xcfb98f) : col(0xdecda8);
+      if (n < 0.07) c = col(0xc4ad82);
+      else if (n > 0.95) c = col(0xefe2c0);
       // a doormat at the line
       if (desdeMeta > 6 && desdeMeta < 22 && Math.abs(d) < semi - 8) c = mod(Math.floor(desdeMeta / 3) + Math.floor((d + 100) / 3), 2) ? col(0xb5543a) : col(0xd8704a);
       return c;
@@ -701,29 +952,28 @@ function calzada(z: number, x: number, y: number, u: number, d: number, ad: numb
       const ladrillo = Math.floor((u + off) / 10);
       const juntaV = mod(u + off, 10) < 1;
       const juntaH = mod(d + 200, 6) < 1;
-      if (juntaV || juntaH) return col(0xb08a60);
-      return col(pick([0xeacba0, 0xddb98a, 0xf2d6ac, 0xe3c196], hash(ladrillo, fila)));
+      if (juntaV || juntaH) return col(0xb8946a);
+      return col(pick([0xe8cca2, 0xe0be90, 0xeed4ac, 0xe4c49a], hash(ladrillo, fila)));
     }
     case ZONA.SALON: {
-      // the rug: gold and cream border, wine field with a diamond lattice
-      if (borde < 2) return col(0x6e1424);
-      if (borde < 5) return col(0xe8c870);
-      if (borde < 7) return col(0x6e1424);
-      if (borde < 8.5) return col(0xf0e0b8);
-      const k = Math.abs(mod(u, 26) - 13) + Math.abs(d);
-      if (mod(k, 13) < 1.6) return col(0xd9a24a);
-      const n = bloque(x, y, 2);
-      return n < 0.15 ? col(0x93222f) : col(0xa82c3a);
+      // a rug over the terracotta: cream fringe, navy and gold bands, a wine field with a regular lattice of motifs
+      if (borde < 2.5) return barro(x, y);
+      if (borde < 3.6) return mod(Math.floor(u), 2) ? col(0xf0e4c8) : col(0xcdbd98);
+      if (borde < 5.5) return col(0x22305a);
+      if (borde < 7) return col(0xd9a24a);
+      if (borde < 8.6) return col(0x6e1424);
+      const a = mod(u, 24) - 12;
+      const b = mod(d + 12, 24) - 12;
+      const r = Math.abs(a) + Math.abs(b);
+      if (r < 2) return col(0x6e1424);
+      if (r < 5) return col(0xe0b058);
+      if (r < 6) return col(0x6e1424);
+      if (Math.abs(d) < 1.2) return col(0xc89438);
+      return bloque(x, y, 2) < 0.1 ? col(0x93222f) : col(0xa42c3a);
     }
     case ZONA.COCINA: {
       if (borde < 2) return col(0xb8794a);
-      const a = Math.floor(u / 12);
-      const b = Math.floor((d + 200) / 12);
-      const claro = (a + b) & 1;
-      if (mod(u, 12) < 1 || mod(d + 200, 12) < 1) return col(0xc99a66);
-      // gloss: a diagonal streak on the cream tiles
-      if (claro && mod(u + d + 400, 40) < 2.5) return col(0xfffbe8);
-      return claro ? col(0xf4e6c8) : col(0xe3a56f);
+      return hidraulica(Math.floor(u / 16), Math.floor((d + 400) / 16), mod(u, 16), mod(d + 400, 16));
     }
     default: {
       // the catwalk
@@ -747,25 +997,22 @@ function calzada(z: number, x: number, y: number, u: number, d: number, ad: numb
   }
 }
 
-function hombro(z: number, x: number, y: number, u: number, d: number, w: number): number {
+function hombro(z: number, x: number, y: number, u: number, d: number, _w: number): number {
   switch (z) {
     case ZONA.SALIDA: {
       const n = hash(x >> 1, y >> 1);
-      if (n > 0.97) return col(pick([0xf06a8c, 0xffd24a, 0xffffff], hash(x, y)));
+      if (n > 0.996) return col(pick([0xf06a8c, 0xffd24a, 0xffffff], hash(x, y)));
       return bloque(x, y, 3) < 0.5 ? col(0x6aaa48) : col(0x5e9c41);
     }
     case ZONA.JARDIN: {
       const n = hash(x >> 1, y >> 1);
-      if (n > 0.985) return col(0xffffff);
+      if (n > 0.995) return col(0xffffff);
       const stripe = mod(Math.floor(u / 22), 2);
       return stripe ? col(0x62b04b) : col(0x56a042);
     }
-    case ZONA.SALON: {
-      const plank = Math.floor((w + 200) / 6);
-      if (mod(w + 200, 6) < 1) return col(0x7a4a28);
-      if (mod(u + hash(plank, 1) * 50, 46) < 1) return col(0x7a4a28);
-      return col(pick([0xb27a44, 0xa46e3c, 0xbd8650], hash(plank, Math.floor((u + hash(plank, 1) * 50) / 46))));
-    }
+    case ZONA.SALON:
+      // worn terracotta tiles (the slow edge of the room)
+      return barro(x, y, 0.82);
     case ZONA.COCINA: {
       return (Math.floor(u / 8) + Math.floor((d + 200) / 8)) & 1 ? col(0xb36a43) : col(0x9e5a38);
     }
@@ -777,44 +1024,39 @@ function hombro(z: number, x: number, y: number, u: number, d: number, w: number
   }
 }
 
-function muro(z: number, x: number, y: number, u: number, d: number, w: number, muebles: Array<{ s0: number; s1: number; lado: number; tipo: string; k: number }>): number {
-  const lejos = w > BANDA;
+function muro(z: number, x: number, y: number, u: number, d: number, w: number, muebles: Mueble[]): number {
+  // Seen from above, and only over the low walls (the high ones hide it): what lies on top of each thing.
   switch (z) {
-    case ZONA.SALIDA: {
-      if (lejos) return bloque(x, y, 3) < 0.5 ? col(0x2f6a35) : col(0x28592d);
-      // a low stone wall
-      const fila = Math.floor(w / 5);
-      const ladrillo = Math.floor((u + (fila & 1) * 6) / 12);
-      if (mod(w, 5) < 1 || mod(u + (fila & 1) * 6, 12) < 1) return col(0x6a5a4a);
-      if (w < 2) return col(0xd6c6a8);
-      return col(pick([0x9b8a78, 0x8d7c6a, 0xa59482], hash(ladrillo, fila)));
-    }
+    case ZONA.SALIDA:
     case ZONA.JARDIN: {
-      const n = bloque(x, y, 3);
-      const f = hash(x >> 1, y >> 1);
-      if (f > 0.965 && w < BANDA) return col(pick([0xf06a8c, 0xffd24a, 0xffffff, 0xff8a3c], hash(x, y)));
-      if (w < 2) return col(0x56b050);
-      return col(pick([0x2f7d3b, 0x276b32, 0x3a8f45, 0x1f5a2a], n));
+      switch (_kind) {
+        case K.JARDINERA: {
+          const f = hash(x, y);
+          return f > 0.8 ? col(pick([0xe03a48, 0xff7aa8, 0xffd23a], hash(x >> 1, y))) : col(f > 0.4 ? 0x3c9a4a : 0x2f8a44);
+        }
+        case K.MURETE:
+          return w < 1.5 ? col(0xfffaf0) : col(0xe6dcc4);
+        case K.CESPED: {
+          const n = hash(x >> 1, y >> 1);
+          if (n > 0.992) return col(0xffffff);
+          return bloque(x, y, 3) < 0.5 ? col(0x62ae4c) : col(0x58a244);
+        }
+        case K.FACHADA:
+          return col(0xa89878);
+        default:
+          return col(0x8a7a62);
+      }
     }
     case ZONA.SALON:
-      return lejos ? empapelado(x) : mueble(u, d, w, muebles);
+      return w < BANDA ? mueble(u, d, w, muebles) : col(0x7d5230);
     case ZONA.COCINA:
-      return lejos ? col(bloque(x, y, 8) < 0.5 ? 0xdce8ec : 0xcfdde2) : cocina(x, y, u, d, w);
+      return w < BANDA ? cocina(x, y, u, d, w) : col(0xdce8ec);
     default:
-      return lejos ? cortina(x, y) : publico(u, w);
+      return w < BANDA ? col(hash(x, y) > 0.97 ? 0x9a7aff : 0x1d1226) : col(0x641026);
   }
 }
 
-function empapelado(x: number): number {
-  return mod(Math.floor(x / 6), 2) ? col(0xe8d4a8) : col(0xd8c090);
-}
-
-function cortina(x: number, y: number): number {
-  const f = mod(Math.floor((x + y) / 7), 3);
-  return col(f === 0 ? 0x7a1230 : f === 1 ? 0x641026 : 0x8c1a3a);
-}
-
-function mueble(u: number, d: number, w: number, muebles: Array<{ s0: number; s1: number; lado: number; tipo: string; k: number }>): number {
+function mueble(u: number, d: number, w: number, muebles: Mueble[]): number {
   const lado = d >= 0 ? 1 : -1;
   for (const m of muebles) {
     if (u < m.s0 || u >= m.s1 || (m.lado !== 0 && m.lado !== lado)) continue;
@@ -826,50 +1068,30 @@ function mueble(u: number, d: number, w: number, muebles: Array<{ s0: number; s1
         const [b, osc, cla] = paletas[m.k % paletas.length];
         if (w < 1.5) return col(cla);
         if (a < 4 || a > largo - 4) return col(w < 14 ? osc : b);
-        if (w > 15) return col(mod(a, 28) < 1.5 ? osc : b === 0 ? 0 : mezclaHex(b, 0x000000, 0.25));
         if (mod(a, 26) < 1.4) return col(osc);
         return col(w < 3 ? cla : b);
       }
-      case 'estanteria': {
-        if (w < 1.5) return col(0xe0b27a);
-        if (mod(w, 9) < 1.3) return col(0x6a4426);
-        const lomo = Math.floor(a / 3);
-        const h = hash(lomo, m.k);
-        if (h < 0.12) return col(0x8a5a30);
-        return col(pick([0xc03a3a, 0x3a6ac0, 0x3aa04a, 0xe0b030, 0x8a4ac0, 0xe07030], hash(lomo, Math.floor(w / 9) + m.k * 7)));
-      }
-      case 'chimenea': {
-        const c = largo / 2;
-        const dd = Math.abs(a - c);
-        if (w < 2) return col(0xe6d4b4);
-        if (dd < 15 && w < 22) {
-          // the opening with a fire
-          const f = 1 - w / 22;
-          const llama = hash(Math.floor(a / 2), Math.floor(w / 2));
-          if (w < 5) return col(0x2a1a14);
-          return f > 0.45 + llama * 0.35 ? col(0xffd23a) : f > 0.25 ? col(0xff8a1f) : col(0xd0381c);
-        }
-        const ladrillo = Math.floor((a + (Math.floor(w / 5) & 1) * 6) / 12);
-        if (mod(w, 5) < 1 || mod(a + (Math.floor(w / 5) & 1) * 6, 12) < 1) return col(0x6a625c);
-        return col(pick([0x9a928a, 0x8a827a, 0xaaa29a], hash(ladrillo, Math.floor(w / 5))));
-      }
+      case 'estanteria':
+        return col(w < 1.5 ? 0xe0b27a : 0x8a5a30);
+      case 'mesa':
+        return col(w < 12 ? 0xd8a468 : 0x7d5230);
+      case 'chimenea':
+        return col(w < 20 ? 0xaaa29a : 0x8a827a);
     }
   }
-  // wainscot
-  if (w < 1.5) return col(0xd6b07a);
-  return mod(Math.floor(u / 10), 2) ? col(0x8d5d36) : col(0x7d5230);
+  return col(0x7d5230);
 }
 
 function mezclaHex(a: number, b: number, t: number): number {
-  const r = ((a >> 16) & 255) + (((b >> 16) & 255) - ((a >> 16) & 255)) * t;
+  const r = (a & 255) + ((b & 255) - (a & 255)) * t;
   const g = ((a >> 8) & 255) + (((b >> 8) & 255) - ((a >> 8) & 255)) * t;
-  const bl = (a & 255) + ((b & 255) - (a & 255)) * t;
+  const bl = ((a >> 16) & 255) + (((b >> 16) & 255) - ((a >> 16) & 255)) * t;
   return (Math.round(r) << 16) | (Math.round(g) << 8) | Math.round(bl);
 }
 
 function cocina(x: number, y: number, u: number, d: number, w: number): number {
   if (d >= 0) {
-    // the island: marble, burners and a sink
+    // the island seen from above: marble, burners and a sink
     if (w < 1.5) return col(0xf8f4ec);
     const a = mod(u, 120);
     for (const cx of [20, 44]) {
@@ -883,33 +1105,9 @@ function cocina(x: number, y: number, u: number, d: number, w: number): number {
       const borde = a < 72 || a > 108 || w < 7 || w > 20;
       return borde ? col(0x9aa8b0) : col(0xc8d4da);
     }
-    const n = hash(x >> 1, y >> 1);
-    return n > 0.9 ? col(0xc8c0b8) : col(0xece6dc);
+    return hash(x >> 1, y >> 1) > 0.9 ? col(0xc8c0b8) : col(0xece6dc);
   }
-  // cabinets, a fridge and the oven
-  if (w < 1.5) return col(0xe8c48c);
-  const a = mod(u, 96);
-  if (a < 22 && w > 2) return w < 3 ? col(0xffffff) : mod(w, 11) < 1 ? col(0x9aa0a6) : col(0xe6eaee);
-  const puerta = Math.floor(a / 24);
-  const panel = mod(a, 24);
-  if (panel < 1 || panel > 23) return col(0x8a5a30);
-  if (w > 3 && w < 6 && panel > 9 && panel < 15) return col(0xe8d8a0);
-  return col(puerta & 1 ? 0xc68b50 : 0xb97d44);
-}
-
-function publico(u: number, w: number): number {
-  // a rope, then rows of heads and shoulders
-  if (w < 1.8) return col(0xc0203c);
-  if (w < 3 && mod(u, 24) < 3) return col(0xf2c14e);
-  const fila = Math.floor((w - 3) / 9);
-  const off = (fila & 1) * 4;
-  const k = Math.floor((u + off) / 8);
-  const cx = k * 8 + 4 - off;
-  const cy = 3 + fila * 9 + 4.5;
-  const dd = Math.hypot(u - cx, w - cy);
-  if (dd < 3.4) return col(pick([0xf06a8c, 0xffd24a, 0x5ad2f0, 0xa98bff, 0xff9a3c, 0xffffff, 0xf0c8a0], hash(k, fila + 11)));
-  if (dd < 4.5) return col(0x3a2848);
-  return col(0x2a1c34);
+  return col(0xe8c48c);
 }
 
 function agua(x: number, y: number, r: { x0: number; y0: number; x1: number; y1: number }): number {
@@ -921,7 +1119,9 @@ function agua(x: number, y: number, r: { x0: number; y0: number; x1: number; y1:
 }
 
 function tablonColor(a: number, b: number, medio: number): number {
-  if (Math.abs(b) > medio - 1.5) return col(0x6a4426);
-  if (mod(a, 9) < 1) return col(0x8a5a30);
-  return col(mod(Math.floor(a / 9), 2) ? 0xd8a468 : 0xe6b878);
+  // the springboard: a white fibreglass board with blue edges and a grip surface
+  if (Math.abs(b) > medio - 1.8) return col(0x2a7ac0);
+  if (Math.abs(b) > medio - 3) return col(0xdcecf6);
+  if (mod(a, 9) < 1) return col(0xbfd2de);
+  return col(mod(Math.floor(a / 9), 2) ? 0xf6f8fa : 0xeaf0f4);
 }
