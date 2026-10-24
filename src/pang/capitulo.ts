@@ -1,8 +1,9 @@
 // The short Pang of chapter 2 (docs/CAPITULO2.md): Fran falls asleep at the bar, the foam of his
-// beer fills the screen, and he is inside the arcade machine. Three stages of the full Pang
-// (docs/PANG.md, kept in the branch claude/pang-cyc-56o0iv) one after another: Usera (the dragon),
-// Fran's flat (with Aceituna) and Las Vegas against la Penúltima. Only Fran, with his double
-// harpoon and «¡Una más!».
+// beer fills the screen, and he is inside the arcade machine. Five stages of the full Pang
+// (docs/PANG.md, played whole from the minigames menu once this one is beaten, src/pang/completo.ts) one
+// after another, the road from Usera to the United States: Usera (the dragon), Fran's flat (with Aceituna),
+// Zaragoza (the cierzo wind blows the bubbles about), Nevada (the desert, with a caravan in the middle) and
+// Las Vegas against la Penúltima. Only Fran, with his double harpoon and «¡Una más!».
 //
 // It is a minigame of the story: same cover (`.cubierta.minijuego`), same «Saltar» (after two lost
 // games) and close button as the others, and it ends with 'hecho' (la Penúltima beaten),
@@ -31,7 +32,7 @@ export interface OpcionesPangCapitulo {
   /** Skips the waiting (tests and the minigames menu's quick mode). */
   rapido?: boolean;
   sonido?: SonidoMinijuego;
-  /** For testing: start at this stage (0 Usera, 1 the flat, 2 Las Vegas) and without the foam. */
+  /** For testing: start at this stage (0 Usera, 1 the flat, 2 Zaragoza, 3 Nevada, 4 Las Vegas) and without the foam. */
   fase?: number;
   /** For testing and the performance check: 'bot' lets the computer play. */
   control?: Control;
@@ -40,18 +41,23 @@ export interface OpcionesPangCapitulo {
 }
 
 /**
- * The three stages: 1 (Usera, the dragon), 3 (Fran's flat) and 12 (Las Vegas). `n` stays the
- * full game's number (texts, backgrounds and the bubbles' pace come from it); `orden` is what the
- * card says. Eased for a minigame inside the story (numbers from scripts/pang-sim.mjs, where a bot
- * with 0.15 s reflexes clears each stage within three games 97–100 % of the time and one with 0.25 s
- * 70–90 %): more time (150 s) in the first two, Fran's flat with two medium bubbles instead of a big
- * and two medium, and the last boss, in third place instead of twelfth, with 18 hit points instead of
- * 30, slower bubbles (×0.72) and 1.4 times the wait between spits.
+ * The five stages: 1 (Usera, the dragon), 3 (Fran's flat), 9 (Zaragoza), 11 (Nevada) and 12 (Las Vegas). `n` stays
+ * the full game's number (texts, backgrounds and the bubbles' pace come from it); `orden` is what the card says.
+ * Eased for a minigame inside the story (numbers from scripts/pang-sim.mjs, where a bot with 0.15 s reflexes clears
+ * each stage within three games 95–100 % of the time and one with 0.25 s 65–90 %): more time (150 s) in all but the
+ * boss; the flat with two medium bubbles instead of a big and two medium; Zaragoza and Nevada, which have 3 big
+ * bubbles (45 hits) and 3 big and 2 small (51) in the full game, with two medium ones each (14 hits, like the flat),
+ * slower (×0.8 and ×0.7), Zaragoza's cierzo at half strength and Nevada's caravan parked at the right edge instead
+ * of in the middle (with the bubbles coming from both sides, the player was boxed in under it); and the last boss, in
+ * fifth place instead of twelfth, with 18 hit points instead of 30, slower bubbles (×0.72) and 1.4 times the wait
+ * between spits.
  */
 export const FASES_CAPITULO: Fase[] = [
   { ...FASES[0], orden: 1, tiempo: 150 },
   { ...FASES[2], orden: 2, musica: 'pangCalle', tiempo: 150, burbujas: [{ x: 96, y: 56, talla: 1, dir: 1 }, { x: 288, y: 56, talla: 1, dir: -1 }] },
-  { ...FASES[11], orden: 3, prisa: 0.72, jefeVida: 18, jefeEscupe: 1.4, tiempo: 150 },
+  { ...FASES[8], orden: 3, tiempo: 150, prisa: 0.8, cierzo: 0.5, burbujas: [{ x: 96, y: 56, talla: 1, dir: 1 }, { x: 288, y: 56, talla: 1, dir: -1 }] },
+  { ...FASES[10], orden: 4, tiempo: 150, prisa: 0.7, bloques: [{ x: 252, y: 100, w: 112, h: 20, estilo: 'caravana' }], burbujas: [{ x: 96, y: 56, talla: 1, dir: 1 }, { x: 288, y: 56, talla: 1, dir: -1 }] },
+  { ...FASES[11], orden: 5, prisa: 0.72, jefeVida: 18, jefeEscupe: 1.4, tiempo: 150 },
 ];
 
 const VIDAS = 3;
@@ -68,7 +74,7 @@ const SILENCIO: SonidoMinijuego = { musica() {}, pararMusica() {} };
 export interface EstadoPang {
   /** Frames drawn so far (the entrance's before the stage shows, then the stage's). */
   fotogramas: number;
-  /** 0–2 */
+  /** 0–4 */
   fase: number;
   /** Games lost so far. */
   derrotas: number;
@@ -153,6 +159,8 @@ export function jugarPangCapitulo(root: HTMLElement, o: OpcionesPangCapitulo = {
     () => burbuja('cerveza', 2, 'roja'),
     () => burbuja('cerveza', 3, 'roja'),
     () => fondo('piso'),
+    () => fondo('zaragoza'),
+    () => fondo('nevada'),
     () => fondo('vegas'),
     () => jefe('penultima'),
     () => burbuja('champan', 1, 'roja'),

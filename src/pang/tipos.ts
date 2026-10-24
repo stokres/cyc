@@ -127,6 +127,8 @@ export interface Fase {
   inicio: number;
   /** Multiplies the bubbles' horizontal speed (1 = normal). */
   prisa?: number;
+  /** Zaragoza's wind, as a fraction of its usual strength (the chapter's short Pang blows it softer). */
+  cierzo?: number;
   /** The boss's hit points, if not the usual ones (the chapter's short Pang eases the last boss). */
   jefeVida?: number;
   /** Multiplies the seconds between a boss's spits (above 1 = fewer bubbles). */

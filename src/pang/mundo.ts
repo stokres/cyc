@@ -22,6 +22,9 @@ export const ALTURA_BOTE: Record<Talla, number> = { 0: 120, 1: 92, 2: 64, 3: 40 
 export const PUNTOS_BURBUJA: Record<Talla, number> = { 0: 50, 1: 100, 2: 150, 3: 200 };
 /** Bubbles popped (or boss hits) to fill the special bar. */
 export const BARRA_LLENA = 16;
+/** The cierzo's push at full strength (px/s): on the bubbles and on the player. */
+export const VIENTO_BURBUJAS = 20;
+export const VIENTO_JUGADOR = 22;
 export const PUNTOS_COMIDA: Partial<Record<Objeto, number>> = { jamon: 500, aceitunas: 300, croqueta: 800, turron: 1000, yema: 1500 };
 /** Player's hit box: half width and height above the feet. */
 export const CAJA = { semi: 7, alto: 24 } as const;

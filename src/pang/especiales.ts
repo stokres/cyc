@@ -166,7 +166,7 @@ function actualizarCierzo(m: Mundo, dt: number) {
     c.dir = Math.random() < 0.5 ? -1 : 1;
   }
   // Wind strength: ramps up and down over half a second.
-  m.viento = c.soplando ? c.dir * Math.min(1, c.t / 0.5, (RACHA - c.t) / 0.5) : 0;
+  m.viento = c.soplando ? c.dir * Math.min(1, c.t / 0.5, (RACHA - c.t) / 0.5) * (m.fase.cierzo ?? 1) : 0;
   moverRayas(m.viento, dt);
 }
 

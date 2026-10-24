@@ -6,7 +6,7 @@
 //
 // Time is virtual (requestAnimationFrame and performance.now are replaced), so a run takes
 // seconds, not minutes. Against `npm run dev`:
-//   PUERTO=5177 node scripts/pang-sim.mjs [reaccion=0.25] [partidas=20] [fase=0..2, default all in a row]
+//   PUERTO=5177 node scripts/pang-sim.mjs [reaccion=0.25] [partidas=20] [fase=0..4, default all in a row]
 //   DEBUG=1 prints every lost life (cause, time left, bubbles, boss hit points).
 import { chromium } from 'playwright';
 
@@ -16,6 +16,7 @@ const solo = process.argv[4] !== undefined;
 const fase0 = Number(process.argv[4] ?? 0);
 const puerto = process.env.PUERTO ?? 5173;
 const depurar = !!process.env.DEBUG;
+const NOMBRES = ['1 Usera (dragón)', '2 piso de Fran', '3 Zaragoza (cierzo)', '4 Nevada (desierto)', '5 Las Vegas (Penúltima)'];
 
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const page = await (await b.newContext({ viewport: { width: 844, height: 390 }, deviceScaleFactor: 1 })).newPage();
@@ -26,7 +27,7 @@ if (depurar) page.on('console', (m) => console.log(m.text()));
 await page.route(`http://localhost:${puerto}/vacio.html`, (r) => r.fulfill({ contentType: 'text/html', body: '<!doctype html><meta charset="utf-8"><body style="margin:0"></body>' }));
 await page.goto(`http://localhost:${puerto}/vacio.html`);
 
-const filas = await page.evaluate(async ({ reaccion, partidas, solo, fase0, depurar }) => {
+const filas = await page.evaluate(async ({ reaccion, partidas, solo, fase0, depurar, NOMBRES }) => {
   const { jugarPangCapitulo } = await import('/src/pang/capitulo.ts');
   let vt = 1000;
   let cola = [];
@@ -47,9 +48,9 @@ const filas = await page.evaluate(async ({ reaccion, partidas, solo, fase0, depu
     let fin = null;
     jugarPangCapitulo(document.body, { fase: fase0, control: 'bot', reaccion, rapido: true }).then((r) => (fin = r));
     // fase: a number skips the entrance; the stages that follow come in order.
-    const perdidas = [0, 0, 0];
-    const segundos = [0, 0, 0];
-    const porTiempo = [0, 0, 0];
+    const perdidas = Array(NOMBRES.length).fill(0);
+    const segundos = Array(NOMBRES.length).fill(0);
+    const porTiempo = Array(NOMBRES.length).fill(0);
     let faseVista = fase0;
     let herido = false;
     let marco = 0;
@@ -83,7 +84,7 @@ const filas = await page.evaluate(async ({ reaccion, partidas, solo, fase0, depu
         }
         herido = ahora;
       }
-      if (e.momento === 'victoria' && !segundos[2]) segundos[2] = (f - marco) / 60;
+      if (e.momento === 'victoria' && !segundos[NOMBRES.length - 1]) segundos[NOMBRES.length - 1] = (f - marco) / 60;
       if (e.fase !== faseVista) {
         segundos[faseVista] = (f - marco) / 60;
         marco = f;
@@ -97,11 +98,11 @@ const filas = await page.evaluate(async ({ reaccion, partidas, solo, fase0, depu
     cola = [];
   }
   return res;
-}, { reaccion, partidas, solo, fase0, depurar });
+}, { reaccion, partidas, solo, fase0, depurar, NOMBRES });
 
 const media = (l) => (l.reduce((x, y) => x + y, 0) / Math.max(1, l.length)).toFixed(1);
 console.log(`reacción ${reaccion} s · ${partidas} intentos`);
-for (const [i, nombre] of ['1 Usera (dragón)', '2 piso de Fran', '3 Las Vegas (Penúltima)'].entries()) {
+for (const [i, nombre] of NOMBRES.entries()) {
   if (solo && i !== fase0) continue;
   // The runs that got to the stage: those that lost 12 lives there gave up (four games).
   const l = filas.filter((r) => (solo || i === 0 ? true : r.perdidas.slice(0, i).every((v) => v < 12)));

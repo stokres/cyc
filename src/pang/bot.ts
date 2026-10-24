@@ -3,8 +3,8 @@
 // the same `Mandos` the buttons do.
 import type { Mandos } from './entrada';
 import { circuloRect, moverCuerpo } from './fisica';
-import { BARRA_LLENA, type Cuerpo, type Mundo } from './mundo';
-import { AREA } from './tipos';
+import { BARRA_LLENA, VIENTO_BURBUJAS, VIENTO_JUGADOR, type Cuerpo, type Mundo } from './mundo';
+import { AREA, type Bloque } from './tipos';
 
 const MAX = 48;
 /** Samples ahead, every MUESTRA seconds. */
@@ -28,6 +28,8 @@ export class Bot {
   private by = new Float32Array(MAX * N);
   private br = new Float32Array(MAX);
   private n = 0;
+  /** The wind (cierzo) when it last decided, taken as constant for the second ahead. */
+  private viento = 0;
 
   /** Called every simulation step; decides ten or twenty times a second. */
   pensar(m: Mundo, mandos: Mandos, dt: number) {
@@ -36,6 +38,7 @@ export class Bot {
     if (this.espera > 0) return;
     // A person is never twice the same: between half and one and a half times the delay.
     this.espera = this.reaccion * (0.5 + Math.random());
+    this.viento = m.viento;
     this.predecir(m);
     const j = m.jugadores[this.idx];
     const paso = j.estilo.paso;
@@ -62,9 +65,10 @@ export class Bot {
 
     let elegido = 0;
     let coste = 1e9;
+    this.bloques = m.bloques;
     for (const d of [0, -1, 1]) {
-      const fin = Math.max(AREA.izq + 8, Math.min(AREA.der - 8, j.x + d * paso * N * MUESTRA));
-      const c = this.peligro(j.x, j.y, d, paso) * 10 + Math.abs(objetivo - fin) * 0.05 + (d !== 0 ? 0.2 : 0) + (Math.abs(objetivo - j.x) < 3 && d !== 0 ? 1 : 0);
+      const fin = Math.max(AREA.izq + 8, Math.min(AREA.der - 8, j.x + (d * paso + this.viento * VIENTO_JUGADOR) * N * MUESTRA));
+      const c = this.peligro(j.x, j.y, d, paso) * 10 + (this.tapado(fin, j.y) ? 3 : 0) + Math.abs(objetivo - fin) * 0.05 + (d !== 0 ? 0.2 : 0) + (Math.abs(objetivo - j.x) < 3 && d !== 0 ? 1 : 0);
       if (c < coste) {
         coste = c;
         elegido = d;
@@ -72,7 +76,7 @@ export class Bot {
     }
     mandos.izq = elegido < 0;
     mandos.der = elegido > 0;
-    const alineado = mejor >= 0 && Math.abs(objetivo - j.x) <= Math.max(3, radio * 0.6);
+    const alineado = mejor >= 0 && Math.abs(objetivo - j.x) <= Math.max(3, radio * 0.6) && !this.tapado(j.x, j.y);
     const auto = j.estilo.arma === 'rafaga' || j.kinki > 0;
     mandos.fuego = alineado && auto;
     if (alineado && this.disparoEn <= 0) {
@@ -81,11 +85,19 @@ export class Bot {
     }
   }
 
+  private bloques: Bloque[] = [];
+
+  /** A block that does not break stands over `x`: a shot from there would stop against it. */
+  private tapado(x: number, y: number): boolean {
+    for (const b of this.bloques) if (!b.rompible && b.y + b.h <= y - 24 && x > b.x - 3 && x < b.x + b.w + 3) return true;
+    return false;
+  }
+
   /** How bad it is to walk in direction `d` for the next second or so: bubbles that would reach the player count more the sooner. */
   private peligro(x: number, y: number, d: number, paso: number): number {
     let p = 0;
     for (let s = 0; s < N; s++) {
-      const px = Math.max(AREA.izq + 8, Math.min(AREA.der - 8, x + d * paso * MUESTRA * (s + 1)));
+      const px = Math.max(AREA.izq + 8, Math.min(AREA.der - 8, x + (d * paso + this.viento * VIENTO_JUGADOR) * MUESTRA * (s + 1)));
       for (let i = 0; i < this.n; i++) {
         if (circuloRect(this.bx[i * N + s], this.by[i * N + s], this.br[i] + 4, px - 7, y - 24, 14, 24)) p += N - s;
       }
@@ -110,7 +122,7 @@ export class Bot {
     this.br[i] = r;
     const c: Cuerpo = { x, y, vx, vy, r, bote };
     for (let k = 1; k <= N * 2; k++) {
-      moverCuerpo(c, SUB, m.bloques);
+      moverCuerpo(c, SUB, m.bloques, m.viento * VIENTO_BURBUJAS);
       if (k % 2 === 0) {
         this.bx[i * N + k / 2 - 1] = c.x;
         this.by[i * N + k / 2 - 1] = c.y;
