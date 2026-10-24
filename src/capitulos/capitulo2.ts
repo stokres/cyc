@@ -445,6 +445,19 @@ function zonasConceptos(g: Aventura): Record<string, ZonaLogica> {
 // ------------------------------------------------------------------ the total chaos
 
 /**
+ * The userito's rumble and roar as it rises (about 3.6 s, like its rise in conceptos-vivo.ts): the game has no recorded
+ * roar, so it is made with the synth: a muffled noise and low thuds under the floor, then a growl that climbs and breaks.
+ */
+function rugido(g: Aventura) {
+  const s = g.sound;
+  s.ruido(3.4, 0.45, 150);
+  for (let i = 0; i < 7; i++) s.tono(64 - i * 3, 0.34, 'sawtooth', 0.12, i * 0.48, 0.55);
+  s.tono(78, 1.7, 'sawtooth', 0.09, 1.4, 2.4);
+  s.tono(118, 1.5, 'square', 0.035, 1.5, 1.8);
+  window.setTimeout(() => s.ruido(1.6, 0.2, 800), 1400);
+}
+
+/**
  * Saying «la última» sets off the total chaos (level 8): cuts between all the styles of the game, the camera
  * spinning, a dinosaur's shadow with «???» at the back, and Guille the flower stepping forward with a mug. The
  * texts drive it with marks (`@caos on`, `@girar 2 6000`...). After it, «Continuará».
@@ -457,7 +470,10 @@ async function elCaos(g: Aventura) {
     if (p[0] !== 'caos') return;
     if (p[1] === 'on') cortes?.iniciar();
     else if (p[1] === 'off') cortes?.parar();
-    else if (p[1] === 'dino') subirDino(g);
+    else if (p[1] === 'dino') {
+      subirDino(g);
+      rugido(g);
+    }
     else if (p[1] === 'guille') darPasoGuille(g);
   };
   await g.hablar('c2.caos.empieza');

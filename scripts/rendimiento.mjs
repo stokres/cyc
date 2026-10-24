@@ -635,13 +635,26 @@ if (toca('boca') || toca('conceptos') || toca('caos')) {
   if (!process.env.SIN_MUSICA) await page.evaluate(() => window.__cyc.g.sound.start());
 }
 if (toca('boca')) {
-  // Vero's mouth (src/ui/boca.ts): the trailer's shot over the game, with the four faces. Open and still, drawing every frame.
+  // Vero's mouth (src/ui/boca.ts): the trailer's shot over the game, with the four friends as people (full bodies as bitmaps).
+  // Open and still, drawing every frame.
   await medir('boca de Vero (abierta)', `(async () => {
     clearInterval(window.__paseo);
     const g = window.__cyc.g;
     const { abrirBoca } = await import('/src/ui/boca.ts');
     g.hud.setVisible(false);
     void abrirBoca(g.root, { sonido: g.sound }).abre();
+  })()`, 'boca');
+  // ...and after the jump: the four already figures (jar, spiral with its ring, ball with glasses, flower) floating in the dark,
+  // each with its glow (bitmaps and a few canvas fills, no SVG per frame).
+  await medir('boca de Vero (figuras flotando)', `(async () => {
+    clearInterval(window.__paseo);
+    const g = window.__cyc.g;
+    const { abrirBoca } = await import('/src/ui/boca.ts');
+    g.hud.setVisible(false);
+    const boca = abrirBoca(g.root, { sonido: g.sound });
+    await boca.abre();
+    await boca.tragaFran();
+    await boca.saltan();
   })()`, 'boca');
   await page.evaluate(() => window.__cyc.g.hud.setVisible(true));
 }
@@ -660,11 +673,12 @@ if (toca('conceptos')) {
   // The world of the concepts (level 7): the void with the parallax shapes, the twelve pieces moving (all bitmaps baked once,
   // only transforms per frame) and Vero's lips; then with Fran found, «LA ÚLTIMA» shown and the dinosaur rising.
   await medir('conceptos, el mundo quieto', MUNDO());
-  await medir('conceptos, con Fran hallado y el dino', MUNDO(`
+  await medir('conceptos, Fran hallado, dino y Guille', MUNDO(`
     g.poner('c2.fran.hallado');
     const m = await import('/src/capitulos/conceptos-vivo.ts');
     m.revelarUltima(g);
-    m.subirDino(g);`));
+    m.subirDino(g);
+    m.darPasoGuille(g);`));
 }
 if (toca('caos')) {
   // The total chaos (level 8): hard cuts between normal / manga / Alacant Sun pixels / Pang pixels / pencil (each baked once, see
@@ -677,6 +691,7 @@ if (toca('caos')) {
     m.revelarUltima(g);
     m.empezarCaos(g);
     m.subirDino(g);
+    m.darPasoGuille(g);
     window.__cortes = await prepararCortes(g, null, ['fran:cara:enfado', 'vero:boca:picara', 'chuchi:ojos:seriedad', '!gogogo']);
     window.__cortes.iniciar();
     void g.plano.girar(1000, 3500000);`));

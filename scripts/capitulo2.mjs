@@ -39,6 +39,27 @@ const wait = (ms) => page.waitForTimeout(ms);
 const flag = (k) => page.evaluate((k) => !!window.__cyc.g.estado.flags[k], k);
 const check = (ok, msg) => ok || errors.push('PASO FALLIDO: ' + msg);
 
+// The three jumping into Vero's mouth come undone into figures while nobody speaks, so their shots go by the mouth's own clock
+// (seconds into the jump): the bodies breaking at the teeth and the pieces putting themselves together.
+const fotosBoca = [
+  [1.3, 'final-8c-boca-se-rompen'],
+  [2.15, 'final-8d-boca-se-recomponen'],
+];
+let tomandoBoca = false;
+const vigilaBoca = setInterval(async () => {
+  if (tomandoBoca || !fotosBoca.length) return;
+  tomandoBoca = true;
+  try {
+    const b = await page.evaluate(() => {
+      const b = window.__boca?.();
+      return b ? { fase: b.fase, u: b.u } : null;
+    }).catch(() => null);
+    if (b && b.fase === 'saltan' && b.u >= fotosBoca[0][0]) await shot(fotosBoca.shift()[1]);
+  } finally {
+    tomandoBoca = false;
+  }
+}, 60);
+
 /** Screenshots to take when a line of the dialogue shows (a piece of its text, the name of the file): the camera has time to land. */
 const fotos = [];
 const fotoAl = (trozo, nombre, manga, espera = 900, sinCortes = false) => fotos.push([trozo, nombre, manga, espera, sinCortes]);
@@ -387,6 +408,7 @@ fotoAl('¡Es Fran!', 'final-11-fran-una-mas', false, 1200);
 fotoAl('aparece el contorno de una jarra', 'final-12-la-ultima-aparece', false, 1500);
 fotoAl('Me veo en dibujitos', 'final-13-caos-cortes-1', false, 1400);
 fotoAl('Yo en píxeles', 'final-14-caos-cortes-2', false, 1100);
+fotoAl('muy al fondo, algo enorme', 'final-15a-dinosaurio-aparece', false, 1900, true);
 fotoAl('Es el userito', 'final-15-dinosaurio', false, 4200, true);
 fotoAl('Este es mío', 'final-16-guille-flor-y-jarra', false, 1300);
 
@@ -417,6 +439,8 @@ await paso('Continuará', async () => {
   await shot('fin');
 });
 
+clearInterval(vigilaBoca);
+check(!fotosBoca.length, 'la boca no llega a deshacer a los tres en figuras (faltan fotos de su salto)');
 await browser.close();
 if (errors.length) {
   console.log('\nFALLOS:\n' + errors.join('\n'));

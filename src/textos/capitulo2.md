@@ -518,7 +518,7 @@ VERO: Porque la noche no ha terminado, mi amor. Ni de lejos.
 // Provisional (los revisa Jesús). Marcas nuevas de la cámara, además de las de más arriba:
 //   @girar 2 6000        la imagen entera da 2 vueltas en 6 s y acaba derecha
 //   @caos on / @caos off los cortes rapidísimos entre estilos (normal, manga, píxel de Alacant Sun, píxel del Pang, lápiz)
-//   @caos dino           sube la silueta del dinosaurio del fondo
+//   @caos dino           sube la silueta enorme del dinosaurio (con su rugido; el temblor lo pone @temblor)
 //   @caos guille         Guille da un paso al frente con su jarra
 // En el mundo de los conceptos los amigos son figuras: se les enfoca por el nombre de su figura (@zoom fran 2.2).
 
@@ -753,7 +753,7 @@ VERO: Es que la última, mi niño, enseña todo lo que tiene.
 
 ## c2.caos.dino
 @caos dino
-@temblor 22 2400
+@temblor 32 3600
 > Y al fondo, muy al fondo, algo enorme se levantó.
 CHUCHI (nervioso): ¿Eso es... un dinosaurio?
 PABLO (sorprendido): Tiene un cartel encima. Pone «???».

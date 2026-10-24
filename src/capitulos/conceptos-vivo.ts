@@ -46,6 +46,8 @@ interface Pieza {
   s: number;
   dibujo: () => Dibujo;
   etiqueta?: Etiqueta;
+  /** Píxeles de bitmap por unidad del dibujo y por píxel de pantalla (1,2 de serie; menos para las piezas enormes y lisas). */
+  res?: number;
 }
 
 const PIEZAS: Pieza[] = [
@@ -63,7 +65,10 @@ const PIEZAS: Pieza[] = [
   { id: 'pablo.aro', s: 1.5, dibujo: A.aroPablo },
   { id: 'guille', s: 1.3, dibujo: A.florGuille },
   { id: 'guille.tallo', s: 1.3, dibujo: A.talloGuille },
-  { id: 'dino', s: 2.0, dibujo: A.dinosaurio },
+  // La jarra de Guille («Este es mío»): la de la penúltima, pero sin palabra debajo.
+  { id: 'guille.jarra', s: 1.6, dibujo: A.jarraPenultima },
+  // El userito mitológico: dibujado a escala de escena (2 300 × 1 080), lisa y enorme, con menos resolución que el resto.
+  { id: 'dino', s: 1, dibujo: A.dinosaurio, res: 0.62 },
 ];
 
 /** Una forma de fondo: dónde está respecto al centro de la pantalla, a qué profundidad y cómo se mueve. */
@@ -140,6 +145,13 @@ const estado = {
 
 const FUENTE = "'Graduate', 'Alegreya Sans', Georgia, serif";
 
+/** Los «???» del dinosaurio (unidades de escena): el cuadro, el cuerpo de letra y dónde están sobre su cabeza (según su dibujo). */
+const DINO_PALABRA = { w: 460, h: 190, tam: 150, x: -560, y: 285 };
+/** Lo que tarda en levantarse el dinosaurio (segundos). */
+const DINO_SUBE = 3.6;
+/** Adónde se apartan los conceptos que taparían su cabeza (a la izquierda de la pantalla, sobre su cuello y bajo su barbilla). */
+const HUYEN = { casa: { dx: -1010, y: 285 }, trabajo: { dx: -170, y: 300 }, pablo: { dx: -740, y: 735 } };
+
 function lienzo(w: number, h: number) {
   const c = document.createElement('canvas');
   c.width = Math.max(1, Math.ceil(w));
@@ -197,7 +209,7 @@ export function prepararConceptos(g: Aventura): Promise<void> {
     await Promise.all(
       PIEZAS.map(async (p) => {
         const d = p.dibujo();
-        piezas.set(p.id, await hornear(d, p.s * px * 1.2, p.etiqueta ? { ...p.etiqueta, tam: p.etiqueta.tam, abajo: p.etiqueta.abajo } : undefined));
+        piezas.set(p.id, await hornear(d, p.s * px * (p.res ?? 1.2), p.etiqueta ? { ...p.etiqueta, tam: p.etiqueta.tam, abajo: p.etiqueta.abajo } : undefined));
       }),
     );
     // Las formas de fondo: una por tipo y color que se use.
@@ -211,19 +223,25 @@ export function prepararConceptos(g: Aventura): Promise<void> {
     );
     const ancho = Math.ceil(g.motor.vw) + 200;
     const [labioArriba, labioAbajo] = await Promise.all([hornear(A.labioSuperior(ancho), px * 0.9), hornear(A.labioInferior(ancho), px * 0.9)]);
-    // Los tres interrogantes del dinosaurio.
-    const dinoPalabra = lienzo(260 * px * 1.2, 90 * px * 1.2);
+    // Los tres interrogantes del dinosaurio: grandes (440 × 180 unidades), con un halo de luz y un trazo oscuro.
+    const dinoPalabra = lienzo(DINO_PALABRA.w * px * 1.2, DINO_PALABRA.h * px * 1.2);
     const x = dinoPalabra.getContext('2d')!;
     x.scale(px * 1.2, px * 1.2);
-    x.font = `400 74px ${FUENTE}`;
+    x.font = `400 ${DINO_PALABRA.tam}px ${FUENTE}`;
     x.textAlign = 'center';
     x.textBaseline = 'middle';
-    x.lineWidth = 14;
     x.lineJoin = 'round';
-    x.strokeStyle = 'rgba(30,6,70,0.9)';
-    x.strokeText(texto('c2.concepto.dino'), 130, 46);
-    x.fillStyle = '#f2d6ff';
-    x.fillText(texto('c2.concepto.dino'), 130, 46);
+    const frase = texto('c2.concepto.dino');
+    const cx0 = DINO_PALABRA.w / 2;
+    const cy0 = DINO_PALABRA.h / 2 + 4;
+    x.strokeStyle = 'rgba(122,76,255,0.35)';
+    x.lineWidth = 34;
+    x.strokeText(frase, cx0, cy0);
+    x.strokeStyle = 'rgba(30,6,70,0.95)';
+    x.lineWidth = 20;
+    x.strokeText(frase, cx0, cy0);
+    x.fillStyle = '#f6e2ff';
+    x.fillText(frase, cx0, cy0);
     const viejo = listo;
     listo = { clave, piezas, formas, labioArriba, labioAbajo, dinoPalabra };
     if (viejo) soltar(viejo);
@@ -235,6 +253,7 @@ function soltar(h: Horneado) {
   for (const b of h.piezas.values()) b.c.width = b.c.height = 0;
   for (const fila of h.formas) for (const b of fila) if (b) b.c.width = b.c.height = 0;
   for (const b of [h.labioArriba, h.labioAbajo]) b.c.width = b.c.height = 0;
+  h.dinoPalabra.width = h.dinoPalabra.height = 0;
 }
 
 /** Suelta los bitmaps al salir del mundo (la memoria de los móviles, docs/ESTILO.md T5.11). */
@@ -315,8 +334,11 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
   const vaiven = (p: number) => Math.sin(real * 0.23 * (1 + caos * 2)) * 70 * p;
   const vaivenY = (p: number) => Math.cos(real * 0.17 * (1 + caos * 2)) * 26 * p;
   const base = () => ctx.setTransform(px, 0, 0, px, 0, 0);
+  /** Lo que se apagan las piezas que no son la protagonista del momento (Guille, al dar el paso). */
+  let alfa = 1;
   const pon = (b: Bmp, x: number, y: number, s = 1, rot = 0, sx = 1, sy = 1) => {
     ctx.save();
+    if (alfa !== 1) ctx.globalAlpha *= alfa;
     base();
     ctx.translate(x, y);
     if (rot) ctx.rotate(rot);
@@ -350,21 +372,49 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
       ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
       ctx.restore();
     }
-    // ---- El dinosaurio del fondo (el userito mitológico): una silueta enorme que sube despacio.
+    // ---- El dinosaurio del fondo (el userito mitológico): una silueta ENORME que llena toda la pantalla por detrás de
+    // todo. Crece desde abajo (anclado al borde de abajo, hundido y pequeño, y se levanta hasta llenarla, con un
+    // pequeño rebote al llegar) mientras tiembla; sus «???» van sobre su cabeza, grandes y latiendo.
+    const dinoU = estado.dino > 0 ? (real - estado.dino) / DINO_SUBE : 0;
     if (estado.dino > 0) {
-      const u = suave((real - estado.dino) / 3.2);
       const D = bm('dino');
-      const y = 1010 - u * 320;
+      // Sube deprisa al principio (el empujón) y se frena al llegar.
+      const k = 1 - Math.pow(1 - Math.min(1, dinoU), 2.4);
+      // Se pasa un poco de su tamaño al llegar y se asienta (un rebote de «he llegado»).
+      const asienta = dinoU > 1 ? Math.exp(-(dinoU - 1) * 6) * Math.sin((dinoU - 1) * 14) * 0.025 : 0;
+      const esc = 0.4 + 0.6 * k + asienta;
+      const hundido = (1 - k) * 380;
+      // Tiembla mientras sube, y un poco menos después (el retumbe).
+      const tiembla = (1 - Math.min(1, dinoU)) * 16 + Math.max(0, 1 - Math.max(0, dinoU - 1) * 0.6) * 5;
+      const ax = Math.sin(real * 61) * tiembla;
+      const ay = Math.cos(real * 53) * tiembla * 0.7;
+      const respira = 1 + 0.006 * Math.sin(real * 1.4);
       ctx.save();
-      ctx.globalAlpha = Math.min(1, u * 1.6);
-      pon(D, cx + 120 + vaiven(0.3) + Math.sin(real * 0.5) * 18, y, S.dino, Math.sin(real * 0.6) * 0.02);
-      ctx.globalAlpha = Math.min(1, u * 2) * (0.75 + 0.25 * Math.sin(real * 7));
+      ctx.globalAlpha = Math.min(1, dinoU * 2.2);
       base();
-      // Los «???» sobre su cabeza.
-      ctx.translate(cx + 120 + vaiven(0.3) - 264 + Math.sin(real * 0.5) * 18, y - 352 - 38 + Math.sin(real * 3) * 8);
-      ctx.drawImage(L.dinoPalabra, -130, -46, 260, 90);
+      // El ancla es el borde de abajo, en el centro de la pantalla (el dibujo mide lo que la pantalla de alto).
+      ctx.translate(cx + ax + vaiven(0.15), 1080 + hundido + ay);
+      ctx.scale(esc * respira, esc * respira * (1 + 0.004 * Math.sin(real * 1.4)));
+      ctx.drawImage(D.c, D.x, D.y - 1080, D.w, D.h);
+      // Los «???» sobre su cabeza: aparecen cuando ya ha subido casi todo, y laten.
+      const q = suave((dinoU - 0.55) / 0.35);
+      if (q > 0) {
+        const pulso = 1 + 0.06 * Math.sin(real * 5);
+        ctx.globalAlpha = q * (0.8 + 0.2 * Math.sin(real * 7));
+        ctx.translate(DINO_PALABRA.x, DINO_PALABRA.y - 1080 + Math.sin(real * 2.6) * 7);
+        ctx.rotate(Math.sin(real * 1.7) * 0.05);
+        ctx.scale(pulso, pulso);
+        ctx.drawImage(L.dinoPalabra, -DINO_PALABRA.w / 2, -DINO_PALABRA.h / 2, DINO_PALABRA.w, DINO_PALABRA.h);
+      }
       ctx.restore();
     }
+    // Con el dinosaurio levantándose, las formas de fondo se apagan para que se lea la silueta...
+    const apagan = estado.dino > 0 ? 1 - 0.5 * suave(dinoU) : 1;
+    // ...y los tres conceptos que le taparían la cabeza y los «???» se apartan asustados (cada uno a su rincón).
+    const hk = estado.dino > 0 ? suave(dinoU * 1.5) : 0;
+    const huye = Object.fromEntries(
+      (Object.keys(HUYEN) as (keyof typeof HUYEN)[]).map((id) => [id, { dx: SITIOS[id].dx + (HUYEN[id].dx - SITIOS[id].dx) * hk, y: SITIOS[id].y + (HUYEN[id].y - SITIOS[id].y) * hk }]),
+    ) as Record<keyof typeof HUYEN, { dx: number; y: number }>;
     // ---- Las formas que flotan, de lo lejano a lo cercano; las cercanas, a un lado y algo translúcidas.
     const n = caos ? FLOTAS.length : nivel >= 7 ? FLOTAS.length - 10 : FLOTAS.length - 18;
     let k = 0;
@@ -376,18 +426,21 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
       const y = f.y + vaivenY(f.p) + Math.cos(t * f.fy + f.fase * 1.3) * f.ay;
       const latir = 1 + 0.12 * Math.sin(t * 1.6 + f.fase);
       ctx.save();
-      ctx.globalAlpha = f.p > 1.15 ? 0.55 : f.p < 0.5 ? 0.6 : 0.85;
+      ctx.globalAlpha = (f.p > 1.15 ? 0.55 : f.p < 0.5 ? 0.6 : 0.85) * apagan;
       pon(b, x, y, f.tam * latir, f.rot + t * f.vrot);
       ctx.restore();
     }
 
     // ---- Los conceptos.
     const hallado = g.flag('c2.fran.hallado');
+    // Cuando Guille da el paso al frente, todo lo demás se apaga un poco para que se lea él, con su jarra.
+    const pasoK = estado.paso > 0 ? suave((real - estado.paso) / 1.3) : 0;
+    alfa = 1 - 0.55 * pasoK;
     // CASA: siempre lejos. Se acerca... y se aleja justo cuando la miras.
     {
       const ciclo = Math.sin(t * 0.5);
-      const x = cx + SITIOS.casa.dx + vaiven(0.45) + ciclo * 70;
-      const y = SITIOS.casa.y + vaivenY(0.45);
+      const x = cx + huye.casa.dx + vaiven(0.45) + ciclo * 70;
+      const y = huye.casa.y + vaivenY(0.45);
       const r = rebote(real, 'casa');
       pon(bm('casa'), x, y, S.casa * (1 + 0.28 * Math.sin(t * 0.5 + 1.6)) * 0.9, r.r, r.sx, r.sy);
       zona('casa', x, y);
@@ -395,8 +448,8 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
     // EL TRABAJO: vibra como un móvil con avisos.
     {
       const zumbido = Math.sin(t * 0.9) > 0.55 ? Math.sin(t * 60) * 0.05 : 0;
-      const x = cx + SITIOS.trabajo.dx + vaiven(0.8) + Math.sin(t * 0.4) * 16;
-      const y = SITIOS.trabajo.y + vaivenY(0.8) + Math.sin(t * 0.8) * 10;
+      const x = cx + huye.trabajo.dx + vaiven(0.8) + Math.sin(t * 0.4) * 16;
+      const y = huye.trabajo.y + vaivenY(0.8) + Math.sin(t * 0.8) * 10;
       const r = rebote(real, 'trabajo');
       pon(bm('trabajo'), x, y, S.trabajo, zumbido + r.r, r.sx, r.sy);
       zona('trabajo', x, y);
@@ -439,8 +492,8 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
     }
     // PABLO: la espiral gira despacio y su aro le da vueltas.
     {
-      const x = cx + SITIOS.pablo.dx + vaiven(1.05);
-      const y = SITIOS.pablo.y + vaivenY(1.05) + Math.sin(t * 0.8) * 10;
+      const x = cx + huye.pablo.dx + vaiven(1.05);
+      const y = huye.pablo.y + vaivenY(1.05) + Math.sin(t * 0.8) * 10;
       const r = rebote(real, 'pablo');
       pon(bm('pablo'), x, y, S.pablo, t * 0.6 + r.r, r.sx, r.sy);
       const a = t * 1.7;
@@ -457,24 +510,37 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
       pon(bm('chuchi'), x, y, S.chuchi * (1 + 0.04 * Math.sin(t * 2.4)), r.r, r.sx, r.sy);
       zona('chuchi', x, y);
     }
-    // GUILLE: la flor más alta, con la cabeza girando al viento en lo alto de su tallo.
-    {
+    // GUILLE: la flor más alta, con la cabeza girando al viento en lo alto de su tallo. Al dar el paso al frente crece,
+    // se adelanta hacia el centro, con un resplandor detrás, y sostiene su jarra en una hoja. Se pinta el último.
+    const dibujarGuille = () => {
       const x = cx + SITIOS.guille.dx + vaiven(1.0);
       const yCabeza = 400 + vaivenY(1.0);
       const r = rebote(real, 'guille');
-      const dp = estado.paso > 0 ? suave((real - estado.paso) / 1.3) : 0;
-      // Al dar el paso al frente, crece y se adelanta hacia el centro.
-      const sc = 1 + dp * 0.75;
-      const gx = x + (cx - 120 - x) * dp;
-      const gy = yCabeza + dp * 80;
+      const dp = pasoK;
+      const sc = 1 + dp * 0.62;
+      const gx = x + (cx - 150 - x) * dp;
+      const gy = yCabeza + dp * 70;
+      if (dp > 0) {
+        // Un resplandor cálido detrás de él y de la jarra, para que se lean sobre el dinosaurio y las figuras.
+        ctx.save();
+        base();
+        ctx.globalCompositeOperation = 'lighter';
+        const rad = 430 * dp;
+        const cxh = gx + 120 * sc;
+        const cyh = gy + 60 * sc;
+        const gr = ctx.createRadialGradient(cxh, cyh, 0, cxh, cyh, rad);
+        gr.addColorStop(0, 'rgba(255,214,120,0.5)');
+        gr.addColorStop(1, 'rgba(255,214,120,0)');
+        ctx.fillStyle = gr;
+        ctx.fillRect(cxh - rad, cyh - rad, rad * 2, rad * 2);
+        ctx.restore();
+      }
       pon(bm('guille.tallo'), gx + Math.sin(t * 0.9) * 8 * sc, gy + 6 * sc, S.guille * sc, Math.sin(t * 0.9) * 0.03 + r.r * 0.4, r.sx, r.sy);
       pon(bm('guille'), gx + Math.sin(t * 0.9) * 8 * sc, gy, S.guille * sc, t * 0.5 + r.r, r.sx, r.sy);
-      if (dp > 0) {
-        // La jarra de Guille, en una de sus hojas (la misma del concepto de la penúltima, pero suya).
-        ctxJarra(ctx, base, bm('penultima'), gx + 120 * sc, gy + 240 * sc, 0.8 * sc, dp, t);
-      }
+      // La jarra de Guille, en una de sus hojas (la misma del concepto de la penúltima, pero suya).
+      if (dp > 0) ctxJarra(ctx, base, bm('guille.jarra'), gx + 185 * sc, gy + 100 * sc, 0.8 * sc, dp, t);
       zona('guille', gx, gy + 140 * sc, SITIOS.guille.w * sc, SITIOS.guille.h * sc);
-    }
+    };
     // FRAN, hecho «UNA MÁS»: la jarra infinita pasea por el mundo.
     {
       const x = cx + SITIOS.fran.dx + 200 * Math.sin(t * 0.21) + vaiven(0.95);
@@ -486,6 +552,7 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
         ctx.save();
         base();
         ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = alfa;
         const rad = 170 * (1 + 0.15 * Math.sin(real * 4));
         const gr = ctx.createRadialGradient(x, y, 0, x, y, rad);
         gr.addColorStop(0, hallado ? 'rgba(120,255,230,0.55)' : 'rgba(120,255,230,0.38)');
@@ -506,6 +573,7 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
       ctx.save();
       base();
       ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = alfa;
       const rad = 260 * u * (1 + 0.1 * Math.sin(real * 3));
       const gr = ctx.createRadialGradient(x, y, 0, x, y, rad);
       gr.addColorStop(0, 'rgba(255,246,224,0.5)');
@@ -519,6 +587,9 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
       ctx.restore();
       zona('ultima', x, y);
     }
+    // GUILLE va el último: da el paso al frente y se queda por delante de todo lo demás.
+    alfa = 1;
+    dibujarGuille();
   } else {
     // ---- VERO: una boca dorada que lo envuelve todo. Respira; los labios se cierran y se abren un poco.
     const respira = Math.sin(t * 1.1) * 0.5 + 0.5;
