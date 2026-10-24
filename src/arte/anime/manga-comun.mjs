@@ -1,60 +1,57 @@
-// Piezas de tinta del manga en blanco y negro del capítulo 2 (estilo C de Jesús, ampliado a los cinco
-// personajes). Solo devuelve cadenas SVG; se hornea UNA vez a bitmap y nunca por fotograma.
+// Piezas del manga a color del capítulo 2 (el estilo C de Jesús, ampliado a los cinco personajes y pasado a color
+// con la paleta del juego: docs/ESTILO.md y las paletas `C` de src/arte/personajes). Solo devuelve cadenas SVG; se
+// hornea UNA vez a bitmap y nunca por fotograma.
 //
-// Reglas del estilo (las de estilo-c.mjs): tinta negra (T) sobre papel crema (PAPEL), blancos puros (#fff) solo para
-// brillos y letras, tramas de punto y de raya (screentone) que miden lo mismo en pantalla se amplíe lo que se amplíe
-// el dibujo (por eso `tonos(c, k)` recibe la escala), líneas de concentración y onomatopeyas hechas con trazos.
+// Reglas del estilo: color plano con sombreado de anime (cel shading: base, sombra y luz), línea en un marrón muy
+// oscuro (nunca negro puro), marfil en lugar de blanco puro, nada de negro en grandes superficies, y tramas solo como un
+// brillo muy suave dentro del color. Las líneas de concentración, los bordes y las onomatopeyas usan colores del bar
+// (ámbar, ladrillo, azul noche) y el dorado de los botones.
 import { smooth, ellipse, poly, line, f, rng, P, S, G, estrella, gota } from './comun.mjs';
 
 export { smooth, ellipse, poly, line, f, rng, P, S, G, estrella, gota };
 
-export const T = '#0b0a0d';
-export const PAPEL = '#f6f2e6';
-export const BLANCO = '#fff';
+// ------------------------------------------------------------------ paleta
+/** La línea de dibujo: un marrón ciruela muy oscuro (el «tono oscuro de su propio color» de ESTILO.md, P2). */
+export const T = '#2b1c20';
+/** El «blanco» del dibujo: marfil cálido (dientes, ojos, brillos). Nunca #fff. */
+export const MARFIL = '#f7efdc';
+/** El dorado de los botones y los filetes del cuadro de diálogo (--gold de ui.css). */
+export const ORO = '#dbb46c';
+export const ORO_OSC = '#a8761c';
+/** Azul noche de la interfaz (--ink de ui.css): el fondo entre viñetas. */
+export const NOCHE = '#0b1124';
+export const LADRILLO = '#c8433a';
+export const AMBAR = '#ffb45a';
 
-// ------------------------------------------------------------------ tramas
+/** Mezcla dos colores #rrggbb (t = 0: a; t = 1: b). */
+export function mezcla(a, b, t = 0.5) {
+  const n = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const [r, g, bl] = n(a).map((v, i) => Math.round(v + (n(b)[i] - v) * t));
+  return `#${[r, g, bl].map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+}
 
+/** Color con transparencia: `#rrggbb` → `rgba(...)`. */
+export function alfa(h, a) {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+// ------------------------------------------------------------------ brillo suave (lo que antes eran las tramas)
 /**
- * Las tramas de un dibujo de escala `k` (pantalla / unidades del dibujo): el paso de los puntos es de
- * `paso` píxeles de pantalla. `punto(c, cobertura)`: tramas de punto, de 0 (nada) a 1 (negro); por encima
- * de 0,55 son puntos de papel sobre negro. Los patrones se guardan en el contexto para no repetirlos.
+ * Una trama de puntos muy suave, de un solo color y con poca opacidad, solo como brillo dentro de un color (nunca
+ * como contraste). El paso es de `paso` píxeles de pantalla sea cual sea la escala `k` del dibujo.
  */
-export function tonos(c, k = 1, paso = 4.4) {
-  const memo = (c.__tonos ??= new Map());
+export function trama(c, k, color, a = 0.14, paso = 5.5, ang = 45) {
+  const memo = (c.__tramas ??= new Map());
   const esc = paso / k;
-  const clave = (...a) => a.join('|');
-  const patron = (id, w, h, cuerpo, ang) => {
-    c.def(`<pattern id="${id}" width="${f(w)}" height="${f(h)}" patternUnits="userSpaceOnUse" patternTransform="rotate(${ang})">${cuerpo}</pattern>`);
-    return `url(#${id})`;
-  };
-  return {
-    esc,
-    punto(cobertura, ang = 45, tinta = T) {
-      const kk = clave('p', f(cobertura), ang, tinta, f(esc));
-      if (memo.has(kk)) return memo.get(kk);
-      const id = c.id('tp');
-      let v;
-      if (cobertura <= 0.55) {
-        const r = esc * Math.sqrt(cobertura / Math.PI);
-        v = patron(id, esc, esc, `<circle cx="${f(esc / 2)}" cy="${f(esc / 2)}" r="${f(r)}" fill="${tinta}"/>`, ang);
-      } else {
-        const r = esc * Math.sqrt((1 - cobertura) / Math.PI);
-        v = patron(id, esc, esc, `<rect width="${f(esc)}" height="${f(esc)}" fill="${tinta}"/><circle cx="${f(esc / 2)}" cy="${f(esc / 2)}" r="${f(r)}" fill="${PAPEL}"/>`, ang);
-      }
-      memo.set(kk, v);
-      return v;
-    },
-    /** Trama de rayas: grosor `w` (fracción del paso). */
-    raya(w = 0.3, ang = 45, tinta = T, paso2 = paso * 0.7) {
-      const kk = clave('r', f(w), ang, tinta, f(esc), paso2);
-      if (memo.has(kk)) return memo.get(kk);
-      const e2 = paso2 / k;
-      const id = c.id('tr');
-      const v = patron(id, e2, e2, `<rect width="${f(e2 * w)}" height="${f(e2)}" fill="${tinta}"/>`, ang);
-      memo.set(kk, v);
-      return v;
-    },
-  };
+  const clave = [color, a, f(esc), ang].join('|');
+  if (memo.has(clave)) return memo.get(clave);
+  const id = c.id('tp');
+  const r = esc * 0.28;
+  c.def(`<pattern id="${id}" width="${f(esc)}" height="${f(esc)}" patternUnits="userSpaceOnUse" patternTransform="rotate(${ang})"><circle cx="${f(esc / 2)}" cy="${f(esc / 2)}" r="${f(r)}" fill="${color}" fill-opacity="${a}"/></pattern>`);
+  const v = `url(#${id})`;
+  memo.set(clave, v);
+  return v;
 }
 
 // ------------------------------------------------------------------ líneas
@@ -84,21 +81,21 @@ export function lineasCaida(x0, x1, y0, y1, { n = 24, seed = 5, color = T, groso
   return out.join('');
 }
 
-/** Vena de enfado: cuatro arcos en cruz. */
-export function vena(x, y, s = 1, tinta = T) {
-  const arco = (r) => G([S('M4 -13Q13 -13 13 -4', tinta, 4.2), S('M2 -9Q9 -9 9 -2', tinta, 2)], { transform: `rotate(${r})` });
+/** Vena de enfado: cuatro arcos en cruz, en el rojo ladrillo del bar. */
+export function vena(x, y, s = 1, tinta = LADRILLO) {
+  const arco = (r) => G([S('M4 -13Q13 -13 13 -4', T, 6.4), S('M2 -9Q9 -9 9 -2', T, 3.6), S('M4 -13Q13 -13 13 -4', tinta, 3.6), S('M2 -9Q9 -9 9 -2', tinta, 1.6)], { transform: `rotate(${r})` });
   return G([0, 90, 180, 270].map(arco).join(''), { transform: `translate(${f(x)} ${f(y)}) scale(${s})` });
 }
 
-/** Destello de cuatro puntas con borde de tinta. */
-export function brillo4(x, y, r, tinta = T, relleno = BLANCO) {
-  return P(estrella(x, y, r, 0.2), relleno) + S(estrella(x, y, r, 0.2), tinta, Math.max(1.4, r * 0.08));
+/** Destello de cuatro puntas: dorado claro con filete dorado oscuro. */
+export function brillo4(x, y, r, tinta = ORO_OSC, relleno = '#fff1b8') {
+  return P(estrella(x, y, r, 0.2), relleno) + S(estrella(x, y, r, 0.2), tinta, Math.max(1.2, r * 0.07));
 }
 
-/** Gota de sudor con borde. */
+/** Gota de sudor: azul pálido del sudor de Vero, con filete azul y un brillo. */
 export function sudor(x, y, s = 1, rot = 0) {
   const gt = gota(0, 0, s);
-  return G([P(gt, BLANCO), S(gt, T, 2.4), P(ellipse(-3 * s, 4 * s, 2 * s, 4 * s, 0.4), T, { opacity: 0.0 }), S(`M${f(-5 * s)} ${f(2 * s)}Q${f(-5 * s)} ${f(9 * s)} ${f(-1 * s)} ${f(11 * s)}`, T, 1.4)], { transform: `translate(${f(x)} ${f(y)}) rotate(${rot})` });
+  return G([P(gt, '#bfe3f2'), S(gt, '#5f93ad', 2.4), P(ellipse(-3.4 * s, 5 * s, 1.8 * s, 4 * s, 0.4), MARFIL, { opacity: 0.85 })], { transform: `translate(${f(x)} ${f(y)}) rotate(${rot})` });
 }
 
 // ------------------------------------------------------------------ letras y onomatopeyas
@@ -180,9 +177,9 @@ function kana(clave, x, y, s, relleno, borde, bw) {
  *   gogogo (ゴゴゴ, tres en vertical) · don (ドン) · ha (ハハハ, risa) · zas (la palabra)
  * Devuelve un grupo centrado en (x, y), con alto aproximado `alto`, girado `rot` grados.
  */
-export function onomatopeya(tipo, { x, y, alto = 120, rot = 0, palabra = '', invertida = false } = {}) {
-  const relleno = invertida ? T : BLANCO;
-  const borde = invertida ? BLANCO : T;
+export function onomatopeya(tipo, { x, y, alto = 120, rot = 0, palabra = '', invertida = false, color = '#ffd27a' } = {}) {
+  const relleno = invertida ? T : color;
+  const borde = invertida ? MARFIL : T;
   let cuerpo = '';
   if (tipo === 'gogogo') {
     const s = alto / 3 / 10.5;
@@ -204,7 +201,7 @@ export function onomatopeya(tipo, { x, y, alto = 120, rot = 0, palabra = '', inv
 }
 
 /** Aureola de impacto: estrella de picos irregulares (para el «ZAS» y el «DON»). */
-export function impacto(cx, cy, r, { picos = 16, seed = 8, relleno = BLANCO, borde = T, bw = 3 } = {}) {
+export function impacto(cx, cy, r, { picos = 16, seed = 8, relleno = '#f1c75b', borde = T, bw = 3 } = {}) {
   const rnd = rng(seed);
   const pts = [];
   for (let i = 0; i < picos * 2; i++) {

@@ -1,5 +1,6 @@
-// El plano manga del capítulo 2 (estilo C de Jesús: blanco y negro, viñetas inclinadas, tramas, líneas de
-// concentración y onomatopeyas), con los cinco personajes y la sombra de Pablo.
+// El plano manga del capítulo 2 (estilo C de Jesús, pasado a color con la paleta del juego: viñetas inclinadas,
+// color plano con sombra de anime, líneas de concentración en tonos del bar y onomatopeyas), con los cinco
+// personajes y la sombra de Pablo.
 //
 // Módulo puro (cadenas SVG): el juego (src/juego/manga.ts) lo hornea UNA vez a bitmap y dibuja ese bitmap; el
 // script de la hoja de personajes (tools/anime/manga-hoja.mjs) lo pinta para revisarlo. Nunca se dibuja por fotograma.
@@ -10,7 +11,7 @@
 //   fin                    vuelve al plano de siempre
 // Se pueden poner de 1 a 3 viñetas. Los personajes: pablo, fran, chuchi, guille, vero y sombra.
 import { ctx, rng, f, P, S, G, poly, W as W0, H as H0 } from './comun.mjs';
-import { T, PAPEL, BLANCO, tonos, concentracion, lineasCaida, onomatopeya, impacto, brillo4, sudor } from './manga-comun.mjs';
+import { NOCHE, ORO, LADRILLO, trama, alfa, concentracion, lineasCaida, onomatopeya, impacto, brillo4, sudor } from './manga-comun.mjs';
 import { cara, CAJAS, EXPRESIONES, PERSONAJES } from './manga-cara.mjs';
 import { mano, CAJA_MANO } from './manga-mano.mjs';
 
@@ -131,26 +132,43 @@ export function repartir(paneles, W, H) {
 }
 
 // ------------------------------------------------------------------ fondos
+// Cada fondo es un degradado suave (centro claro, bordes más oscuros) con las líneas de velocidad o de caída en un
+// tono más claro y translúcido, todo en colores del bar: ámbar del sodio, ladrillo del neón, azul noche, verde
+// azulado de la camiseta de Fran, violeta de la sombra. El contraste es moderado: que acompañe al cuadro de diálogo.
+const FONDOS = {
+  luz: { centro: '#f5dfae', borde: '#d9a35c', rayo: '#fff2cc', a: 0.5, trama: '#b87a2c' },
+  negro: { centro: '#41507f', borde: '#1f2846', rayo: '#8393c4', a: 0.4 },
+  rafaga: { centro: '#dc8a63', borde: '#a8453a', rayo: '#ffcc98', a: 0.36, trama: '#7a2420' },
+  gris: { centro: '#8e9bb2', borde: '#56627c', rayo: '#c3cde0', a: 0.4, trama: '#2f3a55' },
+  seriedad: { centro: '#78a1a0', borde: '#40626a', rayo: '#bdddd4', a: 0.32 },
+  sombra: { centro: '#6e5894', borde: '#2e2347', rayo: '#a58ed0', a: 0.38 },
+};
+
 function fondo(c, kind, b, foco, semilla) {
-  const tn = tonos(c, 1);
   const { x0, y0, x1, y1 } = b;
   const [fx, fy] = foco;
   const area = `M${f(x0 - 20)} ${f(y0 - 20)}H${f(x1 + 20)}V${f(y1 + 20)}H${f(x0 - 20)}Z`;
   const R = Math.hypot(x1 - x0, y1 - y0);
+  const F = FONDOS[kind] ?? FONDOS.luz;
+  const degradado = c.grad('radial', [[0, F.centro], [0.55, F.centro], [1, F.borde]], { cx: f(fx), cy: f(fy), r: f(R * 0.62), gradientUnits: 'userSpaceOnUse' });
+  const base = [P(area, F.borde), P(area, degradado)];
+  // Un brillo muy suave de puntos dentro del color (lo que antes eran las tramas), solo donde da calidez.
+  if (F.trama) base.push(P(area, trama(c, 1, F.trama, 0.16, 5)));
+  const rayo = alfa(F.rayo, F.a);
   switch (kind) {
     case 'negro':
-      return P(area, T) + concentracion(fx, fy, { n: 110, interior: 110, color: BLANCO, seed: semilla, grosor: 0.016, R });
+      return base.join('') + concentracion(fx, fy, { n: 110, interior: 110, color: rayo, seed: semilla, grosor: 0.016, R });
     case 'rafaga':
-      return P(area, PAPEL) + P(area, tn.punto(0.1)) + concentracion(fx, fy, { n: 150, interior: 120, color: T, seed: semilla, grosor: 0.03, R });
+      return base.join('') + concentracion(fx, fy, { n: 150, interior: 120, color: rayo, seed: semilla, grosor: 0.03, R });
     case 'gris':
-      return P(area, PAPEL) + P(area, tn.punto(0.34, 45)) + lineasCaida(x0, x1, y0, y1, { n: 22, seed: semilla, grosor: 1.8 });
+      return base.join('') + lineasCaida(x0, x1, y0, y1, { n: 22, seed: semilla, grosor: 1.8, color: rayo });
     case 'seriedad':
-      return P(area, PAPEL) + P(area, tn.punto(0.3, 45)) + concentracion(fx, fy, { n: 70, interior: 160, color: T, seed: semilla, grosor: 0.012, R });
+      return base.join('') + concentracion(fx, fy, { n: 70, interior: 160, color: rayo, seed: semilla, grosor: 0.012, R });
     case 'sombra':
-      return P(area, PAPEL) + P(area, tn.punto(0.5, 45)) + concentracion(fx, fy, { n: 120, interior: 100, color: T, seed: semilla, grosor: 0.03, R });
+      return base.join('') + concentracion(fx, fy, { n: 120, interior: 100, color: rayo, seed: semilla, grosor: 0.03, R });
     case 'luz':
     default: {
-      const o = [P(area, PAPEL), P(area, tn.punto(0.12)), concentracion(fx, fy, { n: 90, interior: 130, color: T, seed: semilla, grosor: 0.01, R })];
+      const o = [...base, concentracion(fx, fy, { n: 90, interior: 130, color: rayo, seed: semilla, grosor: 0.01, R })];
       const rnd = rng(semilla + 7);
       for (let i = 0; i < 5; i++) o.push(brillo4(x0 + rnd() * (x1 - x0), y0 + rnd() * (y1 - y0) * 0.8, 9 + rnd() * 12));
       return o.join('');
@@ -227,7 +245,7 @@ export function plano(m, W = W0, H = H0, textos = {}) {
     const b = caja(poli);
     const rot = (i % 2 ? -1 : 1) * (3 + rnd() * 5) * (paneles.length === 1 ? 0.6 : 1);
     const vis = { x0: b.x0, y0: b.y0, x1: b.x1, y1: Math.max(b.y0 + 60, Math.min(b.y1, visBottom)) };
-    return dibujarVineta(c, p, poli, { vis, rot, semilla: 3 + i * 5 }) + S(poli.length ? `M${poli.map(([x, y]) => `${f(x)} ${f(y)}`).join('L')}Z` : '', T, 3.6);
+    return dibujarVineta(c, p, poli, { vis, rot, semilla: 3 + i * 5 }) + S(poli.length ? `M${poli.map(([x, y]) => `${f(x)} ${f(y)}`).join('L')}Z` : '', ORO, 3.6);
   });
   // Onomatopeyas sobre los cortes (la primera en el primero, etc.).
   const ono = m.ono.map((tipo, i) => {
@@ -235,11 +253,13 @@ export function plano(m, W = W0, H = H0, textos = {}) {
     const rot = (i % 2 ? 1 : -1) * 4;
     const alto = tipo === 'gogogo' ? 190 : tipo === 'zas' ? 96 : tipo === 'ha' ? 120 : 140;
     const bloque = [];
-    if (tipo === 'zas' || tipo === 'don') bloque.push(impacto(x, y, alto * (tipo === 'zas' ? 1.5 : 1.1), { seed: 4 + i }));
-    bloque.push(onomatopeya(tipo, { x, y, alto, rot, palabra: textos[tipo] ?? '' }));
+    const conEstrella = tipo === 'zas' || tipo === 'don';
+    if (conEstrella) bloque.push(impacto(x, y, alto * (tipo === 'zas' ? 1.5 : 1.1), { seed: 4 + i }));
+    // Sobre la estrella dorada, las letras en rojo ladrillo; sueltas sobre el fondo, doradas con filete oscuro.
+    bloque.push(onomatopeya(tipo, { x, y, alto, rot, palabra: textos[tipo] ?? '', color: conEstrella ? LADRILLO : '#ffd27a' }));
     return bloque.join('');
   });
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${f(W)} ${f(H)}" width="${f(W)}" height="${f(H)}"><defs>${c.defs.join('')}</defs><rect width="${f(W)}" height="${f(H)}" fill="${PAPEL}"/>${dib.join('')}${ono.join('')}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${f(W)} ${f(H)}" width="${f(W)}" height="${f(H)}"><defs>${c.defs.join('')}</defs><rect width="${f(W)}" height="${f(H)}" fill="${NOCHE}"/>${dib.join('')}${ono.join('')}</svg>`;
 }
 
 // ------------------------------------------------------------------ la hoja de revisión de los personajes
@@ -254,7 +274,7 @@ export function hojaPersonajes() {
   const cols = 7;
   const o = [];
   const rect = (x, y, w, h) => [[x + m, y + m], [x + w - m, y + m], [x + w - m, y + h - m], [x + m, y + h - m]];
-  const pon = (p, poli, rot, semilla) => o.push(dibujarVineta(c, p, poli, { rot, semilla }) + S(`M${poli.map(([px, py]) => `${f(px)} ${f(py)}`).join('L')}Z`, T, 3.4));
+  const pon = (p, poli, rot, semilla) => o.push(dibujarVineta(c, p, poli, { rot, semilla }) + S(`M${poli.map(([px, py]) => `${f(px)} ${f(py)}`).join('L')}Z`, ORO, 3.4));
   TODOS.forEach((quien, fila) => {
     const y = fila * cel;
     const ex = EXPRESIONES[quien];
@@ -266,7 +286,7 @@ export function hojaPersonajes() {
   });
   const Wt = cel * cols;
   const Ht = cel * TODOS.length;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${Wt} ${Ht}" width="${Wt}" height="${Ht}"><defs>${c.defs.join('')}</defs><rect width="${Wt}" height="${Ht}" fill="${PAPEL}"/>${o.join('')}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${Wt} ${Ht}" width="${Wt}" height="${Ht}"><defs>${c.defs.join('')}</defs><rect width="${Wt}" height="${Ht}" fill="${NOCHE}"/>${o.join('')}</svg>`;
 }
 
 export { sudor };

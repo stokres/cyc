@@ -1,5 +1,5 @@
-// El plano manga de la noche loca (capítulo 2): la pantalla se llena de una a tres viñetas inclinadas en blanco y
-// negro (tinta, tramas, líneas de concentración, onomatopeyas) que entran de golpe con un corte mientras el diálogo
+// El plano manga de la noche loca (capítulo 2): la pantalla se llena de una a tres viñetas inclinadas a color (color plano
+// con sombra de anime, líneas de concentración, onomatopeyas) que entran de golpe con un corte mientras el diálogo
 // sigue en su cuadro. El dibujo es de src/arte/anime/manga.mjs; aquí solo se HORNEA UNA VEZ a bitmap (svgABitmap,
 // docs/ESTILO.md T5.7) y se pone encima de la escena: un lienzo quieto, sin dibujar nada por fotograma ni filtros.
 //

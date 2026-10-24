@@ -2225,7 +2225,7 @@ button:focus-visible {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: #f6f2e6;
+  background: #0b1124;
 }
 
 .manga[hidden] {
@@ -2246,7 +2246,7 @@ button:focus-visible {
   content: '';
   position: absolute;
   inset: 0;
-  background: #fff;
+  background: #ffe6b0;
   animation: manga-fogonazo 150ms ease-out forwards;
 }
 
