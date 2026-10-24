@@ -7,7 +7,8 @@
 // skipped, closed with window.__sol().cerrar()) and Pablo opens his eyes. Then the last stretch: Chuchi's boss and «una
 // más» (manga), the slot machine on his face, the floor turning into Impropios Kart (skipped, closed with
 // window.__kart().cerrar()), Vero growing and swallowing Fran (the mouth), the world of the concepts (taps: three jokes,
-// Fran as «Una más», «LA ÚLTIMA») and the total chaos up to «Continuará…». Screenshots of each level of the night.
+// Fran as «Una más», «LA ÚLTIMA»), the total chaos, PokéUsera (the phone turned upright and back, closed with window.__poke().cerrar())
+// and «Continuará…». Screenshots of each level of the night.
 // Fails on any console error or if a step does not do what it should.
 // Usage: node scripts/capitulo2.mjs [url] [outDir]   (against npm run dev; the url gets ?capitulo2&nueva)
 import { chromium } from 'playwright';
@@ -421,8 +422,37 @@ check(await flag('c2.con.pista'), 'tras tres conceptos nadie señala la jarra');
 await paso('Fran es la jarra de «una más»', async () => {
   await tocarConcepto('fran');
 }, 'c2.fran.hallado');
-await paso('LA ÚLTIMA: el caos total', async () => {
+await paso('LA ÚLTIMA: el caos total y, de «Este es mío», PokéUsera (el giro, el velo en horizontal, de pie, y la vuelta)', async () => {
   await tocarConcepto('ultima');
+  // PokéUsera (src/pokeusera/): the screen turns by itself and the game stands up in its own stage. It is not played here (that is
+  // scripts/pokeusera-caza-sim.mjs and a manual game): closed from the hook, the story goes on.
+  await page.waitForFunction(() => window.__poke, null, { timeout: 120000 });
+  await page.waitForSelector('.cubierta.minijuego.pokeusera', { timeout: 20000 });
+  await wait(1200);
+  const velo = () => page.evaluate(() => !document.querySelector('.pk-gira')?.hidden);
+  const aviso = () => page.$('.cubierta.girar');
+  check(await velo(), 'PokéUsera con el móvil en horizontal no pide «Gira el móvil»');
+  check(!(await aviso()), 'con PokéUsera abierta sale el aviso general de girar (en horizontal)');
+  await shot('final-17-pokeusera-gira-el-movil');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await wait(1200);
+  check(!(await velo()), 'PokéUsera con el móvil de pie sigue pidiendo girar');
+  check(!(await aviso()), 'con PokéUsera abierta y el móvil de pie sale el aviso general de girar');
+  await shot('final-18-pokeusera-de-pie');
+  await page.setViewportSize({ width: 844, height: 390 });
+  await wait(900);
+  check(await velo(), 'al volver a horizontal PokéUsera no vuelve a pedir girar');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await wait(700);
+  await page.evaluate(() => window.__poke().cerrar());
+  await page.waitForSelector('.cubierta.minijuego.pokeusera', { state: 'detached', timeout: 10000 });
+  await wait(700);
+  check(!!(await aviso()), 'al acabar PokéUsera con el móvil de pie no pide volver a horizontal');
+  await shot('final-19-pokeusera-vuelve-a-horizontal');
+  await page.setViewportSize({ width: 844, height: 390 });
+  await wait(800);
+  check(!(await aviso()), 'sigue el aviso de girar con el móvil ya en horizontal');
+  await charla();
   await page.waitForSelector('.cubierta.rotulo', { timeout: 120000 });
 });
 check((await nivel()) === 8, 'tras pedir la última la noche no está en el nivel 8');

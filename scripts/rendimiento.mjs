@@ -15,7 +15,7 @@
 // without it, to compare.
 //
 // Usage: node scripts/rendimiento.mjs [escena...]   (against npm run dev on :5173)
-//   escenas: prologo, piso, calle, bar, manga, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, tragaperras, sol, solcombate, solcamino, solteatro, soljefe, solcalderon, kart, boca, conceptos, caos, pangcompleto (all by default)
+//   escenas: prologo, piso, calle, bar, manga, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, tragaperras, sol, solcombate, solcamino, solteatro, soljefe, solcalderon, kart, boca, conceptos, caos, pangcompleto, pokecap (all by default)
 import { chromium } from 'playwright';
 import { readFileSync, readdirSync } from 'node:fs';
 
@@ -81,6 +81,7 @@ async function medir(nombre, prep, contar = 'escena') {
     clearInterval(window.__lucha);
     window.__sol?.().cerrar();
     window.__kart?.().cerrar();
+    window.__poke?.().cerrar();
     window.__boca?.().cerrar();
     window.__cortes?.parar();
     window.__cortes?.liberar();
@@ -118,9 +119,10 @@ async function medir(nombre, prep, contar = 'escena') {
     const ka0 = window.__kart?.().fotogramas ?? 0;
     const bo0 = window.__boca?.().fotogramas ?? 0;
     const pf0 = window.__pangFase?.().fotogramas ?? 0;
+    const pk0 = window.__poke?.().fotogramas ?? 0;
     setTimeout(() => {
       m.dibujar = d;
-      res(contar === 'cerdos' ? ((window.__cerdos?.().fotogramas ?? 0) - f0) / seg : contar === 'palabras' ? ((window.__palabras?.().fotogramas ?? 0) - p0) / seg : contar === 'rana' ? ((window.__rana?.().fotogramas ?? 0) - r0) / seg : contar === 'robot' ? ((window.__robot?.().fotogramas ?? 0) - b0) / seg : contar === 'pang' ? ((window.__pang?.().fotogramas ?? 0) - g0) / seg : contar === 'trailer' ? ((window.__trailer?.().fotogramas ?? 0) - t0) / seg : contar === 'canas' ? ((window.__canas?.().fotogramas ?? 0) - ca0) / seg : contar === 'canto' ? ((window.__canto?.().fotogramas ?? 0) - cn0) / seg : contar === 'tragaperras' ? ((window.__tragaperras?.().fotogramas ?? 0) - tg0) / seg : contar === 'sol' ? ((window.__sol?.().fotogramas ?? 0) - so0) / seg : contar === 'kart' ? ((window.__kart?.().fotogramas ?? 0) - ka0) / seg : contar === 'boca' ? ((window.__boca?.().fotogramas ?? 0) - bo0) / seg : contar === 'pangfase' ? ((window.__pangFase?.().fotogramas ?? 0) - pf0) / seg : n / seg);
+      res(contar === 'cerdos' ? ((window.__cerdos?.().fotogramas ?? 0) - f0) / seg : contar === 'palabras' ? ((window.__palabras?.().fotogramas ?? 0) - p0) / seg : contar === 'rana' ? ((window.__rana?.().fotogramas ?? 0) - r0) / seg : contar === 'robot' ? ((window.__robot?.().fotogramas ?? 0) - b0) / seg : contar === 'pang' ? ((window.__pang?.().fotogramas ?? 0) - g0) / seg : contar === 'trailer' ? ((window.__trailer?.().fotogramas ?? 0) - t0) / seg : contar === 'canas' ? ((window.__canas?.().fotogramas ?? 0) - ca0) / seg : contar === 'canto' ? ((window.__canto?.().fotogramas ?? 0) - cn0) / seg : contar === 'tragaperras' ? ((window.__tragaperras?.().fotogramas ?? 0) - tg0) / seg : contar === 'sol' ? ((window.__sol?.().fotogramas ?? 0) - so0) / seg : contar === 'kart' ? ((window.__kart?.().fotogramas ?? 0) - ka0) / seg : contar === 'boca' ? ((window.__boca?.().fotogramas ?? 0) - bo0) / seg : contar === 'pangfase' ? ((window.__pangFase?.().fotogramas ?? 0) - pf0) / seg : contar === 'pokecap' ? ((window.__poke?.().fotogramas ?? 0) - pk0) / seg : n / seg);
     }, seg * 1000);
   }), { seg: SEG, contar });
   const cpu = ((cpuChrome() - c0) / SEG) * 100;
@@ -316,6 +318,39 @@ if (toca('kart')) {
     };
     espera();
   })()`, 'kart');
+}
+if (toca('pokecap')) {
+  // PokéUsera, the last game of chapter 2 (src/pokeusera/capitulo.ts), in its real shape: a phone held upright (412 x 915) with the game standing
+  // in its own stage. Two moments: the silhouette (the three falling, the shadow coming down) and the hunt (the wild Ultimosaurio, the moves'
+  // effects and the jarra), both on the world of the concepts' backdrop. The keys are pressed from the page, as a player would tap.
+  await page.setViewportSize({ width: 412, height: 915 });
+  const teclas = (cada) => `clearInterval(window.__lucha); window.__lucha = setInterval(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })), ${cada});`;
+  await medir('pokecap: la silueta baja', `(async () => {
+    clearInterval(window.__paseo);
+    const g = window.__cyc.g;
+    const { jugarPokeusera } = await import('/src/pokeusera/capitulo.ts');
+    g.pausado = true;
+    void jugarPokeusera(g.root, { sonido: g.sound, dino: true, semilla: 7 });
+    await new Promise((r) => setTimeout(r, 1500));
+    ${teclas(1100)}
+  })()`, 'pokecap');
+  await medir('pokecap: la caza (movimientos y jarra)', `(async () => {
+    clearInterval(window.__paseo);
+    const g = window.__cyc.g;
+    const { jugarPokeusera } = await import('/src/pokeusera/capitulo.ts');
+    g.pausado = true;
+    void jugarPokeusera(g.root, { sonido: g.sound, dino: true, semilla: 7 });
+    await new Promise((r) => setTimeout(r, 1500));
+    ${teclas(300)}
+    for (let i = 0; i < 400 && window.__poke?.().momento !== 'caza'; i++) await new Promise((r) => setTimeout(r, 200));
+    await new Promise((r) => setTimeout(r, 4000));
+  })()`, 'pokecap');
+  await page.evaluate(() => {
+    clearInterval(window.__lucha);
+    window.__poke?.().cerrar();
+  });
+  await page.waitForTimeout(500);
+  await page.setViewportSize({ width: 915, height: 412 });
 }
 if (toca('rana')) {
   await medir('minijuego de la rana', `(async () => {

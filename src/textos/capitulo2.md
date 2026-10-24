@@ -768,5 +768,12 @@ FRAN (sorprendido): ¡Una más!
 @caos guille
 GUILLE (chulo): Este es mío.
 
+## c2.pokeusera.vuelve
+@general 500
+> Y, de una manera o de otra, el mitológico acabó dentro de la jarra de Guille.
+GUILLE (contento): Doctor en ciencias animales, señores. Los herbívoros se me daban bien; los mitológicos, todavía mejor.
+FRAN (sorprendido): ¡Guille, te has guardado la última en una jarra!
+CHUCHI (nervioso): Pues no la sueltes, que como se levante otra vez...
+
 // ---------------------------------------------------------------- manga (onomatopeyas en castellano; las japonesas son dibujo)
 manga.ono.zas = ¡ZAS!
