@@ -411,7 +411,6 @@ function salon(): Tx {
       if (i === 12 || i === 13 || j === 17) return 0xf4ecd8;
       return j < 22 ? mezcla(0x9ccaee, 0xd8ecf6, j / 22) : j < 30 ? 0x7cb060 : 0x5a9a48;
     });
-    t.borrar(0, 0, 0, 0);
     // olive in the distance, curtains tied back
     t.e(cx - 6, 36, 5, 3, 0x7a9a6a);
     t.r(cx - 7, 38, 1, 4, 0x5a4a30);
@@ -836,12 +835,7 @@ function telon(): Tx {
   // open it: a curve of curtain on each side, tied back with a gold cord
   for (let x = 0; x < 128; x++) {
     const k = Math.abs(x - 63.5) / 63.5;
-    const ancho = 26 * (1 - k) + 2; // the cut gets narrower toward the sides
-    const borde = 20 + Math.round(36 * Math.pow(Math.max(0, 1 - k * 1.7), 1.4));
-    const y0 = Math.max(14, 64 - borde * 0 - Math.round((1 - Math.min(1, k * 1.6)) * 50));
     if (k < 0.62) t.borrar(x, Math.min(63, Math.max(13, 14 + Math.round(k * k * 18))), 1, 64);
-    void ancho;
-    void y0;
   }
   // swag on top (gold) with tassels
   for (let x = 0; x < 128; x++) {

@@ -651,10 +651,11 @@ export async function construirPista(avance: (f: number) => void = () => {}): Pr
     }
   }
   // on the pool's terrace: loungers and parasols, flamingos floating in it
-  for (const [x, y, v] of [[232, 841, 0], [316, 841, 1], [392, 841, 0]] as const) decorado.push({ tipo: 'tumbona', x, y, escala: 0.95, v });
-  for (const x of [270, 352, 440]) decorado.push({ tipo: 'sombrilla', x, y: 842, escala: 0.95, v: x });
-  decorado.push({ tipo: 'maceta', x: 207, y: 838, escala: 0.9 });
-  decorado.push({ tipo: 'maceta', x: 482, y: 838, escala: 0.9 });
+  // (east of the springboard, which starts at the road near x = 300)
+  for (const [x, v] of [[348, 0], [408, 1], [468, 0]] as const) decorado.push({ tipo: 'tumbona', x, y: 841, escala: 0.95, v });
+  for (const x of [378, 438]) decorado.push({ tipo: 'sombrilla', x, y: 842, escala: 0.95, v: x });
+  decorado.push({ tipo: 'maceta', x: 333, y: 839, escala: 0.9 });
+  decorado.push({ tipo: 'maceta', x: 496, y: 839, escala: 0.9 });
   decorado.push({ tipo: 'flamenco', x: 330, y: 745, escala: 1.4, alto: 0 });
   decorado.push({ tipo: 'flamenco', x: 420, y: 790, escala: 1.2, alto: 0 });
   decorado.push({ tipo: 'flamenco', x: 250, y: 700, escala: 1.1, alto: 0 });
