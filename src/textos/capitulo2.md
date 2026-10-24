@@ -38,9 +38,9 @@ canto.gana = ¡CAMIONEEES Y CARAVANAAAS!
 // ---------------------------------------------------------------- título y fin del arranque
 
 titulo.capitulo2 = Capítulo 2 · Lo que pasó dentro
-c2.fin.sub = Fin del arranque del capítulo 2
+c2.fin.sub = Hasta aquí el capítulo 2, antes del PokéUsera
 c2.fin.titulo = Hasta aquí, de momento
-c2.fin.texto = El capítulo 2 sigue en obras. Fran ha despertado en el Brío, pero la noche no ha hecho más que empezar.
+c2.fin.texto = El capítulo 2 sigue en obras. Los cuatro han llegado al mundo de los conceptos, Guille tiene una jarra y el userito mitológico ya ha salido de su sombra. Lo que viene es el PokéUsera.
 
 // ---------------------------------------------------------------- arranque: la puerta del Brío
 
@@ -513,6 +513,260 @@ GUILLE (contento): ¡Qué bien! Yo he soñado que pesaba una nube y daba tres ki
 FRAN (sorprendido): Un momento. Si Pablo ha vuelto, ¿por qué seguimos del revés?
 @contrapicado 10 700
 VERO: Porque la noche no ha terminado, mi amor. Ni de lejos.
+
+// ---------------------------------------------------------------- tramo final: de Chuchi al mundo de los conceptos
+// Provisional (los revisa Jesús). Marcas nuevas de la cámara, además de las de más arriba:
+//   @girar 2 6000        la imagen entera da 2 vueltas en 6 s y acaba derecha
+//   @caos on / @caos off los cortes rapidísimos entre estilos (normal, manga, píxel de Alacant Sun, píxel del Pang, lápiz)
+//   @caos dino           sube la silueta del dinosaurio del fondo
+//   @caos guille         Guille da un paso al frente con su jarra
+// En el mundo de los conceptos los amigos son figuras: se les enfoca por el nombre de su figura (@zoom fran 2.2).
+
+// ---- Chuchi se quiere ir (bar del revés) e Impropios Kart
+
+## c2.chuchi.jefe
+@nivelar 500
+@corte chuchi 2.4 -4
+> El móvil de Chuchi vibra encima de la barra. Una vez. Dos. Doce.
+CHUCHI (nervioso): Es el jefe. A las tantas. Asunto: «Urgente (otra vez)».
+CHUCHI: «Necesito el informe para ayer.» ¿Ayer no había pasado ya?
+@general 400
+CHUCHI (enfadado): Se acabó. Me voy. Me voy ya, de verdad. Las niñas, el informe, el sueño...
+@manga chuchi:cara:seriedad fran:cara:enfado !gogogo
+FRAN (enfadado): ¡UNA MÁS!
+@manga fran:ojos:enfado chuchi:ojos:duda !don
+FRAN (enfadado): ¡Una más, Chuchi! ¡Una sola! ¡Que el correo no se va a ir a ningún sitio!
+CHUCHI (sorprendido): Fran, el correo es lo único que nunca se va a ningún sitio.
+@manga fin
+
+## c2.chuchi.maquina
+@temblor 10 600
+@foco tragaperras
+@zoom tragaperras 1.7
+> Al fondo, la tragaperras vuelve a dar vueltas. Nadie la ha tocado. Nadie lleva un duro encima, y menos uno de 1987.
+GUILLE (nervioso): Ya está otra vez con lo suyo.
+
+## c2.chuchi.cara
+@general 400
+@temblor 14 700
+> Se para en la cara de Chuchi. Tres veces. Chuchi, Chuchi, Chuchi. Y se apaga con un suspiro.
+CHUCHI (sorprendido): Ahora me persiguen hasta las tragaperras.
+PABLO (chulo): Es una señal. Yo, que he leído mucho, te digo que es una señal.
+FRAN (contento): ¡Es que quiere que te quedes!
+
+## c2.chuchi.pista
+@temblor 20 1400
+@holandes 12 800
+CHUCHI (nervioso): ¿Alguien más ve que las baldosas se están alargando?
+GUILLE (nervioso): Todas hacia el mismo sitio. Como los cerdos cuando oyen el cubo.
+> El suelo se estira hasta el horizonte y se pone a girar. En algún lugar, alguien cuenta: «tres, dos, uno...»
+
+## c2.chuchi.vuelve
+@nivelar 500
+@general 500
+> Chuchi vuelve a la barra con la copa en la mano y el aire de quien ha ganado algo en un sueño.
+CHUCHI (contento): Hecho. Una carrera, cinco desconocidos y yo, el primero. Ahora sí que me voy con la cabeza alta.
+CHUCHI: Me tomo esta de despedida y desaparezco.
+VERO: Toma, mi niño. Otra, que a esa ya le quedaba un dedo.
+CHUCHI (sorprendido): ¡Pero si es que me iba! Vero, ¿de dónde sale esta copa?
+VERO: De mi corazón, mi vida. Y de la botella, pero sobre todo de lo otro.
+FRAN (contento): ¡Una más! ¡Lo sabía!
+
+// ---- Vero se traga a Fran
+
+## c2.vero.crece
+@temblor 24 1400
+@contrapicado 16 900
+> Detrás de la barra, Vero empieza a crecer. Sin prisa. Como quien sube la persiana de su bar.
+GUILLE (nervioso): Oye, ¿Vero siempre ha sido de este tamaño?
+VERO: Es un buen tamaño, mi niño. Para lo que vengo a hacer.
+@barrido fran 2
+FRAN (nervioso): Vero, tu cabeza está pasando por encima de la lámpara.
+@corte vero 2.2 -4
+VERO: Fran, mi amor. Con la de veces que has pedido «una más»...
+@manga vero:boca:picara fran:ojos:sorpresa !gogogo
+VERO: Esta vez la quiero yo.
+
+## c2.vero.traga
+FRAN (sorprendido): ¿Eso es una boca? ¡Tiene luces del Brío dentro! ¡Y se oye la tele!
+VERO: Anda, ven, mi amor, que no pasa nada. Aquí dentro se está calentito.
+
+## c2.vero.salta
+PABLO (sorprendido): ¡SE LO HA TRAGADO!
+CHUCHI (nervioso): ¡Fran! ¡FRAN! ¡Escupe, Vero, que me debe dos cañas!
+GUILLE (nervioso): ¡Yo salto! ¡Ningún mañico deja a un vasco atrás!
+PABLO (chulo): Un héroe nunca deja a su camarera con una boca abierta. ¡Dentro!
+
+## c2.vero.dentro
+> Y al entrar, se deshicieron. Primero las esquinas, luego los contornos, y por último la idea que tenían de sí mismos.
+
+// ---- El mundo de los conceptos
+
+zona.c2.concepto.manana = Mañana
+zona.c2.concepto.casa = Casa
+zona.c2.concepto.penultima = La penúltima
+zona.c2.concepto.trabajo = El trabajo
+zona.c2.concepto.reloj = Las tantas
+zona.c2.concepto.no = El no
+zona.c2.concepto.fran = Una más
+zona.c2.concepto.ultima = La última
+zona.c2.concepto.pablo = Una espiral
+zona.c2.concepto.chuchi = Un círculo
+zona.c2.concepto.guille = Una flor
+zona.c2.concepto.vero = La boca
+
+// Las palabras que se pintan sobre los conceptos (lo que se lee en pantalla, en mayúsculas).
+c2.concepto.manana = MAÑANA
+c2.concepto.casa = CASA
+c2.concepto.penultima = LA PENÚLTIMA
+c2.concepto.trabajo = EL TRABAJO
+c2.concepto.reloj = LAS TANTAS
+c2.concepto.unamas = UNA MÁS
+c2.concepto.ultima = LA ÚLTIMA
+c2.concepto.dino = ???
+
+objetivo.c2.conceptos.fran = Toca los conceptos y encuentra a Fran
+objetivo.c2.conceptos.ultima = Para salir hace falta LA ÚLTIMA
+pista.c2.conceptos.fran = Fran tiene que estar por aquí, hecho concepto. Toca lo que repita «una más».
+pista.c2.conceptos.ultima = Todos juntos otra vez. Para salir, toca LA ÚLTIMA, la jarra que nadie ha visto.
+
+## c2.conceptos.entrada
+> Esto no es el Brío. Esto ni siquiera es un sitio. Es donde se quedan colgadas las palabras cuando se les acaba la frase.
+PABLO (sorprendido): ¿Por qué soy una espiral? Y, sobre todo, ¿por qué me favorece?
+CHUCHI (nervioso): Soy un círculo con gafas y una aguja. Estoy muy reconocible, pero de otra manera.
+GUILLE (contento): ¡Soy una flor! ¡La más alta! ¡Siempre quise ser la más alta!
+CHUCHI (nervioso): Falta uno. ¿Dónde está Fran?
+PABLO: Esto es un mundo de conceptos. Toquemos lo que veamos: alguien tendrá algo que decir.
+
+## c2.conceptos.manana
+CHUCHI (nervioso): MAÑANA. La puerta a la que llevo diez años empujando.
+> La puerta tiembla, se estrecha un poco y vuelve a su sitio. No se abre. Nunca se abre.
+GUILLE (contento): Es de las que se abren hacia dentro. Hacia dentro de mañana.
+---
+PABLO: Si la tocas dos veces es mañana dos veces. Es lo que hago yo con los ensayos.
+
+## c2.conceptos.casa
+PABLO: CASA. Cada paso que doy hacia ella, ella da dos hacia atrás.
+CHUCHI (triste): Es lo mismo que me dicen las niñas por teléfono: «¿Papá, ya llegas?»
+> La casita se aleja, se acerca y se vuelve a alejar. Por si acaso, con la luz de la ventana encendida.
+---
+GUILLE (triste): Yo nunca llego a tiempo a mi casa. Pero tengo la excusa de que mi casa está en Zaragoza.
+
+## c2.conceptos.trabajo
+CHUCHI (nervioso): EL TRABAJO. Con sus avisos y todo. Hasta aquí me ha seguido.
+> El sobre vibra. Chuchi se encoge por reflejo, como un perro al oír un trueno.
+PABLO (chulo): Tienes un círculo por cuerpo y aun así te llegan los correos.
+---
+CHUCHI (enfadado): No pienso abrirlo. No pienso abrir... Vale, lo abro un segundo.
+
+## c2.conceptos.reloj
+PABLO: Un reloj derretido. Dalí lo pintó pensando en una cena que se alargó.
+GUILLE (sorprendido): Marca las tantas. Siempre las tantas.
+CHUCHI: Es el único reloj puntual del universo: siempre llega justo a las tantas.
+---
+GUILLE (contento): Mola. Se parece a mis cerdos después de comer.
+
+## c2.conceptos.no
+> Un NO enorme rebota de un lado a otro y, cada vez que cae, el mundo tiembla un poquito.
+CHUCHI: Ese es el que le digo a Fran cada jueves.
+PABLO (chulo): Y rebota, rebota, rebota, hasta que se convierte en un «bueno, una más».
+---
+GUILLE (nervioso): Me da un poco de miedo. Parece un «no» de los de madre.
+
+## c2.conceptos.penultima
+GUILLE (contento): LA PENÚLTIMA. Una jarra que no se acaba. ¡Qué invento!
+PABLO: Porque la penúltima nunca es la penúltima. Es la antepenúltima de la siguiente.
+CHUCHI (nervioso): Eso lo sé yo muy bien. Me lo sé desde la universidad.
+---
+> La cerveza sale por arriba, da una vuelta por el aire y vuelve a entrar. El mundo funciona así.
+
+## c2.conceptos.pista
+PABLO (sorprendido): Un momento. ¿Habéis oído esa jarra pequeñita que no para de repetir «una más»?
+CHUCHI (sorprendido): La verde azulada, con la barba de espuma... Sí, la oigo desde hace un rato.
+GUILLE (contento): ¡Si es que se le nota a la legua!
+
+## c2.conceptos.fran
+@zoom fran 2.2
+FRAN (contento): ¡UNA MÁS!
+PABLO (sorprendido): ¡Es Fran! ¡Se ha convertido en la jarra!
+FRAN (contento): ¡Una más! ¡Una más! ¡Una más!
+CHUCHI: Fran, ¿puedes decir otra cosa?
+FRAN (triste): Una... más...
+GUILLE (contento): Está claro: ha llegado a su esencia.
+@general 500
+
+## c2.conceptos.revela
+CHUCHI (nervioso): Vale. Ya estamos los cuatro. Pues nos vamos a casa.
+PABLO: Aquí el problema es la puerta. Para salir hace falta LA ÚLTIMA. Y la última nunca la ha visto nadie.
+> Y entonces, en mitad del mundo, como una idea que se va formando, aparece el contorno de una jarra. Solo el contorno.
+
+## c2.conceptos.ultima
+@zoom ultima 2.2 600
+CHUCHI (sorprendido): LA ÚLTIMA. Existe.
+PABLO: Dicen que quien la pide se va a su casa.
+GUILLE (contento): Pues pídela tú, Chuchi, que eres el que se quería ir.
+CHUCHI (nervioso): Vale... Una ronda más. La última. Pero de verdad.
+FRAN (triste): Una... más...
+@general 500
+@temblor 30 1500
+> En cuanto lo dijo en voz alta, el mundo de los conceptos se quedó sin palabras.
+
+// Lo que dicen al tocar cada figura (por probar, o cuando ya se ha tocado casi todo).
+## c2.figura.pablo
+PABLO (chulo): Soy una espiral con un aro. Me define: doy vueltas a todo y siempre me cuelga algo de la oreja.
+---
+PABLO: La espiral es mi forma natural. El teatro, si lo piensas, es un bucle con público.
+
+## c2.figura.chuchi
+CHUCHI: Llevo la aguja de un reloj en la barriga. Por eso llego tarde: es que llego, pero todavía.
+---
+CHUCHI (nervioso): Estas gafas sí que me las reconozco. Lo demás lo estoy asimilando.
+
+## c2.figura.guille
+GUILLE (contento): ¡Soy una flor con la camisa puesta! Lo del tallo largo es genética.
+---
+GUILLE (contento): Tengo hojas con hibiscos. ¡He nacido para esto!
+
+## c2.figura.fran
+FRAN (contento): ¡Una más!
+---
+FRAN (triste): Una... más... (Es que no me sale otra cosa.)
+
+## c2.figura.vero
+VERO: Mi amor, estás dentro de mí. Haz el favor de no tocar las paredes.
+---
+VERO: Aquí dentro se está calentito, ¿oíste? Tú pide, que yo te lo pongo.
+---
+VERO (chulo): Soy una boca dorada que lo envuelve todo. Ya lo era antes, pero ahora se nota más.
+
+// ---- El caos total
+
+## c2.caos.empieza
+@caos on
+@girar 2 7000
+@temblor 26 4000
+> Y todo, a la vez, dejó de parecerse a lo que era.
+PABLO (sorprendido): ¡Me veo en dibujitos! ¡Y otra vez normal! ¡Y en dibujitos!
+CHUCHI (sorprendido): ¡Yo en píxeles! ¡Y a lápiz! ¡Y en la máquina del Pang!
+GUILLE (contento): ¡Y yo en todos! ¡Es el día de la foto, muchachos!
+VERO: Es que la última, mi niño, enseña todo lo que tiene.
+
+## c2.caos.dino
+@caos dino
+@temblor 22 2400
+> Y al fondo, muy al fondo, algo enorme se levantó.
+CHUCHI (nervioso): ¿Eso es... un dinosaurio?
+PABLO (sorprendido): Tiene un cartel encima. Pone «???».
+GUILLE (nervioso): Es el userito. El mitológico. Lo conoce todo el mundo y no lo ha visto nadie.
+FRAN (sorprendido): ¡Una más!
+
+## c2.caos.guille
+@caos off
+@nivelar 500
+@general 500
+> Entonces Guille, hecho flor, dio un paso al frente. Y en una de sus hojas, una jarra.
+@caos guille
+GUILLE (chulo): Este es mío.
 
 // ---------------------------------------------------------------- manga (onomatopeyas en castellano; las japonesas son dibujo)
 manga.ono.zas = ¡ZAS!

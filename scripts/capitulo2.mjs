@@ -4,7 +4,10 @@
 // the spin, the chant (skipped) and the Pang (closed with ×). Then the rest of the night (first part): Fran wakes in
 // the long bar (bar4) and tells the dragon, the slot machine spins alone and stops on Pablo's face, the bar turns
 // upside down (bar5), the narrator takes over, the picture is squeezed into the console of Alacant Sun (which is
-// skipped, closed with window.__sol().cerrar()) and Pablo opens his eyes. Screenshots of each level of the night.
+// skipped, closed with window.__sol().cerrar()) and Pablo opens his eyes. Then the last stretch: Chuchi's boss and «una
+// más» (manga), the slot machine on his face, the floor turning into Impropios Kart (skipped, closed with
+// window.__kart().cerrar()), Vero growing and swallowing Fran (the mouth), the world of the concepts (taps: three jokes,
+// Fran as «Una más», «LA ÚLTIMA») and the total chaos up to «Continuará…». Screenshots of each level of the night.
 // Fails on any console error or if a step does not do what it should.
 // Usage: node scripts/capitulo2.mjs [url] [outDir]   (against npm run dev; the url gets ?capitulo2&nueva)
 import { chromium } from 'playwright';
@@ -29,6 +32,8 @@ const shot = async (name) => {
   await page.screenshot({ path: `${out}/${String(++n).padStart(2, '0')}-${name}.png` });
   // The manga shots also go where Jesús looks at them (MANGA_OUT=/mnt/project-files/capitulo2/anime).
   if (name.startsWith('manga-en-juego') && process.env.MANGA_OUT) await page.screenshot({ path: `${process.env.MANGA_OUT}/${name}.png` });
+  // And the ones of the last stretch (FINAL_OUT=/mnt/project-files/capitulo2/final).
+  if (name.startsWith('final-') && process.env.FINAL_OUT) await page.screenshot({ path: `${process.env.FINAL_OUT}/${name}.png` });
 };
 const wait = (ms) => page.waitForTimeout(ms);
 const flag = (k) => page.evaluate((k) => !!window.__cyc.g.estado.flags[k], k);
@@ -36,7 +41,7 @@ const check = (ok, msg) => ok || errors.push('PASO FALLIDO: ' + msg);
 
 /** Screenshots to take when a line of the dialogue shows (a piece of its text, the name of the file): the camera has time to land. */
 const fotos = [];
-const fotoAl = (trozo, nombre, manga) => fotos.push([trozo, nombre, manga]);
+const fotoAl = (trozo, nombre, manga, espera = 900, sinCortes = false) => fotos.push([trozo, nombre, manga, espera, sinCortes]);
 const mangaActivo = () => page.evaluate(() => window.__cyc.g.plano.manga.activo);
 
 /** Tap through dialogue until the running script ends, or a choice or a full-screen piece comes up. */
@@ -44,7 +49,7 @@ async function charla() {
   let last = '';
   const t0 = Date.now();
   for (;;) {
-    if (Date.now() - t0 > 90000) return void errors.push('charla: atascado');
+    if (Date.now() - t0 > 150000) return void errors.push('charla: atascado');
     await wait(120);
     const s = await page.evaluate(() => ({
       busy: window.__cyc.g.ocupadoAhora,
@@ -65,11 +70,15 @@ async function charla() {
         console.log('   »', t);
         const i = fotos.findIndex(([trozo]) => t.includes(trozo));
         if (i >= 0) {
-          await wait(900);
-          const [, nombre, manga] = fotos[i];
+          const [, nombre, manga, espera, sinCortes] = fotos[i];
+          await wait(espera);
           // The manga shots: on screen (and the hud away) in the lines that have one, gone in the ones that do not.
           if (manga !== undefined) check((await mangaActivo()) === manga, `${nombre}: el plano manga ${manga ? 'no sale' : 'no se va'}`);
+          // The cuts of the chaos change every few frames: for a clean picture of the world, they are hidden for a moment.
+          const velo = sinCortes ? await page.addStyleTag({ content: '.corte-estilo { display: none !important; }' }) : null;
+          if (velo) await wait(150);
           await shot(nombre);
+          await velo?.evaluate((e) => e.remove());
           fotos.splice(i, 1);
         }
       }
@@ -306,6 +315,20 @@ await paso('La tragaperras gira sola y para en la cara de Pablo', async () => {
 check((await nivel()) === 5, 'tras la tragaperras la noche no está en el nivel 5');
 await shot('bar5');
 
+// The lines of the last stretch run on in the same dialogue as Pablo's eyes: their shots are asked for before that.
+fotoAl('Calderón lo dijo con más gracia', 'bar5-final');
+fotoAl('Es el jefe', 'final-1-chuchi-jefe', false);
+fotoAl('¡UNA MÁS!', 'final-2-chuchi-manga-fran', true, 1400);
+fotoAl('Una más, Chuchi', 'final-2b-manga-ojos', true, 1400);
+fotoAl('el correo es lo único', 'final-2c-chuchi-fran', true, 1400);
+fotoAl('Ahora me persiguen', 'final-4-tras-la-maquina', false);
+fotoAl('con la copa en la mano', 'final-5-chuchi-con-la-copa', false);
+fotoAl('Es un buen tamaño', 'final-6-vero-crece', false);
+fotoAl('Esta vez la quiero yo', 'final-6b-vero-manga', true, 1400);
+fotoAl('¿Eso es una boca?', 'final-7-boca-de-vero', false, 1500);
+fotoAl('SE LO HA TRAGADO', 'final-8-fran-ya-dentro', false);
+fotoAl('Y al entrar, se deshicieron', 'final-8b-se-deshacen', false);
+fotoAl('Esto no es el Brío', 'final-9-mundo-conceptos', false, 1600);
 await paso('El narrador, la consola y Alacant Sun', async () => {
   // The pixelated shrink: a few pictures on the way, then the console.
   await page.waitForSelector('.pixelado', { timeout: 60000 });
@@ -328,9 +351,62 @@ await paso('Pablo abre los ojos', async () => {
   await charla();
 });
 check(!(await page.$('.pixelado')), 'se queda la capa del pixelado');
-await shot('bar5-final');
+
+await paso('Chuchi, el jefe y «una más»: la tragaperras con su cara', async () => {
+  await tragaperras('final-3-tragaperras-chuchi');
+  check(await page.evaluate(() => window.__cyc.g.escena === 'bar5'), 'la escena no es el bar del revés tras la tragaperras de Chuchi');
+});
+await paso('El suelo se estira y se convierte en la pista: Impropios Kart', async () => {
+  // The transition is shot while the dialogue runs on its own (the tilted floor is on screen a second after it starts).
+  const transicion = page.waitForSelector('.entrada-pista', { timeout: 120000 }).then(async () => {
+    await wait(1000);
+    await shot('final-4b-suelo-en-perspectiva');
+  });
+  await charla();
+  await transicion;
+  await page.waitForSelector('.cubierta.minijuego.kart', { timeout: 60000 });
+  await wait(2500);
+  check(await page.evaluate(() => !!window.__kart), 'el Kart no arranca');
+  // The Kart is not played here: closed from the hook, the story goes on.
+  await page.evaluate(() => window.__kart().cerrar());
+  await page.waitForSelector('.cubierta.minijuego.kart', { state: 'detached', timeout: 10000 });
+  await wait(600);
+});
+await paso('Chuchi vuelve con la copa, Vero crece y se traga a Fran (la boca)', async () => {
+  await charla();
+  await page.waitForFunction(() => window.__cyc.g.escena === 'conceptos', null, { timeout: 60000 });
+  await wait(800);
+});
+check((await nivel()) === 7, 'en el mundo de los conceptos la noche no está en el nivel 7');
+check(!(await page.$('.capa-boca')), 'se queda la capa de la boca');
+
+// The world of the concepts: touched by position, because everything floats and the zones follow it (zonaCss reads them live).
+fotoAl('Un NO enorme rebota', 'final-10-concepto-no', false, 700);
+fotoAl('¿Habéis oído esa jarra', 'final-10b-pista-de-la-jarra', false);
+fotoAl('¡Es Fran!', 'final-11-fran-una-mas', false, 1200);
+fotoAl('aparece el contorno de una jarra', 'final-12-la-ultima-aparece', false, 1500);
+fotoAl('Me veo en dibujitos', 'final-13-caos-cortes-1', false, 1400);
+fotoAl('Yo en píxeles', 'final-14-caos-cortes-2', false, 1100);
+fotoAl('Es el userito', 'final-15-dinosaurio', false, 4200, true);
+fotoAl('Este es mío', 'final-16-guille-flor-y-jarra', false, 1300);
+
+const tocarConcepto = async (id) => tocar(await zonaCss(id));
+await paso('Tocar tres conceptos (los chistes) y que alguien señale la jarra', async () => {
+  await shot('final-9b-mundo-conceptos');
+  for (const id of ['no', 'casa', 'reloj']) await tocarConcepto(id);
+});
+check(await flag('c2.con.pista'), 'tras tres conceptos nadie señala la jarra');
+await paso('Fran es la jarra de «una más»', async () => {
+  await tocarConcepto('fran');
+}, 'c2.fran.hallado');
+await paso('LA ÚLTIMA: el caos total', async () => {
+  await tocarConcepto('ultima');
+  await page.waitForSelector('.cubierta.rotulo', { timeout: 120000 });
+});
+check((await nivel()) === 8, 'tras pedir la última la noche no está en el nivel 8');
 
 await paso('Continuará', async () => {
+  await wait(300);
   // «Continuará…» goes with a tap; then the end card.
   for (let i = 0; i < 60 && !(await page.$('#fin-seguir')); i++) {
     if (await page.$('.cubierta.rotulo')) await page.touchscreen.tap(420, 200);

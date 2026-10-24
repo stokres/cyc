@@ -17,22 +17,32 @@
 // sloping floor, and tells the dragon; the slot machine spins alone and stops on
 // Pablo's face; the bar turns upside down (bar5), Pablo's shadow, the narrator of
 // chapter 1, takes over («Esta historia la acabo yo») and the picture is squeezed
-// into the console of Alacant Sun; Pablo opens his eyes. The camera goes wild from
-// the texts (src/juego/camara.ts). Every line comes from src/textos/capitulo2.md.
+// into the console of Alacant Sun; Pablo opens his eyes. Then the last stretch before the PokéUsera: Chuchi
+// wants to leave and the floor of the bar spins into the track of Impropios Kart; Vero swallows Fran (bar6 and
+// src/ui/boca.ts); the three jump in after him and come undone; they are in the world of the concepts
+// (`conceptos`, level 7: no bar any more, the friends are abstract figures and Vero a golden mouth) where Fran has
+// become «Una más» and has to be found, and «La última» is needed to leave; saying it sets off the total chaos
+// (level 8: cuts between all the styles of the game, the camera spinning, the dinosaur, Guille the flower with
+// his mug). The camera goes wild from the texts (src/juego/camara.ts). Every line comes from src/textos/capitulo2.md.
 import { escena as bar } from '../arte/escenas/bar.mjs';
 import { escena as calle } from '../arte/escenas/calle.mjs';
+import { escena as conceptos, CX as CX_CONCEPTOS } from '../arte/escenas/conceptos.mjs';
 import type { Aventura, Capitulo, ZonaLogica } from '../juego/aventura';
 import type { Estado } from '../juego/estado';
 import type { PjId } from '../juego/reparto';
 import type { Escena } from '../motor/escena';
 import { texto } from '../juego/textos';
 import { entrarEnConsola } from '../juego/pixelado';
+import { entrarEnPista } from '../juego/pista';
+import { prepararCortes, type Cortes } from '../juego/estilos';
 import { h } from '../ui/hud';
 import { jugarCanas } from '../ui/canas';
 import { jugarCanto } from '../ui/canto';
 import { mostrarTragaperras } from '../ui/tragaperras';
+import { abrirBoca, type Boca } from '../ui/boca';
 import { jugarPangCapitulo } from '../pang/capitulo';
 import { dibujarBarVivo } from './bar-vivo';
+import { dibujarConceptos, empezarCaos, golpear, liberarConceptos, prepararConceptos, revelarUltima, darPasoGuille, subirDino, ultimaRevelada } from './conceptos-vivo';
 
 const HORA = (h: number, m: number) => h * 60 + m;
 /** The Brío's door on the street (calle.mjs), where chapter 1 left them. */
@@ -64,7 +74,7 @@ function estadoInicial(): Estado {
   };
 }
 
-/** How far the night has gone (0–5): which of the six bars is on. */
+/** How far the night has gone (0–8): which of the bars is on (0–6), the world of the concepts (7) or the total chaos (8). */
 const nivel = (g: Aventura) => Number(g.estado.flags['c2.nivel'] ?? 0);
 
 /**
@@ -257,7 +267,6 @@ async function ojosDeFran(g: Aventura) {
   g.hud.setVisible(true);
   g.foco = null;
   await elRestoDeLaNoche(g);
-  await fin(g);
 }
 
 /**
@@ -294,15 +303,177 @@ async function elRestoDeLaNoche(g: Aventura) {
   if (P) P.eyesClosed = false;
   await g.hablar('c2.noche.pablo.ojos');
   await g.plano.reset(500);
-  // RESTO: here come, in this order, the rest of the games of the night (the texts, the camera and the bars
-  // 4 and 5 are ready for them; each one is launched like the Pang and Alacant Sun, with `g.pausado` and
-  // `g.minijuegoSuperado`):
-  //   1. Chuchi: *Space Invaders*.
-  //   2. Vero swallows Fran (the machine of the bar, the bar and the camera at their wildest).
-  //   3. Guille: *Street Fighter*.
-  //   4. The last song (the whole bar sings).
-  //   5. Nevada.
-  // Then «Continuará…» goes after the last one.
+  await chuchiYElKart(g);
+  await veroTragaAFran(g);
+  // From here the player is free in the world of the concepts: `conceptos` hands over to `elCaos` (La última).
+}
+
+/** The picture of the bar just before Vero swallows Fran, kept for the cuts of the chaos (src/juego/estilos.ts). */
+let fotoBar: HTMLCanvasElement | null = null;
+let cortes: Cortes | null = null;
+
+/**
+ * Chuchi's game, Impropios Kart: the boss's e-mail at all hours, «me voy ya, de verdad», Fran's «¡Una más!» as a
+ * manga clash, the slot machine stops on Chuchi's face and the floor of the bar spins into the track
+ * (src/juego/pista.ts). Then he comes back with his glass and Vero fills it again.
+ */
+async function chuchiYElKart(g: Aventura) {
+  await g.hablar('c2.chuchi.jefe');
+  await g.hablar('c2.chuchi.maquina');
+  g.hud.cerrarDialogo();
+  g.pausado = true;
+  await mostrarTragaperras(g.root, { premio: false, cara: 'chuchi', rapido: g.rapido, sonido: g.sound }).finally(() => (g.pausado = false));
+  await g.hablar('c2.chuchi.cara');
+  await g.hablar('c2.chuchi.pista');
+  g.hud.cerrarDialogo();
+  g.hud.setVisible(false);
+  await g.plano.reset(0);
+  g.pausado = true;
+  const { jugarKart } = await import('../kart/kart');
+  const r = await entrarEnPista(g, () => jugarKart(g.root, { sonido: g.sound, rapido: g.rapido })).finally(() => (g.pausado = false));
+  // 'saltado' and 'cancelado' go on anyway: the story does not wait for the game.
+  if (r === 'hecho') g.minijuegoSuperado('kart');
+  g.hud.setVisible(true);
+  await g.hablar('c2.chuchi.vuelve');
+}
+
+/** Vero grows, opens her mouth (the trailer's shot) and swallows Fran; the other three jump in after him and come undone. */
+async function veroTragaAFran(g: Aventura) {
+  // The world of the concepts is baked while the mouth plays.
+  void prepararConceptos(g).catch((e) => console.warn('[conceptos]', e));
+  await subirNivel(g, 6);
+  // She really does grow: a quick swell behind the counter while she speaks.
+  void crecer(g, 'vero', 2.1, 2200);
+  await g.hablar('c2.vero.crece');
+  g.hud.cerrarDialogo();
+  await g.plano.reset(0);
+  fotoBar = await g.motor.instantanea(900);
+  g.hud.setVisible(false);
+  const boca = abrirBoca(g.root, { sonido: g.sound, rapido: g.rapido });
+  try {
+    await boca.abre();
+    await g.hablar('c2.vero.traga');
+    await boca.tragaFran();
+    await g.hablar('c2.vero.salta');
+    await boca.saltan();
+    await g.hablar('c2.vero.dentro');
+    await boca.bucea();
+    await entrarEnConceptos(g, boca);
+  } finally {
+    boca.cerrar();
+  }
+}
+
+/** An NPC swells to `hasta` times its size in `ms` (Actor.crece), with a small overshoot, off a timer: no loop of its own. */
+async function crecer(g: Aventura, quien: 'vero', hasta: number, ms: number) {
+  const a = g.npcs.get(quien);
+  if (!a) return;
+  if (g.rapido) return void (a.crece = hasta);
+  const t0 = performance.now();
+  for (;;) {
+    const u = Math.min(1, (performance.now() - t0) / ms);
+    const e = u * u * (3 - 2 * u);
+    a.crece = 1 + (hasta - 1) * e * (1 + 0.04 * Math.sin(u * 20) * (1 - u));
+    if (u >= 1) return;
+    await new Promise((r) => setTimeout(r, 33));
+  }
+}
+
+/** The bar is gone: everybody is in the world of the concepts (level 7), as figures. */
+async function entrarEnConceptos(g: Aventura, boca: Boca) {
+  g.poner('c2.nivel', 7);
+  await prepararConceptos(g);
+  for (const id of g.estado.jugables) g.estado.donde[id] = { escena: 'conceptos', X: CX_CONCEPTOS, y: 900, face: 1 };
+  g.hud.cerrarDialogo();
+  await g.plano.reset(0);
+  await g.irA('conceptos', false);
+  g.motor.seguir(CX_CONCEPTOS, true);
+  await boca.fundir();
+  g.hud.setVisible(true);
+  await g.hablar('c2.conceptos.entrada');
+  g.hud.ayuda(texto('objetivo.c2.conceptos.fran'), 8);
+}
+
+// ------------------------------------------------------------------ the world of the concepts
+
+const CONCEPTOS = ['manana', 'casa', 'penultima', 'trabajo', 'reloj', 'no'] as const;
+const FIGURAS = ['pablo', 'chuchi', 'guille', 'vero'] as const;
+
+/** A tap on something in the world of the concepts: its joke, in the voice of whoever has it. */
+async function tocarConcepto(g: Aventura, id: string) {
+  golpear(g, id);
+  if ((CONCEPTOS as readonly string[]).includes(id)) {
+    g.poner(`c2.con.${id}`);
+    await g.hablar(`c2.conceptos.${id}`);
+    const vistos = CONCEPTOS.filter((c) => g.flag(`c2.con.${c}`)).length;
+    // A few jokes in and still no Fran: someone points at the jar that keeps asking for another.
+    if (vistos >= 3 && !g.flag('c2.fran.hallado') && !g.flag('c2.con.pista')) {
+      g.poner('c2.con.pista');
+      await g.hablar('c2.conceptos.pista');
+    }
+    return;
+  }
+  if (id === 'fran') {
+    if (g.flag('c2.fran.hallado')) return g.hablar('c2.figura.fran');
+    g.poner('c2.fran.hallado');
+    await g.hablar('c2.conceptos.fran');
+    revelarUltima(g);
+    g.sound.pickup();
+    await g.hablar('c2.conceptos.revela');
+    g.refrescar();
+    g.hud.ayuda(texto('objetivo.c2.conceptos.ultima'), 8);
+    return;
+  }
+  if (id === 'ultima') {
+    g.poner('c2.con.ultima');
+    await g.hablar('c2.conceptos.ultima');
+    await elCaos(g);
+    return;
+  }
+  if ((FIGURAS as readonly string[]).includes(id)) return g.hablar(`c2.figura.${id}`);
+}
+
+function zonasConceptos(g: Aventura): Record<string, ZonaLogica> {
+  const z: Record<string, ZonaLogica> = {};
+  for (const id of [...CONCEPTOS, ...FIGURAS, 'fran', 'ultima']) {
+    z[id] = { nombre: () => texto(`zona.c2.concepto.${id}`), acercarse: false, usar: () => tocarConcepto(g, id) };
+  }
+  z.ultima.activa = () => ultimaRevelada();
+  return z;
+}
+
+// ------------------------------------------------------------------ the total chaos
+
+/**
+ * Saying «la última» sets off the total chaos (level 8): cuts between all the styles of the game, the camera
+ * spinning, a dinosaur's shadow with «???» at the back, and Guille the flower stepping forward with a mug. The
+ * texts drive it with marks (`@caos on`, `@girar 2 6000`...). After it, «Continuará».
+ */
+async function elCaos(g: Aventura) {
+  g.poner('c2.nivel', 8);
+  empezarCaos(g);
+  cortes = await prepararCortes(g, fotoBar, ['fran:cara:enfado', 'vero:boca:picara', 'chuchi:ojos:seriedad', '!gogogo']);
+  g.plano.alMarca = async (p) => {
+    if (p[0] !== 'caos') return;
+    if (p[1] === 'on') cortes?.iniciar();
+    else if (p[1] === 'off') cortes?.parar();
+    else if (p[1] === 'dino') subirDino(g);
+    else if (p[1] === 'guille') darPasoGuille(g);
+  };
+  await g.hablar('c2.caos.empieza');
+  await g.hablar('c2.caos.dino');
+  await g.hablar('c2.caos.guille');
+  // POKEUSERA: aquí entrará el PokéUsera (el último juego, que se hará aparte). Guille se adelanta con su jarra,
+  // «Este es mío», y de esa frase sale el juego; hasta entonces solo viene el «Continuará» de abajo. Cuando exista,
+  // se lanzará aquí como el Pang, el Alacant Sun y el Kart (`g.pausado`, `g.minijuegoSuperado('pokeusera')`; con
+  // 'saltado' y 'cancelado' la historia sigue igual).
+  cortes?.parar();
+  g.plano.alMarca = null;
+  await fin(g);
+  cortes?.liberar();
+  cortes = null;
+  fotoBar = null;
+  liberarConceptos();
 }
 
 /**
@@ -366,6 +537,8 @@ export const capitulo2: Capitulo = {
     bar3: () => bar(3) as unknown as Escena,
     bar4: () => bar(4) as unknown as Escena,
     bar5: () => bar(5) as unknown as Escena,
+    bar6: () => bar(6) as unknown as Escena,
+    conceptos: () => conceptos() as unknown as Escena,
   },
 
   estadoInicial,
@@ -398,7 +571,18 @@ export const capitulo2: Capitulo = {
   },
 
   zonas(g, escena) {
+    if (escena === 'conceptos') return zonasConceptos(g);
     return escena.startsWith('bar') ? zonasBar(g) : {};
+  },
+
+  /** The world of the concepts has no dock (the friends there are figures, not faces) and nobody walks: it is touched. */
+  async alEntrar(g, escena) {
+    g.root.classList.toggle('sin-reparto', escena === 'conceptos');
+    g.fpsReposo = escena === 'conceptos' ? 60 : 30;
+    if (escena !== 'conceptos') return;
+    // The four are figures drawn live (src/capitulos/conceptos-vivo.ts): the people of the engine stay hidden.
+    for (const p of g.pjs.values()) p.visible = false;
+    g.foco = CX_CONCEPTOS;
   },
 
   npcs(g, escena) {
@@ -428,6 +612,7 @@ export const capitulo2: Capitulo = {
   },
 
   objetivo(g) {
+    if (g.escena === 'conceptos') return texto(g.flag('c2.fran.hallado') ? 'objetivo.c2.conceptos.ultima' : 'objetivo.c2.conceptos.fran');
     if (!g.flag('c2.ronda')) return texto('objetivo.c2.ronda');
     if (g.flag('c2.tirada')) return null;
     if (g.flag('c2.fresquitos')) return texto('objetivo.c2.duro');
@@ -437,6 +622,7 @@ export const capitulo2: Capitulo = {
 
   pista(g) {
     const f = (k: string) => g.flag(k);
+    if (g.escena === 'conceptos') return texto(f('c2.fran.hallado') ? 'pista.c2.conceptos.ultima' : 'pista.c2.conceptos.fran');
     if (!f('c2.ronda')) return texto('pista.c2.ronda');
     if (!f('c2.diagnostico')) return texto(f('c2.cambio') ? 'pista.c2.maquina' : 'pista.c2.cambio');
     if (!f('c2.separada')) return texto('pista.c2.enchufe');
@@ -448,16 +634,25 @@ export const capitulo2: Capitulo = {
 
   vecinas: (escena) => {
     const m = escena.match(/^bar(\d)$/);
-    return m && Number(m[1]) < 5 ? [`bar${Number(m[1]) + 1}`] : [];
+    if (escena === 'bar6') return ['conceptos'];
+    return m && Number(m[1]) < 6 ? [`bar${Number(m[1]) + 1}`] : [];
   },
 
   musica(g) {
     if (g.escena === 'calle') return { pista: 'barPuerta', volumen: 1 };
+    if (g.escena === 'conceptos') return { pista: 'brioSueno', volumen: 0.7 };
     if (!g.escena.startsWith('bar')) return null;
     return { pista: nivel(g) >= 2 ? 'brioSueno' : 'brio', volumen: VOLUMEN_BAR };
   },
 
   dibujar(g, ctx, capa) {
-    if (g.escena.startsWith('bar')) dibujarBarVivo(g, ctx, capa, nivel(g));
+    if (g.escena === 'conceptos') dibujarConceptos(g, ctx, capa, nivel(g));
+    else if (g.escena.startsWith('bar')) dibujarBarVivo(g, ctx, capa, nivel(g));
   },
 };
+
+/**
+ * Test hook for scripts/capitulo2.mjs and the screenshots: lets a script start each piece of the last stretch of the
+ * night directly, without playing the six minutes before it. The game itself does not use it.
+ */
+export const pruebasC2 = { subirNivel, chuchiYElKart, veroTragaAFran, elRestoDeLaNoche };

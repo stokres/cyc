@@ -15,7 +15,7 @@
 // without it, to compare.
 //
 // Usage: node scripts/rendimiento.mjs [escena...]   (against npm run dev on :5173)
-//   escenas: prologo, piso, calle, bar, manga, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, tragaperras, sol, solcombate, solcamino, solteatro, soljefe, solcalderon, kart (all by default)
+//   escenas: prologo, piso, calle, bar, manga, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, tragaperras, sol, solcombate, solcamino, solteatro, soljefe, solcalderon, kart, boca, conceptos, caos (all by default)
 import { chromium } from 'playwright';
 import { readFileSync, readdirSync } from 'node:fs';
 
@@ -81,6 +81,10 @@ async function medir(nombre, prep, contar = 'escena') {
     clearInterval(window.__lucha);
     window.__sol?.().cerrar();
     window.__kart?.().cerrar();
+    window.__boca?.().cerrar();
+    window.__cortes?.parar();
+    window.__cortes?.liberar();
+    window.__cortes = null;
     // The minigames started here do not unpause the scene themselves.
     window.__cyc.g.pausado = false;
   });
@@ -112,9 +116,10 @@ async function medir(nombre, prep, contar = 'escena') {
     const g0 = window.__pang?.().fotogramas ?? 0;
     const so0 = window.__sol?.().fotogramas ?? 0;
     const ka0 = window.__kart?.().fotogramas ?? 0;
+    const bo0 = window.__boca?.().fotogramas ?? 0;
     setTimeout(() => {
       m.dibujar = d;
-      res(contar === 'cerdos' ? ((window.__cerdos?.().fotogramas ?? 0) - f0) / seg : contar === 'palabras' ? ((window.__palabras?.().fotogramas ?? 0) - p0) / seg : contar === 'rana' ? ((window.__rana?.().fotogramas ?? 0) - r0) / seg : contar === 'robot' ? ((window.__robot?.().fotogramas ?? 0) - b0) / seg : contar === 'pang' ? ((window.__pang?.().fotogramas ?? 0) - g0) / seg : contar === 'trailer' ? ((window.__trailer?.().fotogramas ?? 0) - t0) / seg : contar === 'canas' ? ((window.__canas?.().fotogramas ?? 0) - ca0) / seg : contar === 'canto' ? ((window.__canto?.().fotogramas ?? 0) - cn0) / seg : contar === 'tragaperras' ? ((window.__tragaperras?.().fotogramas ?? 0) - tg0) / seg : contar === 'sol' ? ((window.__sol?.().fotogramas ?? 0) - so0) / seg : contar === 'kart' ? ((window.__kart?.().fotogramas ?? 0) - ka0) / seg : n / seg);
+      res(contar === 'cerdos' ? ((window.__cerdos?.().fotogramas ?? 0) - f0) / seg : contar === 'palabras' ? ((window.__palabras?.().fotogramas ?? 0) - p0) / seg : contar === 'rana' ? ((window.__rana?.().fotogramas ?? 0) - r0) / seg : contar === 'robot' ? ((window.__robot?.().fotogramas ?? 0) - b0) / seg : contar === 'pang' ? ((window.__pang?.().fotogramas ?? 0) - g0) / seg : contar === 'trailer' ? ((window.__trailer?.().fotogramas ?? 0) - t0) / seg : contar === 'canas' ? ((window.__canas?.().fotogramas ?? 0) - ca0) / seg : contar === 'canto' ? ((window.__canto?.().fotogramas ?? 0) - cn0) / seg : contar === 'tragaperras' ? ((window.__tragaperras?.().fotogramas ?? 0) - tg0) / seg : contar === 'sol' ? ((window.__sol?.().fotogramas ?? 0) - so0) / seg : contar === 'kart' ? ((window.__kart?.().fotogramas ?? 0) - ka0) / seg : contar === 'boca' ? ((window.__boca?.().fotogramas ?? 0) - bo0) / seg : n / seg);
     }, seg * 1000);
   }), { seg: SEG, contar });
   const cpu = ((cpuChrome() - c0) / SEG) * 100;
@@ -154,12 +159,12 @@ if (toca('calle')) {
 }
 if (toca('bar')) {
   // The Bar del Brío inside, level 0 (as it always is), level 3 (warped, the dragon and the spinning pieces),
-  // level 4 (the corridor with no end and the sloping floor) and level 5 (upside down), with the four friends in
+  // level 4 (the corridor with no end and the sloping floor), level 5 (upside down) and level 6 (the bar as Vero swallows Fran), with the four friends in
   // their places and then one of them walking along the counter.
   const preparar = (n) => ir(`bar${n}`, `e.final = true; e.activo = 'fran'; ${['chuchi', 'pablo', 'fran', 'guille'].map((id, i) => `e.donde.${id} = { escena: 'bar${n}', X: ${(n === 4 ? 2600 : 1250) + i * 250}, y: 930, face: ${i < 2 ? 1 : -1} }`).join('; ')}`, `
     const { escena } = await import('/src/arte/escenas/bar.mjs');
     const { dibujarBarVivo } = await import('/src/capitulos/bar-vivo.ts');
-    for (let k = 0; k < 6; k++) g.cap.escenas['bar' + k] = () => escena(k);
+    for (let k = 0; k < 7; k++) g.cap.escenas['bar' + k] = () => escena(k);
     if (!g.cap.__barVivo) {
       g.cap.__barVivo = true;
       const orig = g.cap.dibujar;
@@ -177,6 +182,7 @@ if (toca('bar')) {
   await medir('bar nivel 4, Fran andando', paseo(1500, 4300, 960));
   await medir('bar nivel 5, los cuatro quietos', preparar(5));
   await medir('bar nivel 5, Fran andando', paseo(1000, 2300, 960));
+  await medir('bar nivel 6, los cuatro quietos', preparar(6));
 }
 if (toca('manga')) {
   // Chapter 2: the manga shot (src/juego/manga.ts) over the long bar of level 4, with the four friends in their places:
@@ -186,7 +192,7 @@ if (toca('manga')) {
   const sitios = ['chuchi', 'pablo', 'fran', 'guille'].map((id, i) => `e.donde.${id} = { escena: 'bar4', X: ${2600 + i * 250}, y: 930, face: ${i < 2 ? 1 : -1} }`).join('; ');
   const manga = (marca) => ir('bar4', `e.final = true; e.activo = 'fran'; ${sitios}`, `
     const { escena } = await import('/src/arte/escenas/bar.mjs');
-    for (let k = 0; k < 6; k++) g.cap.escenas['bar' + k] = () => escena(k);
+    for (let k = 0; k < 7; k++) g.cap.escenas['bar' + k] = () => escena(k);
     for (const id of ['fran', 'pablo', 'chuchi', 'guille']) { const F = g.pjs.get(id); if (F) { F.enCapa = null; F.rot = 0; F.eyesClosed = false; } }
     g.plano.manga.ocultar();
     window.__mangaListo = false;`).replace(/\}\)\(\)$/, `
@@ -611,6 +617,69 @@ if (toca('solcalderon')) {
   // The long summon of Calderón de la Barca (calderon.ts): the sky opening, the rotating rays, the huge bust, the quill
   // writing in the air and the blow. The measure starts a few seconds into it.
   await medir('solcalderon: la invocacion de Calderon', PREP_JEFE(true), 'sol');
+}
+
+// Chapter 2, last stretch: these need the chapter-2 game itself (?capitulo2), so the page is reloaded; they go last.
+if (toca('boca') || toca('conceptos') || toca('caos')) {
+  await page.goto(`http://localhost:${process.env.PUERTO ?? 5173}/?capitulo2&nueva`);
+  await page.waitForFunction(() => window.__cyc);
+  await page.evaluate(() => window.__cyc.listo());
+  await page.evaluate(() => {
+    const c = window.__cyc;
+    c.titulo.remove();
+    c.g.hud.setVisible(true);
+    for (const id of ['fran', 'pablo', 'chuchi', 'guille']) c.g.poner(`empezado.${id}`);
+    c.g.calidadAuto = false;
+    c.g.motor.setCalidad('media');
+  });
+  if (!process.env.SIN_MUSICA) await page.evaluate(() => window.__cyc.g.sound.start());
+}
+if (toca('boca')) {
+  // Vero's mouth (src/ui/boca.ts): the trailer's shot over the game, with the four faces. Open and still, drawing every frame.
+  await medir('boca de Vero (abierta)', `(async () => {
+    clearInterval(window.__paseo);
+    const g = window.__cyc.g;
+    const { abrirBoca } = await import('/src/ui/boca.ts');
+    g.hud.setVisible(false);
+    void abrirBoca(g.root, { sonido: g.sound }).abre();
+  })()`, 'boca');
+  await page.evaluate(() => window.__cyc.g.hud.setVisible(true));
+}
+const MUNDO = (extra = '') => `(async () => {
+  clearInterval(window.__paseo);
+  const g = window.__cyc.g;
+  g.poner('c2.nivel', 7);
+  const { prepararConceptos } = await import('/src/capitulos/conceptos-vivo.ts');
+  await prepararConceptos(g);
+  for (const id of g.estado.jugables) g.estado.donde[id] = { escena: 'conceptos', X: 1200, y: 900, face: 1 };
+  await g.irA('conceptos', false);
+  await g.velar(false);
+  ${extra}
+})()`;
+if (toca('conceptos')) {
+  // The world of the concepts (level 7): the void with the parallax shapes, the twelve pieces moving (all bitmaps baked once,
+  // only transforms per frame) and Vero's lips; then with Fran found, «LA ÚLTIMA» shown and the dinosaur rising.
+  await medir('conceptos, el mundo quieto', MUNDO());
+  await medir('conceptos, con Fran hallado y el dino', MUNDO(`
+    g.poner('c2.fran.hallado');
+    const m = await import('/src/capitulos/conceptos-vivo.ts');
+    m.revelarUltima(g);
+    m.subirDino(g);`));
+}
+if (toca('caos')) {
+  // The total chaos (level 8): hard cuts between normal / manga / Alacant Sun pixels / Pang pixels / pencil (each baked once, see
+  // src/juego/estilos.ts), the hue turning, the camera spinning for good and the pieces at 2.6x.
+  await medir('caos, cortes de estilo y giro', MUNDO(`
+    g.poner('c2.nivel', 8);
+    g.poner('c2.fran.hallado');
+    const m = await import('/src/capitulos/conceptos-vivo.ts');
+    const { prepararCortes } = await import('/src/juego/estilos.ts');
+    m.revelarUltima(g);
+    m.empezarCaos(g);
+    m.subirDino(g);
+    window.__cortes = await prepararCortes(g, null, ['fran:cara:enfado', 'vero:boca:picara', 'chuchi:ojos:seriedad', '!gogogo']);
+    window.__cortes.iniciar();
+    void g.plano.girar(1000, 3500000);`));
 }
 
 // Memory after the whole tour (docs/ESTILO.md, T5.11): baked scenery and decoded music are
