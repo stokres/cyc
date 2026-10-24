@@ -128,7 +128,14 @@ function sueno(hex) {
   return deHSL(318, Math.min(0.85, s * 1.1 + 0.1), L);
 }
 
-const PALETA = [null, null, psicodelico, sueno, pasillo, reves];
+/** Level 6: Vero's gold and wine, over the upside-down bar. Every hue is pulled into the reds, golds and ambers of her mouth. */
+function tragado(hex) {
+  const [h, s, l] = aHSL(hex);
+  if (l < 0.045 || l > 0.97) return hex;
+  return deHSL((335 + (h / 360) * 95) % 360, Math.min(1, s * 1.1 + 0.25), Math.min(0.88, l * 1.04 + 0.02));
+}
+
+const PALETA = [null, null, psicodelico, sueno, pasillo, reves, (hex) => tragado(reves(hex))];
 
 /** Colours of the generated SVG (fill, stroke and gradient stops) through `fn`. */
 function recolor(svg, fn) {
@@ -1280,7 +1287,7 @@ function piezasVivasBase(nivel) {
 const escenas = new Map();
 
 export function escena(nivel = 0) {
-  if (!escenas.has(nivel)) escenas.set(nivel, nivel === 4 ? construir4() : nivel === 5 ? construir5() : construir(nivel));
+  if (!escenas.has(nivel)) escenas.set(nivel, nivel === 4 ? construir4() : nivel === 5 ? construir5() : nivel === 6 ? construir6() : construir(nivel));
   return escenas.get(nivel);
 }
 
@@ -1792,6 +1799,32 @@ function construir5() {
     spots,
     zonas,
     noche: { tubos: [] },
+  };
+}
+
+/**
+ * Level 6, where Vero swallows Fran: the upside-down bar again, every colour of it pulled into the gold and wine of her
+ * mouth (the same layout, the same zones and places; only the colours of what is baked change).
+ */
+function construir6() {
+  const S = construir5();
+  const r = (svg) => (svg ? recolor(svg, tragado) : svg);
+  const col = (c) => (typeof c === 'string' && c.startsWith('#') ? tragado(c) : c);
+  return {
+    ...S,
+    id: 'bar6',
+    ambient: col(S.ambient),
+    layers: S.layers.map((L) => ({
+      ...L,
+      body: r(L.body),
+      emissive: r(L.emissive),
+      pieces: L.pieces?.map((q) => ({ ...q, body: r(q.body), emissive: r(q.emissive) })),
+      texts: L.texts?.map((t) => ({ ...t, color: col(t.color), glow: col(t.glow) })),
+      glows: L.glows?.map((q) => ({ ...q, color: col(q.color) })),
+    })),
+    props: S.props.map((q) => ({ ...q, svg: r(q.svg) })),
+    lights: S.lights.map((l) => ({ ...l, color: col(l.color) })),
+    shafts: S.shafts?.map((q) => ({ ...q, color: col(q.color) })),
   };
 }
 

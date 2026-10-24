@@ -55,6 +55,8 @@ export class Actor {
   /** Rotation and lift, for lying down or popping up from behind furniture. */
   rot = 0;
   lift = 0;
+  /** Extra size on top of the scene's (1 = normal): Vero growing before she swallows Fran (chapter 2). */
+  crece = 1;
   /** Override placement in a layer's own space (asleep on the sofa). */
   enCapa: { u: number; k: number; y: number } | null = null;
   shadowOn = true;
@@ -183,7 +185,7 @@ export class Actor {
     const vis = this.visible ? '' : 'none';
     if (vis !== W.vis) this.wrap.style.display = W.vis = vis;
     if (!this.visible) return;
-    const wrap = `translate(${sx.toFixed(1)} ${(y - this.lift * s).toFixed(1)}) scale(${s.toFixed(3)})`;
+    const wrap = `translate(${sx.toFixed(1)} ${(y - this.lift * s).toFixed(1)}) scale(${(s * this.crece).toFixed(3)})`;
     if (wrap !== W.wrap) this.wrap.setAttribute('transform', (W.wrap = wrap));
     const flip = `scale(${this.face} 1)${this.rot ? ` rotate(${this.rot})` : ''}`;
     if (flip !== W.flip) this.flip.setAttribute('transform', (W.flip = flip));

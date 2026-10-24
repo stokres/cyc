@@ -25,6 +25,7 @@
 //   @foco tragaperras         the real camera travels to a place or a person (the long bar is longer than the
 //                             screen) and the talk waits until it lands; @foco libre lets it follow whoever plays
 //   @espera 400               waits (the other line that makes the talk wait)
+//   @girar 2 6000             the whole shot spins round 2 times in 6 s and ends straight (the chaos)
 //   @manga pablo:ojos:suplica vero:boca chuchi:cara:sorpresa !gogogo
 //                             the manga shot (src/juego/manga.ts): 1 to 3 tilted black-and-white panels that cut in
 //                             while the talk goes on in its box. `personaje:tipo:expresion` (tipo: cara, ojos, boca,
@@ -85,6 +86,9 @@ export class Camara {
     this.manga = new PlanoManga(g, this.rayas.nextSibling);
   }
 
+  /** Marks from the texts that are not the camera's (`@caos on`, `@caos off`): the chapter registers who runs them. */
+  alMarca: ((palabras: string[]) => Promise<void> | void) | null = null;
+
   /** The camera is doing something other than a plain shot. */
   get activa() {
     return !!this.anim || !!this.temblor || CLAVES.some((k) => this.e[k] !== PLANO[k]);
@@ -103,7 +107,8 @@ export class Camara {
     const m = g.motor;
     if (objetivo === 'centro' || objetivo === 'general') return { x: 0.5, y: 0.5 };
     const a = g.pjs.get(objetivo as never) ?? g.npcs.get(objetivo as never);
-    if (a) {
+    // Someone who is not on screen (the friends in the world of the concepts are figures: their zones) is a zone.
+    if (a && a.visible) {
       const k = m.f(a.y);
       return { x: m.screenX(a.X, k) / m.vw, y: (a.y + m.alzada(a.X, k) - 235 * m.escala(k)) / H };
     }
@@ -166,6 +171,17 @@ export class Camara {
     this.escribir();
     this.alCambiar();
     return Promise.resolve();
+  }
+
+  /**
+   * The whole picture turns round `vueltas` times (negative: the other way) taking `ms`, and ends straight. The
+   * end of the night (the total chaos) spins the camera like this, with the style cuts spinning with it.
+   */
+  async girar(vueltas = 1, ms = 3000) {
+    await this.ir({ ...this.e, r: this.e.r + 360 * vueltas }, ms, (u) => u);
+    // A whole number of turns is the same angle: keep it small so a later `nivelar` does not unwind them.
+    this.e.r = ((((this.e.r + 180) % 360) + 360) % 360) - 180;
+    this.escribir();
   }
 
   /** The whole shot again (roll and tilt stay: use `nivelar` for those). */
@@ -269,8 +285,13 @@ export class Camara {
       case 'foco':
         await this.foco(a[0] ?? 'libre');
         break;
+      case 'girar':
+        void this.girar(n(0, 1), n(1, 3000));
+        break;
       default:
-        console.error(`[cámara] marca desconocida «@${p.join(' ')}»`);
+        // A mark that is not the camera's own (the chaos asks for its style cuts): whoever registered it takes it.
+        if (this.alMarca) await this.alMarca(p);
+        else console.error(`[cámara] marca desconocida «@${p.join(' ')}»`);
     }
   }
 

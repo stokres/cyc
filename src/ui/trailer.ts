@@ -886,7 +886,7 @@ const BOKEH: Array<[number, number, number, boolean]> = [
  * mouth opens wider and wider, there are the little lights of a bar deep inside, and the
  * camera dives in until everything is black. Drawn every frame (a handful of paths).
  */
-function dibujarVero(x: CanvasRenderingContext2D, W: number, H: number, s: number) {
+export function dibujarVero(x: CanvasRenderingContext2D, W: number, H: number, s: number) {
   const cx = W / 2;
   const cy = H * 0.55;
   const piel = x.createRadialGradient(cx, H * 0.42, H * 0.1, cx, H * 0.5, Math.max(W, H) * 0.75);
