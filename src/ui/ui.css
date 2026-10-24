@@ -1461,6 +1461,59 @@ button:focus-visible {
   z-index: 8;
 }
 
+/* ------------------------------------------------------------ PokéUsera (chapter 2, src/pokeusera/) */
+
+/* The game is played upright (240 × 384–520, like a Game Boy). The stage (marco.ts) is one box with its own size: a column centred on a computer,
+   the whole screen on an upright phone, and turned a quarter behind the «Gira el móvil» veil on a phone held in landscape. */
+.minijuego.pokeusera {
+  display: block;
+  padding: 0;
+  background: radial-gradient(circle at 50% 50%, #2a1838, #0a0612 80%);
+  overflow: hidden;
+}
+
+.pk-escena {
+  display: flex;
+  background: #000;
+  overflow: hidden;
+  box-shadow: 0 0 0 2px rgba(219, 180, 108, 0.4), 0 0 48px rgba(0, 0, 0, 0.7);
+}
+
+.pk-gira {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  text-align: center;
+  background: rgba(5, 7, 15, 0.6);
+}
+
+.pk-gira .pk-movil {
+  margin: 0 auto 4px;
+  animation: pk-gira-movil 2.4s infinite ease-in-out;
+}
+
+@keyframes pk-gira-movil {
+  0%, 25% { transform: rotate(90deg); }
+  65%, 100% { transform: rotate(0deg); }
+}
+
+.pk-gira-titulo {
+  margin: 0;
+  font: 400 clamp(26px, 9vh, 44px) var(--display);
+  color: var(--gold);
+  letter-spacing: 0.04em;
+}
+
+.pk-gira-sub {
+  margin: 0;
+  font: 400 clamp(13px, 4vh, 18px) var(--display);
+  color: var(--cream);
+}
+
 /* ------------------------------------------------------------ ball cannon minigame (Chuchi) */
 
 .minijuego.robot {

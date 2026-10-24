@@ -465,6 +465,8 @@ function rugido(g: Aventura) {
 async function elCaos(g: Aventura) {
   g.poner('c2.nivel', 8);
   empezarCaos(g);
+  // PokéUsera's art, effects and backdrop are baked in the background while the chaos plays (the chunk loads on its own).
+  void import('../pokeusera/capitulo').then((m) => m.precalentarPokeusera()).catch((e) => console.warn('[pokeusera]', e));
   cortes = await prepararCortes(g, fotoBar, ['fran:cara:enfado', 'vero:boca:picara', 'chuchi:ojos:seriedad', '!gogogo']);
   g.plano.alMarca = async (p) => {
     if (p[0] !== 'caos') return;
@@ -479,10 +481,8 @@ async function elCaos(g: Aventura) {
   await g.hablar('c2.caos.empieza');
   await g.hablar('c2.caos.dino');
   await g.hablar('c2.caos.guille');
-  // POKEUSERA: aquí entrará el PokéUsera (el último juego, que se hará aparte). Guille se adelanta con su jarra,
-  // «Este es mío», y de esa frase sale el juego; hasta entonces solo viene el «Continuará» de abajo. Cuando exista,
-  // se lanzará aquí como el Pang, el Alacant Sun y el Kart (`g.pausado`, `g.minijuegoSuperado('pokeusera')`; con
-  // 'saltado' y 'cancelado' la historia sigue igual).
+  await pokeusera(g);
+  // FINAL: aquí acaba lo que hay del capítulo 2 (el «Continuará»).
   cortes?.parar();
   g.plano.alMarca = null;
   await fin(g);
@@ -490,6 +490,22 @@ async function elCaos(g: Aventura) {
   cortes = null;
   fotoBar = null;
   liberarConceptos();
+}
+
+/**
+ * PokéUsera (src/pokeusera/), the last game of the night: Guille steps forward with his jar («Este es mío») and the screen turns, suddenly, into
+ * the game, played standing up (docs/CAPITULO2.md, «PokéUsera»). On a phone it asks for the turn («Gira el móvil»); on a computer the screen
+ * turns by itself into a vertical column. The game's own text box and screens carry the rest. 'saltado' and 'cancelado' go on anyway.
+ */
+async function pokeusera(g: Aventura) {
+  g.hud.cerrarDialogo();
+  g.hud.setVisible(false);
+  g.pausado = true;
+  const { jugarPokeusera } = await import('../pokeusera/capitulo');
+  const r = await jugarPokeusera(g.root, { rapido: g.rapido, sonido: g.sound }).finally(() => (g.pausado = false));
+  if (r === 'hecho') g.minijuegoSuperado('pokeusera');
+  g.hud.setVisible(true);
+  await g.hablar('c2.pokeusera.vuelve');
 }
 
 /**

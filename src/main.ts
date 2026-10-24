@@ -81,6 +81,16 @@ async function arrancar() {
     location.href = location.pathname;
     return;
   }
+  // «PokéUsera» (src/pokeusera/), the last game of chapter 2, opened by itself: the address ending in ?pokecap. `&dino` goes straight to the silhouette and the
+  // hunt, `&auto` has the machine play Guille's four-way battle, `&rapido` skips the waits, `&semilla=N` repeats the draw. The result stays on `window.__pokeResultado`.
+  const pk = new URLSearchParams(location.search);
+  if (pk.has('pokecap')) {
+    const { jugarPokeusera } = await import('./pokeusera/capitulo');
+    const semilla = Number(pk.get('semilla'));
+    const r = await jugarPokeusera(root, { dino: pk.has('dino'), auto: pk.has('auto'), rapido: pk.has('rapido'), semilla: semilla > 0 ? semilla : undefined });
+    (window as unknown as { __pokeResultado?: string }).__pokeResultado = r;
+    return;
+  }
   const ajustes = cargarAjustes();
   const guardarAjustes = () => storageSet('cyc.ajustes', JSON.stringify(ajustes));
   // ---------------------------------------------------------- the saved game
