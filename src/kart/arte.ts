@@ -4,6 +4,7 @@
 // angles by a tiny software renderer: that way every driver, in every colour, has the same kart seen from the same
 // sixteen sides, and the game only ever blits and scales them. The heads are painted from the driver's data
 // (pilotos.ts): Chuchi is bald and shiny, with square black glasses and a short grey beard; the rivals have a plain face.
+import { texto } from '../juego/textos';
 import { anchoTexto, escribir } from '../sol/fuente';
 import { ctx, elipse, lienzo, pintar, rect } from '../sol/pixel';
 import type { Piloto } from './pilotos';
@@ -542,41 +543,22 @@ const trazo = (x: CanvasRenderingContext2D, col: string, x0: number, y0: number,
   for (let i = 0; i <= n; i++) x.fillRect(Math.round(x0 + ((x1 - x0) * i) / n - grosor / 2), Math.round(y0 + ((y1 - y0) * i) / n - grosor / 2), grosor, grosor);
 };
 
-export function spriteDecorado(tipo: string): Sprite {
-  const hit = cacheDecor.get(tipo);
+/** How many drawings some of the scenery has (the audience, the pendant lamps...). */
+const VARIANTES: Record<string, number> = { publico: 6, tumbona: 2, colgante: 2, focoTecho: 3, sombrilla: 2 };
+
+const oscuroHex = (hex: string, f: number) => {
+  const [r, g, b] = rgb(hex);
+  return `rgb(${Math.round(r * f)},${Math.round(g * f)},${Math.round(b * f)})`;
+};
+
+export function spriteDecorado(tipo: string, v = 0): Sprite {
+  const nv = VARIANTES[tipo];
+  if (nv) v = ((Math.floor(v) % nv) + nv) % nv;
+  const clave = nv ? `${tipo}:${v}` : tipo;
+  const hit = cacheDecor.get(clave);
   if (hit) return hit;
   let s: Sprite;
   switch (tipo) {
-    case 'palmera': {
-      const c = lienzo(64, 112);
-      const x = ctx(c);
-      // trunk with rings
-      for (let y = 40; y < 108; y++) {
-        const w = 3 + Math.round(((y - 40) / 68) * 2);
-        const cx = 32 + Math.round(Math.sin((y - 40) / 22) * 2);
-        rect(x, (y >> 2) & 1 ? '#8a5a30' : '#a06a3a', cx - w, y, w * 2, 1);
-        rect(x, '#5e3a1c', cx + w - 1, y, 1, 1);
-      }
-      elipse(x, 'rgba(30,14,40,0.35)', 32, 109, 14, 3);
-      const hojas = ['#2f9a4a', '#1f7a3a', '#5ac26a'];
-      for (let a = 0; a < 8; a++) {
-        const ang = (a / 8) * Math.PI * 2 + 0.2;
-        const dx = Math.cos(ang);
-        const dy = Math.sin(ang);
-        let px = 32;
-        let py = 40;
-        for (let t = 0; t < 26; t++) {
-          px += dx * 1.15;
-          py += dy * 0.55 + t * 0.045;
-          const g = Math.max(1, Math.round(3.4 - t / 9));
-          rect(x, hojas[(a + (t >> 3)) % 3], Math.round(px) - 1, Math.round(py) - 1, g + 1, g);
-        }
-      }
-      elipse(x, '#8a5a30', 28, 43, 2.5, 2.5);
-      elipse(x, '#6a3f20', 35, 44, 2.5, 2.5);
-      s = { img: c, ax: 32, ay: 109 };
-      break;
-    }
     case 'sombrilla': {
       const c = lienzo(56, 68);
       const x = ctx(c);
@@ -587,10 +569,10 @@ export function spriteDecorado(tipo: string): Sprite {
         const t = i / 24;
         const h = Math.round(Math.sqrt(1 - t * t) * 14);
         const seg = Math.floor((i + 24) / 6);
-        for (let y = 0; y < h; y++) rect(x, seg & 1 ? '#fafafa' : '#e0383c', 28 + i, 24 - y + 0, 1, 1);
-        rect(x, '#8a2024', 28 + i, 24, 1, 1);
+        for (let y = 0; y < h; y++) rect(x, seg & 1 ? '#fafafa' : v ? '#2a78c8' : '#e0383c', 28 + i, 24 - y + 0, 1, 1);
+        rect(x, v ? '#1a4a80' : '#8a2024', 28 + i, 24, 1, 1);
       }
-      rect(x, '#8a2024', 27, 9, 2, 2);
+      rect(x, v ? '#1a4a80' : '#8a2024', 27, 9, 2, 2);
       s = { img: c, ax: 28, ay: 66 };
       break;
     }
@@ -624,21 +606,6 @@ export function spriteDecorado(tipo: string): Sprite {
       for (const [px, py, r, k] of [[20, 20, 11, 0], [12, 28, 8, 1], [28, 28, 8, 2], [20, 11, 8, 2], [14, 17, 6, 1], [27, 18, 6, 0]] as const) elipse(x, g[k], px, py, r, r);
       elipse(x, '#9be08a', 17, 14, 3, 2);
       s = { img: c, ax: 20, ay: 61 };
-      break;
-    }
-    case 'cactus': {
-      const c = lienzo(28, 48);
-      const x = ctx(c);
-      elipse(x, 'rgba(30,14,40,0.35)', 14, 45, 9, 2.5);
-      pintar(x, ['.cccccccc.', '.CcccccccC', '..cccccc..', '..CCCCCC..'], { c: '#c8683a', C: '#9a4a24' }, 9, 37);
-      rect(x, '#3a9a58', 11, 8, 6, 30);
-      rect(x, '#5ac27a', 12, 8, 2, 30);
-      rect(x, '#3a9a58', 4, 18, 7, 4);
-      rect(x, '#3a9a58', 4, 12, 4, 10);
-      rect(x, '#3a9a58', 17, 22, 7, 4);
-      rect(x, '#3a9a58', 20, 15, 4, 11);
-      rect(x, '#ff7aa8', 12, 5, 4, 3);
-      s = { img: c, ax: 14, ay: 45 };
       break;
     }
     case 'lampara': {
@@ -718,13 +685,236 @@ export function spriteDecorado(tipo: string): Sprite {
       const c = lienzo(48, 28);
       const x = ctx(c);
       elipse(x, 'rgba(30,14,40,0.3)', 24, 25, 20, 3);
-      for (let i = 0; i < 34; i++) rect(x, (i >> 2) & 1 ? '#fafafa' : '#3a9ad8', 6 + i, 14 - Math.round(i * 0.1), 1, 7);
+      for (let i = 0; i < 34; i++) rect(x, (i >> 2) & 1 ? '#fafafa' : v ? '#f2b82a' : '#3a9ad8', 6 + i, 14 - Math.round(i * 0.1), 1, 7);
       rect(x, '#e6e0d0', 6, 21, 34, 2);
       rect(x, '#fafafa', 36, 7, 7, 14);
-      rect(x, '#3a9ad8', 38, 7, 2, 14);
+      rect(x, v ? '#f2b82a' : '#3a9ad8', 38, 7, 2, 14);
       rect(x, '#8a8070', 8, 23, 2, 3);
       rect(x, '#8a8070', 36, 23, 2, 3);
       s = { img: c, ax: 24, ay: 25 };
+      break;
+    }
+    case 'olivo': {
+      const c = lienzo(64, 84);
+      const x = ctx(c);
+      elipse(x, 'rgba(30,14,40,0.32)', 32, 81, 17, 3.5);
+      // a gnarled trunk that forks, twisting
+      for (let y = 46; y < 82; y++) {
+        const t = (y - 46) / 36;
+        const w = 3 + Math.round(t * 3.5);
+        const cx = 32 + Math.round(Math.sin(t * 3.2) * 2.2);
+        rect(x, '#7a6046', cx - w, y, w * 2, 1);
+        rect(x, '#9a7c5c', cx - w, y, Math.max(1, Math.round(w * 0.5)), 1);
+        rect(x, '#4e3a2a', cx + w - 2, y, 2, 1);
+        if (y % 5 === 0) rect(x, '#4e3a2a', cx - 1, y, 2, 1);
+      }
+      trazo(x, '#6a5238', 31, 48, 19, 32, 3);
+      trazo(x, '#6a5238', 33, 48, 45, 30, 3);
+      trazo(x, '#6a5238', 32, 48, 33, 26, 3);
+      // the silvery canopy in clumps
+      const hojas = ['#8aa070', '#6c8a56', '#a8bc88', '#c4d2a4'];
+      const sombras = '#4a6a3e';
+      const masas: Array<[number, number, number, number]> = [[32, 22, 24, 14], [16, 30, 14, 9], [48, 28, 14, 9], [26, 12, 14, 8], [40, 14, 13, 8], [32, 36, 16, 6]];
+      for (const [mx, my, rx, ry] of masas) {
+        elipse(x, sombras, mx + 1, my + 2, rx, ry);
+      }
+      for (const [mx, my, rx, ry] of masas) {
+        elipse(x, hojas[1], mx, my, rx - 1, ry - 1);
+        elipse(x, hojas[0], mx - 2, my - 2, rx - 4, ry - 3);
+        elipse(x, hojas[2], mx - 4, my - 4, rx * 0.45, ry * 0.4);
+      }
+      for (let i = 0; i < 70; i++) {
+        const a = hashi(i, 31) * Math.PI * 2;
+        const r = Math.sqrt(hashi(i, 32));
+        const px = 32 + Math.cos(a) * r * 24;
+        const py = 22 + Math.sin(a) * r * 14;
+        rect(x, i % 3 ? hojas[3] : sombras, Math.round(px), Math.round(py), 2, 1);
+      }
+      for (let i = 0; i < 9; i++) rect(x, '#3a3a2a', Math.round(14 + hashi(i, 33) * 36), Math.round(14 + hashi(i, 34) * 24), 2, 2);
+      s = { img: c, ax: 32, ay: 81 };
+      break;
+    }
+    case 'cipres': {
+      const c = lienzo(26, 92);
+      const x = ctx(c);
+      elipse(x, 'rgba(30,14,40,0.32)', 13, 89, 8, 2.5);
+      for (let y = 0; y < 86; y++) {
+        const t = y / 86;
+        const w = Math.max(1, Math.round(Math.sin(Math.pow(t, 0.7) * Math.PI) * 10.5 * (0.35 + 0.65 * t)));
+        rect(x, '#1f4a2a', 13 - w, y + 2, w * 2, 1);
+        rect(x, '#2f6a3a', 13 - w + 1, y + 2, Math.max(1, w * 2 - 4), 1);
+        if (w > 2) rect(x, '#4a9a52', 13 - w + 1, y + 2, 1 + (y % 4 === 0 ? 1 : 0), 1);
+      }
+      rect(x, '#4a3626', 12, 86, 2, 4);
+      s = { img: c, ax: 13, ay: 89 };
+      break;
+    }
+    case 'pozo': {
+      const c = lienzo(48, 54);
+      const x = ctx(c);
+      elipse(x, 'rgba(30,14,40,0.32)', 24, 50, 18, 3.5);
+      // round stone curb
+      for (let y = 30; y < 50; y++) {
+        const w = 15 + Math.round(Math.sin(((y - 30) / 20) * Math.PI * 0.5) * 3);
+        for (let xx = 24 - w; xx < 24 + w; xx++) {
+          const fila = Math.floor((y - 30) / 5);
+          const junta = (y - 30) % 5 === 4 || (xx + fila * 4) % 9 === 8;
+          rect(x, junta ? '#6a5e50' : ['#b4a892', '#a69a84', '#c2b69e'][Math.floor(hashi(Math.floor((xx + fila * 4) / 9), fila) * 3)], xx, y, 1, 1);
+        }
+      }
+      elipse(x, '#e0d6c0', 24, 30, 18, 5);
+      elipse(x, '#1a1a2a', 24, 30, 14, 3.4);
+      elipse(x, '#2a4a7a', 24, 31, 11, 2);
+      // posts, a beam and a little tiled roof
+      rect(x, '#6a4326', 8, 10, 3, 22);
+      rect(x, '#6a4326', 37, 10, 3, 22);
+      rect(x, '#8a5a34', 8, 10, 1, 22);
+      rect(x, '#8a5a34', 37, 10, 1, 22);
+      for (let r = 0; r < 8; r++) rect(x, r % 2 ? '#c4603a' : '#d2744a', 24 - 22 + r * 1.5, 2 + r, 44 - r * 3, 1);
+      rect(x, '#7a3a22', 2, 10, 44, 1);
+      rect(x, '#2a1a10', 24, 11, 1, 12);
+      rect(x, '#8a5a34', 21, 22, 7, 6);
+      rect(x, '#5a3a1c', 21, 22, 7, 1);
+      s = { img: c, ax: 24, ay: 50 };
+      break;
+    }
+    case 'maceta': {
+      const c = lienzo(36, 40);
+      const x = ctx(c);
+      elipse(x, 'rgba(30,14,40,0.32)', 18, 37, 11, 2.5);
+      pintar(x, ['.cccccccccccc.', 'cCcccccccccccC', '.cccccccccccc.', '..cccccccccc..', '..CccccccccC..', '...cccccccc...', '...CCCCCCCC...'], { c: '#c8683a', C: '#9a4a24' }, 11, 28);
+      rect(x, '#e8905a', 12, 28, 12, 1);
+      const g = ['#2f9a4a', '#1f7a3a', '#5ac26a'];
+      for (const [px, py, r, k] of [[18, 20, 9, 0], [10, 24, 6, 1], [26, 24, 6, 2], [18, 12, 6, 2]] as const) elipse(x, g[k], px, py, r, r * 0.8);
+      for (const [px, py] of [[14, 14], [22, 12], [11, 22], [25, 21], [18, 18], [20, 9]]) {
+        elipse(x, '#e03a48', px, py, 2.2, 2.2);
+        rect(x, '#ff8a96', px - 1, py - 1, 1, 1);
+      }
+      s = { img: c, ax: 18, ay: 37 };
+      break;
+    }
+    case 'publico': {
+      const c = lienzo(40, 54);
+      const x = ctx(c);
+      const piel = ['#f0c8a0', '#d8a070', '#a8704a', '#f6d4b0', '#8a5a3a', '#e8b890'];
+      const ropa = ['#ff6fb5', '#6fe0ff', '#ffe36e', '#a98bff', '#ff9a3c', '#ffffff'];
+      const pelo = ['#2a1a16', '#6a3a1c', '#d8b048', '#1a1420', '#c0502c', '#9a9aa8'];
+      const n = 2 + (v % 2);
+      elipse(x, 'rgba(14,6,24,0.5)', 20, 51, 17, 3.5);
+      for (let i = 0; i < n; i++) {
+        const cx = 8 + i * (n === 3 ? 12 : 17) + (hashi(v, i) * 4 - 2);
+        const hy = 20 + Math.round(hashi(v, i + 9) * 6);
+        const k = (v + i * 2) % 6;
+        const cuerpo = oscuroHex(ropa[k], 0.55);
+        const luz = ropa[k];
+        // body: dark with a coloured rim light from the stage
+        for (let y = hy + 7; y < 50; y++) {
+          const w = 6 + Math.round((y - hy - 7) * 0.12);
+          rect(x, cuerpo, cx - w, y, w * 2, 1);
+          rect(x, luz, cx + w - 2, y, 2, 1);
+        }
+        // arms up
+        const brazo = (dir: number) => trazo(x, cuerpo, cx + dir * 5, hy + 10, cx + dir * (9 + ((v + i) % 3)), hy - 6 - ((v + i + (dir > 0 ? 1 : 0)) % 4), 3);
+        if ((v + i) % 3 !== 0) brazo(-1);
+        if ((v + i) % 3 !== 1) brazo(1);
+        // head and hair
+        elipse(x, piel[(v + i * 3) % 6], cx, hy, 5, 5.4);
+        elipse(x, pelo[(v * 2 + i) % 6], cx, hy - 2.2, 5.2, 3.6);
+        rect(x, luz, cx + 3, hy - 2, 1, 5);
+        // a phone's light over somebody
+        if ((v + i) % 4 === 1) {
+          rect(x, '#fffbe8', cx + 8, hy - 13, 3, 4);
+          rect(x, 'rgba(255,255,230,0.5)', cx + 7, hy - 14, 5, 6);
+        }
+      }
+      s = { img: c, ax: 20, ay: 50 };
+      break;
+    }
+    case 'neon': {
+      const txt = texto('kart.neon');
+      const tw = anchoTexto(txt) + 2;
+      const k = 2;
+      const c = lienzo(tw * k + 16, 11 * k + 22);
+      const x = ctx(c);
+      // two chains up to the ceiling
+      for (const cx of [6, c.width - 7]) {
+        for (let y = 0; y < 14; y++) rect(x, y % 2 ? '#8a8098' : '#5a5068', cx, y, 1, 1);
+      }
+      rect(x, '#2a1a38', 2, 14, c.width - 4, 11 * k + 6);
+      rect(x, '#ff9ad8', 2, 14, c.width - 4, 1);
+      rect(x, '#a01868', 2, 14 + 11 * k + 5, c.width - 4, 1);
+      rect(x, '#6fe0ff', 2, 15, 1, 11 * k + 4);
+      rect(x, '#6fe0ff', c.width - 3, 15, 1, 11 * k + 4);
+      const t = lienzo(tw, 11);
+      escribir(ctx(t), txt, 1, 0, '#ffffff', '#ff4fb8');
+      x.drawImage(t, 0, 0, tw, 11, 8, 17, tw * k, 11 * k);
+      s = { img: c, ax: c.width / 2, ay: c.height - 1 };
+      break;
+    }
+    case 'focoTecho': {
+      const colores = [['#ff6fb5', 255, 111, 181], ['#6fe0ff', 111, 224, 255], ['#ffe36e', 255, 227, 110]] as const;
+      const [hex, r, g2, b] = colores[v % 3];
+      const c = lienzo(36, 44);
+      const x = ctx(c);
+      rect(x, '#3a3040', 17, 0, 2, 8);
+      rect(x, '#6a6070', 11, 8, 14, 7);
+      rect(x, '#8a8090', 11, 8, 14, 2);
+      rect(x, hex, 13, 14, 10, 2);
+      for (let y = 0; y < 28; y++) {
+        const w = 5 + Math.round(y * 0.4);
+        x.fillStyle = `rgba(${r},${g2},${b},${0.34 - y * 0.009})`;
+        x.fillRect(18 - w, 16 + y, w * 2, 1);
+      }
+      s = { img: c, ax: 18, ay: 43 };
+      break;
+    }
+    case 'jamon': {
+      const c = lienzo(24, 44);
+      const x = ctx(c);
+      rect(x, '#6a4a20', 12, 0, 1, 9);
+      elipse(x, '#7a1c1c', 12, 24, 8, 12);
+      elipse(x, '#a8362c', 10, 21, 5, 8);
+      elipse(x, '#f0e0cc', 9, 17, 3, 4);
+      rect(x, '#e8d8c4', 6, 32, 12, 2);
+      rect(x, '#5a3a24', 10, 36, 4, 6);
+      rect(x, '#2a1a10', 10, 41, 4, 2);
+      rect(x, '#c03a3a', 11, 8, 3, 3);
+      s = { img: c, ax: 12, ay: 43 };
+      break;
+    }
+    case 'ajos': {
+      const c = lienzo(16, 44);
+      const x = ctx(c);
+      rect(x, '#6a4a20', 8, 0, 1, 8);
+      for (let k = 0; k < 6; k++) {
+        const px = 8 + (k % 2 ? 3 : -3);
+        const py = 10 + k * 5;
+        elipse(x, '#f6f0e4', px, py, 3.4, 3);
+        elipse(x, '#ffffff', px - 1, py - 1, 1.4, 1.2);
+        rect(x, '#c8c0a8', px + 1, py + 1, 1, 1);
+        rect(x, '#b89a6a', px, py - 4, 1, 2);
+      }
+      rect(x, '#c03a3a', 7, 38, 3, 4);
+      s = { img: c, ax: 8, ay: 43 };
+      break;
+    }
+    case 'colgante': {
+      const c = lienzo(34, 44);
+      const x = ctx(c);
+      const cobre = v % 2 === 1;
+      for (let y = 0; y < 18; y++) rect(x, y % 2 ? '#8a8098' : '#4a4058', 17, y, 1, 1);
+      for (let y = 0; y < 14; y++) {
+        const w = 4 + Math.round(y * 1.0);
+        const cl = cobre ? (y < 2 ? '#f0c890' : '#c8683a') : y < 2 ? '#fff0b8' : '#e8c26a';
+        rect(x, cl, 17 - w, 18 + y, w * 2, 1);
+        rect(x, cobre ? '#8a4220' : '#b08a30', 17 + w - 3, 18 + y, 3, 1);
+      }
+      rect(x, '#fff8d8', 12, 32, 10, 2);
+      for (let y = 0; y < 8; y++) {
+        x.fillStyle = `rgba(255,236,160,${0.25 - y * 0.03})`;
+        x.fillRect(10 - y, 34 + y, 14 + y * 2, 1);
+      }
+      s = { img: c, ax: 17, ay: 41 };
       break;
     }
     case 'arco':
@@ -733,7 +923,7 @@ export function spriteDecorado(tipo: string): Sprite {
       break;
     }
   }
-  cacheDecor.set(tipo, s);
+  cacheDecor.set(clave, s);
   return s;
 }
 
@@ -763,7 +953,7 @@ function arco(): Sprite {
   rect(x, '#142a60', 6, 32, W - 12, 4);
   // checkered flag band under the banner
   for (let i = 0; i < W - 12; i += 6) for (let j = 0; j < 2; j++) rect(x, (i / 6 + j) & 1 ? '#f8f4ea' : '#1c1418', 6 + i, 36 + j * 3, 6, 3);
-  const txt = 'IMPROPIOS AIRLINES';
+  const txt = texto('kart.pancarta');
   const t = lienzo(anchoTexto(txt) + 2, 11);
   escribir(ctx(t), txt, 1, 0, '#ffffff', '#0e1c40');
   const k = 2;
@@ -860,10 +1050,6 @@ export function panorama(): HTMLCanvasElement {
     rect(x, '#5a4a3a', i, y, 2, 1);
     if (i % 8 === 0) rect(x, ['#ff6fb5', '#ffe36e', '#6fe0ff', '#ff9a3c'][(i / 8) % 4], i, y + 1, 2, 2);
   }
-  // the end of the horizon: a pink neon «DRAG» sign over the gala's side
-  const sign = lienzo(30, 11);
-  escribir(ctx(sign), 'DRAG', 1, 0, '#ff9ad8', '#a01868');
-  x.drawImage(sign, 0, 0, 30, 11, 270, 18, 30, 11);
   // the bottom edge melts into the haze
   for (let y = 46; y < H; y++) {
     x.globalAlpha = Math.min(1, (y - 44) / 10);

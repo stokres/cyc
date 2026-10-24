@@ -33,6 +33,8 @@ kart.perdido.sub = Hay que llegar el primero
 kart.agua = ¡Al agua!
 kart.flotador = Te pesca un flotador
 kart.puesto = {n}º
+kart.neon = DRAG
+kart.pancarta = IMPROPIOS AIRLINES
 
 // ---------------------------------------------------------------- los tramos del circuito
 

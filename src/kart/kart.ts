@@ -16,11 +16,11 @@ import textosKart from '../textos/kart.md?raw';
 import { h } from '../ui/hud';
 import { esVertical } from '../ui/orientacion';
 import { ctx as ctx2d, lienzo as lienzoPx } from '../sol/pixel';
-import { ANCLA_KART, ANGULOS, conBoa, icono, lavado, panorama, spriteBrillo, spriteCaja, spriteCharco, spriteDecorado, spritesKart, UNIDAD_PX, ALTO_PANORAMA, ANCHO_PANORAMA, type ItemId } from './arte';
+import { ANCLA_KART, ANGULOS, conBoa, icono, lavado, NIEBLA, panorama, spriteBrillo, spriteCaja, spriteCharco, spriteDecorado, spritesKart, UNIDAD_PX, type ItemId } from './arte';
 import { Carrera, CUENTA, VUELTAS, VMAX, type Evento, type Kart, type Proyectil } from './carrera';
 import { crearEntrada } from './entrada';
 import { banda, dibujarHud, dibujarMinimapa, dibujarPodio, dibujarSemaforo, reiniciarConfeti, rotulo, ruletaItem } from './hud';
-import { ATRAS_CAM, FOCAL, H, HOR, Modo7, W } from './modo7';
+import { ATRAS_CAM, H, HOR, Modo7, W, type Ambiente } from './modo7';
 import { CLAVE_ZONA, construirPista, TAM, type Pista } from './pista';
 import { PILOTOS } from './pilotos';
 import { SonidoKart } from './sonido';
@@ -148,6 +148,17 @@ export function jugarKart(root: HTMLElement, o: OpcionesKart = {}): Promise<Resu
   let tFase = 0;
   let reloj = 0;
   const cam = { ang: 0 };
+  /** How far behind the kart the camera is now (it comes closer when a wall would be in the way). */
+  let atras = ATRAS_CAM;
+  /** The haze of the room the camera is in, eased from one room to the next. */
+  const hex = (h: string) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  const AMBIENTES: Ambiente[] = [
+    { r: hex(NIEBLA)[0], g: hex(NIEBLA)[1], b: hex(NIEBLA)[2], desde: 380, hasta: 1000 },
+    { r: 0x3c, g: 0x2a, b: 0x22, desde: 150, hasta: 560 },
+    { r: 0x8e, g: 0x7a, b: 0x66, desde: 190, hasta: 660 },
+    { r: 0x1c, g: 0x0c, b: 0x2a, desde: 130, hasta: 540 },
+  ];
+  const ambiente: Ambiente = { ...AMBIENTES[0] };
   let metaT = -1;
   let zonaAnt = -1;
   let tBanner = 0;
@@ -160,6 +171,7 @@ export function jugarKart(root: HTMLElement, o: OpcionesKart = {}): Promise<Resu
   let tAyuda = 0;
   const chispas: Chispa[] = [];
   const pool: Elemento[] = [];
+  const orden: Elemento[] = [];
   let usados = 0;
 
   const elemento = (dz: number, sx: number, sy: number, k: number, tipo: number, ref: unknown) => {
@@ -244,6 +256,7 @@ export function jugarKart(root: HTMLElement, o: OpcionesKart = {}): Promise<Resu
     carrera = new Carrera(pista, {});
     if (rapido) carrera.t = -1.1;
     cam.ang = carrera.humano.ang;
+    atras = ATRAS_CAM;
     fase = 'carrera';
     tFase = 0;
     metaT = -1;
@@ -372,6 +385,27 @@ export function jugarKart(root: HTMLElement, o: OpcionesKart = {}): Promise<Resu
     const hk = c.humano;
     // the camera turns behind the kart, a little late (more so when drifting: you see it sideways)
     if (hk.estado !== 'agua') cam.ang += envolver(hk.ang - cam.ang) * Math.min(1, (hk.derrape ? 3 : 7) * dt);
+    if (m7) {
+      // the camera never sinks into a wall: it comes closer to the kart (fast) and drifts back out (slowly)
+      const dx = Math.cos(cam.ang);
+      const dy = Math.sin(cam.ang);
+      let tope = ATRAS_CAM;
+      for (let d = 5; d <= ATRAS_CAM + 4; d += 3) {
+        const k = m7.paredEn(hk.x - dx * d, hk.y - dy * d);
+        if (k && m7.altoDe(k) >= 26) {
+          tope = Math.max(12, d - 7);
+          break;
+        }
+      }
+      atras = tope < atras ? tope : Math.min(tope, atras + 70 * dt);
+      const meta = AMBIENTES[m7.techoEn(hk.x - dx * atras, hk.y - dy * atras)];
+      const f = 1 - Math.exp(-5 * dt);
+      ambiente.r += (meta.r - ambiente.r) * f;
+      ambiente.g += (meta.g - ambiente.g) * f;
+      ambiente.b += (meta.b - ambiente.b) * f;
+      ambiente.desde += (meta.desde - ambiente.desde) * f;
+      ambiente.hasta += (meta.hasta - ambiente.hasta) * f;
+    }
     if (c.fase !== 'cuenta') {
       sonido.motor(dt, hk.estado === 'agua' || hk.estado === 'rescate' ? 0.05 : Math.abs(hk.vel) / VMAX, hk.turbo > 0 || hk.boa > 0);
       if (hk.derrape) sonido.derrape(dt, hk.nivel);
@@ -431,6 +465,44 @@ export function jugarKart(root: HTMLElement, o: OpcionesKart = {}): Promise<Resu
   const sprites = PILOTOS.map((p) => spritesKart(p));
   const panoramaImg = panorama();
 
+  /** A sprite at forward distance `dz`, with the parts hidden by walls nearer than it left out. */
+  const recorte = new Int16Array(W);
+  const dibujarOcl = (img: HTMLCanvasElement, dx: number, dy: number, dw: number, dh: number, dz: number) => {
+    if (dw <= 0 || dh <= 0) return;
+    const x0 = Math.max(0, dx);
+    const x1 = Math.min(W, dx + dw);
+    if (x1 <= x0 || dy + dh <= 0 || dy >= H) return;
+    const m = m7!;
+    const pie = dy + dh;
+    let oculto = false;
+    for (let x = x0; x < x1; x++) {
+      const r = m.recorte(x, dz);
+      recorte[x] = r;
+      if (r < pie) oculto = true;
+    }
+    if (!oculto) {
+      g.drawImage(img, dx, dy, dw, dh);
+      return;
+    }
+    const kx = img.width / dw;
+    const ky = img.height / dh;
+    let x = x0;
+    while (x < x1) {
+      if (recorte[x] >= pie) {
+        // a run of columns that nothing hides
+        let e = x + 1;
+        while (e < x1 && recorte[e] >= pie) e++;
+        g.drawImage(img, (x - dx) * kx, 0, (e - x) * kx, img.height, x, dy, e - x, dh);
+        x = e;
+      } else {
+        // behind a wall: only what shows over its top
+        const vis = recorte[x] - dy;
+        if (vis > 0) g.drawImage(img, (x - dx) * kx, 0, kx, vis * ky, x, dy, 1, vis);
+        x++;
+      }
+    }
+  };
+
   const dibujarKart = (k: Kart, p: Elemento) => {
     const m = m7!;
     const los = Math.atan2(k.y - m.cy, k.x - m.cx);
@@ -471,7 +543,7 @@ export function jugarKart(root: HTMLElement, o: OpcionesKart = {}): Promise<Resu
     let y0 = Math.round(p.sy - oy * esc - subida);
     if (k.estado === 'agua') y0 += Math.round((k.tEstado * 10 * esc) / 1.2);
     if (alpha < 1) g.globalAlpha = alpha;
-    g.drawImage(spr, x0, y0, Math.round(w), Math.round(hh));
+    dibujarOcl(spr, x0, y0, Math.round(w), Math.round(hh), p.dz);
     g.globalAlpha = 1;
     // the lifebelt carrying it
     if (k.estado === 'rescate') {
@@ -530,25 +602,15 @@ export function jugarKart(root: HTMLElement, o: OpcionesKart = {}): Promise<Resu
     const c = carrera!;
     const m = m7!;
     const hk = c.humano;
-    // sky
-    const px = mod(cam.ang * FOCAL - W / 2, ANCHO_PANORAMA);
-    if (px + W <= ANCHO_PANORAMA) g.drawImage(panoramaImg, px, 0, W, ALTO_PANORAMA, 0, HOR - ALTO_PANORAMA, W, ALTO_PANORAMA);
-    else {
-      const a = ANCHO_PANORAMA - px;
-      g.drawImage(panoramaImg, px, 0, a, ALTO_PANORAMA, 0, HOR - ALTO_PANORAMA, a, ALTO_PANORAMA);
-      g.drawImage(panoramaImg, 0, 0, W - a, ALTO_PANORAMA, a, HOR - ALTO_PANORAMA, W - a, ALTO_PANORAMA);
-    }
-    g.fillStyle = '#6fa6dc';
-    g.fillRect(0, 0, W, Math.max(0, HOR - ALTO_PANORAMA));
-    // floor
-    const cx = hk.x - Math.cos(cam.ang) * ATRAS_CAM;
-    const cy = hk.y - Math.sin(cam.ang) * ATRAS_CAM;
-    m.suelo(cx, cy, cam.ang);
+    // sky, floor, ceiling and walls in one go
+    const cx = hk.x - Math.cos(cam.ang) * atras;
+    const cy = hk.y - Math.sin(cam.ang) * atras;
+    m.escena(cx, cy, cam.ang, reloj, ambiente);
     // things standing up, far to near
     usados = 0;
     for (const d of pista!.decorado) {
       const p = m.proyectar(d.x, d.y);
-      if (!p || p.dz > 560 || p.k * UNIDAD_PX * d.escala < 0.1) continue;
+      if (!p || p.dz > (d.tipo === 'arco' ? 330 : 560) || (d.tipo === 'arco' && p.dz < 45) || p.k * UNIDAD_PX * d.escala < 0.1) continue;
       if (d.tipo !== 'arco' && (p.sx < -90 || p.sx > W + 90)) continue;
       elemento(p.dz, p.sx, p.sy - (d.alto ?? 0) * p.k, p.k, 0, d);
     }
@@ -571,15 +633,17 @@ export function jugarKart(root: HTMLElement, o: OpcionesKart = {}): Promise<Resu
       const p = m.proyectar(k.x, k.y);
       if (p) elemento(p.dz, p.sx, p.sy, p.k, 4, k);
     }
-    const lista = pool.slice(0, usados);
+    const lista = orden;
+    lista.length = usados;
+    for (let i = 0; i < usados; i++) lista[i] = pool[i];
     lista.sort((a, b) => b.dz - a.dz);
     for (const e of lista) {
       switch (e.tipo) {
         case 0: {
           const d = e.ref as import('./pista').Decorado;
-          const s = spriteDecorado(d.tipo);
+          const s = spriteDecorado(d.tipo, d.v);
           const esc = UNIDAD_PX * d.escala * e.k;
-          g.drawImage(s.img, Math.round(e.sx - s.ax * esc), Math.round(e.sy - s.ay * esc), Math.round(s.img.width * esc), Math.round(s.img.height * esc));
+          dibujarOcl(s.img, Math.round(e.sx - s.ax * esc), Math.round(e.sy - s.ay * esc), Math.round(s.img.width * esc), Math.round(s.img.height * esc), e.dz);
           break;
         }
         case 1: {
@@ -590,7 +654,7 @@ export function jugarKart(root: HTMLElement, o: OpcionesKart = {}): Promise<Resu
           const flota = (5 + Math.sin(reloj * 3 + (e.ref as number)) * 1.5) * e.k;
           g.fillStyle = 'rgba(30,14,40,0.35)';
           g.fillRect(Math.round(e.sx - 4 * e.k), Math.round(e.sy - e.k * 0.5), Math.round(8 * e.k), Math.max(1, Math.round(e.k * 1.6)));
-          g.drawImage(s, Math.round(e.sx - w / 2), Math.round(e.sy - (s.height - 1) * esc - flota), Math.round(w), Math.round(s.height * esc));
+          dibujarOcl(s, Math.round(e.sx - w / 2), Math.round(e.sy - (s.height - 1) * esc - flota), Math.round(w), Math.round(s.height * esc), e.dz);
           break;
         }
         case 2: {
@@ -606,7 +670,7 @@ export function jugarKart(root: HTMLElement, o: OpcionesKart = {}): Promise<Resu
           g.fillStyle = 'rgba(30,14,40,0.35)';
           g.fillRect(Math.round(e.sx - 4 * e.k), Math.round(e.sy), Math.round(8 * e.k), Math.max(1, Math.round(e.k * 1.6)));
           const bote = Math.abs(Math.sin(reloj * 9)) * 2 * e.k;
-          g.drawImage(s, Math.round(e.sx - 8 * esc), Math.round(e.sy - 15 * esc - 2 * e.k - bote), Math.round(16 * esc), Math.round(16 * esc));
+          dibujarOcl(s, Math.round(e.sx - 8 * esc), Math.round(e.sy - 15 * esc - 2 * e.k - bote), Math.round(16 * esc), Math.round(16 * esc), e.dz);
           break;
         }
         default:
@@ -724,7 +788,7 @@ export function jugarKart(root: HTMLElement, o: OpcionesKart = {}): Promise<Resu
       await dibujando;
       return fin(motivo);
     }
-    m7 = new Modo7(g, pista);
+    m7 = new Modo7(g, pista, panoramaImg);
     empezarCarrera();
     await dibujando;
     return fin(motivo);
