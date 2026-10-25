@@ -838,8 +838,8 @@ export class Carrera {
     const h = this.humano;
     const dif = k.total - h.total;
     if (!k.humano) {
-      if (dif > 220) f *= 1 - Math.min(0.08, (dif - 220) / 3500);
-      else if (dif < -90) f *= 1 + Math.min(0.07, (-90 - dif) / 3000);
+      if (dif > 160) f *= 1 - Math.min(0.1, (dif - 160) / 2500);
+      else if (dif < -60) f *= 1 + Math.min(0.1, (-60 - dif) / 2500);
     }
     k.ia = f;
     // items

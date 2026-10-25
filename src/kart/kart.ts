@@ -545,6 +545,11 @@ export function jugarKart(root: HTMLElement, o: OpcionesKart = {}): Promise<Resu
     if (alpha < 1) g.globalAlpha = alpha;
     dibujarOcl(spr, x0, y0, Math.round(w), Math.round(hh), p.dz);
     g.globalAlpha = 1;
+    // the rival's name over its kart (a cached bitmap; hidden when it is too far to matter or sinking)
+    if (!k.humano && k.estado !== 'agua' && w >= 9) {
+      const nom = rotulo(texto(k.piloto.nombre));
+      g.drawImage(nom, Math.round(p.sx - nom.width / 2), y0 - nom.height + 2);
+    }
     // the lifebelt carrying it
     if (k.estado === 'rescate') {
       const fw = 40 * UNIDAD_PX * p.k * 1.15;

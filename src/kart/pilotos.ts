@@ -14,7 +14,7 @@ export interface Piloto {
   pelo: string | null;
   /** Shirt colour. */
   camiseta: string;
-  /** Top speed against the player's (1 = the same). Chuchi's is 1; the others drive a little slower. */
+  /** Top speed against the player's (1 = the same). Chuchi's is 1; the rivals drive about as fast, the best a hair faster. */
   velocidad: number;
   /** How well the driver follows the line (0 sloppy, 1 clean). */
   punteria: number;
@@ -67,23 +67,23 @@ export const CHUCHI: Piloto = {
 /** The five rivals. `velocidad` is the top speed against the player's, with a gentle rubber band on top. */
 export const RIVALES: Piloto[] = [
   {
-    id: 'fran', nombre: 'piloto.fran', color: '#f08a24', piel: '#eaa985', pelo: '#2a1d27', camiseta: '#2c9a9a', velocidad: 0.88, punteria: 0.65,
+    id: 'fran', nombre: 'piloto.fran', color: '#f08a24', piel: '#eaa985', pelo: '#2a1d27', camiseta: '#2c9a9a', velocidad: 0.99, punteria: 0.65,
     barba: '#2a1d27', barbaGrande: true, corpulento: true,
   },
   {
-    id: 'pablo', nombre: 'piloto.pablo', color: '#3b6fd0', piel: '#ecb18f', pelo: '#6d4329', camiseta: '#f1e6cc', velocidad: 0.97, punteria: 0.75,
+    id: 'pablo', nombre: 'piloto.pablo', color: '#3b6fd0', piel: '#ecb18f', pelo: '#6d4329', camiseta: '#f1e6cc', velocidad: 1.04, punteria: 0.75,
     barba: '#3c2519', peloArriba: true, aro: '#f0c040', chaqueta: '#3a3142', forro: '#f1e6cc',
   },
   {
-    id: 'guille', nombre: 'piloto.guille', color: '#4aa83a', piel: '#e1a27a', pelo: '#4a3228', camiseta: '#e0a424', velocidad: 0.95, punteria: 0.85,
+    id: 'guille', nombre: 'piloto.guille', color: '#4aa83a', piel: '#e1a27a', pelo: '#4a3228', camiseta: '#e0a424', velocidad: 1.02, punteria: 0.85,
     barba: '#7a4a3a', peloLargo: true, cejas: true, estampado: ['#d83a3c', '#2f9444'],
   },
   {
-    id: 'fer', nombre: 'piloto.fer', color: '#8a52c9', piel: '#eab08e', pelo: null, camiseta: '#2a2230', velocidad: 0.93, punteria: 0.8,
+    id: 'fer', nombre: 'piloto.fer', color: '#8a52c9', piel: '#eab08e', pelo: null, camiseta: '#2a2230', velocidad: 1.0, punteria: 0.8,
     barba: '#3a2c32', auriculares: '#8a82ac', cejas: true,
   },
   {
-    id: 'vinas', nombre: 'piloto.vinas', color: '#e6c627', piel: '#d99668', pelo: '#2a2030', camiseta: '#f4f0f8', velocidad: 0.9, punteria: 0.7,
+    id: 'vinas', nombre: 'piloto.vinas', color: '#e6c627', piel: '#d99668', pelo: '#2a2030', camiseta: '#f4f0f8', velocidad: 0.97, punteria: 0.7,
     barba: '#1c1522', barbaGrande: true, peloLargo: true, rizos: true, chaqueta: '#3d5694', rayas: '#fbf8ff',
   },
 ];
