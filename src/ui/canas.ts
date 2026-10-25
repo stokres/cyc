@@ -121,6 +121,8 @@ export function jugarCanas(parent: HTMLElement, o: OpcionesCanas = {}): Promise<
   let caraVero: HTMLCanvasElement | null = null;
   let vaso: Cana | null = null;
   let brillo: HTMLCanvasElement | null = null;
+  /** The green glow of the lit coaster (an ellipse, wider than tall), made once. */
+  let brilloPosa: HTMLCanvasElement | null = null;
   const fichas: Array<Partial<Record<Animo, HTMLCanvasElement>>> = AMIGOS.map(() => ({}));
   /** Where things stand (CSS px). */
   const geo = { yBarra: 0, x0: 0, xFin: 0, xs: [0, 0, 0, 0], rx: 0, aceptar: 0, rFicha: 0, yFicha: 0, altoVaso: 0 };
@@ -178,6 +180,19 @@ export function jugarCanas(parent: HTMLElement, o: OpcionesCanas = {}): Promise<
     bx.fillStyle = halo;
     bx.fillRect(0, 0, rad * 2, rad * 2);
     brillo = b;
+    // The glow of the coaster that is waiting for the beer: green, so it reads apart from the gold of the face.
+    const gw = geo.rx * 4.6;
+    const gh = geo.rx * 2.3;
+    const [pg, pgx] = lienzo(gw, gh, dp);
+    pgx.translate(gw / 2, gh / 2);
+    pgx.scale(1, gh / gw);
+    const hp = pgx.createRadialGradient(0, 0, geo.rx * 0.5, 0, 0, gw / 2);
+    hp.addColorStop(0, 'rgba(90,255,150,0.8)');
+    hp.addColorStop(0.5, 'rgba(60,230,120,0.3)');
+    hp.addColorStop(1, 'rgba(60,230,120,0)');
+    pgx.fillStyle = hp;
+    pgx.fillRect(-gw / 2, -gw / 2, gw, gw);
+    brilloPosa = pg;
     // Vero's face, once per screen size; the background is painted again when it is ready.
     const lado = Math.ceil(H * 0.115 * 2.9 * dp);
     void svgABitmap(retrato('vero', { mood: 'happy' }).replace('<svg ', `<svg xmlns="http://www.w3.org/2000/svg" width="${lado}" height="${Math.ceil((lado * 164) / 124)}" `), lado, Math.ceil((lado * 164) / 124))
@@ -405,6 +420,25 @@ export function jugarCanas(parent: HTMLElement, o: OpcionesCanas = {}): Promise<
         ctx.stroke();
       }
     });
+    // The coaster of the one who is waiting lights up green exactly while his face is lit (and goes out with it).
+    if (espera >= 0 && fase === 'desliza') {
+      const cx = geo.xs[espera];
+      const latido = 0.5 + 0.5 * Math.sin(t * 9);
+      const rx = geo.rx;
+      if (brilloPosa) {
+        ctx.globalAlpha = 0.75 + 0.25 * latido;
+        ctx.drawImage(brilloPosa, cx - rx * 2.3, geo.yBarra + 1 - rx * 1.15, rx * 4.6, rx * 2.3);
+        ctx.globalAlpha = 1;
+      }
+      elipse(ctx, cx, geo.yBarra + 1, rx * 1.1, rx * 0.25, '#1fbf63');
+      elipse(ctx, cx, geo.yBarra + 1, rx, rx * 0.22, '#5dff9a');
+      elipse(ctx, cx, geo.yBarra + 1, rx * 0.72, rx * 0.15, `rgba(235,255,242,${0.55 + 0.4 * latido})`);
+      ctx.strokeStyle = `rgba(160,255,200,${0.6 + 0.4 * latido})`;
+      ctx.lineWidth = Math.max(2, rx * 0.07);
+      ctx.beginPath();
+      ctx.ellipse(cx, geo.yBarra + 1, rx * (1.12 + 0.1 * latido), rx * (0.27 + 0.03 * latido), 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
     if (vaso) {
       const sitio = (x: number, y: number, giro: number, alfa = 1) => {
         ctx.save();

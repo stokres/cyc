@@ -106,6 +106,7 @@ Homenaje al microjuego de *WarioWare* de disparar plátanos a una nariz gigante:
 
 Vista lateral de la barra del Brío (la del tráiler, `src/ui/bar-pintura.ts`). Vero desliza cañas a los cuatro amigos, que están a lo largo de la barra con un posavasos delante. Un toque frena la caña: si se para sobre el posavasos de quien la espera (se anuncia encima, «Para Pablo»), su cara se pone contenta; si se queda corta o se pasa, cae al suelo con salpicón y la ronda empieza otra vez. Cuatro cañas por ronda, cada una algo más rápida y a un amigo más lejos o más cerca; tras dos rondas perdidas aparece «Saltar».
 
+- **El posavasos de quien espera se enciende en verde** (con halo que late) exactamente mientras su cara se ilumina y se mueve, y se apaga cuando la caña se para o cae (pedido por Jesús el 25 de octubre de 2026: el dorado de la cara no bastaba para ver dónde dejar la caña).
 - **La caña frena con rozamiento** después del toque (no se para en seco), así que hay que tocar un poco antes: un aro dorado sobre la barra enseña dónde se pararía si tocaras ahora.
 - **El ritmo no depende de la distancia:** cada caña se empuja para que el toque ideal llegue a los 1,2, 1,05, 0,95 y 0,85 s del empuje (`TIEMPO`); al amigo lejano le llega más deprisa. Se acepta el error del posavasos más el ancho del vaso: unos 0,1 s a cada lado en la más rápida. Con reflejos normales se gana en una o dos rondas; sin tocar, nunca.
 - Si la caña llega al final de la barra sin tocar, cae por allí.
@@ -116,6 +117,8 @@ Las cuatro caras grandes en fila. Suena una base de pasodoble y cada uno tiene s
 
 - **Va con el reloj de la música** (`Sound.posicion`), como el tráiler: un compás es la cuarta parte del bucle (`canto-a.mp3`, `canto-b.mp3`), una frase empieza en una línea de compás y sus cuatro turnos van un compás aparte, el primero con al menos uno de adelanto. Tras un fallo, la frase vuelve a empezar en la siguiente línea de compás. Sin sonido, con el reloj de los fotogramas.
 - Margen de error del toque: ±0,24 s la primera vez y ±0,20 s la segunda.
+- **Se ve a quién tocar** (25 de octubre de 2026, a petición de Jesús): un aviso arriba, «Toca la cara de quien canta», y, desde el primer turno, sobre la cara que toca un aro dorado que late y una mano que baja y la pulsa justo en el golpe. Tras un fallo la pista se refuerza: el aviso pasa a «¡Toca la cara que brilla, a tiempo!» (dorado y latiendo), el aro es más grueso y la mano, más grande y con toques más fuertes.
+- **La fiesta del final:** al acabar la segunda pasada, la música sigue a tope (`canto-b.mp3` al máximo del juego, que respeta el volumen de «Música» del menú) y la frase se canta sola tres vueltas seguidas (un golpe de metales por compás y el acorde de `canto-final.mp3` en la primera y la última vuelta), con focos de colores, confeti, las caras saltando a cada pulso, destellos y la imagen temblando; después la historia sigue. `node scripts/rendimiento.mjs cantofiesta` mide esa fiesta.
 - La melodía es propia, la de metales del canto del tráiler (`tools/musica/canto.py`); nunca la de *Paquito el Chocolatero*, que tiene derechos.
 
 ### La tragaperras de cerca (capítulo 2)

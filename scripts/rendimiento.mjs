@@ -15,7 +15,7 @@
 // without it, to compare.
 //
 // Usage: node scripts/rendimiento.mjs [escena...]   (against npm run dev on :5173)
-//   escenas: prologo, piso, calle, bar, manga, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, tragaperras, sol, solcombate, solcamino, solteatro, soljefe, solcalderon, kart, safari, boca, conceptos, caos, pangcompleto, pokecap (all by default)
+//   escenas: prologo, piso, calle, bar, manga, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, cantofiesta, tragaperras, sol, solcombate, solcamino, solteatro, soljefe, solcalderon, kart, safari, boca, conceptos, caos, pangcompleto, pokecap (all by default)
 import { chromium } from 'playwright';
 import { readFileSync, readdirSync } from 'node:fs';
 
@@ -489,6 +489,32 @@ if (toca('canto')) {
       requestAnimationFrame(juega);
     };
     setTimeout(juega, 3000);
+  })()`, 'canto');
+}
+if (toca('cantofiesta')) {
+  // Chapter 2: the party at the end of the chant (spotlights, confetti, the faces jumping, the picture shaking).
+  // Sings every turn on the beat; the scene is measured once the party has started (it lasts three laps, about 13 s).
+  await medir('minijuego del canto: la fiesta del final', `(async () => {
+    clearInterval(window.__paseo);
+    const g = window.__cyc.g;
+    const { jugarCanto } = await import('/src/ui/canto.ts');
+    g.pausado = true;
+    void jugarCanto(g.root, { sonido: g.sound });
+    const juega = () => {
+      const e = window.__canto?.();
+      if (!e) return;
+      if (e.estado === 'canta' && e.cantor >= 0 && Math.abs(e.tm - e.proximo) < 0.03) {
+        const c = e.caras[e.cantor];
+        const lienzo = document.querySelector('.lienzo-canto');
+        const r = lienzo.getBoundingClientRect();
+        lienzo.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: r.left + c.x, clientY: r.top + c.y, pointerId: 1 }));
+      }
+      requestAnimationFrame(juega);
+    };
+    juega();
+    await new Promise((res) => {
+      const i = setInterval(() => window.__canto?.().estado === 'gana' && (clearInterval(i), res()), 50);
+    });
   })()`, 'canto');
 }
 if (toca('tragaperras')) {

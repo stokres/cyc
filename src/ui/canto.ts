@@ -14,6 +14,13 @@
 // sound the frames' own clock does the same. SILABA (the seconds between a singer's two
 // syllables) is the one in canto.py: change one, change both.
 //
+// The hint (chapter 2 review): the banner says to tap the face of whoever sings, and over the face whose turn is
+// next a hand taps (it comes down on the face exactly on the beat) inside a ring that pulses; after a mistake the
+// banner changes, the hand grows and taps harder. The party at the end: when the second pass is done the bed keeps
+// playing at full blast and the phrase is sung by itself FIESTA_VUELTAS times through (a stab on each bar, the
+// big chord on the first and last lap), with confetti, spotlights, the faces jumping to the beat and the picture
+// shaking; then the story goes on.
+//
 // Performance (docs/ESTILO.md, T5): the stage and the faces (three moods each) are bitmaps made once per
 // screen size; each frame only draws them and a few rings. The syllables are text over the canvas.
 // The loop never passes 60 fps.
@@ -49,6 +56,10 @@ const COMPASES = 4;
 const PARA_SALTAR = 2;
 /** How early a tap counts as a mistake (in bars); earlier than this it is nobody's turn and is ignored. */
 const ESTORBO = 0.55;
+/** Laps of the phrase sung by itself at the end (one when the game is fast, for the tests). */
+const FIESTA_VUELTAS = 3;
+/** Most pieces of confetti alive at once. */
+const MAX_CONFETI = 150;
 /** Seconds without the music's clock before it is given up for the frames' own. */
 const ESPERA_RELOJ = 2.5;
 
@@ -72,6 +83,17 @@ export interface EstadoCanto {
   fotogramas: number;
 }
 
+interface Confeti {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  w: number;
+  c: string;
+  f: number;
+  vf: number;
+}
+
 export interface OpcionesCanto {
   rapido?: boolean;
   sonido?: SonidoMinijuego;
@@ -86,6 +108,7 @@ export function jugarCanto(parent: HTMLElement, o: OpcionesCanto = {}): Promise<
   const saltar = h('button', { class: 'btn fantasma saltar', hidden: true }, texto('minijuego.saltar'));
   const cerrar = h('button', { class: 'cerrar', 'aria-label': texto('boton.cerrar') }, '×');
   const instrucciones = h('p', { class: 'instrucciones' }, texto('canto.instrucciones'));
+  const textoRefuerzo = texto('canto.refuerzo');
   // The syllables, split between the four singers («Ca-mio-neees-y-...» two each).
   const todas = texto('canto.silabas').split('-');
   const porCantor = Math.max(1, Math.ceil(todas.length / CANTORES.length));
@@ -101,6 +124,8 @@ export function jugarCanto(parent: HTMLElement, o: OpcionesCanto = {}): Promise<
   let dpr = 1;
   let fondo: HTMLCanvasElement | null = null;
   let brillo: HTMLCanvasElement | null = null;
+  /** The party's spotlight beams, one bitmap of each colour. */
+  let conos: HTMLCanvasElement[] = [];
   const caras: Array<Partial<Record<Cara, HTMLCanvasElement>>> = CANTORES.map(() => ({}));
   const geo = { xs: [0, 0, 0, 0], y: 0, R: 0 };
 
@@ -176,6 +201,23 @@ export function jugarCanto(parent: HTMLElement, o: OpcionesCanto = {}): Promise<
     bx.fillStyle = halo;
     bx.fillRect(0, 0, rad * 2, rad * 2);
     brillo = b;
+    const cw = H * 0.5;
+    const ch = H * 1.05;
+    conos = ['255,214,110', '255,90,170', '90,200,255'].map((rgb) => {
+      const [c, cx] = lienzo(cw, ch, 1);
+      const gr = cx.createLinearGradient(0, 0, 0, ch);
+      gr.addColorStop(0, `rgba(${rgb},0.55)`);
+      gr.addColorStop(1, `rgba(${rgb},0)`);
+      cx.fillStyle = gr;
+      cx.beginPath();
+      cx.moveTo(cw * 0.46, 0);
+      cx.lineTo(cw * 0.54, 0);
+      cx.lineTo(cw, ch);
+      cx.lineTo(0, ch);
+      cx.closePath();
+      cx.fill();
+      return c;
+    });
     CANTORES.forEach(({ id }, i) => {
       for (const cara of Object.keys(MOODS) as Cara[]) {
         void crearFicha(id, MOODS[cara], geo.R, dp)
@@ -218,6 +260,14 @@ export function jugarCanto(parent: HTMLElement, o: OpcionesCanto = {}): Promise<
   /** A burst ring where a tap was right: [face, time]. */
   const estallidos: Array<[number, number]> = [];
   let acabar: ((r: Resultado) => void) | null = null;
+  /** The party at the end: the sung turns still to come (music time and singer), the chords, and when it is over. */
+  const fiesta = { arranca: 0, golpes: [] as Array<[number, number]>, acordes: [] as number[], fin: 0, tope: 0, sale: false, vueltas: FIESTA_VUELTAS };
+  let confeti: Confeti[] = [];
+  /** The picture's shake and the flash of a beat, both fading out (0 to 1). */
+  let sacudida = 0;
+  let destello = 0;
+  /** Seconds of the party the picture has been in (the frames' own clock), for the lights. */
+  let tFiesta = 0;
 
   const pas = () => PASADAS[pasada];
   const compas = () => {
@@ -280,10 +330,13 @@ export function jugarCanto(parent: HTMLElement, o: OpcionesCanto = {}): Promise<
       hasta[i] = Infinity;
     }
     mostrar('canto.fallo', 1.5);
+    // The hint grows: the banner says it plainly, the hand gets bigger.
+    instrucciones.textContent = textoRefuerzo;
+    instrucciones.classList.add('refuerzo');
     if (fallos >= PARA_SALTAR) saltar.hidden = false;
   };
 
-  const cantar = (k: number, tm: number) => {
+  const cantar = (k: number, tm: number, fuerza = pas().fuerza) => {
     cara[k] = 'canta';
     hasta[k] = tm + 0.7;
     const sp = Array.from(globos[k].children);
@@ -292,7 +345,70 @@ export function jugarCanto(parent: HTMLElement, o: OpcionesCanto = {}): Promise<
     sp[0]?.classList.add('on');
     segundas[k] = tm + SILABA;
     estallidos.push([k, tm]);
-    sonido?.efecto?.(CANTORES[k].golpe, pas().fuerza);
+    sonido?.efecto?.(CANTORES[k].golpe, fuerza);
+  };
+
+  /** A burst of confetti from a point. */
+  const lanzarConfeti = (x: number, y: number, n: number, fuerza = 1) => {
+    const colores = ['#e8452e', '#f2b632', '#2f9ad8', '#6fae3a', '#d8589a', '#f3ead6'];
+    for (let i = 0; i < n && confeti.length < MAX_CONFETI; i++) {
+      const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.4;
+      const v = H * (0.45 + Math.random() * 0.9) * fuerza;
+      confeti.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, w: H * (0.012 + Math.random() * 0.012), c: colores[(Math.random() * colores.length) | 0], f: Math.random() * 6, vf: 6 + Math.random() * 8 });
+    }
+  };
+
+  /** The party starts on the next bar line: the phrase sung by itself, lap after lap, at full volume. */
+  const empezarFiesta = () => {
+    estado = 'gana';
+    pausa = 0;
+    const b = compas();
+    const tm = reloj();
+    const vueltas = rapido ? 1 : FIESTA_VUELTAS;
+    fiesta.vueltas = vueltas;
+    fiesta.arranca = Math.ceil((tm + 0.12) / b) * b;
+    fiesta.golpes = [];
+    for (let v = 0; v < vueltas; v++) for (let k = 0; k < CANTORES.length; k++) fiesta.golpes.push([fiesta.arranca + (v * CANTORES.length + k) * b, k]);
+    fiesta.acordes = vueltas > 1 ? [fiesta.arranca, fiesta.arranca + (vueltas - 1) * CANTORES.length * b] : [fiesta.arranca];
+    fiesta.fin = fiesta.arranca + (vueltas * CANTORES.length + 0.6) * b;
+    fiesta.sale = false;
+    // If the music's clock stops, the frames' clock sees it out.
+    fiesta.tope = (fiesta.fin - tm) * 1.15 + 2;
+    tFiesta = 0;
+    instrucciones.hidden = true;
+    // The words of the song are the big text at the bottom now; the syllables over the faces step aside.
+    for (const g of globos) g.hidden = true;
+    sonido?.musica(pista, 0);
+  };
+
+  /** Each frame of the party: the turns and chords on the beat, then the end. */
+  const pasoFiesta = (tm: number, dt: number) => {
+    tFiesta += dt;
+    while (fiesta.acordes.length && tm >= fiesta.acordes[0]) {
+      fiesta.acordes.shift();
+      sonido?.efecto?.('cantoFinal', 0.6);
+      gana.hidden = false;
+      gana.style.animation = 'none';
+      void gana.offsetWidth;
+      gana.style.animation = '';
+      sacudida = 1;
+      destello = 1;
+      for (let i = 0; i < CANTORES.length; i++) lanzarConfeti(geo.xs[i], geo.y - geo.R * 0.6, 22, 1.25);
+    }
+    while (fiesta.golpes.length && tm >= fiesta.golpes[0][0]) {
+      const [tg, k] = fiesta.golpes.shift()!;
+      cantar(k, tg, 1);
+      hasta[k] = Infinity;
+      sacudida = Math.max(sacudida, 0.55);
+      destello = Math.max(destello, 0.6);
+      lanzarConfeti(geo.xs[k], geo.y - geo.R, 12, 0.9);
+    }
+    // A steady rain of confetti while it lasts.
+    if (tm >= fiesta.arranca && tm < fiesta.fin - compas()) lanzarConfeti(Math.random() * W, -H * 0.02, Math.random() < dt * 40 ? 1 : 0, 0.15);
+    if (!fiesta.sale && (tm >= fiesta.fin || tFiesta > fiesta.tope)) {
+      fiesta.sale = true;
+      acabar?.('hecho');
+    }
   };
 
   const tocar = (x: number) => {
@@ -335,6 +451,19 @@ export function jugarCanto(parent: HTMLElement, o: OpcionesCanto = {}): Promise<
   const actualizar = (dt: number) => {
     tv += dt;
     const tm = reloj();
+    sacudida *= Math.exp(-dt * 6);
+    destello *= Math.exp(-dt * 5);
+    if (confeti.length) {
+      for (const c of confeti) {
+        c.vy += H * 0.9 * dt;
+        c.vx *= Math.exp(-dt * 0.8);
+        c.vy *= Math.exp(-dt * 0.5);
+        c.x += c.vx * dt;
+        c.y += c.vy * dt;
+        c.f += c.vf * dt;
+      }
+      confeti = confeti.filter((c) => c.y < H * 1.05);
+    }
     for (let i = 0; i < CANTORES.length; i++) {
       if (hasta[i] && tm > hasta[i]) {
         hasta[i] = 0;
@@ -355,7 +484,8 @@ export function jugarCanto(parent: HTMLElement, o: OpcionesCanto = {}): Promise<
     } else if (estado === 'canta') {
       // A turn that went by without a tap.
       if (siguiente < turnos.length && tm > turnos[siguiente] + pas().ventana) fallar(siguiente);
-    } else if (pausa > 0) {
+    } else if (estado === 'gana') pasoFiesta(tm, dt);
+    else if (pausa > 0) {
       pausa -= dt;
       if (pausa <= 0) {
         aviso.hidden = true;
@@ -367,33 +497,65 @@ export function jugarCanto(parent: HTMLElement, o: OpcionesCanto = {}): Promise<
             empezarPasada();
             pausa = 0;
           } else {
-            estado = 'gana';
-            sonido?.efecto?.('cantoFinal', 1);
-            gana.hidden = false;
-            for (const g of globos) g.hidden = true;
-            instrucciones.hidden = true;
-            for (let i = 0; i < CANTORES.length; i++) {
-              cara[i] = 'canta';
-              hasta[i] = Infinity;
-            }
-            pausa = rapido ? 0.3 : 3.2;
+            limpiar();
+            empezarFiesta();
           }
-        } else if (estado === 'gana') acabar?.('hecho');
+        }
       }
     }
   };
 
   // ---------------------------------------------------------------- the drawing
+  /** A pointing hand, its fingertip at (x, y): drawn with a few shapes (no image), leaning a little. */
+  const mano = (x: number, y: number, r: number) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(-0.22);
+    ctx.lineCap = 'round';
+    const trazo = Math.max(1.5, r * 0.22);
+    // Palm and thumb first, then the finger over them: each with a darker edge, no black line.
+    for (const [piel, borde] of [['#a4693f', 1], ['#f3c79b', 0]] as const) {
+      const g = borde ? trazo : 0;
+      elipse(ctx, 0, r * 4.6, r * 2.3 + g, r * 2.1 + g, piel);
+      elipse(ctx, -r * 2.1, r * 3.4, r * 0.95 + g, r * 0.7 + g, piel, -0.7);
+      ctx.strokeStyle = piel;
+      ctx.lineWidth = r * 2 + g * 2;
+      ctx.beginPath();
+      ctx.moveTo(0, r);
+      ctx.lineTo(0, r * 3.4);
+      ctx.stroke();
+    }
+    ctx.lineCap = 'butt';
+    ctx.restore();
+  };
+
   const pintar = () => {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
+    ctx.save();
+    if (sacudida > 0.02) ctx.translate(Math.sin(t * 90) * sacudida * H * 0.014, Math.cos(t * 77) * sacudida * H * 0.014);
     if (fondo) ctx.drawImage(fondo, 0, 0, W, H);
     const tm = reloj();
     const b = compas();
     const R = geo.R;
+    const fiestaViva = estado === 'gana' && tm >= fiesta.arranca;
+    // The party's spotlights, swinging from above.
+    if (fiestaViva && conos.length) {
+      ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 4; i++) {
+        ctx.save();
+        ctx.translate(W * (0.12 + i * 0.253), -H * 0.02);
+        ctx.rotate(Math.sin(tFiesta * 1.6 + i * 1.7) * 0.5 + (i < 2 ? 0.12 : -0.12));
+        ctx.globalAlpha = 0.55 + 0.3 * Math.sin(tFiesta * 5 + i);
+        ctx.drawImage(conos[i % conos.length], -H * 0.25, 0, H * 0.5, H * 1.05);
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+    }
     // The next turn: its ring closes in on the face and, in the window, the face glows.
     const k = estado === 'canta' ? siguiente : -1;
-    const alfa = estado === 'gana' ? 1 : 0;
+    const alfa = fiestaViva ? 1 : 0;
     // A beat in the faces: a small bounce.
     const pulso = (tm / (b / 2)) % 1;
     const bote = estado === 'carga' ? 0 : 0.03 * Math.max(0, 1 - pulso / 0.2);
@@ -401,29 +563,54 @@ export function jugarCanto(parent: HTMLElement, o: OpcionesCanto = {}): Promise<
       const enVentana = k === i && Math.abs(tm - turnos[i]) <= pas().ventana;
       const crece = 1 + bote + (enVentana ? 0.07 : 0) + (cara[i] === 'canta' ? 0.06 : 0) + alfa * 0.05 * Math.sin(t * 12 + i);
       const f = caras[i][cara[i]] ?? caras[i].idle;
-      if (enVentana && brillo) ctx.drawImage(brillo, geo.xs[i] - R * 1.9, geo.y - R * 1.9, R * 3.8, R * 3.8);
+      // In the party the faces jump on every beat, the odd ones half a beat after the even ones.
+      const fp = (tm / (b / 2) + (i % 2) * 0.5) % 1;
+      const salto = fiestaViva ? -4 * fp * (1 - fp) * R * 0.4 : 0;
+      if ((enVentana || fiestaViva) && brillo) {
+        ctx.globalAlpha = fiestaViva ? 0.55 + 0.4 * Math.sin(t * 10 + i * 1.3) : 1;
+        ctx.drawImage(brillo, geo.xs[i] - R * 1.9, geo.y + salto - R * 1.9, R * 3.8, R * 3.8);
+        ctx.globalAlpha = 1;
+      }
       if (f) {
         ctx.save();
-        ctx.translate(geo.xs[i], geo.y);
+        ctx.translate(geo.xs[i], geo.y + salto);
         ctx.scale(crece, crece);
+        if (fiestaViva) ctx.rotate(Math.sin(t * 7 + i * 2) * 0.07);
         ctx.drawImage(f, -R, -R, 2 * R, 2 * R);
         ctx.restore();
       }
     });
     if (k >= 0) {
-      // Who is next, before its ring comes: a faint gold circle.
-      ctx.strokeStyle = 'rgba(255,224,138,0.3)';
-      ctx.lineWidth = Math.max(2, R * 0.04);
-      ctx.beginPath();
-      ctx.arc(geo.xs[k], geo.y, R * 1.08, 0, Math.PI * 2);
-      ctx.stroke();
+      const refuerzo = Math.min(2, fallos);
       const u = (turnos[k] - tm) / (b * 0.85);
+      // Who is next from the first turn on: a ring that beats and, closing in on it, the beat's own ring.
+      const late = 0.5 + 0.5 * Math.sin(t * 7);
+      ctx.strokeStyle = `rgba(255,224,138,${0.5 + 0.4 * late})`;
+      ctx.lineWidth = Math.max(3, R * (0.05 + 0.025 * refuerzo)) * (1 + 0.5 * late);
+      ctx.beginPath();
+      ctx.arc(geo.xs[k], geo.y, R * (1.1 + 0.05 * late), 0, Math.PI * 2);
+      ctx.stroke();
       if (u < 1.05 && u > -0.4) {
         const r = R * (1.1 + 0.7 * Math.max(0, Math.min(1, u)));
         ctx.strokeStyle = `rgba(255,224,138,${Math.max(0, Math.min(1, 1.2 - u))})`;
         ctx.lineWidth = Math.max(3, R * 0.07);
         ctx.beginPath();
         ctx.arc(geo.xs[k], geo.y, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      // The hand: it comes down on the face, landing on the beat, and presses; bigger and tapping harder after a mistake.
+      const baja = Math.max(0, Math.min(1, u));
+      const toque = u <= 0 && u > -0.4 ? 1 : 0;
+      const dedo = R * (0.17 + 0.03 * refuerzo);
+      const punta = geo.y + R * 0.3 + R * 0.75 * baja * baja + (refuerzo ? Math.sin(t * 12) * R * 0.04 * refuerzo : 0) + toque * R * 0.05;
+      mano(geo.xs[k] + R * 0.05, punta, dedo);
+      // The ripple under the fingertip when it lands.
+      if (u < 0.15 && u > -0.5) {
+        const w = Math.min(1, (0.15 - u) / 0.65);
+        ctx.strokeStyle = `rgba(255,255,255,${0.9 * (1 - w)})`;
+        ctx.lineWidth = Math.max(2, R * 0.05);
+        ctx.beginPath();
+        ctx.arc(geo.xs[k] + R * 0.05, geo.y + R * 0.3, R * (0.1 + 0.4 * w), 0, Math.PI * 2);
         ctx.stroke();
       }
     }
@@ -436,6 +623,17 @@ export function jugarCanto(parent: HTMLElement, o: OpcionesCanto = {}): Promise<
       ctx.arc(geo.xs[i], geo.y, R * (1.05 + 0.7 * u), 0, Math.PI * 2);
       ctx.stroke();
     }
+    // The confetti (flat pieces that flutter by squashing), and the flash of a beat.
+    for (const c of confeti) {
+      ctx.fillStyle = c.c;
+      const flut = Math.abs(Math.cos(c.f));
+      ctx.fillRect(c.x - c.w / 2, c.y - c.w * 0.3 * flut, c.w, Math.max(1, c.w * 0.6 * flut));
+    }
+    if (destello > 0.03) {
+      ctx.fillStyle = `rgba(255,236,190,${destello * 0.22})`;
+      ctx.fillRect(-10, -10, W + 20, H + 20);
+    }
+    ctx.restore();
   };
 
   // ---------------------------------------------------------------- loop
