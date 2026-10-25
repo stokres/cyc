@@ -26,6 +26,8 @@ import cantoFallo from './canto-fallo.mp3?url';
 import cantoFinal from './canto-final.mp3?url';
 import tragaperrasSin from './tragaperras-sin.mp3?url';
 import tragaperrasPremio from './tragaperras-premio.mp3?url';
+import tragaperrasSinCamiones from './tragaperras-sin-camiones.mp3?url';
+import tragaperrasPremioCamiones from './tragaperras-premio-camiones.mp3?url';
 import pangUsera from './pang-usera.mp3?url';
 import pangCalle from './pang-calle.mp3?url';
 import pangRonda from './pang-ronda.mp3?url';
@@ -102,6 +104,9 @@ export const MUSICA = {
   tragaperrasSin: { url: tragaperrasSin, entrada: 0, inicio: 4.2, fin: 4.7 },
   /** The same with the jackpot: reels, bells and a shower of coins (tragaperras.py). */
   tragaperrasPremio: { url: tragaperrasPremio, entrada: 0, inicio: 7.5, fin: 8 },
+  /** The same two once the chant has been sung: each reel that stops plays a note of «Ca-mio-neees» and the jackpot, «y ca-ra-va-naaas» (tragaperras_cantada.py). */
+  tragaperrasSinCamiones: { url: tragaperrasSinCamiones, entrada: 0, inicio: 4.2, fin: 4.7 },
+  tragaperrasPremioCamiones: { url: tragaperrasPremioCamiones, entrada: 0, inicio: 7.5, fin: 8 },
   /** The Pang's three themes (tools/musica/pang.py), taking turns stage by stage. «A tope por Usera», chiptune; also the title's. */
   pangUsera: { url: pangUsera, inicio: 0.5, fin: 58.1 },
   /** «La calle de la penúltima», FM house in the manner of Streets of Rage 2. */
