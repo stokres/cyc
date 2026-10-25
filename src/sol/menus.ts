@@ -31,6 +31,7 @@ export class Teclas {
     if (m.tomarStart()) this.emitir('start');
     m.tomarR();
     m.tomarL();
+    m.tomarEscape();
     m.tomarArribaAbajo();
     const eje = (v: number, prev: number, rep: 'x' | 'y', neg: Tecla, pos: Tecla) => {
       if (v !== 0 && v !== prev) {

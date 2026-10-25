@@ -3,6 +3,7 @@
 // START. It is DOM and CSS, made once; touch (multi-touch) and keyboard write into the same `Mandos`, which
 // the game reads on every frame. Like the Pang's (src/pang/entrada.ts) but with eight directions.
 import { h } from '../ui/hud';
+import { TECLAS_A, TECLAS_B, TECLAS_B_MENU, TECLAS_CONOCIDAS, TECLAS_MOVER, TECLAS_MOVER_TODAS, TECLAS_START, TECLA_L, TECLA_R } from './teclado';
 
 /** The buttons, held and pressed. Presses are taken (and cleared) once by whoever reads them. */
 export class Mandos {
@@ -14,6 +15,18 @@ export class Mandos {
   b = false;
   private pulsos = { a: false, b: false, r: false, l: false, start: false };
   private pulsoV = 0;
+  /** When Escape was last pressed (ms): in the world it opens the START menu, in a menu it is just «back». */
+  private escapeT = -1e9;
+
+  /** Escape was pressed a moment ago (only the world asks for this; a press that nobody wanted goes stale). */
+  tomarEscape() {
+    const si = performance.now() - this.escapeT < 200;
+    this.escapeT = -1e9;
+    return si;
+  }
+  pulsarEscape() {
+    this.escapeT = performance.now();
+  }
 
   /** A was pressed since the last time this was asked. */
   tomarA() {
@@ -57,6 +70,7 @@ export class Mandos {
     this.a = this.b = false;
     this.pulsos = { a: false, b: false, r: false, l: false, start: false };
     this.pulsoV = 0;
+    this.escapeT = -1e9;
   }
 }
 
@@ -279,40 +293,49 @@ export function crearConsola(root: HTMLElement, textos: { marca: string; modelo:
     sostener(bS, 'sol-on', (p) => p && mandos.pulsar('start')),
   ];
 
-  // ---- keyboard: arrows or WASD, Z/Enter/Space = A, X/Shift = B, R = uses the chosen map power, Q = L (changes it)
+  // ---- keyboard: the assignment is in teclado.ts (arrows/WASD, Z/Enter/Space = A, X/Esc/Shift = B, R, Q = L, Tab = START)
   const teclas = new Set<string>();
+  const hay = (cs: string[]) => cs.some((c) => teclas.has(c));
   const leerTeclas = () => {
-    const x = (teclas.has('ArrowRight') || teclas.has('KeyD') ? 1 : 0) - (teclas.has('ArrowLeft') || teclas.has('KeyA') ? 1 : 0);
-    const y = (teclas.has('ArrowDown') || teclas.has('KeyS') ? 1 : 0) - (teclas.has('ArrowUp') || teclas.has('KeyW') ? 1 : 0);
+    const x = (hay(TECLAS_MOVER.der) ? 1 : 0) - (hay(TECLAS_MOVER.izq) ? 1 : 0);
+    const y = (hay(TECLAS_MOVER.abajo) ? 1 : 0) - (hay(TECLAS_MOVER.arriba) ? 1 : 0);
     if (!dedosPad.size) mandos.fijarDir(x, y);
-    mandos.a = mandos.a || teclas.has('KeyZ') || teclas.has('Enter') || teclas.has('Space');
+    mandos.a = mandos.a || hay(TECLAS_A);
+    mandos.b = mandos.b || hay(TECLAS_B);
   };
-  const MOVER = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'KeyA', 'KeyD', 'KeyW', 'KeyS']);
   const abajo = (e: KeyboardEvent) => {
     const c = e.code;
-    const conocida = MOVER.has(c) || ['KeyZ', 'Enter', 'Space', 'KeyX', 'ShiftLeft', 'ShiftRight', 'KeyR', 'KeyQ'].includes(c);
-    if (!conocida) return;
+    if (!TECLAS_CONOCIDAS.has(c) || e.ctrlKey || e.metaKey || e.altKey) return;
     e.preventDefault();
     if (e.repeat) return;
-    if (MOVER.has(c)) {
+    if (TECLAS_MOVER_TODAS.has(c)) {
       teclas.add(c);
       leerTeclas();
-    } else if (c === 'KeyZ' || c === 'Enter' || c === 'Space') {
+    } else if (TECLAS_A.includes(c)) {
+      teclas.add(c);
       mandos.a = true;
       mandos.pulsar('a');
-    } else if (c === 'KeyX' || c === 'ShiftLeft' || c === 'ShiftRight') {
+    } else if (TECLAS_B.includes(c)) {
+      teclas.add(c);
       mandos.b = true;
       mandos.pulsar('b');
-    } else if (c === 'KeyR') mandos.pulsar('r');
-    else if (c === 'KeyQ') mandos.pulsar('l');
+      if (TECLAS_B_MENU.includes(c)) mandos.pulsarEscape();
+    } else if (TECLAS_START.includes(c)) mandos.pulsar('start');
+    else if (c === TECLA_R) mandos.pulsar('r');
+    else if (c === TECLA_L) mandos.pulsar('l');
   };
   const arriba = (e: KeyboardEvent) => {
     const c = e.code;
-    if (MOVER.has(c)) {
+    if (TECLAS_MOVER_TODAS.has(c)) {
       teclas.delete(c);
       leerTeclas();
-    } else if (c === 'KeyZ' || c === 'Enter' || c === 'Space') mandos.a = false;
-    else if (c === 'KeyX' || c === 'ShiftLeft' || c === 'ShiftRight') mandos.b = false;
+    } else if (TECLAS_A.includes(c)) {
+      teclas.delete(c);
+      mandos.a = hay(TECLAS_A);
+    } else if (TECLAS_B.includes(c)) {
+      teclas.delete(c);
+      mandos.b = hay(TECLAS_B);
+    }
   };
   const soltarTodo = () => {
     teclas.clear();
