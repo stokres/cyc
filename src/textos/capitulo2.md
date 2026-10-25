@@ -566,7 +566,7 @@ GUILLE (nervioso): Todas hacia el mismo sitio. Como los cerdos cuando oyen el cu
 @nivelar 500
 @general 500
 > Chuchi vuelve a la barra con la copa en la mano y el aire de quien ha ganado algo en un sueño.
-CHUCHI (contento): Hecho. Una carrera, cinco desconocidos y yo, el primero. Ahora sí que me voy con la cabeza alta.
+CHUCHI (contento): Hecho. Una carrera contra todos vosotros y yo, el primero. Ahora sí que me voy con la cabeza alta.
 CHUCHI: Me tomo esta de despedida y desaparezco.
 VERO: Toma, mi niño. Otra, que a esa ya le quedaba un dedo.
 CHUCHI (sorprendido): ¡Pero si es que me iba! Vero, ¿de dónde sale esta copa?

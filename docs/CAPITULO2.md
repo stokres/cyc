@@ -64,7 +64,7 @@ Los primeros planos son el **plano manga** (más abajo): estilo C de Jesús, el 
 2. La tragaperras gira sola otra vez y **para en la cara de Chuchi** (`mostrarTragaperras(root, { premio: false, cara: 'chuchi' })`, como con la de Pablo).
 3. **El suelo se estira y se convierte en la pista** (`src/juego/pista.ts`, `entrarEnPista(g, lanzar)`), como `entrarEnConsola`, pero en vez de encogerse la instantánea del bar (`Motor.instantanea`) se tumba en perspectiva (`rotateX`), gira (`rotateZ`) y se agranda hasta fundirse con la pista (Web Animations API, solo CSS); nada se dibuja por fotograma.
 4. **`jugarKart`** (`src/kart/kart.ts`, ver `capitulo2/impropios-kart.md`), lanzado como el Pang: `g.pausado`, `g.minijuegoSuperado('kart')` solo con `'hecho'`; `'saltado'` y `'cancelado'` siguen igual.
-5. Chuchi vuelve a la barra con la copa («Hecho. Una carrera, cinco desconocidos y yo, el primero»), Vero le pone otra y Fran: «¡Una más! ¡Lo sabía!».
+5. Chuchi vuelve a la barra con la copa («Hecho. Una carrera contra todos vosotros y yo, el primero»; los cinco rivales son Fran, Pablo, Guille, Fer y Viñas, decididos por Jesús el 25 de octubre de 2026, y sus pilotos se dibujan en `src/kart/pilotos.ts` y `arte.ts`), Vero le pone otra y Fran: «¡Una más! ¡Lo sabía!».
 
 ### Vero se traga a Fran (`veroTragaAFran`, bar 6 y `src/ui/boca.ts`)
 

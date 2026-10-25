@@ -3,7 +3,8 @@
 // The karts are small voxel-ish models (boxes, cylinders and a sphere for the head) turned into sprites from sixteen
 // angles by a tiny software renderer: that way every driver, in every colour, has the same kart seen from the same
 // sixteen sides, and the game only ever blits and scales them. The heads are painted from the driver's data
-// (pilotos.ts): Chuchi is bald and shiny, with square black glasses and a short grey beard; the rivals have a plain face.
+// (pilotos.ts): Chuchi is bald and shiny, with square black glasses and a short red beard; the rivals are his friends, each
+// with their own hair, beard, headphones or jacket (extra spheres and boxes around the head and torso, still baked once).
 import { texto } from '../juego/textos';
 import { anchoTexto, escribir } from '../sol/fuente';
 import { ctx, elipse, lienzo, pintar, rect } from '../sol/pixel';
@@ -101,6 +102,32 @@ function esfera3(out: P3[], cx: number, cy: number, cz: number, R: number, f: Co
   }
 }
 
+
+/** Small spheres (curls, tufts) spread over a sphere of radius R around a centre, wherever `ok` says the direction is wanted. */
+function mechones(out: P3[], cx: number, cy: number, cz: number, R: number, r: number, n: number, ok: (nx: number, ny: number, nz: number) => boolean, f: ColorFn) {
+  // a golden-angle spiral gives an even, non-repeating spread; every wanted spot gets a curl
+  for (let i = 0; i < n; i++) {
+    const nz = 1 - (2 * (i + 0.5)) / n;
+    const q = Math.sqrt(1 - nz * nz);
+    const a = i * 2.399963;
+    const nx = Math.sin(a) * q;
+    const ny = Math.cos(a) * q;
+    if (!ok(nx, ny, nz)) continue;
+    const rr = r * (0.85 + 0.3 * ((i * 7) % 5) / 4);
+    esfera3(out, cx + nx * R, cy + ny * R, cz + nz * R, rr, f);
+  }
+}
+
+/** Cloth colour with the optional flower print (blotches of the two colours on a coarse 3D grid). */
+function colorRopa(p: Piloto, base: RGB, x: number, y: number, z: number): RGB {
+  if (!p.estampado) return base;
+  const h = (Math.floor(x / 1.7 + 8) * 73856093) ^ (Math.floor(y / 1.7 + 8) * 19349663) ^ (Math.floor(z / 1.7 + 8) * 83492791);
+  const v = ((h >>> 0) % 100) / 100;
+  if (v < 0.22) return rgb(p.estampado[0]);
+  if (v < 0.4) return rgb(p.estampado[1]);
+  return base;
+}
+
 // ---------------------------------------------------------------- the kart model
 
 const HIERRO: RGB = rgb('#4a4252');
@@ -114,7 +141,6 @@ function modeloKart(p: Piloto): P3[] {
   const cuerpoOsc = oscuro(cuerpo, 0.72);
   const blanco: RGB = [250, 246, 238];
   const piel = rgb(p.piel);
-  const camiseta = rgb(p.camiseta);
   // wheels: big ones behind, smaller in front
   for (const lado of [-1, 1]) {
     const xa = lado < 0 ? -15 : 10;
@@ -135,16 +161,106 @@ function modeloKart(p: Piloto): P3[] {
   caja3(out, -10.5, 10.5, -15.5, -12.5, 12, 13.5, () => cuerpoOsc);
   caja3(out, -8, -7, -14.5, -13.5, 10, 12, () => HIERRO);
   caja3(out, 7, 8, -14.5, -13.5, 10, 12, () => HIERRO);
-  // the driver
-  caja3(out, -4.5, 4.5, -7, 0, 10, 17, () => camiseta);
-  caja3(out, -6.5, -4.5, -5, 4, 12, 15.5, () => camiseta);
-  caja3(out, 4.5, 6.5, -5, 4, 12, 15.5, () => camiseta);
+  // the driver: torso (wider for a big build), a jacket over a shirt if he has one, sleeves and hands on the wheel
+  const ancho = p.corpulento ? 6 : 4.5;
+  const tronco = rgb(p.chaqueta ?? p.camiseta);
+  const bajoChaqueta = rgb(p.camiseta);
+  caja3(out, -ancho, ancho, -7, p.corpulento ? 2.5 : 0, 10, 17, (x, y, z, _nx, ny) => {
+    if (p.chaqueta && ny > 0.5 && Math.abs(x) < 2.2) return bajoChaqueta;
+    return colorRopa(p, tronco, x, y, z);
+  });
+  const raya = p.rayas ? rgb(p.rayas) : null;
+  for (const lado of [-1, 1]) {
+    const xa = lado < 0 ? -ancho - 2 : ancho;
+    const xb = lado < 0 ? -ancho : ancho + 2;
+    caja3(out, xa, xb, -5, 4, 12, 15.5, (x, y, z, nx, _ny, nz) => {
+      // the three stripes of an old sports jacket run along the sleeve (outside face and top)
+      if (raya && Math.abs(nx) > 0.5 && (z - 12) % 1.17 < 0.55) return raya;
+      if (raya && nz > 0.5 && (Math.abs(x) - ancho) % 0.75 < 0.4) return raya;
+      return colorRopa(p, tronco, x, y, z);
+    });
+  }
+  // wool lining of the collar, like a scarf round the neck
+  if (p.forro) caja3(out, -ancho - 0.3, ancho + 0.3, -6.5, -1, 16.8, 18.4, () => rgb(p.forro!));
   caja3(out, -4.5, -2.5, 4, 6, 12.5, 15, () => piel);
   caja3(out, 2.5, 4.5, 4, 6, 12.5, 15, () => piel);
   caja3(out, -4, 4, 5.5, 7, 13, 16, () => GOMA);
   // the head: a big round one
   esfera3(out, 0, -2, 23, 6.8, (_x, _y, _z, nx, ny, nz) => colorCabeza(p, nx, ny, nz), !!p.brillo);
+  if (p.pelo) pelos3(out, p);
+  if (p.barbaGrande && p.barba) {
+    // a bushy beard hanging down onto the chest
+    const b = rgb(p.barba);
+    esfera3(out, 0, 0.5, 18, 4.9, (x, _y, z, nx, ny, nz) => {
+      if (nz > 0.6 && ny > 0.3) return piel; // the mouth stays free
+      return Math.sin(x * 3.1 + z * 4.3 + ny * 2) > 0.45 ? oscuro(b, 0.8) : nz < -0.2 ? mezclar(b, [255, 255, 255], 0.06 + 0.06 * nx) : b;
+    });
+  }
+  if (p.aro) {
+    // a small gold hoop on the right ear
+    const o = rgb(p.aro);
+    esfera3(out, 7.1, -2.2, 20.3, 1.15, () => o);
+    esfera3(out, 7.4, -2.2, 19, 0.9, () => o);
+  }
+  if (p.auriculares) auriculares3(out, rgb(p.auriculares));
   return out;
+}
+
+/** Hair that sticks out of the head sphere: long hair, curls, tufts. */
+function pelos3(out: P3[], p: Piloto) {
+  const h = rgb(p.pelo!);
+  const claro = mezclar(h, [255, 255, 255], 0.22);
+  if (p.peloLargo) {
+    // a mass at the back of the head and two locks down to the nape and shoulders
+    const mecha: ColorFn = (x, _y, z) => (Math.sin(x * 2.6 + z * 1.3) > 0.7 ? oscuro(h, 0.8) : h);
+    esfera3(out, 0, p.rizos ? -5.5 : -5, p.rizos ? 21 : 20.5, p.rizos ? 7 : 5.9, mecha);
+    for (const lado of [-1, 1]) {
+      esfera3(out, lado * 3.2, -7.4, p.rizos ? 17 : 17.2, p.rizos ? 4 : 3.2, mecha);
+      if (p.rizos) esfera3(out, lado * 6, -5, 18.5, 3.4, mecha);
+    }
+  }
+  if (p.rizos) {
+    // curls all round and down the back, so the hair swells at the sides and falls to the shoulders
+    const rizo: ColorFn = (x, y, z) => {
+      // a blotch of tone per little cell, so the mass reads as separate curls
+      const v = ((((Math.floor(x / 1.2 + 9) * 73856093) ^ (Math.floor(y / 1.2 + 9) * 19349663) ^ (Math.floor(z / 1.2 + 9) * 83492791)) >>> 0) % 100) / 100;
+      return v > 0.7 ? claro : v < 0.3 ? oscuro(h, 0.7) : h;
+    };
+    mechones(out, 0, -3, 22.5, 7.6, 3.2, 52, (_nx, ny, nz) => ny < 0.35 && nz > -0.75, rizo);
+    mechones(out, 0, -6.5, 16.5, 5.6, 3, 30, (_nx, ny) => ny < 0.4, rizo);
+  }
+  if (p.peloArriba) {
+    // messy hair up: a handful of two-sphere tufts, the tip lighter
+    const tufos: [number, number, number][] = [[-0.5, 0.1, 0.85], [0, 0.3, 0.95], [0.5, 0.1, 0.85], [-0.3, -0.4, 0.85], [0.3, -0.4, 0.85], [-0.78, -0.1, 0.62], [0.78, -0.1, 0.62], [0, -0.7, 0.7]];
+    for (const [a, b, c] of tufos) {
+      const l = Math.hypot(a, b, c);
+      const nx = a / l;
+      const ny = b / l;
+      const nz = c / l;
+      esfera3(out, nx * 6.9, -2 + ny * 6.9, 23 + nz * 6.9, 2.2, () => h);
+      esfera3(out, nx * 8.6, -2 + ny * 8.6, 23 + nz * 8.9, 1.5, () => claro);
+    }
+  }
+}
+
+/** Headphones that are always on: a band over the head and a cup on each ear (seen from behind they are the giveaway). */
+function auriculares3(out: P3[], color: RGB) {
+  const banda = oscuro(color, 0.5);
+  const acento: RGB = rgb('#18b4b4');
+  for (let t = 0; t <= Math.PI + 0.001; t += 0.09) {
+    const cx = Math.cos(t);
+    const cz = Math.sin(t);
+    for (let dy = -1.25; dy <= 1.25; dy += 0.5)
+      for (let r = 7; r <= 8.2; r += 0.45) out.push({ x: cx * r, y: -2 + dy, z: 23 + cz * r, nx: cx, ny: 0, nz: cz, c: r > 7.9 ? mezclar(banda, color, 0.6) : banda });
+  }
+  for (const lado of [-1, 1]) {
+    const xa = lado < 0 ? -10.2 : 6.4;
+    const xb = lado < 0 ? -6.4 : 10.2;
+    cil3(out, xa, xb, -2, 22, 3.8, (x, y, z, nx) => {
+      if (Math.abs(nx) > 0.5 && Math.abs(x) > 9.7) return Math.hypot(y + 2, z - 22) < 1.7 ? acento : color;
+      return color;
+    });
+  }
 }
 
 /** The colour of a point of the head from the direction it faces (nx right, ny forward, nz up, unit sphere). */
@@ -171,6 +287,7 @@ function colorCabeza(p: Piloto, nx: number, ny: number, nz: number): RGB {
   } else if (frente && ny > 0.45) {
     // two dots for eyes and a small smile
     if (Math.abs(ax - 0.4) < 0.13 && Math.abs(nz - 0.2) < 0.14) return rgb('#241a24');
+    if (p.cejas && nz > 0.33 && nz < 0.5 && ax > 0.12 && ax < 0.7) return oscuro(rgb(p.barba ?? p.pelo ?? p.piel), 0.6);
     if (nz > 0.38 && nz < 0.47 && Math.abs(ax - 0.4) < 0.16) return oscuro(rgb(p.pelo ?? p.piel), 0.7);
     if (ny > 0.7 && nz < -0.22 && nz > -0.4 && ax < 0.36 && nz < -0.22 - ax * ax * 0.6) return rgb('#8a2f3a');
   }
@@ -178,12 +295,16 @@ function colorCabeza(p: Piloto, nx: number, ny: number, nz: number): RGB {
     const b = rgb(p.barba);
     // moustache, beard and sideburns
     if (ny > 0.55 && nz > -0.16 && nz < -0.04 && ax < 0.45 && !(ax < 0.06)) return oscuro(b, 0.9);
+    // a big beard also climbs the cheeks
+    if (p.barbaGrande && nz < 0.1 && nz > -0.8 && ny > -0.3 && ax > 0.5 && ny < 0.8) return b;
     if (nz < -0.1 && ny > -0.25 && ax < 0.95 && !(ny > 0.7 && nz > -0.36 && nz < -0.26 && ax < 0.3)) return Math.sin(nx * 23 + nz * 31) > 0.5 ? oscuro(b, 0.82) : b;
     if (nz < -0.1 && ny > 0.7 && nz > -0.36 && nz < -0.26 && ax < 0.3) return rgb('#7a3a3a');
     if (nz < 0.02 && ax > 0.78 && ny > -0.2) return b;
   }
   if (p.pelo) {
     const h = rgb(p.pelo);
+    // long hair also covers the ears
+    if (p.peloLargo && ax > 0.55 && ny > -0.5 && ny < 0.25 && nz > -0.3) return h;
     if (nz > 0.5 || (ny < -0.25 && nz > -0.35)) return nz > 0.82 ? mezclar(h, [255, 255, 255], 0.18) : h;
     if (ny > 0.3 && nz > 0.4) return h;
   }

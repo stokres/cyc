@@ -9,8 +9,8 @@ Todo lo que se lee dentro de Impropios Kart está aquí. Mismo formato que capit
 
 Los textos que salen dentro de la pantalla pequeña del juego (en letra de píxeles) tienen que ser cortos.
 Esa letra tiene tildes, la Ñ, los signos de apertura y la º, pero no emojis.
-Los cinco rivales son PROVISIONALES: sus nombres están aquí abajo (piloto.*) y sus colores y su
-velocidad en src/kart/pilotos.ts. Para cambiar un rival, cambia su nombre aquí y su fila allí.
+Los cinco rivales son Fran, Pablo, Guille, Fer y Viñas (los eligió Jesús): sus nombres están aquí abajo
+(piloto.*) y su aspecto, sus colores y su velocidad en src/kart/pilotos.ts.
 -->
 
 // ---------------------------------------------------------------- arriba y abajo de la pantalla
@@ -53,14 +53,14 @@ item.sangria = Charco de sangría
 item.boa = Boa de plumas
 item.luz = ¡Se va la luz!
 
-// ---------------------------------------------------------------- los pilotos (los rivales son provisionales)
+// ---------------------------------------------------------------- los pilotos
 
 piloto.chuchi = Chuchi
-piloto.ari = Ari
-piloto.vinas = Viñas
+piloto.fran = Fran
+piloto.pablo = Pablo
+piloto.guille = Guille
 piloto.fer = Fer
-piloto.compi4 = Compi 4
-piloto.compi5 = Compi 5
+piloto.vinas = Viñas
 
 // ---------------------------------------------------------------- el podio
 
