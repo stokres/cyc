@@ -619,10 +619,10 @@ zona.c2.concepto.reloj = Las tantas
 zona.c2.concepto.no = El no
 zona.c2.concepto.fran = Una más
 zona.c2.concepto.ultima = La última
-zona.c2.concepto.pablo = Una espiral
-zona.c2.concepto.chuchi = Un círculo
-zona.c2.concepto.guille = Una flor
-zona.c2.concepto.vero = La boca
+zona.c2.concepto.pablo = Pablo
+zona.c2.concepto.chuchi = Chuchi
+zona.c2.concepto.guille = Guille
+zona.c2.concepto.vero = Vero
 
 // Las palabras que se pintan sobre los conceptos (lo que se lee en pantalla, en mayúsculas).
 c2.concepto.manana = MAÑANA
@@ -641,9 +641,9 @@ pista.c2.conceptos.ultima = Todos juntos otra vez. Para salir, toca LA ÚLTIMA, 
 
 ## c2.conceptos.entrada
 > Esto no es el Brío. Esto ni siquiera es un sitio. Es donde se quedan colgadas las palabras cuando se les acaba la frase.
-PABLO (sorprendido): ¿Por qué soy una espiral? Y, sobre todo, ¿por qué me favorece?
-CHUCHI (nervioso): Soy un círculo con gafas y una aguja. Estoy muy reconocible, pero de otra manera.
-GUILLE (contento): ¡Soy una flor! ¡La más alta! ¡Siempre quise ser la más alta!
+PABLO (sorprendido): ¿Por qué soy una figurita de peana? Y, sobre todo, ¿por qué me favorece?
+CHUCHI (nervioso): Soy un montón de formas sueltas con gafas. Estoy muy reconocible, pero por piezas.
+GUILLE (contento): ¡Estoy hecho de triángulos y de flores! ¡Y soy el más alto! ¡Siempre quise ser el más alto!
 CHUCHI (nervioso): Falta uno. ¿Dónde está Fran?
 PABLO: Esto es un mundo de conceptos. Toquemos lo que veamos: alguien tendrá algo que decir.
 
@@ -664,7 +664,7 @@ GUILLE (triste): Yo nunca llego a tiempo a mi casa. Pero tengo la excusa de que 
 ## c2.conceptos.trabajo
 CHUCHI (nervioso): EL TRABAJO. Con sus avisos y todo. Hasta aquí me ha seguido.
 > El sobre vibra. Chuchi se encoge por reflejo, como un perro al oír un trueno.
-PABLO (chulo): Tienes un círculo por cuerpo y aun así te llegan los correos.
+PABLO (chulo): Estás hecho de piezas sueltas y aun así te llegan los correos.
 ---
 CHUCHI (enfadado): No pienso abrirlo. No pienso abrir... Vale, lo abro un segundo.
 
@@ -690,14 +690,14 @@ CHUCHI (nervioso): Eso lo sé yo muy bien. Me lo sé desde la universidad.
 > La cerveza sale por arriba, da una vuelta por el aire y vuelve a entrar. El mundo funciona así.
 
 ## c2.conceptos.pista
-PABLO (sorprendido): Un momento. ¿Habéis oído esa jarra pequeñita que no para de repetir «una más»?
-CHUCHI (sorprendido): La verde azulada, con la barba de espuma... Sí, la oigo desde hace un rato.
+PABLO (sorprendido): Un momento. ¿Habéis oído esa vocecita que no para de repetir «una más»?
+CHUCHI (sorprendido): La figura redondita de la barba, con la jarra que nunca se vacía... Sí, la oigo desde hace un rato.
 GUILLE (contento): ¡Si es que se le nota a la legua!
 
 ## c2.conceptos.fran
 @zoom fran 2.2
 FRAN (contento): ¡UNA MÁS!
-PABLO (sorprendido): ¡Es Fran! ¡Se ha convertido en la jarra!
+PABLO (sorprendido): ¡Es Fran! ¡Se ha escondido detrás de nosotros, con su jarra!
 FRAN (contento): ¡Una más! ¡Una más! ¡Una más!
 CHUCHI: Fran, ¿puedes decir otra cosa?
 FRAN (triste): Una... más...
@@ -722,17 +722,17 @@ FRAN (triste): Una... más...
 
 // Lo que dicen al tocar cada figura (por probar, o cuando ya se ha tocado casi todo).
 ## c2.figura.pablo
-PABLO (chulo): Soy una espiral con un aro. Me define: doy vueltas a todo y siempre me cuelga algo de la oreja.
+PABLO (chulo): Soy un puñado de piezas que flotan, con un aro que me cuelga de la oreja. Me define: doy vueltas a todo.
 ---
-PABLO: La espiral es mi forma natural. El teatro, si lo piensas, es un bucle con público.
+PABLO: Las piezas que giran son mi forma natural. El teatro, si lo piensas, es un bucle con público.
 
 ## c2.figura.chuchi
-CHUCHI: Llevo la aguja de un reloj en la barriga. Por eso llego tarde: es que llego, pero todavía.
+CHUCHI: Llevo la barriga hecha de triángulos. Por eso llego tarde: es que llego, pero todavía.
 ---
 CHUCHI (nervioso): Estas gafas sí que me las reconozco. Lo demás lo estoy asimilando.
 
 ## c2.figura.guille
-GUILLE (contento): ¡Soy una flor con la camisa puesta! Lo del tallo largo es genética.
+GUILLE (contento): ¡Soy un montón de flores con la camisa puesta! Lo de ser alto es genética.
 ---
 GUILLE (contento): Tengo hojas con hibiscos. ¡He nacido para esto!
 
@@ -746,7 +746,7 @@ VERO: Mi amor, estás dentro de mí. Haz el favor de no tocar las paredes.
 ---
 VERO: Aquí dentro se está calentito, ¿oíste? Tú pide, que yo te lo pongo.
 ---
-VERO (chulo): Soy una boca dorada que lo envuelve todo. Ya lo era antes, pero ahora se nota más.
+VERO (chulo): Soy una camarera de oro y seda que lo envuelve todo. Ya lo era antes, pero ahora se nota más.
 
 // ---- El caos total
 
@@ -773,7 +773,7 @@ FRAN (sorprendido): ¡Una más!
 @caos off
 @nivelar 500
 @general 500
-> Entonces Guille, hecho flor, dio un paso al frente. Y en una de sus hojas, una jarra.
+> Entonces Guille, hecho de formas y de flores, dio un paso al frente. Y en una de sus manos, una jarra.
 @caos guille
 GUILLE (chulo): Este es mío.
 

@@ -1,9 +1,10 @@
 // «Vero se traga a Fran» (capítulo 2, tramo final): el plano del tráiler, la boca de Vero tan cerca que llena la
 // pantalla (`dibujarVero`, src/ui/trailer.ts), pero a mitad de camino: la boca se abre del todo, Fran sube
 // hasta ella y desaparece dentro; los otros tres saltan detrás. Entran como personas (el cuerpo entero de
-// siempre) y, al cruzar los dientes, se rompen en trozos que salen disparados y se recomponen, dentro de la
-// oscuridad, en su figura del mundo de los conceptos (src/arte/conceptos.mjs): Fran, la jarra; Pablo, la
-// espiral con su aro; Chuchi, la bola con las gafas; Guille, la flor. Ahí se quedan flotando. Entre una fase y
+// siempre) y, al cruzar los dientes, se rompen en trozos que salen disparados y, dentro de la oscuridad, las
+// piezas de su figura del mundo de los conceptos (src/arte/conceptos-figuras.mjs: bloques, conos y arcos con su
+// pelo, su cara, su bebida) vuelan hasta recomponerse, cada una con su giro, en su sitio. Ahí se quedan flotando
+// sobre su peana con el resplandor de su color. Entre una fase y
 // otra el guion habla (el cuadro de diálogo queda por encima: esta capa está por debajo de él), y al final la
 // cámara se lanza dentro y todo se queda negro.
 //
@@ -15,14 +16,15 @@
 //   boca.cerrar();
 //
 // Rendimiento (docs/ESTILO.md, T5): los cuerpos y las figuras se hacen una vez como bitmaps (`silueta` y
-// `svgABitmap`); el fotograma dibuja la boca (unos pocos trazos de canvas, como el tráiler), esos bitmaps y unos
+// `hornearFigura`, con la textura de pintura ya puesta); el fotograma dibuja la boca (unos pocos trazos de canvas, como el tráiler), esos bitmaps y unos
 // cuantos trozos de color (rellenos de canvas). Nada de SVG por fotograma. El bucle no pasa de 60 fps.
 import { h } from './hud';
 import { esVertical } from './orientacion';
 import { dibujarVero } from './trailer';
 import { REPARTO, type PjId } from '../juego/reparto';
-import { silueta, svgABitmap } from '../motor/sprites';
+import { silueta } from '../motor/sprites';
 import * as A from '../arte/conceptos.mjs';
+import { dibujarFigura, hornearFigura, soltarFigura, type FiguraBmp, type FiguraDef, type Montaje } from '../capitulos/conceptos-rig';
 import type { SonidoMinijuego } from '../core/audio';
 
 export interface OpcionesBoca {
@@ -50,12 +52,14 @@ const SITIOS: Record<PjId, { x: number; y: number }> = {
   chuchi: { x: 0.85, y: 0.5 },
   guille: { x: 0.31, y: 0.58 },
 };
-const FIGURAS: Record<PjId, { x: number; y: number }> = {
-  pablo: { x: 0.3, y: 0.645 },
-  fran: { x: 0.435, y: 0.66 },
-  guille: { x: 0.565, y: 0.655 },
-  chuchi: { x: 0.695, y: 0.645 },
+const FIGURAS: Record<PjId, { dx: number; s: number }> = {
+  chuchi: { dx: -590, s: 0.96 },
+  pablo: { dx: -295, s: 0.92 },
+  fran: { dx: 0, s: 0.8 },
+  guille: { dx: 295, s: 0.9 },
 };
+/** Dónde pisan las figuras (fracción del alto de la pantalla). */
+const Y_PIE = 0.8;
 const IDS: PjId[] = ['fran', 'pablo', 'chuchi', 'guille'];
 const SALTAN: PjId[] = ['pablo', 'chuchi', 'guille'];
 /** Segundos de cada fase. */
@@ -104,70 +108,18 @@ const trozos = (n: number, sem: number): Trozo[] => {
   }));
 };
 
-/** Un dibujo de `conceptos.mjs` ya hecho bitmap: `c` cubre el cuadro (x, y, w, h), en píxeles CSS de la pantalla. */
-interface Bmp {
-  c: HTMLCanvasElement;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
-
-interface Dibujo {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  svg: string;
-}
-
-/** Lo de cada uno: su cuerpo de siempre, su figura (con la pieza que gira aparte, si la tiene) y su resplandor. */
+/** Lo de cada uno: su cuerpo de siempre y su figura (el rig de piezas sueltas, ya hecho bitmap). */
 interface Juego {
   persona: HTMLCanvasElement;
-  figura: Bmp;
-  extra?: Bmp;
-  brillo: HTMLCanvasElement;
+  fig: FiguraBmp;
 }
 
-/** Hornea un dibujo para que su lado mayor mida `lado` píxeles CSS, con `res` píxeles de bitmap por píxel CSS. */
-const hornear = async (d: Dibujo, lado: number, res: number): Promise<Bmp> => {
-  const s = lado / Math.max(d.w, d.h);
-  const svg = d.svg.replace(/ width="[^"]*" height="[^"]*"/, ` width="${Math.ceil(d.w * s * res)}" height="${Math.ceil(d.h * s * res)}"`);
-  return { c: await svgABitmap(svg, d.w * s * res, d.h * s * res), x: d.x * s, y: d.y * s, w: d.w * s, h: d.h * s };
-};
-
-const resplandor = (color: string, r: number): HTMLCanvasElement => {
-  const c = document.createElement('canvas');
-  c.width = c.height = Math.max(2, Math.ceil(r * 2));
-  const x = c.getContext('2d')!;
-  const g = x.createRadialGradient(r, r, 0, r, r, r);
-  g.addColorStop(0, color + 'cc');
-  g.addColorStop(0.5, color + '44');
-  g.addColorStop(1, color + '00');
-  x.fillStyle = g;
-  x.fillRect(0, 0, c.width, c.height);
-  return c;
-};
-
-/** Qué dibujos de `conceptos.mjs` son cada figura (y la pieza que gira aparte, con su tamaño respecto a la figura). */
-const DIBUJOS: Record<PjId, { figura: () => Dibujo; extra?: () => Dibujo }> = {
-  fran: { figura: A.jarraFran },
-  pablo: { figura: A.espiralPablo, extra: A.aroPablo },
-  chuchi: { figura: A.circuloChuchi, extra: A.agujaChuchi },
-  guille: { figura: A.florGuille },
-};
-const COLOR_FIGURA: Record<PjId, string> = {
-  fran: A.COLORES.fran.claro,
-  pablo: A.COLORES.pablo.aro,
-  chuchi: A.COLORES.chuchi.sudadera,
-  guille: A.COLORES.guille.claro,
-};
 /** Los colores de los trozos de cada uno (de su figura). */
 const PALETA: Record<PjId, string[]> = {
-  fran: [A.COLORES.fran.principal, A.COLORES.fran.claro, A.COLORES.fran.barba],
-  pablo: [A.COLORES.pablo.principal, A.COLORES.pablo.borrego, A.COLORES.pablo.aro],
-  chuchi: [A.COLORES.chuchi.sudadera, A.COLORES.chuchi.principal, A.COLORES.chuchi.gafas],
-  guille: [A.COLORES.guille.principal, A.COLORES.guille.claro, A.COLORES.guille.hibisco],
+  fran: [A.COLORES.fran.principal, A.COLORES.fran.claro, '#f0a21e'],
+  pablo: [A.COLORES.pablo.chaqueta, A.COLORES.pablo.borrego, A.COLORES.pablo.vaquero],
+  chuchi: [A.COLORES.chuchi.sudadera, A.COLORES.chuchi.principal, '#f2a13a'],
+  guille: [A.COLORES.guille.principal, A.COLORES.guille.hibisco, A.COLORES.guille.hoja],
 };
 const NUM: Record<PjId, number> = { fran: 0, pablo: 1, chuchi: 2, guille: 3 };
 
@@ -185,16 +137,15 @@ export function abrirBoca(root: HTMLElement, o: OpcionesBoca = {}): Boca {
   let Hh = 0;
   let dpr = 1;
   const juegos = new Map<PjId, Juego>();
-  /** Alto de una persona y lado de una figura, en píxeles CSS. */
+  /** Alto de una persona y lado de una figura, en píxeles CSS (y píxeles CSS por unidad de escena del mundo de los conceptos). */
   let ALTO_P = 0;
   let LADO_F = 0;
+  let UNI = 0;
   let generacion = 0;
   const soltar = () => {
     for (const j of juegos.values()) {
       j.persona.width = j.persona.height = 0;
-      j.figura.c.width = j.figura.c.height = 0;
-      if (j.extra) j.extra.c.width = j.extra.c.height = 0;
-      j.brillo.width = j.brillo.height = 0;
+      soltarFigura(j.fig);
     }
     juegos.clear();
   };
@@ -210,22 +161,18 @@ export function abrirBoca(root: HTMLElement, o: OpcionesBoca = {}): Boca {
     canvas.width = Math.round(W * dpr);
     canvas.height = Math.round(Hh * dpr);
     ALTO_P = Hh * 0.34;
-    LADO_F = Hh * 0.22;
+    LADO_F = Hh * 0.3;
+    UNI = Hh / 1080;
     const gen = ++generacion;
     const res = Math.min(dpr, 1.5);
     const hechos = await Promise.all(
       IDS.map(async (id) => {
         const ficha = REPARTO[id];
-        const dib = DIBUJOS[id];
-        const fig = dib.figura();
-        const ext = dib.extra?.();
-        const [persona, figura, extra] = await Promise.all([
+        const [persona, fig] = await Promise.all([
           silueta(ficha.arte.body({}, ficha.ropa), ALTO_P * res, null),
-          hornear(fig, LADO_F, res * 1.3),
-          // La pieza que gira aparte se hornea a la misma escala que la figura (su lado, en proporción).
-          ext ? hornear(ext, (LADO_F * Math.max(ext.w, ext.h)) / Math.max(fig.w, fig.h), res * 1.3) : Promise.resolve(undefined),
+          hornearFigura(A.figura(id) as FiguraDef, UNI * FIGURAS[id].s * res * 1.15),
         ]);
-        return [id, { persona, figura, extra, brillo: resplandor(COLOR_FIGURA[id], LADO_F * 1.1 * res) } as Juego] as const;
+        return [id, { persona, fig } as Juego] as const;
       }),
     );
     if (gen !== generacion || cerrado) return;
@@ -246,6 +193,8 @@ export function abrirBoca(root: HTMLElement, o: OpcionesBoca = {}): Boca {
   /** Fran ya está dentro (hecho jarra) y los otros tres ya han saltado. */
   let franDentro = false;
   let saltaron = false;
+  /** Alto de una figura en píxeles CSS. */
+  const ALTO_FIG = (id: PjId) => (juegos.get(id)?.fig.alto ?? 500) * UNI * FIGURAS[id].s;
   const fragmentos = new Map<PjId, Trozo[]>(IDS.map((id, i) => [id, trozos(26, 11 + i * 7)]));
   const rapido = !!o.rapido;
 
@@ -294,53 +243,34 @@ export function abrirBoca(root: HTMLElement, o: OpcionesBoca = {}): Boca {
     ctx.restore();
   };
 
-  /** Una figura ya hecha: su resplandor, su pieza que gira y ella misma, flotando en la oscuridad. */
-  const figura = (id: PjId, x: number, y: number, k = 1, a = 1, giro = 0) => {
+  /** Una figura ya hecha, con los pies en (x, y): su resplandor, su peana y todas sus piezas, cada una con su movimiento. */
+  const figura = (id: PjId, x: number, y: number, k = 1, a = 1, montaje?: (pid: string, i: number) => Montaje | null) => {
     const j = juegos.get(id);
     if (!j || k <= 0.01 || a <= 0) return;
-    const f = j.figura;
-    const t = tiempo + NUM[id] * 1.7;
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.globalAlpha = a * (0.55 + 0.2 * Math.sin(t * 2.2));
-    ctx.globalCompositeOperation = 'lighter';
-    const rb = LADO_F * 1.1 * k;
-    ctx.drawImage(j.brillo, -rb, -rb, rb * 2, rb * 2);
-    ctx.restore();
-    ctx.save();
-    ctx.globalAlpha = a;
-    ctx.translate(x, y);
-    ctx.scale(k, k);
-    // Cada una a su manera: la jarra se mece, la espiral y la flor giran, la bola se balancea y su aguja da el segundo.
-    const rot = id === 'fran' ? Math.sin(t * 1.3) * 0.28 : id === 'chuchi' ? Math.sin(t * 1.1) * 0.22 : t * (id === 'pablo' ? 0.9 : 0.6);
-    if (j.extra && id === 'chuchi') {
-      ctx.save();
-      ctx.rotate(Math.floor(t * 2) * (Math.PI / 6));
-      ctx.drawImage(j.extra.c, j.extra.x, j.extra.y, j.extra.w, j.extra.h);
-      ctx.restore();
-    }
-    ctx.rotate(rot + giro);
-    ctx.drawImage(f.c, f.x, f.y, f.w, f.h);
-    ctx.restore();
-    if (j.extra && id === 'pablo') {
-      // El aro del pendiente le da vueltas.
-      const ex = j.extra;
-      ctx.save();
-      ctx.globalAlpha = a;
-      const ang = t * 1.9;
-      ctx.translate(x + Math.cos(ang) * LADO_F * 0.5 * k, y + Math.sin(ang) * LADO_F * 0.4 * k);
-      ctx.rotate(ang * 1.3);
-      ctx.scale(k, k);
-      ctx.drawImage(ex.c, ex.x, ex.y, ex.w, ex.h);
-      ctx.restore();
-    }
+    dibujarFigura(ctx, j.fig, tiempo + NUM[id] * 1.7, { x, y, s: UNI * FIGURAS[id].s * k, a, brillo: 0.95, montaje });
   };
 
-  /** Dónde flota una figura ya hecha (con su vaivén). */
+  /** Dónde flota una figura ya hecha (con su vaivén): sus pies. */
   const reposo = (id: PjId) => ({
-    x: FIGURAS[id].x * W + Math.sin(tiempo * 0.7 + NUM[id] * 2) * W * 0.008,
-    y: FIGURAS[id].y * Hh + Math.sin(tiempo * 1.1 + NUM[id] * 1.3) * Hh * 0.016,
+    x: W / 2 + FIGURAS[id].dx * UNI + Math.sin(tiempo * 0.7 + NUM[id] * 2) * W * 0.004,
+    y: Y_PIE * Hh + Math.sin(tiempo * 1.1 + NUM[id] * 1.3) * Hh * 0.01,
   });
+
+  /** De dónde sale volando cada pieza de una figura (en unidades de la figura), fijo para cada una. */
+  const salidas = new Map<string, { a: number; b: number; g: number }>();
+  const salida = (id: PjId, pid: string) => {
+    const k = `${id}:${pid}`;
+    let v = salidas.get(k);
+    if (!v) {
+      let sem = 7;
+      for (const ch of k) sem = (sem * 31 + ch.charCodeAt(0)) % 2147483647;
+      const az = azar(sem);
+      az();
+      v = { a: az(), b: az(), g: az() };
+      salidas.set(k, v);
+    }
+    return v;
+  };
 
   /**
    * El salto de uno de ellos, de `k` = 0 a 1: viene de donde espera como persona, cruza los dientes, se rompe en
@@ -351,9 +281,10 @@ export function abrirBoca(root: HTMLElement, o: OpcionesBoca = {}): Boca {
     if (!j) return;
     const x0 = SITIOS[id].x * W;
     const y0 = SITIOS[id].y * Hh;
-    const fx = FIGURAS[id].x * W;
-    const fy = FIGURAS[id].y * Hh;
-    const xc = fx + (0.5 - FIGURAS[id].x) * W * 0.15;
+    const pie = reposo(id);
+    const fx = pie.x;
+    const fy = pie.y - ALTO_FIG(id) * 0.5;
+    const xc = pie.x + (W / 2 - pie.x) * 0.15;
     const yc = Y_DIENTES * Hh;
     if (k < T_ROMPE) {
       // Se acerca en arco, encogiéndose y girando.
@@ -428,14 +359,22 @@ export function abrirBoca(root: HTMLElement, o: OpcionesBoca = {}): Boca {
       }
       ctx.restore();
     }
-    // La figura se asienta con un rebote.
-    if (k >= T_VUELVEN) {
-      const u = suave((k - (T_FIGURA - 0.1)) / 0.2);
-      if (u > 0) {
-        const rebote = 1 + (k > T_FIGURA ? 0.18 * Math.sin(Math.min(1, (k - T_FIGURA) / 0.12) * Math.PI) : 0);
-        const p = reposo(id);
-        figura(id, fx + (p.x - fx) * u, fy + (p.y - fy) * u, (0.45 + 0.55 * u) * rebote, u, (1 - u) * 2.4);
-      }
+    // Las piezas de la figura vuelan desde el cruce de los dientes, cada una con su giro, hasta recomponerla; después se asienta
+    // con un rebote y se queda flotando sobre su peana.
+    if (k >= T_VUELVEN - 0.06) {
+      const arma = (k - (T_VUELVEN - 0.06)) / (T_FIGURA - T_VUELVEN + 0.06);
+      const rebote = 1 + (k > T_FIGURA ? 0.1 * Math.sin(Math.min(1, (k - T_FIGURA) / 0.12) * Math.PI) : 0);
+      const p = reposo(id);
+      const sc = UNI * FIGURAS[id].s;
+      const montaje = (pid: string, i: number): Montaje | null => {
+        const v = salida(id, pid);
+        const e = suave((arma - (i % 9) * 0.045) / 0.6);
+        if (e >= 1) return null;
+        const ox = (xc - p.x) / sc + (v.a - 0.5) * 240;
+        const oy = (yc - p.y) / sc + (v.b - 0.5) * 200 + 60;
+        return { dx: ox * (1 - e), dy: oy * (1 - e) - Math.sin(e * Math.PI) * 90, rot: (v.g - 0.5) * 9 * (1 - e), esc: 0.2 + 0.8 * e, a: Math.min(1, e * 3) };
+      };
+      figura(id, p.x, p.y, rebote, Math.min(1, arma * 4), montaje);
     }
   };
 

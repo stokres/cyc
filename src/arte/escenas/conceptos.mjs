@@ -10,18 +10,18 @@ const NS = 'http://www.w3.org/2000/svg';
 
 /** Los sitios y el tamaño de cada toque, en unidades de escena respecto al centro de la pantalla (dx) y desde arriba (y). */
 export const SITIOS = {
-  casa: { dx: -800, y: 330, w: 200, h: 240 },
-  trabajo: { dx: -380, y: 340, w: 270, h: 290 },
-  reloj: { dx: 140, y: 350, w: 310, h: 270 },
-  no: { dx: 620, y: 345, w: 290, h: 230 },
-  manana: { dx: -1000, y: 590, w: 240, h: 450 },
-  pablo: { dx: -560, y: 570, w: 290, h: 290 },
-  ultima: { dx: 0, y: 580, w: 340, h: 340 },
-  chuchi: { dx: 520, y: 565, w: 270, h: 270 },
-  guille: { dx: 980, y: 580, w: 240, h: 560 },
-  penultima: { dx: -340, y: 775, w: 260, h: 280 },
-  fran: { dx: 320, y: 785, w: 280, h: 300 },
-  vero: { dx: 0, y: 1010, w: 1500, h: 140 },
+  casa: { dx: -840, y: 255, w: 210, h: 230 },
+  trabajo: { dx: -450, y: 255, w: 270, h: 280 },
+  reloj: { dx: -70, y: 250, w: 290, h: 250 },
+  no: { dx: 400, y: 255, w: 270, h: 220 },
+  penultima: { dx: 890, y: 300, w: 260, h: 300 },
+  manana: { dx: -1010, y: 620, w: 240, h: 460 },
+  ultima: { dx: 150, y: 300, w: 300, h: 340 },
+  chuchi: { dx: -700, y: 665, w: 300, h: 460 },
+  pablo: { dx: -350, y: 665, w: 300, h: 480 },
+  guille: { dx: 340, y: 650, w: 300, h: 520 },
+  vero: { dx: 690, y: 665, w: 300, h: 480 },
+  fran: { dx: 0, y: 700, w: 260, h: 330 },
 };
 
 const fondo = () => `<svg xmlns="${NS}" viewBox="0 0 ${W} 1080" width="${W}" height="1080">
