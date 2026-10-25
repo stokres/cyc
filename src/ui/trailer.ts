@@ -30,6 +30,7 @@ import type { Pista } from '../sonido/musica';
 import { logoClaro } from './logo';
 import { azar, elipse, lienzo, mezclar, pintarBar, pintarCana, dibujarBarra, suave, type Bar, type Cana } from './bar-pintura';
 import { dibujarTragaperras, pintarTragaperras, type Tragaperras } from './tragaperras-pintura';
+import { pintarVehiculo } from './vehiculo-pintura';
 
 /** What the trailer needs from the sound: its track, started at once, and where it is. */
 export interface SonidoTrailer {
@@ -254,71 +255,9 @@ function pintarCarretera(W: number, H: number, dpr: number): Carretera {
     f.fill();
   }
 
-  // The pickup and its caravan, facing right. The wheels are drawn every frame (they turn).
-  const vh = H * 0.27;
-  const cw = vh * 2.0;
-  const vw = cw + vh * 0.25 + vh * 1.8;
-  const [vehiculo, v] = lienzo(vw, vh, dpr);
-  const caja = (color: string, bx: number, by: number, w: number, hh: number, rad: number) => {
-    v.fillStyle = color;
-    v.beginPath();
-    v.roundRect(bx, by, w, hh, rad);
-    v.fill();
-  };
-  // The caravan: cream, a brown stripe, rounded ends, a window and its door.
-  const ch = vh * 0.78;
-  caja('#e9dcc0', 0, 0, cw, ch, ch * 0.32);
-  caja('#d4c4a4', 0, 0, cw, ch * 0.14, ch * 0.08);
-  caja('#9a5a3c', 0, ch * 0.58, cw, ch * 0.12, 0);
-  caja('#c9b896', 0, ch * 0.86, cw, ch * 0.14, ch * 0.05);
-  caja('#3a4a66', cw * 0.12, ch * 0.2, cw * 0.3, ch * 0.28, ch * 0.08);
-  caja('#d8c8a8', cw * 0.62, ch * 0.16, cw * 0.15, ch * 0.66, ch * 0.05);
-  caja('#3a4a66', cw * 0.645, ch * 0.22, cw * 0.1, ch * 0.16, ch * 0.04);
-  caja('#e0a24a', cw * 0.02, ch * 0.62, cw * 0.025, ch * 0.06, 1);
-  // A crack in the window, and the sun along its top.
-  v.strokeStyle = '#a9b4c8';
-  v.lineWidth = 1;
-  v.beginPath();
-  v.moveTo(cw * 0.16, ch * 0.24);
-  v.lineTo(cw * 0.25, ch * 0.34);
-  v.lineTo(cw * 0.22, ch * 0.44);
-  v.stroke();
-  const luz = v.createLinearGradient(0, 0, 0, ch * 0.5);
-  luz.addColorStop(0, 'rgba(255,214,150,0.35)');
-  luz.addColorStop(1, 'rgba(255,214,150,0)');
-  v.fillStyle = luz;
-  v.beginPath();
-  v.roundRect(0, 0, cw, ch, ch * 0.32);
-  v.fill();
-  // The tow bar.
-  v.fillStyle = '#4a3a36';
-  v.fillRect(cw - 2, ch * 0.8, vh * 0.3, vh * 0.05);
-  // The pickup: rusty red, a cream roof, the bed behind the cab, a chrome bumper.
-  const px = cw + vh * 0.25;
-  const pw = vh * 1.8;
-  caja('#a8402c', px, vh * 0.5, pw, vh * 0.3, vh * 0.06);
-  caja('#a8402c', px + pw * 0.42, vh * 0.12, pw * 0.36, vh * 0.42, vh * 0.08);
-  caja('#efe2c4', px + pw * 0.42, vh * 0.1, pw * 0.36, vh * 0.07, vh * 0.04);
-  caja('#7e2e20', px, vh * 0.5, pw * 0.4, vh * 0.05, 0);
-  caja('#2e3c5a', px + pw * 0.5, vh * 0.2, pw * 0.24, vh * 0.22, vh * 0.04);
-  // Two heads in the cab, against the windscreen.
-  elipse(v, px + pw * 0.56, vh * 0.33, vh * 0.055, vh * 0.065, '#1c1612');
-  elipse(v, px + pw * 0.68, vh * 0.32, vh * 0.055, vh * 0.065, '#1c1612');
-  caja('#a8402c', px + pw * 0.78, vh * 0.38, pw * 0.22, vh * 0.42, vh * 0.1);
-  caja('#7e2e20', px + pw * 0.08, vh * 0.58, pw * 0.85, vh * 0.025, 0);
-  caja('#c8ccd2', px + pw * 0.95, vh * 0.66, pw * 0.07, vh * 0.12, vh * 0.03);
-  caja('#ffe6a0', px + pw * 0.95, vh * 0.44, pw * 0.05, vh * 0.08, vh * 0.03);
-  caja('#4a3a36', px - vh * 0.02, vh * 0.7, vh * 0.04, vh * 0.08, 1);
-  // The sun along the top of everything.
-  v.fillStyle = 'rgba(255,214,150,0.3)';
-  v.fillRect(px + pw * 0.42, vh * 0.12, pw * 0.36, vh * 0.03);
-  v.fillRect(px, vh * 0.5, pw, vh * 0.025);
-  const ruedas: Array<[number, number, number]> = [
-    [cw * 0.42, vh * 0.86, vh * 0.14],
-    [px + pw * 0.22, vh * 0.84, vh * 0.16],
-    [px + pw * 0.8, vh * 0.84, vh * 0.16],
-  ];
-  return { cielo, mesas, medio, delante, vehiculo, vw, vh, ruedas, escape: [px - vh * 0.02, vh * 0.74], r0, r1 };
+  // The pickup and its caravan, facing right (src/ui/vehiculo-pintura.ts, the same ones as in the safari comic). The wheels are drawn every frame (they turn).
+  const veh = pintarVehiculo(H * 0.27, dpr);
+  return { cielo, mesas, medio, delante, vehiculo: veh.img, vw: veh.vw, vh: veh.vh, ruedas: veh.ruedas, escape: veh.escape, r0, r1 };
 }
 
 /** A tile that repeats sideways, scrolled `dx` px to the left. */
