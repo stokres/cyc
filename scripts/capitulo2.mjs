@@ -405,9 +405,8 @@ check((await nivel()) === 7, 'en el mundo de los conceptos la noche no está en 
 check(!(await page.$('.capa-boca')), 'se queda la capa de la boca');
 
 // The world of the concepts: touched by position, because everything floats and the zones follow it (zonaCss reads them live).
-fotoAl('Un NO enorme rebota', 'final-10-concepto-no', false, 700);
-fotoAl('¿Habéis oído esa jarra', 'final-10b-pista-de-la-jarra', false);
-fotoAl('¡Es Fran!', 'final-11-fran-una-mas', false, 1200);
+fotoAl('Cada concepto que veamos es un argumento', 'final-10-llegada-fran-visible', false, 300);
+fotoAl('Y rebota, rebota', 'final-11-no-se-vuelve-una-mas', false, 1600);
 fotoAl('aparece el contorno de una jarra', 'final-12-la-ultima-aparece', false, 1500);
 fotoAl('Me veo en dibujitos', 'final-13-caos-cortes-1', false, 1400);
 fotoAl('Yo en píxeles', 'final-14-caos-cortes-2', false, 1100);
@@ -417,14 +416,11 @@ fotoAl('Este es mío', 'final-16-guille-flor-y-jarra', false, 1300);
 fotoAl('nos vamos de safari', 'safari-0-guille-propone', false, 900);
 
 const tocarConcepto = async (id) => tocar(await zonaCss(id));
-await paso('Tocar tres conceptos (los chistes) y que alguien señale la jarra', async () => {
+await paso('Convencer a Fran: cada concepto es un argumento y Fran lo gira a «una más»', async () => {
   await shot('final-9b-mundo-conceptos');
-  for (const id of ['no', 'casa', 'reloj']) await tocarConcepto(id);
-});
-check(await flag('c2.con.pista'), 'tras tres conceptos nadie señala la jarra');
-await paso('Fran es la jarra de «una más»', async () => {
-  await tocarConcepto('fran');
-}, 'c2.fran.hallado');
+  for (const id of ['no', 'casa', 'reloj', 'trabajo', 'manana', 'penultima']) await tocarConcepto(id);
+}, 'c2.fran.sinArgumentos');
+check(await flag('c2.con.penultima'), 'los seis argumentos no se han gastado');
 await paso('LA ÚLTIMA: el caos total y, de «Este es mío», PokéUsera (el giro, el velo en horizontal, de pie, y la vuelta)', async () => {
   await tocarConcepto('ultima');
   // PokéUsera (src/pokeusera/): the screen turns by itself and the game stands up in its own stage. It is not played here (that is

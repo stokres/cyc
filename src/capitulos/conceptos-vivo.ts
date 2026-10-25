@@ -80,15 +80,15 @@ interface Sitio {
   p: number;
 }
 
-/** Las figuras, de izquierda a derecha en el suelo; Fran, más pequeño y detrás, vaga por el hueco del medio. */
+/** Las figuras, de izquierda a derecha en el suelo; Fran está en el hueco del medio, a la vista, casi como los demás. */
 const FIG: Record<string, Sitio> = {
   chuchi: { dx: -700, y: 900, s: 0.9, p: 0.3 },
   pablo: { dx: -350, y: 905, s: 0.88, p: 0.3 },
   guille: { dx: 340, y: 905, s: 0.86, p: 0.3 },
   vero: { dx: 690, y: 900, s: 0.84, p: 0.3 },
-  fran: { dx: 0, y: 872, s: 0.68, p: 0.3 },
+  fran: { dx: 0, y: 905, s: 0.86, p: 0.3 },
 };
-/** Orden de dibujo de las figuras: Fran el primero (queda detrás de los demás, medio escondido). */
+/** Orden de dibujo de las figuras (Fran el primero: los vecinos le pasan un poco por delante). */
 const ORDEN = ['fran', 'chuchi', 'pablo', 'vero', 'guille'];
 /** Cuánto se encoge el reparto si la pantalla es estrecha, para que quepa todo (1 en los móviles alargados). */
 const compacta = (vw: number) => Math.max(0.74, Math.min(1, (vw / 2 - 140) / 1000));
@@ -200,10 +200,10 @@ const estado = {
   paso: 0,
   /** Tiempo en que empezó el caos. */
   caos: 0,
-  /** Dónde vaga Fran (suavizado) y el último instante dibujado. */
-  franK: 0,
-  antes: 0,
 };
+
+/** Cuándo se gastó cada argumento (segundos del motor): el concepto se vuelve jarra un momento y queda con «UNA MÁS» pegado. */
+const gastados = new Map<string, number>();
 
 const FUENTE = "'Graduate', 'Alegreya Sans', Georgia, serif";
 
@@ -382,7 +382,8 @@ export function liberarConceptos() {
   if (listo) soltar(listo);
   listo = null;
   golpes.clear();
-  Object.assign(estado, { ultima: 0, dino: 0, paso: 0, caos: 0, franK: 0, antes: 0 });
+  gastados.clear();
+  Object.assign(estado, { ultima: 0, dino: 0, paso: 0, caos: 0 });
 }
 
 export function conceptosListos() {
@@ -396,7 +397,12 @@ export function golpear(g: Aventura, id: string) {
   golpes.set(id, g.motor.t);
 }
 
-/** La última aparece (cuando Fran ya está con los demás). */
+/** Fran le da la vuelta a un argumento: el concepto se convierte en jarra y queda gastado, con «UNA MÁS» encima. */
+export function gastarArgumento(g: Aventura, id: string) {
+  gastados.set(id, g.motor.t);
+}
+
+/** La última aparece (cuando ya no queda ningún argumento que valga con Fran). */
 export function revelarUltima(g: Aventura) {
   estado.ultima = g.motor.t;
 }
@@ -451,8 +457,6 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
   const t = m.t * (1 + 1.6 * caos);
   const real = m.t;
   const cx = vw / 2;
-  const dt = estado.antes ? Math.min(0.1, Math.max(0, real - estado.antes)) : 0;
-  if (capa === 'fondo') estado.antes = real;
   const kc = compacta(vw);
   // El vaivén de la cámara: mueve cada capa según su profundidad (el paralaje).
   const vaiven = (p: number) => Math.sin(real * 0.23 * (1 + caos * 2)) * 70 * p;
@@ -492,10 +496,40 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
     ctx.save();
     base();
     ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = (0.2 + 0.1 * Math.sin(t * 1.7 + fase)) * k * alfa;
+    ctx.globalAlpha = (0.2 + 0.1 * Math.sin(t * 1.7 + fase)) * k * alfa * gasto(id).a;
     const r = 150 * S[id] * (1 + 0.06 * Math.sin(t * 1.7 + fase));
     ctx.drawImage(c, x - r, y - r, r * 2, r * 2);
     ctx.restore();
+  };
+
+  /** Cuánto lleva gastado un argumento: `a` es lo que se apaga el concepto (1 = intacto) y `d` los segundos desde que Fran lo giró. */
+  const gasto = (id: string) => {
+    const t0 = gastados.get(id);
+    const d = t0 !== undefined ? real - t0 : g.flag(`c2.con.${id}`) ? 99 : -1;
+    return { d, a: d < 0 ? 1 : 1 - 0.58 * suave(d / 0.9) };
+  };
+  /** Un concepto: si Fran ya lo ha girado, se vuelve jarra un momento y queda atenuado con «UNA MÁS» pegado encima. */
+  const cpt = (id: string, x: number, y: number, esc: number, rot: number, sx: number, sy: number) => {
+    const { d, a } = gasto(id);
+    const antes = alfa;
+    alfa = antes * a;
+    pon(bm(id), x, y, esc, rot, sx, sy);
+    if (d >= 0) {
+      // La jarra: aparece y se apaga mientras el concepto se desvanece.
+      const j = d < 1.3 ? Math.sin((Math.PI * d) / 1.3) : 0;
+      if (j > 0.01) {
+        alfa = antes * j;
+        pon(bm('guille.jarra'), x, y, esc * (0.55 + 0.45 * j), -0.1 * (1 - j), 1, 1);
+      }
+      // La etiqueta se pega con un golpecito y se queda.
+      const e = suave((d - 0.45) / 0.35);
+      if (e > 0) {
+        alfa = antes * Math.min(1, e * 1.4) * 0.95;
+        const pega = 1 + (1 - e) * 0.5;
+        pon(L.unaMas, x, y + 14, 0.78 * pega, -0.14);
+      }
+    }
+    alfa = antes;
   };
 
   if (capa === 'fondo') {
@@ -604,7 +638,6 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
     ) as Record<keyof typeof HUYEN, { dx: number; y: number }>;
 
     // ---- Los conceptos.
-    const hallado = g.flag('c2.fran.hallado');
     // Cuando Guille da el paso al frente, todo lo demás se apaga un poco para que se lea él, con su jarra.
     const pasoK = estado.paso > 0 ? suave((real - estado.paso) / 1.3) : 0;
     alfa = 1 - 0.55 * pasoK;
@@ -616,7 +649,7 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
       const r = rebote(real, 'casa');
       const esc = S.casa * (1 + 0.28 * Math.sin(t * 0.5 + 1.6)) * 0.9;
       luz('casa', x, y, 1, 0);
-      pon(bm('casa'), x, y, esc, r.r, r.sx, r.sy);
+      cpt('casa', x, y, esc, r.r, r.sx, r.sy);
       zona('casa', x, y);
     }
     // EL TRABAJO: vibra como un móvil con avisos.
@@ -626,7 +659,7 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
       const y = huye.trabajo.y + vaivenY(0.8) + Math.sin(t * 0.8) * 10;
       const r = rebote(real, 'trabajo');
       luz('trabajo', x, y, 1, 1);
-      pon(bm('trabajo'), x, y, S.trabajo, zumbido + r.r, r.sx, r.sy);
+      cpt('trabajo', x, y, S.trabajo, zumbido + r.r, r.sx, r.sy);
       zona('trabajo', x, y);
     }
     // El RELOJ derretido: cuelga de su rama y se descuelga un poco más cada vez.
@@ -635,7 +668,7 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
       const y = SITIOS.reloj.y + vaivenY(0.9);
       const r = rebote(real, 'reloj');
       luz('reloj', x, y, 1, 2);
-      pon(bm('reloj'), x, y, S.reloj, Math.sin(t * 0.8) * 0.09 + r.r, (1 + 0.04 * Math.sin(t * 1.9)) * r.sx, (1 - 0.06 * Math.sin(t * 1.9)) * r.sy);
+      cpt('reloj', x, y, S.reloj, Math.sin(t * 0.8) * 0.09 + r.r, (1 + 0.04 * Math.sin(t * 1.9)) * r.sx, (1 - 0.06 * Math.sin(t * 1.9)) * r.sy);
       zona('reloj', x, y);
     }
     // El NO: rebota de arriba abajo y se aplasta al caer.
@@ -646,7 +679,7 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
       const aplasta = fase < 0.18 ? 1 - (0.18 - fase) * 1.4 : 1;
       const r = rebote(real, 'no');
       luz('no', x, y, 1, 3);
-      pon(bm('no'), x, y + (1 - aplasta) * 30, S.no, Math.sin(t * 1.3) * 0.12 + r.r, (2 - aplasta) * r.sx, aplasta * r.sy);
+      cpt('no', x, y + (1 - aplasta) * 30, S.no, Math.sin(t * 1.3) * 0.12 + r.r, (2 - aplasta) * r.sx, aplasta * r.sy);
       zona('no', x, y);
     }
     // MAÑANA: la puerta intenta abrirse (se estrecha un poco) y nunca se abre.
@@ -657,7 +690,7 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
       const tiembla = intento > 0.9 ? Math.sin(t * 55) * 0.012 : 0;
       const r = rebote(real, 'manana');
       luz('manana', x, y - 40, 1.2, 4);
-      pon(bm('manana'), x, y, S.manana, tiembla + r.r * 0.4, (1 - 0.06 * intento * intento) * r.sx, r.sy);
+      cpt('manana', x, y, S.manana, tiembla + r.r * 0.4, (1 - 0.06 * intento * intento) * r.sx, r.sy);
       zona('manana', x, y);
     }
     // LA PENÚLTIMA: late y se rellena sola.
@@ -666,7 +699,7 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
       const y = SITIOS.penultima.y + vaivenY(1.1) + Math.sin(t * 1.4) * 8;
       const r = rebote(real, 'penultima');
       luz('penultima', x, y, 1, 5);
-      pon(bm('penultima'), x, y, S.penultima, Math.sin(t * 0.9) * 0.07 + r.r, (1 + 0.05 * Math.sin(t * 3)) * r.sx, (1 - 0.05 * Math.sin(t * 3)) * r.sy);
+      cpt('penultima', x, y, S.penultima, Math.sin(t * 0.9) * 0.07 + r.r, (1 + 0.05 * Math.sin(t * 3)) * r.sx, (1 - 0.05 * Math.sin(t * 3)) * r.sy);
       zona('penultima', x, y);
     }
 
@@ -689,17 +722,13 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
       zona(id, x, y - alto * 0.5, Math.max(200, F.ancho * s * 0.78), alto * 0.95);
       return { x, y, s, F };
     };
-    // FRAN, hecho «UNA MÁS»: vaga por el hueco del medio, más pequeño y detrás, medio escondido entre los demás; tiene una jarra
-    // que nunca se vacía (la cerveza vuelve a caer en ella). Cuando ya se ha encontrado se queda cerca y se ve mejor.
+    // FRAN, hecho «UNA MÁS»: está a la vista desde el principio, entre sus amigos, con la jarra que nunca se vacía (la cerveza
+    // vuelve a caer en ella) y su «UNA MÁS» debajo. Se mece despacio, tan tranquilo.
     {
-      estado.franK += ((hallado ? 1 : 0) - estado.franK) * Math.min(1, dt * 1.6);
-      const k = estado.franK;
       const sit = FIG.fran;
-      const amp = (1 - k) * 215 + k * 40;
-      const x = cx + (sit.dx + k * 150) * kc + amp * Math.sin(t * 0.21) * kc + vaiven(0.3);
-      const y = sit.y + 20 * Math.sin(t * 0.37 + 1) + 22 * k;
-      const pistado = g.flag('c2.con.pista') || hallado;
-      const f = dibujarAmigo('fran', { x, y, s: sit.s * (1 + 0.16 * k), brillo: pistado ? (hallado ? 1.5 : 1.05) : 0.5 });
+      const x = cx + sit.dx * kc + vaiven(sit.p) + 14 * Math.sin(t * 0.5);
+      const y = sit.y + 6 * Math.sin(t * 0.9 + 1);
+      const f = dibujarAmigo('fran', { x, y, brillo: 0.85 });
       const U = L.unaMas;
       ctx.save();
       base();
