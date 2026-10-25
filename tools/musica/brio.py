@@ -1,12 +1,34 @@
-# «Bar del Brío», from the inside: the same rock the street hears through the door (bar_rockero.py),
-# rebuilt by pure synthesis (numpy only: no SoundFont, no fluidsynth, no scipy), and its dream.
-# The notes, chords, tempo and structure are bar_rockero.py's: E minor, 140 bpm, straight eighths,
-# a riff of palm-muted chugs answered by power chords, two rhythm guitars hard left and right,
-# bass doubling the riff, a rock organ, a big kit; twin lead guitars in harmony for the chorus and
-# a bending solo. Guitars are sawtooth strings into a two-stage tube-style clipper (at twice the
-# sample rate) and a cabinet curve; the bass is a plucked saw with a sub; the organ is drawbars
-# through a Leslie; the kit is synthesised hit by hit (sine-sweep kick, tone-and-wires snare,
-# metallic hats, ride, crash, toms).
+# «Bar del Brío», from the inside: the song of the rock bar, rebuilt by pure synthesis (numpy only:
+# no SoundFont, no fluidsynth, no scipy) in three versions that share one arrangement: the bar
+# heard inside, the same heard from the street through the door, and its dream.
+# The notes, chords and tempo are those of the first version of the song (bar_rockero.py's 40-bar
+# round): E minor, 140 bpm, straight eighths, a riff of palm-muted chugs answered by power chords,
+# two rhythm guitars hard left and right, bass doubling the riff, a rock organ, a big kit; twin
+# lead guitars in harmony for the chorus and a bending solo. On top of them the song is now a full
+# three-minute arrangement (100 bars, 171.43 s), with a structure of its own:
+#
+#    bars  section
+#    1-8   intro: left guitar, bass and hats; then the right guitar and the kit; then the organ
+#    9-16  verse 1: the riff on E, on A, on E; the organ under it
+#    17-20 pre-chorus 1: A minor, B; the snare doubles its speed every bar; the lead hangs on D sharp
+#    21-28 chorus 1: the twin leads over C, D, E minor, B (the old chorus)
+#    29-32 the bare riff, the right guitar an octave up
+#    33-40 verse 2: a new take on the riff (it climbs), organ stabs, a long singing lead line, ride
+#    41-44 pre-chorus 2: a second voice under the lead
+#    45-52 chorus 2
+#    53-60 solo 1 (the old solo)
+#    61-68 bridge in G major (the relative major): clean guitars with an echo, half-time drums, the
+#          organ sings a new tune; then distorted chords grow under it, a snare roll, and a drum break
+#    69-76 solo 2: its own tune and changes (E minor, C, D, E minor, A minor, C, B, B)
+#    77-84 chorus 3: the old chorus, louder
+#    85-92 chorus 4 a whole tone up (F sharp minor), the organ doubling the tune an octave down
+#    93-100 coda: the riff with everybody, then the left guitar alone, then a few chugs and a snare
+#          roll growing out of nothing, which is where the intro starts
+#
+# Guitars are sawtooth strings into a two-stage tube-style clipper (at twice the sample rate) and
+# a cabinet curve; the bass is a plucked saw with a sub; the organ is drawbars through a Leslie; the
+# kit is synthesised hit by hit (sine-sweep kick, tone-and-wires snare, metallic hats, ride, crash,
+# toms). The bridge adds clean, plucked guitars (no amp) and a lead organ.
 #
 # Everything is computed on a ring: a note that rings past the end of the round wraps round to
 # its start, every filter, compressor and reverb is circular (FFT), every LFO makes a whole
@@ -14,15 +36,20 @@
 # fade, and the file is that round with half a second of its own neighbours on either side.
 #
 #   python3 brio.py brio [salida]    the bar's rock heard inside: clean, present, a background
-#                                    -> brio.mp3 (the game's src/sonido/brio.mp3), 68.57 s loop
+#                                    -> brio.mp3 (the game's src/sonido/brio.mp3), 171.43 s loop
+#   python3 brio.py puerta [salida]  the same song heard from the street, through the door: no highs,
+#                                    nearly mono, a small hall outside (it used to be bar_rockero.py's
+#                                    SoundFont render, which has no longer the structure of the song)
+#                                    -> bar-puerta.mp3 (src/sonido/bar-puerta.mp3), same 171.43 s loop
 #   python3 brio.py sueno [salida]   the same song when the bar turns into a dream (nights 2 and 3):
 #                                    slower, out of tune and wobbling like a worn tape, a long echo,
 #                                    a phaser, a dreamy hall with a shimmer
-#                                    -> brio-sueno.mp3 (src/sonido/brio-sueno.mp3), same 68.57 s loop
+#                                    -> brio-sueno.mp3 (src/sonido/brio-sueno.mp3), same 171.43 s loop
 #
 # The dream plays the song at 0.8 speed (tape: tempo and pitch together, about a major third
-# lower, drifting by almost a semitone either way). To keep the same loop length it plays 32 bars
-# of the 40 (it drops the two bare riffs): verse, chorus, solo, chorus; 32 bars / 0.8 = 40 bars.
+# lower, drifting by almost a semitone either way). To keep the same loop length it plays 80 bars
+# of the 100 (it drops the intro, the bare riff and the second verse): 80 bars / 0.8 = 100 bars.
+# The three files last the same, 171.43 s, so a crossfade between any two of them is the same length.
 import os
 import random
 import re
@@ -36,8 +63,9 @@ SR = 44100
 BPM = 140
 BEAT = 60.0 / BPM
 L = 4                                     # beats in a bar
-BARS = 40
-N = int(round(BARS * L * BEAT * SR))      # one round, in samples: 3 024 000 (exactly)
+BARS = 100
+BARS_SUENO = 80                             # the bars of the song the dream plays (at 0.8 speed they last BARS)
+N = int(round(BARS * L * BEAT * SR))      # one round, in samples: 7 560 000 (exactly)
 VELOCIDAD_SUENO = 0.8                     # the dream's tape speed
 RNG = np.random.default_rng(21)
 ALEA = random.Random(21)
@@ -109,7 +137,11 @@ def tercera_abajo(m, escala):
     return abajo[-2] if len(abajo) >= 2 else m - 3
 
 
-# --- The score: bar_rockero.py's, note for note ------------------------------------------------
+# --- The score: the song of bar_rockero.py, grown into a full three-minute arrangement ----------
+# The notes of the old 40-bar round (the riff, the chorus with its twin leads, the solo, the
+# organ) are all here, note for note; around them there is now an intro that builds up, a second
+# verse with a new take on the riff, two pre-choruses, a bridge in the relative major, a second
+# solo, a drum break, a last chorus a whole tone higher and a coda that thins out into the intro.
 
 RAIZ = {'E': 'E2', 'G': 'G2', 'A': 'A2', 'B': 'B2', 'D': 'D3', 'C': 'C3', 'F#': 'F#2'}
 # Riffs in sixteenths: (start, length, root, palm-muted?)
@@ -117,6 +149,8 @@ RIFF_E = [[(0, 2, 'E', 1), (2, 2, 'E', 1), (4, 2, 'E', 1), (6, 3, 'G', 0), (9, 3
           [(0, 2, 'E', 1), (2, 2, 'E', 1), (4, 2, 'E', 1), (6, 3, 'B', 0), (9, 3, 'A', 0), (12, 2, 'G', 0), (14, 2, 'F#', 0)]]
 RIFF_A = [[(0, 2, 'A', 1), (2, 2, 'A', 1), (4, 2, 'A', 1), (6, 3, 'C', 0), (9, 3, 'D', 0), (12, 2, 'A', 1), (14, 2, 'A', 1)],
           [(0, 2, 'A', 1), (2, 2, 'A', 1), (4, 2, 'A', 1), (6, 3, 'E', 0), (9, 3, 'D', 0), (12, 2, 'C', 0), (14, 2, 'B', 0)]]
+# The second verse's bar: the same riff, but it climbs (G, A, B, A) where the old one stayed low.
+RIFF_V = [(0, 2, 'E', 1), (2, 2, 'E', 1), (4, 2, 'E', 1), (6, 3, 'G', 0), (9, 3, 'A', 0), (12, 2, 'B', 0), (14, 2, 'A', 0)]
 ACORDES_E = [['C'], ['D'], ['Em'], ['Em'], ['C'], ['D'], ['B'], ['B']]
 LEAD_E = frase('E5:6 D5:2 C5:4 G4:4 | F#5:6 E5:2 D5:4 A4:4 | G5:6 F#5:2 E5:4 B4:4 | E5:12 -:4 |'
                'E5:6 D5:2 C5:4 E5:4 | F#5:6 E5:2 D5:4 F#5:4 | D#5:6 F#5:2 B5:8 | A5:4 F#5:4 D#5:4 B4:4')
@@ -124,14 +158,33 @@ ACORDES_S = [['Em'], ['Em'], ['C'], ['D'], ['Em'], ['Em'], ['C'], ['B']]
 # The solo: NOTE^n bends up n semitones into the note, a trailing 'v' adds vibrato.
 SOLO = ('B4^2:6 A4:2 G4:2 E4:2 G4:2 A4:2 | B4:4 D5^2:4 E5:8v | G5:2 E5:2 D5:2 E5:2 G5:4 E5:4 | F#5^1:6 E5:2 D5:4 A4:4 |'
         'E5:2 G5:2 A5:2 B5:2 D6:4 B5:2 A5:2 | B5^2:12v G5:2 E5:2 | E5:2 G5:2 C6:4 B5:2 G5:2 E5:4 | D#5:4 F#5:4 B5:8v')
+# The second solo: higher and faster, over E minor, C, D, E minor, A minor, C and B twice; its last bar
+# runs down the scale from B to E over the dominant, into the final chorus.
+ACORDES_S2 = [['Em'], ['C'], ['D'], ['Em'], ['Am'], ['C'], ['B'], ['B']]
+SOLO2 = ('E5:3 G5:3 B5:2 A5:2 G5:2 E5:4v | G5^2:6 E5:2 C5:4 E5:4 | F#5:4 A5:4 D6:4 A5:4 | B5^1:6 A5:2 G5:4 E5:4v |'
+         'A5:4 C6:4 E6:4 C6:4 | G5:2 C6:2 E6:4 D6:2 C6:2 G5:4 | F#5^2:6 D#5:2 B4:4 D#5:4 | B5:2 A5:2 G5:2 F#5:2 E5:2 D#5:2 E5:4')
+# The second verse: a long, singing line on the lead guitar over the new riff.
+LINEA_V2 = frase('B4:16 | B4:8 G4:4 A4:4 | B4:12 E5:4 | E5:16 | C5:8 A4:4 C5:4 | E5:16 | D5:8 B4:4 G4:4 | B4:6 A4:2 E5:8')
+# The pre-chorus: the lead hangs on the leading note of the dominant, then slips to the chorus' first note.
+PRE_LEAD = frase('D#5:16 | D#5:8 F#5:4 E5:4')
+PRE_LEAD2 = frase('B4:16 | B4:12 B4:4')
+# The bridge, in G major (the relative major): the organ sings it over clean, echoing guitars.
+ACORDES_P = ['G', 'D', 'Em', 'C', 'G', 'D', 'C', 'B']
+MELODIA_P = frase('B4:6 D5:2 G5:8 | F#5:6 E5:2 D5:8 | E5:4 G5:4 B5:4 G5:4 | E5:6 D5:2 C5:8 |'
+                  'D5:4 G5:4 B5:8 | A5:6 F#5:2 D5:4 F#5:4 | E5:6 G5:2 C6:8')
+NIVEL_ANILLO = -3.0            # dB of the whole band where the round ends and begins (the coda's last bar, the intro's first)
+SALTO_ESTRIBILLO = 28           # beat of the chorus' last bar: the final chorus comes back home there
 
 
 class Partitura:
     """The notes of one round as events (track, beat, beats, midi, velocity, options), with the
-    small human wobble of timing the MIDI version had (gaussian, in beats)."""
+    small human wobble of timing the MIDI version had (gaussian, in beats); the sections of the
+    song with their first and last bar; and the level of the whole band along the round (dB)."""
 
     def __init__(self):
         self.ev = {}
+        self.secciones = []
+        self.dina = []
 
     def nota(self, pista, beat, dur, tono, vel, humano=0.005, legato=0.95, **opc):
         b = beat + ALEA.gauss(0, humano)
@@ -141,63 +194,86 @@ class Partitura:
         for i, m in enumerate(tonos_):
             self.nota(pista, beat + i * rasgueo, dur, m, vel, humano=humano, legato=legato, **opc)
 
+    def nivel(self, t0, t1, a, b=None):
+        """The whole band at `a` dB at beat t0, sliding to `b` at t1 (levels are relative)."""
+        self.dina += [(t0, a), (t1 - 1e-3, a if b is None else b)]
 
-def power(P, pista, beat, dur, raiz, vel, legato=0.95):
+    def seccion(self, nombre, t0, t1):
+        self.secciones.append((nombre, t0 / L, t1 / L))
+
+
+def power(P, pista, beat, dur, raiz, vel, legato=0.95, trans=0, oct=0):
     """A power chord (root, fifth, octave) struck as one gesture: the strings are summed later."""
-    r = midi(RAIZ[raiz])
+    r = midi(RAIZ[raiz]) + trans + oct
     P.nota(pista, beat, dur, r, vel, humano=0.006, legato=legato, acorde=(r, r + 7, r + 12))
 
 
-def mute(P, pista, beat, dur, raiz, vel):
-    r = midi(RAIZ[raiz])
+def mute(P, pista, beat, dur, raiz, vel, trans=0):
+    r = midi(RAIZ[raiz]) + trans
     P.nota(pista, beat, dur, r, vel, humano=0.006, legato=0.5, acorde=(r, r + 7), apagado=True)
 
 
-def riff(P, t0, compases, vel=104):
+def riff(P, t0, compases, vel=104, lados='ID', bajo=True, oct_D=0, bajo_octavas=False):
+    """The riff on the guitars of the given sides (I, D); the bass doubles it. oct_D: the right
+    guitar's open chords an octave up; bajo_octavas: the bass jumps an octave on two of the chugs."""
     for c, compas in enumerate(compases):
         for (p, d, raiz, apagado) in compas:
             b = t0 + c * L + p / 4
-            if apagado:
-                for pista in ('mI', 'mD'):
-                    mute(P, pista, b, d / 4, raiz, vel - 6)
-            else:
-                for pista in ('gI', 'gD'):
-                    power(P, pista, b, d / 4, raiz, vel + 4)
-            P.nota('bajo', b, d / 4, midi(RAIZ[raiz]) - 12, vel, humano=0.005, legato=0.6 if apagado else 0.9)
+            for lado in lados:
+                if apagado:
+                    mute(P, 'm' + lado, b, d / 4, raiz, vel - 6)
+                else:
+                    power(P, 'g' + lado, b, d / 4, raiz, vel + 4, oct=oct_D if lado == 'D' else 0)
+            if bajo:
+                r = midi(RAIZ[raiz]) - 12 + (12 if bajo_octavas and apagado and p in (2, 14) else 0)
+                P.nota('bajo', b, d / 4, r, vel, humano=0.005, legato=0.6 if apagado else 0.9)
 
 
-def acordes_largos(P, t0, acordes, vel=108):
+def acordes_largos(P, t0, acordes, vel=108, trans=0):
     """The chorus: power chords ringing, pushed on the 'and' of two; bass in eighths."""
     for i, (ch, *_) in enumerate(acordes):
         raiz = ch.rstrip('m')
         for pista in ('gI', 'gD'):
-            power(P, pista, t0 + i * L, 1.5, raiz, vel)
-            power(P, pista, t0 + i * L + 1.5, 2.5, raiz, vel - 6)
+            power(P, pista, t0 + i * L, 1.5, raiz, vel, trans=trans)
+            power(P, pista, t0 + i * L + 1.5, 2.5, raiz, vel - 6, trans=trans)
         for k in range(8):
-            P.nota('bajo', t0 + i * L + k * 0.5, 0.5, midi(RAIZ[raiz]) - 12, vel - (8 if k % 2 else 0), humano=0.005, legato=0.8)
+            P.nota('bajo', t0 + i * L + k * 0.5, 0.5, midi(RAIZ[raiz]) - 12 + trans, vel - (8 if k % 2 else 0), humano=0.005, legato=0.8)
 
 
-def organo(P, t0, acordes, vel=74):
+def organo(P, t0, acordes, vel=74, trans=0, sincopado=False):
+    """Chords on the organ: held for the bar, or (sincopado) struck on beat one and on the 'and' of two."""
     for i, (ch, *_) in enumerate(acordes):
         notas = tonos(ch, 'G3', 'G4')[:3]
-        notas = notas + [notas[0] + 12]
-        P.acorde('org', t0 + i * L, L, notas, vel, humano=0.004, legato=1.0)
+        notas = [x + trans for x in notas + [notas[0] + 12]]
+        if sincopado:
+            for b in (0, 1.5):
+                P.acorde('org', t0 + i * L + b, 0.5, notas, vel, humano=0.004, legato=0.7)
+        else:
+            P.acorde('org', t0 + i * L, L, notas, vel, humano=0.004, legato=1.0)
 
 
-def armonia(P, t0, notas, acordes, vel):
-    """The second lead a third below: a chord tone on held notes, a scale third on quick ones."""
+def armonia(P, t0, notas, acordes, vel, trans=0):
+    """The second lead a third below: a chord tone on held notes, a scale third on quick ones
+    (worked out in E minor, then moved up `trans`)."""
     for b, d, m in notas:
         ch = acorde_en(acordes, b)
+        m0 = m - trans
         if d >= 0.75:
-            h = max(tonos(ch, m - 9, m - 3))
+            h = max(tonos(ch, m0 - 9, m0 - 3))
         else:
-            h = tercera_abajo(m, (MENOR - {2}) | {3} if ch == 'B' else MENOR)
-        P.nota('sol2', t0 + b, d, h, vel, humano=0.0, legato=0.95, vib=22 if d >= 2 else 0)
+            h = tercera_abajo(m0, (MENOR - {2}) | {3} if ch == 'B' else MENOR)
+        P.nota('sol2', t0 + b, d, h + trans, vel, humano=0.0, legato=0.95, vib=22 if d >= 2 else 0)
 
 
-def lead(P, t0, notas, vel):
+def lead(P, t0, notas, vel, trans=0):
     for b, d, m in notas:
-        P.nota('sol1', t0 + b, d, m, vel + (6 if b % 1 == 0 else 0), humano=0.0, legato=0.95, vib=26 if d >= 2 else 0)
+        P.nota('sol1', t0 + b, d, m + trans, vel + (6 if b % 1 == 0 else 0), humano=0.0, legato=0.95, vib=26 if d >= 2 else 0)
+
+
+def melodia_organo(P, t0, notas, vel, trans=0, octava=0):
+    """A tune on the lead organ."""
+    for b, d, m in notas:
+        P.nota('orgM', t0 + b, d, m + trans + octava, vel + (6 if b % 1 == 0 else 0), humano=0.003, legato=0.97)
 
 
 def solo(P, t0, texto, vel=104):
@@ -214,87 +290,330 @@ def solo(P, t0, texto, vel=104):
             pos += d
 
 
-def bateria(P, t0, compases, modo='riff', vel=104, relleno=True, crash=True):
-    """Kick, snare, hats or ride; a tom fill in the last beat; a crash on the first."""
+# --- The drums ---------------------------------------------------------------------------------
+
+def platillo(P, b0, k, modo, vel):
+    """Hat or ride on eighth number k of the bar."""
+    b = b0 + k / 2
+    if modo == 'estribillo':       # ride on the beat, open hat between
+        P.nota('bat', b, 0.5, 46 if k % 2 else 51, vel - (20 if k % 2 else 6), humano=0.003, legato=1)
+    elif modo == 'ride':           # ride on every eighth, the offbeats softer
+        P.nota('bat', b, 0.5, 51, vel - (24 if k % 2 else 10), humano=0.003, legato=1)
+    elif modo == 'abierto':        # closed hat on the beat, open hat on the offbeat
+        P.nota('bat', b, 0.5, 46 if k % 2 else 42, vel - (22 if k % 2 else 12), humano=0.003, legato=1)
+    else:                          # closed hat
+        P.nota('bat', b, 0.5, 42, vel - (24 if k % 2 else 10), humano=0.003, legato=1)
+
+
+def rodillo(P, b, n, v0, v1, paso=0.25, nota=38):
+    """A snare roll of n hits growing from velocity v0 to v1."""
+    for k in range(n):
+        P.nota('bat', b + k * paso, paso, nota, int(v0 + (v1 - v0) * k / max(n - 1, 1)), humano=0.003, legato=1)
+
+
+def toms(P, b, vel, n=8):
+    """The tom cascade of the old fills, a sixteenth apart, climbing in force."""
+    for k, tom in enumerate((50, 48, 45, 43, 41, 41, 38, 38)[:n]):
+        P.nota('bat', b + k / 4, 0.25, tom, vel + k * 2, humano=0.003, legato=1)
+
+
+def bateria(P, t0, compases, modo='riff', vel=104, relleno=True, crash=True, bombo=None, charles=None):
+    """Kick, snare, hats or ride; a fill in the last beats (relleno: True, toms; 'caja', a snare roll;
+    False, none); a crash on the first. bombo: the kick as sixteenths ('x.....x..x......')."""
     h = 0.003
     for c in range(compases):
         b0 = t0 + c * L
-        bombo = 'x.....x..x......' if modo == 'riff' else 'x.......x.x.....'
-        for k, ch in enumerate(bombo):
+        patron = bombo or ('x.....x..x......' if modo == 'riff' else 'x.......x.x.....')
+        for k, ch in enumerate(patron):
             if ch == 'x':
                 P.nota('bat', b0 + k / 4, 0.25, 36, vel + 6, humano=h, legato=1)
-        ultimo = relleno and c == compases - 1
+        ultimo = bool(relleno) and c == compases - 1
         for b in ((1, 3) if not ultimo else (1,)):
             P.nota('bat', b0 + b, 0.5, 38, vel + 10, humano=h, legato=1)
         for k in range(8 if not ultimo else 6):
-            if modo == 'estribillo':
-                P.nota('bat', b0 + k / 2, 0.5, 46 if k % 2 else 51, vel - (20 if k % 2 else 6), humano=h, legato=1)
-            else:
-                P.nota('bat', b0 + k / 2, 0.5, 42, vel - (24 if k % 2 else 10), humano=h, legato=1)
+            platillo(P, b0, k, charles or ('estribillo' if modo == 'estribillo' else 'cerrado'), vel)
         if ultimo:
-            for k, tom in enumerate((50, 48, 45, 43, 41, 41, 38, 38)):
-                P.nota('bat', b0 + 2 + k / 4, 0.25, tom, vel + k * 2, humano=h, legato=1)
+            if relleno == 'caja':
+                rodillo(P, b0 + 2, 8, vel - 14, vel + 14)
+            else:
+                toms(P, b0 + 2, vel)
     if crash:
         P.nota('bat', t0, 1, 49, vel + 14, humano=0.002, legato=1)
         P.nota('bat', t0, 1, 36, vel + 10, humano=0.002, legato=1)
 
 
-def seccion_riff(P, t, vel=104):
-    riff(P, t, RIFF_E * 2, vel)
-    bateria(P, t, 4)
+# --- The sections ------------------------------------------------------------------------------------
+
+def seccion_intro(P, t):
+    """Eight bars that build: the left guitar, the bass and the hats; then the right guitar and the
+    kick and snare; then the organ; a tom fill into the verse."""
+    P.nivel(t, t + 4 * L, NIVEL_ANILLO, -2)
+    P.nivel(t + 4 * L, t + 8 * L, -2, 0)
+    riff(P, t, RIFF_E, 96, lados='I')
+    riff(P, t + 2 * L, RIFF_E, 100)
+    riff(P, t + 4 * L, RIFF_E * 2, 104)
+    organo(P, t + 4 * L, [['Em']] * 4, vel=60)
+    bateria(P, t, 2, vel=82, relleno=False, bombo='x.......x.......')
+    bateria(P, t + 2 * L, 2, vel=92, relleno=False, crash=False)
+    bateria(P, t + 4 * L, 4)
+    P.seccion('intro', t, t + 8 * L)
+    return t + 8 * L
+
+
+def seccion_verso(P, t, n=1):
+    """The verse. The first is the old one (the riff on E, on A, on E, with the organ under it);
+    the second climbs where the riff stayed low, the right guitar plays it an octave up, the bass
+    bounces, the organ stabs on the offbeat, a lead guitar sings a long line and the kick follows
+    the riff on a ride cymbal."""
+    P.nivel(t, t + 8 * L, 0 if n == 1 else -0.5)
+    if n == 1:
+        riff(P, t, RIFF_E + RIFF_E + RIFF_A + RIFF_E)
+        organo(P, t, [['Em'], ['Em'], ['Em'], ['Em'], ['Am'], ['Am'], ['Em'], ['Em']], vel=66)
+        bateria(P, t, 8, relleno='caja')
+    else:
+        compases = [RIFF_V, RIFF_E[1], RIFF_V, RIFF_E[1]] + RIFF_A + [RIFF_V, RIFF_E[1]]
+        riff(P, t, compases, oct_D=12, bajo_octavas=True)
+        organo(P, t, [['Em'], ['Em'], ['Em'], ['Em'], ['Am'], ['Am'], ['Em'], ['Em']], vel=62, sincopado=True)
+        lead(P, t, LINEA_V2, 84)
+        bateria(P, t, 8, bombo='x.x...x..x..x...', charles='ride')
+    P.seccion(f'verso {n}', t, t + 8 * L)
+    return t + 8 * L
+
+
+def seccion_pre(P, t, n=1):
+    """The pre-chorus, four bars on A minor and B: chugs and bass in eighths, then stabs that speed
+    up, the organ holding, the lead hanging on the leading note, a snare that rolls faster and
+    louder until the chorus lands (as the second time the lead gets a companion under it)."""
+    v = 98 if n == 1 else 104
+    P.nivel(t, t + 4 * L, 0.2, 1.2)
+    for i in range(4):
+        b0 = t + i * L
+        raiz = 'A' if i < 2 else 'B'
+        r = midi(RAIZ[raiz]) - 12
+        if i < 2:
+            for pista in ('gI', 'gD'):
+                power(P, pista, b0, 0.9, raiz, v)
+            for k in range(2, 8):
+                for pista in ('mI', 'mD'):
+                    mute(P, pista, b0 + k / 2, 0.5, raiz, v - 10 + (4 if k % 2 == 0 else 0))
+        elif i == 2:
+            for b, d in ((0, 1.4), (1.5, 0.4), (2, 1.4), (3.5, 0.4)):
+                for pista in ('gI', 'gD'):
+                    power(P, pista, b0 + b, d, raiz, v + 6, legato=0.9)
+        else:
+            for b in range(4):
+                for pista in ('gI', 'gD'):
+                    power(P, pista, b0 + b, 0.9, raiz, v + 6 + b * 3, legato=0.9)
+        for k in range(8):
+            P.nota('bajo', b0 + k * 0.5, 0.5, r, v - (8 if k % 2 else 0) + i * 2, humano=0.005, legato=0.8)
+    organo(P, t, [['Am'], ['Am'], ['B'], ['B']], vel=70)
+    lead(P, t + 2 * L, PRE_LEAD, 92)
+    if n == 2:
+        for b, d, m in PRE_LEAD2:
+            P.nota('sol2', t + 2 * L + b, d, m, 84, humano=0.0, legato=0.95, vib=22)
+    # drums: the beat, then the snare doubling its speed every bar
+    bateria(P, t, 2, vel=v, relleno=False, crash=False)
+    b0 = t + 2 * L
+    for b in (0, 2):
+        P.nota('bat', b0 + b, 0.25, 36, v + 6, humano=0.003, legato=1)
+    rodillo(P, b0, 8, v - 34, v - 8, paso=0.5)
+    for k in range(8):
+        platillo(P, b0, k, 'cerrado', v)
+    b0 = t + 3 * L
+    P.nota('bat', b0, 0.25, 36, v + 8, humano=0.003, legato=1)
+    P.nota('bat', b0 + 2, 0.25, 36, v + 8, humano=0.003, legato=1)
+    rodillo(P, b0, 16, v - 28, v + 14)
+    P.seccion(f'preestribillo {n}', t, t + 4 * L)
     return t + 4 * L
 
 
-def seccion_verso(P, t):
-    riff(P, t, RIFF_E + RIFF_E + RIFF_A + RIFF_E)
-    organo(P, t, [['Em'], ['Em'], ['Em'], ['Em'], ['Am'], ['Am'], ['Em'], ['Em']], vel=66)
-    bateria(P, t, 8)
-    return t + 8 * L
-
-
-def seccion_estribillo(P, t, v_acorde=108, v_lead=100, v_arm=92, v_org=80):
-    acordes_largos(P, t, ACORDES_E, v_acorde)
-    lead(P, t, LEAD_E, v_lead)
-    armonia(P, t, LEAD_E, ACORDES_E, v_arm)
-    organo(P, t, ACORDES_E, vel=v_org)
+def seccion_estribillo(P, t, v_acorde=108, v_lead=100, v_arm=92, v_org=80, trans=0, doble=False, nivel=1.0, nombre='estribillo'):
+    """The chorus. With trans, the first seven bars go up that many semitones and the last one
+    comes back home (on B, the dominant of E minor, ready for what follows). doble: the organ
+    sings the tune an octave under the twin leads."""
+    P.nivel(t, t + 8 * L, nivel)
+    if trans:
+        casa = SALTO_ESTRIBILLO
+        arriba = [x for x in LEAD_E if x[0] < casa]
+        abajo = [x for x in LEAD_E if x[0] >= casa]
+        acordes_largos(P, t, ACORDES_E[:7], v_acorde, trans)
+        acordes_largos(P, t + 7 * L, ACORDES_E[7:], v_acorde)
+        organo(P, t, ACORDES_E[:7], v_org, trans)
+        organo(P, t + 7 * L, ACORDES_E[7:], v_org)
+        lead(P, t, arriba, v_lead, trans)
+        armonia(P, t, arriba, ACORDES_E, v_arm, trans)
+        lead(P, t, abajo, v_lead)
+        armonia(P, t, abajo, ACORDES_E, v_arm)
+        if doble:
+            melodia_organo(P, t, arriba, v_org + 10, trans, -12)
+            melodia_organo(P, t, abajo, v_org + 10, 0, -12)
+    else:
+        acordes_largos(P, t, ACORDES_E, v_acorde)
+        lead(P, t, LEAD_E, v_lead)
+        armonia(P, t, LEAD_E, ACORDES_E, v_arm)
+        organo(P, t, ACORDES_E, vel=v_org)
+        if doble:
+            melodia_organo(P, t, LEAD_E, v_org + 10, 0, -12)
     bateria(P, t, 8, 'estribillo')
+    P.seccion(nombre, t, t + 8 * L)
     return t + 8 * L
 
 
-def seccion_solo(P, t):
-    for i, (ch, *_) in enumerate(ACORDES_S):
+def seccion_riff(P, t, vel=104):
+    """Four bars of the bare riff, the right guitar an octave up: a breath between chorus and verse."""
+    P.nivel(t, t + 4 * L, 0)
+    riff(P, t, RIFF_E * 2, vel, oct_D=12)
+    bateria(P, t, 4)
+    P.seccion('riff', t, t + 4 * L)
+    return t + 4 * L
+
+
+def seccion_solo(P, t, n=1):
+    """The solo: the riff where the chord is E minor, ringing chords elsewhere. The second has its
+    own tune, its own changes and the kit on the ride."""
+    P.nivel(t, t + 8 * L, 0.5)
+    acordes, texto, v = (ACORDES_S, SOLO, 104) if n == 1 else (ACORDES_S2, SOLO2, 110)
+    for i, (ch, *_) in enumerate(acordes):
         if ch == 'Em':
             riff(P, t + i * L, [RIFF_E[i % 2]], vel=96)
         else:
             acordes_largos(P, t + i * L, [[ch]], vel=100)
-    solo(P, t, SOLO)
-    organo(P, t, ACORDES_S, vel=70)
-    bateria(P, t, 8, 'estribillo')
+    solo(P, t, texto, v)
+    organo(P, t, acordes, vel=70)
+    bateria(P, t, 8, 'estribillo', bombo=None if n == 1 else 'x.......x.x.x...')
+    P.seccion(f'solo {n}', t, t + 8 * L)
     return t + 8 * L
 
 
-def ronda_completa():
-    """The 40 bars of bar_rockero.py's round: riff, verse, chorus, riff, solo, chorus."""
+def seccion_puente(P, t):
+    """The bridge, eight bars on G, D, E minor, C, G, D, C, B. Four bars of near silence: clean
+    guitars arpeggiating, the second a dotted eighth behind the first like an echo, the bass on
+    half notes, the kit in half time, the organ singing a new tune. Then distorted chords come in
+    under it and grow, a snare roll rises, and the last bar is a drum break: one stab of the whole
+    band on B, then the kit alone."""
+    P.nivel(t, t + 4 * L, -2.5)
+    P.nivel(t + 4 * L, t + 7 * L, -2.5, 0.5)
+    P.nivel(t + 7 * L, t + 8 * L, 0.5)
+    for i, ch in enumerate(ACORDES_P[:7]):
+        b0 = t + i * L
+        raiz = ch.rstrip('m')
+        fund = midi(RAIZ[raiz]) - 12
+        arp = tonos(ch, 'G3', 'G5')
+        for k, ix in enumerate((0, 2, 3, 2, 4, 2, 3, 2)):
+            m = arp[ix]
+            acento = 8 if k % 4 == 0 else 0
+            P.nota('gCI', b0 + k / 2, 0.5, m, 70 + acento, humano=0.004, legato=1.8)
+            P.nota('gCD', b0 + k / 2 + 0.75, 0.5, m, 56 + acento, humano=0.004, legato=1.8)
+        if i < 4:
+            P.nota('bajo', b0, 2, fund, 84, humano=0.005, legato=0.97)
+            P.nota('bajo', b0 + 2, 2, fund, 76, humano=0.005, legato=0.97)
+        else:
+            for k in range(8):
+                P.nota('bajo', b0 + k * 0.5, 0.5, fund, 82 + (i - 4) * 6 - (8 if k % 2 else 0), humano=0.005, legato=0.8)
+            for pista in ('gI', 'gD'):
+                power(P, pista, b0, L, raiz, (78, 88, 100)[i - 4], legato=1.0)
+            P.acorde('org', b0, L, [x for x in tonos(ch, 'G3', 'G4')[:3]], 58 + (i - 4) * 4, humano=0.004, legato=1.0)
+    melodia_organo(P, t, MELODIA_P, 82)
+    # drums: half time on the ride, then the open hats, then the roll
+    for i in range(4):
+        b0 = t + i * L
+        P.nota('bat', b0, 0.25, 36, 84, humano=0.003, legato=1)
+        P.nota('bat', b0 + 2, 0.5, 38, 78, humano=0.003, legato=1)
+        P.nota('bat', b0 + 2.5, 0.25, 36, 62, humano=0.003, legato=1)
+        for b in range(4):
+            P.nota('bat', b0 + b, 0.5, 51, 66 if b % 2 == 0 else 54, humano=0.003, legato=1)
+    P.nota('bat', t + 4 * L, 1, 49, 86, humano=0.002, legato=1)
+    for i in (4, 5):
+        b0 = t + i * L
+        for b, v in ((0, 96), (1.5, 78), (2.5, 80)):
+            P.nota('bat', b0 + b, 0.25, 36, v, humano=0.003, legato=1)
+        P.nota('bat', b0 + 2, 0.5, 38, 98, humano=0.003, legato=1)
+        for k in range(8):
+            platillo(P, b0, k, 'abierto', 92)
+    b0 = t + 6 * L
+    P.nota('bat', b0, 0.25, 36, 100, humano=0.003, legato=1)
+    P.nota('bat', b0 + 2, 0.25, 36, 100, humano=0.003, legato=1)
+    rodillo(P, b0, 16, 60, 112)
+    # the break: the stab on B and the kit alone
+    b0 = t + 7 * L
+    for pista in ('gI', 'gD'):
+        power(P, pista, b0, 0.75, 'B', 118, legato=0.9)
+    P.nota('bajo', b0, 0.75, midi(RAIZ['B']) - 12, 116, humano=0.003, legato=0.9)
+    P.nota('bat', b0, 1, 49, 96, humano=0.002, legato=1)
+    P.nota('bat', b0, 0.25, 36, 112, humano=0.002, legato=1)
+    P.nota('bat', b0, 0.5, 38, 110, humano=0.002, legato=1)
+    rodillo(P, b0 + 1, 4, 86, 104)
+    P.nota('bat', b0 + 2, 0.25, 36, 112, humano=0.003, legato=1)
+    toms(P, b0 + 2, 100)
+    P.seccion('puente', t, t + 8 * L)
+    return t + 8 * L
+
+
+def seccion_coda(P, t):
+    """Eight bars that lead back to the beginning: the riff with everybody, then the left guitar
+    alone with the bass, then a few chugs on the low E and a snare roll growing out of nothing,
+    which is where the intro starts."""
+    P.nivel(t, t + 4 * L, 0.5, -0.5)
+    P.nivel(t + 4 * L, t + 6 * L, -1.5, -2.5)
+    P.nivel(t + 6 * L, t + 8 * L, -2.5, NIVEL_ANILLO)
+    riff(P, t, RIFF_E * 2, 106)
+    bateria(P, t, 4, vel=106)
+    riff(P, t + 4 * L, RIFF_E, 86, lados='I')
+    organo(P, t + 4 * L, [['Em']] * 2, vel=54)
+    bateria(P, t + 4 * L, 2, vel=74, relleno=False, crash=False)
+    for c in (6, 7):
+        for k in range(8):
+            mute(P, 'mI', t + c * L + k / 2, 0.5, 'E', 62 + (c - 6) * 8 + k)
+    P.nota('bajo', t + 6 * L, 2 * L, midi(RAIZ['E']) - 12, 72, legato=0.98)
+    b0 = t + 6 * L
+    for k in range(8):
+        platillo(P, b0, k, 'cerrado', 60)
+    P.nota('bat', b0, 0.25, 36, 72, humano=0.003, legato=1)
+    b0 = t + 7 * L
+    for k in range(4):
+        platillo(P, b0, k, 'cerrado', 64)
+    rodillo(P, b0 + 1, 12, 34, 100)
+    P.seccion('coda', t, t + 8 * L)
+    return t + 8 * L
+
+
+def construir(sueno=False):
+    """The whole song. The dream plays all of it but the intro, the bare riff and the second verse
+    (20 of the 100 bars: 80 bars at 0.8 speed last as long as the 100)."""
     P = Partitura()
-    t = seccion_riff(P, 0)
-    t = seccion_verso(P, t)
-    t = seccion_estribillo(P, t)
-    t = seccion_riff(P, t)
-    t = seccion_solo(P, t)
-    t = seccion_estribillo(P, t, 108, 104, 96, 84)
-    assert t == BARS * L
-    return P, BARS
+    t = 0
+    if not sueno:
+        t = seccion_intro(P, t)
+    t = seccion_verso(P, t, 1)
+    t = seccion_pre(P, t, 1)
+    t = seccion_estribillo(P, t, nivel=0.3, nombre='estribillo 1')
+    if not sueno:
+        t = seccion_riff(P, t)
+        t = seccion_verso(P, t, 2)
+    t = seccion_pre(P, t, 2)
+    t = seccion_estribillo(P, t, 108, 102, 94, 82, nivel=0.8, nombre='estribillo 2')
+    t = seccion_solo(P, t, 1)
+    t = seccion_puente(P, t)
+    t = seccion_solo(P, t, 2)
+    t = seccion_estribillo(P, t, 108, 104, 96, 84, nivel=0.8, nombre='estribillo 3')
+    t = seccion_estribillo(P, t, 110, 106, 98, 84, trans=2, doble=True, nivel=1.0, nombre='estribillo 4 (un tono arriba)')
+    t = seccion_coda(P, t)
+    assert t == (BARS_SUENO if sueno else BARS) * L
+    P.dina.sort()
+    if abs(P.dina[0][1] - P.dina[-1][1]) > 1e-9:       # the dream has no intro: the first bar slides from the coda's level
+        P.dina[0:1] = [(0, P.dina[-1][1]), (L, P.dina[0][1])]
+    return P, (BARS_SUENO if sueno else BARS)
+
+
+def ronda_completa():
+    """The 100 bars: intro, verse, pre-chorus, chorus, riff, verse, pre-chorus, chorus, solo,
+    bridge (with the drum break), second solo, chorus, chorus a tone up, coda."""
+    return construir(False)
 
 
 def ronda_sueno():
-    """The dream's 32 bars: verse, chorus, solo, chorus (the two bare riffs are left out)."""
-    P = Partitura()
-    t = seccion_verso(P, 0)
-    t = seccion_estribillo(P, t)
-    t = seccion_solo(P, t)
-    t = seccion_estribillo(P, t, 108, 104, 96, 84)
-    assert t == 32 * L
-    return P, 32
+    """The dream's 80 bars: all but the intro, the bare riff and the second verse."""
+    return construir(True)
 
 
 # --- Signal tools (numpy only; everything circular so a round loops) ---------------------------
@@ -382,6 +701,29 @@ def compresor(x, umbral_db, ratio, ataque=0.003, suelta=0.08):
     red = suav(red, ataque)
     red = np.maximum(red, suav(red, suelta))
     return x * db(-red)
+
+
+def limitador(x, cresta_db=13.5, ventana=0.004):
+    """A look-ahead peak limiter on the ring: no peak goes more than `cresta_db` over the RMS of the
+    whole mix (a downbeat where the crash, the kick, the snare and the chord all land in the same
+    few milliseconds can reach 16 dB over it, the rest of the song never 14). The gain falls before
+    the peak and returns after it, over `ventana` seconds, linked across the sides."""
+    techo = np.sqrt(np.mean(x ** 2)) * db(cresta_db)
+    g = np.minimum(1.0, techo / np.maximum(np.abs(x).max(axis=0), 1e-12))
+    w = max(2, int(ventana * SR) | 1)
+    m, cubierto = g.copy(), 1
+    while cubierto < w:                                  # sliding minimum over w samples, by doubling
+        paso = min(cubierto, w - cubierto)
+        m = np.minimum(m, np.roll(m, -paso))
+        cubierto += paso
+    m = np.roll(m, w // 2)                               # centred on each sample
+    n = len(m)
+    hann = np.hanning(w + 2)[1:-1]
+    hann /= hann.sum()
+    k = np.zeros(n)
+    k[:w] = hann
+    suave_ = np.fft.irfft(np.fft.rfft(m) * np.fft.rfft(np.roll(k, -(w // 2))), n)    # smoothed, never above the minimum
+    return x * np.minimum(1.0, suave_)
 
 
 def retardo(x, d):
@@ -550,6 +892,40 @@ def nota_organo(m, gate, vel, **_):
     return (w * e + clic(nm, 0.003, 2000, 7000, 0.12)) * vel_a_amp(vel)
 
 
+def nota_limpia(m, gate, vel, **_):
+    """A clean, plucked guitar (no amp): two saws a few cents apart, a bright pluck that dies in
+    a moment over a mellow body that rings on."""
+    cola = 0.5
+    nm = int((gate + cola) * SR) + 1
+    f = np.full(nm, float(hz(m)))
+    s = sierra(f, RNG.random()) + 0.6 * sierra(f * 1.0025, RNG.random())
+    brillo = eq(s, ('lp', 3200, 2), circ=False) * env_exp(nm, 0.002, 0.13, gate, 0.08)
+    cuerpo = eq(s, ('lp', 1100, 2), circ=False) * env_exp(nm, 0.004, 0.75, gate, 0.15)
+    return (0.5 * brillo + cuerpo + clic(nm, 0.004, 1500, 6000, 0.12)) * vel_a_amp(vel)
+
+
+def nota_organo_solista(m, gate, vel, **_):
+    """The lead organ: drawbars like nota_organo's but brighter, a vibrato that comes in after a
+    moment, and a key click."""
+    cola = 0.12
+    nm = int((gate + cola) * SR) + 1
+    t = np.arange(nm) / SR
+    f = float(hz(m))
+    u = np.minimum(1.0, t / max(gate, 1e-3))
+    vib = 1 + 0.0035 * np.sin(2 * np.pi * 5.8 * t) * np.clip((t - 0.15) / 0.25, 0, 1)
+    fase = 2 * np.pi * np.cumsum(f * vib) / SR
+    w = np.zeros(nm)
+    for k, a in ((1, 1.0), (2, 0.9), (3, 0.7), (4, 0.55), (5, 0.3), (6, 0.3), (8, 0.18)):
+        if f * k < 9000:
+            w += a * np.sin(k * fase + RNG.random() * 6.28)
+    w += 0.45 * np.sin(3 * fase) * np.exp(-t / 0.15)             # percussion on the third
+    e = np.minimum(1.0, t / 0.008)
+    g = min(int(gate * SR), nm - 1)
+    e[g:] *= np.exp(-(t[g:] - t[g]) / 0.04)
+    e[-32:] *= np.linspace(1, 0, 32)
+    return (w * e + clic(nm, 0.003, 2000, 7000, 0.14)) * vel_a_amp(vel)
+
+
 def metal(nm, escala=1.0):
     """The 808 hat recipe: six square waves a little out of tune with each other."""
     t = np.arange(nm) / SR
@@ -651,7 +1027,8 @@ def amplificar(x, g1, g2, pre, entre, cab):
 def tocar(P, n_samples):
     """Plays the score into mono stems (and a stereo kit): {name: array}."""
     sintes = dict(gI=nota_guitarra, gD=nota_guitarra, mI=nota_guitarra, mD=nota_guitarra,
-                  sol1=nota_solo, sol2=nota_solo, bajo=nota_bajo, org=nota_organo)
+                  sol1=nota_solo, sol2=nota_solo, bajo=nota_bajo, org=nota_organo, orgM=nota_organo_solista,
+                  gCI=nota_limpia, gCD=nota_limpia)
     stems = {k: np.zeros(n_samples) for k in sintes}
     stems['bat'] = np.zeros((2, n_samples))
     envio_bat = np.zeros((2, n_samples))
@@ -674,8 +1051,15 @@ def tocar(P, n_samples):
 
 # name: (pan, active level dB, reverb send)
 MEZCLA = dict(gI=(-0.85, -22.0, 0.10), gD=(0.85, -22.0, 0.10), mI=(-0.7, -26.0, 0.05), mD=(0.7, -26.0, 0.05),
-              bajo=(0.0, -22.5, 0.03), org=(0.1, -28.0, 0.2), sol1=(-0.2, -20.0, 0.22), sol2=(0.25, -24.0, 0.22))
+              bajo=(0.0, -22.5, 0.03), org=(0.1, -28.0, 0.2), sol1=(-0.2, -20.0, 0.22), sol2=(0.25, -24.0, 0.22),
+              gCI=(-0.55, -25.0, 0.3), gCD=(0.55, -25.0, 0.3), orgM=(-0.05, -26.0, 0.2))
 NIVEL_BATERIA = -21.0
+
+
+def limpia(x):
+    """A clean guitar's amp: no clipping to speak of, only a cabinet curve."""
+    x = x / np.sqrt(10 ** (potencia_activa(x) / 10))
+    return eq(np.tanh(0.8 * x), ('hp', 100, 2), ('pico', 2800, 2.0, 0.8), ('lp', 5800, 3))
 
 
 def mezclar(P, barras, rt_sala=0.9, informe=True):
@@ -700,12 +1084,15 @@ def mezclar(P, barras, rt_sala=0.9, informe=True):
     b = np.tanh(2.4 * b)
     b = eq(b, ('hp', 38, 2), ('pico', 750, 4.0, 0.7), ('lp', 3300, 2))
     s['bajo'] = compresor(b, -14, 3.0, 0.01, 0.1)
-    org = organo_leslie(s['org'])
+    s['gCI'] = limpia(s['gCI'])
+    s['gCD'] = limpia(s['gCD'])
+    s['org'] = organo_leslie(s['org'])
+    s['orgM'] = organo_leslie(s['orgM'])
     maestro = np.zeros((2, n))
     envio = np.zeros((2, n))
     filas = []
     for k, (pan, nivel, rev) in MEZCLA.items():
-        x = org if k == 'org' else s[k]
+        x = s[k]
         x = x * 10 ** ((nivel - potencia_activa(x)) / 20)
         est = x if x.ndim == 2 else panear(x, pan)
         maestro += est
@@ -721,9 +1108,32 @@ def mezclar(P, barras, rt_sala=0.9, informe=True):
     # mids a little scooped, so a background rock leaves room for what is being said over it
     maestro = eq(maestro, ('hp', 32, 2), ('bajo', 100, -3.0), ('pico', 1800, -2.5, 0.9))
     maestro = compresor(maestro, -24, 2.2, 0.01, 0.15)
+    # the dynamics of the arrangement (P.nivel): the band swells and sinks along the song
+    if P.dina:
+        puntos = sorted(P.dina)
+        maestro = maestro * db(np.interp(np.arange(n) / (BEAT * SR), [p[0] for p in puntos], [p[1] for p in puntos]))
+    maestro = limitador(maestro)
     if informe:
         print('  stems (active level, dB):', ', '.join(f'{k} {v:.0f}' for v, k in filas), f', bat {NIVEL_BATERIA:.0f}')
     return maestro
+
+
+# --- The street ----------------------------------------------------------------------------------------
+
+def tras_la_puerta(x):
+    """The same mix heard from the street: the wall keeps the lows (kick, bass, the guitars' body)
+    and some of the mids, none of the highs; nearly mono; a small hall outside. The cut is at
+    1.5 kHz, not lower (8 October 2026): a phone's speaker plays almost nothing under 300 Hz, so
+    with only the lows the bar was barely heard on one, 10 dB under the stroll."""
+    bajo = eq(x, ('lp', 1500, 4))
+    medio = eq(x, ('hp', 1500, 2), ('lp', 3200, 2)) * 0.3
+    # the synth's mix is brighter in the mids and lighter in the lows than the SoundFont render the street
+    # used to hear: this brings the octave bands (<3.2 kHz) within 1 dB of that render's, which is what
+    # the volumes of the street were tuned on (docs/JUGABILIDAD.md)
+    y = eq(bajo + medio, ('bajo', 170, 3.0), ('pico', 300, 1.5, 0.7), ('pico', 700, -6.5, 1.0), ('alto', 3000, 4.0))
+    mono = y.mean(axis=0)
+    y = 0.75 * np.stack([mono, mono]) + 0.25 * y
+    return y + 0.25 * reverb(y, 0.6, semilla=7)
 
 
 # --- The dream ---------------------------------------------------------------------------------------
@@ -744,14 +1154,14 @@ def cinta(x):
     out = np.zeros((2, N))
     for c, (fw, ff) in enumerate(((0.4, 1.1), (2.3, 4.0))):
         # position (samples of the input): the integral of the speed (0.8 on average; the drift
-        # is 5 turns a round, 0.073 Hz, the wow 0.54 Hz, the flutter 6.3 Hz)
+        # is 12 turns a round, 0.07 Hz, the wow 93, 0.52 Hz, the flutter 1080, 6.3 Hz)
         T = N / SR
-        A_d = VELOCIDAD_SUENO * 0.035 / (2 * np.pi * 5 / T)
-        A_w = VELOCIDAD_SUENO * 0.011 / (2 * np.pi * 37 / T)
-        A_f = VELOCIDAD_SUENO * 0.004 / (2 * np.pi * 432 / T)
-        p = (VELOCIDAD_SUENO * i + SR * (A_d * np.sin(2 * np.pi * 5 * i / N + 0.3)
-                                         + A_w * np.sin(2 * np.pi * 37 * i / N + fw)
-                                         + A_f * np.sin(2 * np.pi * 432 * i / N + ff)))
+        A_d = VELOCIDAD_SUENO * 0.035 / (2 * np.pi * 12 / T)
+        A_w = VELOCIDAD_SUENO * 0.011 / (2 * np.pi * 93 / T)
+        A_f = VELOCIDAD_SUENO * 0.004 / (2 * np.pi * 1080 / T)
+        p = (VELOCIDAD_SUENO * i + SR * (A_d * np.sin(2 * np.pi * 12 * i / N + 0.3)
+                                         + A_w * np.sin(2 * np.pi * 93 * i / N + fw)
+                                         + A_f * np.sin(2 * np.pi * 1080 * i / N + ff)))
         out[c] = cubica(x[c], p)
     return out
 
@@ -827,7 +1237,7 @@ def sueno(x):
     pico = np.max(np.abs(x))
     x = pico * np.tanh(1.3 * x / pico)                                                      # tape saturation
     x = coro(x)
-    x = fasear(x, ciclos=6, mezcla=0.6)
+    x = fasear(x, ciclos=15, mezcla=0.6)
     beat_sueno = BEAT / VELOCIDAD_SUENO
     ec = eco(x, 1.5 * beat_sueno, fb=0.6)
     seco = x + 1.3 * ec
@@ -874,10 +1284,15 @@ def lufs(ruta):
     return float(re.search(r'I:\s+(-?[\d.]+) LUFS', r).group(1))
 
 
-def exportar(x, objetivo, salida, margen=0.5, kbps=96, ar=24000):
+def exportar(x, objetivo, salida, margen=0.5, kbps=96, ar=24000, mono=False):
     """x is one round on a ring (2, N). Loudness to `objetivo` LUFS (measured by ffmpeg on the
     16-bit file), soft knee at -1 dBFS; the MP3 is the round with `margen` seconds of the round
-    itself either side, so the game loops between margen and margen + length."""
+    itself either side, so the game loops between margen and margen + length. With `mono` the
+    file has one channel (half the memory once decoded: docs/ESTILO.md, T5.11); the game plays
+    it through a panner that gives each side 0.707 of it, so the same LUFS number, measured on
+    the mono file, sounds as loud as a stereo file of the same two equal channels."""
+    if mono:
+        x = x.mean(axis=0, keepdims=True)
     x = x - x.mean(axis=1, keepdims=True)
     g = db(-19.0) / np.sqrt(np.mean(x ** 2))
     with tempfile.TemporaryDirectory() as d:
@@ -893,23 +1308,46 @@ def exportar(x, objetivo, salida, margen=0.5, kbps=96, ar=24000):
             g *= db(objetivo - medido)
         subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', ruta, '-ar', str(ar), '-c:a', 'libmp3lame', '-b:a', f'{kbps}k', salida], check=True)
     paso = np.abs(np.diff(np.concatenate([y, y[:, :1]], axis=1), axis=1))     # every step of the ring, the join included
-    print(f'{salida}: {len(trozo[0]) / SR:.2f} s ({y.shape[1] / SR:.6f} s loop), {medido:.1f} LUFS, '
+    print(f'{salida}: {len(trozo[0]) / SR:.2f} s ({y.shape[1] / SR:.6f} s loop), {y.shape[0]} ch, {medido:.1f} LUFS, '
           f'peak {np.max(np.abs(y)):.3f}, join step {np.max(paso[:, -1]):.4f} '
           f'(the ring steps: median {np.median(paso):.4f}, 99.9th percentile {np.percentile(paso, 99.9):.4f}), {os.path.getsize(salida) / 1e3:.0f} kB')
     return y
 
 
+# LUFS of each version, as the exporter measures it on the 16-bit file (the old files, measured on their MP3s: brio -15.4,
+# puerta -14.7, sueno -15.8)
+OBJETIVO = dict(brio=-15.0, puerta=-14.3, sueno=-15.5)
+
+
+def informe_secciones(P, y, velocidad=1.0):
+    """Level of each section of the song in the finished ring y (RMS and peak, dBFS)."""
+    print('  section                          bars        RMS dB   peak')
+    for nombre, b0, b1 in P.secciones:
+        a, b = (int(round(v * L * BEAT * SR / velocidad)) for v in (b0, b1))
+        trozo = y[:, a:b]
+        print(f'  {nombre:<32} {int(b0 + 1):>3}-{int(b1):<3}  {20 * np.log10(np.sqrt(np.mean(trozo ** 2)) + 1e-9):7.1f}  {20 * np.log10(np.max(np.abs(trozo)) + 1e-9):6.1f}')
+
+
 if __name__ == '__main__':
     modo = sys.argv[1] if len(sys.argv) > 1 else 'brio'
+    salida = sys.argv[2] if len(sys.argv) > 2 else None
     if modo == 'brio':
         P, barras = ronda_completa()
         x = mezclar(P, barras)
         assert x.shape[1] == N
-        exportar(x, -15.0, sys.argv[2] if len(sys.argv) > 2 else 'brio.mp3')
+        informe_secciones(P, exportar(x, OBJETIVO['brio'], salida or 'brio.mp3'))
+    elif modo == 'puerta':
+        P, barras = ronda_completa()
+        x = mezclar(P, barras)
+        assert x.shape[1] == N
+        # one channel, and at the same LUFS the street was tuned on: 3 dB more in the file than each side of a
+        # stereo file (the game's panner gives a mono source 0.707 per side), so the peaks are held down a little
+        calle = limitador(tras_la_puerta(x).mean(axis=0, keepdims=True), 11.0)
+        informe_secciones(P, exportar(calle, OBJETIVO['puerta'], salida or 'bar-puerta.mp3', mono=True))
     elif modo == 'sueno':
         P, barras = ronda_sueno()
         x = mezclar(P, barras, rt_sala=0.9)
         assert x.shape[1] == int(round(VELOCIDAD_SUENO * N))
-        exportar(sueno(x), -15.5, sys.argv[2] if len(sys.argv) > 2 else 'brio-sueno.mp3')
+        informe_secciones(P, exportar(sueno(x), OBJETIVO['sueno'], salida or 'brio-sueno.mp3'), VELOCIDAD_SUENO)
     else:
-        sys.exit(__doc__)
+        sys.exit('python3 brio.py brio|puerta|sueno [salida]')
