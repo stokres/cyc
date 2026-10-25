@@ -77,36 +77,89 @@ function pablo(c) {
 }
 
 // ------------------------------------------------------------------ puño y pulgar
-/** Un puño visto de frente: cuatro dedos doblados como barras y el pulgar cruzado (o levantado si `arriba`). */
+/** Un rectángulo de esquinas redondas (más en la punta de arriba que en la de abajo). */
+const rr = (x0, y0, x1, y1, rt, rb = rt) =>
+  `M${f(x0)} ${f(y0 + rt)}Q${f(x0)} ${f(y0)} ${f(x0 + rt)} ${f(y0)}L${f(x1 - rt)} ${f(y0)}Q${f(x1)} ${f(y0)} ${f(x1)} ${f(y0 + rt)}L${f(x1)} ${f(y1 - rb)}Q${f(x1)} ${f(y1)} ${f(x1 - rb)} ${f(y1)}L${f(x0 + rb)} ${f(y1)}Q${f(x0)} ${f(y1)} ${f(x0)} ${f(y1 - rb)}Z`;
+
+/** Los cuatro dedos del puño (de índice a meñique): nudillos en arco, de más a menos alto hacia el meñique. */
+const DEDOS = [
+  { cx: -63, top: -36, len: 92, w: 50 },
+  { cx: -21, top: -52, len: 106, w: 50 },
+  { cx: 21, top: -48, len: 100, w: 50 },
+  { cx: 60, top: -24, len: 80, w: 46 },
+];
+
+/** Un dedo doblado visto de frente: nudillo arriba, primera falange en escorzo, segunda bajando y la yema con la uña asomando. */
+function dedoDoblado(col, { cx, top, len, w }) {
+  const o = [];
+  const x0 = cx - w / 2;
+  const x1 = cx + w / 2;
+  const y1 = top + len;
+  const cuerpo = rr(x0, top, x1, y1, w * 0.46, w * 0.4);
+  o.push(P(cuerpo, col.skin));
+  // Segunda falange y yema: más abajo y más oscuras, porque el dedo se mete hacia la palma.
+  o.push(P(rr(x0 + 1, top + 34, x1 - 1, y1 - 1, 3, w * 0.4), col.skinShadow, { opacity: 0.38 }));
+  // Sombra del lado izquierdo y hilo de luz en el derecho.
+  o.push(S(`M${f(cx - w * 0.3)} ${f(top + 16)}L${f(cx - w * 0.31)} ${f(y1 - 14)}`, col.skinShadow, w * 0.3, { opacity: 0.85 }));
+  o.push(S(`M${f(cx + w * 0.32)} ${f(top + 16)}L${f(cx + w * 0.33)} ${f(y1 - 24)}`, col.skinLight, 3.4, { opacity: 0.8 }));
+  // Nudillo: brillo y arco de luz encima, y los dos pliegues de la articulación.
+  o.push(P(ellipse(cx + 2, top + 13, w * 0.27, 8.5), col.skinLight, { opacity: 0.95 }));
+  o.push(S(`M${f(cx - w * 0.34)} ${f(top + 26)}Q${f(cx)} ${f(top + 36)} ${f(cx + w * 0.34)} ${f(top + 26)}`, col.lf, 2));
+  o.push(S(`M${f(cx - w * 0.2)} ${f(top + 33)}Q${f(cx)} ${f(top + 39)} ${f(cx + w * 0.2)} ${f(top + 33)}`, col.skinDeep, 1.5, { opacity: 0.8 }));
+  // Segunda articulación (abajo) y la uña asomando en la yema.
+  o.push(S(`M${f(cx - w * 0.3)} ${f(top + 58)}Q${f(cx)} ${f(top + 64)} ${f(cx + w * 0.3)} ${f(top + 58)}`, col.lf, 1.7, { opacity: 0.85 }));
+  const una = `M${f(cx - w * 0.26)} ${f(y1 - 6)}Q${f(cx - w * 0.24)} ${f(y1 - 20)} ${f(cx)} ${f(y1 - 20)}Q${f(cx + w * 0.24)} ${f(y1 - 20)} ${f(cx + w * 0.26)} ${f(y1 - 6)}Z`;
+  o.push(P(una, mezcla(col.skinLight, MARFIL, 0.55)), S(una, col.lf, 1.8));
+  o.push(S(cuerpo, col.lf, 3.4));
+  return o.join('');
+}
+
+/** El pulgar cruzado por delante de los dedos: sale del abultamiento de la palma, sube en diagonal y acaba con su uña. */
+function pulgarCruzado(col) {
+  const o = [];
+  const pu = [[-62, 100], [-52, 66], [-30, 44], [-4, 36]];
+  // Sombra que el pulgar echa sobre los dedos.
+  o.push(S(smooth(pu.map(([x, y]) => [x + 3, y + 8]), false), col.skinDeep, 54, { opacity: 0.55 }));
+  o.push(tubo(pu, 50, col, col.skin, 3.6));
+  o.push(sombraTubo(pu, 50, col));
+  // El abultamiento de la palma donde nace el pulgar: tapa su arranque y le da volumen.
+  const talon = smooth([[-93, 58], [-80, 46], [-40, 74], [-30, 124], [-58, 138], [-84, 108]]);
+  o.push(P(talon, col.skin), P(smooth([[-93, 58], [-82, 48], [-68, 80], [-58, 138], [-84, 108]]), col.skinShadow, { opacity: 0.85 }));
+  o.push(S(smooth([[-93, 58], [-92, 84], [-84, 108]], false), col.lf, 3.4));
+  o.push(S('M-42 82Q-36 104 -42 126', col.skinDeep, 1.8, { opacity: 0.8 }));
+  // Articulación del pulgar, con sus dos pliegues, y la uña en la punta.
+  o.push(S('M-60 58Q-46 72 -34 62', col.lf, 1.9), S('M-56 68Q-46 78 -36 70', col.skinDeep, 1.4, { opacity: 0.8 }));
+  const un = rr(-11, -9, 11, 9, 8, 8);
+  o.push(G(P(un, mezcla(col.skinLight, MARFIL, 0.55)) + S(un, col.lf, 1.8) + S('M-6 -3Q0 -6 6 -3', MARFIL, 1.6, { opacity: 0.9 }), { transform: 'translate(6 38) rotate(-14)' }));
+  return o.join('');
+}
+
+/** Un puño visto de frente: cuatro nudillos en arco, los dedos doblados con sus falanges, el pulgar cruzado por delante (o levantado si `arriba`). */
 function puno(c, col, { arriba = false } = {}) {
   const o = [];
   if (arriba) {
-    // Pulgar en alto, por detrás de los dedos.
-    const pu = [[-46, -30], [-50, -110], [-48, -160]];
-    o.push(tubo(pu, 36, col));
-    o.push(sombraTubo(pu, 36, col));
-    o.push(P(smooth([[-62, -156], [-48, -186], [-34, -156], [-48, -140]]), col.skinLight), S(smooth([[-62, -156], [-48, -186], [-34, -156], [-48, -140]]), col.lf, 2.4));
-    o.push(S('M-60 -100Q-48 -92 -34 -100', col.lf, 1.8), S('M-60 -62Q-48 -54 -34 -62', col.lf, 1.6, { opacity: 0.8 }));
+    // Pulgar en alto, grueso y algo más corto que un dedo, por detrás de los dedos; la uña se ve de lado.
+    const pu = [[-66, 30], [-69, -50], [-62, -118]];
+    o.push(tubo(pu, 56, col));
+    o.push(sombraTubo(pu, 56, col));
+    const una = rr(-78, -138, -46, -96, 15, 10);
+    o.push(G(P(una, mezcla(col.skinLight, MARFIL, 0.55)) + S(una, col.lf, 2.2) + S('M-70 -128L-70 -110', MARFIL, 2.4, { opacity: 0.9 }), { transform: 'rotate(4 -62 -121)' }));
+    o.push(S('M-90 -52Q-68 -36 -46 -50', col.lf, 2), S('M-86 -42Q-68 -30 -50 -40', col.skinDeep, 1.5, { opacity: 0.8 }));
   }
-  // Palma detrás (el borde del puño) y cuatro dedos doblados, de arriba abajo.
-  const base = smooth([[-66, -50], [66, -50], [74, 40], [60, 80], [-60, 80], [-74, 40]]);
-  o.push(P(base, col.skinDeep), S(base, col.lf, 3));
-  for (let i = 0; i < 4; i++) {
-    const y = -44 + i * 30;
-    const dedo = [[-50 + i * 2, y], [0, y - 3], [50 - i * 2, y]];
-    o.push(tubo(dedo, 34, col, col.skin, 3.4));
-    o.push(S(`M${-50 + i * 2} ${y + 8}L${50 - i * 2} ${y + 8}`, col.skinShadow, 9, { opacity: 0.9 }), S(`M${-46 + i * 2} ${y - 9}L${46 - i * 2} ${y - 9}`, col.skinLight, 4, { opacity: 0.8 }));
-    o.push(S(`M${-40 + i * 2} ${y - 12}q2 8 -1 16`, col.lf, 1.4, { opacity: 0.6 }), S(`M${38 - i * 2} ${y - 12}q-2 8 1 16`, col.lf, 1.4, { opacity: 0.6 }));
-  }
-  // Lado en sombra del puño.
-  o.push(P(smooth([[-74, 20], [-62, 78], [-34, 82], [-48, 40]]), col.skinShadow, { opacity: 0.8 }));
-  if (!arriba) {
-    // Pulgar cruzado por delante, con su uña.
-    const pu = [[-64, 74], [-16, 64], [40, 58]];
-    o.push(tubo(pu, 32, col));
-    o.push(sombraTubo(pu, 32, col));
-    o.push(S('M-22 52Q-14 58 -6 52', col.lf, 1.6));
-  }
+  // Palma y canto de la mano, detrás de los dedos: el talón de la mano abulta debajo y se estrecha hacia la muñeca.
+  const palma = smooth([[-80, -20, 'c'], [80, -20, 'c'], [90, 40], [80, 96], [54, 138], [-54, 138], [-82, 96], [-92, 40]]);
+  o.push(P(palma, col.skin));
+  // Volumen: lado en sombra a la izquierda, canto iluminado a la derecha y pliegue de la palma.
+  o.push(P(smooth([[-92, 40], [-66, 30], [-54, 80], [-38, 134], [-54, 138], [-82, 96]]), col.skinShadow, { opacity: 0.85 }));
+  o.push(S(smooth([[80, 36], [84, 80], [66, 122]], false), col.skinLight, 5, { opacity: 0.85 }));
+  o.push(S('M-10 88Q18 96 44 78', col.skinDeep, 2, { opacity: 0.8 }));
+  o.push(S(palma, col.lf, 3.4));
+  // Dedos de derecha a izquierda, para que el índice quede por encima.
+  for (const d of [...DEDOS].reverse()) o.push(dedoDoblado(col, d));
+  if (!arriba) o.push(pulgarCruzado(col));
+  // Tensión del puño: tendones que bajan hacia la muñeca y rayitas sobre los nudillos.
+  o.push(S('M-26 112Q-22 126 -26 138', col.skinDeep, 1.8, { opacity: 0.75 }), S('M12 108Q16 124 12 138', col.skinDeep, 1.8, { opacity: 0.75 }));
+  for (const d of arriba ? [] : DEDOS.slice(0, 3)) o.push(S(`M${f(d.cx - 8)} ${f(d.top - 7)}l-3 -9M${f(d.cx + 6)} ${f(d.top - 8)}l1 -10`, col.lf, 2.2, { opacity: 0.8 }));
   return o.join('');
 }
 
@@ -245,7 +298,7 @@ export function mano(c, quien) {
 /** Caja que encuadra la mano de cada uno: [x0, y0, x1, y1]. */
 export const CAJA_MANO = {
   pablo: [-150, -150, 150, 200],
-  fran: [-140, -90, 140, 230],
+  fran: [-130, -85, 130, 215],
   chuchi: [-140, -230, 140, 210],
   guille: [-140, -200, 140, 210],
   vero: [-130, -150, 130, 200],
