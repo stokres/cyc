@@ -320,7 +320,7 @@ function construir(): Cuarto {
     objetos,
     rects,
     lecturas,
-    puerta: { x: 100, y: H - 12, w: 24, h: 12 },
+    puerta: { x: 96, y: H - 14, w: 32, h: 14 },
     inicio: { x: 112, y: 122 },
     madre: { x: 62, y: 72 },
     vela: { x: 157, y: 26 },

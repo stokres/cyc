@@ -14,9 +14,10 @@ Todo lo que se lee en «Alacant Sun» está aquí. Mismo formato que capitulo1.m
 
 La letra del juego es de píxeles y solo tiene A-Z, a-z, 0-9, las tildes, la ü, la ñ, ¿ ¡ y . , : ; ! ? ' " - ( )
 Un texto largo se parte solo en ventanas de tres líneas. Mejor corto que largo.
+Botones: escribe {A}, {B}, {R}, {L} y {START}; el juego pone la letra del botón en el móvil y la tecla en el ordenador (Z, X, R, Q, ESC). Teclado: flechas o WASD, Z/Enter/Espacio = A, X/Esc/Mayús = B.
 
 El mundo usa: charla.<amigo>.N (cada amigo se une al grupo), une.<amigo>, narrador.*, tienda.*, posada.*, menu.*
-(el menú START), chist.*, cofre.*, escondite.*, madre.derrota.* y derrota.*; los letreros son lectura.* y letrero.*.
+(el menú START), consejo.* (las ayudas de la primera vez), chist.*, cofre.*, escondite.*, madre.derrota.* y derrota.*; los letreros son lectura.* y letrero.*.
 El Teatro usa: teatro.*, puzle.*, fantasma.*, chat.* (cada mensaje es «< hora | texto» si lo dice el otro o «> hora | texto» si
 lo dice el que piensa), puerta.*, bambalinas.*, apuntador.<id>.aparece/unido, escenario.*, poder.<id>.nada y mapa.*.
 El combate (src/sol/combate.ts) usa: combate.* (menús, el cartel de abajo, las ayudas .ayuda, las teclas y la mini guía guia.* y el final), orden.* (los seis iconos),
@@ -29,7 +30,7 @@ Los textos son provisionales: los revisará Jesús junto con el resto.
 // ---------------------------------------------------------------- título y consola
 
 titulo.pie = PARA PABLO, CON CARIÑO
-titulo.pulsa = PULSA A
+titulo.pulsa = PULSA {A}
 consola.marca = CAMIONES Y CARAVANAS
 consola.modelo = ALACANT SUN
 consola.start = START
@@ -76,7 +77,7 @@ lectura.ventana = Truena y llueve, pero la plaza brilla desde aquí. Hoy no me q
 // ---------------------------------------------------------------- el pueblo
 
 pablo.pueblo = ¡Qué noche! Llueve, truena... y huele a turrón blando.
-consejo.mover = Mantén B mientras andas para correr. R usa tu impronergía.
+consejo.mover = Mantén {B} mientras andas para correr. {R} usa tu impronergía.
 
 lectura.puerta = Cerrada. Todo el mundo está en la plaza.
 lectura.fuente = La fuente tiene un sol en lo alto y el agua brilla con las luces de la fiesta.
@@ -87,7 +88,8 @@ lectura.caja.2 = La caja, ahora de lado, tan tranquila. Huele que alimenta.
 
 pablo.caja.1 = Una caja de turrón blando atasca la entrada de las fiestas.
 pablo.caja.2 = Si pudiera empujarla con un "sí, y..."
-consejo.caja = Mira a la caja y pulsa R para usar "Sí, y...".
+consejo.caja.1 = Ponte a su izquierda, mira a la caja y pulsa {R} para usar "Sí, y...".
+consejo.caja.2 = La caja se desliza un paso a la derecha y abre el camino hacia la plaza.
 
 pablo.sinip = No me queda impronergía. Andar un rato me la devuelve.
 pablo.nada = No hay nada que empujar ahí.
@@ -131,7 +133,7 @@ charla.guille.4 = Eso sí: si huelo a purín, no es culpa mía.
 une.fran = Fran se une al grupo.
 une.guille = Guille se une al grupo.
 une.chuchi = Chuchi se une al grupo.
-consejo.start = Pulsa START para abrir el menú: impronergía, apuntadores, objetos y estado.
+consejo.start = Pulsa {START} para abrir el menú: impronergía, apuntadores, objetos y estado.
 pablo.chuchi = Solo falta Chuchi. Seguro que llega tarde.
 charla.chuchi.1 = ¡Perdón, perdón! Llego tarde, pero llego.
 charla.chuchi.2 = @pablo Chuchi, ¿y las niñas?
@@ -183,7 +185,12 @@ lectura.granja = La granja duerme. Huele a naranjas y a paja.
 pablo.camino = El camino del Teatro, de noche y sin lluvia. Aquí se ve hasta la luna.
 chist.aparece = ¡Un apuntador salvaje! Susurra algo desde su rincón.
 chist.unido = Chist, el apuntador, se une al grupo.
-consejo.apuntador = Ponlo o quítalo en START. En combate, suéltalo para un ataque especial.
+consejo.apuntador.1 = Los apuntadores son criaturitas del teatro que susurran ayuda. Cada uno tiene un elemento: tierra, fuego, agua o viento.
+consejo.apuntador.2 = Pon a Chist en un amigo desde {START}: le da un bono a sus números mientras lo lleve puesto.
+consejo.apuntador.3 = En combate, elige Apuntadores y suéltalo: lanza un ataque especial y se queda en espera.
+consejo.apuntador.4 = Con apuntadores en espera puedes elegir Invocar: un ataque enorme contra todos. Luego se recuperan unos turnos y vuelven.
+consejo.invocacion.1 = Ya tenéis varios apuntadores. Para Invocar hacen falta apuntadores en espera, es decir, sueltos en combate.
+consejo.invocacion.2 = Cada invocación pide elementos distintos: La ovación, tierra; Apagón, fuego y viento. Probad combinaciones.
 cofre.monedas = Encuentras {n} monedas.
 cofre.objeto = Encuentras {objeto} x{n}.
 cofre.vacio = El cofre está vacío.
@@ -206,7 +213,7 @@ teatro.sala.pal = Los palcos. Al puente le falta un trozo, y por aquí hay rocas
 teatro.sala.bam = Las bambalinas. Los candelabros deslumbran y las tablas crujen. Ojo dónde se pisa.
 teatro.sala.fos = El foso, bajo el escenario. Al fondo, una puerta con una estrella pide una contraseña.
 teatro.sala.esc = El escenario. Un foco redondo, el telón a medio abrir y alguien esperando en el centro.
-consejo.poderes = Pulsa R para usar la impronergía elegida y L para cambiarla. Gastan IP, que vuelve al andar.
+consejo.poderes = Pulsa {R} para usar la impronergía elegida y {L} para cambiarla. Gastan IP, que vuelve al andar.
 
 // La impronergía del mapa (los nombres de Sí, y... Fresquito, Cierzo y Abrazo de oso están más abajo)
 poder.chat.nombre = Leer el chat
@@ -240,7 +247,7 @@ fantasma.tramoyista = Uuuh... el telón... la clave... no me acuerdo... uuuh.
 fantasma.tramoyista.otra = Uuuh... ¿te lo he dicho ya? Qué cabeza la mía. Ya no la tengo.
 chat.titulo.tramoyista = Tramoyista
 chat.titulo.acomodador = Acomodador
-chat.cerrar = Pulsa A para cerrar
+chat.cerrar = Pulsa {A} para cerrar
 chat.tramoyista.1 = < 23:38 | Jefe, el telón se ha vuelto a atascar.
 chat.tramoyista.2 = > 23:39 | Pues dale con la palanca del foso, anda.
 chat.tramoyista.3 = < 23:40 | Ya. Oye, y la clave de la puerta del escenario, ¿cuál era?
@@ -364,17 +371,13 @@ objeto.chupito.ayuda = Recupera IP a un amigo.
 combate.objetivo.ayuda = Elige a quién va dirigido.
 
 // Las teclas que se ven abajo cuando se juega con teclado
-combate.teclas.menu = Flechas: mover   Z: elegir
-combate.teclas.sub = Flechas: mover   Z: elegir   X: volver
-combate.teclas.objetivo = Flechas: apuntar   Z: aceptar   X: volver
+combate.teclas.menu = Flechas: mover   {A}: elegir
+combate.teclas.sub = Flechas: mover   {A}: elegir   {B}: volver
+combate.teclas.objetivo = Flechas: apuntar   {A}: aceptar   {B}: volver
 
 // Mini guía de la primera batalla ({a} y {b} son las teclas o los botones)
 guia.combate.1 = Cada ronda eliges qué hace cada amigo. Cuando todos han elegido, actúan.
-guia.combate.2 = Flechas para moverte, {a} para elegir y {b} para volver atrás. El texto de ayuda sale al lado de cada opción.
-guia.tecla.a = Z o Enter
-guia.tecla.b = X o Esc
-guia.boton.a = A
-guia.boton.b = B
+guia.combate.2 = Flechas para moverte, {A} para elegir y {B} para volver atrás. El texto de ayuda sale al lado de cada opción.
 // La primera vez que hay apuntadores en la batalla
 guia.apuntadores.1 = Un apuntador es un ayudante que lleva cada amigo. Mientras está equipado, da bonos.
 guia.apuntadores.2 = Soltarlo es un ataque fuerte, pero pierdes su bono. Suelto, puedes volver a equiparlo.

@@ -39,7 +39,8 @@ import { paginaGrande } from './jefeArte';
 import type { Donde, Escena, OpcionesAnim, Punto } from './efectosPoderes';
 import { ENEMIGOS, siluetaEnemigo, spriteEnemigo, type AtaqueEnemigo, type DefEnemigo, MECHA_PETARDO } from './enemigos';
 import { anchoTexto, escribir, partir } from './fuente';
-import { alEscapar, usaTeclado } from './teclado';
+import { teclasVars } from './teclado';
+import { esTactil } from '../ui/orientacion';
 import { dibujarFondo, type FondoCombate } from './fondo';
 import {
   AMIGOS, ajustar, darApuntador, darExp, eficacia, expTotal, statsDe, vivo, type ApuntadorGrupo, type Elemento, type Grupo, type Miembro,
@@ -264,15 +265,12 @@ export class Combate implements Escena {
   /** Prompters already chosen in this round's orders (so two friends do not use the same one). */
   private reservados = new Set<ApuntadorGrupo>();
   private intentosHuida = 0;
-  /** Undoes the Escape key (= B) once the fight is over. */
-  private quitarEsc: () => void = () => {};
   private ayudaCache = { txt: '', lineas: [] as string[] };
 
   constructor(o: OpcionesCombate) {
     this.g = o.grupo;
     this.sonido = o.sonido;
     this.mandos = o.mandos;
-    this.quitarEsc = alEscapar(() => this.mandos.pulsar('b'));
     this.sinHuida = !!o.sinHuida;
     this.VEL = o.rapido ? 4 : 1;
     this.musicaPrevia = o.sonido.actual;
@@ -532,7 +530,6 @@ export class Combate implements Escena {
     await this.salir(r);
     this.resultadoFinal = r;
     this.activo = false;
-    this.quitarEsc();
     return r;
   }
 
@@ -559,12 +556,11 @@ export class Combate implements Escena {
   private async guias() {
     if (this.VEL > 1) return;
     const v = (this.g.guias ??= {});
-    const dlg = (clave: string, vars: Record<string, string> = {}) => this.dialogo.decir({ quien: null, texto: texto(clave, vars) });
+    const dlg = (clave: string, vars: Record<string, string> = {}) => this.dialogo.decir({ quien: null, texto: texto(clave, { ...teclasVars(), ...vars }) });
     if (!v.combate) {
       v.combate = true;
-      const k = usaTeclado() ? 'tecla' : 'boton';
       await dlg('guia.combate.1');
-      await dlg('guia.combate.2', { a: texto(`guia.${k}.a`), b: texto(`guia.${k}.b`) });
+      await dlg('guia.combate.2');
     }
     if (!v.apuntadores && this.g.apuntadores.length) {
       v.apuntadores = true;
@@ -2036,7 +2032,7 @@ export class Combate implements Escena {
     if (u.modo === 'lista') this.dibujarMenu(g, u.menu.items, u.menu.cursor, u.menu.x, u.menu.y);
     if (u.modo === 'objetivo' && u.objetivo.luchador) this.dibujarMano(g, u.objetivo.luchador, u.objetivo.vecinos);
     if (u.modo === 'luchar' || u.modo === 'ordenes' || u.modo === 'lista') this.dibujarAyuda(g, this.textoAyuda());
-    if (usaTeclado() && (u.modo === 'luchar' || u.modo === 'ordenes' || u.modo === 'lista' || u.modo === 'objetivo')) {
+    if (!esTactil() && (u.modo === 'luchar' || u.modo === 'ordenes' || u.modo === 'lista' || u.modo === 'objetivo')) {
       this.dibujarTeclas(g, u.modo === 'luchar' ? 'menu' : u.modo === 'objetivo' ? 'objetivo' : 'sub');
     }
     if (u.modo === 'estado') this.dibujarEstado(g);
@@ -2067,7 +2063,7 @@ export class Combate implements Escena {
 
   /** The keys, at the top, only while a keyboard is what the player uses. */
   private dibujarTeclas(g: CanvasRenderingContext2D, k: 'menu' | 'sub' | 'objetivo') {
-    const s = texto(`combate.teclas.${k}`);
+    const s = texto(`combate.teclas.${k}`, teclasVars());
     const w = anchoTexto(s) + 16;
     g.drawImage(ventana(w, 15), Math.round(120 - w / 2), 2);
     escribir(g, s, Math.round(120 - w / 2) + 8, 5, '#c9d6ff', '#0a1450');

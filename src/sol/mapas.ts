@@ -109,6 +109,9 @@ const rr = (g: Baldosa[][], x0: number, y0: number, x1: number, y1: number, k: B
 /** Is this tile solid for walking? */
 export const solidoBaldosa = (k: Baldosa | undefined) => k === undefined || k === 'w' || k === 'f' || k === 'h' || k === 'x';
 
+/** Extra width of a house's doorway on each side of its tile (the opening and the trigger). */
+const MARGEN_PUERTA = 4;
+
 export const ANCHO_PUEBLO = 40;
 export const ALTO_PUEBLO = 26;
 
@@ -175,8 +178,9 @@ function construirPueblo(): Mundo {
     poner(`casa.${id}`, x, y, img);
     const WP = w * T;
     if (id === 'pablo' || id === 'tienda' || id === 'norte1') {
-      // The door tile can be walked into.
-      rects.push({ x, y, w: WP, h: 64 }, { x, y: y + 64, w: puerta * T, h: 16 }, { x: x + (puerta + 1) * T, y: y + 64, w: WP - (puerta + 1) * T, h: 16 });
+      // The door tile can be walked into; the opening is a little wider than the tile (4 px each side) so that
+      // the middle of the door is easy to hit with the feet's box.
+      rects.push({ x, y, w: WP, h: 64 }, { x, y: y + 64, w: puerta * T - MARGEN_PUERTA, h: 16 }, { x: x + (puerta + 1) * T + MARGEN_PUERTA, y: y + 64, w: WP - (puerta + 1) * T - MARGEN_PUERTA, h: 16 });
     } else {
       rects.push({ x, y, w: WP, h: 80 });
       lecturas.push({ rect: { x: x + puerta * T - 4, y: y + 80, w: T + 8, h: 14 }, clave: 'lectura.puerta', quien: null });
@@ -319,9 +323,9 @@ function construirPueblo(): Mundo {
     bombillas,
     cordones,
     lecturas,
-    puerta: { x: 3 * T + 2 * T, y: 13 * T + 64, w: T, h: 16 },
-    tienda: { x: 15 * T + T, y: 5 * T + 64, w: T, h: 16 },
-    posada: { x: 22 * T + 2 * T, y: 0 * T + 64, w: T, h: 16 },
+    puerta: { x: 3 * T + 2 * T - MARGEN_PUERTA, y: 13 * T + 64, w: T + 2 * MARGEN_PUERTA, h: 16 },
+    tienda: { x: 15 * T + T - MARGEN_PUERTA, y: 5 * T + 64, w: T + 2 * MARGEN_PUERTA, h: 16 },
+    posada: { x: 22 * T + 2 * T - MARGEN_PUERTA, y: 0 * T + 64, w: T + 2 * MARGEN_PUERTA, h: 16 },
     salidaTienda: { x: 15 * T + T + 8, y: 5 * T + 80 + 10 },
     salidaPosada: { x: 22 * T + 2 * T + 8, y: 0 * T + 80 + 10 },
     salidaCamino: { x: 38 * T, y: 9 * T, w: 2 * T, h: 3 * T },

@@ -15,6 +15,7 @@ import { cargarTextos, texto } from '../juego/textos';
 import textosKart from '../textos/kart.md?raw';
 import { h } from '../ui/hud';
 import { esVertical } from '../ui/orientacion';
+import { anchoTexto } from '../sol/fuente';
 import { ctx as ctx2d, lienzo as lienzoPx } from '../sol/pixel';
 import { ANCLA_KART, ANGULOS, conBoa, icono, lavado, NIEBLA, panorama, spriteBrillo, spriteCaja, spriteCharco, spriteDecorado, spritesKart, UNIDAD_PX, type ItemId } from './arte';
 import { Carrera, CUENTA, VUELTAS, VMAX, type Evento, type Kart, type Proyectil } from './carrera';
@@ -503,6 +504,28 @@ export function jugarKart(root: HTMLElement, o: OpcionesKart = {}): Promise<Resu
     }
   };
 
+  /** True when nearer karts cover a good part of this one (or of its name): then the name is left out. */
+  const tapado = (k: Kart, p: Elemento, x0: number, y0: number, w: number, hh: number) => {
+    const nw = anchoTexto(texto(k.piloto.nombre)) + 2;
+    const lx0 = p.sx - nw / 2;
+    for (const o of orden) {
+      if (o.tipo !== 4 || o.dz >= p.dz || o.ref === k) continue;
+      const e = UNIDAD_PX * o.k;
+      const sp = sprites[(o.ref as Kart).i][0];
+      const ox0 = o.sx - ANCLA_KART.x * e;
+      const oy0 = o.sy - ANCLA_KART.y * e;
+      const ow = sp.width * e;
+      const oh = sp.height * e;
+      const ix = Math.min(x0 + w, ox0 + ow) - Math.max(x0, ox0);
+      const iy = Math.min(y0 + hh, oy0 + oh) - Math.max(y0, oy0);
+      if (ix > 0 && iy > 0 && ix * iy > 0.35 * w * hh) return true;
+      // its name against the name of a nearer rival
+      const nx = Math.min(lx0 + nw, o.sx + nw / 2) - Math.max(lx0, o.sx - nw / 2);
+      if (!(o.ref as Kart).humano && nx > nw * 0.4 && Math.abs(oy0 - y0) < 9) return true;
+    }
+    return false;
+  };
+
   const dibujarKart = (k: Kart, p: Elemento) => {
     const m = m7!;
     const los = Math.atan2(k.y - m.cy, k.x - m.cx);
@@ -545,6 +568,11 @@ export function jugarKart(root: HTMLElement, o: OpcionesKart = {}): Promise<Resu
     if (alpha < 1) g.globalAlpha = alpha;
     dibujarOcl(spr, x0, y0, Math.round(w), Math.round(hh), p.dz);
     g.globalAlpha = 1;
+    // the rival's name over its kart (a cached bitmap; hidden when it is too far to matter or sinking)
+    if (!k.humano && k.estado !== 'agua' && w >= 9 && p.dz > 24 && !tapado(k, p, x0, y0, w, hh)) {
+      const nom = rotulo(texto(k.piloto.nombre));
+      g.drawImage(nom, Math.round(p.sx - nom.width / 2), y0 - nom.height + 2);
+    }
     // the lifebelt carrying it
     if (k.estado === 'rescate') {
       const fw = 40 * UNIDAD_PX * p.k * 1.15;
