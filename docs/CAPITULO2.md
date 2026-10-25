@@ -20,7 +20,7 @@ Los cuatro están en la misma escena desde el principio y se cambia de personaje
 Camarera del Brío, personaje no jugable. Cubana, joven, alta, guapa, piel morena, labios grandes, pelo moreno recogido; camiseta negra de manga corta, delantal corto oscuro y aros pequeños. Habla con cariño y retranca («mi amor», «mi niño», «mi vida», «chico», «¿oíste?»). En los textos habla como `VERO:`.
 
 - Arte: `src/arte/personajes/vero.mjs`, con la misma forma que los cuatro (`body`, `headFront`, `INFO`, `JOINTS`, `OUTFITS`) y el cuerpo de la segunda versión.
-- En el bar está detrás de la barra (`spots.vero`); la barra que la tapa de cintura para abajo es un objeto del suelo (`props`), que se ordena por profundidad con los personajes.
+- En el bar está detrás de la barra (`spots.vero`); la barra que la tapa de cintura para abajo es un objeto del suelo (`props`), que se ordena por profundidad con los personajes. Está a la izquierda de la torre de grifos (X 1520) para que no la tape. En la porra, Fran juega el 5 y su casilla dice «Patxi» en rojo con un corazón (`NUM_FRAN` en `bar.mjs`). Al empezar el capítulo cada uno lleva lo que acabó el 1 (`OBJETOS_FIN_CAPITULO1`, `capitulo2.ts`): Fran móvil y llaves, Pablo tijeras, Chuchi zapato, Guille nada.
 
 ## El bar: escenas `bar0` a `bar6`
 

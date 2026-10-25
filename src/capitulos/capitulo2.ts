@@ -58,6 +58,31 @@ function spots() {
   return (spots0 ??= (bar(0) as unknown as Escena).spots);
 }
 
+/**
+ * What each of the four is carrying when chapter 1 ends (Jesús: «los protagonistas deben llevar los mismos objetos con los
+ * que acabaron el capítulo 1»). Everything else in their bags is used up on the way (the ham, the clothes, the batteries,
+ * the colonia, the net and the stick, the key, the script and its pages), so it is the same in every game. Guille ends empty-handed.
+ */
+export const OBJETOS_FIN_CAPITULO1: Record<PjId, string[]> = {
+  fran: ['movil', 'llaves'],
+  pablo: ['tijeras'],
+  chuchi: ['zapato'],
+  guille: [],
+};
+
+/**
+ * Put into a chapter 2 game the objects chapter 1 ended with: those of the chapter 1 game just finished in this phone
+ * (`previo`, which has `final`), or else the usual ones. Only adds what is missing, so it is safe on a game already
+ * started (an older save, made before the bags were carried over).
+ */
+export function llevarObjetosDelCapitulo1(e: Estado, previo?: Estado | null) {
+  const acabado = previo?.final ? previo.inv : null;
+  for (const id of e.jugables) {
+    for (const o of acabado?.[id] ?? OBJETOS_FIN_CAPITULO1[id]) if (!e.inv[id].includes(o)) e.inv[id].push(o);
+  }
+  return e;
+}
+
 function estadoInicial(): Estado {
   const s = spots();
   const en = (id: PjId) => ({ escena: 'bar0', X: s[id].X, y: s[id].y, face: s[id].face ?? 1 });
@@ -68,7 +93,7 @@ function estadoInicial(): Estado {
     llegados: [],
     donde: { fran: en('fran'), pablo: en('pablo'), chuchi: en('chuchi'), guille: en('guille') },
     ropa: {},
-    inv: { fran: [], pablo: [], chuchi: [], guille: [] },
+    inv: { fran: [...OBJETOS_FIN_CAPITULO1.fran], pablo: [...OBJETOS_FIN_CAPITULO1.pablo], chuchi: [...OBJETOS_FIN_CAPITULO1.chuchi], guille: [...OBJETOS_FIN_CAPITULO1.guille] },
     flags: {},
     minutos: { fran: HORA(23, 47), pablo: HORA(23, 47), chuchi: HORA(23, 47), guille: HORA(23, 47) },
     usos: {},

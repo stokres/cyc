@@ -145,10 +145,10 @@ CHUCHI: En la tele sale el dragón de Usera. Bailando. Con el sonido quitado, po
 CHUCHI (sorprendido): Ahora en la tele salgo yo. Mirando la tele.
 
 ## c2.mirar.porra
-FRAN: La porra de la cesta de Navidad. Yo llevo el 23. Este año toca, lo noto.
+FRAN: La porra de la cesta de Navidad. Yo llevo el 5. Vero me ha apuntado como «Patxi», en rojo y con un corazón. Mi nombre de humorista. Este año toca, lo noto.
 
 ## c2.mirar.porra.1
-FRAN: La porra de la cesta de Navidad. Yo llevo el 23. Juraría que hace un momento estaba en otra casilla.
+FRAN: La porra de la cesta de Navidad. Yo llevo el 5, con mi «Patxi» y mi corazón de Vero. Juraría que hace un momento estaba en otra casilla.
 FRAN (nervioso): Será la caña. Las cañas no hacen eso. Creo.
 
 ## c2.mirar.porra.3
@@ -164,7 +164,7 @@ CHUCHI (sorprendido): La barra cuelga del techo. Por lo menos las cañas ya no s
 PABLO: Las botellas siguen en su sitio. Es el sitio el que ha cambiado de sitio.
 
 ## c2.mirar.porra.4
-CHUCHI (sorprendido): La porra se repite. Esta es la tercera vez que veo el nombre de Fran con un siete.
+CHUCHI (sorprendido): La porra se repite. Esta es la tercera vez que veo «Patxi» con un siete.
 
 ## c2.mirar.tragaperras
 GUILLE: «Fuera de servicio». Con lo bonita que es.
