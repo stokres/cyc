@@ -1169,6 +1169,12 @@ function luzMaquina(fuera, fase, nivel) {
   return nivelar(fuera ? g(null, inner, { transform: FUERA_M }) : inner, nivel === 3 ? 0 : nivel);
 }
 
+/** The lit marquee and reels as a still prop (frame 0): the live overlay of bar-vivo.ts animates over it, and when someone stands before the machine this one stays, so it is never seen switched off. */
+function maquinaLuzFija(fuera) {
+  const inner = maquinaFrente(true, 0);
+  return fuera ? g(null, inner, { transform: FUERA_M }) : inner;
+}
+
 function duroArte() {
   return [
     path(E(2, 4, 17, 6.5), '#000', { opacity: 0.3 }),
@@ -1383,6 +1389,8 @@ function construir(nivel) {
       { id: 'taburetes', X: TABURETES.X, y: TABURETES.y, svg: propNivel(taburetes(), nivel, TABURETES.X, TABURETES.y), z: 0 },
       { id: 'tragaperras', X: TRAGA.X, y: TRAGA.y, svg: propNivel(maquinaPared(), nivel, TRAGA.X, TRAGA.y, false), z: 0, si: '!c2.separada' },
       { id: 'tragaperrasFuera', X: TRAGA_FUERA.X, y: TRAGA_FUERA.y, svg: propNivel(maquinaFuera(), nivel, TRAGA_FUERA.X, TRAGA_FUERA.y, false), z: 0, si: 'c2.separada' },
+      { id: 'tragaperrasLuz', X: TRAGA.X, y: TRAGA.y, svg: propNivel(maquinaLuzFija(false), nivel, TRAGA.X, TRAGA.y, false), z: 1, si: 'c2.encendida&!c2.separada' },
+      { id: 'tragaperrasFueraLuz', X: TRAGA_FUERA.X, y: TRAGA_FUERA.y, svg: propNivel(maquinaLuzFija(true), nivel, TRAGA_FUERA.X, TRAGA_FUERA.y, false), z: 1, si: 'c2.encendida&c2.separada' },
       { id: 'duro', X: DURO.X, y: DURO.y, svg: propNivel(duroArte(), nivel, DURO.X, DURO.y, false), z: -20, si: 'c2.duroVisible' },
     ],
     lights: luces(nivel),
@@ -1592,6 +1600,8 @@ function construir5() {
       ...lampX.map((X, i) => ({ id: `lampara${i}`, X, y: 905, svg: propSvg(recolor(lamparaPie(), col)), z: 0 })),
       { id: 'tragaperras', X: TRAGA.X, y: TRAGA.y, svg: propNivel(recolor(maquinaPared(), col), 5, TRAGA.X, TRAGA.y, false), z: 0, si: '!c2.separada' },
       { id: 'tragaperrasFuera', X: TRAGA_FUERA.X, y: TRAGA_FUERA.y, svg: propNivel(recolor(maquinaFuera(), col), 5, TRAGA_FUERA.X, TRAGA_FUERA.y, false), z: 0, si: 'c2.separada' },
+      { id: 'tragaperrasLuz', X: TRAGA.X, y: TRAGA.y, svg: propNivel(recolor(maquinaLuzFija(false), col), 5, TRAGA.X, TRAGA.y, false), z: 1, si: 'c2.encendida&!c2.separada' },
+      { id: 'tragaperrasFueraLuz', X: TRAGA_FUERA.X, y: TRAGA_FUERA.y, svg: propNivel(recolor(maquinaLuzFija(true), col), 5, TRAGA_FUERA.X, TRAGA_FUERA.y, false), z: 1, si: 'c2.encendida&c2.separada' },
       { id: 'duro', X: DURO.X, y: DURO.y, svg: propNivel(recolor(duroArte(), col), 5, DURO.X, DURO.y, false), z: -20, si: 'c2.duroVisible' },
     ],
     lights: [

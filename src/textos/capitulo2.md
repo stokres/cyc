@@ -483,7 +483,7 @@ PABLO (nervioso): Esto ya no es un sueño. Esto es una enmienda a la totalidad.
 > Y detrás de Pablo, su sombra se despega de sus pies y se estira, desperezándose.
 
 ## c2.noche.narrador
-@zoom pablo 2.2 900
+@zoom pablo+sombra 1.6 900
 SOMBRA (chulo): Qué escena tan bonita. Un bar del revés, cuatro amigos, una máquina con tu cara...
 PABLO (sorprendido): ¡Tú! ¿No te habías quedado en el capítulo uno?
 SOMBRA (chulo): Los narradores no nos quedamos en ningún capítulo. Nos reservamos.
