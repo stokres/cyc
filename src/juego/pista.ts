@@ -4,6 +4,7 @@
 // una vez con `Motor.instantanea`) y una animación CSS con perspectiva sobre ese lienzo. Ni bucle propio ni
 // filtros ni SVG dibujado de nuevo (docs/ESTILO.md, T5).
 import type { Aventura } from './aventura';
+import { alAcabar } from './pixelado';
 
 /**
  * Lanza `lanzar` (que pone el juego encima de todo: `jugarKart`) bajo una copia del bar que se tumba, gira y se
@@ -14,7 +15,12 @@ export async function entrarEnPista<T>(g: Aventura, lanzar: () => Promise<T>): P
   const ritmo = g.rapido ? 0.2 : 1;
   const raiz = g.root;
   const caja = raiz.getBoundingClientRect();
-  const foto = await g.motor.instantanea(Math.min(caja.width, 1000));
+  // Sin foto (no llegó a tiempo o falló) no hay entrada: la pista simplemente aparece.
+  const foto = await Promise.race([
+    g.motor.instantanea(Math.min(caja.width, 1000)).catch(() => null),
+    new Promise<null>((r) => setTimeout(() => r(null), 3000)),
+  ]);
+  if (!foto) return lanzar();
   const marco = document.createElement('div');
   marco.className = 'entrada-pista';
   const lienzo = document.createElement('canvas');
@@ -35,16 +41,10 @@ export async function entrarEnPista<T>(g: Aventura, lanzar: () => Promise<T>): P
       ],
       { duration: 2300 * ritmo, easing: 'cubic-bezier(.5,0,.6,1)', fill: 'forwards' },
     );
-    await new Promise<void>((fin) => {
-      giro.onfinish = () => fin();
-      giro.oncancel = () => fin();
-    });
+    await alAcabar(giro, 2300 * ritmo);
     // Un último destello y la pista queda a la vista.
     const sale = marco.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260 * ritmo, fill: 'forwards' });
-    await new Promise<void>((fin) => {
-      sale.onfinish = () => fin();
-      sale.oncancel = () => fin();
-    });
+    await alAcabar(sale, 260 * ritmo);
   } else await g.esperar(400);
   marco.remove();
   lienzo.width = lienzo.height = 0;

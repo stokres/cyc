@@ -1051,6 +1051,18 @@ button:focus-visible {
   text-align: center;
 }
 
+/* «There is a new version of the game» (src/juego/modulos.ts): over the whole page, even over minigames that live on body. */
+.cubierta.aviso-version {
+  position: fixed;
+  z-index: 300;
+  background: rgba(5, 7, 15, 0.88);
+  text-align: center;
+}
+
+.aviso-version .fila {
+  justify-content: center;
+}
+
 .movil-icono {
   width: 40px;
   height: 70px;

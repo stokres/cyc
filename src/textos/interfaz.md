@@ -93,6 +93,9 @@ capitulos.volver = Volver a mi partida
 capitulos.nota = Rejugar un capítulo es una partida aparte: tu partida no se toca y vuelves a ella cuando quieras, donde la dejaste.
 capitulos.rejugandoAviso = Estás rejugando el capítulo {n}. Tu partida sigue guardada: vuelve a ella desde Capítulos.
 girar = Gira el móvil para jugar
+version.titulo = Hay una versión nueva del juego
+version.texto = Se ha publicado mientras jugabas y esta parte ya no se puede cargar. Recarga y seguirás desde el último punto guardado.
+version.recargar = Recargar
 
 minijuegos.titulo = Minijuegos
 minijuegos.nota = Los minijuegos que hayas superado en la historia, sin fin: cada vez más difíciles hasta que pierdas. Los récords se guardan en este móvil. El Pang, Alacant Sun y el Kart se juegan enteros.

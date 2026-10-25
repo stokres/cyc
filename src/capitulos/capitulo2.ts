@@ -34,6 +34,7 @@ import type { Escena } from '../motor/escena';
 import { texto } from '../juego/textos';
 import { entrarEnConsola } from '../juego/pixelado';
 import { entrarEnPista } from '../juego/pista';
+import { cargarModulo, precargarModulos } from '../juego/modulos';
 import { prepararCortes, type Cortes } from '../juego/estilos';
 import { h } from '../ui/hud';
 import { jugarCanas } from '../ui/canas';
@@ -330,7 +331,7 @@ async function chuchiYElKart(g: Aventura) {
   g.hud.setVisible(false);
   await g.plano.reset(0);
   g.pausado = true;
-  const { jugarKart } = await import('../kart/kart');
+  const { jugarKart } = await cargarModulo('kart');
   const r = await entrarEnPista(g, () => jugarKart(g.root, { sonido: g.sound, rapido: g.rapido })).finally(() => (g.pausado = false));
   // 'saltado' and 'cancelado' go on anyway: the story does not wait for the game.
   if (r === 'hecho') g.minijuegoSuperado('kart');
@@ -467,7 +468,7 @@ async function elCaos(g: Aventura) {
   g.poner('c2.nivel', 8);
   empezarCaos(g);
   // PokéUsera's art, effects and backdrop are baked in the background while the chaos plays (the chunk loads on its own).
-  void import('../pokeusera/capitulo').then((m) => m.precalentarPokeusera()).catch((e) => console.warn('[pokeusera]', e));
+  void cargarModulo('pokeusera').then((m) => m.precalentarPokeusera()).catch((e) => console.warn('[pokeusera]', e));
   cortes = await prepararCortes(g, fotoBar, ['fran:cara:enfado', 'vero:boca:picara', 'chuchi:ojos:seriedad', '!gogogo']);
   g.plano.alMarca = async (p) => {
     if (p[0] !== 'caos') return;
@@ -502,11 +503,22 @@ async function pokeusera(g: Aventura) {
   g.hud.cerrarDialogo();
   g.hud.setVisible(false);
   g.pausado = true;
-  const { jugarPokeusera } = await import('../pokeusera/capitulo');
+  const { jugarPokeusera } = await cargarModulo('pokeusera');
   const r = await jugarPokeusera(g.root, { rapido: g.rapido, sonido: g.sound }).finally(() => (g.pausado = false));
   if (r === 'hecho') g.minijuegoSuperado('pokeusera');
   g.hud.setVisible(true);
   await g.hablar('c2.pokeusera.vuelve');
+}
+
+/**
+ * The minigames that load on demand are fetched in the background soon after the chapter starts (once), in the order the
+ * night needs them, so a new publication in the middle of a game cannot take their files away (src/juego/modulos.ts).
+ */
+let precargaProgramada = false;
+function programarPrecarga() {
+  if (precargaProgramada) return;
+  precargaProgramada = true;
+  void precargarModulos(['sol', 'kart', 'pokeusera', 'pang'], 2500);
 }
 
 /**
@@ -519,7 +531,7 @@ async function alacantSun(g: Aventura) {
   g.hud.setVisible(false);
   await g.plano.reset(0);
   g.pausado = true;
-  const { jugarSol } = await import('../sol/sol');
+  const { jugarSol } = await cargarModulo('sol');
   const r = await entrarEnConsola(g, () => jugarSol(g.root, { sonido: g.sound })).finally(() => (g.pausado = false));
   // The shadow went into the story with the console; the bar is as it was.
   g.quitarSombra();
@@ -627,6 +639,7 @@ export const capitulo2: Capitulo = {
 
   /** The world of the concepts has no dock (the friends there are figures, not faces) and nobody walks: it is touched. */
   async alEntrar(g, escena) {
+    programarPrecarga();
     g.root.classList.toggle('sin-reparto', escena === 'conceptos');
     g.fpsReposo = escena === 'conceptos' ? 60 : 30;
     if (escena !== 'conceptos') return;
@@ -705,4 +718,4 @@ export const capitulo2: Capitulo = {
  * Test hook for scripts/capitulo2.mjs and the screenshots: lets a script start each piece of the last stretch of the
  * night directly, without playing the six minutes before it. The game itself does not use it.
  */
-export const pruebasC2 = { subirNivel, chuchiYElKart, veroTragaAFran, elRestoDeLaNoche };
+export const pruebasC2 = { subirNivel, chuchiYElKart, veroTragaAFran, elRestoDeLaNoche, alacantSun };

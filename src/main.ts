@@ -15,13 +15,14 @@ import { jugarRobot } from './ui/robot';
 import { jugarCerdos } from './ui/cerdos';
 import { mostrarPrologo } from './ui/prologo';
 import { capitulo1 } from './capitulos/capitulo1';
-import { capitulo2 } from './capitulos/capitulo2';
+import { capitulo2, pruebasC2 } from './capitulos/capitulo2';
 import type { Estado } from './juego/estado';
 import { h } from './ui/hud';
 import { alCambiarOrientacion, esVertical } from './ui/orientacion';
 import type { Calidad } from './motor/motor';
 import type { Volumen } from './core/audio';
 import { storageGet, storageSet, wait } from './core/util';
+import { cargarModulo } from './juego/modulos';
 
 interface Ajustes {
   /** 2 since the two volumes and «media» as the default quality (8 October 2026). */
@@ -61,7 +62,7 @@ async function arrancar() {
   const root = document.getElementById('game')!;
   // «Alacant Sun» (src/sol/), the friends' parody, opened by itself: the address ending in ?sol.
   if (new URLSearchParams(location.search).has('sol')) {
-    const [{ jugarSol }, { Sound }] = await Promise.all([import('./sol/sol'), import('./core/audio')]);
+    const [{ jugarSol }, { Sound }] = await Promise.all([cargarModulo('sol'), import('./core/audio')]);
     const sonido = new Sound();
     // Sound needs a tap first (browsers): the console's first press starts it.
     addEventListener('pointerdown', () => sonido.start(), { once: true });
@@ -72,7 +73,7 @@ async function arrancar() {
   }
   // «Impropios Kart» (src/kart/), opened by itself: the address ending in ?kart.
   if (new URLSearchParams(location.search).has('kart')) {
-    const [{ jugarKart }, { Sound }] = await Promise.all([import('./kart/kart'), import('./core/audio')]);
+    const [{ jugarKart }, { Sound }] = await Promise.all([cargarModulo('kart'), import('./core/audio')]);
     const sonido = new Sound();
     // Sound needs a tap first (browsers): the first press or key starts it.
     addEventListener('pointerdown', () => sonido.start(), { once: true });
@@ -85,7 +86,7 @@ async function arrancar() {
   // `&rapido` skips the waits. Closed with window.__safari().cerrar().
   const sf = new URLSearchParams(location.search);
   if (sf.has('safari')) {
-    const [{ jugarSafari }, { Sound }] = await Promise.all([import('./ui/safari'), import('./core/audio')]);
+    const [{ jugarSafari }, { Sound }] = await Promise.all([cargarModulo('safari'), import('./core/audio')]);
     const sonido = new Sound();
     // Sound needs a tap first (browsers): the first press or key starts it.
     addEventListener('pointerdown', () => sonido.start(), { once: true });
@@ -98,7 +99,7 @@ async function arrancar() {
   // &fase=N (plays that stage and the ones after it, no menus), &pj=fran|pablo|chuchi|guille and &bot (the computer plays).
   if (new URLSearchParams(location.search).has('pangcompleto')) {
     const q = new URLSearchParams(location.search);
-    const [{ jugarPangCompleto }, { Sound }] = await Promise.all([import('./pang/completo'), import('./core/audio')]);
+    const [{ jugarPangCompleto }, { Sound }] = await Promise.all([cargarModulo('pang'), import('./core/audio')]);
     const sonido = new Sound();
     // Sound needs a tap first (browsers): the first press or key starts it.
     addEventListener('pointerdown', () => sonido.start(), { once: true });
@@ -117,7 +118,7 @@ async function arrancar() {
   // hunt, `&auto` has the machine play Guille's four-way battle, `&rapido` skips the waits, `&semilla=N` repeats the draw. The result stays on `window.__pokeResultado`.
   const pk = new URLSearchParams(location.search);
   if (pk.has('pokecap')) {
-    const { jugarPokeusera } = await import('./pokeusera/capitulo');
+    const { jugarPokeusera } = await cargarModulo('pokeusera');
     const semilla = Number(pk.get('semilla'));
     const r = await jugarPokeusera(root, { dino: pk.has('dino'), auto: pk.has('auto'), rapido: pk.has('rapido'), semilla: semilla > 0 ? semilla : undefined });
     (window as unknown as { __pokeResultado?: string }).__pokeResultado = r;
@@ -446,13 +447,13 @@ async function arrancar() {
   const jugarSuelto = async (id: string) => {
     g.pausado = true;
     if (id === 'kart') {
-      const { jugarKart } = await import('./kart/kart');
+      const { jugarKart } = await cargarModulo('kart');
       await jugarKart(g.root, { rapido: g.rapido, sonido: g.sound });
     } else if (id === 'sol') {
-      const { jugarSol } = await import('./sol/sol');
+      const { jugarSol } = await cargarModulo('sol');
       await jugarSol(g.root, { rapido: g.rapido, sonido: g.sound });
     } else {
-      const { jugarPangCompleto } = await import('./pang/completo');
+      const { jugarPangCompleto } = await cargarModulo('pang');
       await jugarPangCompleto(document.body, { sonido: g.sound, volumenes: { musica: ajustes.musica, efectos: ajustes.efectos } });
     }
     menuMinijuegos();
@@ -621,7 +622,7 @@ async function arrancar() {
   });
 
   // Test hook for scripts/playthrough.mjs.
-  (window as unknown as { __cyc: unknown }).__cyc = { g, titulo, listo: () => cargada, partida };
+  (window as unknown as { __cyc: unknown }).__cyc = { g, titulo, listo: () => cargada, partida, c2: pruebasC2 };
 }
 
 void arrancar();

@@ -143,7 +143,10 @@ export class Motor {
     pon(this.vivoB);
     try {
       const xml = new XMLSerializer().serializeToString(this.svg).replace('<svg ', `<svg width="${c.width}" height="${c.height}" `);
-      x.drawImage(await svgABitmap(xml, c.width, c.height), 0, 0);
+      // A phone browser whose `decode()` of the SVG never answers must not hold the story: after a second and a half, without the characters.
+      const bitmap = svgABitmap(xml, c.width, c.height);
+      bitmap.catch(() => {});
+      x.drawImage(await Promise.race([bitmap, new Promise<never>((_, no) => setTimeout(() => no(new Error('instantanea: tiempo')), 1500))]), 0, 0);
     } catch {
       /* without the characters */
     }

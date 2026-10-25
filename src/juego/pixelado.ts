@@ -13,6 +13,27 @@ import type { Aventura } from './aventura';
 const PASOS = [0.5, 0.25, 0.12, 0.06, 0.04];
 
 /**
+ * Resolves when the animation ends or is cancelled, and in any case after `tope` ms (plus a margin): a browser that never
+ * fires `onfinish` (it has happened on phones) must not leave the story waiting. If it ran out of time, the animation is
+ * finished by hand so that it is left at its last frame.
+ */
+export function alAcabar(a: Animation, tope: number): Promise<void> {
+  return new Promise<void>((fin) => {
+    const t = window.setTimeout(() => {
+      try {
+        a.finish();
+      } catch {
+        /* already over */
+      }
+      fin();
+    }, tope + 800);
+    const listo = () => (clearTimeout(t), fin());
+    a.onfinish = listo;
+    a.oncancel = listo;
+  });
+}
+
+/**
  * Runs `lanzar` (which puts the console on screen, covering everything: `jugarSol`) under a pixelated copy
  * of the bar and brings the copy down onto the console's screen. Resolves with what `lanzar` resolves, when
  * the game is over; the bar is back as it was.
@@ -21,7 +42,12 @@ export async function entrarEnConsola<T>(g: Aventura, lanzar: () => Promise<T>, 
   const ritmo = g.rapido ? 0.25 : 1;
   const raiz = g.root;
   const caja = raiz.getBoundingClientRect();
-  const foto = await g.motor.instantanea(Math.min(caja.width, 1000));
+  // Without a picture (it did not come in time or failed) there is no pixelation: the console simply appears.
+  const foto = await Promise.race([
+    g.motor.instantanea(Math.min(caja.width, 1000)).catch(() => null),
+    new Promise<null>((r) => setTimeout(() => r(null), 3000)),
+  ]);
+  if (!foto) return lanzar();
   const pix = document.createElement('canvas');
   pix.className = 'pixelado';
   const poner = (columnas: number) => {
@@ -35,6 +61,7 @@ export async function entrarEnConsola<T>(g: Aventura, lanzar: () => Promise<T>, 
   raiz.append(pix);
   // The console goes under the copy at once (it is opaque), and the game starts there.
   const juego = lanzar();
+  juego.catch(() => {}); // if it fails, it is the caller who hears of it (the `return juego` below)
   const dest = raiz.querySelector<HTMLElement>(pantalla)?.getBoundingClientRect();
   // Down in resolution, step by step, with a little shake of the whole thing.
   for (const f of PASOS) {
@@ -57,10 +84,7 @@ export async function entrarEnConsola<T>(g: Aventura, lanzar: () => Promise<T>, 
       ],
       { duration: 1000 * ritmo, easing: 'cubic-bezier(.6,0,.3,1)', fill: 'forwards' },
     );
-    await new Promise<void>((fin) => {
-      a.onfinish = () => fin();
-      a.oncancel = () => fin();
-    });
+    await alAcabar(a, 1000 * ritmo);
     // It lands on a grid of the console's own: 240 by 160.
     poner(240);
     await g.esperar(150 * ritmo);
