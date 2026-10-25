@@ -769,7 +769,8 @@ if (toca('conceptos')) {
   // only transforms per frame) and Vero's lips; then with Fran found, «LA ÚLTIMA» shown and the dinosaur rising.
   await medir('conceptos, el mundo quieto', MUNDO());
   await medir('conceptos, Fran hallado, dino y Guille', MUNDO(`
-    g.poner('c2.fran.hallado');
+    for (const c of ['manana', 'casa', 'trabajo', 'reloj', 'no', 'penultima']) g.poner('c2.con.' + c);
+    g.poner('c2.fran.sinArgumentos');
     const m = await import('/src/capitulos/conceptos-vivo.ts');
     m.revelarUltima(g);
     m.subirDino(g);
@@ -780,7 +781,8 @@ if (toca('caos')) {
   // src/juego/estilos.ts), the hue turning, the camera spinning for good and the pieces at 2.6x.
   await medir('caos, cortes de estilo y giro', MUNDO(`
     g.poner('c2.nivel', 8);
-    g.poner('c2.fran.hallado');
+    for (const c of ['manana', 'casa', 'trabajo', 'reloj', 'no', 'penultima']) g.poner('c2.con.' + c);
+    g.poner('c2.fran.sinArgumentos');
     const m = await import('/src/capitulos/conceptos-vivo.ts');
     const { prepararCortes } = await import('/src/juego/estilos.ts');
     m.revelarUltima(g);

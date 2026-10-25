@@ -617,7 +617,7 @@ zona.c2.concepto.penultima = La penúltima
 zona.c2.concepto.trabajo = El trabajo
 zona.c2.concepto.reloj = Las tantas
 zona.c2.concepto.no = El no
-zona.c2.concepto.fran = Una más
+zona.c2.concepto.fran = Fran
 zona.c2.concepto.ultima = La última
 zona.c2.concepto.pablo = Pablo
 zona.c2.concepto.chuchi = Chuchi
@@ -634,79 +634,86 @@ c2.concepto.unamas = UNA MÁS
 c2.concepto.ultima = LA ÚLTIMA
 c2.concepto.dino = ???
 
-objetivo.c2.conceptos.fran = Toca los conceptos y encuentra a Fran
+objetivo.c2.conceptos.fran = Usa los conceptos para convencer a Fran de irse a casa
 objetivo.c2.conceptos.ultima = Para salir hace falta LA ÚLTIMA
-pista.c2.conceptos.fran = Fran tiene que estar por aquí, hecho concepto. Toca lo que repita «una más».
-pista.c2.conceptos.ultima = Todos juntos otra vez. Para salir, toca LA ÚLTIMA, la jarra que nadie ha visto.
+pista.c2.conceptos.fran = Fran solo dice «una más». Toca los conceptos que flotan: cada uno es un argumento para llevárnoslo a casa.
+pista.c2.conceptos.ultima = Con Fran no valen excusas. Para salir, toca LA ÚLTIMA, la jarra que nadie ha visto.
 
 ## c2.conceptos.entrada
 > Esto no es el Brío. Esto ni siquiera es un sitio. Es donde se quedan colgadas las palabras cuando se les acaba la frase.
 PABLO (sorprendido): ¿Por qué soy una figurita de peana? Y, sobre todo, ¿por qué me favorece?
 CHUCHI (nervioso): Soy un montón de formas sueltas con gafas. Estoy muy reconocible, pero por piezas.
 GUILLE (contento): ¡Estoy hecho de triángulos y de flores! ¡Y soy el más alto! ¡Siempre quise ser el más alto!
-CHUCHI (nervioso): Falta uno. ¿Dónde está Fran?
-PABLO: Esto es un mundo de conceptos. Toquemos lo que veamos: alguien tendrá algo que decir.
+FRAN (contento): ¡Chicos, por fin! ¡Una más!
+CHUCHI (nervioso): ¡Fran! Estás entero. Vámonos a casa, anda, que es tardísimo.
+FRAN (contento): Una más.
+CHUCHI (enfadado): No dice otra cosa.
+PABLO: Aquí las palabras son cosas, y las cosas se pueden lanzar. Cada concepto que veamos es un argumento. Alguno le hará efecto.
 
+// Cada concepto, en dos tiempos: el argumento de un amigo (lo lanza) y la respuesta de Fran (le da la vuelta y lo convierte en «una más»).
 ## c2.conceptos.manana
-CHUCHI (nervioso): MAÑANA. La puerta a la que llevo diez años empujando.
+CHUCHI (nervioso): Fran, MAÑANA se trabaja. Yo llevo diez años empujando esa puerta.
 > La puerta tiembla, se estrecha un poco y vuelve a su sitio. No se abre. Nunca se abre.
+
+## c2.conceptos.manana.fran
+FRAN (chulo): Justo por eso. Mañana se trabaja; hoy se brinda. ¡Una más!
 GUILLE (contento): Es de las que se abren hacia dentro. Hacia dentro de mañana.
----
-PABLO: Si la tocas dos veces es mañana dos veces. Es lo que hago yo con los ensayos.
 
 ## c2.conceptos.casa
-PABLO: CASA. Cada paso que doy hacia ella, ella da dos hacia atrás.
-CHUCHI (triste): Es lo mismo que me dicen las niñas por teléfono: «¿Papá, ya llegas?»
+PABLO: Fran, CASA. Mírala, que te espera con la luz de la ventana encendida.
 > La casita se aleja, se acerca y se vuelve a alejar. Por si acaso, con la luz de la ventana encendida.
----
-GUILLE (triste): Yo nunca llego a tiempo a mi casa. Pero tengo la excusa de que mi casa está en Zaragoza.
+
+## c2.conceptos.casa.fran
+FRAN (chulo): Si cada paso que doy hacia ella se aleja dos, es que quiere que me quede. ¡Una más!
+CHUCHI (triste): Es lo mismo que me dicen las niñas por teléfono: «¿Papá, ya llegas?»
 
 ## c2.conceptos.trabajo
-CHUCHI (nervioso): EL TRABAJO. Con sus avisos y todo. Hasta aquí me ha seguido.
+CHUCHI (nervioso): Fran, EL TRABAJO. Con sus avisos y todo. Hasta aquí me ha seguido.
 > El sobre vibra. Chuchi se encoge por reflejo, como un perro al oír un trueno.
-PABLO (chulo): Estás hecho de piezas sueltas y aun así te llegan los correos.
----
-CHUCHI (enfadado): No pienso abrirlo. No pienso abrir... Vale, lo abro un segundo.
+
+## c2.conceptos.trabajo.fran
+FRAN (contento): El trabajo es para ganar dinero, y el dinero, para gastarlo. ¿En qué? En una más.
+CHUCHI (enfadado): No pienso abrirlo. No pienso... Lo peor es que tiene su lógica.
 
 ## c2.conceptos.reloj
-PABLO: Un reloj derretido. Dalí lo pintó pensando en una cena que se alargó.
-GUILLE (sorprendido): Marca las tantas. Siempre las tantas.
+PABLO: Fran, LAS TANTAS. Un reloj derretido: Dalí lo pintó pensando en una cena que se alargó.
 CHUCHI: Es el único reloj puntual del universo: siempre llega justo a las tantas.
----
+
+## c2.conceptos.reloj.fran
+FRAN (chulo): Si ya son las tantas, una más no cambia nada. Es matemática pura.
 GUILLE (contento): Mola. Se parece a mis cerdos después de comer.
 
 ## c2.conceptos.no
+CHUCHI: Fran, EL NO. El que te digo cada jueves, ¿te acuerdas?
 > Un NO enorme rebota de un lado a otro y, cada vez que cae, el mundo tiembla un poquito.
-CHUCHI: Ese es el que le digo a Fran cada jueves.
-PABLO (chulo): Y rebota, rebota, rebota, hasta que se convierte en un «bueno, una más».
----
+
+## c2.conceptos.no.fran
+FRAN (contento): ¡Y rebota, rebota, rebota, hasta que se convierte en un «bueno, una más»! Mira, mira, que ya casi.
 GUILLE (nervioso): Me da un poco de miedo. Parece un «no» de los de madre.
 
 ## c2.conceptos.penultima
-GUILLE (contento): LA PENÚLTIMA. Una jarra que no se acaba. ¡Qué invento!
-PABLO: Porque la penúltima nunca es la penúltima. Es la antepenúltima de la siguiente.
-CHUCHI (nervioso): Eso lo sé yo muy bien. Me lo sé desde la universidad.
----
+PABLO: Fran, LA PENÚLTIMA. Trato hecho: la penúltima, y nos vamos todos.
 > La cerveza sale por arriba, da una vuelta por el aire y vuelve a entrar. El mundo funciona así.
 
-## c2.conceptos.pista
-PABLO (sorprendido): Un momento. ¿Habéis oído esa vocecita que no para de repetir «una más»?
-CHUCHI (sorprendido): La figura redondita de la barba, con la jarra que nunca se vacía... Sí, la oigo desde hace un rato.
-GUILLE (contento): ¡Si es que se le nota a la legua!
+## c2.conceptos.penultima.fran
+FRAN (chulo): Trato. Pero la penúltima nunca es la penúltima: es la antepenúltima de la siguiente. ¡Una más!
+CHUCHI (nervioso): Eso lo sé yo muy bien. Me lo sé desde la universidad.
 
-## c2.conceptos.fran
-@zoom fran 2.2
-FRAN (contento): ¡UNA MÁS!
-PABLO (sorprendido): ¡Es Fran! ¡Se ha escondido detrás de nosotros, con su jarra!
-FRAN (contento): ¡Una más! ¡Una más! ¡Una más!
-CHUCHI: Fran, ¿puedes decir otra cosa?
-FRAN (triste): Una... más...
-GUILLE (contento): Está claro: ha llegado a su esencia.
-@general 500
+// Un argumento que ya se ha gastado.
+## c2.conceptos.gastado
+FRAN (chulo): Ese ya me lo has dicho, y míralo: se ha quedado en «una más». Tráeme otro.
+---
+FRAN (contento): Ese argumento está gastado, como mi hígado. ¡Prueba con otro!
+---
+FRAN (triste): Pobrecillo, qué poco le queda. Anda, dale otra oportunidad... con una caña.
 
+// Cuando se han gastado los seis argumentos.
 ## c2.conceptos.revela
-CHUCHI (nervioso): Vale. Ya estamos los cuatro. Pues nos vamos a casa.
-PABLO: Aquí el problema es la puerta. Para salir hace falta LA ÚLTIMA. Y la última nunca la ha visto nadie.
+PABLO (sorprendido): Un momento. Los hemos probado todos, y a todos les ha dado la vuelta.
+CHUCHI (triste): Con Fran no hay excusa que valga. Para él todas son otra ronda.
+PABLO: Solo hay una cosa que de verdad le hace irse: LA ÚLTIMA. Cuando alguien pide la última, hasta Fran se levanta.
+GUILLE (nervioso): Pues vamos a por ella. ¿Dónde está?
+PABLO: Ese es el problema: LA ÚLTIMA nunca la ha visto nadie.
 > Y entonces, en mitad del mundo, como una idea que se va formando, aparece el contorno de una jarra. Solo el contorno.
 
 ## c2.conceptos.ultima
@@ -739,7 +746,7 @@ GUILLE (contento): Tengo hojas con hibiscos. ¡He nacido para esto!
 ## c2.figura.fran
 FRAN (contento): ¡Una más!
 ---
-FRAN (triste): Una... más... (Es que no me sale otra cosa.)
+FRAN (chulo): ¿Otro argumento? Sorpréndeme. Pero con jarra.
 
 ## c2.figura.vero
 VERO: Mi amor, estás dentro de mí. Haz el favor de no tocar las paredes.

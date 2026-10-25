@@ -45,7 +45,7 @@ import { abrirBoca, type Boca } from '../ui/boca';
 import { jugarPangCapitulo } from '../pang/capitulo';
 import { dibujarBarVivo } from './bar-vivo';
 import { tickBebidas } from './bebidas';
-import { dibujarConceptos, empezarCaos, golpear, liberarConceptos, prepararConceptos, revelarUltima, darPasoGuille, subirDino, ultimaRevelada } from './conceptos-vivo';
+import { dibujarConceptos, empezarCaos, gastarArgumento, golpear, liberarConceptos, prepararConceptos, revelarUltima, darPasoGuille, subirDino, ultimaRevelada } from './conceptos-vivo';
 
 const HORA = (h: number, m: number) => h * 60 + m;
 /** The Brío's door on the street (calle.mjs), where chapter 1 left them. */
@@ -462,29 +462,25 @@ async function entrarEnConceptos(g: Aventura, boca: Boca) {
 const CONCEPTOS = ['manana', 'casa', 'penultima', 'trabajo', 'reloj', 'no'] as const;
 const FIGURAS = ['pablo', 'chuchi', 'guille', 'vero'] as const;
 
-/** A tap on something in the world of the concepts: its joke, in the voice of whoever has it. */
+/** A tap on something in the world of the concepts. Each concept is an argument thrown at Fran, who turns it into «una más». */
 async function tocarConcepto(g: Aventura, id: string) {
   golpear(g, id);
   if ((CONCEPTOS as readonly string[]).includes(id)) {
+    // An argument already spent: Fran only reminds them.
+    if (g.flag(`c2.con.${id}`)) return g.hablar('c2.conceptos.gastado');
     g.poner(`c2.con.${id}`);
     await g.hablar(`c2.conceptos.${id}`);
-    const vistos = CONCEPTOS.filter((c) => g.flag(`c2.con.${c}`)).length;
-    // A few jokes in and still no Fran: someone points at the jar that keeps asking for another.
-    if (vistos >= 3 && !g.flag('c2.fran.hallado') && !g.flag('c2.con.pista')) {
-      g.poner('c2.con.pista');
-      await g.hablar('c2.conceptos.pista');
-    }
-    return;
-  }
-  if (id === 'fran') {
-    if (g.flag('c2.fran.hallado')) return g.hablar('c2.figura.fran');
-    g.poner('c2.fran.hallado');
-    await g.hablar('c2.conceptos.fran');
-    revelarUltima(g);
+    gastarArgumento(g, id);
     g.sound.pickup();
-    await g.hablar('c2.conceptos.revela');
-    g.refrescar();
-    g.hud.ayuda(texto('objetivo.c2.conceptos.ultima'), 8);
+    await g.hablar(`c2.conceptos.${id}.fran`);
+    // All six spent: no excuse works with Fran, only THE LAST one (it shows up, just its outline).
+    if (CONCEPTOS.every((c) => g.flag(`c2.con.${c}`)) && !g.flag('c2.fran.sinArgumentos')) {
+      g.poner('c2.fran.sinArgumentos');
+      revelarUltima(g);
+      await g.hablar('c2.conceptos.revela');
+      g.refrescar();
+      g.hud.ayuda(texto('objetivo.c2.conceptos.ultima'), 8);
+    }
     return;
   }
   if (id === 'ultima') {
@@ -494,7 +490,7 @@ async function tocarConcepto(g: Aventura, id: string) {
     await elCaos(g);
     return;
   }
-  if ((FIGURAS as readonly string[]).includes(id)) return g.hablar(`c2.figura.${id}`);
+  if (id === 'fran' || (FIGURAS as readonly string[]).includes(id)) return g.hablar(`c2.figura.${id}`);
 }
 
 function zonasConceptos(g: Aventura): Record<string, ZonaLogica> {
@@ -737,7 +733,7 @@ export const capitulo2: Capitulo = {
   },
 
   objetivo(g) {
-    if (g.escena === 'conceptos') return texto(g.flag('c2.fran.hallado') ? 'objetivo.c2.conceptos.ultima' : 'objetivo.c2.conceptos.fran');
+    if (g.escena === 'conceptos') return texto(g.flag('c2.fran.sinArgumentos') ? 'objetivo.c2.conceptos.ultima' : 'objetivo.c2.conceptos.fran');
     if (!g.flag('c2.ronda')) return texto('objetivo.c2.ronda');
     if (g.flag('c2.tirada')) return null;
     if (g.flag('c2.fresquitos')) return texto('objetivo.c2.duro');
@@ -747,7 +743,7 @@ export const capitulo2: Capitulo = {
 
   pista(g) {
     const f = (k: string) => g.flag(k);
-    if (g.escena === 'conceptos') return texto(f('c2.fran.hallado') ? 'pista.c2.conceptos.ultima' : 'pista.c2.conceptos.fran');
+    if (g.escena === 'conceptos') return texto(f('c2.fran.sinArgumentos') ? 'pista.c2.conceptos.ultima' : 'pista.c2.conceptos.fran');
     if (!f('c2.ronda')) return texto('pista.c2.ronda');
     if (!f('c2.separada')) return texto(f('c2.diagnostico') ? 'pista.c2.enchufe' : f('c2.cambio') ? 'pista.c2.maquina' : 'pista.c2.cambio');
     if (f('c2.duroVisible')) return texto('pista.c2.cogerduro');
