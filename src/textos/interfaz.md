@@ -57,6 +57,7 @@ selector.aqui = Aquí
 selector.fuera = En {lugar}
 selector.camino = De camino al Brío
 selector.yaencamino = {quien} ya va de camino al Brío.
+selector.ahora = Ahora no se puede cambiar de personaje.
 lugar.piso = casa de Fran
 lugar.calle = la calle
 lugar.backstage = el teatro Joso

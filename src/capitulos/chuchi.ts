@@ -87,6 +87,7 @@ async function encuadrar(g: Aventura, izq: number) {
 }
 
 async function batalla(g: Aventura) {
+  g.cinematica(); // a cutscene from here: the dock is off until it ends (Aventura.cambioLibre)
   await g.hablar('c.canon.coger');
   // The minigame covers the whole screen: the scene underneath stops drawing.
   g.pausado = true;
@@ -110,6 +111,7 @@ export function zonasParque(g: Aventura): Record<string, ZonaLogica> {
       async usar() {
         if (!f(g, 'c.luz')) return g.hablar('c.persiana.bajada');
         if (!g.tiene('zapato')) return g.hablar('c.persiana.sinzapato');
+        g.cinematica();
         g.avanzarReloj(3);
         await g.hablar('c.salida');
         await g.enCamino('chuchi');

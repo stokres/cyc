@@ -62,6 +62,9 @@ export class Hud {
   /** Character dock: folded (only the active face) or open (the column). */
   private repartoAbierto = false;
   private repartoClave = '';
+  /** The dock cannot be used right now (a cutscene, a minigame, a choice): it looks switched off. */
+  private repartoBloqueado = false;
+  private opcionesAbiertas = 0;
   private objEl: HTMLDivElement;
   private objTexto: HTMLSpanElement;
   private reloj: HTMLSpanElement;
@@ -145,6 +148,7 @@ export class Hud {
             style: `--color:${F.color};--i:${n}`,
             onclick: (ev) => {
               ev.stopPropagation();
+              if (this.repartoBloqueado) return this.aviso(texto('selector.ahora'));
               if (esActivo && !this.repartoAbierto) return this.abrirReparto();
               this.plegarReparto();
               this.ev.elegir(e.id);
@@ -159,6 +163,19 @@ export class Hud {
         return b;
       }),
     );
+    this.pintarReparto();
+  }
+
+  /**
+   * Whether the player may switch character right now. Where it is not safe (a cutscene, a minigame,
+   * a choice to make) the dock looks switched off and folds; the game decides (`Aventura.cambioLibre`).
+   */
+  set cambioLibre(libre: boolean) {
+    if (this.repartoBloqueado === !libre) return;
+    this.repartoBloqueado = !libre;
+    if (!libre) this.plegarReparto();
+    this.dock.dataset.bloqueado = String(!libre);
+    this.dock.setAttribute('aria-disabled', String(!libre));
     this.pintarReparto();
   }
 
@@ -277,6 +294,22 @@ export class Hud {
 
   get enDialogo() {
     return !!this.avance;
+  }
+
+  /** A list of lines to choose from is on screen. */
+  get enOpciones() {
+    return this.opcionesAbiertas > 0;
+  }
+
+  /**
+   * The player left in the middle of a conversation: the line on screen is closed and its wait ends,
+   * as if tapped through to the end. The script goes on by itself (`Aventura.saltando`).
+   */
+  saltarDialogo() {
+    this.escribiendo = null;
+    const a = this.avance;
+    this.cerrarDialogo();
+    a?.();
   }
 
   /** Show a line; resolves when the player taps past it. */
@@ -404,6 +437,7 @@ export class Hud {
   opciones(lista: string[]): Promise<number> {
     this.cerrarBandeja();
     this.plegarReparto();
+    this.opcionesAbiertas++;
     return new Promise((resolve) => {
       // A tap meant for the line before must not pick an option the moment they appear.
       const desde = performance.now();
@@ -419,6 +453,7 @@ export class Hud {
                 e.stopPropagation();
                 if (performance.now() - desde < 450) return;
                 el.remove();
+                this.opcionesAbiertas--;
                 resolve(i);
               },
             },

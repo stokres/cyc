@@ -41,6 +41,7 @@ export async function aparece(g: Aventura) {
 const enLaPantalla = (g: Aventura) => f(g, 'p.canon') && !f(g, 'p.ganado');
 
 async function batalla(g: Aventura) {
+  g.cinematica(); // a cutscene from here: the dock is off until it ends (Aventura.cambioLibre)
   if (!f(g, 'p.canon')) {
     g.poner('p.canon');
     if (g.sombra) g.sombra.visible = false;
@@ -133,6 +134,7 @@ export function zonasBackstage(g: Aventura): Record<string, ZonaLogica> {
     puertaArtistas: {
       async usar() {
         if (!f(g, 'p.ganado')) return g.hablar('p.puerta.antes');
+        g.cinematica();
         g.avanzarReloj(3);
         await g.hablar('p.salida');
         await g.enCamino('pablo');

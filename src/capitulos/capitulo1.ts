@@ -88,6 +88,7 @@ async function despertar(g: Aventura) {
 
 /** Fran's phone: the group chat and his (slightly optimistic) reply. */
 async function verMovil(g: Aventura) {
+  g.cinematica(); // the phone covers the screen
   await abrirMovil(g.root, dialogo('movil.chat'), dialogo('movil.respuesta', { hora: g.hora }), g.rapido);
   if (!g.flag('chatLeido')) {
     g.poner('chatLeido');
@@ -106,6 +107,7 @@ const levantada = (g: Aventura) => g.flag('jamonComido') || g.flag('aceitunasCom
 
 /** Ham for Aceituna: handed over, she sulks; tossed into her mouth, she cannot resist. */
 async function tirarJamon(g: Aventura) {
+  g.cinematica(); // a cutscene from here: the dock is off until it ends (Aventura.cambioLibre)
   if (!g.flag('jamonOfrecido')) {
     g.poner('jamonOfrecido');
     await g.hablar('jamon.aceituna');
@@ -163,6 +165,7 @@ async function puerta(g: Aventura) {
     await g.hablar('usar.puerta.calzoncillos');
     return;
   }
+  g.cinematica();
   g.poner('puertaAbierta');
   g.sound.pickup();
   await g.hablar('usar.puerta.abrir');
@@ -300,6 +303,7 @@ function zonasCalle(g: Aventura): Record<string, ZonaLogica> {
 
 /** Fran sees the Río at the end of the street: fade out before he gets there. */
 async function llegaFran(g: Aventura) {
+  g.cinematica(); // a cutscene from here: the dock is off until it ends (Aventura.cambioLibre)
   g.poner('bar');
   g.avanzarReloj(5);
   await g.hablar('llegada.fran');
