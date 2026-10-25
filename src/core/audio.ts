@@ -48,6 +48,8 @@ export interface Ambiente {
 export interface SonidoMinijuego {
   musica(id: Pista, entra?: number): void;
   pararMusica(fundido?: number): void;
+  /** For a game of several rounds: while held, stopping the music does not bring the scene's back (`Sound` has it, a stand-in may not). */
+  retener?(si: boolean): void;
   posicion?(id: Pista): number | null;
   lista?(id: Pista): Promise<void>;
   efecto?(id: Pista, volumen?: number): void;
@@ -86,6 +88,8 @@ export class Sound {
   private bytes = new Map<Pista, number>();
   private primerPlano: Pista | null = null;
   private deseado: Ambiente[] = [];
+  /** A minigame made of several rounds holds the scene's music back between them (see `retener`). */
+  private retenido = false;
 
   start() {
     if (this.ac) {
@@ -158,6 +162,17 @@ export class Sound {
   }
 
   /**
+   * A minigame of several rounds (the Pang's stages) holds the scene's music back for as long as it lasts: between
+   * one round and the next, pararMusica() leaves silence (and the round's fanfare) instead of bringing the scene's
+   * music back, which was the bar's rock sounding between stages. `retener(false)` lets it return.
+   */
+  retener(si: boolean) {
+    if (this.retenido === si) return;
+    this.retenido = si;
+    if (!si) this.ambiente(this.deseado);
+  }
+
+  /**
    * The scene's music, every frame: one layer, several or none. A layer already playing
    * only changes its volume and pan (smoothly); a new one fades in; one no longer asked
    * for stops quickly, like a radio switched off.
@@ -165,7 +180,7 @@ export class Sound {
   ambiente(m: Ambiente | Ambiente[] | null) {
     const lista = !m ? [] : Array.isArray(m) ? m : [m];
     this.deseado = lista;
-    if (this.primerPlano || !this.ac) return;
+    if (this.primerPlano || !this.ac || this.retenido) return;
     for (const c of [...this.capas.values()]) if (!lista.some((d) => d.pista === c.id)) this.callar(c.id, 0.2);
     for (const d of lista) {
       const c = this.capas.get(d.pista);

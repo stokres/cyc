@@ -2,7 +2,7 @@
 
 Juego aparte (12 de octubre de 2026, a petición de Jesús): un *Pang* de recreativa con los cuatro amigos y doce fases de Usera a Las Vegas. **Por ahora es solo el juego, sin historia** (ni intro ni conversaciones; decidido por Jesús el mismo día): título, elegir personaje y las doce fases seguidas. Nació en la rama `claude/pang-cyc-56o0iv` como página aparte (`pang.html`, con un modo online). **Ahora vive dentro del juego** (24 de octubre de 2026, a petición de Jesús): se abre desde el menú de minijuegos, en la fila «Pang», cuando se supera el Pang corto del capítulo 2, y suelto con `?pangcompleto`. **Sin modo online**: GitHub Pages solo sirve archivos y no hay servidor, así que no se trajo `src/pang/red/` ni «Jugar online» (lo que había queda en la rama original, con `docs/PANG-ONLINE.md`). El motor sigue admitiendo varios jugadores (`Partida`), pero ahora solo juega uno.
 
-El Pang corto del capítulo 2 (`src/pang/capitulo.ts`, `docs/CAPITULO2.md`) usa el mismo motor y las mismas fases (Usera, el piso, Zaragoza, Nevada y Las Vegas, suavizadas).
+El Pang corto del capítulo 2 (`src/pang/capitulo.ts`, `docs/CAPITULO2.md`) usa el mismo motor y las mismas fases (Usera, el piso, Zaragoza, la granja y Las Vegas, suavizadas).
 
 ## Dónde está cada cosa
 
