@@ -42,10 +42,13 @@ const CSS = `
 .pg-vert{position:absolute;left:var(--m);bottom:calc(max(14px,env(safe-area-inset-bottom,0px)) + var(--b) + 10px);display:flex;flex-direction:column;gap:8px;background:none;border:0;padding:0;margin-left:calc((var(--b) * 2 + 10px - var(--b)) / 2)}
 .pg-vert>.pg-ctl{position:static;width:var(--b);height:calc(var(--b) * .8)}
 .pg-fuego{right:max(14px,env(safe-area-inset-right,0px));bottom:max(14px,env(safe-area-inset-bottom,0px));width:var(--f);height:var(--f);border-radius:50%;font-size:clamp(13px,4.2vh,18px);letter-spacing:.02em;text-transform:uppercase}
-.pg-esp{right:calc(max(14px,env(safe-area-inset-right,0px)) + var(--f) + 12px);bottom:calc(max(14px,env(safe-area-inset-bottom,0px)) + var(--f) * .55);width:var(--e);height:var(--e);border-radius:50%;font-size:clamp(10px,3.2vh,14px);opacity:.4}
+.pg-esp{right:calc(max(14px,env(safe-area-inset-right,0px)) + var(--f) + 12px);bottom:calc(max(14px,env(safe-area-inset-bottom,0px)) + var(--f) * .55);width:var(--e);height:var(--e);border-radius:50%;font-size:clamp(10px,3.2vh,14px);line-height:1.1;padding:2px;opacity:.4}
 .pg-esp.pg-listo{opacity:1;background:rgba(201,162,74,.55);animation:pg-late .7s ease-in-out infinite alternate}
 @keyframes pg-late{from{transform:scale(1)}to{transform:scale(1.1)}}
 .pg-boton-pausa{top:max(10px,env(safe-area-inset-top,0px));right:max(10px,env(safe-area-inset-right,0px));width:44px;height:44px;border-radius:10px;font-size:16px}
+.pg-teclas{position:absolute;top:max(8px,env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);max-width:70%;padding:5px 12px;border-radius:10px;background:rgba(10,14,30,.6);border:1.5px solid #c9a24a;color:#fff;font:700 clamp(11px,3.4vh,15px)/1.2 'Alegreya Sans',sans-serif;text-align:center;pointer-events:none;transition:opacity .8s}
+.pg-teclas.pg-fuera{opacity:0}
+.pg-oculto .pg-teclas{display:none}
 .pg-oculto .pg-ctl,.pg-oculto .pg-pad,.pg-oculto .pg-vert{display:none}
 `;
 
@@ -165,7 +168,10 @@ export function crearEntrada(raiz: HTMLElement, opc: { escaleras: boolean; pausa
   }
 
   const fuego = caja('pg-ctl pg-fuego');
-  fuego.textContent = texto('boton.disparo');
+  // With a mouse and keyboard (no touch screen) the buttons also say their key; E is THE key for the special in both Pangs.
+  const teclado = typeof matchMedia === 'function' && matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const conTecla = (nombre: string, tecla: string) => (teclado ? `${texto(nombre)} [${texto(tecla)}]` : texto(nombre));
+  fuego.textContent = conTecla('boton.disparo', 'tecla.disparo');
   sueltas.push(
     sostener(fuego, (p) => {
       tactil.fuego = p;
@@ -175,12 +181,20 @@ export function crearEntrada(raiz: HTMLElement, opc: { escaleras: boolean; pausa
   );
 
   const esp = caja('pg-ctl pg-esp');
-  esp.textContent = texto('boton.especial');
+  esp.textContent = conTecla('boton.especial', 'tecla.especial');
   sueltas.push(
     sostener(esp, (p) => {
       if (p) mandos.especial = true;
     }),
   );
+
+  // Keyboard hint, only without touch: a short line at the top that goes away after a few seconds.
+  let chuleta: HTMLElement | null = null;
+  if (teclado) {
+    chuleta = caja('pg-teclas', texto('pang.teclas'));
+    const quitar = chuleta;
+    setTimeout(() => quitar.classList.add('pg-fuera'), 9000);
+  }
 
   // The pause button is for the full game; the chapter's short Pang has no pause.
   if (opc.pausa) {
@@ -197,8 +211,7 @@ export function crearEntrada(raiz: HTMLElement, opc: { escaleras: boolean; pausa
   // Keyboard.
   const MAPA: Record<string, string> = {
     ArrowLeft: 'izq', KeyA: 'izq', ArrowRight: 'der', KeyD: 'der', ArrowUp: 'arriba', KeyW: 'arriba', ArrowDown: 'abajo', KeyS: 'abajo',
-    Space: 'fuego', KeyZ: 'fuego', KeyJ: 'fuego', KeyX: 'especial', KeyK: 'especial', ShiftLeft: 'especial', ShiftRight: 'especial',
-    ControlLeft: 'especial', ControlRight: 'especial', MetaLeft: 'especial', MetaRight: 'especial', Escape: 'pausa', KeyP: 'pausa',
+    Space: 'fuego', KeyZ: 'fuego', KeyJ: 'fuego', KeyE: 'especial', KeyX: 'especial', ShiftLeft: 'especial', ShiftRight: 'especial', Escape: 'pausa', KeyP: 'pausa',
   };
   const abajo = (e: KeyboardEvent) => {
     const k = MAPA[e.code];

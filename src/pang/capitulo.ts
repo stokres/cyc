@@ -43,7 +43,7 @@ export interface OpcionesPangCapitulo {
 /**
  * The chapter's fourth stage, the one before the boss: THE ONE PLACE TO CHANGE IT (Jesús, 25 October 2026: Nevada out,
  * the farm in; he may still pick another). It is a stage of the full game (src/pang/fases.ts) eased like the others:
- * two medium bubbles (14 hits), slower (×0.7) and 150 s. Its name and place on the card come from the full game's
+ * a big and two medium bubbles (29 hits; two mediums until Jesús found stages 3 and 4 too easy), slower (×0.7) and 150 s. Its name and place on the card come from the full game's
  * number `n` (fase.N.nombre in src/textos/pang.md), so they follow whatever stage is put here. To swap it, change
  * `FASES[…]` and the bubbles: the theatre is FASES[4] (with the shadow), Bolilandia FASES[3] (a boss: Robi), Jijona
  * FASES[9] (turrón blocks) and Nevada FASES[10] (the caravan block, which was parked at the right edge).
@@ -54,7 +54,7 @@ const FASE_CUATRO: Fase = {
   tiempo: 150,
   prisa: 0.7,
   jefe: undefined,
-  burbujas: [{ x: 96, y: 56, talla: 1, dir: 1, variante: 'purin' }, { x: 288, y: 56, talla: 1, dir: -1, variante: 'purin' }],
+  burbujas: [{ x: 70, y: 56, talla: 1, dir: 1, variante: 'purin' }, { x: 192, y: 40, talla: 0, dir: -1, variante: 'purin' }, { x: 314, y: 56, talla: 1, dir: -1, variante: 'purin' }],
 };
 
 /**
@@ -63,14 +63,14 @@ const FASE_CUATRO: Fase = {
  * Eased for a minigame inside the story (numbers from scripts/pang-sim.mjs, where a bot with 0.15 s reflexes clears
  * each stage within three games 95–100 % of the time and one with 0.25 s 65–90 %): more time (150 s) in all but the
  * boss; the flat with two medium bubbles instead of a big and two medium; Zaragoza, which has 3 big bubbles (45 hits)
- * in the full game, with two medium ones (14 hits, like the flat), slower (×0.8) and its cierzo at half strength; and
+ * in the full game, with three medium ones (21 hits), slower (×0.8) and its cierzo at half strength; and
  * the last boss, in fifth place instead of twelfth, with 24 hit points instead of 40 (18 and 30 until 25 October 2026,
  * when Jesús found la Penúltima too easy), slower bubbles (×0.72) and 1.4 times the wait between spits.
  */
 export const FASES_CAPITULO: Fase[] = [
   { ...FASES[0], orden: 1, tiempo: 150 },
   { ...FASES[2], orden: 2, musica: 'pangCalle', tiempo: 150, burbujas: [{ x: 96, y: 56, talla: 1, dir: 1 }, { x: 288, y: 56, talla: 1, dir: -1 }] },
-  { ...FASES[8], orden: 3, tiempo: 150, prisa: 0.8, cierzo: 0.5, burbujas: [{ x: 96, y: 56, talla: 1, dir: 1 }, { x: 288, y: 56, talla: 1, dir: -1 }] },
+  { ...FASES[8], orden: 3, tiempo: 150, prisa: 0.8, cierzo: 0.5, burbujas: [{ x: 80, y: 56, talla: 1, dir: 1 }, { x: 192, y: 40, talla: 1, dir: -1 }, { x: 304, y: 56, talla: 1, dir: -1 }] },
   FASE_CUATRO,
   { ...FASES[11], orden: 5, prisa: 0.72, jefeVida: 24, jefeEscupe: 1.4, tiempo: 150 },
 ];
