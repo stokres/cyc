@@ -88,6 +88,8 @@ export class Aventura {
   npcs = new Map<NpcId, Personaje>();
   /** The shadow faces Pablo (they have been talking) instead of mirroring him, until he walks. */
   private sombraMira = false;
+  /** How far the shadow keeps from Pablo (it comes back to a step once he walks). */
+  private sombraDist = 150;
   props: Objeto[] = [];
   private zonasLogicas: Record<string, ZonaLogica> = {};
   private ocupado = false;
@@ -148,7 +150,8 @@ export class Aventura {
     gest.handlers = {
       tap: (p) => this.alTocar(p),
     };
-    this.motor.cond = (expr) => (expr.startsWith('!') ? !this.flag(expr.slice(1)) : this.flag(expr));
+    // Several flags joined by «&» must all hold (a flag with «!» in front must not be set).
+    this.motor.cond = (expr) => expr.split('&').every((e) => (e.startsWith('!') ? !this.flag(e.slice(1)) : this.flag(e)));
     this.motor.extra = (ctx, capa) => this.cap.dibujar?.(this, ctx, capa);
     this.motor.extraFijo = (ctx) => this.cap.dibujarFijo?.(this, ctx);
   }
@@ -850,19 +853,28 @@ export class Aventura {
    * Pablo's shadow as a character of its own. `despegar`: it peels off his feet
    * and steps back to its place, instead of already being there.
    */
-  sacarSombra(despegar = false) {
+  sacarSombra(despegar = false, distancia = 150) {
     const pablo = this.pjs.get('pablo');
     if (!pablo || this.sombra) return;
     const S = this.S;
+    this.sombraDist = distancia;
+    // Peeling off, it steps to the side with more room (away from the nearest friend), so it stands apart and in plain view.
+    let lado = -pablo.face;
+    if (despegar && distancia > 150) {
+      const otros = [...this.pjs.values()].filter((a) => a !== pablo && a.visible);
+      const libre = (sg: number) => Math.min(1e5, ...otros.filter((a) => Math.sign(a.X - pablo.X) === sg).map((a) => Math.abs(a.X - pablo.X)));
+      lado = libre(1) >= libre(-1) ? 1 : -1;
+    }
     const s = new Personaje(this.motor.world, this.motor.defs, 'sombra', REPARTO.pablo.arte, this.estado.ropa.pablo ?? REPARTO.pablo.ropa, 9);
     s.tintFijo = [0.09, 0.07, 0.13];
     s.shadowOn = false;
-    const y = Math.max(S.walk.y0, pablo.y - 14);
-    Object.assign(s, { X: despegar ? pablo.X - pablo.face * 20 : pablo.X - pablo.face * 150, y, face: pablo.face, speed: (S.speed ?? 250) * 0.85 });
+    // Standing apart it also steps toward the camera, so it does not melt into whoever is behind it.
+    const y = distancia > 150 ? Math.min(S.walk.y1, pablo.y + 60) : Math.max(S.walk.y0, pablo.y - 14);
+    Object.assign(s, { X: despegar ? pablo.X + lado * 20 : pablo.X - pablo.face * 150, y, face: pablo.face, speed: (S.speed ?? 250) * 0.85 });
     this.sombra = s;
     this.sombraMira = false;
     this.motor.actores.push(s);
-    if (despegar) void s.walkTo(pablo.X - pablo.face * 150, y).then(() => (s.face = pablo.face));
+    if (despegar) void s.walkTo(pablo.X + lado * distancia, y).then(() => (s.face = pablo.face));
   }
 
   /** The shadow leaves the scene for good: from now on it is only a voice in the dialogues. */
@@ -884,13 +896,16 @@ export class Aventura {
     const P = this.pjs.get('pablo');
     if (P && s.visible) {
       const lado = P.moving ? -P.face : Math.sign(s.X - P.X) || -P.face;
-      const goal = { X: P.X + lado * 150, y: Math.max(this.S.walk.y0, Math.min(this.S.walk.y1, P.y - 14)) };
+      const goal = { X: P.X + lado * this.sombraDist, y: this.sombraDist > 150 ? Math.min(this.S.walk.y1, P.y + 60) : Math.max(this.S.walk.y0, Math.min(this.S.walk.y1, P.y - 14)) };
       // Once walking it keeps chasing the moving goal until it gets there. While
       // Pablo walks it never stops; when he is still, it lets him shift about.
       if (s.moving || Math.hypot(goal.X - s.X, goal.y - s.y) > (P.moving ? 30 : 110)) void s.walkTo(goal.X, goal.y);
     }
     s.step(dt);
-    if (P?.moving) this.sombraMira = false;
+    if (P?.moving) {
+      this.sombraMira = false;
+      this.sombraDist = 150;
+    }
     if (P && !s.moving) {
       if (this.sombraMira) s.lookAt(P.X);
       else s.face = P.face;

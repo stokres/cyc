@@ -55,6 +55,8 @@ export interface SonidoMinijuego {
   pararMusica(fundido?: number): void;
   /** For a game of several rounds: while held, stopping the music does not bring the scene's back (`Sound` has it, a stand-in may not). */
   retener?(si: boolean): void;
+  /** Fades out every layer of the scene's music (and, with `retener(true)` before, keeps it out until `retener(false)`). */
+  callarEscena?(fundido?: number): void;
   posicion?(id: Pista): number | null;
   lista?(id: Pista): Promise<void>;
   efecto?(id: Pista, volumen?: number): void;
@@ -175,6 +177,11 @@ export class Sound {
     if (this.retenido === si) return;
     this.retenido = si;
     if (!si) this.ambiente(this.deseado);
+  }
+
+  /** The scene's own music goes out (a game with its own sound plays over the chapter): every layer fades out. It comes back with `retener(false)`. */
+  callarEscena(fundido = 0.4) {
+    for (const c of [...this.capas.values()]) if (c.id !== this.primerPlano) this.callar(c.id, fundido);
   }
 
   /**

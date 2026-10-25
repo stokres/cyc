@@ -102,7 +102,11 @@ export async function jugarPokeusera(juego: HTMLElement, o: OpcionesPokeusera = 
   aplicarAjustes();
   cfg.rapido = !!o.rapido;
   precalentar(altoPrevisto());
+  // The chapter's music (the world of the concepts' one) must not go on under PokéUsera's own: it is held back and faded out
+  // until the game closes (`retener(false)` in the `finally`).
   o.sonido?.pararMusica(0.4);
+  o.sonido?.retener?.(true);
+  o.sonido?.callarEscena?.(0.4);
   sonido.desbloquear();
 
   let marco: Marco | null = null;
@@ -310,6 +314,7 @@ export async function jugarPokeusera(juego: HTMLElement, o: OpcionesPokeusera = 
     entrada.destruir();
     pantalla?.destruir();
     sonido.silenciar(false);
+    o.sonido?.retener?.(false);
   }
   await marco?.cerrar();
   return resultado;

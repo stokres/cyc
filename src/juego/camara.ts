@@ -16,6 +16,7 @@
 //   @nivelar 400              back to straight
 //   @zoom pablo 2.4           hard zoom onto Pablo's face (add ms to make it a slow push: @zoom pablo 2.4 900)
 //   @zoom tragaperras 1.8     ... or onto an object (any zone of the scene)
+//   @zoom pablo+sombra 1.8    ... or onto the middle point of two (Pablo and his shadow, apart)
 //   @corte chuchi 2.6 -7      hard cut: framing on Chuchi, 2.6 times, tilted -7 degrees
 //   @corte general            hard cut back to the whole bar, straight
 //   @general 500              the whole bar again, taking 500 ms (the tilt stays)
@@ -78,6 +79,8 @@ export class Camara {
   /** The manga shot (panels in black and white over the scene). */
   readonly manga: PlanoManga;
   private escrito = '';
+  /** The camera moved the real (scrolling) camera by itself to bring a target to the middle: who had it before, to give it back. */
+  private focoAuto: null | { antes: number | null } = null;
 
   constructor(private readonly g: Aventura) {
     this.rayas = document.createElement('div');
@@ -106,7 +109,12 @@ export class Camara {
     const g = this.g;
     const m = g.motor;
     if (objetivo === 'centro' || objetivo === 'general') return { x: 0.5, y: 0.5 };
-    const a = g.pjs.get(objetivo as never) ?? g.npcs.get(objetivo as never);
+    // Two targets joined by «+» (`pablo+sombra`): the point halfway between them, to frame them together.
+    if (objetivo.includes('+')) {
+      const ps = objetivo.split('+').map((o) => this.punto(o)).filter((q): q is { x: number; y: number } => !!q);
+      return ps.length ? { x: ps.reduce((n, q) => n + q.x, 0) / ps.length, y: ps.reduce((n, q) => n + q.y, 0) / ps.length } : null;
+    }
+    const a = g.pjs.get(objetivo as never) ?? g.npcs.get(objetivo as never) ?? (objetivo === 'sombra' ? g.sombra : undefined);
     // Someone who is not on screen (the friends in the world of the concepts are figures: their zones) is a zone.
     if (a && a.visible) {
       const k = m.f(a.y);
@@ -118,6 +126,44 @@ export class Camara {
       return { x: (r.x + r.w / 2) / m.vw, y: (r.y + r.h / 2) / H };
     }
     return null;
+  }
+
+  /** Where a target is in the scene (its X), or null. `a+b` is the middle point of both. */
+  private posX(objetivo: string): number | null {
+    const g = this.g;
+    if (objetivo.includes('+')) {
+      const xs = objetivo.split('+').map((o) => this.posX(o)).filter((x): x is number => x !== null);
+      return xs.length ? xs.reduce((n, x) => n + x, 0) / xs.length : null;
+    }
+    if (objetivo === 'centro' || objetivo === 'general') return null;
+    const a = g.pjs.get(objetivo as never) ?? g.npcs.get(objetivo as never) ?? (objetivo === 'sombra' ? g.sombra : undefined);
+    if (a && a.visible) return a.X;
+    return g.S?.zonas[objetivo]?.X ?? null;
+  }
+
+  /**
+   * Before a close framing: if the target is off to a side of the screen (the real camera follows whoever plays, and the
+   * speaker can be far from them, or at the end of the bar), the real camera first goes to it. Otherwise the zoom would
+   * have to keep the picture inside its edges and leave the speaker cut off at the side, and how much of the bar fits
+   * on screen depends on the screen's proportions. It is given back (to the player, or to whoever `@foco` had) when the shot opens.
+   */
+  private centrar(objetivo: string, z: number) {
+    const g = this.g;
+    if (z <= 1) return this.soltarFoco();
+    if (g.instantaneo) return;
+    const X = this.posX(objetivo);
+    const p = this.punto(objetivo);
+    if (X === null || !p || (p.x > 0.32 && p.x < 0.68)) return;
+    if (!this.focoAuto) this.focoAuto = { antes: g.foco };
+    g.foco = X;
+    g.motor.seguir(X, true);
+  }
+
+  /** The real camera goes back to what it was before `centrar`. */
+  private soltarFoco() {
+    if (!this.focoAuto) return;
+    this.g.foco = this.focoAuto.antes;
+    this.focoAuto = null;
   }
 
   /** A framing on a target: `z` times closer, keeping it in the upper middle of the screen where the dialogue box does not cover it. */
@@ -155,6 +201,7 @@ export class Camara {
 
   /** Zoom onto a face or an object. Without `ms` it is a cut: the shot is simply closer, with a little punch. */
   zoom(objetivo: string, z: number, ms = 0) {
+    this.centrar(objetivo, z);
     const a = this.enfocar(objetivo, z);
     if (ms > 0 || this.g.instantaneo) return this.ir(a, ms, suave);
     // The punch: it lands a bit too close and settles.
@@ -165,6 +212,7 @@ export class Camara {
 
   /** Hard cut to another framing (no travelling), with an optional roll. */
   corte(objetivo: string, z = 1, r = this.e.r) {
+    this.centrar(objetivo, z);
     const a = this.enfocar(objetivo, z, r);
     this.parar();
     this.e = a;
@@ -186,6 +234,7 @@ export class Camara {
 
   /** The whole shot again (roll and tilt stay: use `nivelar` for those). */
   general(ms = 500) {
+    this.soltarFoco();
     return this.ir({ ...this.e, z: 1, fx: 0.5, fy: 0.5, tx: 0.5, ty: 0.5, ox: 0 }, ms, suave);
   }
 
@@ -201,6 +250,7 @@ export class Camara {
    * Resolves when it has landed.
    */
   async barrido(objetivo: string, z = 1.8, dir = 1) {
+    this.centrar(objetivo, z);
     const a = this.enfocar(objetivo, z);
     if (this.g.instantaneo) return void (await this.ir(a, 0, suave));
     this.rayas.style.opacity = '1';
@@ -214,6 +264,7 @@ export class Camara {
   /** The scene's own camera to a target (a person or a zone), waiting until it lands; `libre`: it follows whoever plays again. */
   async foco(objetivo: string) {
     const g = this.g;
+    this.focoAuto = null;
     if (objetivo === 'libre') {
       g.foco = null;
       return;
@@ -230,6 +281,7 @@ export class Camara {
 
   /** Back to a plain shot. */
   reset(ms = 0) {
+    this.soltarFoco();
     this.manga.ocultar();
     this.temblor = null;
     this.rayas.style.opacity = '0';

@@ -350,7 +350,7 @@ async function elRestoDeLaNoche(g: Aventura) {
   await subirNivel(g, 5);
   await g.hablar('c2.noche.reves');
   // The narrator of chapter 1, Pablo's shadow, peels off his feet and takes the story over.
-  g.sacarSombra(true);
+  g.sacarSombra(true, 400);
   await g.esperar(900);
   await g.hablar('c2.noche.narrador');
   await g.hablar('c2.noche.consola');
