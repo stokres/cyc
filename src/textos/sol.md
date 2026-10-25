@@ -20,9 +20,9 @@ El mundo usa: charla.<amigo>.N (cada amigo se une al grupo), une.<amigo>, narrad
 (el menú START), consejo.* (las ayudas de la primera vez), chist.*, cofre.*, escondite.*, madre.derrota.* y derrota.*; los letreros son lectura.* y letrero.*.
 El Teatro usa: teatro.*, puzle.*, fantasma.*, chat.* (cada mensaje es «< hora | texto» si lo dice el otro o «> hora | texto» si
 lo dice el que piensa), puerta.*, bambalinas.*, apuntador.<id>.aparece/unido, escenario.*, poder.<id>.nada y mapa.*.
-El combate (src/sol/combate.ts) usa: combate.* (menús, la línea de arriba y el final), orden.* (los seis iconos),
+El combate (src/sol/combate.ts) usa: combate.* (menús, el cartel de abajo, las ayudas .ayuda, las teclas y la mini guía guia.* y el final), orden.* (los seis iconos),
 poder.<id>.nombre, apuntador.*, invocacion.*, objeto.*, enemigo.<id>.nombre y enemigo.<id>.<ataque>, etiqueta.*
-y ovacion.grito.*, jefe.*, calderon.*, efecto.* y creditos.* / final.* (el final, src/sol/final.ts). Los huecos entre llaves ({quien}, {n}...) los rellena el juego. La línea de arriba admite unas
+y ovacion.grito.*, jefe.*, calderon.*, efecto.* y creditos.* / final.* (el final, src/sol/final.ts). Los huecos entre llaves ({quien}, {n}...) los rellena el juego. El cartel admite unas
 36 letras: mejor corta.
 Los textos son provisionales: los revisará Jesús junto con el resto.
 -->
@@ -328,13 +328,68 @@ combate.nada.apuntadores = No tiene apuntadores a mano.
 combate.nada.invocar = No hay apuntadores en espera.
 combate.nada.objeto = No quedan objetos.
 
-// ---------------------------------------------------------------- combate: la línea de arriba
+// Lo que lleva cada amigo en la mano (sale en el cartel del ataque y en la ayuda del menú)
+arma.pablo = el guion
+arma.fran = la caña
+arma.guille = el pollo de goma
+arma.chuchi = el teclado
 
-combate.ataca = ¡{quien} ataca!
+// ---------------------------------------------------------------- combate: ayuda de cada opción y teclas
+// La ayuda es una frase corta que sale al lado del menú con lo que hace la opción marcada.
+
+combate.luchar.ayuda = Elige qué hará cada amigo. Luego actúan todos.
+combate.huir.ayuda = Intentas escapar del combate. Puede fallar.
+combate.estado.ayuda = Mira los números de cada amigo.
+orden.atacar.ayuda = Golpea a un enemigo con {arma}.
+orden.poder.ayuda = Poderes especiales. Gastan IP (el número).
+orden.apuntadores.ayuda = Suelta un apuntador para un ataque fuerte.
+orden.invocar.ayuda = Gasta apuntadores sueltos: ataque enorme a todos.
+orden.objeto.ayuda = Usa un objeto para curar a un amigo.
+orden.defender.ayuda = Te cubres: recibes menos daño este turno.
+
+poder.siy.ayuda = Dos golpes seguidos a un enemigo.
+poder.cajonazo.ayuda = Golpea a un enemigo y a los de al lado.
+poder.fresquito.ayuda = Ataque de agua a un enemigo.
+poder.otracana.ayuda = Cura a un amigo.
+poder.cierzo.ayuda = Viento: golpea a un enemigo y a los de al lado.
+poder.abrazo.ayuda = Un abrazo fuerte a un enemigo.
+poder.cincominutos.ayuda = Fuego fuerte, pero Chuchi llega el último.
+poder.chupito.ayuda = Fuego: quema a un enemigo y a los de al lado.
+
+apuntador.ayuda.puesto = Equipado: da bonos. Soltarlo ataca fuerte, sin bono.
+apuntador.ayuda.espera = Suelto: sin bono. Equípalo otra vez o invoca.
+apuntador.ayuda.recupera = Durmiendo: vuelve en unos turnos.
+apuntador.ayuda.reservado = Ya lo has elegido en esta ronda.
+
+invocacion.ovacion.ayuda = Pide 1 apuntador suelto de Tierra. Daña a todos.
+invocacion.apagon.ayuda = Pide 1 suelto de Fuego y 1 de Viento. Daña a todos.
+invocacion.calderon.ayuda = Pide los cuatro apuntadores sueltos.
+
+objeto.turron.ayuda = Recupera salud a un amigo.
+objeto.chupito.ayuda = Recupera IP a un amigo.
+
+combate.objetivo.ayuda = Elige a quién va dirigido.
+
+// Las teclas que se ven abajo cuando se juega con teclado
+combate.teclas.menu = Flechas: mover   {A}: elegir
+combate.teclas.sub = Flechas: mover   {A}: elegir   {B}: volver
+combate.teclas.objetivo = Flechas: apuntar   {A}: aceptar   {B}: volver
+
+// Mini guía de la primera batalla ({a} y {b} son las teclas o los botones)
+guia.combate.1 = Cada ronda eliges qué hace cada amigo. Cuando todos han elegido, actúan.
+guia.combate.2 = Flechas para moverte, {A} para elegir y {B} para volver atrás. El texto de ayuda sale al lado de cada opción.
+// La primera vez que hay apuntadores en la batalla
+guia.apuntadores.1 = Un apuntador es un ayudante que lleva cada amigo. Mientras está equipado, da bonos.
+guia.apuntadores.2 = Soltarlo es un ataque fuerte, pero pierdes su bono. Suelto, puedes volver a equiparlo.
+guia.apuntadores.3 = Invocar gasta apuntadores sueltos en un ataque enorme a todos. Luego duermen unos turnos.
+
+// ---------------------------------------------------------------- combate: la línea de cartel (abajo)
+
+combate.ataca = ¡{quien} ataca con {arma}!
 combate.usa = ¡{quien} usa {poder}!
 combate.defiende = {quien} se defiende.
 combate.suelta = ¡{quien} suelta a {apuntador}!
-combate.pone = {quien} vuelve a poner a {apuntador}.
+combate.pone = {quien} se equipa a {apuntador}.
 combate.invoca = ¡{quien} invoca {invocacion}!
 combate.objeto = {quien} usa {objeto}.
 combate.critico = ¡Golpe crítico!
@@ -392,11 +447,11 @@ apuntador.ejem.nombre = Ejem
 apuntador.psst.nombre = Psst
 apuntador.shhh.nombre = Shhh
 apuntador.accion.puesto = Soltar
-apuntador.accion.espera = Poner
+apuntador.accion.espera = Equipar
 apuntador.accion.recupera = Dormido
-apuntador.estado.puesto = Puesto
-apuntador.estado.espera = En espera
-apuntador.estado.recupera = Recuperando
+apuntador.estado.puesto = Equipado
+apuntador.estado.espera = Suelto
+apuntador.estado.recupera = Durmiendo
 
 invocacion.ovacion.nombre = La ovación
 invocacion.calderon.nombre = Calderón

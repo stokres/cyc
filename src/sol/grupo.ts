@@ -82,6 +82,8 @@ export interface Grupo {
   objetos: Record<string, number>;
   monedas: number;
   apuntadores: ApuntadorGrupo[];
+  /** The mini guides of the fight already shown (the first fight, the first time there are prompters). */
+  guias?: { combate?: boolean; apuntadores?: boolean };
 }
 
 /** Bonus of the prompters set on a friend, by id (kept here so the data stays next to the stats). */

@@ -101,16 +101,17 @@ const ARMAS: Record<Amigo, Arma> = {
     pivote: [2, 12],
     punta: [2, 2],
   },
-  // A keyboard, its cable hanging from the bottom, a red Enter.
+  // A keyboard (a light case with dark keys so that it is not taken for a phone), its cable hanging from the bottom,
+  // a red Enter.
   chuchi: {
-    pal: { t: '#7a8098', g: '#3a3f4e', G: '#2a2e3a', k: '#d4d9e6', K: '#9aa2b8', r: '#ff5040', c: '#8a90a8' },
+    pal: { t: '#f2efe0', g: '#e0dccb', G: '#a9a591', k: '#454a5e', K: '#2e3242', r: '#ff4030', c: '#6a6f86' },
     filas: [
       'ttttttt', // 0
-      'gkkgkkg', // 1
+      'gkkKkkg', // 1
       'gggggGg', // 2
-      'gkkgkkg', // 3
+      'gkkKkkg', // 3
       'gggggGg', // 4
-      'gkkgkrg', // 5
+      'gkkKkrg', // 5
       'gggggGg', // 6
       'gkkkkkg', // 7
       'gggggGg', // 8
@@ -169,14 +170,19 @@ const ARMAS: Record<Amigo, Arma> = {
   },
 };
 
+const ESCALA_ARMA = 1.3;
+
 /** Paints a weapon turned `ang` degrees clockwise (0 = as drawn, tip up) with its grip at (hx, hy). Returns where the tip ends. */
 function arma(g: G, q: Amigo, hx: number, hy: number, ang: number): [number, number] {
   const A = ARMAS[q];
+  // what each friend holds is drawn bigger than the grid it was made on, with its own dark rim, so that it reads at once
+  const E = ESCALA_ARMA;
+  const w = vacio();
   const r = (ang * Math.PI) / 180;
   const cos = Math.cos(r);
   const sin = Math.sin(r);
   const [px0, py0] = A.pivote;
-  const R = Math.ceil(Math.hypot(A.filas[0].length, A.filas.length)) + 1;
+  const R = Math.ceil(Math.hypot(A.filas[0].length, A.filas.length) * E) + 1;
   for (let y = Math.floor(hy) - R; y <= Math.ceil(hy) + R; y++) {
     for (let x = Math.floor(hx) - R; x <= Math.ceil(hx) + R; x++) {
       // four samples inside the pixel; the commonest letter wins, so a turned edge stays clean
@@ -185,8 +191,8 @@ function arma(g: G, q: Amigo, hx: number, hy: number, ang: number): [number, num
       for (const [ox, oy] of [[-0.25, -0.25], [0.25, -0.25], [-0.25, 0.25], [0.25, 0.25]]) {
         const dx = x + ox - hx;
         const dy = y + oy - hy;
-        const sx = Math.floor(px0 + 0.5 + cos * dx + sin * dy);
-        const sy = Math.floor(py0 + 0.5 - sin * dx + cos * dy);
+        const sx = Math.floor(px0 + 0.5 + (cos * dx + sin * dy) / E);
+        const sy = Math.floor(py0 + 0.5 + (-sin * dx + cos * dy) / E);
         const ch = A.filas[sy]?.[sx];
         if (ch && ch !== '.') {
           pintados++;
@@ -197,11 +203,19 @@ function arma(g: G, q: Amigo, hx: number, hy: number, ang: number): [number, num
       let mejor = '';
       let n = 0;
       for (const [ch, v] of votos) if (v > n) { mejor = ch; n = v; }
-      px(g, x, y, A.pal[mejor]);
+      px(w, x, y, A.pal[mejor]);
     }
   }
-  const ux = A.punta[0] - px0;
-  const uy = A.punta[1] - py0;
+  // the rim: every empty pixel next to the weapon, in a dark tone (the body's own outline then goes round it all)
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      if (w[y * W + x]) continue;
+      if ([[0, -1], [1, 0], [0, 1], [-1, 0]].some(([ox, oy]) => w[(y + oy) * W + x + ox] && x + ox >= 0 && x + ox < W && y + oy >= 0 && y + oy < H)) px(g, x, y, '#1c1226');
+    }
+  }
+  for (let i = 0; i < w.length; i++) if (w[i]) g[i] = w[i];
+  const ux = (A.punta[0] - px0) * E;
+  const uy = (A.punta[1] - py0) * E;
   return [hx + cos * ux - sin * uy, hy + sin * ux + cos * uy];
 }
 
