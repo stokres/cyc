@@ -38,7 +38,8 @@ import { fxCalderon } from './calderon';
 import { paginaGrande } from './jefeArte';
 import type { Donde, Escena, OpcionesAnim, Punto } from './efectosPoderes';
 import { ENEMIGOS, siluetaEnemigo, spriteEnemigo, type AtaqueEnemigo, type DefEnemigo, MECHA_PETARDO } from './enemigos';
-import { anchoTexto, escribir } from './fuente';
+import { anchoTexto, escribir, partir } from './fuente';
+import { alEscapar, usaTeclado } from './teclado';
 import { dibujarFondo, type FondoCombate } from './fondo';
 import {
   AMIGOS, ajustar, darApuntador, darExp, eficacia, expTotal, statsDe, vivo, type ApuntadorGrupo, type Elemento, type Grupo, type Miembro,
@@ -192,6 +193,8 @@ interface ItemLista {
   txt: string;
   der?: string;
   gris?: boolean;
+  /** The help line shown beside the menu while this entry is marked. */
+  ayuda?: string;
 }
 
 const nombreAmigo = (q: Amigo) => texto(`nombre.${q}`);
@@ -261,11 +264,15 @@ export class Combate implements Escena {
   /** Prompters already chosen in this round's orders (so two friends do not use the same one). */
   private reservados = new Set<ApuntadorGrupo>();
   private intentosHuida = 0;
+  /** Undoes the Escape key (= B) once the fight is over. */
+  private quitarEsc: () => void = () => {};
+  private ayudaCache = { txt: '', lineas: [] as string[] };
 
   constructor(o: OpcionesCombate) {
     this.g = o.grupo;
     this.sonido = o.sonido;
     this.mandos = o.mandos;
+    this.quitarEsc = alEscapar(() => this.mandos.pulsar('b'));
     this.sinHuida = !!o.sinHuida;
     this.VEL = o.rapido ? 4 : 1;
     this.musicaPrevia = o.sonido.actual;
@@ -525,11 +532,13 @@ export class Combate implements Escena {
     await this.salir(r);
     this.resultadoFinal = r;
     this.activo = false;
+    this.quitarEsc();
     return r;
   }
 
   /** Rounds until somebody wins. */
   private async rondas(): Promise<ResultadoCombate> {
+    await this.guias();
     for (;;) {
       this.ronda++;
       this.fase = 'menu';
@@ -545,6 +554,25 @@ export class Combate implements Escena {
   }
 
   // ------------------------------------------------------------ the menus
+
+  /** The mini guide: how the orders work in the first fight, and what a prompter and a summon are the first time the party has any. */
+  private async guias() {
+    if (this.VEL > 1) return;
+    const v = (this.g.guias ??= {});
+    const dlg = (clave: string, vars: Record<string, string> = {}) => this.dialogo.decir({ quien: null, texto: texto(clave, vars) });
+    if (!v.combate) {
+      v.combate = true;
+      const k = usaTeclado() ? 'tecla' : 'boton';
+      await dlg('guia.combate.1');
+      await dlg('guia.combate.2', { a: texto(`guia.${k}.a`), b: texto(`guia.${k}.b`) });
+    }
+    if (!v.apuntadores && this.g.apuntadores.length) {
+      v.apuntadores = true;
+      await dlg('guia.apuntadores.1');
+      await dlg('guia.apuntadores.2');
+      await dlg('guia.apuntadores.3');
+    }
+  }
 
   /** Luchar / Huir / Estado, then the orders of each friend. Returns null when fleeing failed (the enemies act). */
   private async pedirOrdenes(): Promise<Map<Heroe, OrdenHeroe> | null | 'huida'> {
@@ -597,7 +625,11 @@ export class Combate implements Escena {
   }
 
   private async menuPrincipal(): Promise<'luchar' | 'huir' | 'estado'> {
-    const items: ItemLista[] = [{ txt: texto('combate.luchar') }, { txt: texto('combate.huir'), gris: this.sinHuida }, { txt: texto('combate.estado') }];
+    const items: ItemLista[] = [
+      { txt: texto('combate.luchar'), ayuda: texto('combate.luchar.ayuda') },
+      { txt: texto('combate.huir'), gris: this.sinHuida, ayuda: texto('combate.huir.ayuda') },
+      { txt: texto('combate.estado'), ayuda: texto('combate.estado.ayuda') },
+    ];
     this.ui.modo = 'luchar';
     this.ui.menu = { items, cursor: 0, x: 6, y: 22 };
     this.vaciar();
@@ -737,7 +769,7 @@ export class Combate implements Escena {
     }
     if (orden === 'poder') {
       const ps = poderesDe(q, h.m.nivel);
-      const items: ItemLista[] = ps.map((p) => ({ txt: texto(`poder.${p.id}.nombre`), der: String(p.ip), gris: h.m.ip < p.ip }));
+      const items: ItemLista[] = ps.map((p) => ({ txt: texto(`poder.${p.id}.nombre`), der: String(p.ip), gris: h.m.ip < p.ip, ayuda: texto(`poder.${p.id}.ayuda`) }));
       const i = await this.elegirLista(items);
       if (i === null) return null;
       const p = ps[i];
@@ -750,6 +782,7 @@ export class Combate implements Escena {
         txt: texto(`apuntador.${a.id}.nombre`),
         der: texto(`apuntador.accion.${a.estado}`),
         gris: a.estado === 'recupera' || this.reservados.has(a),
+        ayuda: texto(this.reservados.has(a) ? 'apuntador.ayuda.reservado' : `apuntador.ayuda.${a.estado}`),
       }));
       const i = await this.elegirLista(items);
       if (i === null) return null;
@@ -765,7 +798,7 @@ export class Combate implements Escena {
     }
     if (orden === 'invocar') {
       const posibles = this.invocacionesPosibles();
-      const items: ItemLista[] = posibles.map((inv) => ({ txt: texto(`invocacion.${inv.id}.nombre`) }));
+      const items: ItemLista[] = posibles.map((inv) => ({ txt: texto(`invocacion.${inv.id}.nombre`), ayuda: texto(`invocacion.${inv.id}.ayuda`) }));
       const i = await this.elegirLista(items);
       if (i === null) return null;
       const inv = posibles[i];
@@ -775,7 +808,7 @@ export class Combate implements Escena {
     }
     // objeto
     const hay = OBJETOS.filter((o) => (this.g.objetos[o.id] ?? 0) > 0);
-    const items: ItemLista[] = hay.map((o) => ({ txt: texto(`objeto.${o.id}.nombre`), der: `x${this.g.objetos[o.id]}` }));
+    const items: ItemLista[] = hay.map((o) => ({ txt: texto(`objeto.${o.id}.nombre`), der: `x${this.g.objetos[o.id]}`, ayuda: texto(`objeto.${o.id}.ayuda`) }));
     const i = await this.elegirLista(items);
     if (i === null) return null;
     const obj = await this.elegirObjetivo('heroe', null);
@@ -1156,7 +1189,7 @@ export class Combate implements Escena {
       return;
     }
     if (o.tipo === 'atacar') {
-      this.msg = texto('combate.ataca', { quien: nombre });
+      this.msg = texto('combate.ataca', { quien: nombre, arma: texto(`arma.${h.m.q}`) });
       await this.espera(0.45);
       let obj: Enemigo | null = o.obj;
       if (obj.pv <= 0 || obj.muriendo >= 0) obj = this.reemplazo(obj);
@@ -1987,23 +2020,57 @@ export class Combate implements Escena {
       this.dialogo.dibujar(g);
       return;
     }
-    // the message line at the top
-    if (this.msg) {
-      const w = Math.max(80, anchoTexto(this.msg) + 22);
-      g.drawImage(ventana(w, 17), Math.round(120 - w / 2), 2);
-      escribir(g, this.msg, Math.round(120 - anchoTexto(this.msg) / 2), 5, '#ffffff', '#0a1450');
-    }
     // the status boxes of the four friends, in the order they stand on screen (the leader, in front, is the rightmost)
     this.heroes.forEach((h, i) => this.dibujarCaja(g, h, this.heroes.length - 1 - i));
+    // the message («¡Guille usa Cierzo!») sits at the bottom edge, over the lower half of the friends' boxes (their
+    // health stays readable above it) so that it never covers the effects or the damage numbers
+    if (this.msg) {
+      const w = Math.max(80, anchoTexto(this.msg) + 22);
+      g.drawImage(ventana(w, 15), Math.round(120 - w / 2), 145);
+      escribir(g, this.msg, Math.round(120 - anchoTexto(this.msg) / 2), 148, '#ffffff', '#0a1450');
+    }
     // the menus
     const u = this.ui;
     if (u.modo === 'luchar') this.dibujarMenu(g, u.menu.items, u.menu.cursor, u.menu.x, u.menu.y);
     if (u.modo === 'ordenes' || u.modo === 'lista') this.dibujarIconos(g);
     if (u.modo === 'lista') this.dibujarMenu(g, u.menu.items, u.menu.cursor, u.menu.x, u.menu.y);
     if (u.modo === 'objetivo' && u.objetivo.luchador) this.dibujarMano(g, u.objetivo.luchador, u.objetivo.vecinos);
+    if (u.modo === 'luchar' || u.modo === 'ordenes' || u.modo === 'lista') this.dibujarAyuda(g, this.textoAyuda());
+    if (usaTeclado() && (u.modo === 'luchar' || u.modo === 'ordenes' || u.modo === 'lista' || u.modo === 'objetivo')) {
+      this.dibujarTeclas(g, u.modo === 'luchar' ? 'menu' : u.modo === 'objetivo' ? 'objetivo' : 'sub');
+    }
     if (u.modo === 'estado') this.dibujarEstado(g);
     if (this.panelAbierto) this.dibujarPanelNivel(g, this.panelAbierto);
     this.dialogo.dibujar(g);
+  }
+
+  /** The help line of what the cursor is on (empty when nothing). */
+  private textoAyuda(): string {
+    const u = this.ui;
+    if (u.modo === 'ordenes') {
+      const h = u.iconos.heroe;
+      return texto(`orden.${ORDENES[u.iconos.cursor]}.ayuda`, { arma: h ? texto(`arma.${h.m.q}`) : '' });
+    }
+    if (u.modo === 'luchar' || u.modo === 'lista') return u.menu.items[u.menu.cursor]?.ayuda ?? '';
+    return '';
+  }
+
+  /** A window to the right of the menus telling in a short line what the marked option does. */
+  private dibujarAyuda(g: CanvasRenderingContext2D, s: string) {
+    if (!s) return;
+    const W = 98;
+    if (this.ayudaCache.txt !== s) this.ayudaCache = { txt: s, lineas: partir(s, W - 14) };
+    const lineas = this.ayudaCache.lineas;
+    g.drawImage(ventana(W, lineas.length * 10 + 11), 138, 19);
+    lineas.forEach((l, i) => escribir(g, l, 145, 24 + i * 10, '#ffffff', '#0a1450'));
+  }
+
+  /** The keys, at the top, only while a keyboard is what the player uses. */
+  private dibujarTeclas(g: CanvasRenderingContext2D, k: 'menu' | 'sub' | 'objetivo') {
+    const s = texto(`combate.teclas.${k}`);
+    const w = anchoTexto(s) + 16;
+    g.drawImage(ventana(w, 15), Math.round(120 - w / 2), 2);
+    escribir(g, s, Math.round(120 - w / 2) + 8, 5, '#c9d6ff', '#0a1450');
   }
 
   private dibujarCaja(g: CanvasRenderingContext2D, h: Heroe, i: number) {
