@@ -4,7 +4,7 @@
 // platforms the player stands on are reached by ladders (the player never jumps).
 import type { Fase } from './tipos';
 
-export const FASES: Fase[] = [
+const BASE: Fase[] = [
   {
     n: 1,
     fondo: 'usera',
@@ -192,3 +192,14 @@ export const FASES: Fase[] = [
     escaleras: [],
   },
 ];
+
+/**
+ * Difficulty (Jesús, 25 October 2026: always two medium bubbles at the start was too easy): from stage 3 the stages
+ * without a boss begin with more bubbles, medium ones high up: one more in stages 3–6, two more from stage 7.
+ */
+const extras = (n: number) => (n < 3 ? 0 : n < 7 ? 1 : 2);
+export const FASES: Fase[] = BASE.map((f) =>
+  f.jefe || extras(f.n) === 0
+    ? f
+    : { ...f, burbujas: [...f.burbujas, { x: 140, y: 30, talla: 1 as const, dir: -1 as const }, { x: 244, y: 30, talla: 1 as const, dir: 1 as const }].slice(0, f.burbujas.length + extras(f.n)) },
+);

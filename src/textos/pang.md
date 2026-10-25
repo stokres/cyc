@@ -99,6 +99,9 @@ hud.record = ¡RÉCORD!
 boton.disparo = Disparo
 boton.especial = Especial
 boton.pausa = Pausa
+tecla.disparo = Espacio
+tecla.especial = E
+pang.teclas = ← → o A D para andar · Espacio para disparar · E para el Especial
 
 // ---------------------------------------------------------------- el Pang corto del capítulo 2
 
