@@ -8,7 +8,8 @@
 // más» (manga), the slot machine on his face, the floor turning into Impropios Kart (skipped, closed with
 // window.__kart().cerrar()), Vero growing and swallowing Fran (the mouth), the world of the concepts (taps: three jokes,
 // Fran as «Una más», «LA ÚLTIMA»), the total chaos, PokéUsera (the phone turned upright and back, closed with window.__poke().cerrar())
-// and «Continuará…». Screenshots of each level of the night.
+// then the safari (Guille proposes it; the comic of src/ui/safari.ts plays out in real time, checked with window.__safari())
+// and «¿Continuará?». Screenshots of each level of the night.
 // Fails on any console error or if a step does not do what it should.
 // Usage: node scripts/capitulo2.mjs [url] [outDir]   (against npm run dev; the url gets ?capitulo2&nueva)
 import { chromium } from 'playwright';
@@ -35,6 +36,8 @@ const shot = async (name) => {
   if (name.startsWith('manga-en-juego') && process.env.MANGA_OUT) await page.screenshot({ path: `${process.env.MANGA_OUT}/${name}.png` });
   // And the ones of the last stretch (FINAL_OUT=/mnt/project-files/capitulo2/final).
   if (name.startsWith('final-') && process.env.FINAL_OUT) await page.screenshot({ path: `${process.env.FINAL_OUT}/${name}.png` });
+  // The safari's (SAFARI_OUT=/mnt/project-files/capitulo2/safari).
+  if (name.startsWith('safari-') && process.env.SAFARI_OUT) await page.screenshot({ path: `${process.env.SAFARI_OUT}/${name}.png` });
 };
 const wait = (ms) => page.waitForTimeout(ms);
 const flag = (k) => page.evaluate((k) => !!window.__cyc.g.estado.flags[k], k);
@@ -412,6 +415,7 @@ fotoAl('Yo en píxeles', 'final-14-caos-cortes-2', false, 1100);
 fotoAl('muy al fondo, algo enorme', 'final-15a-dinosaurio-aparece', false, 1900, true);
 fotoAl('Es el userito', 'final-15-dinosaurio', false, 4200, true);
 fotoAl('Este es mío', 'final-16-guille-flor-y-jarra', false, 1300);
+fotoAl('nos vamos de safari', 'safari-0-guille-propone', false, 900);
 
 const tocarConcepto = async (id) => tocar(await zonaCss(id));
 await paso('Tocar tres conceptos (los chistes) y que alguien señale la jarra', async () => {
@@ -452,10 +456,49 @@ await paso('LA ÚLTIMA: el caos total y, de «Este es mío», PokéUsera (el gir
   await page.setViewportSize({ width: 844, height: 390 });
   await wait(800);
   check(!(await aviso()), 'sigue el aviso de girar con el móvil ya en horizontal');
+  // «Este es mío» is followed by Guille's proposal («¿y si nos vamos de safari?»), which ends in the comic.
   await charla();
-  await page.waitForSelector('.cubierta.rotulo', { timeout: 120000 });
 });
 check((await nivel()) === 8, 'tras pedir la última la noche no está en el nivel 8');
+
+await paso('El safari: el cómic de la caravana, de la M-30 a Las Vegas, en tiempo real, y «¿Continuará?»', async () => {
+  await page.waitForFunction(() => window.__safari?.().listo, null, { timeout: 60000 });
+  await page.waitForSelector('.cubierta.minijuego.safari', { timeout: 10000 });
+  check(!(await page.$('.cubierta.girar')), 'con el cómic abierto sale el aviso de girar (en horizontal)');
+  // One picture of each page when its time comes (page, seconds into it), checked against the page's own clock.
+  const fotosComic = [
+    [0, 7.2, 'safari-1-m30-monegros'],
+    [0, 15, 'safari-1b-mapa-vuela'],
+    [1, 6.5, 'safari-2-sabana-y-diploma'],
+    [2, 8, 'safari-3-oceano-pulpo'],
+    [2, 15.6, 'safari-3b-kilometro-4000'],
+    [3, 6.4, 'safari-4-canon-crac'],
+    [3, 14, 'safari-4b-llegada-a-las-vegas'],
+    [3, 22, 'safari-4c-ultimo-bocadillo'],
+  ];
+  const t0 = Date.now();
+  let f0 = 0;
+  while (await page.$('.cubierta.minijuego.safari')) {
+    if (Date.now() - t0 > 240000) return void errors.push('safari: no acaba en cuatro minutos');
+    const e = await page.evaluate(() => {
+      const s = window.__safari?.();
+      return s ? { p: s.pagina, tp: s.tp, f: s.fotogramas } : null;
+    });
+    if (e) {
+      f0 = e.f;
+      if (fotosComic.length && e.p === fotosComic[0][0] && e.tp >= fotosComic[0][1]) await shot(fotosComic.shift()[2]);
+      // A page that is already past its picture (the page turned first): the picture is missed, not waited for.
+      while (fotosComic.length && e.p > fotosComic[0][0]) errors.push(`PASO FALLIDO: no hubo foto de ${fotosComic.shift()[2]} (la página pasó antes)`);
+    }
+    await wait(250);
+  }
+  check(f0 > 200, 'el cómic del safari pinta pocos fotogramas (' + f0 + ')');
+  await page.waitForSelector('.cubierta.rotulo', { timeout: 60000 });
+  await wait(1200);
+  const rotulo = await page.evaluate(() => document.querySelector('.cubierta.rotulo')?.innerText ?? '');
+  check(rotulo.includes('¿Continuará?'), 'la tarjeta del final no dice «¿Continuará?»: ' + rotulo);
+  await shot('safari-5-continuara');
+});
 
 await paso('Continuará', async () => {
   await wait(300);

@@ -35,6 +35,7 @@ Fichas para escribir a los cuatro con su voz. Las dio el grupo el 2 de octubre d
 - Muy cariñoso y divertido. Le gusta beber y ponerse contentillo.
 - Es el único de los cuatro que ya no está en la compañía de improvisación **Impropios**, así que se le ve menos y se le echa de menos.
 - Vive con su novia.
+- Le encantan los animales y los safaris: se sacó el **curso oficial de guía de safari** (cuarenta horas, diploma y chaleco con bolsillos) y presume de ello. Tiene una caravana. Es quien propone el safari al final del capítulo 2 (`c2.safari.propone`) y quien lo conduce: confía en el diploma más de lo que debería (en el cómic lo llevan pegado con cinta aislante) y da por hecho que un elefante es una jirafa si tiene el cuello cerca.
 
 ## Aceituna
 

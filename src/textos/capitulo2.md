@@ -38,9 +38,10 @@ canto.gana = ¡CAMIONEEES Y CARAVANAAAS!
 // ---------------------------------------------------------------- título y fin del arranque
 
 titulo.capitulo2 = Capítulo 2 · Lo que pasó dentro
-c2.fin.sub = Hasta aquí el capítulo 2, antes del PokéUsera
+c2.fin.continuara = ¿Continuará?
+c2.fin.sub = Fin del capítulo 2, de momento
 c2.fin.titulo = Hasta aquí, de momento
-c2.fin.texto = El capítulo 2 sigue en obras. Los cuatro han llegado al mundo de los conceptos, Guille tiene una jarra y el userito mitológico ya ha salido de su sombra. Lo que viene es el PokéUsera.
+c2.fin.texto = Los cuatro han cazado al Ultimosaurio, se han ido de safari en la caravana de Guille y han llegado al desierto de Las Vegas, con La Penúltima brillando al fondo. Si hay más, ya se verá. Puede que sí. Puede que no.
 
 // ---------------------------------------------------------------- arranque: la puerta del Brío
 
@@ -774,6 +775,82 @@ GUILLE (chulo): Este es mío.
 GUILLE (contento): Doctor en ciencias animales, señores. Los herbívoros se me daban bien; los mitológicos, todavía mejor.
 FRAN (sorprendido): ¡Guille, te has guardado la última en una jarra!
 CHUCHI (nervioso): Pues no la sueltes, que como se levante otra vez...
+
+// ---- Guille propone el safari (tras cazar al Ultimosaurio) y el cómic de la caravana (src/ui/safari.ts)
+
+## c2.safari.propone
+@general 500
+GUILLE (contento): Oídme. Ahora que tengo a este pichoncito en la jarra... ¿y si nos vamos de safari?
+CHUCHI (sorprendido): ¿De... safari?
+GUILLE (contento): ¡Que soy guía titulado! Con mi curso oficial y todo: cuarenta horas, diploma y un chaleco con bolsillos.
+PABLO (chulo): Un hombre que caza dinosaurios con una jarra. Qué menos que un diploma.
+GUILLE: Tengo una caravana aparcada ahí fuera. Cabemos todos. Y el Ultimosaurio va en la jarra, que viaja de lujo.
+FRAN (sorprendido): ¿Y hay caña en un safari?
+GUILLE (contento): Hay un bar en cada charca, Fran. Los animales también salen de cañas.
+CHUCHI (nervioso): Pero mañana trabajo...
+FRAN (contento): ¡Una más y nos vamos!
+> Y así, con una jarra, un diploma y una caravana, los cuatro se echaron a la carretera.
+
+// Las páginas del cómic. Cada viñeta tiene su cartucha (el narrador), sus bocadillos (salen de la caravana: nadie se ve,
+// solo ella habla) y sus onomatopeyas. Lo que dice cada uno: Chuchi se preocupa, Guille presume de curso, Pablo se
+// emociona, Fran quiere caña. Los rótulos que salen en el dibujo (carteles, diploma) también están aquí.
+
+safari.p1.a.cart = Madrid, M-30. Seis y media de la mañana.
+safari.p1.a.b1 = Oye, pero... ¿seguro que es por aquí?
+safari.p1.a.b2 = A ver, que no nos hemos equivocado.
+safari.p1.b.cart = Tres horas después: los Monegros.
+safari.p1.b.b1 = ¿Quién tiene el mapa?
+safari.p1.b.b2 = Yo tengo el curso.
+safari.p1.c.b2 = Mejor. Así no discutimos.
+
+safari.p2.a.cart = Tres días después... África.
+safari.p2.a.b1 = ¡Jirafas! ¡Mirad qué cuellos!
+safari.p2.a.b2 = Guille... eso era un elefante.
+safari.p2.a.b3 = Silencio, que se asustan.
+safari.p2.a.b4 = ¡Perdón! Era para saludar.
+safari.p2.b.cart = Mientras tanto, en la ventana...
+safari.p2.b.b1 = Ahí lo pone: guía titulado.
+safari.p2.b.b2 = Está pegado con cinta aislante.
+safari.p2.b.b3 = Con muy buena cinta.
+
+safari.p3.a.cart = Océano Atlántico. Más o menos.
+safari.p3.a.b1 = ¿Esto flota?
+safari.p3.a.b2 = Todo flota si se lo pides con cariño.
+safari.p3.a.b3 = ¿Se come?
+safari.p3.a.b4 = Mañana trabajo...
+safari.p3.b.cart = Kilómetro 4.000
+safari.p3.b.b1 = ¿Cuánto falta?
+safari.p3.b.b2 = Ya casi, ya casi.
+
+safari.p4.a.cart = Rocas rojas. Utah o Arizona.
+safari.p4.a.b1 = Una más y nos vamos.
+safari.p4.a.b2 = Eso dijiste en Zaragoza.
+safari.p4.a.b3 = Tranquilos: era un cactus joven.
+safari.p4.b.cart = Nevada. Atardecer.
+safari.p4.b.b1 = ¿Eso es Las Vegas?
+safari.p4.b.b2 = Sí. Y nosotros, en el desierto.
+safari.p4.b.b3 = ¿Ese cartel pone «La Penúltima»?
+safari.p4.b.b4 = Chicos... esto no venía en el curso.
+
+// Las onomatopeyas (dibujadas con trazos; aquí solo la palabra).
+safari.ono.brum = ¡BRUM!
+safari.ono.fiu = ¡FIUUU!
+safari.ono.piii = ¡PIIIII!
+safari.ono.prru = ¡PRRRUUU!
+safari.ono.plaf = ¡PLAF!
+safari.ono.crac = ¡CRAC!
+safari.ono.frena = ¡CHIRRRR!
+
+// Rótulos dentro de los dibujos.
+safari.cartel.a2 = A-2
+safari.cartel.zaragoza = Zaragoza
+safari.cartel.km = KM 4000
+safari.cartel.penultima = La Penúltima
+safari.cartel.vegas = Las Vegas
+safari.diploma.arriba = Diploma
+safari.diploma.titulo = Guía de safari
+safari.diploma.nombre = Guille
+safari.diploma.pie = Curso oficial · Aprobado
 
 // ---------------------------------------------------------------- manga (onomatopeyas en castellano; las japonesas son dibujo)
 manga.ono.zas = ¡ZAS!

@@ -38,6 +38,7 @@ import { prepararCortes, type Cortes } from '../juego/estilos';
 import { h } from '../ui/hud';
 import { jugarCanas } from '../ui/canas';
 import { jugarCanto } from '../ui/canto';
+import { jugarSafari } from '../ui/safari';
 import { mostrarTragaperras } from '../ui/tragaperras';
 import { abrirBoca, type Boca } from '../ui/boca';
 import { jugarPangCapitulo } from '../pang/capitulo';
@@ -482,9 +483,9 @@ async function elCaos(g: Aventura) {
   await g.hablar('c2.caos.dino');
   await g.hablar('c2.caos.guille');
   await pokeusera(g);
-  // FINAL: aquí acaba lo que hay del capítulo 2 (el «Continuará»).
   cortes?.parar();
   g.plano.alMarca = null;
+  await safari(g);
   await fin(g);
   cortes?.liberar();
   cortes = null;
@@ -525,11 +526,28 @@ async function alacantSun(g: Aventura) {
   if (r === 'hecho') g.minijuegoSuperado('sol');
 }
 
-/** «Continuará…»: the end of what there is of chapter 2 so far. */
+/**
+ * The safari: Guille, certified guide, proposes it in his caravan (the dialogue) and the trip is told as a moving comic
+ * (src/ui/safari.ts, docs/CAPITULO2.md, «El safari»): from Madrid's ring road to the desert of Las Vegas. 'saltado' and
+ * 'cancelado' go on anyway to the end card: the story does not wait for the comic.
+ */
+async function safari(g: Aventura) {
+  g.sound.precargar('granjaRadio');
+  g.sound.precargar('pasodoble');
+  await g.hablar('c2.safari.propone');
+  g.hud.cerrarDialogo();
+  g.hud.setVisible(false);
+  g.pausado = true;
+  await jugarSafari(g.root, { rapido: g.rapido, sonido: g.sound }).finally(() => (g.pausado = false));
+  g.hud.setVisible(true);
+}
+
+/** «¿Continuará?»: the end of what there is of chapter 2 so far, with the pasodoble that the comic already started. */
 async function fin(g: Aventura) {
   g.hud.cerrarDialogo();
   await g.velar(true);
-  await g.hud.rotulo(texto('fin.continuara'), texto('c2.fin.sub'), undefined, 'continuara');
+  g.sound.musica('pasodoble');
+  await g.hud.rotulo(texto('c2.fin.continuara'), texto('c2.fin.sub'), undefined, 'continuara');
   g.capituloSuperado(2);
   await g.velar(false);
   g.onFin?.();

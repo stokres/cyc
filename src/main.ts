@@ -81,6 +81,19 @@ async function arrancar() {
     location.href = location.pathname;
     return;
   }
+  // The safari comic (src/ui/safari.ts), the end of chapter 2, opened by itself: the address ending in ?safari. `&pagina=N` starts on page N (1 to 4),
+  // `&rapido` skips the waits. Closed with window.__safari().cerrar().
+  const sf = new URLSearchParams(location.search);
+  if (sf.has('safari')) {
+    const [{ jugarSafari }, { Sound }] = await Promise.all([import('./ui/safari'), import('./core/audio')]);
+    const sonido = new Sound();
+    // Sound needs a tap first (browsers): the first press or key starts it.
+    addEventListener('pointerdown', () => sonido.start(), { once: true });
+    addEventListener('keydown', () => sonido.start(), { once: true });
+    const r = await jugarSafari(root, { sonido, rapido: sf.has('rapido'), pagina: Math.max(0, Number(sf.get('pagina') ?? 1) - 1) });
+    (window as unknown as { __safariResultado?: string }).__safariResultado = r;
+    return;
+  }
   // The whole «Pang» (src/pang/completo.ts), opened by itself: the address ending in ?pangcompleto. For testing it also takes
   // &fase=N (plays that stage and the ones after it, no menus), &pj=fran|pablo|chuchi|guille and &bot (the computer plays).
   if (new URLSearchParams(location.search).has('pangcompleto')) {

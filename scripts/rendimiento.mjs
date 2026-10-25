@@ -15,7 +15,7 @@
 // without it, to compare.
 //
 // Usage: node scripts/rendimiento.mjs [escena...]   (against npm run dev on :5173)
-//   escenas: prologo, piso, calle, bar, manga, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, tragaperras, sol, solcombate, solcamino, solteatro, soljefe, solcalderon, kart, boca, conceptos, caos, pangcompleto, pokecap (all by default)
+//   escenas: prologo, piso, calle, bar, manga, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, tragaperras, sol, solcombate, solcamino, solteatro, soljefe, solcalderon, kart, safari, boca, conceptos, caos, pangcompleto, pokecap (all by default)
 import { chromium } from 'playwright';
 import { readFileSync, readdirSync } from 'node:fs';
 
@@ -82,6 +82,7 @@ async function medir(nombre, prep, contar = 'escena') {
     window.__sol?.().cerrar();
     window.__kart?.().cerrar();
     window.__poke?.().cerrar();
+    window.__safari?.().cerrar();
     window.__boca?.().cerrar();
     window.__cortes?.parar();
     window.__cortes?.liberar();
@@ -120,9 +121,10 @@ async function medir(nombre, prep, contar = 'escena') {
     const bo0 = window.__boca?.().fotogramas ?? 0;
     const pf0 = window.__pangFase?.().fotogramas ?? 0;
     const pk0 = window.__poke?.().fotogramas ?? 0;
+    const sf0 = window.__safari?.().fotogramas ?? 0;
     setTimeout(() => {
       m.dibujar = d;
-      res(contar === 'cerdos' ? ((window.__cerdos?.().fotogramas ?? 0) - f0) / seg : contar === 'palabras' ? ((window.__palabras?.().fotogramas ?? 0) - p0) / seg : contar === 'rana' ? ((window.__rana?.().fotogramas ?? 0) - r0) / seg : contar === 'robot' ? ((window.__robot?.().fotogramas ?? 0) - b0) / seg : contar === 'pang' ? ((window.__pang?.().fotogramas ?? 0) - g0) / seg : contar === 'trailer' ? ((window.__trailer?.().fotogramas ?? 0) - t0) / seg : contar === 'canas' ? ((window.__canas?.().fotogramas ?? 0) - ca0) / seg : contar === 'canto' ? ((window.__canto?.().fotogramas ?? 0) - cn0) / seg : contar === 'tragaperras' ? ((window.__tragaperras?.().fotogramas ?? 0) - tg0) / seg : contar === 'sol' ? ((window.__sol?.().fotogramas ?? 0) - so0) / seg : contar === 'kart' ? ((window.__kart?.().fotogramas ?? 0) - ka0) / seg : contar === 'boca' ? ((window.__boca?.().fotogramas ?? 0) - bo0) / seg : contar === 'pangfase' ? ((window.__pangFase?.().fotogramas ?? 0) - pf0) / seg : contar === 'pokecap' ? ((window.__poke?.().fotogramas ?? 0) - pk0) / seg : n / seg);
+      res(contar === 'cerdos' ? ((window.__cerdos?.().fotogramas ?? 0) - f0) / seg : contar === 'palabras' ? ((window.__palabras?.().fotogramas ?? 0) - p0) / seg : contar === 'rana' ? ((window.__rana?.().fotogramas ?? 0) - r0) / seg : contar === 'robot' ? ((window.__robot?.().fotogramas ?? 0) - b0) / seg : contar === 'pang' ? ((window.__pang?.().fotogramas ?? 0) - g0) / seg : contar === 'trailer' ? ((window.__trailer?.().fotogramas ?? 0) - t0) / seg : contar === 'canas' ? ((window.__canas?.().fotogramas ?? 0) - ca0) / seg : contar === 'canto' ? ((window.__canto?.().fotogramas ?? 0) - cn0) / seg : contar === 'tragaperras' ? ((window.__tragaperras?.().fotogramas ?? 0) - tg0) / seg : contar === 'sol' ? ((window.__sol?.().fotogramas ?? 0) - so0) / seg : contar === 'kart' ? ((window.__kart?.().fotogramas ?? 0) - ka0) / seg : contar === 'boca' ? ((window.__boca?.().fotogramas ?? 0) - bo0) / seg : contar === 'pangfase' ? ((window.__pangFase?.().fotogramas ?? 0) - pf0) / seg : contar === 'safari' ? ((window.__safari?.().fotogramas ?? 0) - sf0) / seg : contar === 'pokecap' ? ((window.__poke?.().fotogramas ?? 0) - pk0) / seg : n / seg);
     }, seg * 1000);
   }), { seg: SEG, contar });
   const cpu = ((cpuChrome() - c0) / SEG) * 100;
@@ -318,6 +320,22 @@ if (toca('kart')) {
     };
     espera();
   })()`, 'kart');
+}
+if (toca('safari')) {
+  // The safari comic (src/ui/safari.ts), the end of chapter 2: four pages of panels coming in (each a canvas of its own with its scene
+  // redrawn by the frame: layers scrolling, wheels, dust, waves, an octopus, a braking caravan...), the bubbles, boxes and sounds as
+  // baked bitmaps moved by CSS. One measure per page, in its busiest stretch (`ir(página, segundo)` jumps there).
+  for (const [nombre, pag, seg] of [['safari, la M-30, los Monegros y el mapa', 0, 6], ['safari, la sabana y el diploma', 1, 3], ['safari, el océano, el pulpo y el kilómetro 4.000', 2, 5], ['safari, el cañón y Las Vegas al frenar', 3, 8]]) {
+    await medir(nombre, `(async () => {
+      clearInterval(window.__paseo);
+      const g = window.__cyc.g;
+      const { jugarSafari } = await import('/src/ui/safari.ts');
+      g.pausado = true;
+      void jugarSafari(g.root, { sonido: g.sound, pagina: ${pag} });
+      for (let i = 0; i < 100 && !window.__safari?.().listo; i++) await new Promise((r) => setTimeout(r, 200));
+      await window.__safari().ir(${pag}, ${seg});
+    })()`, 'safari');
+  }
 }
 if (toca('pokecap')) {
   // PokéUsera, the last game of chapter 2 (src/pokeusera/capitulo.ts), in its real shape: a phone held upright (412 x 915) with the game standing

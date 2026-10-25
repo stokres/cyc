@@ -2375,3 +2375,105 @@ button:focus-visible {
   image-rendering: crisp-edges;
 }
 .sin-reparto .reparto { display: none; }
+
+/* ------------------------------------------------------------ the safari comic (src/ui/safari.ts) */
+
+.cubierta.safari {
+  display: block;
+  padding: 0;
+  overflow: hidden;
+  background-color: #f6ecd5;
+  background-image: var(--papel);
+  animation: aparece-prologo 0.5s ease-out;
+}
+
+.cubierta.safari.sale {
+  opacity: 0;
+  transition: opacity 0.6s ease-in;
+}
+
+/* Measures the page's area (inside the safe margins) and shows nothing. */
+.safari-sonda {
+  position: absolute;
+  inset: var(--safe-t) var(--safe-r) var(--safe-b) var(--safe-l);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.safari-pagina {
+  position: absolute;
+  inset: 0;
+  background-color: #f6ecd5;
+  background-image: var(--papel);
+  transform-origin: left center;
+  will-change: transform;
+  box-shadow: 0 0 40px rgba(43, 28, 32, 0.35);
+}
+
+.safari-area,
+.safari-textos {
+  position: absolute;
+  inset: var(--safe-t) var(--safe-r) var(--safe-b) var(--safe-l);
+}
+
+.safari-textos {
+  pointer-events: none;
+}
+
+.safari-vineta {
+  position: absolute;
+  will-change: transform;
+}
+
+.safari-vista,
+.safari-sombra {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+
+.safari-pop {
+  position: absolute;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.safari-pop canvas {
+  display: block;
+}
+
+/* The bubbles bob a little, as if they were breathing; the boxes stay put, a touch crooked; the sound effects have their own tremble. */
+.safari-flota {
+  animation: safari-flota 2.6s ease-in-out infinite alternate;
+}
+
+.safari-pop.ono .safari-flota {
+  animation: none;
+}
+
+.safari-pop.cartucha .safari-flota {
+  animation: none;
+  rotate: var(--giro, 0deg);
+}
+
+@keyframes safari-flota {
+  from { transform: translateY(-1.5px) rotate(-0.4deg); }
+  to { transform: translateY(2px) rotate(0.4deg); }
+}
+
+.minijuego.safari .cerrar {
+  position: absolute;
+  right: var(--safe-r);
+  top: var(--safe-t);
+  z-index: 4;
+  color: var(--ink);
+  background: rgba(246, 236, 213, 0.82);
+  box-shadow: 0 0 0 2px rgba(43, 28, 32, 0.7);
+}
+
+.minijuego.safari .btn.saltar {
+  bottom: var(--safe-b);
+  right: var(--safe-r);
+  z-index: 4;
+}
