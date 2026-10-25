@@ -16,7 +16,7 @@ const solo = process.argv[4] !== undefined;
 const fase0 = Number(process.argv[4] ?? 0);
 const puerto = process.env.PUERTO ?? 5173;
 const depurar = !!process.env.DEBUG;
-const NOMBRES = ['1 Usera (dragón)', '2 piso de Fran', '3 Zaragoza (cierzo)', '4 Nevada (desierto)', '5 Las Vegas (Penúltima)'];
+const NOMBRES = ['1 Usera (dragón)', '2 piso de Fran', '3 Zaragoza (cierzo)', '4 la granja', '5 Las Vegas (Penúltima)'];
 
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const page = await (await b.newContext({ viewport: { width: 844, height: 390 }, deviceScaleFactor: 1 })).newPage();

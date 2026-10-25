@@ -20,7 +20,7 @@ export function crearJefe(tipo: Jefe, jugadores = 1, vida?: number): JefeVivo {
   const datos = {
     robi: { hp: 16, bote: 130, vel: 36, x: 96, y: 50 },
     peor: { hp: 18, bote: 100, vel: 46, x: 288, y: 60 },
-    penultima: { hp: 30, bote: 0, vel: 38, x: 192, y: 70 },
+    penultima: { hp: 40, bote: 0, vel: 38, x: 192, y: 70 },
   }[tipo];
   const hp = Math.round((vida ?? datos.hp) * (1 + 0.5 * (jugadores - 1)));
   return {

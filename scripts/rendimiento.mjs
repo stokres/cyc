@@ -290,7 +290,7 @@ if (toca('pang')) {
     g.pausado = true;
     void jugarPangCapitulo(g.root, { sonido: g.sound, fase: 2, control: 'bot' });
   })()`, 'pang');
-  await medir('Pang corto (Nevada, caravana)', `(async () => {
+  await medir('Pang corto (la granja, pacas)', `(async () => {
     document.querySelectorAll('.cubierta.minijuego .cerrar').forEach((b) => b.click());
     const g = window.__cyc.g;
     const { jugarPangCapitulo } = await import('/src/pang/capitulo.ts');

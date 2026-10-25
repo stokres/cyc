@@ -2,7 +2,7 @@
 // beer fills the screen, and he is inside the arcade machine. Five stages of the full Pang
 // (docs/PANG.md, played whole from the minigames menu once this one is beaten, src/pang/completo.ts) one
 // after another, the road from Usera to the United States: Usera (the dragon), Fran's flat (with Aceituna),
-// Zaragoza (the cierzo wind blows the bubbles about), Nevada (the desert, with a caravan in the middle) and
+// Zaragoza (the cierzo wind blows the bubbles about), the farm (hay bales) and
 // Las Vegas against la Penúltima. Only Fran, with his double harpoon and «¡Una más!».
 //
 // It is a minigame of the story: same cover (`.cubierta.minijuego`), same «Saltar» (after two lost
@@ -32,7 +32,7 @@ export interface OpcionesPangCapitulo {
   /** Skips the waiting (tests and the minigames menu's quick mode). */
   rapido?: boolean;
   sonido?: SonidoMinijuego;
-  /** For testing: start at this stage (0 Usera, 1 the flat, 2 Zaragoza, 3 Nevada, 4 Las Vegas) and without the foam. */
+  /** For testing: start at this stage (0 Usera, 1 the flat, 2 Zaragoza, 3 the farm, 4 Las Vegas) and without the foam. */
   fase?: number;
   /** For testing and the performance check: 'bot' lets the computer play. */
   control?: Control;
@@ -41,23 +41,38 @@ export interface OpcionesPangCapitulo {
 }
 
 /**
- * The five stages: 1 (Usera, the dragon), 3 (Fran's flat), 9 (Zaragoza), 11 (Nevada) and 12 (Las Vegas). `n` stays
+ * The chapter's fourth stage, the one before the boss: THE ONE PLACE TO CHANGE IT (Jesús, 25 October 2026: Nevada out,
+ * the farm in; he may still pick another). It is a stage of the full game (src/pang/fases.ts) eased like the others:
+ * two medium bubbles (14 hits), slower (×0.7) and 150 s. Its name and place on the card come from the full game's
+ * number `n` (fase.N.nombre in src/textos/pang.md), so they follow whatever stage is put here. To swap it, change
+ * `FASES[…]` and the bubbles: the theatre is FASES[4] (with the shadow), Bolilandia FASES[3] (a boss: Robi), Jijona
+ * FASES[9] (turrón blocks) and Nevada FASES[10] (the caravan block, which was parked at the right edge).
+ */
+const FASE_CUATRO: Fase = {
+  ...FASES[5], // the farm (stage 6 of the full game): hay bales on both sides, and its muddy bubbles instead of el Peor
+  orden: 4,
+  tiempo: 150,
+  prisa: 0.7,
+  jefe: undefined,
+  burbujas: [{ x: 96, y: 56, talla: 1, dir: 1, variante: 'purin' }, { x: 288, y: 56, talla: 1, dir: -1, variante: 'purin' }],
+};
+
+/**
+ * The five stages: 1 (Usera, the dragon), 3 (Fran's flat), 9 (Zaragoza), the farm (above) and 12 (Las Vegas). `n` stays
  * the full game's number (texts, backgrounds and the bubbles' pace come from it); `orden` is what the card says.
  * Eased for a minigame inside the story (numbers from scripts/pang-sim.mjs, where a bot with 0.15 s reflexes clears
  * each stage within three games 95–100 % of the time and one with 0.25 s 65–90 %): more time (150 s) in all but the
- * boss; the flat with two medium bubbles instead of a big and two medium; Zaragoza and Nevada, which have 3 big
- * bubbles (45 hits) and 3 big and 2 small (51) in the full game, with two medium ones each (14 hits, like the flat),
- * slower (×0.8 and ×0.7), Zaragoza's cierzo at half strength and Nevada's caravan parked at the right edge instead
- * of in the middle (with the bubbles coming from both sides, the player was boxed in under it); and the last boss, in
- * fifth place instead of twelfth, with 18 hit points instead of 30, slower bubbles (×0.72) and 1.4 times the wait
- * between spits.
+ * boss; the flat with two medium bubbles instead of a big and two medium; Zaragoza, which has 3 big bubbles (45 hits)
+ * in the full game, with two medium ones (14 hits, like the flat), slower (×0.8) and its cierzo at half strength; and
+ * the last boss, in fifth place instead of twelfth, with 24 hit points instead of 40 (18 and 30 until 25 October 2026,
+ * when Jesús found la Penúltima too easy), slower bubbles (×0.72) and 1.4 times the wait between spits.
  */
 export const FASES_CAPITULO: Fase[] = [
   { ...FASES[0], orden: 1, tiempo: 150 },
   { ...FASES[2], orden: 2, musica: 'pangCalle', tiempo: 150, burbujas: [{ x: 96, y: 56, talla: 1, dir: 1 }, { x: 288, y: 56, talla: 1, dir: -1 }] },
   { ...FASES[8], orden: 3, tiempo: 150, prisa: 0.8, cierzo: 0.5, burbujas: [{ x: 96, y: 56, talla: 1, dir: 1 }, { x: 288, y: 56, talla: 1, dir: -1 }] },
-  { ...FASES[10], orden: 4, tiempo: 150, prisa: 0.7, bloques: [{ x: 252, y: 100, w: 112, h: 20, estilo: 'caravana' }], burbujas: [{ x: 96, y: 56, talla: 1, dir: 1 }, { x: 288, y: 56, talla: 1, dir: -1 }] },
-  { ...FASES[11], orden: 5, prisa: 0.72, jefeVida: 18, jefeEscupe: 1.4, tiempo: 150 },
+  FASE_CUATRO,
+  { ...FASES[11], orden: 5, prisa: 0.72, jefeVida: 24, jefeEscupe: 1.4, tiempo: 150 },
 ];
 
 const VIDAS = 3;
@@ -158,10 +173,7 @@ export function jugarPangCapitulo(root: HTMLElement, o: OpcionesPangCapitulo = {
     () => burbuja('cerveza', 1, 'roja'),
     () => burbuja('cerveza', 2, 'roja'),
     () => burbuja('cerveza', 3, 'roja'),
-    () => fondo('piso'),
-    () => fondo('zaragoza'),
-    () => fondo('nevada'),
-    () => fondo('vegas'),
+    ...[...new Set(FASES_CAPITULO.map((f) => f.fondo))].map((id) => () => fondo(id)),
     () => jefe('penultima'),
     () => burbuja('champan', 1, 'roja'),
   ];
@@ -263,9 +275,15 @@ export function jugarPangCapitulo(root: HTMLElement, o: OpcionesPangCapitulo = {
     else setTimeout(() => ayuda.classList.add('apartada'), DURA_AYUDA * 1000);
     await entrada();
     if (corte.signal.aborted) return fin(motivo);
-    const ganada = await jugarFases();
-    if (!ganada) return fin(motivo);
-    await victoria();
-    return fin('hecho');
+    // From the first stage to the victory the bar's music (the scene underneath) stays quiet, also between stages.
+    sonido.retener?.(true);
+    try {
+      const ganada = await jugarFases();
+      if (!ganada) return fin(motivo);
+      await victoria();
+      return fin('hecho');
+    } finally {
+      sonido.retener?.(false);
+    }
   })();
 }

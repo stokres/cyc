@@ -60,6 +60,9 @@ export async function jugarPangCompleto(root: HTMLElement, o: OpcionesPangComple
   }
   sonido.setVolumen('musica', datos.musica);
   sonido.setVolumen('efectos', datos.efectos);
+  // Between stages (and in the menus) the scene underneath must not bring its music back: opened from the minigames menu,
+  // that was the Brío's rock. Silence, or the Pang's own music, until leaving.
+  sonido.retener(true);
 
   // ---------------------------------------------------------- one stage
   const pausa = () => pantallaPausa(ui, sonido);
@@ -69,6 +72,7 @@ export async function jugarPangCompleto(root: HTMLElement, o: OpcionesPangComple
   const siguientes = (pjs: PjId[], r: ResultadoFase) => pjs.map((pj, i) => ({ pj, puntos: r.jugadores[i].puntos, vidas: Math.max(1, r.jugadores[i].vidas) }));
 
   const salir = () => {
+    sonido.retener(false);
     sonido.pararMusica();
     raiz.remove();
     if (o.volumenes) {
