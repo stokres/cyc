@@ -36,7 +36,8 @@ const CORNISA = 62;
 
 export const BAR = { X: 1560, L: 1260, y: 868, alto: 262 }; // counter: centre, length, floor line of its front, height
 export const KB = P.f(BAR.y);
-const VERO = { X: 1625, y: 826 };
+// Left of the tap tower (counter x +100), so the tower does not hide her: between the olives and the taps.
+const VERO = { X: 1520, y: 826 };
 // Two on each side of Vero, so she is seen (and can be tapped) between them, at the taps.
 const AMIGOS = { chuchi: 1080, pablo: 1330, fran: 1920, guille: 2170 };
 const YA = 930; // the four friends stand here, in front of the counter
@@ -583,6 +584,8 @@ function caja(x, base) {
 
 // ---------------------------------------------------------------- the pool sheet (porra)
 
+/** Fran's number in the pool (Jesús, 25 Oct 2026): the 5, written down by Vero as «Patxi» (his name as a comedian) in red pen, with a heart. */
+const NUM_FRAN = 5;
 const NOMBRES = ['Paco', 'Lola', 'Manoli', 'Toni', 'Chus', 'Marisa', 'Pepe', 'Carmen', 'Juanjo', 'Rosi', 'Nacho', 'Eva', 'Quique', 'Mari', 'Luis', 'Pili', 'Sergio', 'Ana', 'Rafa', 'Isa'];
 
 /** Where each of the 100 cells of the pool sheet is (centre and size), numbered 1..100 in rows of ten. */
@@ -608,11 +611,14 @@ function porraArte(nivel) {
   const ch = cs[0].h;
   out.push(rect(gx, gy, cw * 10, ch * 10, '#fffdf0'));
   for (let i = 0; i <= 10; i++) out.push(line(gx + i * cw, gy, gx + i * cw, gy + ch * 10, '#3a5aa0', 1.4, { opacity: 0.7 }), line(gx, gy + i * ch, gx + cw * 10, gy + i * ch, '#3a5aa0', 1.4, { opacity: 0.7 }));
-  // Names in pen: some cells have a scribble, some are still free. The 23 is Fran's.
+  // Names in pen: some cells have a scribble, some are still free. The 5 is Fran's: highlighted, with a red heart (the name is lettered in textosPorra).
   const r = rng(23);
   for (const c of cs) {
-    if (c.n === 23) {
+    if (c.n === NUM_FRAN) {
       out.push(rect(c.x - c.w / 2 + 1.5, c.y - c.h / 2 + 1.5, c.w - 3, c.h - 3, '#ffe27a', { opacity: 0.75 }));
+      const hx = c.x + c.w * 0.27;
+      const hy = c.y - c.h * 0.22;
+      out.push(path(`M${f2(hx)} ${f2(hy + 5.9)}l-5.9 -5.9a3.4 3.4 0 0 1 5.9 -3.9a3.4 3.4 0 0 1 5.9 3.9z`, '#d0201c', { transform: `rotate(-12 ${f2(hx)} ${f2(hy)})` }));
       continue;
     }
     if (nivel === 3 || r() < 0.62) continue;
@@ -640,10 +646,10 @@ function textosPorra(nivel) {
   ];
   const r = rng(77);
   for (const c of cs) {
-    const fran = c.n === 23;
+    const fran = c.n === NUM_FRAN;
     const siete = nivel === 3;
     t.push({ x: c.x - c.w / 2 + 3, y: c.y - c.h / 2 + 8, s: siete ? '7' : String(c.n), size: siete ? 14 : 9.5, font: 'body', weight: siete ? 800 : 700, color: siete ? '#c8433a' : '#6a7090', align: 'left' });
-    if (fran) t.push({ x: c.x + 1, y: c.y + c.h * 0.22, s: 'FRAN', size: 14, font: 'body', weight: 800, color: '#1f3aa0', maxW: c.w - 4 });
+    if (fran) t.push({ x: c.x + 1, y: c.y + c.h * 0.2, s: 'Patxi', size: 11.5, font: 'body', weight: 800, color: '#d0201c', maxW: c.w - 3, rot: -0.07 });
     else if (!siete && r() < 0.13) t.push({ x: c.x, y: c.y + c.h * 0.2, s: NOMBRES[Math.floor(r() * NOMBRES.length)], size: 10.5, font: 'body', weight: 700, color: r() < 0.6 ? '#2a3fa0' : '#a02a2a', maxW: c.w - 3 });
     else if (siete && r() < 0.5) t.push({ x: c.x + 4, y: c.y + c.h * 0.22, s: '77', size: 14, font: 'body', weight: 800, color: '#2a3fa0', maxW: c.w - 6 });
   }
@@ -1237,7 +1243,7 @@ function marcadorPorra(nivel) {
   return {
     w: cs.w,
     h: cs.h,
-    svg: [rect(1.5, 1.5, cs.w - 3, cs.h - 3, '#fff27a', { opacity: 0.85, rx: 3 }), `<text x="${f2(cs.w / 2)}" y="${f2(cs.h * 0.74)}" font-family="Trebuchet MS, Arial, sans-serif" font-weight="800" font-style="italic" font-size="${f2(cs.h * 0.62)}" text-anchor="middle" fill="#d02a2a">${siete ? '7' : '23'}</text>`].join(''),
+    svg: [rect(1.5, 1.5, cs.w - 3, cs.h - 3, '#fff27a', { opacity: 0.85, rx: 3 }), `<text x="${f2(cs.w / 2)}" y="${f2(cs.h * 0.74)}" font-family="Trebuchet MS, Arial, sans-serif" font-weight="800" font-style="italic" font-size="${f2(cs.h * 0.62)}" text-anchor="middle" fill="#d02a2a">${siete ? '7' : NUM_FRAN}</text>`].join(''),
   };
 }
 
@@ -1268,7 +1274,7 @@ function piezasVivasBase(nivel) {
       pared: { x: -110, y: -460, w: 190, h: 210, luces: [0, 1, 2].map((f) => luzMaquina(false, f, nivel)) },
       fuera: { x: -130, y: -470, w: 220, h: 220, luces: [0, 1, 2].map((f) => luzMaquina(true, f, nivel)) },
     },
-    porra: { celdas: celdasPorra().filter((c) => c.n !== 23), marcador: { w: marcador.w, h: marcador.h, svg: cl(marcador.svg) } },
+    porra: { celdas: celdasPorra().filter((c) => c.n !== NUM_FRAN), marcador: { w: marcador.w, h: marcador.h, svg: cl(marcador.svg) } },
     botellas: giran.map((q) => {
       const c = [q.x + q.b.w / 2, q.base - q.b.h / 2];
       const [cx, cy] = nivel === 3 ? doblar(c[0], c[1]) : c;

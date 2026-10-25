@@ -15,7 +15,7 @@ import { jugarRobot } from './ui/robot';
 import { jugarCerdos } from './ui/cerdos';
 import { mostrarPrologo } from './ui/prologo';
 import { capitulo1 } from './capitulos/capitulo1';
-import { capitulo2 } from './capitulos/capitulo2';
+import { capitulo2, llevarObjetosDelCapitulo1 } from './capitulos/capitulo2';
 import type { Estado } from './juego/estado';
 import { h } from './ui/hud';
 import { alCambiarOrientacion, esVertical } from './ui/orientacion';
@@ -151,7 +151,7 @@ async function arrancar() {
     }
   };
   const g = cap2
-    ? new Aventura(root, capitulo2, guardadoCap2() ?? capitulo2.estadoInicial())
+    ? new Aventura(root, capitulo2, llevarObjetosDelCapitulo1(guardadoCap2() ?? capitulo2.estadoInicial(), partida.principal?.estado))
     : new Aventura(root, capitulo1, enCurso?.estado ?? capitulo1.estadoInicial());
   g.rejugando = !cap2 && partida.jugando === 'rejuego';
   let saliendo = false;
