@@ -1,8 +1,8 @@
 // Plays the start of chapter 2 once, from the Brío's door to «Continuará…» (docs/CAPITULO2.md), on a
 // phone-sized viewport and by touch, like a player: the round (the beers minigame, skipped after two
-// misses), the slot machine (Chuchi, Guille), the duro, the fresquitos (Pablo's two wrong lines first),
+// misses), the slot machine (Guille moves it at once, Chuchi walks over and switches it on), the duro, the fresquitos (Pablo's two wrong lines first),
 // the spin, the chant (skipped) and the Pang (closed with ×). Then the rest of the night (first part): Fran wakes in
-// the long bar (bar4) and tells the dragon, the slot machine spins alone and stops on Pablo's face, the bar turns
+// the bar in acid lights (bar4) and tells the dragon, the slot machine spins alone and stops on Pablo's face, the bar turns
 // upside down (bar5), the narrator takes over, the picture is squeezed into the console of Alacant Sun (which is
 // skipped, closed with window.__sol().cerrar()) and Pablo opens his eyes. Then the last stretch: Chuchi's boss and «una
 // más» (manga), the slot machine on his face, the floor turning into Impropios Kart (skipped, closed with
@@ -250,14 +250,13 @@ await paso('Fran pide la ronda: las cañas', async () => {
 check((await nivel()) === 1, 'tras las cañas la noche no está en el nivel 1');
 await shot('bar1');
 
-await paso('Chuchi mira la tragaperras', async () => {
-  await como('chuchi');
-  await tocarZona('tragaperras');
-}, 'c2.diagnostico');
-await paso('Guille la separa de la pared', async () => {
+// Guille moves it at once (nobody has looked at it before) and Chuchi walks over to switch it on.
+await paso('Guille la separa de la pared a la primera', async () => {
   await como('guille');
   await tocarZona('tragaperras');
 }, 'c2.separada');
+check(await flag('c2.encendida'), 'la tragaperras no se enciende tras separarla');
+check(await flag('c2.diagnostico'), 'Chuchi no ha dicho lo del router al separarla Guille');
 await shot('separada');
 await paso('Coger el duro', () => tocarZona('tragaperras'));
 check(await page.evaluate(() => window.__cyc.g.tiene('duro')), 'no se coge el duro');
@@ -306,7 +305,7 @@ await paso('El duro, la tirada, el canto y el premio', async () => {
 check((await nivel()) === 3, 'tras el premio la noche no está en el nivel 3');
 
 fotoAl('Yo te creo lo del cerdo', 'noche-chuchi-cerdo-inclinado');
-fotoAl('¿Por qué la barra no se acaba', 'noche-bar4-contrapicado');
+fotoAl('Esto parece una discoteca', 'noche-bar4-contrapicado');
 fotoAl('Los taburetes están en el techo', 'noche-bar5-reves');
 fotoAl('Qué escena tan bonita', 'noche-narrador');
 fotoAl('seguimos del revés', 'noche-bar5-cierre');

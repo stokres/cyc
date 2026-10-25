@@ -35,6 +35,8 @@ const CON_PREMIO: GuionTragaperras = { paradas: PARADAS, destinos: [SIETE, SIETE
 const CARA = SIMBOLOS_CARA.indexOf('cara');
 const A_CARA: GuionTragaperras = { paradas: PARADAS, destinos: [CARA, CARA, CARA], premio: null, monedas: 0, pasoMonedas: 0, apagon: 3.1 };
 const FIN_CARA = 4.2;
+/** The jackpot on a friend's face: three of them instead of three sevens, and the same shower of coins. */
+const CARA_PREMIO: GuionTragaperras = { ...CON_PREMIO, destinos: [CARA, CARA, CARA] };
 /** When it closes by itself (seconds): a moment after the last reel, or once the coins have fallen. */
 const FIN_SIN = 3.9;
 const FIN_PREMIO = 7.3;
@@ -44,8 +46,10 @@ const TOCABLE = 0.5;
 export interface OpcionesTragaperras {
   /** Three sevens and the shower of coins, or lemon, bell and pig. */
   premio: boolean;
-  /** Instead: the three reels stop on this friend's face and the machine goes dark (chapter 2, the end of the night). */
+  /** Instead: the three reels stop on this friend's face (chapter 2): with no prize the machine then goes dark (the end of the night); with `premio`, the jackpot is three of them. */
   cara?: PjId;
+  /** The chant has been sung (chapter 2): the stops and the jackpot play the tune of «Camiones y caravanas» (tools/musica/tragaperras_cantada.py). */
+  cantada?: boolean;
   /** For the tests and the quick playthrough: skip it. */
   rapido?: boolean;
   /** For the sound of the reels, the bells and the coins. */
@@ -57,10 +61,10 @@ export interface OpcionesTragaperras {
 export function mostrarTragaperras(parent: HTMLElement, o: OpcionesTragaperras): Promise<void> {
   if (o.rapido) return Promise.resolve();
   const { sonido } = o;
-  const guion = o.cara ? A_CARA : o.premio ? CON_PREMIO : SIN_PREMIO;
-  const fin = o.cara ? FIN_CARA : o.premio ? FIN_PREMIO : FIN_SIN;
-  // The face spin has the clunks of the one without a prize: the same stops.
-  const pista: Pista = o.premio && !o.cara ? 'tragaperrasPremio' : 'tragaperrasSin';
+  const guion = o.premio ? (o.cara ? CARA_PREMIO : CON_PREMIO) : o.cara ? A_CARA : SIN_PREMIO;
+  const fin = o.premio ? FIN_PREMIO : o.cara ? FIN_CARA : FIN_SIN;
+  // The face spin with no prize has the clunks of the plain one: the same stops. After the chant, the same two with the tune.
+  const pista: Pista = o.premio ? (o.cantada ? 'tragaperrasPremioCamiones' : 'tragaperrasPremio') : o.cantada ? 'tragaperrasSinCamiones' : 'tragaperrasSin';
   const canvas = h('canvas', { class: 'plano', 'aria-hidden': 'true' });
   const ctx = canvas.getContext('2d')!;
   const capa = h('div', { class: 'cubierta tragaperras' }, canvas);

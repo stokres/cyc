@@ -142,6 +142,8 @@ function recolor(svg, fn) {
   return svg.replace(/(fill|stroke|stop-color)="(#[0-9a-fA-F]{3,6})"/g, (m, a, c) => `${a}="${fn(c)}"`);
 }
 const colorDe = (nivel) => PALETA[nivel] ?? ((c) => c);
+/** Levels 3 and 4 are the same bar (curved lines, the sevens, the spinning bottles); level 4 only changes the palette. */
+const esSueno = (nivel) => nivel === 3 || nivel === 4;
 
 /**
  * The bend of level 3: every line of the bar sways. A smooth displacement in the scene's own
@@ -257,13 +259,13 @@ function doblarSvg(svg, fn) {
 function nivelar(svg, nivel, fn = doblar, curvar = true) {
   let s = svg;
   if (PALETA[nivel]) s = recolor(s, PALETA[nivel]);
-  if (nivel === 3 && curvar) s = doblarSvg(s, fn);
+  if (esSueno(nivel) && curvar) s = doblarSvg(s, fn);
   return s;
 }
 
 /** Text (canvas lettering): its colour and its place follow the level. */
 function nivelarTexto(t, nivel) {
-  const [x, y] = nivel === 3 ? doblar(t.x, t.y) : [t.x, t.y];
+  const [x, y] = esSueno(nivel) ? doblar(t.x, t.y) : [t.x, t.y];
   return { ...t, x, y, color: PALETA[nivel] && t.color.startsWith('#') ? PALETA[nivel](t.color) : t.color };
 }
 
@@ -546,7 +548,7 @@ function estanteria(nivel, vivas) {
     for (const { b, x: bx } of orden) {
       n++;
       // At level 3 a few small ones leave the shelf: the spinning ones are live pieces.
-      if (nivel === 3 && vivas && b.h < 92 && (n % 11 === 3 || n % 17 === 5) && giran.length < 3) {
+      if (esSueno(nivel) && vivas && b.h < 92 && (n % 11 === 3 || n % 17 === 5) && giran.length < 3) {
         giran.push({ b, x: bx, base });
         continue;
       }
@@ -615,7 +617,7 @@ function porraArte(nivel) {
       out.push(rect(c.x - c.w / 2 + 1.5, c.y - c.h / 2 + 1.5, c.w - 3, c.h - 3, '#ffe27a', { opacity: 0.75 }));
       continue;
     }
-    if (nivel === 3 || r() < 0.62) continue;
+    if (esSueno(nivel) || r() < 0.62) continue;
     const ancho = c.w * (0.5 + r() * 0.35);
     const yy = c.y + c.h * 0.16;
     let d = `M${f2(c.x - ancho / 2)} ${f2(yy)}`;
@@ -641,7 +643,7 @@ function textosPorra(nivel) {
   const r = rng(77);
   for (const c of cs) {
     const fran = c.n === 23;
-    const siete = nivel === 3;
+    const siete = esSueno(nivel);
     t.push({ x: c.x - c.w / 2 + 3, y: c.y - c.h / 2 + 8, s: siete ? '7' : String(c.n), size: siete ? 14 : 9.5, font: 'body', weight: siete ? 800 : 700, color: siete ? '#c8433a' : '#6a7090', align: 'left' });
     if (fran) t.push({ x: c.x + 1, y: c.y + c.h * 0.22, s: 'FRAN', size: 14, font: 'body', weight: 800, color: '#1f3aa0', maxW: c.w - 4 });
     else if (!siete && r() < 0.13) t.push({ x: c.x, y: c.y + c.h * 0.2, s: NOMBRES[Math.floor(r() * NOMBRES.length)], size: 10.5, font: 'body', weight: 700, color: r() < 0.6 ? '#2a3fa0' : '#a02a2a', maxW: c.w - 3 });
@@ -926,7 +928,7 @@ const propSvg = (inner) => g(null, inner, { transform: `scale(${Math.round(A_PJ 
 
 /** Level applied to a prop. At level 3 it bends like the wall does at the place where it stands. */
 function propNivel(svg, nivel, X, y, curvar = true) {
-  if (nivel === 3 && curvar) {
+  if (esSueno(nivel) && curvar) {
     const k = P.f(y);
     const fn = (lx, ly) => {
       const sx = P.CX + k * (X + lx - P.CX);
@@ -1138,9 +1140,17 @@ function maquinaFuera(CXe = P.CX, d = 0) {
   // Cable first (behind): from the rear of the cabinet to the socket, with a loop on the floor.
   const cable = `M58 -78C70 -30 ${f2(lx - 70)} 14 ${f2(lx - 60)} -34C${f2(lx - 54)} -62 ${f2(lx - 20)} ${f2(ly + 70)} ${f2(lx - 4)} ${f2(ly + 16)}`;
   out.push(stroke(cable, '#15161a', 5.2), stroke(cable, '#3a3d46', 1.6, { opacity: 0.8 }));
-  // Left side panel, in perspective.
-  out.push(shape(polyD([[-58, -444], [-104, -454], [-104, -20], [-58, -38]]), '#7e1a20', [rect(-104, -454, 22, 440, '#5a1016'), rect(-62, -444, 4, 410, '#e2b04a', { opacity: 0.7 }), gpath(rectD(-104, -454, 46, 440), lin(-104, 0, -58, 0, [[0, '#2a0608', 0.35], [1, '#2a0608', 0]]))], '#4a0e12', 2));
-  out.push(path(polyD([[-58, -444], [-104, -454], [-96, -458], [-52, -448]]), '#c0323a'));
+  // Left side of the cabinet, closed: the corner it shares with the front is the nearest edge, so the far edge is a
+  // little shorter (it never fans out like an open door), with the plinth and the gold trim going round the corner.
+  const lado = polyD([[-58, -444], [-104, -436], [-104, -52], [-58, -38]]);
+  out.push(shape(lado, '#8a1c22', [
+    gpath(rectD(-104, -450, 46, 420), lin(-104, 0, -58, 0, [[0, '#2a0608', 0.5], [1, '#2a0608', 0.05]])),
+    rect(-103, -440, 3, 390, '#ffffff', { opacity: 0.1 }),
+    path(polyD([[-96, -420], [-66, -426], [-66, -92], [-96, -96]]), '#6e1218', { opacity: 0.55 }),
+    stroke('M-96 -420L-66 -426L-66 -92L-96 -96Z', '#e2b04a', 1.6, { opacity: 0.55 }),
+  ], '#4a0e12', 2));
+  out.push(stroke('M-62 -441L-62 -40', '#e2b04a', 3, { opacity: 0.85 }));
+  out.push(shape(polyD([[-52, -38], [-100, -50], [-100, -18], [-52, 0]]), '#1c1f25', [rect(-100, -50, 48, 3, '#4a4f5a')], '#0c0d10', 1.2));
   out.push(g(null, maquinaFrente(), { transform: FUERA_M }));
   // The plug in the wall socket (in front of the wall, so it is drawn last).
   out.push(box(lx - 10, ly - 12, 18, 24, mat('#2a2d36', '#1a1c22', '#454a56', '#0c0d10'), { r: 4, lw: 1.1 }), rect(lx - 14, ly - 4, 6, 3, '#c3c9cf'), rect(lx - 14, ly + 3, 6, 3, '#c3c9cf'));
@@ -1233,7 +1243,7 @@ function dragonArte() {
 
 function marcadorPorra(nivel) {
   const cs = celdasPorra()[0];
-  const siete = nivel === 3;
+  const siete = esSueno(nivel);
   return {
     w: cs.w,
     h: cs.h,
@@ -1247,13 +1257,13 @@ function marcadorPorra(nivel) {
  */
 export function piezasVivas(nivel) {
   const datos = piezasVivasBase(nivel);
-  return nivel >= 4 ? adaptarNoche(nivel, datos) : datos;
+  return nivel >= 5 ? adaptarNoche(nivel, datos) : datos;
 }
 
 function piezasVivasBase(nivel) {
   // Levels 4 and 5 have the content of level 3 (sevens, spinning bottles) in their own palette and place.
   const N = nivel >= 4 ? 3 : nivel;
-  const cl = (svg) => nivelar(svg, nivel === 3 ? 0 : nivel);
+  const cl = (svg) => (nivel === 3 ? nivelar(svg, 0) : nivelar(svg, nivel, doblar, false));
   const tele = teleArte();
   const sc = tele.pantalla;
   const dr = dragonArte();
@@ -1271,7 +1281,7 @@ function piezasVivasBase(nivel) {
     porra: { celdas: celdasPorra().filter((c) => c.n !== 23), marcador: { w: marcador.w, h: marcador.h, svg: cl(marcador.svg) } },
     botellas: giran.map((q) => {
       const c = [q.x + q.b.w / 2, q.base - q.b.h / 2];
-      const [cx, cy] = nivel === 3 ? doblar(c[0], c[1]) : c;
+      const [cx, cy] = esSueno(nivel) ? doblar(c[0], c[1]) : c;
       return { svg: cl(botella(q.b, -q.b.w / 2, q.b.h / 2)), x: cx, y: cy, w: q.b.w + 20, h: q.b.h + 24, ox: -q.b.w / 2 - 10, oy: -q.b.h / 2 - 12 };
     }),
     tubos: TUBOS,
@@ -1287,7 +1297,7 @@ function piezasVivasBase(nivel) {
 const escenas = new Map();
 
 export function escena(nivel = 0) {
-  if (!escenas.has(nivel)) escenas.set(nivel, nivel === 4 ? construir4() : nivel === 5 ? construir5() : nivel === 6 ? construir6() : construir(nivel));
+  if (!escenas.has(nivel)) escenas.set(nivel, nivel === 5 ? construir5() : nivel === 6 ? construir6() : construir(nivel));
   return escenas.get(nivel);
 }
 
@@ -1312,7 +1322,7 @@ function luces(nivel) {
     { X: 2715, y: 160, r: 800, color: '#8fb4ff', power: 0.46, fy: 860 },
   ];
   if (nivel === 2) L.push({ X: 1250, y: 420, r: 700, color: '#d040ff', power: 0.4, fy: 900 }, { X: 2050, y: 400, r: 700, color: '#80ff40', power: 0.32, fy: 900 });
-  if (nivel === 3) L.push({ X: 1500, y: 300, r: 900, color: '#ff9ac8', power: 0.3, fy: 900 });
+  if (esSueno(nivel)) L.push({ X: 1500, y: 300, r: 900, color: '#ff9ac8', power: 0.3, fy: 900 });
   return L.map((l) => ({ ...l, color: col(l.color) }));
 }
 
@@ -1402,30 +1412,15 @@ function construir(nivel) {
 
 // ---------------------------------------------------------------- levels 4 and 5: the night gets out of hand
 //
-// Level 4, the corridor: the bar is stretched. The middle of it (the shelves, the pool sheet, the counter,
-// the stools, the tubes and the lamps) repeats along the wall, with the door and the tobacco machine far
-// away at one end and the telly, the slot machine and the toilet at the other, and the counter has no
-// end: five modules side by side, running out of the scene on both sides. And the floor slopes: every static
-// piece leans by the same slope (a vertical shear), the people stay straight. The drawings are the
-// ones of level 3's content (sevens, spinning bottles) cut into stretches and laid again, in a new palette: no filters.
+// Level 4 (after the Pang, simplified on 25 October 2026): the same bar, not a corridor. It is level 3's bar (the same
+// lines, bent, with the sevens and the spinning bottles) in an acid palette, like a club's lights: `construir(4)`,
+// with `pasillo` as its palette. The slot machine stays where it always is.
 //
 // Level 5, upside down: the wall is turned over (its ceiling is at the bottom, the tiles at the top); the
 // counter, the stools and the bottles hang from the real floor, which is now the ceiling; the pendant lamps stand on the
 // floor as standing lamps, and the floor the friends walk on is a ceiling of plaster with its fluorescent panels.
 //
-// Same zones and spots as the other levels; the zones and the places move with the pieces they belong to.
-
-const SH = 1350; // how far each repeat of the middle of the bar goes
-const W4 = W + 2 * SH;
-const CX4 = W4 / 2;
-const P4 = persp({ HOR: 200, BASE: 800, CX: CX4 });
-/** The slope of level 4 (rise per unit of run). */
-const INCL = 0.055;
-/** The stretch of the wall that repeats: the shelves and the pool sheet. */
-const TRAMO = [980, 2330];
-const ladear = `matrix(1 ${INCL} 0 1 0 ${f2(-INCL * CX4)})`;
-/** Where level 4's pieces of the original go: the left part (the door, the tobacco machine) stays, the middle repeats, the right part moves. */
-const MOVER4 = { puerta: 0, tabaco: 0, barra: 1, grifos: 1, expositor: 1, estanteria: 1, porra: 1, tele: 2, tragaperras: 2, bano: 2 };
+// Same zones and spots as the other levels.
 
 /** Level 4: acid. Magenta, acid lime, teal, electric blue and violet over cold indigo greys, like a corridor in a club. */
 function pasillo(hex) {
@@ -1445,204 +1440,6 @@ function reves(hex) {
   if (l < 0.045) return deHSL(h + 180, s, 0.82);
   if (l > 0.97) return deHSL(h + 180, 0.3, 0.16);
   return deHSL(h + 180, Math.min(1, s * 1.1 + 0.05), Math.max(0.08, Math.min(0.9, 1.03 - l * 0.94)));
-}
-
-/** A drawing of the wall cut in stretches: the left part, the middle three times and the right part, moved apart. */
-function tramos(cuerpo, id) {
-  const clip = (n, x0, x1) => `<clipPath id="${id}${n}"><rect x="${x0}" y="-900" width="${x1 - x0}" height="3000"/></clipPath>`;
-  const trozo = (n, d) => `<g clip-path="url(#${id}${n})" transform="translate(${d} 0)">${cuerpo}</g>`;
-  return `<defs>${clip('a', -600, TRAMO[1])}${clip('b', TRAMO[0], TRAMO[1])}${clip('c', TRAMO[1], 3600)}</defs>${trozo('a', 0)}${trozo('b', SH)}${trozo('b', 2 * SH)}${trozo('c', 2 * SH)}`;
-}
-
-/** Where a piece of the original goes in level 4, by its X: [shift of each copy]. */
-const copias4 = (X) => (X < TRAMO[0] ? [0] : X < TRAMO[1] ? [0, SH, 2 * SH] : [2 * SH]);
-
-function paredLarga() {
-  const c = paredCruda(3);
-  const arriba = rect(-1400, -900, W4 + 2800, 900, '#cbbfae');
-  const svg = recolor(`<g transform="${ladear}">${arriba}${tramos(c.cuerpo, 'tr')}</g>`, pasillo);
-  const emisivo = recolor(`<g transform="${ladear}">${tramos(paredEmisiva(0), 'te')}</g>`, pasillo);
-  const hueco = recolor(`<g transform="${ladear}"><g transform="translate(${2 * SH} 0)">${huellaTragaperras()}</g></g>`, pasillo);
-  return { svg, emisivo, hueco, giran: c.giran };
-}
-
-function textosLargos() {
-  const out = [];
-  for (const t of textosCrudos(3)) {
-    for (const d of copias4(t.x)) {
-      const x = t.x + d;
-      out.push({ ...t, x, y: t.y + INCL * (x - CX4), rot: Math.atan(INCL), color: t.color.startsWith('#') ? pasillo(t.color) : t.color });
-    }
-  }
-  return out;
-}
-
-/** The floor of the corridor: the bar's tiles, longer, with the shadows and the litter along the whole counter, and sloped. */
-function sueloLargo() {
-  const out = [];
-  const { gp, uOf, yOf } = P4;
-  const kMax = P4.f(1290);
-  const quad = (X0, X1, k0, k1) => polyD([gp(X0, k0), gp(X1, k0), gp(X1, k1), gp(X0, k1)]);
-  const r = rng(61);
-  const X0 = -800;
-  const X1 = W4 + 800;
-  out.push(path(quad(X0, X1, 1, kMax), '#a39a84'));
-  const prof = [];
-  for (let z = 1; z > 1 / kMax - 0.06; z -= 0.05) prof.push(1 / z);
-  const paso = 100;
-  for (let X = X0, i = 0; X < X1; X += paso, i++) {
-    for (let j = 0; j < prof.length - 1; j++) {
-      const k0 = prof[j];
-      const k1 = prof[j + 1];
-      const par = (i + j) % 2;
-      const tono = par ? '#c6bda6' : '#b9af97';
-      out.push(path(quad(X + 1.6, X + paso - 1.6, k0 + 0.003, k1 - 0.003), r() < 0.2 ? (par ? '#cdc4ae' : '#c0b69f') : tono));
-      if (j < 3) out.push(path(quad(X + 1.6, X + paso - 1.6, k0 + 0.003, k0 + (k1 - k0) * 0.3), '#ffffff', { opacity: 0.06 }));
-    }
-  }
-  out.push(gpath(polyD([gp(X0, 1), gp(X1, 1), gp(X1, 1.06), gp(X0, 1.06)]), lin(0, 800, 0, 836, [[0, '#2a1e16', 0.4], [1, '#2a1e16', 0]])));
-  const pie = (x0, x1, a = 0.4, fondo = 0.05, k = 1) => sombra(uOf((x0 + x1) / 2, k + fondo / 3), yOf(k + fondo / 3), ((x1 - x0) / 2 + 20) * (k + fondo / 3), (yOf(k + fondo) - yOf(k)) * 1.2, a);
-  out.push(pie(TAB.x, TAB.x + TAB.w, 0.5, 0.05), pie(TRAGA.X - 90 + 2 * SH, TRAGA.X + 90 + 2 * SH, 0.5, 0.05, P.f(TRAGA.y)), pie(2896 + 2 * SH, 2934 + 2 * SH, 0.4, 0.04), pie(BANO.x + 2 * SH, BANO.x + BANO.w + 2 * SH, 0.25, 0.03));
-  const kb = KB;
-  out.push(gpath(polyD([gp(-200, kb - 0.002), gp(W4 + 200, kb - 0.002), gp(W4 + 200, kb + 0.05), gp(-200, kb + 0.05)]), lin(0, BAR.y, 0, yOf(kb + 0.05), [[0, '#1a1222', 0.5], [1, '#1a1222', 0]])));
-  out.push(gpath(polyD([gp(-200, kb + 0.02), gp(W4 + 200, kb + 0.02), gp(W4 + 280, kb + 0.24), gp(-280, kb + 0.24)]), lin(0, yOf(kb + 0.02), 0, yOf(kb + 0.24), [[0, '#ffb45a', 0.22], [1, '#ffb45a', 0]])));
-  out.push(path(quad(386, 560, 1.0, 1.12), '#2f3036'), path(quad(394, 552, 1.012, 1.108), '#3c3e46'));
-  for (let k = 1.02; k < 1.105; k += 0.02) out.push(path(quad(396, 550, k, k + 0.007), '#23242a'));
-  const q = rng(9);
-  for (let n = 0; n < 120; n++) {
-    const X = 100 + q() * (W4 - 200);
-    const k = kb + 0.016 + q() * 0.17;
-    const [u, y] = gp(X, k);
-    const s = k * (0.8 + q() * 0.6);
-    const tipo = q();
-    if (tipo < 0.4) out.push(path(E(u + 2 * s, y + 2.5 * s, 9 * s, 3.4 * s), '#000', { opacity: 0.14 }), path(smooth([[u - 8 * s, y], [u - 4 * s, y - 3.4 * s], [u + 3 * s, y - 4 * s], [u + 8 * s, y - 1 * s], [u + 6 * s, y + 2.4 * s], [u - 3 * s, y + 3 * s]]), '#f1ede2'));
-    else if (tipo < 0.6) out.push(stroke(`M${f2(u - 5 * s)} ${f2(y)}Q${f2(u)} ${f2(y - 6 * s)} ${f2(u + 5 * s)} ${f2(y + 0.5 * s)}`, '#e0834a', 2.6 * s));
-    else if (tipo < 0.8) out.push(path(E(u, y, 3.2 * s, 2 * s), '#7a8a3a'));
-    else out.push(line(u - 7 * s, y, u + 7 * s, y - 1.6 * s, '#d8b878', 1.5 * s));
-  }
-  return recolor(`<g transform="${ladear}">${out.join('')}</g>`, pasillo);
-}
-
-/** The ceiling of the corridor: the tubes and the lamps of the bar, repeated, each leaning with the slope. */
-function techoLargo() {
-  const base = techoPiezas(0);
-  const piezas = [];
-  const desp = [-0.4 * SH, SH, 2.4 * SH];
-  const ult = base.piezas.length - 1;
-  const poner = (q, sh) => {
-    const dyA = INCL * ((q.x0 + sh) - CX4);
-    const dyB = INCL * ((q.x1 + sh) - CX4);
-    const m = `matrix(1 ${INCL} 0 1 ${f2(sh)} ${f2(INCL * (sh - CX4))})`;
-    const env = (b) => recolor(`<g transform="${m}">${b}</g>`, pasillo);
-    piezas.push({ x0: q.x0 + sh, x1: q.x1 + sh, y0: q.y0 + Math.min(dyA, dyB) - 4, y1: q.y1 + Math.max(dyA, dyB) + 4, body: env(q.body), emissive: q.emissive ? env(q.emissive) : undefined });
-  };
-  base.piezas.forEach((q, i) => {
-    if (i === ult) poner(q, -0.4 * SH);
-    else for (const sh of desp) poner(q, sh);
-  });
-  const glows = [];
-  for (const q of base.glows) for (const sh of desp) glows.push({ ...q, x: q.x + sh, y: q.y + INCL * (q.x + sh - CX4) });
-  const tubos = TUBOS.flatMap((t) => desp.map((sh) => ({ u: t.u + sh, y: t.y + INCL * (t.u + sh - CX4), len: t.len })));
-  return { piezas, glows, tubos };
-}
-
-/** The counter's long module `m` (from -2 to 2) and the stools along it, as props. */
-function modulosBarra4() {
-  const out = [];
-  const MOD = BAR.L;
-  for (let m = -2; m <= 2; m++) {
-    const X = BAR.X + SH + m * MOD;
-    const dy = INCL * (X - CX4);
-    const inclina = (c) => `<g transform="matrix(1 ${INCL} 0 1 0 ${f2(dy)})">${c}</g>`;
-    const cuerpo = `<clipPath id="cm${m + 2}"><rect x="${-MOD / 2 - 2}" y="-520" width="${MOD + 4}" height="640"/></clipPath><g clip-path="url(#cm${m + 2})">${barra() + barraEncima(m !== 0)}</g>`;
-    out.push({ id: m === 0 ? 'barra' : `barra${m}`, X, y: BAR.y, svg: propSvg(recolor(inclina(cuerpo), pasillo)), z: 0 });
-    const XT = TABURETES.X + SH + m * MOD;
-    out.push({ id: `taburetes${m}`, X: XT, y: TABURETES.y, svg: propSvg(recolor(`<g transform="matrix(1 ${INCL} 0 1 0 ${f2(INCL * (XT - CX4))})">${taburetes()}</g>`, pasillo)), z: 0 });
-  }
-  return out;
-}
-
-function luces4() {
-  const out = [];
-  for (const l of luces(0)) {
-    for (const d of copias4(l.X)) {
-      const X = l.X + d;
-      const dy = INCL * (X - CX4);
-      out.push({ ...l, X, y: l.y + dy, fy: l.fy === undefined ? undefined : l.fy + dy, color: pasillo(l.color) });
-    }
-  }
-  return out;
-}
-
-/** The base scene's zone, moved to level 4: its group's shift, and the slope. */
-function zona4(id, z) {
-  const d = (MOVER4[id] ?? 1) * SH;
-  const u = z.u + SH + z.k * (d - SH);
-  const dy = INCL * (u - CX4);
-  return { ...z, u, X: z.X + d, top: z.top + dy, bottom: z.bottom + dy };
-}
-
-function construir4() {
-  const base = escena(0);
-  const pa = paredLarga();
-  const top = techoLargo();
-  const ext = calleRango(0.5, P4, W4);
-  const fl = uRange(P4.f(1080), 400, P4, W4);
-  const col = pasillo;
-  const spots = {};
-  for (const [id, v] of Object.entries(base.spots)) {
-    const d = id === 'entrada' ? 0 : id === 'tragaperras' || id === 'tragaperrasSeparada' || id === 'duro' ? 2 * SH : SH;
-    spots[id] = { ...v, X: v.X + d };
-  }
-  const zonas = {};
-  for (const [id, z] of Object.entries(base.zonas)) zonas[id] = zona4(id, z);
-  const textosL = textosLargos();
-  return {
-    id: 'bar4',
-    name: 'Bar del Brío',
-    W: W4,
-    H: 1080,
-    HOR: P4.HOR,
-    BASE: P4.BASE,
-    CX: P4.CX,
-    M,
-    clave: [0.1, -0.8, 0.55],
-    pendiente: INCL,
-    ambient: col('#5a5670'),
-    walk: { y0: 892, y1: 985, x0: 140, x1: W4 - 140 },
-    start: { X: 560, y: 905 },
-    layers: [
-      { id: 'calle', k: 0.5, x0: ext[0], x1: ext[1], y0: 0, y1: 800, body: recolor(calle(), col), emissive: recolor(calleEmisiva(), col), glows: CALLE_GLOWS.map((q) => ({ ...q, color: col(q.color) })), lit: false },
-      {
-        id: 'pared', k: 1, textura: 0.2, x0: -60, x1: W4 + 60, y0: 0, y1: 990,
-        pieces: [
-          { x0: -60, x1: W4 + 60, y0: 0, y1: 990, body: pa.svg, emissive: pa.emisivo },
-          { x0: 2380 + 2 * SH, x1: 2600 + 2 * SH, y0: 300, y1: 990, body: pa.hueco, si: 'c2.separada' },
-        ],
-        lit: true,
-        texts: textosL,
-        glows: [
-          { x: 473, y: 248 + INCL * (473 - CX4), r: 70, color: col('#6aff9a'), a: 0.4 },
-          { x: TAB.x + TAB.w / 2, y: TAB.y + 30 + INCL * (TAB.x + TAB.w / 2 - CX4), r: 110, color: col('#ff6a5a'), a: 0.38 },
-          { x: BANO.x + BANO.w / 2 + 2 * SH, y: FLOOR - 4 + INCL * (BANO.x + BANO.w / 2 + SH), r: 110, color: col('#ffd27a'), a: 0.3 },
-        ],
-      },
-      { id: 'suelo', floor: true, x0: fl[0], x1: fl[1], y0: 580, y1: 1240, body: sueloLargo(), lit: true, textura: 0.3 },
-      { id: 'techo', k: KT, z: 'front', lit: true, textura: 0.25, pieces: top.piezas, glows: top.glows.map((q) => ({ ...q, color: col(q.color) })) },
-    ],
-    props: [
-      ...modulosBarra4(),
-      { id: 'tragaperras', X: TRAGA.X + 2 * SH, y: TRAGA.y, svg: propSvg(recolor(`<g transform="matrix(1 ${INCL} 0 1 0 ${f2(INCL * (TRAGA.X + 2 * SH - CX4))})">${maquinaPared()}</g>`, col)), z: 0, si: '!c2.separada' },
-      { id: 'tragaperrasFuera', X: TRAGA_FUERA.X + 2 * SH, y: TRAGA_FUERA.y, svg: propSvg(recolor(`<g transform="matrix(1 ${INCL} 0 1 0 ${f2(INCL * (TRAGA_FUERA.X + 2 * SH - CX4))})">${maquinaFuera(CX4, 2 * SH)}</g>`, col)), z: 0, si: 'c2.separada' },
-      { id: 'duro', X: DURO.X + 2 * SH, y: DURO.y, svg: propSvg(recolor(duroArte(), col)), z: -20, si: 'c2.duroVisible' },
-    ],
-    lights: luces4(),
-    shafts: [{ X0: 388, X1: 556, dX: 420, k1: 1.36, color: col('#ffb056'), power: 0.3 }],
-    spots,
-    zonas,
-    // Where the live pieces are (bar-vivo.ts), not in the scene's data.
-    noche: { tubos: top.tubos },
-  };
 }
 
 // ---------------------------------------------------------------- level 5
@@ -1828,20 +1625,7 @@ function construir6() {
   };
 }
 
-/** The live pieces of the levels 4 and 5, in the place and the drawing of their level: where each moves to (bar-vivo.ts). */
+/** The live pieces of level 5 (upside down), in the place and the drawing of their level (bar-vivo.ts). */
 function adaptarNoche(nivel, d) {
-  if (nivel === 4) {
-    const top = techoLargo();
-    return {
-      ...d,
-      desp: { tele: [2 * SH], porra: [0, SH, 2 * SH], botellas: [0, SH, 2 * SH] },
-      bar: { X: BAR.X + SH, y: BAR.y, k: KB },
-      maquinaPared: { X: TRAGA.X + 2 * SH, y: TRAGA.y },
-      maquinaFuera: { X: TRAGA_FUERA.X + 2 * SH, y: TRAGA_FUERA.y },
-      duro: { X: DURO.X + 2 * SH, y: DURO.y },
-      tubos: top.tubos,
-      inclina: { S: INCL, xc: CX4 },
-    };
-  }
   return { ...d, volteo: 810, sinVitrina: true, tubos: [] };
 }

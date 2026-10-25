@@ -67,7 +67,7 @@ objetivo.c2.duro = Mete el duro en la tragaperras
 
 pista.c2.ronda = Vero está detrás de la barra. Que le pida Fran, que es el de «una más».
 pista.c2.cambio = Guille lleva un billete de cincuenta. Quizá Vero se lo cambie.
-pista.c2.maquina = La tragaperras está «fuera de servicio». Chuchi entiende de máquinas.
+pista.c2.maquina = La tragaperras está «fuera de servicio». Guille puede separarla de la pared; Chuchi entiende de máquinas.
 pista.c2.enchufe = El enchufe de la tragaperras está detrás. Alguien fuerte tendría que separarla de la pared.
 pista.c2.cogerduro = Detrás de la tragaperras brilla algo en el suelo.
 pista.c2.meterduro = Abre la bolsa, elige el duro y toca la tragaperras.
@@ -155,7 +155,7 @@ FRAN (nervioso): Será la caña. Las cañas no hacen eso. Creo.
 FRAN (sorprendido): ¡Todos los números son sietes! Ahora sí que toca seguro.
 
 ## c2.mirar.barra.4
-GUILLE (nervioso): Llevo diez minutos andando por la barra y sigo en la misma caña.
+GUILLE (nervioso): La barra brilla como una discoteca. Y juraría que las cañas se me acercan solas.
 
 ## c2.mirar.barra.5
 CHUCHI (sorprendido): La barra cuelga del techo. Por lo menos las cañas ya no se derraman: se quedan quietas por orgullo.
@@ -164,7 +164,7 @@ CHUCHI (sorprendido): La barra cuelga del techo. Por lo menos las cañas ya no s
 PABLO: Las botellas siguen en su sitio. Es el sitio el que ha cambiado de sitio.
 
 ## c2.mirar.porra.4
-CHUCHI (sorprendido): La porra se repite. Esta es la tercera vez que veo el nombre de Fran con un siete.
+CHUCHI (sorprendido): Los sietes de la porra ahora brillan en colores. Nada de esto es normal. Bueno, nada de esta noche.
 
 ## c2.mirar.tragaperras
 GUILLE: «Fuera de servicio». Con lo bonita que es.
@@ -277,9 +277,6 @@ FRAN: Fuera de servicio. Esto lo arregla alguien que sepa de cacharros.
 ## c2.tragaperras.rota.pablo
 PABLO: «Fuera de servicio». Como yo un lunes. Chuchi sabrá qué le pasa.
 
-## c2.tragaperras.rota.guille
-GUILLE: «Fuera de servicio». Le daría un golpe, pero eso solo funciona con la radio de la granja.
-
 ## c2.chuchi.tragaperras
 CHUCHI (chulo): Apartad. Esto es como el router: se desenchufa, se cuentan diez y se vuelve a enchufar.
 CHUCHI: El problema es que el enchufe está detrás. Y esto pesa como un frigorífico.
@@ -296,10 +293,20 @@ CHUCHI: Yo soy el cerebro de la operación. El músculo es Guille.
 ## c2.guille.tragaperras.antes
 GUILLE (contento): ¿Pesada? He levantado cerdos de ciento cincuenta kilos. Esto es una caja con luces.
 
+## c2.guille.tragaperras.directo
+GUILLE (contento): «Fuera de servicio»... Veamos qué hay detrás. He levantado cerdos de ciento cincuenta kilos: esto es una caja con luces.
+
 ## c2.guille.tragaperras
 > Guille separa la máquina de la pared. Detrás, polvo, chapas, un mechero... y algo que brilla.
 GUILLE (sorprendido): ¡Un duro! ¡Un duro de 1987!
+
+## c2.chuchi.router
+CHUCHI (chulo): Apartad. Esto es como el router: se desenchufa, se cuentan diez y se vuelve a enchufar. Y el enchufe está ahí, al fondo.
+
+## c2.chuchi.enchufa
 CHUCHI: Ya está desenchufada. Uno, dos... diez. Enchufada.
+
+## c2.tragaperras.enciende
 > La tragaperras se enciende con un acorde un poco desafinado.
 
 ## c2.coger.duro
@@ -405,7 +412,7 @@ FRAN (contento): Cinco minutitos. Solo cinco. Como los profesionales.
 //   !gogogo !don !ha !zas son onomatopeyas dibujadas · solo: se va al acabar la siguiente línea · @manga fin: vuelve
 //   Expresiones: pablo suplica sorpresa seriedad risa · fran enfado sorpresa triste risa · chuchi sorpresa duda seriedad
 //   risa · guille risa sorpresa nervioso seriedad · vero picara sorpresa risa seriedad · sombra burla seriedad
-// El bar 4 es un pasillo que no se acaba, con el suelo inclinado; el bar 5, el Brío del revés.
+// El bar 4 es el bar de siempre con las luces de discoteca y las líneas torcidas; el bar 5, el Brío del revés.
 
 ## c2.noche.despierta
 @holandes 7 0
@@ -427,17 +434,17 @@ FRAN (triste): No me creéis.
 CHUCHI: Yo te creo lo del cerdo.
 @general 500
 @contrapicado 12 700
-FRAN (sorprendido): Un momento. ¿Por qué la barra no se acaba?
+FRAN (sorprendido): Un momento. ¿Por qué está todo tan brillante? Esto parece una discoteca.
 @corte guille 2.2 6
 GUILLE (nervioso): Lleva así un rato. No quise decir nada para no cortar el rollo.
-CHUCHI (nervioso): Y el suelo baja. Yo me llevo agarrado a este taburete desde hace diez minutos.
+CHUCHI (nervioso): Y las paredes se mueven. Yo me llevo agarrado a este taburete desde hace diez minutos.
 @barrido vero 1.8 -1
 VERO: Yo de eso no sé nada, mi amor. Yo solo pongo las cañas.
 
 ## c2.noche.maquina
 @nivelar 400
 @foco tragaperras
-> Allá al fondo del pasillo, que está muy al fondo, algo hace «clic».
+> En la esquina del fondo, algo hace «clic».
 @zoom tragaperras 1.7
 > La tragaperras, que nadie ha tocado, empieza a girar. Sola. Otra vez.
 CHUCHI (nervioso): Nadie ha echado un duro. Yo no he tocado nada. Lo juro por mis hijas.

@@ -13,8 +13,8 @@
 // Each round raises «el nivel de la noche» and the bar turns into a dream: the
 // scenes bar0…bar3 are the same bar baked with its dream gone further, and the
 // live bits (src/capitulos/bar-vivo.ts) move on top. After the Pang the night gets
-// out of hand (`elRestoDeLaNoche`): Fran wakes in bar4, a corridor with no end and a
-// sloping floor, and tells the dragon; the slot machine spins alone and stops on
+// out of hand (`elRestoDeLaNoche`): Fran wakes in bar4 (the same bar in acid
+// lights, its lines bent), and tells the dragon; the slot machine spins alone and stops on
 // Pablo's face; the bar turns upside down (bar5), Pablo's shadow, the narrator of
 // chapter 1, takes over («Esta historia la acabo yo») and the picture is squeezed
 // into the console of Alacant Sun; Pablo opens his eyes. Then the last stretch before the PokéUsera: Chuchi
@@ -86,7 +86,7 @@ async function subirNivel(g: Aventura, n: number) {
   if (nivel(g) >= n) return;
   g.poner('c2.nivel', n);
   const escena = `bar${n}`;
-  // The long bar and the upside-down one are not the same size: everyone goes back to their place at the
+  // From the Pang on (after the Pang, and when the bar turns over) everyone goes back to their place at the
   // counter, and the camera with them.
   const sitios = n >= 4 ? (bar(n) as unknown as Escena).spots : null;
   for (const id of g.estado.jugables) {
@@ -180,24 +180,18 @@ async function fresquitos(g: Aventura) {
   await g.hablar('c2.fresquitos.despues');
 }
 
-/** The slot machine: out of order, then pulled from the wall, then the duro. */
+/** The slot machine: out of order, then pulled from the wall by Guille (at once, whoever has looked at it before), then the duro. */
 async function tragaperras(g: Aventura) {
   const quien = g.estado.activo;
   hacerSitio(g);
   if (!g.flag('c2.separada')) {
+    if (quien === 'guille') return separar(g);
     if (!g.flag('c2.diagnostico')) {
       if (quien !== 'chuchi') return g.hablar('c2.tragaperras.rota');
       g.poner('c2.diagnostico');
       return g.hablar('c2.chuchi.tragaperras');
     }
-    if (quien !== 'guille') return noEres(g, 'separar');
-    await g.hablar('c2.guille.tragaperras.antes');
-    g.poner('c2.separada');
-    g.poner('c2.duroVisible');
-    g.sound.pickup();
-    await g.hablar('c2.guille.tragaperras');
-    g.poner('c2.encendida');
-    return;
+    return noEres(g, 'separar');
   }
   if (g.flag('c2.duroVisible')) {
     g.poner('c2.duroVisible', false);
@@ -210,6 +204,42 @@ async function tragaperras(g: Aventura) {
   if (g.flag('c2.tirada')) return g.hablar('c2.tragaperras.despues');
   return g.hablar(g.tiene('duro') ? 'c2.tragaperras.conduro' : 'c2.tragaperras.encendida');
 }
+
+/**
+ * Guille pulls the machine from the wall the moment he uses it: the duro shows, and Chuchi (who knows about routers)
+ * walks over to the socket and switches it on, instead of doing it from where he stands.
+ */
+async function separar(g: Aventura) {
+  const visto = g.flag('c2.diagnostico');
+  await g.hablar(visto ? 'c2.guille.tragaperras.antes' : 'c2.guille.tragaperras.directo');
+  g.poner('c2.separada');
+  g.poner('c2.duroVisible');
+  g.sound.pickup();
+  await g.hablar('c2.guille.tragaperras');
+  if (!visto) {
+    g.poner('c2.diagnostico');
+    await g.hablar('c2.chuchi.router');
+  }
+  g.hud.cerrarDialogo();
+  // To the socket, passing in front of the others, and a look at the plug.
+  const C = g.pjs.get('chuchi');
+  if (C) {
+    if (C.X < 2200) await g.andar(Math.min(C.X + 600, 2250), 995, 'chuchi');
+    await g.andar(SOCKET_C.X, SOCKET_C.y, 'chuchi');
+    C.lookAt(SOCKET_C.mira);
+    await g.esperar(350);
+  }
+  await g.hablar('c2.chuchi.enchufa');
+  g.poner('c2.encendida');
+  g.sound.pickup();
+  await g.hablar('c2.tragaperras.enciende');
+  // And back to his place at the counter.
+  const casa = g.S.spots.chuchi;
+  if (casa) void g.andar(casa.X, casa.y, 'chuchi');
+}
+
+/** Where Chuchi stands to plug the machine in: beside it, in front of the wall socket (ENCHUFE, bar.mjs), looking at it. */
+const SOCKET_C = { X: 2575, y: 905, mira: 2548 };
 
 /** The duro into the machine: no pesetas, until the fresquitos; then a spin, and the song. */
 async function meterDuro(g: Aventura) {
@@ -225,7 +255,7 @@ async function meterDuro(g: Aventura) {
   await g.hablar('c2.duro.entra');
   g.hud.cerrarDialogo();
   g.pausado = true;
-  await mostrarTragaperras(g.root, { premio: false, rapido: g.rapido, sonido: g.sound }).finally(() => (g.pausado = false));
+  await mostrarTragaperras(g.root, { premio: false, cantada: g.flag('c2.premio'), rapido: g.rapido, sonido: g.sound }).finally(() => (g.pausado = false));
   await g.hablar('c2.duro.sinpremio');
   await canto(g);
 }
@@ -240,7 +270,7 @@ async function canto(g: Aventura) {
   await g.hablar('c2.premio.antes');
   g.hud.cerrarDialogo();
   g.pausado = true;
-  await mostrarTragaperras(g.root, { premio: true, rapido: g.rapido, sonido: g.sound }).finally(() => (g.pausado = false));
+  await mostrarTragaperras(g.root, { premio: true, cara: 'fran', cantada: g.flag('c2.premio'), rapido: g.rapido, sonido: g.sound }).finally(() => (g.pausado = false));
   await subirNivel(g, 3);
   await g.hablar('c2.premio');
   await ojosDeFran(g);
@@ -275,14 +305,14 @@ async function ojosDeFran(g: Aventura) {
  * picture and the bar with it. The camera tools come from the texts (`@` lines, src/juego/camara.ts).
  */
 async function elRestoDeLaNoche(g: Aventura) {
-  // Fran wakes in the long bar, with the dragon still in his head; the others do not believe him.
+  // Fran wakes in the bar gone acid, with the dragon still in his head; the others do not believe him.
   await subirNivel(g, 4);
   await g.hablar('c2.noche.despierta');
-  // The slot machine, at the far end of the corridor, spins alone: it stops on Pablo's face and dies.
+  // The slot machine, in its own corner, spins alone: it stops on Pablo's face and dies.
   await g.hablar('c2.noche.maquina');
   g.hud.cerrarDialogo();
   g.pausado = true;
-  await mostrarTragaperras(g.root, { premio: false, cara: 'pablo', rapido: g.rapido, sonido: g.sound }).finally(() => (g.pausado = false));
+  await mostrarTragaperras(g.root, { premio: false, cara: 'pablo', cantada: g.flag('c2.premio'), rapido: g.rapido, sonido: g.sound }).finally(() => (g.pausado = false));
   await g.hablar('c2.noche.pablo');
   // The bar turns upside down.
   await g.plano.reset(0);
@@ -323,7 +353,7 @@ async function chuchiYElKart(g: Aventura) {
   await g.hablar('c2.chuchi.maquina');
   g.hud.cerrarDialogo();
   g.pausado = true;
-  await mostrarTragaperras(g.root, { premio: false, cara: 'chuchi', rapido: g.rapido, sonido: g.sound }).finally(() => (g.pausado = false));
+  await mostrarTragaperras(g.root, { premio: false, cara: 'chuchi', cantada: g.flag('c2.premio'), rapido: g.rapido, sonido: g.sound }).finally(() => (g.pausado = false));
   await g.hablar('c2.chuchi.cara');
   await g.hablar('c2.chuchi.pista');
   g.hud.cerrarDialogo();
@@ -674,8 +704,7 @@ export const capitulo2: Capitulo = {
     const f = (k: string) => g.flag(k);
     if (g.escena === 'conceptos') return texto(f('c2.fran.hallado') ? 'pista.c2.conceptos.ultima' : 'pista.c2.conceptos.fran');
     if (!f('c2.ronda')) return texto('pista.c2.ronda');
-    if (!f('c2.diagnostico')) return texto(f('c2.cambio') ? 'pista.c2.maquina' : 'pista.c2.cambio');
-    if (!f('c2.separada')) return texto('pista.c2.enchufe');
+    if (!f('c2.separada')) return texto(f('c2.diagnostico') ? 'pista.c2.enchufe' : f('c2.cambio') ? 'pista.c2.maquina' : 'pista.c2.cambio');
     if (f('c2.duroVisible')) return texto('pista.c2.cogerduro');
     if (!f('c2.duroProbado')) return texto('pista.c2.meterduro');
     if (!f('c2.fresquitos')) return texto('pista.c2.fresquitos');
