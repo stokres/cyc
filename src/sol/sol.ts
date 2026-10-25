@@ -13,7 +13,8 @@
 // frame only drawImage of cached pieces onto the 240×160 canvas and one scaled blit to the screen (an integer
 // factor, no smoothing). The loop never runs faster than 60 fps. `window.__sol()` counts frames.
 import type { SonidoMinijuego } from '../core/audio';
-import { cargarTextos, hayTexto, texto } from '../juego/textos';
+import { cargarTextos, hayTexto, texto as textoBase } from '../juego/textos';
+import { teclasVars } from './teclado';
 import textosSol from '../textos/sol.md?raw';
 import { esVertical } from '../ui/orientacion';
 import { caja as spriteCaja, chispa, destello, lluvia, manoLuz, puntito, T } from './arte';
@@ -40,6 +41,9 @@ import { ctx, elipse, girar, lienzo, reflejar, una } from './pixel';
 import { OBJETOS, PODERES, poderesDe } from './poderes';
 import { SonidoSol, EFECTO_APUNTADOR, EFECTO_CAE, EFECTO_CHAT, EFECTO_CURA, EFECTO_HIELO, EFECTO_MENU, EFECTO_PODER, EFECTO_PUERTA, EFECTO_PUZLE, EFECTO_ROCA, EFECTO_TELON, EFECTO_VIENTO, PISTA_CAMINO, PISTA_PUEBLO, PISTA_TEATRO } from './sonido';
 import { dibujarLogo, portada } from './titulo';
+
+/** A text of the game, with `{A}`, `{B}`, `{R}`, `{L}` and `{START}` as the player's device calls those buttons (teclado.ts). */
+const texto = (clave: string, vars: Record<string, string | number> = {}) => textoBase(clave, { ...teclasVars(), ...vars });
 
 export type Resultado = 'hecho' | 'saltado' | 'cancelado';
 
@@ -71,6 +75,8 @@ export interface EstadoSol {
   narrador(): Promise<void>;
   /** Opens the START menu. */
   abrirMenu(): Promise<void>;
+  /** Plays a series of the texts (clave.1, clave.2...) in the dialogue window, for tests. */
+  decirSerie(clave: string): Promise<void>;
   /** Walks into the peña (the shop) or the inn. */
   entrar(sala: Sala): Promise<void>;
   /** Starts a random fight now (a group of the zone Pablo is in, or the one given); the hook's answer is its result. */
@@ -797,7 +803,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
       await espera(0.8);
       await decir('pablo', 'pablo.caja.1');
       await decir('pablo', 'pablo.caja.2');
-      await decir(null, 'consejo.caja');
+      await serie(null, 'consejo.caja');
     });
   };
 
@@ -1400,7 +1406,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
         darApuntador(grupo, 'chist', 'pablo');
         sonido.efecto(EFECTO_APUNTADOR);
         await decir(null, 'chist.unido');
-        await decir(null, 'consejo.apuntador');
+        await serie(null, 'consejo.apuntador');
       } else if (r === 'derrota') await derrotado();
     });
   };
@@ -2052,6 +2058,8 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
         darApuntador(grupo, a.id, a.dueno);
         sonido.efecto(EFECTO_APUNTADOR);
         await decir(null, `apuntador.${a.id}.unido`);
+        // the first one of the Teatro: a reminder of what the summons need
+        if (tt.apuntadores.size === 1) await serie(null, 'consejo.invocacion');
       } else if (r === 'derrota') await derrotado();
     });
   };
@@ -2474,18 +2482,17 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     const libre = !dialogo.activo && fade.dur === 0 && !poder && !hechizo && guion === 0;
 
     if (libre) {
-      if (mandos.tomarB()) {
-        /* B cancels: nothing to cancel on the map, and held it makes him run */
-      }
+      // B cancels: nothing to cancel on the map, and held it makes him run
+      mandos.tomarB();
       actualizarJugador(dt);
       if (mandos.tomarA()) interactuar();
       else if (mandos.tomarR()) lanzarSeleccionado();
       else if (mandos.tomarL()) {
         if (escena === 'pueblo' || escena === 'camino' || escena === 'teatro') ciclarPoder();
-      } else if (mandos.tomarStart() && (escena === 'pueblo' || escena === 'camino' || escena === 'teatro')) void menuPrincipal();
+      } else if ((mandos.tomarStart() || mandos.tomarEscape()) && (escena === 'pueblo' || escena === 'camino' || escena === 'teatro')) void menuPrincipal();
       // places that react to Pablo
       if (escena === 'cuarto') {
-        if (pablo.y >= ALTO_CUARTO - 6 && pablo.x > cuartoM.puerta.x && pablo.x < cuartoM.puerta.x + cuartoM.puerta.w && cama === 'vacia') void salirDelCuarto();
+        if (pablo.y >= ALTO_CUARTO - 8 && pablo.x > cuartoM.puerta.x && pablo.x < cuartoM.puerta.x + cuartoM.puerta.w && cama === 'vacia') void salirDelCuarto();
       } else if (escena === 'pueblo') {
         const m = mundo as Mundo;
         const pr = rectPj(pablo);
@@ -2515,6 +2522,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
       mandos.tomarR();
       mandos.tomarL();
       mandos.tomarStart();
+      mandos.tomarEscape();
       if (!poder) pablo.mov = pablo.mov && false;
     }
     if (poder) actualizarPoder(dt);
@@ -2708,6 +2716,39 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     }
   };
 
+  /**
+   * Where the crate goes: while it blocks the way, the tile beside it (to the east, where it will slide) glows and a
+   * little arrow bobs over it, pointing the same way, so that it is clear where the passage opens. Rectangles only.
+   */
+  const dibujarPasoDeLaCaja = (dx: number, dy: number) => {
+    const x = Math.round(caja.x + T - dx);
+    const y = Math.round(caja.y - dy);
+    if (x < -T || x > PANTALLA_W || y < -T || y > PANTALLA_H) return;
+    const pulso = 0.5 + 0.5 * Math.sin(t * 4);
+    const a = g.globalAlpha;
+    g.globalAlpha = 0.18 + 0.2 * pulso;
+    g.fillStyle = '#ffe27a';
+    g.fillRect(x, y, T, T);
+    g.globalAlpha = 0.55 + 0.4 * pulso;
+    g.fillRect(x, y, T, 1);
+    g.fillRect(x, y + T - 1, T, 1);
+    g.fillRect(x, y, 1, T);
+    g.fillRect(x + T - 1, y, 1, T);
+    g.globalAlpha = a;
+    // the arrow (pointing east), bobbing a pixel or two
+    const ax = x + 3 + Math.round(pulso * 2);
+    const ay = y + 4;
+    g.fillStyle = '#0a0f3a';
+    g.fillRect(ax - 1, ay + 2, 8, 4);
+    g.fillRect(ax + 5, ay, 3, 8);
+    g.fillRect(ax + 7, ay + 1, 2, 6);
+    g.fillStyle = '#ffffff';
+    g.fillRect(ax, ay + 3, 6, 2);
+    g.fillRect(ax + 5, ay + 1, 1, 6);
+    g.fillRect(ax + 6, ay + 2, 1, 4);
+    g.fillRect(ax + 7, ay + 3, 1, 2);
+  };
+
   /** The village and the road: ground, depth-sorted objects and people, fiesta lights or fireflies, rain or clear sky. */
   const dibujarMundo = () => {
     const m = mundo!;
@@ -2797,6 +2838,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
       const cy = caja.y - dy - 4;
       for (const [ex, ey] of [[0, 0], [T, 0], [0, T + 4], [T, T + 4]]) g.drawImage(destello(f ? 2 : 1), Math.round(cx + ex - 2), Math.round(cy + ey - 2));
     }
+    if (!enCamino && !caja.movida && escena === 'pueblo') dibujarPasoDeLaCaja(dx, dy);
     if (poder) dibujarManoDeLuz(dx, dy);
     dibujarChispas(dx, dy);
     if (!enCamino) {
@@ -3474,6 +3516,7 @@ export function jugarSol(root: HTMLElement, o: OpcionesSol = {}): Promise<Result
     },
     narrador: () => escenaNarrador(),
     abrirMenu: () => menuPrincipal(),
+    decirSerie: (clave) => bloquear(() => serie(null, clave)),
     entrar: (s) => entrarSala(s),
     encuentro: (enemigos) => encuentroAleatorio(enemigos),
     encuentros: (si) => {
