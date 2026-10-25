@@ -156,7 +156,7 @@ export class Camara {
   /** Zoom onto a face or an object. Without `ms` it is a cut: the shot is simply closer, with a little punch. */
   zoom(objetivo: string, z: number, ms = 0) {
     const a = this.enfocar(objetivo, z);
-    if (ms > 0 || this.g.rapido) return this.ir(a, ms, suave);
+    if (ms > 0 || this.g.instantaneo) return this.ir(a, ms, suave);
     // The punch: it lands a bit too close and settles.
     this.e = { ...a, z: a.z * 1.07 };
     this.escribir();
@@ -191,7 +191,7 @@ export class Camara {
 
   /** Shake: `amp` pixels at first, dying out in `ms`. It does not wait. */
   sacudir(amp = 12, ms = 600) {
-    if (this.g.rapido) return;
+    if (this.g.instantaneo) return;
     this.temblor = { amp, t0: performance.now(), ms };
     this.arrancar();
   }
@@ -202,7 +202,7 @@ export class Camara {
    */
   async barrido(objetivo: string, z = 1.8, dir = 1) {
     const a = this.enfocar(objetivo, z);
-    if (this.g.rapido) return void (await this.ir(a, 0, suave));
+    if (this.g.instantaneo) return void (await this.ir(a, 0, suave));
     this.rayas.style.opacity = '1';
     await this.ir({ ...this.e, ox: -0.55 * dir, sk: -16 * dir }, 150, entra);
     this.e = { ...a, ox: 0.55 * dir, sk: 16 * dir };
@@ -222,7 +222,7 @@ export class Camara {
     const X = a ? a.X : g.S?.zonas[objetivo]?.X;
     if (X === undefined) return;
     g.foco = X;
-    if (g.rapido) return void g.motor.seguir(X, true);
+    if (g.instantaneo) return void g.motor.seguir(X, true);
     const t0 = performance.now();
     await g.esperar(150);
     while (g.motor.camaraMoviendose && performance.now() - t0 < 5000) await g.esperar(100);
@@ -300,7 +300,7 @@ export class Camara {
   /** Travel to a framing; resolves when it gets there (or at once, in the quick mode). */
   private ir(a: Encuadre, ms: number, curva: Curva): Promise<void> {
     this.parar();
-    if (ms <= 0 || this.g.rapido) {
+    if (ms <= 0 || this.g.instantaneo) {
       this.e = { ...a };
       this.escribir();
       this.alCambiar();

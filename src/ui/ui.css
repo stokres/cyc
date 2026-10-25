@@ -254,6 +254,20 @@ button:focus-visible {
   z-index: 1;
 }
 
+/* Switched off (a cutscene, a minigame, a choice to make): the face stays, dimmed and without «Cambiar». */
+.reparto[data-bloqueado='true'] .pj:first-child {
+  opacity: 0.45;
+  filter: saturate(0.4);
+}
+
+.reparto[data-bloqueado='true'] .pj:first-child .cambiar {
+  display: none;
+}
+
+.reparto[data-bloqueado='true'] .pj:first-child .nombre {
+  display: block;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reparto .pj {
     transition: none;

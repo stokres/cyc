@@ -22,6 +22,7 @@ import { FONTS } from '../motor/escena';
 const f = (g: Aventura, k: string) => g.flag(k);
 
 async function pesar(g: Aventura) {
+  g.cinematica(); // a cutscene from here: the dock is off until it ends (Aventura.cambioLibre)
   await g.hablar('g.bascula.antes');
   // The minigame covers the whole screen: the scene underneath stops drawing.
   g.pausado = true;
@@ -121,6 +122,7 @@ export function zonasGranja(g: Aventura): Record<string, ZonaLogica> {
       async usar() {
         if (!f(g, 'g.pesados')) return g.hablar('g.coche.antes');
         if (!f(g, 'g.limpio')) return g.hablar('g.coche.olor');
+        g.cinematica();
         g.avanzarReloj(3);
         await g.hablar('g.salida');
         await g.enCamino('guille');

@@ -91,6 +91,11 @@ export class Aventura {
   props: Objeto[] = [];
   private zonasLogicas: Record<string, ZonaLogica> = {};
   private ocupado = false;
+  /** The script running is a plain conversation (see `cambioLibre`). */
+  private conversacion = false;
+  /** A switch was asked for in the middle of a conversation: it plays out in a blink (`pedirCambio`). */
+  saltando = false;
+  private cambioPedido: PjId | null = null;
   /** Paused by the game itself (a menu, the prologue, a minigame). Set by the callers. */
   private pausaPropia = false;
   /** The «turn your phone» notice is up (main.ts): a pause of its own, so leaving it frees nothing else. */
@@ -100,6 +105,8 @@ export class Aventura {
   }
   set pausado(v: boolean) {
     this.pausaPropia = v;
+    // A minigame is something the player has to play: a request to leave is dropped, not skipped over.
+    if (v && this.saltando) this.cinematica();
   }
   /** Camera focus override (e.g. the sofa while Fran sleeps). */
   foco: number | null = null;
@@ -123,16 +130,16 @@ export class Aventura {
     this.hud = new Hud(root, {
       elegir: (id) => void this.elegir(id),
       ojo: () => this.ojo(),
-      pista: () => void this.ejecutar(() => this.decir(null, this.cap.pista(this))),
+      pista: () => void this.ejecutar(() => this.decir(null, this.cap.pista(this)), true),
       menu: () => this.onMenu?.(),
       seleccionar: () => this.sound.tap(),
-      mirarObjeto: (id) => void this.ejecutar(() => this.cap.mirarObjeto(this, id)),
+      mirarObjeto: (id) => void this.ejecutar(() => this.cap.mirarObjeto(this, id), true),
       combinar: (a, b) =>
         void this.ejecutar(async () => {
           if (await this.cap.combinar?.(this, a, b)) return;
           this.sound.nope();
           await this.hablar('nocombina');
-        }),
+        }, true),
     });
     this.hud.ropas = estado.ropa;
     this.velo = h('div', { class: 'velo' }, h('span', {}, texto('cargando')));
@@ -261,6 +268,7 @@ export class Aventura {
    * curtain down afterwards (the game's first scene, behind the title and the prologue).
    */
   async irA(escena: string, conVelo = true, levantar = true) {
+    this.cinematica();
     const span = this.velo.querySelector('span')!;
     if (conVelo) {
       // The dialogue box shows over the curtain: the last line said before a door goes with it.
@@ -334,23 +342,62 @@ export class Aventura {
     if (!this.rapido) await espera(450);
   }
 
+  /**
+   * Whether the dock may switch character now: free walking, or a plain conversation (looking, talking,
+   * using: `ejecutar(…, true)`). Not in a cutscene (the story goes on by itself and has to end where it
+   * means to), nor in a minigame or with a choice on screen.
+   */
+  get cambioLibre() {
+    return !this.ocupado || (this.conversacion && !this.pausado && !this.hud.enOpciones);
+  }
+
+  /**
+   * From here the script in progress is a cutscene (a scene change, a minigame, the end of a story, a
+   * choice…): the dock is switched off until it ends, and a switch asked for before is dropped, so none
+   * of it is skipped. Chapters call it at the top of the steps that lead to one.
+   */
+  cinematica() {
+    this.conversacion = false;
+    this.cambioPedido = null;
+    this.saltando = false;
+    this.hud.cambioLibre = this.cambioLibre;
+  }
+
   /** Pick another protagonist from the dock; if they are elsewhere, the game goes there. */
   async elegir(id: PjId) {
-    if (this.ocupado || this.hud.enDialogo) return;
     if (id === this.estado.activo) {
-      this.motor.seguir(this.activo?.X ?? 0);
+      if (!this.ocupado) this.motor.seguir(this.activo?.X ?? 0);
       return;
     }
     if (this.llegado(id) && !this.estado.final) {
       this.hud.aviso(texto('selector.yaencamino', { quien: REPARTO[id].nombre }));
       return;
     }
+    if (this.ocupado) {
+      if (this.cambioLibre) this.pedirCambio(id);
+      return;
+    }
     this.sound.tap();
     await this.ejecutar(() => this.cambiarA(id));
   }
 
+  /**
+   * The player asked to switch in the middle of a conversation. It is not cut off: it is played to the
+   * end at once (lines skipped, walks and waits done in a blink), so everything it does when it ends
+   * (flags, objects, the next step of the puzzle) is done, and then `ejecutar` makes the switch.
+   */
+  private pedirCambio(id: PjId) {
+    this.sound.tap();
+    this.cambioPedido = id;
+    this.saltando = true;
+    this.hud.seleccionar(null);
+    for (const p of this.pjs.values()) p.stop();
+    this.hud.saltarDialogo();
+  }
+
   /** Switch to a protagonist (inside a script): load their scene, and the first time, their opening. */
   async cambiarA(id: PjId) {
+    this.cinematica();
     this.hud.seleccionar(null);
     this.estado.activo = id;
     const d = this.estado.donde[id];
@@ -401,6 +448,7 @@ export class Aventura {
    * four can arrive together at the end. Then choose who goes next, or the final.
    */
   async enCamino(id: PjId = this.estado.activo) {
+    this.cinematica();
     const e = this.estado;
     if (!e.llegados.includes(id)) e.llegados.push(id);
     delete e.donde[id];
@@ -423,10 +471,15 @@ export class Aventura {
 
   // ------------------------------------------------------------ scripting API
 
-  /** Run a script: input waits until it ends; the game saves afterwards. */
-  async ejecutar(fn: () => Promise<void>) {
+  /**
+   * Run a script: input waits until it ends; the game saves afterwards. `conversacion`: it is a plain
+   * conversation (looking, talking, using), so the player may switch character in the middle of it.
+   */
+  async ejecutar(fn: () => Promise<void>, conversacion = false) {
     if (this.ocupado) return;
     this.ocupado = true;
+    this.conversacion = conversacion;
+    this.hud.cambioLibre = this.cambioLibre;
     this.hud.cerrarBandeja();
     try {
       await fn();
@@ -437,11 +490,18 @@ export class Aventura {
       if (this.S && this.velo.classList.contains('on')) void this.velar(false);
     } finally {
       this.ocupado = false;
+      this.conversacion = false;
+      this.saltando = false;
       this.plano.manga.ocultar();
       this.hud.cerrarDialogo();
       for (const p of [...this.pjs.values(), ...this.npcs.values()]) p.talking = false;
       this.refrescar();
       this.guardar();
+      this.hud.cambioLibre = true;
+      // The switch asked for in the middle of the conversation, now that it has ended.
+      const id = this.cambioPedido;
+      this.cambioPedido = null;
+      if (id) void this.elegir(id);
     }
   }
 
@@ -450,6 +510,7 @@ export class Aventura {
   }
 
   async decir(quien: Quien, frase: string, animo?: string, hora?: string) {
+    if (this.saltando) return;
     const actor = quien === 'sombra' ? this.sombra : esNpc(quien) ? this.npcs.get(quien) ?? null : quien && quien !== 'aceituna' ? this.pjs.get(quien) : null;
     const arte = esNpc(quien) ? NPCS[quien].arte : quien && quien !== 'aceituna' ? REPARTO[quien === 'sombra' ? 'pablo' : quien].arte : null;
     const base = (arte && arte.INFO.defaultMood) || 'neutral';
@@ -497,14 +558,28 @@ export class Aventura {
   }
 
   async esperar(ms: number) {
-    if (!this.rapido) await espera(ms);
+    // Skipping to the end of a conversation: a frame, not the wait (but never none, or a loop that waits for the screen to change would spin).
+    if (!this.rapido) await espera(this.saltando ? Math.min(ms, 16) : ms);
+  }
+
+  /** Nothing waits for the screen: tests, or a conversation being played to its end. */
+  get instantaneo() {
+    return this.rapido || this.saltando;
   }
 
   async andar(X: number, y: number, quien: PjId = this.estado.activo) {
     const a = this.pjs.get(quien);
     if (!a) return;
     const w = this.S.walk;
-    await a.walkTo(Math.max(w.x0, Math.min(w.x1, X)), Math.max(w.y0, Math.min(w.y1, y)));
+    const aX = Math.max(w.x0, Math.min(w.x1, X));
+    const aY = Math.max(w.y0, Math.min(w.y1, y));
+    // Skipping to the end of a conversation: they are simply there.
+    if (this.saltando) {
+      a.stop();
+      Object.assign(a, { X: aX, y: aY });
+      return;
+    }
+    await a.walkTo(aX, aY);
   }
 
   /** Send Aceituna somewhere; she stays there until perroDestino is cleared. */
@@ -622,7 +697,7 @@ export class Aventura {
           if (actor === 'sombra') this.sombraMira = true;
         }
         await this.cap.personaje(this, actor, item);
-      });
+      }, true);
       return;
     }
     if (zona) {
@@ -643,7 +718,7 @@ export class Aventura {
         else if (this.hayDialogo(`usar.${zona}`)) await this.hablar(`usar.${zona}`);
         else if (L.mirar) await L.mirar();
         else await this.hablar(`mirar.${zona}`);
-      });
+      }, true);
       return;
     }
     if (item) {
@@ -745,6 +820,9 @@ export class Aventura {
     const m = this.motor;
     m.update(dt);
     this.hud.update(dt);
+    // A choice came up while a conversation was being played to its end: the player makes it, the switch is dropped.
+    if (this.saltando && this.hud.enOpciones) this.cinematica();
+    this.hud.cambioLibre = this.cambioLibre;
     const speaking = this.hud.hablando;
     for (const [id, p] of this.pjs) {
       p.step(dt);

@@ -136,6 +136,7 @@ async function noEres(g: Aventura, paso: string) {
 
 /** Fran orders the round: Vero sends the beers down the bar. */
 async function ronda(g: Aventura) {
+  g.cinematica(); // a cutscene from here: the dock is off until it ends (Aventura.cambioLibre)
   await g.hablar('c2.vero.ronda');
   g.pausado = true;
   const r = await jugarCanas(g.root, { rapido: g.rapido, sonido: g.sound }).finally(() => (g.pausado = false));
@@ -168,6 +169,7 @@ async function vero(g: Aventura, item: string | null) {
 
 /** Pablo and Vero: three lines to make her laugh; only the improv one works. */
 async function fresquitos(g: Aventura) {
+  g.cinematica(); // a cutscene from here: the dock is off until it ends (Aventura.cambioLibre)
   await g.hablar('c2.pablo.vero');
   for (;;) {
     const i = await g.hud.opciones([1, 2, 3].map((n) => texto(`c2.opcion.${n}`)));
@@ -220,6 +222,7 @@ async function meterDuro(g: Aventura) {
     await g.hablar('c2.duro.probar');
     return;
   }
+  g.cinematica();
   g.quitar('duro');
   g.poner('c2.tirada');
   await g.hablar('c2.duro.entra');
@@ -232,6 +235,7 @@ async function meterDuro(g: Aventura) {
 
 /** The first time the song is ever sung: the jackpot, the dream, and Fran's eyes. */
 async function canto(g: Aventura) {
+  g.cinematica(); // a cutscene from here: the dock is off until it ends (Aventura.cambioLibre)
   await g.hablar('c2.canto.antes');
   g.pausado = true;
   const r = await jugarCanto(g.root, { rapido: g.rapido, sonido: g.sound }).finally(() => (g.pausado = false));
@@ -340,6 +344,7 @@ async function chuchiYElKart(g: Aventura) {
 
 /** Vero grows, opens her mouth (the trailer's shot) and swallows Fran; the other three jump in after him and come undone. */
 async function veroTragaAFran(g: Aventura) {
+  g.cinematica(); // a cutscene from here: the dock is off until it ends (Aventura.cambioLibre)
   // The world of the concepts is baked while the mouth plays.
   void prepararConceptos(g).catch((e) => console.warn('[conceptos]', e));
   await subirNivel(g, 6);
@@ -426,6 +431,7 @@ async function tocarConcepto(g: Aventura, id: string) {
     return;
   }
   if (id === 'ultima') {
+    g.cinematica();
     g.poner('c2.con.ultima');
     await g.hablar('c2.conceptos.ultima');
     await elCaos(g);
