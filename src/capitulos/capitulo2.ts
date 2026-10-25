@@ -44,6 +44,7 @@ import { mostrarTragaperras } from '../ui/tragaperras';
 import { abrirBoca, type Boca } from '../ui/boca';
 import { jugarPangCapitulo } from '../pang/capitulo';
 import { dibujarBarVivo } from './bar-vivo';
+import { tickBebidas } from './bebidas';
 import { dibujarConceptos, empezarCaos, golpear, liberarConceptos, prepararConceptos, revelarUltima, darPasoGuille, subirDino, ultimaRevelada } from './conceptos-vivo';
 
 const HORA = (h: number, m: number) => h * 60 + m;
@@ -737,6 +738,11 @@ export const capitulo2: Capitulo = {
     if (g.escena === 'conceptos') return { pista: 'brioSueno', volumen: 0.7 };
     if (!g.escena.startsWith('bar')) return null;
     return { pista: nivel(g) >= 2 ? 'brioSueno' : 'brio', volumen: VOLUMEN_BAR };
+  },
+
+  /** The four's drinks at the bar (src/capitulos/bebidas.ts). */
+  tick(g, dt) {
+    tickBebidas(g, dt);
   },
 
   dibujar(g, ctx, capa) {
