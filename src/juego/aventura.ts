@@ -736,7 +736,7 @@ export class Aventura {
   /** Anything moving on screen that deserves 60 fps. */
   private enMovimiento() {
     if (this.motor.camaraMoviendose || this.perro?.moving || this.sombra?.moving) return true;
-    for (const p of this.pjs.values()) if (p.moving) return true;
+    for (const p of this.pjs.values()) if (p.moving || p.bebe > 0) return true;
     for (const p of this.npcs.values()) if (p.moving) return true;
     return false;
   }

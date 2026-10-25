@@ -10,6 +10,8 @@ const BONES = [
 ];
 
 const TAU = Math.PI * 2;
+/** La postura de un trago, en los ángulos del rig (más abajo, en pose(), y en colocarVaso()). */
+const BEBER = { sup: 68, ante: 100, mano: 8, cabeza: 6, torso: -2, inclina: 112, escala: 1.35 };
 const pos = (v) => Math.max(0, v);
 const clampV = (v, m) => Math.max(-m, Math.min(m, v));
 const MOUTH = (c) => ('aá'.includes(c) ? 'a' : 'oóuú'.includes(c) ? 'o' : 'eéií'.includes(c) ? 'e' : 'mbp'.includes(c) ? 'm' : c === ' ' ? 'reposo' : 'e');
@@ -50,6 +52,35 @@ export class Rig {
     this.beard = spring(60, 7);
     this.tuft = spring(90, 8);
     this.text = 'oye no veas la que se ha liado esta noche en el bar ';
+    // Un vaso en la mano de delante (src/motor/vasos.ts, capítulo 2). `vaso` es un <g> suelto, por encima de los huesos,
+    // que se coloca en la mano cada vez; `agarre` (0 a 1) lleva el brazo a la postura de sujetar algo a la altura del pecho
+    // y `bebe` (0 a 1) sube el vaso a la boca y lo inclina. Sin vaso, todo esto no hace nada.
+    this.vaso = null;
+    this.agarre = 0;
+    this.bebe = 0;
+    this.angMano = 0;
+  }
+
+  /** El brazo de delante sujeta un vaso: el codo abajo y el antebrazo hacia delante, a la altura del pecho. */
+  agarrar(P) {
+    const k = this.agarre;
+    if (k <= 0) return;
+    const m = (a, b) => a + (b - a) * k;
+    P.brazo_sup_delante = m(P.brazo_sup_delante, 16);
+    P.antebrazo_delante = m(P.antebrazo_delante, 82);
+    P.mano_delante = m(P.mano_delante, 4);
+  }
+
+  /** Un trago: el brazo sube hasta la boca, la cabeza se echa un poco atrás. */
+  sorber(P) {
+    const k = this.bebe;
+    if (k <= 0) return;
+    const m = (a, b) => a + (b - a) * k;
+    P.brazo_sup_delante = m(P.brazo_sup_delante, BEBER.sup);
+    P.antebrazo_delante = m(P.antebrazo_delante, BEBER.ante);
+    P.mano_delante = m(P.mano_delante, BEBER.mano);
+    P.cabeza = (P.cabeza ?? 0) + BEBER.cabeza * k;
+    P.torso = (P.torso ?? 0) + BEBER.torso * k;
   }
 
   headSvg(key) {
@@ -78,6 +109,7 @@ export class Rig {
         cabeza: -2 - 1.5 * Math.cos(TAU * 2 * (ph - 0.12)),
       });
       P.root = [0, 3.2 * Math.cos(TAU * 2 * (ph - 0.06)) - 1];
+      this.agarrar(P);
       return P;
     }
     const tt = t + s * 1.7;
@@ -91,6 +123,7 @@ export class Rig {
       torso: 0.7 * br, cabeza: -0.8 * br + 2.5 * Math.sin((TAU * tt) / 9),
     });
     P.root = [1.6 * sway, 0.7 * br];
+    this.agarrar(P);
     if (this.talking) {
       // Gesture beats: the hand comes up to chest height, waves a little, and rests again.
       const g = Math.sin(tt * 2.3);
@@ -104,7 +137,21 @@ export class Rig {
         cabeza: 2.5 * Math.sin(tt * 4.1) + 1.5 * g, torso: 1.5 + 0.8 * g,
       });
     }
+    this.sorber(P);
     return P;
+  }
+
+  /**
+   * The glass goes where the front hand is, kept upright whatever the arm does (the hand turns with the arm: the opposite
+   * turn undoes it), and tipped towards the mouth while drinking: it rises first and tips once it is up.
+   */
+  colocarVaso(M, P) {
+    const giro = (P.torso || 0) + (P.brazo_sup_delante || 0) + (P.antebrazo_delante || 0) + (P.mano_delante || 0);
+    const k = Math.max(0, Math.min(1, (this.bebe - 0.5) / 0.5));
+    const inclina = BEBER.inclina * k * k * (3 - 2 * k);
+    const [x, y] = this.J.mano_delante;
+    const v = 'matrix(' + [M.a, M.b, M.c, M.d, M.e, M.f].map((n) => n.toFixed(3)).join(' ') + ') translate(' + (x + 1) + ' ' + (y + 14) + ') rotate(' + (giro - inclina).toFixed(1) + ') scale(' + BEBER.escala + ')';
+    if (v !== this.vasoT) this.vaso.setAttribute('transform', (this.vasoT = v));
   }
 
   update(t, dt) {
@@ -116,6 +163,7 @@ export class Rig {
       M[b] = M[parent].translate(px, py).rotate(-(P[b] || 0)).translate(-px, -py);
       this.els[b]?.setAttribute('transform', M[b].toString());
     }
+    if (this.vaso) this.colocarVaso(M.mano_delante, P);
     // Face: blink, lip sync, expression.
     this.blinkT -= dt;
     if (this.blinkT < 0) {

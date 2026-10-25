@@ -6,6 +6,7 @@ import { Rig } from '../arte/personajes/rig-runtime.mjs';
 import { Perro, body as perroBody } from '../arte/personajes/aceituna.mjs';
 import type { RGB } from './escena';
 import { enMarcha, nuevaImagen, rasterizar, rasterizarUnaVez, sinHueco } from './sprites';
+import { pielDeMano, VasoEnMano, type TipoVaso } from './vasos';
 
 const NS_SVG = 'http://www.w3.org/2000/svg';
 
@@ -211,6 +212,9 @@ type PerroRT = {
 
 type RigRT = InstanceType<typeof Rig> & {
   els: Record<string, Element | null>;
+  vaso: Element | null;
+  agarre: number;
+  bebe: number;
   headArt: Element;
   lastKey: string;
   onHead: ((key: string) => void) | null;
@@ -347,8 +351,51 @@ export class Personaje extends Actor {
     this.inner.innerHTML = this.arte.body({}, outfit);
     this.rig = new Rig(this.inner.querySelector('#personaje'), conRopa(this.arte, outfit), { seed: this.rig.seed }) as RigRT;
     Object.assign(this.rig, { mood, talking });
+    // A glass in hand goes into the new body, in the new hand's colours.
+    if (this.vaso) {
+      const { agarre, bebe } = this.rig;
+      const { tipo, nivel } = this.vaso;
+      this.vaso = new VasoEnMano(pielDeMano(this.arte.body({}, outfit)));
+      this.vaso.montar(this.inner.querySelector('#personaje')!);
+      if (tipo) this.vaso.poner(tipo, nivel);
+      Object.assign(this.rig, { vaso: this.vaso.g, agarre, bebe });
+    }
     void enMarcha(() => this.aImagenes());
   }
+
+  /**
+   * A drink in the front hand (src/capitulos/bebidas.ts): the kind and its level (0 empty to NIVELES full), or
+   * null for none. The arm holds it in front of the chest until `bebe` brings it up to the mouth.
+   */
+  sostener(tipo: TipoVaso | null, nivel = 0) {
+    if (!tipo) {
+      this.vaso?.quitar();
+      this.vaso = null;
+      Object.assign(this.rig, { vaso: null, agarre: 0, bebe: 0 });
+      return;
+    }
+    if (!this.vaso) {
+      this.vaso = new VasoEnMano(pielDeMano(this.arte.body({}, this.outfit)));
+      this.vaso.montar(this.inner.querySelector('#personaje')!);
+      Object.assign(this.rig, { vaso: this.vaso.g, agarre: 1 });
+    }
+    this.vaso.poner(tipo, nivel);
+  }
+
+  /** The glass put down on the counter, or picked up again. */
+  set vasoOculto(v: boolean) {
+    if (this.vaso) this.vaso.oculto = v;
+  }
+
+  /** How much the glass is up at the mouth, 0 to 1 (a sip). */
+  set bebe(v: number) {
+    this.rig.bebe = v;
+  }
+  get bebe() {
+    return this.rig.bebe;
+  }
+
+  private vaso: VasoEnMano | null = null;
 
   set mood(m: string) {
     this.rig.mood = m;
@@ -370,7 +417,7 @@ export class Personaje extends Actor {
     // Standing still (breathing, swaying) animates on twos, like cut-out cartoons:
     // 15 poses a second look the same and cost half. Walking and talking stay smooth.
     this.acumulado += dt;
-    if (!this.moving && !(this.rig as unknown as { talking: boolean }).talking && this.acumulado < 1 / 15) return;
+    if (!this.moving && !(this.rig as unknown as { talking: boolean }).talking && !this.rig.bebe && this.acumulado < 1 / 15) return;
     this.rig.update(t, this.acumulado);
     this.acumulado = 0;
   }
