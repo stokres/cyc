@@ -7,10 +7,10 @@ Decidido con Jesús entre el 16 y el 21 de octubre de 2026. El guion y el plante
 La noche se cuenta **en orden**. Empieza en la puerta del Bar del Brío, donde acabó el capítulo 1: un texto del narrador sobre la fachada, la cámara entra y los cuatro están en la barra. Puzle a cuatro, «Una moneda para la tragaperras»:
 
 1. Chuchi quiere irse. Fran pide otra ronda a Vero: **minijuego de las cañas por la barra**. Sube el nivel de la noche a 1.
-2. La tragaperras está «fuera de servicio». Chuchi la reinicia «como el router», pero el enchufe está detrás. Guille la separa de la pared y detrás aparece **un duro de 1987** (objeto de la bolsa).
+2. La tragaperras está «fuera de servicio». Chuchi la reinicia «como el router», pero el enchufe está detrás. **Guille la separa de la pared en cuanto la usa** (25 de octubre de 2026: antes esperaba a que Chuchi la hubiera mirado; ahora, si nadie la ha mirado, el diálogo lleva la idea del router a Chuchi) y detrás aparece **un duro de 1987** (objeto de la bolsa). **Chuchi cruza el bar andando hasta el enchufe** (`separar`, `SOCKET_C` en `capitulo2.ts`), la enciende, y vuelve a su sitio. La máquina separada es un mueble cerrado (el lado izquierdo se ve en perspectiva, `maquinaFuera` en `bar.mjs`).
 3. La máquina no acepta pesetas. Pablo convence a Vero para los **fresquitos** (conversación con tres opciones; las dos malas tienen respuesta propia). Nivel 2.
 4. Ahora sí, la máquina se traga el duro. Tirada sin premio (limón, campana, cerdo).
-5. Pablo se arranca con un pasodoble y le salen dos palabras. **Minijuego del canto a cuatro**: «¡Camioneees y caravanaaas!». Nivel 3. **Premio gordo**: tres sietes y lluvia de monedas.
+5. Pablo se arranca con un pasodoble y le salen dos palabras. **Minijuego del canto a cuatro**: «¡Camioneees y caravanaaas!». Nivel 3. **Premio gordo**: tres caras de Fran (25 de octubre de 2026, como el resto de tiradas con cara; antes eran tres sietes) y lluvia de monedas. **Tras el canto la tragaperras suena con el tonillo**: cada rodillo que se fija toca una nota de «Ca-mio-neees» y el premio, «y ca-ra-va-naaas» (`tools/musica/tragaperras_cantada.py`; pistas `tragaperrasSinCamiones` y `tragaperrasPremioCamiones`, con la bandera `c2.premio`; `mostrarTragaperras(..., { cantada })`). Antes del canto suenan las de siempre.
 6. Zoom a Fran, que cierra los ojos. La espuma de su caña llena la pantalla y empieza **el *Pang* corto**, cinco fases del camino de Usera a Las Vegas (Usera, el piso de Fran, Zaragoza, la granja y Las Vegas contra la Penúltima). Al acabar, Fran abre los ojos en el bar, más desmadrado que antes. Continuará.
 
 Los cuatro están en la misma escena desde el principio y se cambia de personaje con el selector, como en el capítulo 1. Cada paso lo hace quien tiene que hacerlo (Fran pide la ronda, Chuchi la máquina, Guille la mueve, Pablo los fresquitos); con otro personaje, una frase propia que pide cambiar.
@@ -50,7 +50,7 @@ Revisión de Jesús (octubre de 2026): en el bar los cuatro llevan una **caña**
 Jesús (23 de octubre de 2026): «según avanza la noche, el absurdo y visualmente el juego tiene que volverse loquísimo; el bar también tiene que transformarse y tiene que haber cambios de plano, la cámara [...] sobre todo la parte final». Orden del capítulo a partir del Pang: **Pang (Fran) → Alacant Sun (Pablo) → Impropios Kart (Chuchi) → Vero se traga a Fran → el mundo de los conceptos → el caos total → PokéUsera (Guille, el último juego, aparte)**. Space Invaders y Street Fighter quedan descartados. Hecho todo hasta el caos total; `elRestoDeLaNoche` (`src/capitulos/capitulo2.ts`) llega hasta el mundo de los conceptos y de ahí el jugador toca (`tocarConcepto` → `elCaos`); PokéUsera ya está dentro (`pokeusera(g)` en `elCaos`, justo antes del «Continuará»; ver su sección).
 
 1. **Fran despierta en el bar 4** y cuenta el dragón (Usera, su piso, Las Vegas, La Penúltima). Los demás no le creen. Cortes y planos inclinados.
-2. **La tragaperras gira sola** (la cámara viaja hasta el fondo del pasillo) y **para en la cara de Pablo**, las tres ruedas, y se apaga. `mostrarTragaperras(root, { premio: false, cara: 'pablo' })`; el guion `GuionTragaperras.apagon` apaga las bombillas y funde a negro.
+2. **La tragaperras gira sola** (la cámara viaja hasta su rincón) y **para en la cara de Pablo**, las tres ruedas, y se apaga. `mostrarTragaperras(root, { premio: false, cara: 'pablo' })`; el guion `GuionTragaperras.apagon` apaga las bombillas y funde a negro.
 3. **Bar 5, el Brío del revés.** Vuelve el narrador del capítulo 1: la sombra de Pablo se despega de sus pies. «Esta historia la acabo yo.»
 4. **La pantalla se pixela y se encoge hasta entrar en la consola** (`src/juego/pixelado.ts`, `entrarEnConsola`): el revés de la salida de Alacant Sun. Una instantánea del bar con los personajes (`Motor.instantanea`), un canvas pequeño que baja de resolución a golpes y una animación CSS que lo encoge, aplastado, sobre la pantalla de la consola, que esperaba debajo.
 5. **Alacant Sun** (`jugarSol(root, { sonido })`, lanzado como el Pang: `g.pausado` y `minijuegoSuperado('sol')`; `'saltado'` y `'cancelado'` siguen igual). Al acabar, la consola se encoge y vuelve el bar.
@@ -123,7 +123,7 @@ Una sola transformación CSS sobre `Motor.escenario` (el contenedor de los lienz
 | `@contrapicado 14` | Contrapicado (`@picado` al revés) |
 | `@barrido vero 1.8` | Barrido: el plano se va en rayas y vuelve sobre Vero; espera a aterrizar |
 | `@temblor 14 700` | Sacudida que se apaga en 700 ms |
-| `@foco tragaperras` | La cámara de verdad viaja hasta ahí (el bar 4 es más largo que la pantalla) y espera; `@foco libre` |
+| `@foco tragaperras` | La cámara de verdad viaja hasta ahí (el bar es más ancho que la pantalla) y espera; `@foco libre` |
 | `@girar 2 7000` | La toma entera da 2 vueltas en 7 s y acaba derecha (el caos) |
 | `@caos on` | Solo `c2.caos.*`: `on`/`off` los cortes de estilo, `dino` sube el dinosaurio, `guille` adelanta a Guille con su jarra |
 | `@espera 400` | Espera |
@@ -143,10 +143,10 @@ Una a tres viñetas inclinadas **a color** (color plano con sombreado de anime c
 
 Mismas zonas y mismos puntos que los demás (las zonas y los sitios se mueven con las piezas), horneados una vez, sin filtros.
 
-- **Bar 4, el pasillo.** Mide 5 700 (los demás, 3 000): el centro del bar (estantería, porra, barra, taburetes, tubos y lámparas) se repite tres veces; la puerta y la máquina de tabaco quedan en un extremo y la tele, la tragaperras y el baño en el otro. La barra no se acaba: cinco módulos que salen de la escena por los dos lados. **El suelo está inclinado** (cizalla vertical, `INCL`): todo lo estático se inclina y, para que los pies sigan en el suelo, el motor levanta a los personajes con `Escena.pendiente` (`Motor.alzada`; los toques sobre el suelo y la cámara loca lo tienen en cuenta). Paleta ácida (`pasillo`).
+- **Bar 4, el bar con luces de discoteca** (simplificado el 25 de octubre de 2026; antes era un pasillo de 5 700 con la barra interminable y el suelo inclinado). Mide 3 000 como los demás: es el bar del nivel 3 (líneas curvadas, la porra de sietes, las botellas que giran) con la paleta ácida (`pasillo`: magenta, lima, verde azulado, azul eléctrico y violeta sobre grises índigo), `construir(4)` con `esSueno`. La tragaperras sigue en su sitio y las cámaras `@holandes`/`@contrapicado` del guion ponen lo torcido.
 - **Bar 5, del revés.** La pared está volteada (el techo abajo, los azulejos arriba), la barra, los taburetes y las botellas cuelgan del techo (capa `colgante`), las lámparas de techo son lámparas de pie y el suelo que pisan es un techo de escayola con sus fluorescentes. Paleta del revés (`reves`: luces oscuras, oscuros claros, tonos opuestos).
-- Las piezas vivas (`src/capitulos/bar-vivo.ts`) siguen a su copia de la pared: `desp` (dónde está cada copia), `inclina` (la pendiente) y `volteo`.
-- Al subir a estos niveles los cuatro vuelven a sus sitios de la barra (los bares tienen tamaños distintos).
+- Las piezas vivas (`src/capitulos/bar-vivo.ts`) del nivel 5 van volteadas (`volteo`).
+- Al subir del 4 en adelante los cuatro vuelven a sus sitios de la barra.
 
 ## Minijuegos y piezas a pantalla completa
 
@@ -154,7 +154,7 @@ Todos con la forma de los del capítulo 1 (`src/ui/rana.ts`, `cerdos.ts`): una c
 
 - `src/ui/canas.ts`: `jugarCanas(root, { rapido, sonido }) → Promise<'hecho' | 'saltado' | 'cancelado'>`. Vero desliza cañas por la barra; un toque frena cada una delante de quien la espera.
 - `src/ui/canto.ts`: `jugarCanto(root, { rapido, sonido }) → Promise<Resultado>`. Las caras de los cuatro se iluminan a golpe de música; tocar a cada uno a tiempo para que cante su parte (Pablo «Ca-mio», Fran «neees-y», Chuchi «ca-ra», Guille «va-naaas»).
-- `src/ui/tragaperras.ts`: `mostrarTragaperras(root, { premio, rapido, sonido }) → Promise<void>`. La máquina de cerca: sin premio para en limón, campana y cerdo; con premio, tres sietes y lluvia de monedas. Reaprovecha el dibujo del tráiler.
+- `src/ui/tragaperras.ts`: `mostrarTragaperras(root, { premio, rapido, sonido }) → Promise<void>`. La máquina de cerca: sin premio para en limón, campana y cerdo; con premio, tres sietes (o, con `cara`, tres caras: la de Fran en el premio gordo) y lluvia de monedas; con `cantada`, el sonido del tonillo. Reaprovecha el dibujo del tráiler.
 - `src/pang/` (traído de la rama `claude/pang-cyc-56o0iv`, sin el juego en red): `jugarPangCapitulo(root, { rapido, sonido }) → Promise<Resultado>`. Solo Fran, **cinco fases** (`FASES_CAPITULO`, `src/pang/capitulo.ts`): Usera (la 1 del juego completo), el piso de Fran (3), **Zaragoza** (9, el cierzo sopla las burbujas), **la granja** (6, con las pacas de paja; en el juego completo es el jefe el Peor, aquí son dos burbujas de purín) y Las Vegas con la Penúltima (12), que sigue siendo la última. La 4.ª era Nevada con la caravana y Jesús la cambió por la granja el 25 de octubre de 2026; se elige en un único sitio (`FASE_CUATRO`, `capitulo.ts`). Suavizadas como las otras: 150 s, dos burbujas medianas (14 impactos, como el piso en vez de los 45 del Zaragoza del juego completo), más lentas (×0,8 y ×0,7) y el cierzo a media fuerza (`cierzo: 0.5`). La Penúltima tiene 24 de vida en el Pang corto y 40 en el completo (18 y 30 hasta el 25 de octubre de 2026, que Jesús la encontró demasiado fácil). Mientras dura el Pang corto, la música del bar no vuelve entre fases (`Sound.retener`). Con `fase` se salta a cada una (0 a 4). Empieza con la espuma de la caña llenando la pantalla.
 - `src/pang/completo.ts`: `jugarPangCompleto(root, { sonido, volumenes })`, el Pang entero (título, los cuatro amigos, las doce fases y su guardado). Ver el apartado siguiente y `docs/PANG.md`.
 

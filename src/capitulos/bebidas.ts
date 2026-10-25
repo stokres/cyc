@@ -92,7 +92,7 @@ function libre(g: Aventura) {
 function nuevo(id: PjId, s: Sistema): Bebedor {
   const i = PROTAS.indexOf(id);
   return {
-    tipo: s.fresquitos ? 'gin' : 'cana',
+    tipo: s.fresquitos && id !== 'fran' ? 'gin' : 'cana',
     nivel: s.ronda && !s.fresquitos ? NIVELES : NIVEL_INICIAL[id],
     fase: 'quieto',
     prox: 2 + i * 1.9 + Math.random() * 1.5,
@@ -207,7 +207,8 @@ export function tickBebidas(g: Aventura, dt: number) {
     s.fresquitos = g.flag('c2.fresquitos');
     prepararVasos();
   }
-  // The story: the round brings a full caña for everyone; the fresquitos replace it with a gin tonic.
+  // The story: the round brings a full caña for everyone; the fresquitos replace it with a gin tonic, except Fran's:
+  // he sticks to beer (and the Pang starts in the foam of his caña).
   if (g.flag('c2.ronda') && !s.ronda) {
     s.ronda = true;
     for (const b of Object.values(s.beb)) if (b.tipo === 'cana') b.nivel = NIVELES;
@@ -218,7 +219,7 @@ export function tickBebidas(g: Aventura, dt: number) {
   }
   if (s.cambioGin >= 0) {
     s.cambioGin -= dt;
-    if (s.cambioGin < 0) for (const b of Object.values(s.beb)) Object.assign(b, { tipo: 'gin', nivel: NIVELES });
+    if (s.cambioGin < 0) for (const [id, b] of Object.entries(s.beb)) Object.assign(b, id === 'fran' ? { tipo: 'cana', nivel: NIVELES } : { tipo: 'gin', nivel: NIVELES });
   }
 
   const sueltos = libre(g);

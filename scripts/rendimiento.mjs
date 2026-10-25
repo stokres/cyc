@@ -164,9 +164,9 @@ if (toca('calle')) {
 }
 if (toca('bar')) {
   // The Bar del Brío inside, level 0 (as it always is), level 3 (warped, the dragon and the spinning pieces),
-  // level 4 (the corridor with no end and the sloping floor), level 5 (upside down) and level 6 (the bar as Vero swallows Fran), with the four friends in
+  // level 4 (the bar in acid lights), level 5 (upside down) and level 6 (the bar as Vero swallows Fran), with the four friends in
   // their places and then one of them walking along the counter.
-  const preparar = (n) => ir(`bar${n}`, `e.final = true; e.activo = 'fran'; ${['chuchi', 'pablo', 'fran', 'guille'].map((id, i) => `e.donde.${id} = { escena: 'bar${n}', X: ${(n === 4 ? 2600 : 1250) + i * 250}, y: 930, face: ${i < 2 ? 1 : -1} }`).join('; ')}`, `
+  const preparar = (n) => ir(`bar${n}`, `e.final = true; e.activo = 'fran'; ${['chuchi', 'pablo', 'fran', 'guille'].map((id, i) => `e.donde.${id} = { escena: 'bar${n}', X: ${1250 + i * 250}, y: 930, face: ${i < 2 ? 1 : -1} }`).join('; ')}`, `
     const { escena } = await import('/src/arte/escenas/bar.mjs');
     const { dibujarBarVivo } = await import('/src/capitulos/bar-vivo.ts');
     for (let k = 0; k < 7; k++) g.cap.escenas['bar' + k] = () => escena(k);
@@ -184,17 +184,17 @@ if (toca('bar')) {
   await medir('bar nivel 3, los cuatro quietos', preparar(3));
   await medir('bar nivel 3, Fran andando', paseo(1000, 2300, 960));
   await medir('bar nivel 4, los cuatro quietos', preparar(4));
-  await medir('bar nivel 4, Fran andando', paseo(1500, 4300, 960));
+  await medir('bar nivel 4, Fran andando', paseo(1000, 2300, 960));
   await medir('bar nivel 5, los cuatro quietos', preparar(5));
   await medir('bar nivel 5, Fran andando', paseo(1000, 2300, 960));
   await medir('bar nivel 6, los cuatro quietos', preparar(6));
 }
 if (toca('manga')) {
-  // Chapter 2: the manga shot (src/juego/manga.ts) over the long bar of level 4, with the four friends in their places:
+  // Chapter 2: the manga shot (src/juego/manga.ts) over the bar of level 4, with the four friends in their places:
   // one panel, three panels with onomatopoeias and the shadow of Pablo. The panels are baked ONCE to a bitmap and a
   // still canvas goes over the scene, so the cost has to be the bar's own (and no SVG drawn into a canvas each frame).
   // Also prints how long it takes to bake each shot (a one-off cost, in the first moment the shot is asked for).
-  const sitios = ['chuchi', 'pablo', 'fran', 'guille'].map((id, i) => `e.donde.${id} = { escena: 'bar4', X: ${2600 + i * 250}, y: 930, face: ${i < 2 ? 1 : -1} }`).join('; ');
+  const sitios = ['chuchi', 'pablo', 'fran', 'guille'].map((id, i) => `e.donde.${id} = { escena: 'bar4', X: ${1100 + i * 350}, y: 930, face: ${i < 2 ? 1 : -1} }`).join('; ');
   const manga = (marca) => ir('bar4', `e.final = true; e.activo = 'fran'; ${sitios}`, `
     const { escena } = await import('/src/arte/escenas/bar.mjs');
     for (let k = 0; k < 7; k++) g.cap.escenas['bar' + k] = () => escena(k);
@@ -520,7 +520,7 @@ if (toca('cantofiesta')) {
 if (toca('tragaperras')) {
   // Chapter 2: the slot machine up close (the painted machine, the reels scrolling, the bulbs; with the
   // jackpot, the coins pouring). Each stretch plays in a loop while it is measured.
-  for (const [nombre, premio, desde, hasta, cara] of [['tragaperras, sin premio', false, 0, 3.6], ['tragaperras, premio y monedas', true, 2.4, 6.8], ['tragaperras, cara de Pablo y apagón', false, 1.2, 4.1, 'pablo']]) {
+  for (const [nombre, premio, desde, hasta, cara] of [['tragaperras, sin premio', false, 0, 3.6], ['tragaperras, premio y monedas', true, 2.4, 6.8], ['tragaperras, cara de Pablo y apagón', false, 1.2, 4.1, 'pablo'], ['tragaperras, premio con la cara de Fran', true, 2.4, 6.8, 'fran']]) {
     await medir(nombre, `(async () => {
       clearInterval(window.__paseo);
       const g = window.__cyc.g;
