@@ -603,7 +603,8 @@ export function jugarCanto(parent: HTMLElement, o: OpcionesCanto = {}): Promise<
       const toque = u <= 0 && u > -0.4 ? 1 : 0;
       const dedo = R * (0.17 + 0.03 * refuerzo);
       const punta = geo.y + R * 0.3 + R * 0.75 * baja * baja + (refuerzo ? Math.sin(t * 12) * R * 0.04 * refuerzo : 0) + toque * R * 0.05;
-      mano(geo.xs[k] + R * 0.05, punta, dedo);
+      // Off to the right of centre, so the palm does not cover the name under the face.
+      mano(geo.xs[k] + R * 0.55, punta, dedo);
       // The ripple under the fingertip when it lands.
       if (u < 0.15 && u > -0.5) {
         const w = Math.min(1, (0.15 - u) / 0.65);
