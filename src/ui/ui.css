@@ -2254,6 +2254,20 @@ button:focus-visible {
   top: 88%;
 }
 
+/* After a mistake the hint is louder: bigger, bright and beating. */
+.minijuego.canto .instrucciones.refuerzo {
+  background: var(--gold);
+  color: #1a0f33;
+  font-size: clamp(16px, 4.8vh, 24px);
+  animation: canto-refuerzo 0.9s ease-in-out infinite;
+}
+
+@keyframes canto-refuerzo {
+  50% {
+    transform: translateX(-50%) scale(1.08);
+  }
+}
+
 /* A singer's syllables, over his face: each pops when it is sung. */
 .silabas-canto {
   position: absolute;
@@ -2281,7 +2295,8 @@ button:focus-visible {
 
 .canto-gana {
   position: absolute;
-  top: 17%;
+  top: auto;
+  bottom: 5%;
   left: 0;
   right: 0;
   margin: 0 auto;

@@ -29,7 +29,8 @@ canas.gana = ¡Ronda servida!
 // de dos en dos: Pablo canta las dos primeras, Fran las dos siguientes, y así.
 // Si cambias su número, el juego reparte las que haya entre los cuatro.
 
-canto.instrucciones = Toca a cada uno cuando se ilumine para que cante su parte
+canto.instrucciones = Toca la cara de quien canta
+canto.refuerzo = ¡Toca la cara que brilla, a tiempo!
 canto.silabas = Ca-mio-neees-y-ca-ra-va-naaas
 canto.fallo = ¡Desafinado! Otra vez
 canto.segunda = ¡Otra vez, más fuerte!
