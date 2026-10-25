@@ -26,6 +26,11 @@ export type Volumen = 'musica' | 'efectos';
  */
 const MAX_DECODIFICADAS = 3;
 /**
+ * And at most this many megabytes of them (the budget scripts/rendimiento.mjs checks): the Brío's song
+ * lasts 2:51 in each of its three versions, 33 MB decoded each, so three tracks no longer fit in it.
+ */
+const MAX_MB_DECODIFICADOS = 50;
+/**
  * Samples a second the sound runs at (and the music is decoded to). Web Audio holds a track
  * decoded, as 32-bit samples: at a phone's native 48 kHz in stereo that is 23 MB a minute,
  * whatever the MP3 weighed. At 24 kHz it is half, and on a phone nobody hears the difference
@@ -259,20 +264,23 @@ export class Sound {
       carga = fetch(MUSICA[id].url)
         .then((r) => r.arrayBuffer())
         .then((b) => ac.decodeAudioData(b))
-        .then((buf) => (this.bytes.set(id, buf.length * buf.numberOfChannels * 4), buf))
+        .then((buf) => (this.bytes.set(id, buf.length * buf.numberOfChannels * 4), this.recortar(id), buf))
         .catch(() => null);
       this.cargas.set(id, carga);
     }
     this.usos.set(id, ++this.reloj);
-    this.recortar();
+    this.recortar(id);
     return carga;
   }
 
-  /** Forgets the least recently used decoded tracks that are not playing, past MAX_DECODIFICADAS. */
-  private recortar() {
-    while (this.cargas.size > MAX_DECODIFICADAS) {
+  /**
+   * Forgets the least recently used decoded tracks that are not playing (nor `conservar`, the one
+   * just asked for), past MAX_DECODIFICADAS or MAX_MB_DECODIFICADOS.
+   */
+  private recortar(conservar: Pista) {
+    while (this.cargas.size > MAX_DECODIFICADAS || this.memoriaMusica > MAX_MB_DECODIFICADOS) {
       let viejo: Pista | null = null;
-      for (const id of this.cargas.keys()) if (!this.capas.has(id) && (viejo === null || (this.usos.get(id) ?? 0) < (this.usos.get(viejo) ?? 0))) viejo = id;
+      for (const id of this.cargas.keys()) if (id !== conservar && !this.capas.has(id) && (viejo === null || (this.usos.get(id) ?? 0) < (this.usos.get(viejo) ?? 0))) viejo = id;
       if (viejo === null) return;
       this.cargas.delete(viejo);
       this.usos.delete(viejo);

@@ -8,7 +8,14 @@
 #   python3 bar_rockero.py          listening version, and the same heard from outside the door
 #                                   -> bar-rockero.mp3, bar-rockero-puerta.mp3
 #   python3 bar_rockero.py bucle [salida]    the round three times, cut for a seamless loop -> bar-rockero-bucle.mp3
-#   python3 bar_rockero.py puerta [salida]   the same loop heard from the street (the game's src/sonido/bar-puerta.mp3)
+#   python3 bar_rockero.py puerta [salida]   the same loop heard from the street (the 40-bar SoundFont version)
+#
+# This is the song's FIRST version: one 40-bar round (68.57 s). The game no longer uses it (25 October
+# 2026, Jesús: «muy repetitiva, tiene que ser más larga y variada»): brio.py has the full three-minute
+# arrangement (intro, two verses, pre-choruses, four choruses, two solos, a bridge, a coda) with the
+# same notes, riff, chorus and solo, and makes all three of the game's versions of it, the street's
+# src/sonido/bar-puerta.mp3 included (`python3 brio.py puerta`). It needs no SoundFont, scipy or mido.
+# The old render stays here as the reference of the song's sound.
 import random
 import re
 import sys
