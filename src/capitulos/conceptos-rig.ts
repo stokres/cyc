@@ -42,6 +42,8 @@ export interface FiguraDef {
 export interface ParteBmp {
   def: ParteDef;
   c: HTMLCanvasElement;
+  /** Su cadena de padres, de la raíz a ella (se calcula una vez al hornear). */
+  cadena?: ParteDef[];
 }
 
 export interface FiguraBmp {
@@ -199,6 +201,12 @@ export async function hornearFigura(def: FiguraDef, res: number): Promise<Figura
     lote.forEach((p, k) => partes.push({ def: p, c: hechos[k] }));
     await cede();
   }
+  const por = new Map(partes.map((p) => [p.def.id, p]));
+  for (const p of partes) {
+    const cadena: ParteDef[] = [];
+    for (let q: ParteDef | undefined = p.def; q; q = q.padre ? por.get(q.padre)?.def : undefined) cadena.unshift(q);
+    p.cadena = cadena;
+  }
   return {
     id: def.id,
     mira: def.mira,
@@ -206,7 +214,7 @@ export async function hornearFigura(def: FiguraDef, res: number): Promise<Figura
     ancho: def.ancho,
     color: def.color,
     partes,
-    por: new Map(partes.map((p) => [p.def.id, p])),
+    por,
     aura: resplandor(def.color, def.alto * res * 0.9, 0.85),
   };
 }
@@ -225,6 +233,8 @@ export interface OpcionesFigura {
   s: number;
   /** Opacidad general. */
   a?: number;
+  /** Tamaño del resplandor respecto al de siempre (1): más pequeño es menos mezcla aditiva a pantalla. */
+  aura?: number;
   /** Fuerza del resplandor que late (0 = ninguno). */
   brillo?: number;
   /** Cuánto se mueve (1 = lo normal; en el caos, más). */
@@ -241,29 +251,53 @@ export interface OpcionesFigura {
 
 const sen = (m: Sen | undefined, t: number) => (m ? m[0] * Math.sin(m[1] * t + m[2]) : 0);
 
-/** Aplica el movimiento propio de una pieza (sin el de su padre). */
-function moverPieza(ctx: CanvasRenderingContext2D, d: ParteDef, t: number, vida: number) {
+// La matriz de cada pieza se compone a mano (a, b, c, d, e, f), sin llamar al lienzo por cada traslación o giro: son decenas de
+// piezas por figura y por fotograma, y cada llamada al lienzo cuesta más que la cuenta.
+const M = new Float64Array(6);
+const tras = (x: number, y: number) => {
+  M[4] += M[0] * x + M[2] * y;
+  M[5] += M[1] * x + M[3] * y;
+};
+const gira = (r: number) => {
+  const c = Math.cos(r);
+  const s = Math.sin(r);
+  const a = M[0];
+  const b = M[1];
+  M[0] = a * c + M[2] * s;
+  M[1] = b * c + M[3] * s;
+  M[2] = M[2] * c - a * s;
+  M[3] = M[3] * c - b * s;
+};
+const escala = (x: number, y: number) => {
+  M[0] *= x;
+  M[1] *= x;
+  M[2] *= y;
+  M[3] *= y;
+};
+
+/** Aplica el movimiento propio de una pieza (sin el de su padre) a la matriz `M`. */
+function moverPieza(d: ParteDef, t: number, vida: number) {
   if (d.orb) {
     const o = d.orb;
-    ctx.translate(o.cx + Math.cos(o.w * t + o.fase) * o.rx * vida, o.cy + Math.sin(o.w * t + o.fase) * o.ry * vida);
+    tras(o.cx + Math.cos(o.w * t + o.fase) * o.rx * vida, o.cy + Math.sin(o.w * t + o.fase) * o.ry * vida);
   }
   if (d.cae) {
     const u = (t * d.cae.w + d.cae.fase) % 1;
-    ctx.translate(d.cae.x, d.cae.y + u * d.cae.alto);
+    tras(d.cae.x, d.cae.y + u * d.cae.alto);
   }
   const m = d.mov;
   if (!m) return;
   const dx = sen(m.dx, t) * vida;
   const dy = sen(m.dy, t) * vida;
-  if (dx || dy) ctx.translate(dx, dy);
+  if (dx || dy) tras(dx, dy);
   const rot = sen(m.rot, t) * vida;
   const esc = sen(m.esc, t) * vida;
   if (rot || esc) {
     const [px, py] = d.piv ?? [0, 0];
-    ctx.translate(px, py);
-    if (rot) ctx.rotate(rot);
-    if (esc) ctx.scale(1 - esc * 0.6, 1 + esc);
-    ctx.translate(-px, -py);
+    tras(px, py);
+    if (rot) gira(rot);
+    if (esc) escala(1 - esc * 0.6, 1 + esc);
+    tras(-px, -py);
   }
 }
 
@@ -279,18 +313,30 @@ export function dibujarFigura(ctx: CanvasRenderingContext2D, F: FiguraBmp, t: nu
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     ctx.globalAlpha = k * 0.7;
-    const r = F.alto * o.s * (0.82 + 0.05 * Math.sin(t * 1.9 + F.alto));
+    const r = F.alto * o.s * (0.82 + 0.05 * Math.sin(t * 1.9 + F.alto)) * (o.aura ?? 1);
     ctx.drawImage(F.aura, o.x - r, o.y - F.alto * o.s * 0.58 - r * 0.5, r * 2, r * 2 * 0.9);
     ctx.globalAlpha = k * 0.55;
     ctx.drawImage(F.aura, o.x - r * 0.9, o.y - r * 0.16, r * 1.8, r * 0.32);
     ctx.restore();
   }
-  ctx.save();
-  ctx.translate(o.x, o.y);
-  if (o.rot) ctx.rotate(o.rot);
-  ctx.scale(o.s * F.mira * (o.sx ?? 1), o.s * (o.sy ?? 1));
-  if (a !== 1) ctx.globalAlpha *= a;
-  const marco = ctx.getTransform();
+  const alfa0 = ctx.globalAlpha;
+  const g1 = alfa0 * a;
+  // La matriz de toda la figura (posición, giro, escala).
+  M[0] = base.a;
+  M[1] = base.b;
+  M[2] = base.c;
+  M[3] = base.d;
+  M[4] = base.e;
+  M[5] = base.f;
+  tras(o.x, o.y);
+  if (o.rot) gira(o.rot);
+  escala(o.s * F.mira * (o.sx ?? 1), o.s * (o.sy ?? 1));
+  const m0 = M[0];
+  const m1 = M[1];
+  const m2 = M[2];
+  const m3 = M[3];
+  const m4 = M[4];
+  const m5 = M[5];
   let i = 0;
   for (const p of F.partes) {
     const d = p.def;
@@ -298,30 +344,33 @@ export function dibujarFigura(ctx: CanvasRenderingContext2D, F: FiguraBmp, t: nu
     if (d.fija && o.sinPeana) continue;
     const mont = o.montaje?.(d.id, i) ?? null;
     if (mont && mont.a <= 0.01) continue;
-    ctx.setTransform(marco);
+    M[0] = m0;
+    M[1] = m1;
+    M[2] = m2;
+    M[3] = m3;
+    M[4] = m4;
+    M[5] = m5;
     // El montaje (la pieza viene volando) va por fuera de todo: se mueve alrededor del centro de su caja.
     if (mont) {
       const cx = d.x + d.w / 2;
       const cy = d.y + d.h / 2;
-      ctx.translate(mont.dx, mont.dy);
-      ctx.translate(cx, cy);
-      if (mont.rot) ctx.rotate(mont.rot);
-      if (mont.esc !== 1) ctx.scale(mont.esc, mont.esc);
-      ctx.translate(-cx, -cy);
+      tras(mont.dx, mont.dy);
+      tras(cx, cy);
+      if (mont.rot) gira(mont.rot);
+      if (mont.esc !== 1) escala(mont.esc, mont.esc);
+      tras(-cx, -cy);
     }
     // Su cadena de padres, de la raíz a ella.
     if (!d.fija) {
-      const cadena: ParteDef[] = [];
-      for (let q: ParteDef | undefined = d; q; q = q.padre ? F.por.get(q.padre)?.def : undefined) cadena.unshift(q);
-      for (const q of cadena) moverPieza(ctx, q, t, vida);
+      for (const q of p.cadena!) moverPieza(q, t, vida);
     }
+    ctx.setTransform(M[0], M[1], M[2], M[3], M[4], M[5]);
     const alfaPieza = d.cae ? Math.sin(Math.PI * ((t * d.cae.w + d.cae.fase) % 1)) : 1;
     const al = (mont ? mont.a : 1) * alfaPieza;
-    const g0 = ctx.globalAlpha;
-    if (al !== 1) ctx.globalAlpha = g0 * al;
+    ctx.globalAlpha = g1 * al;
     if (d.onda && vida > 0) {
       // Tela que ondea: tiras desplazadas de lado, más cuanto más lejos del punto del que cuelga.
-      const N = 8;
+      const N = 6;
       const sh = p.c.height / N;
       const dh = d.h / N;
       for (let k = 0; k < N; k++) {
@@ -329,8 +378,7 @@ export function dibujarFigura(ctx: CanvasRenderingContext2D, F: FiguraBmp, t: nu
         ctx.drawImage(p.c, 0, k * sh, p.c.width, sh, d.x + off, d.y + k * dh, d.w, dh + 0.7);
       }
     } else ctx.drawImage(p.c, d.x, d.y, d.w, d.h);
-    ctx.globalAlpha = g0;
   }
-  ctx.restore();
+  ctx.globalAlpha = alfa0;
   ctx.setTransform(base);
 }

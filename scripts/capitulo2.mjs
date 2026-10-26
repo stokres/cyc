@@ -418,9 +418,9 @@ fotoAl('nos vamos de safari', 'safari-0-guille-propone', false, 900);
 const tocarConcepto = async (id) => tocar(await zonaCss(id));
 await paso('Convencer a Fran: cada concepto es un argumento y Fran lo gira a «una más»', async () => {
   await shot('final-9b-mundo-conceptos');
-  for (const id of ['no', 'casa', 'reloj', 'trabajo', 'manana', 'penultima']) await tocarConcepto(id);
+  for (const id of ['no', 'reloj', 'manana', 'penultima']) await tocarConcepto(id);
 }, 'c2.fran.sinArgumentos');
-check(await flag('c2.con.penultima'), 'los seis argumentos no se han gastado');
+check(await flag('c2.con.penultima'), 'los cuatro argumentos no se han gastado');
 await paso('LA ÚLTIMA: el caos total y, de «Este es mío», PokéUsera (el giro, el velo en horizontal, de pie, y la vuelta)', async () => {
   await tocarConcepto('ultima');
   // PokéUsera (src/pokeusera/): the screen turns by itself and the game stands up in its own stage. It is not played here (that is

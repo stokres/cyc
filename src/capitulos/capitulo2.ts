@@ -459,7 +459,7 @@ async function entrarEnConceptos(g: Aventura, boca: Boca) {
 
 // ------------------------------------------------------------------ the world of the concepts
 
-const CONCEPTOS = ['manana', 'casa', 'penultima', 'trabajo', 'reloj', 'no'] as const;
+const CONCEPTOS = ['manana', 'penultima', 'reloj', 'no'] as const;
 const FIGURAS = ['pablo', 'chuchi', 'guille', 'vero'] as const;
 
 /** A tap on something in the world of the concepts. Each concept is an argument thrown at Fran, who turns it into «una más». */
@@ -473,7 +473,7 @@ async function tocarConcepto(g: Aventura, id: string) {
     gastarArgumento(g, id);
     g.sound.pickup();
     await g.hablar(`c2.conceptos.${id}.fran`);
-    // All six spent: no excuse works with Fran, only THE LAST one (it shows up, just its outline).
+    // All four spent: no excuse works with Fran, only THE LAST one (it shows up, just its outline).
     if (CONCEPTOS.every((c) => g.flag(`c2.con.${c}`)) && !g.flag('c2.fran.sinArgumentos')) {
       g.poner('c2.fran.sinArgumentos');
       revelarUltima(g);

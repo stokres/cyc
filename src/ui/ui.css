@@ -538,7 +538,9 @@ button:focus-visible {
   overflow: hidden;
 }
 
-.dialogo .retrato svg {
+.dialogo .retrato svg,
+.dialogo .retrato canvas {
+  display: block;
   width: 100%;
   height: 100%;
 }

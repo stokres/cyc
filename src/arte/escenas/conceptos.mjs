@@ -10,13 +10,11 @@ const NS = 'http://www.w3.org/2000/svg';
 
 /** Los sitios y el tamaño de cada toque, en unidades de escena respecto al centro de la pantalla (dx) y desde arriba (y). */
 export const SITIOS = {
-  casa: { dx: -840, y: 255, w: 210, h: 230 },
-  trabajo: { dx: -450, y: 255, w: 270, h: 280 },
-  reloj: { dx: -70, y: 250, w: 290, h: 250 },
-  no: { dx: 400, y: 255, w: 270, h: 220 },
-  penultima: { dx: 890, y: 300, w: 260, h: 300 },
+  reloj: { dx: -480, y: 250, w: 290, h: 250 },
+  no: { dx: 520, y: 255, w: 270, h: 220 },
+  penultima: { dx: 910, y: 300, w: 260, h: 300 },
   manana: { dx: -1010, y: 620, w: 240, h: 460 },
-  ultima: { dx: 150, y: 300, w: 300, h: 340 },
+  ultima: { dx: 100, y: 300, w: 300, h: 340 },
   chuchi: { dx: -700, y: 665, w: 300, h: 460 },
   pablo: { dx: -350, y: 665, w: 300, h: 480 },
   guille: { dx: 340, y: 650, w: 300, h: 520 },

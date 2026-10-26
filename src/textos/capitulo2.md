@@ -612,9 +612,7 @@ PABLO (chulo): Un héroe nunca deja a su camarera con una boca abierta. ¡Dentro
 // ---- El mundo de los conceptos
 
 zona.c2.concepto.manana = Mañana
-zona.c2.concepto.casa = Casa
 zona.c2.concepto.penultima = La penúltima
-zona.c2.concepto.trabajo = El trabajo
 zona.c2.concepto.reloj = Las tantas
 zona.c2.concepto.no = El no
 zona.c2.concepto.fran = Fran
@@ -626,9 +624,7 @@ zona.c2.concepto.vero = Vero
 
 // Las palabras que se pintan sobre los conceptos (lo que se lee en pantalla, en mayúsculas).
 c2.concepto.manana = MAÑANA
-c2.concepto.casa = CASA
 c2.concepto.penultima = LA PENÚLTIMA
-c2.concepto.trabajo = EL TRABAJO
 c2.concepto.reloj = LAS TANTAS
 c2.concepto.unamas = UNA MÁS
 c2.concepto.ultima = LA ÚLTIMA
@@ -658,22 +654,6 @@ CHUCHI (nervioso): Fran, MAÑANA se trabaja. Yo llevo diez años empujando esa p
 ## c2.conceptos.manana.fran
 FRAN (chulo): Justo por eso. Mañana se trabaja; hoy se brinda. ¡Una más!
 GUILLE (contento): Es de las que se abren hacia dentro. Hacia dentro de mañana.
-
-## c2.conceptos.casa
-PABLO: Fran, CASA. Mírala, que te espera con la luz de la ventana encendida.
-> La casita se aleja, se acerca y se vuelve a alejar. Por si acaso, con la luz de la ventana encendida.
-
-## c2.conceptos.casa.fran
-FRAN (chulo): Si cada paso que doy hacia ella se aleja dos, es que quiere que me quede. ¡Una más!
-CHUCHI (triste): Es lo mismo que me dicen las niñas por teléfono: «¿Papá, ya llegas?»
-
-## c2.conceptos.trabajo
-CHUCHI (nervioso): Fran, EL TRABAJO. Con sus avisos y todo. Hasta aquí me ha seguido.
-> El sobre vibra. Chuchi se encoge por reflejo, como un perro al oír un trueno.
-
-## c2.conceptos.trabajo.fran
-FRAN (contento): El trabajo es para ganar dinero, y el dinero, para gastarlo. ¿En qué? En una más.
-CHUCHI (enfadado): No pienso abrirlo. No pienso... Lo peor es que tiene su lógica.
 
 ## c2.conceptos.reloj
 PABLO: Fran, LAS TANTAS. Un reloj derretido: Dalí lo pintó pensando en una cena que se alargó.
@@ -707,7 +687,7 @@ FRAN (contento): Ese argumento está gastado, como mi hígado. ¡Prueba con otro
 ---
 FRAN (triste): Pobrecillo, qué poco le queda. Anda, dale otra oportunidad... con una caña.
 
-// Cuando se han gastado los seis argumentos.
+// Cuando se han gastado los cuatro argumentos.
 ## c2.conceptos.revela
 PABLO (sorprendido): Un momento. Los hemos probado todos, y a todos les ha dado la vuelta.
 CHUCHI (triste): Con Fran no hay excusa que valga. Para él todas son otra ronda.

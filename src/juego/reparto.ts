@@ -7,6 +7,7 @@ import * as guille from '../arte/personajes/guille.mjs';
 import * as aceituna from '../arte/personajes/aceituna.mjs';
 import * as vero from '../arte/personajes/vero.mjs';
 import type { ArteDePersonaje } from '../motor/actores';
+import { svgABitmap } from '../motor/sprites';
 
 export type PjId = 'fran' | 'pablo' | 'chuchi' | 'guille';
 export const PROTAS: PjId[] = ['fran', 'pablo', 'chuchi', 'guille'];
@@ -62,6 +63,53 @@ export function retrato(id: PjId | 'aceituna' | 'sombra' | NpcId, o: Pose = {}) 
   let v = retratos.get(k);
   if (!v) retratos.set(k, (v = dibujarRetrato(id, o)));
   return v;
+}
+
+// Portraits of the dialogue box as bitmaps. While a line is typed the mouth changes up to forty times a second; as inline SVG
+// each change was parsed and rasterised again inside a rounded, clipped box over the animated scene, and on a phone with the GPU
+// busy the tiles came out late or half-drawn (stripes, a face not put together). A bitmap is made once per pose and the box
+// only draws it (docs/ESTILO.md, T5.7). A small cache, oldest out first, keeps the memory low.
+const LADO_RETRATO = 224;
+const MAX_RETRATOS = 40;
+const bitmaps = new Map<string, HTMLCanvasElement>();
+const haciendo = new Map<string, Promise<HTMLCanvasElement>>();
+
+const claveRetrato = (id: string, o: Pose) => `${id}|${o.mood}|${o.mouthKind}|${o.blink ? 1 : 0}|${o.ropa ?? ''}`;
+
+/** The portrait bitmap of a pose if it is made already (a square of 224 px, the face centred as in the SVG box), or null. */
+export function retratoYa(id: PjId | 'aceituna' | 'sombra' | NpcId, o: Pose = {}): HTMLCanvasElement | null {
+  const k = claveRetrato(id, o);
+  const c = bitmaps.get(k);
+  if (c) {
+    bitmaps.delete(k);
+    bitmaps.set(k, c);
+  }
+  return c ?? null;
+}
+
+/** The portrait bitmap of a pose, made once (and shared by whoever asks for it at the same time). */
+export function retratoBitmap(id: PjId | 'aceituna' | 'sombra' | NpcId, o: Pose = {}): Promise<HTMLCanvasElement> {
+  const ya = retratoYa(id, o);
+  if (ya) return Promise.resolve(ya);
+  const k = claveRetrato(id, o);
+  let p = haciendo.get(k);
+  if (!p) {
+    const svg = retrato(id, o).replace('<svg ', `<svg xmlns="http://www.w3.org/2000/svg" width="${LADO_RETRATO}" height="${LADO_RETRATO}" `);
+    p = svgABitmap(svg, LADO_RETRATO, LADO_RETRATO)
+      .then((c) => {
+        bitmaps.set(k, c);
+        while (bitmaps.size > MAX_RETRATOS) {
+          const viejo = bitmaps.keys().next().value as string;
+          const v = bitmaps.get(viejo)!;
+          bitmaps.delete(viejo);
+          v.width = v.height = 0;
+        }
+        return c;
+      })
+      .finally(() => haciendo.delete(k));
+    haciendo.set(k, p);
+  }
+  return p;
 }
 
 function dibujarRetrato(id: PjId | 'aceituna' | 'sombra' | NpcId, o: Pose) {

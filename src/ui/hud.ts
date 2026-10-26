@@ -1,7 +1,7 @@
 // DOM overlay over the scene: character dock, tools, objective and clock,
 // bag, dialogue box with an animated portrait, first-time help and labels.
 import { icono } from '../arte/objetos.mjs';
-import { REPARTO, NPCS, esNpc, retrato, COLOR_ACEITUNA, COLOR_SOMBRA, NOMBRE_ACEITUNA, type PjId } from '../juego/reparto';
+import { REPARTO, NPCS, esNpc, retrato, retratoBitmap, retratoYa, COLOR_ACEITUNA, COLOR_SOMBRA, NOMBRE_ACEITUNA, type PjId } from '../juego/reparto';
 import { texto, type Quien } from '../juego/textos';
 
 type Attrs = Record<string, string | boolean | ((e: Event) => void)>;
@@ -81,6 +81,8 @@ export class Hud {
   private retratoEl: HTMLDivElement | null = null;
   private retratoDe: { quien: Exclude<Quien, null>; animo: string } | null = null;
   private retratoKey = '';
+  private retratoCv: HTMLCanvasElement | null = null;
+  private retratoPrecalentado = false;
   private parpadeo = 2;
   private items: string[] = [];
   seleccionado: string | null = null;
@@ -331,6 +333,8 @@ export class Hud {
     this.retratoEl = quien === null ? null : h('div', { class: 'retrato' });
     this.retratoDe = quien === null ? null : { quien, animo };
     this.retratoKey = '';
+    this.retratoCv = null;
+    this.retratoPrecalentado = false;
     d.replaceChildren(...[this.retratoEl, h('div', { class: 'cuerpo' }, nombre ? h('div', { class: 'quien' }, nombre, hora ? h('small', {}, ` · ${hora}`) : null) : null, linea), h('span', { class: 'sigue', 'aria-hidden': 'true' }, '▸')].filter(Boolean) as Node[]);
     this.escribiendo = { full: frase, shown: 0, el: linea };
     this.hablando = quien;
@@ -369,7 +373,35 @@ export class Hud {
     this.retratoKey = key;
     const q = this.retratoDe.quien;
     const ropa = q === 'aceituna' || q === 'sombra' || esNpc(q) ? undefined : this.ropas[q];
-    this.retratoEl.innerHTML = retrato(q, { mood: this.retratoDe.animo, mouthKind: boca === 'reposo' ? undefined : boca, blink: this.parpadeo < 0, ropa });
+    const pose = { mood: this.retratoDe.animo, mouthKind: boca === 'reposo' ? undefined : boca, blink: this.parpadeo < 0, ropa };
+    // The face is a bitmap drawn on a canvas (never SVG parsed again at each mouth change); if the pose is not made yet, the
+    // previous face stays until it is, and only the latest wanted pose is drawn when it arrives.
+    let cv = this.retratoCv;
+    if (!cv || cv.parentElement !== this.retratoEl) {
+      cv = document.createElement('canvas');
+      cv.width = cv.height = 224;
+      this.retratoEl.replaceChildren(cv);
+      this.retratoCv = cv;
+    }
+    const lienzo = cv;
+    const poner = (b: HTMLCanvasElement) => {
+      if (this.retratoCv !== lienzo || this.retratoKey !== key || !b.width) return;
+      const x = lienzo.getContext('2d')!;
+      x.clearRect(0, 0, lienzo.width, lienzo.height);
+      x.drawImage(b, 0, 0, lienzo.width, lienzo.height);
+    };
+    const ya = retratoYa(q, pose);
+    if (ya) poner(ya);
+    else
+      retratoBitmap(q, pose).then(poner, () => {
+        // Last resort: the SVG itself.
+        if (this.retratoCv === lienzo && this.retratoKey === key) this.retratoEl!.innerHTML = retrato(q, pose);
+      });
+    // The other mouths of this face are made in the background, so the next ones are there when the line asks for them.
+    if (!this.retratoPrecalentado) {
+      this.retratoPrecalentado = true;
+      for (const m of ['a', 'o', 'e', 'm']) void retratoBitmap(q, { ...pose, mouthKind: m }).catch(() => {});
+    }
   }
 
   // ------------------------------------------------------------ help, labels, ring

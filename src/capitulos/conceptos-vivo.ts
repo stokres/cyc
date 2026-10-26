@@ -55,8 +55,6 @@ interface Pieza {
 }
 
 const PIEZAS: Pieza[] = [
-  { id: 'casa', s: 1.45, dibujo: A.casa, luz: '#ffd27a', etiqueta: { clave: 'c2.concepto.casa', color: '#fff1d6', tam: 21, abajo: 26 } },
-  { id: 'trabajo', s: 1.4, dibujo: A.trabajo, luz: '#ff9a4a', etiqueta: { clave: 'c2.concepto.trabajo', color: '#fff1d6', tam: 21, abajo: 28 } },
   { id: 'reloj', s: 1.4, dibujo: A.relojDerretido, luz: '#ffd9a0', etiqueta: { clave: 'c2.concepto.reloj', color: '#fff1d6', tam: 21, abajo: 28 } },
   { id: 'no', s: 1.4, dibujo: A.noRebota, luz: '#ff5a4a' },
   { id: 'manana', s: 1.12, dibujo: A.puertaManana, luz: '#ffcf6a', etiqueta: { clave: 'c2.concepto.manana', color: '#ffe9a8', tam: 24, abajo: 30 } },
@@ -179,8 +177,13 @@ interface Horneado {
   luces: Map<string, HTMLCanvasElement>;
   formas: Map<string, Bmp>;
   motas: Bmp[];
+  /** El fondo pintado, ya a la resolución del cielo (CIELO × la de pantalla). */
   fondo: HTMLCanvasElement;
   nubes: { c: HTMLCanvasElement; lado: number }[];
+  /** El cielo: fondo + nubes + formas lejanas + motas, pintado a baja resolución y pocos fps; por fotograma solo se copia entero. */
+  cielo: HTMLCanvasElement;
+  /** Resplandores de luz lineal (LA ÚLTIMA y Guille), para no crear degradados por fotograma. */
+  halos: { ultima: HTMLCanvasElement; guille: HTMLCanvasElement };
   marcoArriba: Bmp;
   marcoAbajo: Bmp;
   dinoPalabra: HTMLCanvasElement;
@@ -205,14 +208,42 @@ const estado = {
 /** Cuándo se gastó cada argumento (segundos del motor): el concepto se vuelve jarra un momento y queda con «UNA MÁS» pegado. */
 const gastados = new Map<string, number>();
 
+/** Cuándo se pintó el cielo por última vez (segundos del motor). */
+let cieloT = -1;
+
+const ESC_PIEZA = Object.fromEntries(PIEZAS.map((p) => [p.id, p.s])) as Record<string, number>;
+const LUZ_PIEZA = Object.fromEntries(PIEZAS.map((p) => [p.id, p.luz])) as Record<string, string | undefined>;
+
+/**
+ * El cielo (fondo pintado, nubes de luz, formas lejanas y motas) es lo más caro del mundo: nubes enormes con mezcla aditiva, a
+ * pantalla completa, y decenas de formas. Se pinta aparte, a esta fracción de la resolución y a pocos fotogramas por segundo
+ * (todo ahí es borroso y lento), y cada fotograma solo copia ese lienzo (una imagen opaca, sin mezclas).
+ */
+const CIELO = 0.6;
+const CIELO_FPS = 15;
+const CIELO_FPS_CAOS = 30;
+
+/** Un resplandor redondo de caída lineal (el mismo degradado que antes se creaba en cada fotograma). */
+function halo(rgb: string, a: number, lado: number) {
+  const c = lienzo(lado, lado);
+  const x = c.getContext('2d')!;
+  const r = c.width / 2;
+  const g = x.createRadialGradient(r, r, 0, r, r, r);
+  g.addColorStop(0, `rgba(${rgb},${a})`);
+  g.addColorStop(1, `rgba(${rgb},0)`);
+  x.fillStyle = g;
+  x.fillRect(0, 0, c.width, c.height);
+  return c;
+}
+
 const FUENTE = "'Graduate', 'Alegreya Sans', Georgia, serif";
 
 /** Los «???» del dinosaurio (unidades de escena): el cuadro, el cuerpo de letra y dónde están sobre su cabeza (según su dibujo). */
 const DINO_PALABRA = { w: 460, h: 190, tam: 150, x: -560, y: 285 };
 /** Lo que tarda en levantarse el dinosaurio (segundos). */
 const DINO_SUBE = 3.6;
-/** Adónde se apartan los conceptos que taparían su cabeza (a la izquierda de la pantalla, sobre su cuello y bajo su barbilla). */
-const HUYEN = { casa: { dx: -1010, y: 250 }, trabajo: { dx: -170, y: 255 } };
+/** Adónde se aparta el concepto que taparía su cabeza (bajo su barbilla, entre su cuello y el centro). */
+const HUYEN = { reloj: { dx: -300, y: 255 } };
 
 function lienzo(w: number, h: number) {
   const c = document.createElement('canvas');
@@ -292,8 +323,11 @@ export function prepararConceptos(g: Aventura): Promise<void> {
   if (horneando) return horneando;
   horneando = (async () => {
     // El fondo pintado y las nubes.
-    const fondo = hornearFondo(vw, px);
-    const nubes = hornearNubes(px);
+    const cp = px * CIELO;
+    const fondo = hornearFondo(vw, cp);
+    const nubes = hornearNubes(cp);
+    const cielo = lienzo(vw * cp, 1080 * cp);
+    const halos = { ultima: halo('255,246,224', 0.5, 128), guille: halo('255,214,120', 0.55, 128) };
     await cede();
     // Las figuras, una a una (cada una por tandas de piezas).
     const figuras = new Map<string, FiguraBmp>();
@@ -319,7 +353,7 @@ export function prepararConceptos(g: Aventura): Promise<void> {
       await Promise.all(
         lote.slice(i, i + 14).map(async (k) => {
           const [t, col, capa] = k.split(':').map(Number);
-          const res = px * (capa === 0 ? 0.8 : capa === 1 ? 1.1 : 1.5);
+          const res = px * (capa === 0 ? 0.55 : capa === 1 ? 1.1 : 1.5);
           const d = A.forma(A.FORMAS[t], COLORES_FONDO[col]);
           formas.set(k, { c: await hornearDibujo(d, res, capa === 0 ? 0.7 : 1), x: d.x, y: d.y, w: d.w, h: d.h });
         }),
@@ -329,7 +363,7 @@ export function prepararConceptos(g: Aventura): Promise<void> {
     const motas = await Promise.all(
       COLORES_MOTA.map(async (c) => {
         const d = A.mota(c);
-        return { c: await hornearDibujo(d, px * 1.2, 0), x: d.x, y: d.y, w: d.w, h: d.h } as Bmp;
+        return { c: await hornearDibujo(d, px * 0.8, 0), x: d.x, y: d.y, w: d.w, h: d.h } as Bmp;
       }),
     );
     // El marco dorado de Vero (arriba una cortina de seda; abajo, una ola).
@@ -359,7 +393,7 @@ export function prepararConceptos(g: Aventura): Promise<void> {
     x.fillText(frase, cx0, cy0);
     const unaMas = hornearUnaMas(px * 1.2);
     const viejo = listo;
-    listo = { clave, figuras, piezas, luces, formas, motas, fondo, nubes, marcoArriba, marcoAbajo, dinoPalabra, unaMas };
+    listo = { clave, figuras, piezas, luces, formas, motas, fondo, nubes, cielo, halos, marcoArriba, marcoAbajo, dinoPalabra, unaMas };
     if (viejo) soltar(viejo);
   })().finally(() => (horneando = null));
   return horneando;
@@ -373,6 +407,9 @@ function soltar(h: Horneado) {
   for (const b of h.motas) b.c.width = b.c.height = 0;
   for (const n of h.nubes) n.c.width = n.c.height = 0;
   h.fondo.width = h.fondo.height = 0;
+  h.cielo.width = h.cielo.height = 0;
+  h.halos.ultima.width = h.halos.ultima.height = 0;
+  h.halos.guille.width = h.halos.guille.height = 0;
   for (const b of [h.marcoArriba, h.marcoAbajo, h.unaMas]) b.c.width = b.c.height = 0;
   h.dinoPalabra.width = h.dinoPalabra.height = 0;
 }
@@ -383,6 +420,7 @@ export function liberarConceptos() {
   listo = null;
   golpes.clear();
   gastados.clear();
+  cieloT = -1;
   Object.assign(estado, { ultima: 0, dino: 0, paso: 0, caos: 0 });
 }
 
@@ -464,19 +502,21 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
   const base = () => ctx.setTransform(px, 0, 0, px, 0, 0);
   /** Lo que se apagan las piezas que no son la protagonista del momento (Guille, al dar el paso). */
   let alfa = 1;
-  const pon = (b: Bmp, x: number, y: number, s = 1, rot = 0, sx = 1, sy = 1) => {
-    ctx.save();
-    if (alfa !== 1) ctx.globalAlpha *= alfa;
-    base();
-    ctx.translate(x, y);
-    if (rot) ctx.rotate(rot);
-    ctx.scale(s * sx, s * sy);
+  const pon = (b: Bmp, x: number, y: number, s = 1, rot = 0, sx = 1, sy = 1, a = 1) => {
+    // Sin save/restore: se fija la transformación y la opacidad enteras (cada llamada vuelve a ponerlas).
+    ctx.globalAlpha = a * alfa;
+    const kx = px * s * sx;
+    const ky = px * s * sy;
+    if (rot) {
+      const c = Math.cos(rot);
+      const sn = Math.sin(rot);
+      ctx.setTransform(c * kx, sn * kx, -sn * ky, c * ky, px * x, px * y);
+    } else ctx.setTransform(kx, 0, 0, ky, px * x, px * y);
     ctx.drawImage(b.c, b.x, b.y, b.w, b.h);
-    ctx.restore();
   };
   // Anclas de cada pieza: el bitmap está ya dimensionado en unidades de escena multiplicadas por `s`; aquí se
   // pinta con su escala de dibujo.
-  const S = Object.fromEntries(PIEZAS.map((p) => [p.id, p.s])) as Record<string, number>;
+  const S = ESC_PIEZA;
   const bm = (id: string) => L.piezas.get(id)!;
   const zonas = g.S?.zonas;
   /** Pone la zona de toque donde está la pieza en pantalla. */
@@ -490,16 +530,15 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
   };
   /** La luz de un concepto: un resplandor de su color que late detrás de él. */
   const luz = (id: string, x: number, y: number, k = 1, fase = 0) => {
-    const col = PIEZAS.find((p) => p.id === id)?.luz;
+    const col = LUZ_PIEZA[id];
     const c = col ? L.luces.get(col) : null;
     if (!c) return;
-    ctx.save();
-    base();
     ctx.globalCompositeOperation = 'lighter';
     ctx.globalAlpha = (0.2 + 0.1 * Math.sin(t * 1.7 + fase)) * k * alfa * gasto(id).a;
     const r = 150 * S[id] * (1 + 0.06 * Math.sin(t * 1.7 + fase));
+    ctx.setTransform(px, 0, 0, px, 0, 0);
     ctx.drawImage(c, x - r, y - r, r * 2, r * 2);
-    ctx.restore();
+    ctx.globalCompositeOperation = 'source-over';
   };
 
   /** Cuánto lleva gastado un argumento: `a` es lo que se apaga el concepto (1 = intacto) y `d` los segundos desde que Fran lo giró. */
@@ -533,71 +572,94 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
   };
 
   if (capa === 'fondo') {
-    // ---- El fondo pintado (entero, una sola copia) y las nubes de luz que lo recorren despacio.
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.drawImage(L.fondo, 0, 0, ctx.canvas.width, ctx.canvas.height);
-    ctx.restore();
-    {
-      ctx.save();
-      base();
-      ctx.globalCompositeOperation = 'lighter';
+    const dinoU = estado.dino > 0 ? (real - estado.dino) / DINO_SUBE : 0;
+    // Con el dinosaurio levantándose, las formas se apagan para que se lea la silueta.
+    const apagan = estado.dino > 0 ? 1 - 0.5 * suave(dinoU) : 1;
+    const nCapa = caos ? [22, 20, 12] : nivel >= 7 ? [22, 18, 10] : [22, 16, 8];
+    const ancho = vw + 360;
+    /** Una forma flotante en su sitio de este instante. */
+    const flotar = (f: Flota, b: Bmp, a: number) => {
+      const x0 = f.x0 * ancho + f.vx * t;
+      const x = ((((x0 % ancho) + ancho) % ancho) - 180) + vaiven(f.p) + Math.sin(t * f.fx + f.fase) * f.ax;
+      const y = f.y + vaivenY(f.p) + Math.cos(t * f.fy + f.fase * 1.3) * f.ay;
+      const latir = 1 + 0.1 * Math.sin(t * 1.4 + f.fase);
+      pon(b, x, y, f.tam * latir, f.rot + t * f.vrot, 1, 1, a);
+    };
+
+    // ---- El cielo: fondo pintado, nubes de luz que lo recorren, el color que se pone loco en el caos, las formas lejanas
+    // (grandes, lentas y translúcidas) y las motas que suben. Se repinta a pocos fotogramas por segundo y a baja resolución
+    // (CIELO); aquí solo se copia, una vez, sin mezclas.
+    if (cieloT < 0 || real < cieloT || real - cieloT >= 1 / (caos ? CIELO_FPS_CAOS : CIELO_FPS)) {
+      cieloT = real;
+      const cc = L.cielo.getContext('2d')!;
+      const cs = L.cielo.width / vw;
+      cc.setTransform(1, 0, 0, 1, 0, 0);
+      cc.globalAlpha = 1;
+      cc.globalCompositeOperation = 'source-over';
+      cc.drawImage(L.fondo, 0, 0, L.cielo.width, L.cielo.height);
+      cc.setTransform(cs, 0, 0, cs, 0, 0);
+      cc.globalCompositeOperation = 'lighter';
       L.nubes.forEach((n, i) => {
         const w = 0.07 + i * 0.013;
         const nx = cx + Math.sin(real * w + i * 1.9) * vw * 0.42 + Math.cos(real * w * 0.6 + i) * 120;
         const ny = 540 + Math.cos(real * w * 0.8 + i * 2.7) * 360;
         const rad = n.lado * (0.8 + 0.2 * Math.sin(real * 0.2 + i));
-        ctx.globalAlpha = 0.085 + 0.04 * Math.sin(real * 0.4 + i * 1.3);
-        ctx.drawImage(n.c, nx - rad, ny - rad, rad * 2, rad * 2);
+        cc.globalAlpha = 0.085 + 0.04 * Math.sin(real * 0.4 + i * 1.3);
+        cc.drawImage(n.c, nx - rad, ny - rad, rad * 2, rad * 2);
       });
-      ctx.restore();
+      if (caos) {
+        cc.setTransform(1, 0, 0, 1, 0, 0);
+        cc.globalCompositeOperation = 'hard-light';
+        cc.globalAlpha = 0.42;
+        cc.fillStyle = `hsl(${((real * 140) % 360).toFixed(0)} 90% 50%)`;
+        cc.fillRect(0, 0, L.cielo.width, L.cielo.height);
+        cc.setTransform(cs, 0, 0, cs, 0, 0);
+      }
+      cc.globalCompositeOperation = 'source-over';
+      // Formas lejanas (capa 0).
+      let n0 = 0;
+      for (const f of FLOTAS) {
+        if (f.capa !== 0) continue;
+        if (n0++ >= nCapa[0]) break;
+        const b = L.formas.get(`${f.tipo}:${f.color}:0`);
+        if (!b) continue;
+        const x0 = f.x0 * ancho + f.vx * t;
+        const x = ((((x0 % ancho) + ancho) % ancho) - 180) + vaiven(f.p) + Math.sin(t * f.fx + f.fase) * f.ax;
+        const y = f.y + vaivenY(f.p) + Math.cos(t * f.fy + f.fase * 1.3) * f.ay;
+        const latir = 1 + 0.1 * Math.sin(t * 1.4 + f.fase);
+        const k = f.tam * latir;
+        const rot = f.rot + t * f.vrot;
+        cc.globalAlpha = 0.4 * apagan;
+        cc.setTransform(cs * k * Math.cos(rot), cs * k * Math.sin(rot), -cs * k * Math.sin(rot), cs * k * Math.cos(rot), cs * x, cs * y);
+        cc.drawImage(b.c, b.x, b.y, b.w, b.h);
+      }
+      // Motas de luz: suben despacio y titilan.
+      cc.setTransform(cs, 0, 0, cs, 0, 0);
+      cc.globalCompositeOperation = 'lighter';
+      for (const mo of MOTAS) {
+        const b = L.motas[mo.color];
+        const y = (((mo.y0 + mo.vy * t) % 1100) + 1100) % 1100 - 10;
+        const x = mo.x0 * vw + vaiven(mo.p) * 0.5 + Math.sin(t * 0.5 + mo.fase) * 22;
+        cc.globalAlpha = (0.4 + 0.5 * Math.abs(Math.sin(t * 1.3 + mo.fase))) * apagan;
+        const s2 = mo.tam * (0.9 + 0.2 * Math.sin(t * 2 + mo.fase));
+        cc.drawImage(b.c, x - 24 * s2, y - 24 * s2, 48 * s2, 48 * s2);
+      }
+      cc.globalCompositeOperation = 'source-over';
+      cc.globalAlpha = 1;
     }
-    // ---- El color de fondo se pone loco: en el caos gira por el arco iris.
-    if (caos) {
-      ctx.save();
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.globalCompositeOperation = 'hard-light';
-      ctx.globalAlpha = 0.42;
-      ctx.fillStyle = `hsl(${((real * 140) % 360).toFixed(0)} 90% 50%)`;
-      ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-      ctx.restore();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.drawImage(L.cielo, 0, 0, ctx.canvas.width, ctx.canvas.height);
+
+    // ---- Las formas de las capas media y cercana, con paralaje, por fotograma.
+    {
+      const cuenta = [0, 0, 0];
+      for (const f of FLOTAS) {
+        if (f.capa === 0 || cuenta[f.capa]++ >= nCapa[f.capa]) continue;
+        const b = L.formas.get(`${f.tipo}:${f.color}:${f.capa}`);
+        if (b) flotar(f, b, (f.capa === 1 ? 0.62 : 0.88) * apagan);
+      }
     }
-    // ---- El dinosaurio del fondo (el userito mitológico): una silueta ENORME que llena toda la pantalla por detrás de
-    // todo. Crece desde abajo (anclado al borde de abajo, hundido y pequeño, y se levanta hasta llenarla, con un
-    // pequeño rebote al llegar) mientras tiembla; sus «???» van sobre su cabeza, grandes y latiendo.
-    const dinoU = estado.dino > 0 ? (real - estado.dino) / DINO_SUBE : 0;
-    // ---- Las formas que flotan, de lo lejano a lo cercano (tres capas con paralaje); las lejanas, grandes, lentas y translúcidas.
-    // Con el dinosaurio levantándose, se apagan para que se lea la silueta.
-    const apagan = estado.dino > 0 ? 1 - 0.5 * suave(dinoU) : 1;
-    const nCapa = caos ? [22, 24, 16] : nivel >= 7 ? [22, 22, 12] : [22, 18, 8];
-    const cuenta = [0, 0, 0];
-    const ancho = vw + 360;
-    for (const f of FLOTAS) {
-      if (cuenta[f.capa]++ >= nCapa[f.capa]) continue;
-      const b = L.formas.get(`${f.tipo}:${f.color}:${f.capa}`);
-      if (!b) continue;
-      const x0 = f.x0 * ancho + f.vx * t;
-      const x = ((((x0 % ancho) + ancho) % ancho) - 180) + vaiven(f.p) + Math.sin(t * f.fx + f.fase) * f.ax;
-      const y = f.y + vaivenY(f.p) + Math.cos(t * f.fy + f.fase * 1.3) * f.ay;
-      const latir = 1 + 0.1 * Math.sin(t * 1.4 + f.fase);
-      ctx.save();
-      ctx.globalAlpha = (f.capa === 0 ? 0.4 : f.capa === 1 ? 0.62 : 0.88) * apagan;
-      pon(b, x, y, f.tam * latir, f.rot + t * f.vrot);
-      ctx.restore();
-    }
-    // ---- Las motas de luz: suben despacio y titilan.
-    ctx.save();
-    base();
-    ctx.globalCompositeOperation = 'lighter';
-    for (const mo of MOTAS) {
-      const b = L.motas[mo.color];
-      const y = (((mo.y0 + mo.vy * t) % 1100) + 1100) % 1100 - 10;
-      const x = mo.x0 * vw + vaiven(mo.p) * 0.5 + Math.sin(t * 0.5 + mo.fase) * 22;
-      ctx.globalAlpha = (0.4 + 0.5 * Math.abs(Math.sin(t * 1.3 + mo.fase))) * apagan;
-      const s2 = mo.tam * (0.9 + 0.2 * Math.sin(t * 2 + mo.fase));
-      ctx.drawImage(b.c, x - 24 * s2, y - 24 * s2, 48 * s2, 48 * s2);
-    }
-    ctx.restore();
     if (estado.dino > 0) {
       const D = bm('dino');
       // Sube deprisa al principio (el empujón) y se frena al llegar.
@@ -630,7 +692,7 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
       }
       ctx.restore();
     }
-    // ...y los conceptos que le taparían la cabeza y los «???» se apartan asustados (cada uno a su rincón); los dos primeros
+    // ...y el concepto que le taparía la cabeza y los «???» se aparta asustado; los dos primeros
     // amigos, que están justo debajo, se encogen y se hunden un poco en el suelo.
     const hk = estado.dino > 0 ? suave(dinoU * 1.5) : 0;
     const huye = Object.fromEntries(
@@ -641,31 +703,10 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
     // Cuando Guille da el paso al frente, todo lo demás se apaga un poco para que se lea él, con su jarra.
     const pasoK = estado.paso > 0 ? suave((real - estado.paso) / 1.3) : 0;
     alfa = 1 - 0.55 * pasoK;
-    // CASA: siempre lejos. Se acerca... y se aleja justo cuando la miras.
-    {
-      const ciclo = Math.sin(t * 0.5);
-      const x = cx + huye.casa.dx + vaiven(0.45) + ciclo * 70;
-      const y = huye.casa.y + vaivenY(0.45);
-      const r = rebote(real, 'casa');
-      const esc = S.casa * (1 + 0.28 * Math.sin(t * 0.5 + 1.6)) * 0.9;
-      luz('casa', x, y, 1, 0);
-      cpt('casa', x, y, esc, r.r, r.sx, r.sy);
-      zona('casa', x, y);
-    }
-    // EL TRABAJO: vibra como un móvil con avisos.
-    {
-      const zumbido = Math.sin(t * 0.9) > 0.55 ? Math.sin(t * 60) * 0.05 : 0;
-      const x = cx + huye.trabajo.dx + vaiven(0.8) + Math.sin(t * 0.4) * 16;
-      const y = huye.trabajo.y + vaivenY(0.8) + Math.sin(t * 0.8) * 10;
-      const r = rebote(real, 'trabajo');
-      luz('trabajo', x, y, 1, 1);
-      cpt('trabajo', x, y, S.trabajo, zumbido + r.r, r.sx, r.sy);
-      zona('trabajo', x, y);
-    }
     // El RELOJ derretido: cuelga de su rama y se descuelga un poco más cada vez.
     {
-      const x = cx + SITIOS.reloj.dx * kc + vaiven(0.9);
-      const y = SITIOS.reloj.y + vaivenY(0.9);
+      const x = cx + huye.reloj.dx + vaiven(0.9);
+      const y = huye.reloj.y + vaivenY(0.9);
       const r = rebote(real, 'reloj');
       luz('reloj', x, y, 1, 2);
       cpt('reloj', x, y, S.reloj, Math.sin(t * 0.8) * 0.09 + r.r, (1 + 0.04 * Math.sin(t * 1.9)) * r.sx, (1 - 0.06 * Math.sin(t * 1.9)) * r.sy);
@@ -714,8 +755,8 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
       const y = (o.y ?? sit.y) + 70 * baja + vaivenY(sit.p) * 0.5;
       ctx.save();
       base();
-      if (alfa !== 1) ctx.globalAlpha *= alfa;
-      dibujarFigura(ctx, F, t + id.length * 3.1, { x, y, s, a: o.a, brillo: o.brillo ?? 0.55, vida: (o.vida ?? 1) * (1 + 0.6 * caos), rot: r.r * 0.6, sx: r.sx, sy: r.sy });
+      ctx.globalAlpha = alfa;
+      dibujarFigura(ctx, F, t + id.length * 3.1, { x, y, s, a: o.a, aura: 0.8, brillo: o.brillo ?? 0.55, vida: (o.vida ?? 1) * (1 + 0.6 * caos), rot: r.r * 0.6, sx: r.sx, sy: r.sy });
       ctx.restore();
       // La zona de toque sigue a su figura (el centro de su cuerpo).
       const alto = F.alto * s;
@@ -730,13 +771,10 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
       const y = sit.y + 6 * Math.sin(t * 0.9 + 1);
       const f = dibujarAmigo('fran', { x, y, brillo: 0.85 });
       const U = L.unaMas;
-      ctx.save();
-      base();
+      const ku = 0.9 + 0.04 * Math.sin(t * 2.7);
       ctx.globalAlpha = alfa;
-      ctx.translate(x, y + 110 * f.s + 6);
-      ctx.scale(0.9 + 0.04 * Math.sin(t * 2.7), 0.9 + 0.04 * Math.sin(t * 2.7));
+      ctx.setTransform(px * ku, 0, 0, px * ku, px * x, px * (y + 110 * f.s + 6));
       ctx.drawImage(U.c, U.x, U.y, U.w, U.h);
-      ctx.restore();
     }
     // LA ÚLTIMA: aparece cuando ya están los cuatro, un contorno con una luz dentro.
     if (estado.ultima > 0) {
@@ -744,21 +782,15 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
       const x = cx + SITIOS.ultima.dx * kc + vaiven(1.0);
       const y = SITIOS.ultima.y + vaivenY(1.0) + Math.sin(t * 1.2) * 14;
       const r = rebote(real, 'ultima');
-      ctx.save();
-      base();
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.globalAlpha = alfa;
-      const rad = 260 * u * (1 + 0.1 * Math.sin(real * 3));
-      const gr = ctx.createRadialGradient(x, y, 0, x, y, rad);
-      gr.addColorStop(0, 'rgba(255,246,224,0.5)');
-      gr.addColorStop(1, 'rgba(255,246,224,0)');
-      ctx.fillStyle = gr;
-      ctx.fillRect(x - rad, y - rad, rad * 2, rad * 2);
-      ctx.restore();
-      ctx.save();
-      ctx.globalAlpha = u * (0.75 + 0.25 * Math.sin(real * 5));
-      pon(bm('ultima'), x, y, S.ultima * (0.6 + 0.4 * u), Math.sin(t * 0.7) * 0.05 + r.r, r.sx, r.sy);
-      ctx.restore();
+      {
+        const rad = 260 * u * (1 + 0.1 * Math.sin(real * 3));
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = alfa;
+        base();
+        ctx.drawImage(L.halos.ultima, x - rad, y - rad, rad * 2, rad * 2);
+        ctx.globalCompositeOperation = 'source-over';
+      }
+      pon(bm('ultima'), x, y, S.ultima * (0.6 + 0.4 * u), Math.sin(t * 0.7) * 0.05 + r.r, r.sx, r.sy, u * (0.75 + 0.25 * Math.sin(real * 5)));
       zona('ultima', x, y);
     }
     for (const id of ['chuchi', 'pablo', 'vero']) dibujarAmigo(id);
@@ -773,17 +805,13 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
       const gy = sit.y + dp * 62;
       const gs = sit.s * (1 + dp * 0.34);
       if (dp > 0) {
-        ctx.save();
-        base();
-        ctx.globalCompositeOperation = 'lighter';
         const rad = 470 * dp;
         const cyh = gy - 230 * gs;
-        const gr = ctx.createRadialGradient(gx, cyh, 0, gx, cyh, rad);
-        gr.addColorStop(0, 'rgba(255,214,120,0.55)');
-        gr.addColorStop(1, 'rgba(255,214,120,0)');
-        ctx.fillStyle = gr;
-        ctx.fillRect(gx - rad, cyh - rad, rad * 2, rad * 2);
-        ctx.restore();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = 1;
+        base();
+        ctx.drawImage(L.halos.guille, gx - rad, cyh - rad, rad * 2, rad * 2);
+        ctx.globalCompositeOperation = 'source-over';
       }
       dibujarAmigo('guille', { x: gx, y: gy, s: gs, brillo: 0.55 + dp * 0.9 });
       // Su jarra, en la mano que levanta (la del lado al que mira).
@@ -796,7 +824,7 @@ export function dibujarConceptos(g: Aventura, ctx: CanvasRenderingContext2D, cap
     const cierra = caos ? 30 + 30 * Math.sin(t * 2.2) : 0;
     const dy = respira * 14 + cierra;
     const tiras = (b: Bmp, y0: number, sentido: number, amp: number) => {
-      const N = 36;
+      const N = 12;
       const sw = b.c.width / N;
       const dw = b.w / N;
       ctx.save();

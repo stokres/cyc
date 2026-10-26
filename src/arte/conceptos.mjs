@@ -110,28 +110,11 @@ export function puertaManana() {
     + bola(40, 30, 10, '#f5c94a') + [-70, 10, 90].map((y) => bloque(redondo([[-62, y], [-36, y], [-36, y + 14], [-62, y + 14]], 3), '#b0b6c4', [], { luz: 0.3, sombra: -0.3 })).join('') + bloque(redondo([[-46, 100], [-28, 100], [-28, 124], [-46, 124]], 3), '#e0483a', [], {}));
 }
 
-/** CASA: la casita de siempre, siempre lejos (con su ventana encendida y su tejado a dos aguas). */
-export function casa() {
-  const paredes = bloque(redondo([[-44, -6], [44, -6], [44, 42], [-44, 42]], 5), '#f1dfb8', [[poli([[14, -6], [44, -6], [44, 42], [14, 42]]), 'osc', 0.2], [poli([[-44, 30], [44, 30], [44, 42], [-44, 42]]), 'osc', 0.12]], { luz: 0.25, sombra: -0.25 });
-  const tejado = bloque(redondo([[-58, -2], [0, -52], [58, -2]], 4), '#d8453a', [[poli([[0, -52], [58, -2], [0, -2]]), 'osc', 0.3], [poli([[-58, -2], [0, -52], [-14, -2]]), 'luz', 0.18]], { luz: 0.3, sombra: -0.3 });
-  const ventana = (x) => bloque(redondo([[x, 6], [x + 20, 6], [x + 20, 26], [x, 26]], 3), '#ffd27a', [[poli([[x, 6], [x + 20, 6], [x, 26]]), 'luz', 0.35]], { luz: 0.3, sombra: -0.1 }) + trazo(`M${x + 10} 6V26M${x} 16H${x + 20}`, '#a8641c', 1.8);
-  return lienzo(-76, -70, 152, 134, mancha(0, 20, 76, 56, '#ffd27a', 0.45) + bloque(redondo([[14, -48], [30, -48], [30, -20], [14, -12]], 2), '#a8956c', [], {}) + paredes + tejado + ventana(-36) + ventana(16)
-    + bloque(redondo([[-10, 12], [8, 12], [8, 42], [-10, 42]], 3), '#8a5a30', [], {}) + bola(4, 28, 2.4, '#ffd95a') + mancha(0, 52, 60, 7, '#10052e', 0.5));
-}
-
 /** LA PENÚLTIMA: una jarra ámbar que se rellena sola, con el chorro de cerveza que sale por arriba, da la vuelta y vuelve a entrar. */
 export function jarraPenultima() {
   const bucle = tubo('M-4 -170C-90 -250 80 -250 16 -176', '#f6b73c', 8, { luz: 0.4 });
   const flecha = relleno(poli([[8, -184], [30, -172], [6, -164]]), '#f6b73c');
   return lienzo(-110, -280, 240, 340, mancha(0, -60, 110, 120, '#ffb35a', 0.4) + `<g opacity="0.95" stroke-dasharray="3 12">${bucle}</g>` + flecha + `<g transform="translate(0 20) scale(1.1)">${jarraGrande()}</g>`);
-}
-
-/** EL TRABAJO: una montaña de papeles con un clip, un sobre con su aviso rojo y la corbata de alguien. */
-export function trabajo() {
-  const hoja = (x, y, r, c = '#f4efe4') => `<g transform="translate(${x} ${y}) rotate(${r})">${bloque(redondo([[-38, -48], [38, -48], [38, 48], [-38, 48]], 4), c, [[poli([[10, -48], [38, -48], [38, 48], [18, 48]]), 'osc', 0.14]], { luz: 0.2, sombra: -0.22 })}${[-32, -20, -8, 4, 16, 28].map((l) => `<rect x="-28" y="${l}" width="${l % 3 ? 56 : 44}" height="4" rx="2" fill="#7a6aa8" fill-opacity="0.45"/>`).join('')}</g>`;
-  const sobre = bloque(redondo([[-40, 20], [40, 20], [40, 74], [-40, 74]], 4), '#e8d9b4', [[poli([[-40, 20], [0, 54], [40, 20], [40, 74], [-40, 74]]), 'osc', 0.1]], { luz: 0.25, sombra: -0.25 }) + relleno(poli([[-40, 20], [0, 54], [40, 20]]), '#cbb98a');
-  const aviso = bola(42, 26, 21, '#e8453c') + `<rect x="40" y="14" width="5" height="16" rx="2.5" fill="#fff"/>` + circ(42.5, 36, 3, '#ffffff');
-  return lienzo(-96, -100, 192, 190, mancha(0, 0, 96, 90, '#ff9a4a', 0.3) + hoja(-26, 4, -14, '#e9e3f4') + hoja(26, 2, 12, '#fff3da') + hoja(0, -8, 0) + sobre + trazo('M-22 -56C-22 -72 -2 -72 -2 -56V-14', '#b8bfd0', 5) + aviso);
 }
 
 /** El reloj derretido, colgado de una rama y goteando por los dos lados. */
