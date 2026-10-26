@@ -10,7 +10,7 @@ const NS = 'http://www.w3.org/2000/svg';
 
 /** Los sitios y el tamaño de cada toque, en unidades de escena respecto al centro de la pantalla (dx) y desde arriba (y). */
 export const SITIOS = {
-  reloj: { dx: -480, y: 250, w: 290, h: 250 },
+  reloj: { dx: -720, y: 180, w: 290, h: 250 },
   no: { dx: 520, y: 255, w: 270, h: 220 },
   penultima: { dx: 910, y: 300, w: 260, h: 300 },
   manana: { dx: -1010, y: 620, w: 240, h: 460 },
