@@ -372,3 +372,49 @@ FRAN (contento): Y sin apuntar.
 > ¡Foco al protagonista!
 ---
 > Y ahora, un NO de efecto.
+
+
+// ---------------------------------------------------------------- jefe final: LA ÚLTIMA (sala grifo-jefe)
+
+jefe.ultima = LA ÚLTIMA
+jefe.ultima.sub = El Ultimosaurio
+jefe.fase1 = ¡Ronda!
+jefe.fase1.sub = Salta las olas. Su punto débil es la espuma
+jefe.fase2 = Barra libre
+jefe.fase2.sub = Se rellena del barril: ¡rómpelo!
+jefe.fase3 = La penúltima de verdad
+jefe.fase3.sub = Medio vacío y borracho: sube por las paredes
+jefe.pista.barril = Ese barril lleva NO escrito: solo lo rompe el jarrazo con la fuerza de Chuchi
+jefe.pista.cresta = ¡Dale a la espuma! Hace falta el doble salto
+jefe.pista.pared = Agárrate a la pared y cáele encima
+
+## jefe
+> Al fondo, entre la espuma, algo enorme se despereza.
+FRAN (nervioso): Es un tiranosaurio. De cerveza. Con un grifo por cola.
+GUILLE (sorprendido): Un saurio. Cuarenta horas de curso y ni una dedicada a esto.
+CHUCHI (nervioso): Yo solo venía a por la última. No a que me la sirvan con dientes.
+PABLO (chulo): Calma. Es el tercer acto: al final siempre cae el malo.
+FRAN (enfadado): ¡Pues que sirva él la ronda! ¡Aupa!
+
+## jefe.fase2
+FRAN (sorprendido): ¡Se está enchufando a un barril! ¡Quiere otra ronda!
+CHUCHI: Ese barril lleva NO escrito. Dale un jarrazo, que mi fuerza se encarga del resto.
+
+## jefe.fase3
+GUILLE (sorprendido): Está medio vacío y se tambalea. Lo reconozco: es un jueves a las tres.
+PABLO: Embiste de pared a pared. Súbete a una pared y cáele encima por la espalda.
+
+## jefe.muere
+> El cristal se agrieta de punta a punta y la cerveza se derrama por el suelo.
+FRAN (sorprendido): ¡Se vacía! Con lo que cuesta una caña, qué pena de suelo.
+
+## jefe.final.1
+> El monstruo se encoge y se encoge hasta ser una jarra normal en el suelo.
+CHUCHI (contento): Pues ahora sí. Camarero: la última.
+FRAN (contento): ¡Esa es la actitud, Chuchi! Y otra caña para el que se quede.
+
+## jefe.final.2
+GUILLE (chulo): Este es mío. Un trofeo de caza, con diploma y todo.
+CHUCHI (sorprendido): ¿Y mi última?
+FRAN (contento): Tranquilo: quedan los jueves.
+

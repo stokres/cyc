@@ -36,6 +36,8 @@ export interface Capa {
   f: number;
   /** Drawn in front of the game. */
   frente?: boolean;
+  /** The arena of LA ÚLTIMA: the layer sits still, centred, with its bottom on the bottom of the view (jefe-ultima.ts). */
+  fija?: boolean;
   /** Opacity (0 hides it); the code layers are toned down when a painted backdrop sits behind them. */
   alfa?: number;
   /** Rows (in game units of the layer) that hold something: a layer that is mostly empty (the foreground) only blits these bands. */
@@ -685,9 +687,14 @@ export function dibujarCapas(ctx: CanvasRenderingContext2D, fondo: Fondo, cx: nu
   for (const c of fondo.capas) {
     if (!!c.frente !== delante || c.alfa === 0) continue;
     // The layer is taller than the view: it rides up and down with the camera, bottom edge on the floor of the screen when the room is at its lowest.
-    const dy = (vh - c.h) * k;
+    let dy = (vh - c.h) * k;
     let x0 = -(cx * c.f) % c.w;
     if (x0 > 0) x0 -= c.w;
+    if (c.fija) {
+      dy = vh - c.h;
+      x0 = (vw - c.w) / 2;
+      while (x0 > 0) x0 -= c.w;
+    }
     if (c.alfa !== undefined) ctx.globalAlpha = c.alfa;
     // Only the part that lands on the screen is blitted (a 1.7-screen-wide painting would otherwise be shaded whole every frame).
     const iw = c.img instanceof HTMLImageElement ? c.img.naturalWidth : (c.img as HTMLCanvasElement).width;

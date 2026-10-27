@@ -15,7 +15,7 @@
 // without it, to compare.
 //
 // Usage: node scripts/rendimiento.mjs [escena...]   (against npm run dev on :5173)
-//   escenas: prologo, piso, calle, bar, manga, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, cantofiesta, tragaperras, sol, solcombate, solcamino, solteatro, soljefe, solcalderon, kart, safari, boca, conceptos, caos, pangcompleto, pokecap (all by default)
+//   escenas: prologo, piso, calle, bar, manga, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, cantofiesta, tragaperras, sol, solcombate, solcamino, solteatro, soljefe, solcalderon, kart, unamas (includes the final boss LA ÚLTIMA), safari, boca, conceptos, caos, pangcompleto, pokecap (all by default)
 import { chromium } from 'playwright';
 import { readFileSync, readdirSync } from 'node:fs';
 
@@ -326,7 +326,7 @@ if (toca('kart')) {
 if (toca('unamas')) {
   // «Una más» (src/conceptos/), the metroidvania: a bot walks, jumps and swings the jug through the Recibidor (alarm clocks, parallax with the painted
   // backdrop, particles) and through the garden's boss arena (the Gran Despertador, a puddle, the foam and spark effects).
-  for (const [nombre, zona, sala] of [['Una más, el Recibidor', 1, 'recibidor-2'], ['Una más, el Jardín y el jefe', 2, 'jardin-3'], ['Una más, las terrazas (losas móviles y amigo en la jarra)', 2, 'jardin-1b'], ['Una más, la Bandeja (enjambres de sobres y losas de papel)', 3, 'bandeja-2'], ['Una más, La Bandeja Llena', 3, 'bandeja-5']]) {
+  for (const [nombre, zona, sala] of [['Una más, el Recibidor', 1, 'recibidor-2'], ['Una más, el Jardín y el jefe', 2, 'jardin-3'], ['Una más, las terrazas (losas móviles y amigo en la jarra)', 2, 'jardin-1b'], ['Una más, la Bandeja (enjambres de sobres y losas de papel)', 3, 'bandeja-2'], ['Una más, La Bandeja Llena', 3, 'bandeja-5'], ['Una más, jefe final LA ÚLTIMA (arena del Grifo, piezas animadas, espuma y cristales)', 2, 'grifo-jefe']]) {
     await medir(nombre, `(async () => {
       clearInterval(window.__paseo);
       const g = window.__cyc.g;
@@ -336,6 +336,7 @@ if (toca('unamas')) {
       for (let i = 0; i < 100 && !window.__unamas?.().mundo; i++) await new Promise((r) => setTimeout(r, 200));
       const u = window.__unamas();
       if ('${sala}' === 'jardin-1b') { u.mundo.prog.habs.add('cierzo'); u.mundo.prog.hechos.add('guille'); u.mundo.comentaT = 2; }
+      if ('${sala}' === 'grifo-jefe') for (const h of ['cierzo', 'teclazo', 'pared']) u.mundo.prog.habs.add(h);
       clearInterval(window.__bot);
       let n = 0;
       window.__bot = setInterval(() => {

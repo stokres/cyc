@@ -79,6 +79,8 @@ export interface Sala {
   mapa: { x: number; y: number };
   /** Where the player starts when the game begins in this room. */
   inicio: { col: number; fila: number };
+  /** The final boss's arena (jefe-ultima.ts): fixed camera, painted background, no tiles drawn. */
+  ultima?: boolean;
 }
 
 /**
@@ -624,7 +626,7 @@ function teatro4() {
 // ---------------------------------------------------------------- zone 5: El Grifo (golden foam: the three skills together)
 //
 //   teatro-4 ── grifo-1 ── grifo-2 ── grifo-3 ── grifo-jefe (LA ÚLTIMA: another module registers that room)
-// CONTRACT with the final boss: the right exit of grifo-3 (rows 7..9) leads to the room 'grifo-jefe', arriving at column 2, row 9 (it needs floor under
+// CONTRACT with the final boss: the right exit of grifo-3 (rows 7..9) leads to the room 'grifo-jefe', arriving at column 2, row 7 (floor at row 8; the arena has no way back: a sealed fight, see jefe-ultima.ts)
 // it at row 10 and an opening on its LEFT wall that includes row 9, going back to grifo-3 at column 40, row 9).
 
 /** A wall of «NO», a wide pit (slab and double jump), a swarm, and a shaft to climb by wall jumping whose top is capped with «NO». */
@@ -683,7 +685,7 @@ function grifo3() {
   p.rect(35, 6, 1, 4, 'N');
   p.barra(39, 9);
   p.cartel(41, 9, 'cartel.jefeFinal');
-  p.salida('der', 7, 9, 'grifo-jefe', 2, 9);
+  p.salida('der', 7, 9, 'grifo-jefe', 2, 7);
   return p.hecho();
 }
 
@@ -709,7 +711,8 @@ export function erroresDeSalidas(salas: Record<string, Sala> = SALAS): string[] 
         continue;
       }
       const vuelta = d.salidas.find((x) => x.lado === opuesto(e.lado));
-      if (!vuelta) err.push(`${s.id}: sale por ${e.lado} a ${d.id}, que no tiene salida por ${opuesto(e.lado)}`);
+      // The final boss's arena is a sealed fight: it has no way back.
+      if (!vuelta && d.ultima) { /* no way back by design */ } else if (!vuelta) err.push(`${s.id}: sale por ${e.lado} a ${d.id}, que no tiene salida por ${opuesto(e.lado)}`);
       else {
         if (vuelta.sala !== s.id) err.push(`${s.id}: sale por ${e.lado} a ${d.id}, pero su salida ${opuesto(e.lado)} lleva a ${vuelta.sala}`);
         if (e.fila < vuelta.fila0 || e.fila > vuelta.fila1) err.push(`${s.id}: llega a ${d.id} en la fila ${e.fila}, fuera de su abertura (${vuelta.fila0}-${vuelta.fila1})`);
@@ -735,8 +738,24 @@ export function erroresDeSalidas(salas: Record<string, Sala> = SALAS): string[] 
   return err;
 }
 
+// ---------------------------------------------------------------- zone 5: El Grifo, LA ÚLTIMA's arena
+
+/**
+ * The arena of the final boss: 19 x 9 tiles, fixed camera (the painted bar counter of fondos/grifo.webp is the floor, the tiles are not drawn: see
+ * jefe-ultima.ts). Inside 17 x 7 tiles (x 48..864, the floor at y 384, the ceiling at 48). No exits: the fight ends with 'hecho'. Whoever builds the
+ * zone's rooms enters it at (col 2, row 7), on the left.
+ */
+function grifoJefe() {
+  const p = new Plano('grifo-jefe', 'grifo', 19, 9, 8);
+  p.mapa(19, 2);
+  p.inicio = { col: 2, fila: 7 };
+  const s = p.hecho();
+  s.ultima = true;
+  return s;
+}
+
 export const SALAS: Record<string, Sala> = {};
-for (const s of [recibidor1(), recibidor2(), recibidor3(), recibidor4(), jardin1(), jardin1b(), jardin2(), jardin3(), jardin4(), jardin5(), bandeja1(), bandeja2(), bandeja3(), bandeja4(), bandeja5(), teatro1(), teatro2(), teatro3(), teatro4(), grifo1(), grifo2(), grifo3()]) {
+for (const s of [recibidor1(), recibidor2(), recibidor3(), recibidor4(), jardin1(), jardin1b(), jardin2(), jardin3(), jardin4(), jardin5(), bandeja1(), bandeja2(), bandeja3(), bandeja4(), bandeja5(), teatro1(), teatro2(), teatro3(), teatro4(), grifo1(), grifo2(), grifo3(), grifoJefe()]) {
   for (const f of s.filas) if (f.length !== s.cols) console.error(`[una más] ${s.id}: una fila mide ${f.length} y no ${s.cols}`);
   SALAS[s.id] = s;
 }
