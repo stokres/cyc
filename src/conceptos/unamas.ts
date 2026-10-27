@@ -3,7 +3,7 @@
 // Recibidor (tutorial) and the Jardín del Cierzo (a mini-boss, Guille, the Cierzo and the double-jump stretch).
 //
 // A minigame like src/kart/ and src/sol/: its own cover (`.cubierta.minijuego`) and loop (never above 60 fps), the pause menu with «Saltar»,
-// and it ends with 'hecho' (the delivery's last door), 'saltado' or 'cancelado'. Not hooked into chapter 2 yet: it only opens with `?unamas`
+// and it ends with 'hecho' (the delivery's last door), 'saltado' or 'cancelado'. Opened from chapter 2 (`jugarUnaMas`) or alone with `?unamas`
 // (`&zona=1..5`, `&sala=id`, `&habs=cierzo,teclazo,pared`, `&fondos=0` for the baked backgrounds). `window.__unamas()` counts frames and gives
 // the tests a hand.
 //
@@ -46,6 +46,8 @@ export interface GanchoUnaMas {
   mundo: Mundo | null;
   pintor: Pintor | null;
   cerrar(): void;
+  /** Ends it as won ('hecho'), as if the delivery's last door was crossed. */
+  terminar(): void;
   /** Teleports Fran to a room (tile column and row of his feet). */
   ir(sala: string, col?: number, fila?: number): void;
   /** Gives a skill. */
@@ -211,6 +213,10 @@ export function jugarUnaMas(root: HTMLElement, o: OpcionesUnaMas = {}): Promise<
     },
     cerrar() {
       motivo = 'cancelado';
+      corte.abort();
+    },
+    terminar() {
+      motivo = 'hecho';
       corte.abort();
     },
     ir(sala, col, fila) {

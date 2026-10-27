@@ -7,7 +7,7 @@
 // skipped, closed with window.__sol().cerrar()) and Pablo opens his eyes. Then the last stretch: Chuchi's boss and «una
 // más» (manga), the slot machine on his face, the floor turning into Impropios Kart (skipped, closed with
 // window.__kart().cerrar()), Vero growing and swallowing Fran (the mouth), «Una más» (src/conceptos/: closed with
-// window.__unamas().cerrar(), which ends it as 'cancelado': there is no hook to finish it as 'hecho'), back at the bar with
+// window.__unamas().terminar(), which ends it as 'hecho'), back at the bar with
 // Guille's mug, then the safari (Guille proposes it; the comic of src/ui/safari.ts plays out in real time, checked with window.__safari())
 // and «¿Continuará?». Screenshots of each level of the night.
 // Fails on any console error or if a step does not do what it should.
@@ -414,7 +414,7 @@ await paso('Chuchi vuelve con la copa, Vero crece, se traga a Fran y la pantalla
   await wait(4000);
   await shot('final-8e-una-mas-fran-cae');
   // Una más is not played here: closed from the hook, the story goes on.
-  await page.evaluate(() => window.__unamas().cerrar());
+  await page.evaluate(() => window.__unamas().terminar());
   await page.waitForSelector('.cubierta.minijuego.unamas', { state: 'detached', timeout: 15000 });
   await wait(600);
 });
