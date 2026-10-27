@@ -120,6 +120,7 @@ export function jugarUnaMas(root: HTMLElement, o: OpcionesUnaMas = {}): Promise<
   };
   // The map: a parchment over the whole screen, drawn once when it opens (and again if the window changes size).
   let pergamino: HTMLElement | null = null;
+  const pan = { x: 0 };
   const cerrarMapa = () => {
     pergamino?.remove();
     pergamino = null;
@@ -132,11 +133,30 @@ export function jugarUnaMas(root: HTMLElement, o: OpcionesUnaMas = {}): Promise<
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     lz.width = Math.round(r.width * dpr);
     lz.height = Math.round(r.height * dpr);
-    dibujarMapa(lz, mundo, arte);
+    dibujarMapa(lz, mundo, arte, pan);
   }
   function abrirMapa() {
     if (pergamino) return;
-    pergamino = h('div', { class: 'cubierta um-pergamino', onclick: (e: Event) => (e.stopPropagation(), cerrarMapa()) }, h('canvas', {}), h('button', { class: 'btn primario', onclick: (e: Event) => (e.stopPropagation(), cerrarMapa()) }, texto('mapa.volver')));
+    pan.x = 0;
+    pergamino = h('div', { class: 'cubierta um-pergamino' }, h('canvas', {}), h('button', { class: 'btn primario', onclick: (e: Event) => (e.stopPropagation(), cerrarMapa()) }, texto('mapa.volver')));
+    // Drag sideways to move the map; a tap that does not move closes it.
+    let desde: { x: number; pan: number; movido: boolean } | null = null;
+    pergamino.addEventListener('pointerdown', (e) => {
+      desde = { x: e.clientX, pan: pan.x, movido: false };
+    });
+    pergamino.addEventListener('pointermove', (e) => {
+      if (!desde) return;
+      const dx = e.clientX - desde.x;
+      if (Math.abs(dx) > 6) desde.movido = true;
+      if (desde.movido) {
+        pan.x = desde.pan + dx * Math.min(2, window.devicePixelRatio || 1);
+        pintarMapa();
+      }
+    });
+    pergamino.addEventListener('pointerup', (e) => {
+      if (desde && !desde.movido && !(e.target as HTMLElement).closest('button')) cerrarMapa();
+      desde = null;
+    });
     capa.append(pergamino);
     pintarMapa();
     window.addEventListener('resize', pintarMapa);

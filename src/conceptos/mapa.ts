@@ -219,7 +219,7 @@ interface Nodo {
  * Paints the whole map onto the canvas (already at its real pixel size). `visitadas` are the rooms Fran has walked into; their neighbours that he has not
  * seen yet appear as a «?» on a dashed path.
  */
-export function dibujarMapa(c: HTMLCanvasElement, m: Mundo, arte: Arte) {
+export function dibujarMapa(c: HTMLCanvasElement, m: Mundo, arte: Arte, pan: { x: number } = { x: 0 }) {
   const x = c.getContext('2d')!;
   const W = c.width;
   const H = c.height;
@@ -250,10 +250,18 @@ export function dibujarMapa(c: HTMLCanvasElement, m: Mundo, arte: Arte) {
   const lado = 34 * u;
   const aw = W - lado * 2;
   const ah = H - top - bajo;
-  const celdaX = Math.min(150 * u, aw / (gx1 - gx0 + 1));
+  let celdaX = Math.min(150 * u, aw / (gx1 - gx0 + 1));
+  // A map too wide to read fits no more: the cells keep a readable size, it opens centred on Fran and can be dragged sideways (`pan`).
+  const ancha = celdaX < 78 * u;
+  if (ancha) celdaX = 78 * u;
   const celdaY = Math.min(110 * u, ah / (gy1 - gy0 + 1.35));
   const k = Math.min(celdaX, celdaY * 1.3);
-  const ox = lado + aw / 2 - ((gx0 + gx1) / 2) * celdaX;
+  const aqui0 = nodos.get(m.sala.id);
+  const centro = ancha && aqui0 ? aqui0.gx : (gx0 + gx1) / 2;
+  const ox0 = lado + aw / 2 - centro * celdaX;
+  if (ancha) pan.x = Math.max(W - lado - celdaX * 0.6 - (ox0 + gx1 * celdaX), Math.min(lado + celdaX * 0.6 - (ox0 + gx0 * celdaX), pan.x));
+  else pan.x = 0;
+  const ox = ox0 + pan.x;
   const oy = top + ah / 2 - ((gy0 + gy1) / 2) * celdaY + 6 * u;
   const px = (gx: number) => ox + gx * celdaX;
   const py = (gy: number) => oy + gy * celdaY;

@@ -375,6 +375,8 @@ function jardin2() {
   p.lista(4, 9, 12).lista(12, 17, 10).lista(20, 25, 8).lista(28, 33, 6);
   p.rect(34, 4, 6, 1, '#');
   p.salida('der', 1, 3, 'jardin-3', 2, 9);
+  // Backtracking: a sip in the high left corner, out of reach by jumping; Pablo's wall jump climbs the wall.
+  p.sorbo(2, 3);
   p.enemigo('reloj', 7, 11);
   p.enemigo('despertador', 15, 9);
   p.enemigo('reloj', 23, 7);
@@ -537,8 +539,156 @@ function bandeja5() {
   return p.hecho();
 }
 
+// ---------------------------------------------------------------- zone 4: El Teatro de los Conceptos (giant NOs, curtains, Pablo, El Apuntador)
+//
+//   bandeja-5 ── teatro-1 ── teatro-2 (Pablo) ── teatro-3 (the wall-jump shaft) ── teatro-4 (El Apuntador) ── grifo-1
+// Curtains «T» are walked through by Fran but not by the enemies: they fence in the pockets where the giant NOs bounce. Pablo's skill (the wall
+// jump) opens the shaft of teatro-3 and a tower with a sip in teatro-2.
+
+/** The stage door: curtains fence two pockets where giant NOs bounce; Fran slips through the curtains and times the bounces. */
+function teatro1() {
+  const p = new Plano('teatro-1', 'teatro', 46, 12, 10);
+  p.mapa(12, 2);
+  p.salida('izq', 7, 9, 'bandeja-5', 27, 9);
+  p.cartel(5, 9, 'cartel.telon');
+  p.rect(9, 1, 1, 9, 'T');
+  p.enemigo('no', 13, 9).enemigo('no', 18, 9);
+  p.rect(21, 1, 1, 9, 'T');
+  p.foso(23, 26);
+  p.enjambre(25, 5, 2);
+  p.barra(30, 9);
+  p.rect(33, 1, 1, 9, 'T');
+  p.enemigo('no', 36, 9).enemigo('no', 40, 9);
+  p.rect(43, 1, 1, 9, 'T');
+  p.salida('der', 7, 9, 'teatro-2', 2, 9);
+  return p.hecho();
+}
+
+/** Pablo, tied to a spotlight; and a tower with a sip that only the wall jump climbs. */
+function teatro2() {
+  const p = new Plano('teatro-2', 'teatro', 40, 12, 10);
+  p.mapa(13, 2);
+  p.salida('izq', 7, 9, 'teatro-1', 44, 9);
+  p.enemigo('despertador', 9, 9).enemigo('despertador', 14, 9);
+  p.enjambre(12, 5, 3);
+  p.flor = { col: 22, fila: 9, quien: 'pablo' };
+  p.cartel(27, 9, 'cartel.pablo');
+  // The chimney: two walls hang from the ceiling over the way (two rows of clearance below); between them, four columns climb to a sip under the
+  // ceiling that only the wall jump reaches.
+  p.rect(30, 1, 1, 7, '#');
+  p.rect(35, 1, 1, 7, '#');
+  p.lista(31, 34, 8);
+  p.sorbo(32, 1);
+  p.barra(38, 9);
+  p.salida('der', 7, 9, 'teatro-3', 2, 17);
+  return p.hecho();
+}
+
+/** The shaft: two walls to climb by wall jumping, then a stage pocket with a giant NO on the plateau. */
+function teatro3() {
+  const p = new Plano('teatro-3', 'teatro', 28, 20, 18);
+  p.mapa(14, 2);
+  p.inicio = { col: 3, fila: 17 };
+  p.salida('izq', 16, 17, 'teatro-2', 37, 9);
+  // The left wall of the shaft, with a tunnel at the bottom; the plateau on the right is its other wall.
+  p.rect(8, 5, 2, 13, '#');
+  p.rect(8, 16, 2, 2, '.');
+  p.rect(14, 5, 14, 13, '#');
+  // The pocket on the plateau: curtains from ceiling to floor and a giant NO inside.
+  p.rect(16, 1, 1, 4, 'T');
+  p.rect(24, 1, 1, 4, 'T');
+  p.enemigo('no', 20, 4);
+  p.salida('der', 2, 4, 'teatro-4', 2, 10);
+  return p.hecho();
+}
+
+/** EL APUNTADOR's stage: ledges to hop between, and posts he teleports to. */
+function teatro4() {
+  const p = new Plano('teatro-4', 'teatro', 32, 13, 11);
+  p.mapa(15, 2);
+  p.salida('izq', 8, 10, 'teatro-3', 25, 4);
+  p.lista(4, 8, 8).lista(23, 27, 8).lista(13, 18, 6);
+  p.salida('der', 8, 10, 'grifo-1', 2, 11);
+  p.jefe = {
+    tipo: 'apuntador',
+    col: 25,
+    fila: 10,
+    disparo: 6,
+    puertas: [0, 31],
+    filas: [8, 10],
+    puestos: [{ col: 26, fila: 10 }, { col: 6, fila: 10 }, { col: 15, fila: 5 }, { col: 25, fila: 7 }, { col: 5, fila: 7 }],
+  };
+  return p.hecho();
+}
+
+// ---------------------------------------------------------------- zone 5: El Grifo (golden foam: the three skills together)
+//
+//   teatro-4 ── grifo-1 ── grifo-2 ── grifo-3 ── grifo-jefe (LA ÚLTIMA: another module registers that room)
+// CONTRACT with the final boss: the right exit of grifo-3 (rows 7..9) leads to the room 'grifo-jefe', arriving at column 2, row 9 (it needs floor under
+// it at row 10 and an opening on its LEFT wall that includes row 9, going back to grifo-3 at column 40, row 9).
+
+/** A wall of «NO», a wide pit (slab and double jump), a swarm, and a shaft to climb by wall jumping whose top is capped with «NO». */
+function grifo1() {
+  const p = new Plano('grifo-1', 'grifo', 52, 14, 12);
+  p.mapa(16, 2);
+  p.salida('izq', 9, 11, 'teatro-4', 29, 10);
+  p.cartel(5, 11, 'cartel.grifo');
+  p.barra(6, 11);
+  p.rect(9, 1, 1, 11, 'N');
+  p.foso(12, 21);
+  p.plat('mueve', 12, 11, 3, 6, 5);
+  p.enjambre(17, 6, 3);
+  p.enemigo('despertador', 26, 11);
+  p.enjambre(27, 8, 2);
+  // The shaft: a tunnel through its left wall, four columns of air, a plateau for its right wall, and a cap of «NO» over the top.
+  p.rect(32, 4, 2, 8, '#');
+  p.rect(32, 10, 2, 2, '.');
+  p.rect(38, 4, 13, 8, '#');
+  p.rect(34, 4, 4, 1, 'N');
+  p.enjambre(44, 1.6, 2);
+  p.salida('der', 1, 3, 'grifo-2', 2, 3);
+  return p.hecho();
+}
+
+/** A descent over spikes on falling and sliding foam, a swarm, and a pocket of bouncing NOs behind a wall of «NO». */
+function grifo2() {
+  const p = new Plano('grifo-2', 'grifo', 40, 16, 14);
+  p.mapa(17, 2);
+  p.inicio = { col: 3, fila: 3 };
+  p.salida('izq', 1, 3, 'grifo-1', 49, 3);
+  p.rect(1, 4, 7, 2, '#');
+  p.foso(9, 28);
+  p.plat('cae', 10, 6, 3).plat('cae', 14, 8, 3).plat('mueve', 18, 10, 3, 5, 4.5).plat('cae', 26, 12, 3);
+  p.enjambre(19, 6, 3);
+  p.barra(2, 3);
+  p.rect(33, 1, 1, 13, 'N');
+  p.enemigo('no', 36, 13);
+  p.enemigo('despertador', 31, 13);
+  p.salida('der', 11, 13, 'grifo-3', 2, 9);
+  return p.hecho();
+}
+
+/** The last stretch before LA ÚLTIMA: everything at once, and the last bar. */
+function grifo3() {
+  const p = new Plano('grifo-3', 'grifo', 44, 12, 10);
+  p.mapa(18, 2);
+  p.salida('izq', 7, 9, 'grifo-2', 37, 13);
+  p.enjambre(8, 5, 4);
+  p.enemigo('despertador', 11, 9);
+  p.foso(14, 19);
+  p.plat('cae', 14, 9, 2).plat('cae', 17, 9, 2);
+  p.rect(24, 1, 1, 9, 'N');
+  p.enemigo('no', 27, 9).enemigo('reloj', 30, 9);
+  p.enjambre(31, 5, 3);
+  p.rect(35, 6, 1, 4, 'N');
+  p.barra(39, 9);
+  p.cartel(41, 9, 'cartel.jefeFinal');
+  p.salida('der', 7, 9, 'grifo-jefe', 2, 9);
+  return p.hecho();
+}
+
 /** Rooms that other modules register (the final boss's arena). The exits towards them are not checked for reciprocity. */
-export const SALAS_EXTERNAS = ['grifo-jefe', 'teatro-1'];
+export const SALAS_EXTERNAS = ['grifo-jefe'];
 
 /**
  * The rule of the exits (Jesús: «si sales por la derecha entras por la izquierda de la siguiente, y al contrario»): a room has at most ONE opening per
@@ -586,7 +736,7 @@ export function erroresDeSalidas(salas: Record<string, Sala> = SALAS): string[] 
 }
 
 export const SALAS: Record<string, Sala> = {};
-for (const s of [recibidor1(), recibidor2(), recibidor3(), recibidor4(), jardin1(), jardin1b(), jardin2(), jardin3(), jardin4(), jardin5(), bandeja1(), bandeja2(), bandeja3(), bandeja4(), bandeja5()]) {
+for (const s of [recibidor1(), recibidor2(), recibidor3(), recibidor4(), jardin1(), jardin1b(), jardin2(), jardin3(), jardin4(), jardin5(), bandeja1(), bandeja2(), bandeja3(), bandeja4(), bandeja5(), teatro1(), teatro2(), teatro3(), teatro4(), grifo1(), grifo2(), grifo3()]) {
   for (const f of s.filas) if (f.length !== s.cols) console.error(`[una más] ${s.id}: una fila mide ${f.length} y no ${s.cols}`);
   SALAS[s.id] = s;
 }
@@ -594,4 +744,4 @@ for (const s of [recibidor1(), recibidor2(), recibidor3(), recibidor4(), jardin1
 for (const e of erroresDeSalidas()) console.error(`[una más] salidas: ${e}`);
 
 /** The first room of each zone (`?unamas&zona=N`). */
-export const PRIMERA_SALA: Record<number, string> = { 1: 'recibidor-1', 2: 'jardin-1', 3: 'bandeja-1' };
+export const PRIMERA_SALA: Record<number, string> = { 1: 'recibidor-1', 2: 'jardin-1', 3: 'bandeja-1', 4: 'teatro-1', 5: 'grifo-1' };

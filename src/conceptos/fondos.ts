@@ -523,12 +523,13 @@ function frente(z: Zona, pal: Pal): HTMLCanvasElement {
     }
   } else if (z === 'teatro') {
     // Heavy velvet curtains on both sides, swagged at the top.
+    // (Only hanging from the top, so that the foreground never hides the floor Fran stands on.)
     for (const lado of [0, 1]) {
       x.beginPath();
       x.moveTo(lado ? LW : 0, 0);
-      x.lineTo(lado ? LW - 170 : 170, 0);
-      x.quadraticCurveTo(lado ? LW - 90 : 90, LH * 0.45, lado ? LW - 140 : 140, LH);
-      x.lineTo(lado ? LW : 0, LH);
+      x.lineTo(lado ? LW - 90 : 90, 0);
+      x.quadraticCurveTo(lado ? LW - 70 : 70, LH * 0.2, lado ? LW - 100 : 100, LH * 0.34);
+      x.lineTo(lado ? LW : 0, LH * 0.34);
       x.closePath();
       x.fill();
     }
