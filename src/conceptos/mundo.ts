@@ -27,7 +27,7 @@ const FREN_AIRE = 1100;
 const COYOTE = 0.1;
 const BUFFER = 0.13;
 /** Where Fran's jar is, from his feet (the friends peek out of its foam and dive into it). */
-export const JARRA = { x: 40, y: 76 };
+export const JARRA = { x: 35, y: 76 };
 const V_PARED = 150;
 /** The most sips the jar can hold. */
 const MAX_VIDA = 10;
@@ -91,10 +91,22 @@ export interface Plat {
 }
 
 export interface Burbuja {
-  quien: Amigo;
+  quien: string;
   texto: string;
   t: number;
   dur: number;
+}
+
+/** What the friends in the jar are doing: peeking out to say something, or quarrelling because they do not fit. */
+export interface EscenaAmigos {
+  /** Who is up. */
+  quienes: Amigo[];
+  lineas: { quien: string; texto: string }[];
+  i: number;
+  /** Seconds in the current line. */
+  t: number;
+  /** The line is a quarrel: heads bump about. */
+  pelea: boolean;
 }
 
 export interface Progreso {
@@ -192,7 +204,15 @@ export class Mundo {
   visitadas = new Set<string>();
   /** A short remark of a friend in the jar, over Fran's head. */
   burbuja: Burbuja | null = null;
-  comentaT = 14;
+  /** Seconds until the friends may speak again. */
+  comentaT = 10;
+  escena: EscenaAmigos | null = null;
+  /** How far up each friend's head is (0 hidden in the jar, 1 out). */
+  asoma: Record<Amigo, number> = { guille: 0, chuchi: 0, pablo: 0 };
+  /** Seconds Fran has been standing still. */
+  quietoT = 0;
+  /** How long he has to stand still before they peek out. */
+  quietoMin = 2.6;
   vw = 960;
   vh = VISTA_ALTO;
   dialogo: Dialogo | null = null;
@@ -282,6 +302,8 @@ export class Mundo {
     if (this.prog.hechos.has(`${s.id}.secreto`)) for (const f of this.rej.g) for (let c = 0; c < f.length; c++) if (f[c] === 'F') f[c] = '.';
     this.plats = s.plataformas.map((d) => ({ def: d, x: d.col * TILE, y: d.fila * TILE, w: d.ancho * TILE, x0: d.col * TILE, y0: d.fila * TILE, dx: 0, dy: 0, estado: 'firme' as const, t: 0, vy: 0, alfa: 1, fase: 0 }));
     this.burbuja = null;
+    this.escena = null;
+    this.asoma = { guille: 0, chuchi: 0, pablo: 0 };
     for (const e of s.enemigos) {
       if (this.prog.hechos.has(e.id)) continue;
       this.enems.push(crearEnemigo(e.tipo, e.id, (e.col + 0.5) * TILE, (e.fila + 1) * TILE));
@@ -996,22 +1018,69 @@ export class Mundo {
     this.aviso(texto('aviso.secreto'), 2.6);
   }
 
-  /** The friends in the jar speak up now and then, a short remark over Fran. */
+  /**
+   * The friends in the jar stay hidden while Fran moves (the beer sloshes). Only when he has been standing still for 2-3 seconds, now and then, they
+   * come up, say something of their own (or quarrel, since they do not fit) and duck again; moving puts them away at once.
+   */
   private comentarios(d: number) {
-    if (this.burbuja) {
-      this.burbuja.t += d;
-      if (this.burbuja.t > this.burbuja.dur) this.burbuja = null;
+    const j = this.j;
+    const quieto = j.suelo && Math.abs(j.vx) < 8 && j.atq < 0 && j.aturdido <= 0;
+    this.quietoT = quieto ? this.quietoT + d : 0;
+    const e = this.escena;
+    if (e) {
+      if (!quieto || this.pelea === 1) {
+        this.escena = null;
+        this.burbuja = null;
+      } else {
+        e.t += d;
+        const l = e.lineas[e.i];
+        const dur = Math.max(1.9, 0.9 + l.texto.length * 0.05);
+        if (!this.burbuja || this.burbuja.texto !== l.texto) this.burbuja = { quien: l.quien, texto: l.texto, t: 0, dur };
+        this.burbuja.t = e.t;
+        if (e.t > dur) {
+          e.i++;
+          e.t = 0;
+          this.burbuja = null;
+          if (e.i >= e.lineas.length) {
+            this.escena = null;
+            this.comentaT = 16 + Math.random() * 18;
+          }
+        }
+      }
+    } else {
+      this.burbuja = null;
+      this.comentaT -= d;
+      const amigos = this.amigos();
+      if (amigos.length && this.comentaT <= 0 && this.quietoT > this.quietoMin && this.pelea !== 1 && this.estado === 'jugando') this.empiezaEscena(amigos);
+      else if (this.quietoT === 0) this.quietoMin = 2.2 + Math.random() * 1.6;
+    }
+    // The heads rise and sink towards where the scene wants them.
+    for (const q of ['guille', 'chuchi', 'pablo'] as Amigo[]) {
+      const arriba = !!this.escena && this.escena.quienes.includes(q);
+      this.asoma[q] += ((arriba ? 1 : 0) - this.asoma[q]) * Math.min(1, d * (arriba ? 6 : 10));
+      if (!arriba && this.asoma[q] < 0.02) this.asoma[q] = 0;
+    }
+  }
+
+  /** Picks a remark of one friend, or (with two or three in the jar, sometimes) a quarrel among them. */
+  private empiezaEscena(amigos: Amigo[]) {
+    let clave: string;
+    let quienes: Amigo[];
+    if (amigos.length >= 2 && Math.random() < 0.45) {
+      quienes = amigos.length === 3 && Math.random() < 0.35 ? amigos : [...amigos].sort(() => Math.random() - 0.5).slice(0, 2);
+      clave = `pelea.${(['guille', 'chuchi', 'pablo'] as Amigo[]).filter((a) => quienes.includes(a)).join('.')}`;
+    } else {
+      const q = amigos[Math.floor(Math.random() * amigos.length)];
+      quienes = [q];
+      clave = `comenta.${q}`;
+    }
+    const lineas = dialogo(clave).filter((l) => l.texto && !l.camara);
+    if (!lineas.length) {
+      this.comentaT = 5;
       return;
     }
-    const amigos = this.amigos();
-    if (!amigos.length || this.pelea === 1) return;
-    this.comentaT -= d;
-    if (this.comentaT > 0) return;
-    this.comentaT = 22 + Math.random() * 20;
-    const quien = amigos[Math.floor(Math.random() * amigos.length)];
-    const l = dialogo(`comenta.${quien}`)[0];
-    if (!l) return;
-    this.burbuja = { quien, texto: l.texto, t: 0, dur: 3.4 };
+    // A talking friend must be up even if the line is Fran's (the quarrels end with him telling them off).
+    this.escena = { quienes, lineas: lineas.map((l) => ({ quien: l.quien ?? 'fran', texto: l.texto })), i: 0, t: 0, pelea: quienes.length > 1 };
     this.snd.cartel();
   }
 
@@ -1177,7 +1246,7 @@ export class Mundo {
       }
       if (f.t > 1.7) {
         f.estado = 'abierta';
-        this.comentaT = 16;
+        this.comentaT = 12;
         this.darHabilidad(DON[f.quien]);
       }
     }

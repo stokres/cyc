@@ -157,6 +157,8 @@ export function dibujarHud(ctx: CanvasRenderingContext2D, m: Mundo, arte: Arte, 
 function retrato(arte: Arte, quien: string | null) {
   if (quien === 'fran') return arte.fran.retrato[0];
   if (quien === 'guille') return arte.guille.retrato[0];
+  if (quien === 'chuchi') return arte.chuchi.retrato[0];
+  if (quien === 'pablo') return arte.pablo.retrato[0];
   return null;
 }
 

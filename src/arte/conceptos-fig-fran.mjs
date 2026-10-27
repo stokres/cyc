@@ -1,5 +1,5 @@
-// Fran, hecho figura (docs/CAPITULO2.md): ver conceptos-rig.mjs. Corpulento, con su barba negra enorme y el bigote, la camiseta
-// verde azulada y una jarra que nunca se vacía (la cerveza vuelve a caer en ella: «UNA MÁS»).
+// Fran, hecho figura (docs/CAPITULO2.md): ver conceptos-rig.mjs. De complexión normal (algo fuerte, nada más), con su barba negra enorme y el bigote,
+// la camiseta verde azulada y una jarra que nunca se vacía (la cerveza vuelve a caer en ella: «UNA MÁS»).
 import { C as FRAN } from './personajes/fran.mjs';
 import { aro, bloque, bola, circ, curva, elipse, nube, ojoPunto, ovoide, poli, redondo, relleno, tono, trazo, tubo } from './conceptos-estilo.mjs';
 import { ROPA, mueve, parte, peanaDomo, s } from './conceptos-rig.mjs';
@@ -25,20 +25,20 @@ export function fran() {
   const partes = [];
   partes.push(parte('peana', [-270, -80, 270, 110], peanaDomo('#d9702f'), { fija: true }));
   // Las piernas, cortas y anchas, con zapatillas oscuras grandes.
-  const pierna = (x, pie) => bloque(redondo([[x - 34, -196], [x + 34, -196], [x + 36, -42], [x - 32, -42]], 8), R.vaquero, [[poli([[x + 8, -196], [x + 34, -196], [x + 36, -42], [x + 12, -42]]), 'osc', 0.28]])
-    + `<g transform="translate(0 12)">${bloque(redondo([[x - 38, -56], [x + 38, -56], [x + pie, -36], [x + pie, -22], [x - 42, -22], [x - 44, -38]], 10), R.zapato, [[poli([[x - 44, -28], [x + pie, -28], [x + pie, -22], [x - 42, -22]]), 'osc', 0.3], [poli([[x - 44, -38], [x - 10, -56], [x + 10, -56], [x - 20, -36]]), 'luz', 0.18]], { luz: 0.3, sombra: -0.3 })}</g>`;
-  partes.push(parte('pierna.a', [-120, -210, 10, -2], pierna(-56, 56), { piv: [-56, -196], mov: { rot: s(0.02, 1.0, 1.2) } }));
-  partes.push(parte('pierna.b', [-10, -210, 130, -2], pierna(50, 62), { piv: [50, -196], mov: { rot: s(0.02, 1.0, 2.8) } }));
+  const pierna = (x, pie) => bloque(redondo([[x - 25, -196], [x + 25, -196], [x + 26, -42], [x - 24, -42]], 8), R.vaquero, [[poli([[x + 5, -196], [x + 25, -196], [x + 26, -42], [x + 8, -42]]), 'osc', 0.28]])
+    + `<g transform="translate(0 12)">${bloque(redondo([[x - 29, -56], [x + 29, -56], [x + pie, -36], [x + pie, -22], [x - 32, -22], [x - 34, -38]], 10), R.zapato, [[poli([[x - 34, -28], [x + pie, -28], [x + pie, -22], [x - 32, -22]]), 'osc', 0.3], [poli([[x - 34, -38], [x - 8, -56], [x + 8, -56], [x - 16, -36]]), 'luz', 0.18]], { luz: 0.3, sombra: -0.3 })}</g>`;
+  partes.push(parte('pierna.a', [-120, -210, 10, -2], pierna(-36, 44), { piv: [-36, -196], mov: { rot: s(0.02, 1.0, 1.2) } }));
+  partes.push(parte('pierna.b', [-10, -210, 130, -2], pierna(32, 50), { piv: [32, -196], mov: { rot: s(0.02, 1.0, 2.8) } }));
   // La camiseta ancha: el bajo flotando como tela.
-  partes.push(parte('tela', [-170, -230, 170, -110], bloque(curva([[-140, -232, 'c'], [140, -232, 'c'], [152, -196], [130, -160], [98, -134], [68, -164], [34, -126], [0, -160], [-34, -130], [-68, -166], [-104, -136], [-134, -166], [-152, -200]]), tono(R.camiseta, -0.12), [[poli([[40, -232], [140, -232], [152, -196], [130, -160], [98, -134], [68, -164]]), 'osc', 0.28]], { luz: 0.3, sombra: -0.36 }), { piv: [0, -228], onda: { amp: 0.08, w: 2.0, fase: 1.2 } }));
+  partes.push(parte('tela', [-170, -230, 170, -110], `<g transform="scale(0.72 1)">` + bloque(curva([[-140, -232, 'c'], [140, -232, 'c'], [152, -196], [130, -160], [98, -134], [68, -164], [34, -126], [0, -160], [-34, -130], [-68, -166], [-104, -136], [-134, -166], [-152, -200]]), tono(R.camiseta, -0.12), [[poli([[40, -232], [140, -232], [152, -196], [130, -160], [98, -134], [68, -164]]), 'osc', 0.28]], { luz: 0.3, sombra: -0.36 }) + `</g>`, { piv: [0, -228], onda: { amp: 0.08, w: 2.0, fase: 1.2 } }));
   // El brazo de atrás (colgando, de manga corta) y el torso: una bola gorda verde azulada.
-  partes.push(parte('brazo.b', [-210, -400, -60, -220], tubo('M-112 -372C-166 -340 -176 -290 -158 -246', R.camiseta, 54) + circ(-156, -240, 19, piel), { piv: [-110, -372], mov: { rot: s(0.05, 1.2, 0.6) } }));
-  const torso = ovoide(0, -296, 156, 140, R.camiseta, { luz: 0.45, sombra: -0.42 })
-    + `<clipPath id="ft"><path d="${elipse(0, -296, 156, 140)}"/></clipPath><g clip-path="url(#ft)">`
+  partes.push(parte('brazo.b', [-210, -400, -60, -220], tubo('M-84 -372C-124 -340 -132 -292 -120 -248', R.camiseta, 42) + circ(-118, -242, 16, piel), { piv: [-84, -372], mov: { rot: s(0.05, 1.2, 0.6) } }));
+  const torso = ovoide(0, -296, 112, 140, R.camiseta, { luz: 0.45, sombra: -0.42 })
+    + `<clipPath id="ft"><path d="${elipse(0, -296, 112, 140)}"/></clipPath><g clip-path="url(#ft)">`
     + relleno(curva([[40, -430, 'c'], [160, -430, 'c'], [170, -300], [120, -190], [30, -156], [80, -260]]), '#0c2c3a', 0.28)
     + relleno(curva([[-170, -380, 'c'], [-90, -430, 'c'], [-110, -330], [-150, -240, 'c'], [-170, -250, 'c']]), '#9ff0ec', 0.22)
-    + trazo('M-110 -250Q-40 -210 40 -222Q100 -232 130 -270', tono(R.camiseta, 0.3), 6, { opacity: 0.5 })
-    + `</g>` + trazo('M-52 -418Q0 -396 52 -418', tono(R.camiseta, -0.35), 10, { opacity: 0.8 });
+    + trazo('M-80 -250Q-30 -214 30 -224Q74 -232 96 -270', tono(R.camiseta, 0.3), 6, { opacity: 0.5 })
+    + `</g>` + trazo('M-40 -418Q0 -398 40 -418', tono(R.camiseta, -0.35), 10, { opacity: 0.8 });
   partes.push(parte('torso', [-190, -450, 190, -150], torso, { piv: [0, -200], mov: { esc: s(0.016, 1.5, 0), rot: s(0.015, 0.8, 0.5) } }));
   // La cabeza, con su pelo corto, la barba negra enorme (una nube de rizos) y el bigote.
   const cab = bloque(redondo([[-54, -540], [56, -540], [66, -490], [58, -440], [-4, -420], [-58, -442], [-66, -494]], 16), piel, [[poli([[30, -540], [66, -490], [58, -440], [14, -424], [10, -490]]), 'osc', 0.18], [poli([[-54, -540], [-12, -540], [-24, -492], [-66, -494]]), 'luz', 0.25]], { luz: 0.35, sombra: -0.3 })
@@ -52,12 +52,12 @@ export function fran() {
     + bloque(curva([[-54, -446, 'c'], [-10, -462], [4, -450], [24, -462], [64, -446, 'c'], [48, -424], [18, -430], [4, -424], [-18, -430], [-44, -422]]), '#15100e', [], { luz: 0.35, sombra: -0.3 })
     + trazo('M-8 -440Q16 -428 40 -442', '#f1c7b0', 4, { opacity: 0.35 }), { padre: 'cabeza', piv: [0, -410], mov: { rot: s(0.035, 1.3, 2), esc: s(0.01, 2.2, 0.5) } }));
   // El brazo de delante, con la jarra enorme que nunca se vacía.
-  partes.push(parte('brazo.a', [30, -420, 250, -170], tubo('M96 -384C170 -370 196 -320 186 -262', R.camiseta, 56) + circ(184, -250, 21, piel) + circ(178, -258, 7, '#ffffff', 0.35), { piv: [96, -384], mov: { rot: s(0.04, 1.2, 0.2) } }));
-  partes.push(parte('vaso', [80, -490, 400, -130], `<g transform="translate(230 -236) scale(1.25)">${jarraGrande()}</g>`, { padre: 'brazo.a', piv: [186, -254], mov: { rot: s(0.04, 1.5, 1.8) } }));
+  partes.push(parte('brazo.a', [30, -420, 250, -170], tubo('M76 -384C134 -372 164 -326 156 -268', R.camiseta, 44) + circ(154, -256, 18, piel) + circ(149, -262, 6, '#ffffff', 0.35), { piv: [76, -384], mov: { rot: s(0.04, 1.2, 0.2) } }));
+  partes.push(parte('vaso', [80, -490, 400, -130], `<g transform="translate(200 -240) scale(1.25)">${jarraGrande()}</g>`, { padre: 'brazo.a', piv: [156, -258], mov: { rot: s(0.04, 1.5, 1.8) } }));
   // La cerveza que vuelve a caer en la jarra, gota a gota, y el símbolo del infinito sobre ella.
   const gota = (r) => `<path d="${curva([[0, -r * 2.2, 'c'], [r, -r * 0.2], [0, r], [-r, -r * 0.2]])}" fill="#f6b73c"/><circle cx="${-r * 0.3}" cy="${-r * 0.1}" r="${r * 0.28}" fill="#fff1b8" fill-opacity="0.8"/>`;
-  [0, 0.34, 0.67].forEach((f, i) => partes.push(parte(`gota.${i}`, [-12, -30, 12, 20], gota(8), { cae: { x: 214 + (i - 1) * 16, y: -620, alto: 110, w: 0.5, fase: f } })));
-  partes.push(parte('infinito', [-60, -34, 60, 34], trazo('M-34 0C-34 -26 -4 -26 0 0C4 26 34 26 34 0C34 -26 4 -26 0 0C-4 26 -34 26 -34 0', '#ffe9a8', 11, { opacity: 0.35 }) + trazo('M-34 0C-34 -26 -4 -26 0 0C4 26 34 26 34 0C34 -26 4 -26 0 0C-4 26 -34 26 -34 0', '#ffd95a', 6), { orb: { cx: 214, cy: -690, rx: 18, ry: 8, w: 0.9, fase: 0 }, mov: { rot: s(0.08, 1.1, 0) } }));
+  [0, 0.34, 0.67].forEach((f, i) => partes.push(parte(`gota.${i}`, [-12, -30, 12, 20], gota(8), { cae: { x: 184 + (i - 1) * 16, y: -620, alto: 110, w: 0.5, fase: f } })));
+  partes.push(parte('infinito', [-60, -34, 60, 34], trazo('M-34 0C-34 -26 -4 -26 0 0C4 26 34 26 34 0C34 -26 4 -26 0 0C-4 26 -34 26 -34 0', '#ffe9a8', 11, { opacity: 0.35 }) + trazo('M-34 0C-34 -26 -4 -26 0 0C4 26 34 26 34 0C34 -26 4 -26 0 0C-4 26 -34 26 -34 0', '#ffd95a', 6), { orb: { cx: 184, cy: -690, rx: 18, ry: 8, w: 0.9, fase: 0 }, mov: { rot: s(0.08, 1.1, 0) } }));
   partes.push(parte('semi', [-40, -30, 40, 30], bloque('M-34 14A34 34 0 0 1 34 14Z', '#ff7ab8', [[poli([[0, -20], [34, 14], [8, 14]]), 'osc', 0.25]]), { orb: { cx: -190, cy: -470, rx: 22, ry: 20, w: 0.7, fase: 1 }, mov: { rot: s(0.4, 0.6, 0) } }));
   partes.push(parte('aro', [-30, -30, 30, 30], aro(0, 0, 20, '#46e0d0', 8), { orb: { cx: -200, cy: -300, rx: 18, ry: 26, w: 0.8, fase: 3 }, mov: { rot: s(0.5, 0.8, 0) } }));
   partes.push(parte('bola', [-20, -20, 20, 20], bola(0, 0, 15, '#ff9f5a'), { orb: { cx: -150, cy: -600, rx: 20, ry: 14, w: 1.0, fase: 2 } }));

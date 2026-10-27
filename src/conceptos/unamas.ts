@@ -18,6 +18,7 @@ import { cargarArte, soltarArte, type Arte } from './arte';
 import { HABILIDADES, PRIMERA_SALA, SALAS, TILE, type Habilidad, type Sala } from './datos';
 import { crearEntrada } from './entrada';
 import { aplicarPintados, hornearFondo, soltarFondo } from './fondos';
+import { dibujarMapa } from './mapa';
 import { Mundo } from './mundo';
 import { hornearNivel } from './nivel';
 import { Pintor } from './render';
@@ -67,34 +68,10 @@ const CSS = `
 .minijuego.unamas .um-pausa{z-index:12}
 .um-pausa .tarjeta{display:flex;flex-direction:column;gap:12px;align-items:stretch;min-width:min(340px,80vw)}
 .um-pausa .tarjeta h2{margin:0 0 4px}
-.minijuego.unamas .um-mapa{position:static;inset:auto;flex:none;width:100%;aspect-ratio:560/105;height:auto;background:rgba(10,4,26,.6);border-radius:10px;display:block}
+.minijuego.unamas .um-pergamino{z-index:14;background:#c9a468;cursor:pointer}
+.minijuego.unamas .um-pergamino canvas{position:absolute;inset:0;width:100%;height:100%}
+.minijuego.unamas .um-pergamino .btn{position:absolute;right:14px;bottom:12px;z-index:2}
 `;
-
-/** The pause map: a box per room already walked into, where it sits in the world, the one Fran is in lit up. */
-function dibujarMapa(c: HTMLCanvasElement, m: Mundo) {
-  const x = c.getContext('2d')!;
-  x.clearRect(0, 0, c.width, c.height);
-  const salas = [...m.visitadas].map((id) => SALAS[id]).filter(Boolean);
-  if (!salas.length) return;
-  const x0 = Math.min(...salas.map((s) => s.mapa.x));
-  const y0 = Math.min(...salas.map((s) => s.mapa.y));
-  const x1 = Math.max(...salas.map((s) => s.mapa.x + s.cols));
-  const y1 = Math.max(...salas.map((s) => s.mapa.y + s.rows));
-  const k = Math.min(2.6, (c.width - 40) / (x1 - x0), (c.height - 40) / (y1 - y0));
-  const ox = (c.width - (x1 - x0) * k) / 2 - x0 * k;
-  const oy = (c.height - (y1 - y0) * k) / 2 - y0 * k;
-  const color: Record<string, string> = { recibidor: '#e0706a', jardin: '#4cc27a', bandeja: '#9a96e0', teatro: '#d8506a', grifo: '#ffd070' };
-  for (const s of salas) {
-    const aqui = s.id === m.sala.id;
-    x.fillStyle = color[s.zona] ?? '#bbb';
-    x.globalAlpha = aqui ? 1 : 0.45;
-    x.fillRect(ox + s.mapa.x * k, oy + s.mapa.y * k, s.cols * k, s.rows * k);
-    x.globalAlpha = 1;
-    x.strokeStyle = aqui ? '#fff6d8' : 'rgba(255,240,200,0.5)';
-    x.lineWidth = aqui ? 3 : 1;
-    x.strokeRect(ox + s.mapa.x * k, oy + s.mapa.y * k, s.cols * k, s.rows * k);
-  }
-}
 
 export function jugarUnaMas(root: HTMLElement, o: OpcionesUnaMas = {}): Promise<Resultado> {
   cargarTextos(textosConceptos);
@@ -135,11 +112,35 @@ export function jugarUnaMas(root: HTMLElement, o: OpcionesUnaMas = {}): Promise<
   // ---------------------------------------------------------------- the pause menu (with «Saltar», as the other minigames)
   let menu: HTMLElement | null = null;
   const cerrarMenu = () => {
+    cerrarMapa();
     menu?.remove();
     menu = null;
     pausado = false;
     entrada.soltarTodo();
   };
+  // The map: a parchment over the whole screen, drawn once when it opens (and again if the window changes size).
+  let pergamino: HTMLElement | null = null;
+  const cerrarMapa = () => {
+    pergamino?.remove();
+    pergamino = null;
+    window.removeEventListener('resize', pintarMapa);
+  };
+  function pintarMapa() {
+    const lz = pergamino?.querySelector('canvas') as HTMLCanvasElement | null;
+    if (!lz || !pergamino || !mundo || !arte) return;
+    const r = pergamino.getBoundingClientRect();
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    lz.width = Math.round(r.width * dpr);
+    lz.height = Math.round(r.height * dpr);
+    dibujarMapa(lz, mundo, arte);
+  }
+  function abrirMapa() {
+    if (pergamino) return;
+    pergamino = h('div', { class: 'cubierta um-pergamino', onclick: (e: Event) => (e.stopPropagation(), cerrarMapa()) }, h('canvas', {}), h('button', { class: 'btn primario', onclick: (e: Event) => (e.stopPropagation(), cerrarMapa()) }, texto('mapa.volver')));
+    capa.append(pergamino);
+    pintarMapa();
+    window.addEventListener('resize', pintarMapa);
+  }
   const abrirMenu = () => {
     if (menu) return;
     pausado = true;
@@ -152,8 +153,8 @@ export function jugarUnaMas(root: HTMLElement, o: OpcionesUnaMas = {}): Promise<
         'div',
         { class: 'tarjeta vidrio' },
         h('h2', {}, texto('pausa.titulo')),
-        h('canvas', { class: 'um-mapa', width: '560', height: '105' }),
         boton('pausa.continuar', 'primario', cerrarMenu),
+        boton('mapa.titulo', '', abrirMapa),
         boton('pausa.saltar', '', () => {
           motivo = 'saltado';
           corte.abort();
@@ -165,8 +166,6 @@ export function jugarUnaMas(root: HTMLElement, o: OpcionesUnaMas = {}): Promise<
       ),
     );
     capa.append(menu);
-    const mp = menu.querySelector('canvas.um-mapa') as HTMLCanvasElement | null;
-    if (mp && mundo) dibujarMapa(mp, mundo);
   };
   pausaBtn.addEventListener('click', (e) => {
     e.stopPropagation();

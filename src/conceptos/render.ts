@@ -487,13 +487,20 @@ export class Pintor {
     const amigos = m.amigos();
     if (!amigos.length || m.estado === 'muerte' || m.estado === 'fin') return;
     const [jx, jy] = m.posJarra();
-    const agacha = j.atq >= 0 ? 1 : 0;
+    const e = m.escena;
     amigos.forEach((q, i) => {
       const s = arte.asoma[q];
-      if (!s) return;
-      const off = (i - (amigos.length - 1) / 2) * 15;
-      const bota = j.suelo && Math.abs(j.vx) > 40 ? Math.sin(j.pasos * 0.11 + i * 2) * 2.2 : Math.sin(t * 2.2 + i) * 0.8;
-      ctx.drawImage(s.c, jx + off + s.x, jy + s.y + bota + agacha * s.h * 0.55, s.w, s.h);
+      const k = m.asoma[q];
+      if (!s || k < 0.03) return;
+      // Side by side in the mouth of the jar; in a quarrel the speaker bobs and shoves the other.
+      const off = (i - (amigos.length - 1) / 2) * 13;
+      const habla = !!e && e.lineas[e.i]?.quien === q;
+      const empuja = e?.pelea && habla ? Math.sin(Math.min(1, e.t * 5) * Math.PI) * 5 * (i === 0 ? 1 : -1) : 0;
+      const salta = habla ? -Math.abs(Math.sin(t * 15)) * (e?.pelea ? 3 : 1.4) : 0;
+      const sube = 1 - (1 - k) * (1 - k);
+      ctx.globalAlpha = Math.min(1, k * 2.4);
+      ctx.drawImage(s.c, jx + off + empuja + s.x, jy + s.y + (1 - sube) * s.h * 0.85 + salta, s.w, s.h);
+      ctx.globalAlpha = 1;
     });
     const b = m.burbuja;
     if (b && m.estado === 'jugando') {
@@ -547,7 +554,7 @@ export class Pintor {
     x.fillRect(w / 2 - 7 * k, hh - 5, 14 * k, 5);
     x.textAlign = 'left';
     x.font = `800 ${12 * k}px 'Graduate', 'Alegreya Sans', serif`;
-    x.fillStyle = quien === 'guille' ? '#b8780a' : quien === 'chuchi' ? '#c0304a' : '#2a56c8';
+    x.fillStyle = quien === 'guille' ? '#b8780a' : quien === 'chuchi' ? '#c0304a' : quien === 'fran' ? '#1a8a7a' : '#2a56c8';
     x.fillText(nombre, 13 * k, 18 * k);
     x.font = `700 ${15 * k}px 'Alegreya Sans', sans-serif`;
     x.fillStyle = '#2a1840';

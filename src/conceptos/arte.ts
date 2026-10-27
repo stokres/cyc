@@ -20,16 +20,22 @@ export interface Sprite {
 }
 
 /** Logical pixels per figure unit of each character. */
-export const ESCALA = { fran: 0.155, guille: 0.15, despertador: 0.36, gran: 0.92, reloj: 0.5 } as const;
+export const ESCALA = { fran: 0.155, guille: 0.15, chuchi: 0.16, pablo: 0.15, despertador: 0.36, gran: 0.92, reloj: 0.5 } as const;
 
 export type AnimFran = 'idle' | 'correr' | 'sube' | 'baja' | 'aterriza' | 'ataque' | 'carga' | 'dano' | 'mutis' | 'celebra' | 'retrato';
 export type AnimGuille = 'idle' | 'celebra' | 'atrapado' | 'retrato';
+export type AnimAmigo = AnimGuille;
+
+/** Which way each friend's figure faces as drawn (Guille looks left, the others right). */
+export const MIRA: Record<Amigo, 1 | -1> = { guille: -1, chuchi: 1, pablo: 1 };
 export type AnimDespertador = 'andar' | 'alerta' | 'carga' | 'mareo' | 'dano' | 'agacha' | 'salta';
 export type AnimReloj = 'repta' | 'gotea' | 'dano';
 
 export interface Arte {
   fran: Record<AnimFran, Cuadro[]>;
   guille: Record<AnimGuille, Cuadro[]>;
+  chuchi: Record<AnimAmigo, Cuadro[]>;
+  pablo: Record<AnimAmigo, Cuadro[]>;
   despertador: Record<AnimDespertador, Cuadro[]>;
   gran: Record<AnimDespertador, Cuadro[]>;
   reloj: Record<AnimReloj, Cuadro[]>;
@@ -135,6 +141,29 @@ function posesGuille(def: FiguraDef) {
   return { idle, celebra, atrapado, retrato: [retrato] } satisfies Record<AnimGuille, Pose[]>;
 }
 
+/** The poses of a rescued friend (Chuchi, Pablo): same set as Guille's, with their own bits of hair and head. */
+function posesAmigo(def: FiguraDef, pelo: string[], cabeza: string[]) {
+  const idle: Pose[] = Array.from({ length: 6 }, (_, i) => {
+    const f = fase(i, 6);
+    const mods: Pose['mods'] = {
+      torso: { sy: 1 + 0.012 * sen(f) },
+      cabeza: { dy: 2.5 * sen(f - 0.4), rot: 0.025 * sen(f + 1) },
+      'brazo.a': { rot: 0.04 * sen(f + 1.1) },
+      'brazo.b': { rot: 0.04 * sen(f + 0.3) },
+      vaso: { rot: 0.05 * sen(2 * f + 2) },
+    };
+    pelo.forEach((id, k) => (mods![id] = { rot: 0.04 * sen(f + 0.3 + k * 1.1) }));
+    return { onda: f, mods };
+  });
+  const celebra: Pose[] = [0, 1].map((i) => ({ onda: i * 2.5, mods: { 'brazo.a': { rot: 3.0 + 0.25 * i }, 'brazo.b': { rot: 2.8 - 0.25 * i }, cabeza: { dy: -6 - 3 * i, rot: i ? 0.06 : -0.06 }, vaso: { rot: 0.3 } } }));
+  const atrapado: Pose[] = Array.from({ length: 4 }, (_, i) => {
+    const f = fase(i, 4);
+    return { onda: f, mods: { 'brazo.a': { rot: 2.4 + 0.4 * sen(f) }, 'brazo.b': { rot: 2.5 - 0.4 * sen(f) }, cabeza: { dy: 3 * sen(f), rot: 0.06 * sen(f) } } };
+  });
+  const retrato: Pose = { ocultar: soloCabeza(def, cabeza) };
+  return { idle, celebra, atrapado, retrato: [retrato] } satisfies Record<AnimAmigo, Pose[]>;
+}
+
 function posesDespertador() {
   const andar: Pose[] = Array.from({ length: 4 }, (_, i) => {
     const f = fase(i, 4);
@@ -221,7 +250,7 @@ let hecho: Promise<Arte> | null = null;
 /** Bakes everything. `avance` is told how far along it is (0–1). Called once; the result is kept. */
 export function cargarArte(avance?: (f: number) => void): Promise<Arte> {
   hecho ??= (async () => {
-    const pasos = 11;
+    const pasos = 13;
     let n = 0;
     const paso = <T>(p: Promise<T>) => p.then((r) => (avance?.(++n / pasos), r));
     const fran = A.figura('fran') as unknown as FiguraDef;
@@ -230,12 +259,16 @@ export function cargarArte(avance?: (f: number) => void): Promise<Arte> {
     const gran = U.despertador({ color: '#d6385a', oro: '#ffb23a' }) as unknown as FiguraDef;
     const rel = U.reloj() as unknown as FiguraDef;
     const E = ESCALA;
-    const [f, g, d, gr, r] = [
+    const chuchiDef = A.figura('chuchi') as unknown as FiguraDef;
+    const pabloDef = A.figura('pablo') as unknown as FiguraDef;
+    const [f, g, d, gr, r, ch, pa] = [
       await paso(rig(fran, posesFran(fran), E.fran)),
       await paso(rig(guille, posesGuille(guille), E.guille)),
       await paso(rig(des, posesDespertador(), E.despertador)),
       await paso(rig(gran, posesDespertador(), E.gran, 1.2)),
       await paso(rig(rel, posesReloj(), E.reloj)),
+      await paso(rig(chuchiDef, posesAmigo(chuchiDef, [], ['cabeza', 'cara', 'barba']), E.chuchi)),
+      await paso(rig(pabloDef, posesAmigo(pabloDef, ['pelo.a', 'pelo.b'], ['cabeza', 'cara', 'barba', 'pelo.a', 'pelo.b', 'aro']), E.pablo)),
     ];
     const [barra, sorbo, florFondo, florCerrada, florAbierta, portal, charco, gota, iC, iT, iM, jl, jv] = await Promise.all([
       sprite(U.barra(), 0.62),
@@ -256,10 +289,12 @@ export function cargarArte(avance?: (f: number) => void): Promise<Arte> {
     // White copies of the enemies' frames, ready for the flash of a hit.
     const blanco = new Map<Cuadro, Cuadro>();
     for (const anim of [d, gr, r] as Record<string, Cuadro[]>[]) for (const lista of Object.values(anim)) for (const c of lista) blanco.set(c, tenir(c, '#fff4e0'));
-    const asoma: Arte['asoma'] = { guille: cabecita(g.retrato[0], E.guille) };
+    const asoma: Arte['asoma'] = { guille: cabecita(g.retrato[0], E.guille), chuchi: cabecita(ch.retrato[0], E.chuchi), pablo: cabecita(pa.retrato[0], E.pablo) };
     return {
       fran: f,
       guille: g,
+      chuchi: ch,
+      pablo: pa,
       despertador: d,
       gran: gr,
       reloj: r,

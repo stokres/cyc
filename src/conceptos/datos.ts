@@ -63,7 +63,7 @@ export interface Sala {
   flor?: { col: number; fila: number; quien: Amigo };
   /** Slabs that move or fall. */
   plataformas: PlataformaDef[];
-  /** Where the room sits on the pause map (in tiles). */
+  /** Where the room sits on the pause map (grid cells: x to the right, y down; the exits through the sides go to the neighbouring cell). */
   mapa: { x: number; y: number };
   /** Where the player starts when the game begins in this room. */
   inicio: { col: number; fila: number };
@@ -219,15 +219,17 @@ class Plano {
 
 // ---------------------------------------------------------------- zone 1: El Recibidor (tutorial, then a small loop)
 //
-//   recibidor-1 ── recibidor-2 ──(low)── recibidor-3 ──(top door)── jardin-1
-//                       └─(up)── recibidor-4 ──(low)──┘
+//   recibidor-1 ── recibidor-2 ──(wall: right)── recibidor-3 ──(top door)── jardin-1
+//                       └─(door, up on the ledges)── recibidor-4 ──(door)──┘ (a door of recibidor-3's floor)
+// RULE of the exits through the walls: going out by the right you come in by the LEFT of the next room (and the other way round), always, and a room has
+// at most one exit on each side. A second way between two rooms is a DOOR (an arch you walk into), never a second opening in the same wall.
 // Two ways cross between the hall and the climb: the low one (pits and falling slabs) and the high one (ledges, then moving slabs over spikes).
 // The high ledge of recibidor-1 is seen from the very start and cannot be reached until the Cierzo: coming back for it is the backtracking.
 
 /** Walk, jump a pit, the first alarm clock, and a ledge too high to reach for now. */
 function recibidor1() {
   const p = new Plano('recibidor-1', 'recibidor', 36, 12, 10);
-  p.mapa(0, 6);
+  p.mapa(0, 0);
   p.inicio = { col: 3, fila: 9 };
   p.foso(15, 18);
   p.salida('der', 7, 9, 'recibidor-2', 2, 11);
@@ -243,15 +245,15 @@ function recibidor1() {
 /** The hall: a pit, a falling-slab bridge, and a stair of ledges to the high way. */
 function recibidor2() {
   const p = new Plano('recibidor-2', 'recibidor', 48, 14, 12);
-  p.mapa(36, 4);
+  p.mapa(1, 0);
   p.salida('izq', 9, 11, 'recibidor-1', 33, 9);
   p.salida('der', 9, 11, 'recibidor-3', 2, 12);
-  p.salida('der', 3, 5, 'recibidor-4', 2, 9);
   p.foso(9, 11);
   p.enemigo('despertador', 6, 11);
   p.enemigo('despertador', 17, 11);
   // The high way: a stair of ledges, the way out at the far end.
   p.lista(13, 16, 10).lista(18, 21, 8).lista(23, 27, 6).lista(29, 32, 5).lista(34, 38, 4).lista(41, 46, 6);
+  p.puerta({ col: 44, fila: 5, sala: 'recibidor-4', col2: 3, fila2: 9 });
   p.enemigo('despertador', 25, 5);
   // The low way: a six-tile pit crossed by two slabs that fall when stepped on.
   p.foso(24, 29);
@@ -269,9 +271,9 @@ function recibidor2() {
 /** A climb, three alarm clocks, and the door to the garden at the top. */
 function recibidor3() {
   const p = new Plano('recibidor-3', 'recibidor', 30, 15, 13);
-  p.mapa(84, 0);
+  p.mapa(2, 0);
   p.salida('izq', 10, 12, 'recibidor-2', 45, 11);
-  p.salida('der', 10, 12, 'recibidor-4', 37, 9);
+  p.puerta({ col: 27, fila: 12, sala: 'recibidor-4', col2: 35, fila2: 9 });
   p.lista(3, 8, 11).lista(11, 16, 9).lista(19, 24, 7).lista(11, 16, 5).lista(19, 28, 3);
   p.enemigo('despertador', 14, 8);
   p.enemigo('despertador', 22, 6);
@@ -283,9 +285,9 @@ function recibidor3() {
 /** The coat rack: moving slabs over a sea of spikes. */
 function recibidor4() {
   const p = new Plano('recibidor-4', 'recibidor', 40, 12, 10);
-  p.mapa(40, 18);
-  p.salida('izq', 7, 9, 'recibidor-2', 44, 5);
-  p.salida('der', 7, 9, 'recibidor-3', 27, 12);
+  p.mapa(2, -1);
+  p.puerta({ col: 1, fila: 9, sala: 'recibidor-2', col2: 42, fila2: 5 });
+  p.puerta({ col: 37, fila: 9, sala: 'recibidor-3', col2: 25, fila2: 12 });
   p.foso(8, 31);
   p.enemigo('despertador', 4, 9);
   p.plat('mueve', 9, 9, 3, 6, 4.5);
@@ -305,7 +307,7 @@ function recibidor4() {
 /** The way in: a bar right away, clocks of «las tantas» with their puddles, and a chain of falling slabs to a sip. */
 function jardin1() {
   const p = new Plano('jardin-1', 'jardin', 52, 12, 10);
-  p.mapa(0, 40);
+  p.mapa(2, 1);
   p.inicio = { col: 4, fila: 9 };
   p.puerta({ col: 1, fila: 9, sala: 'recibidor-3', col2: 25, fila2: 2 });
   p.salida('der', 7, 9, 'jardin-1b', 2, 11);
@@ -326,7 +328,7 @@ function jardin1() {
 /** The terraces: an elevator, ledges, falling and sliding slabs over a pit of spikes. */
 function jardin1b() {
   const p = new Plano('jardin-1b', 'jardin', 48, 14, 12);
-  p.mapa(52, 38);
+  p.mapa(3, 1);
   p.salida('izq', 9, 11, 'jardin-1', 49, 9);
   p.salida('der', 9, 11, 'jardin-2', 2, 13);
   p.foso(9, 43);
@@ -346,7 +348,7 @@ function jardin1b() {
 /** A tall garden: ledges up through hanging clocks to the boss door, and a hidden chamber behind a false wall. */
 function jardin2() {
   const p = new Plano('jardin-2', 'jardin', 40, 16, 14);
-  p.mapa(100, 34);
+  p.mapa(4, 1);
   p.salida('izq', 11, 13, 'jardin-1b', 45, 11);
   p.foso(13, 17);
   p.lista(4, 9, 12).lista(12, 17, 10).lista(20, 25, 8).lista(28, 33, 6);
@@ -369,7 +371,7 @@ function jardin2() {
 /** The Gran Despertador's arena. */
 function jardin3() {
   const p = new Plano('jardin-3', 'jardin', 26, 12, 10);
-  p.mapa(140, 40);
+  p.mapa(5, 1);
   p.salida('izq', 7, 9, 'jardin-2', 38, 3);
   p.salida('der', 7, 9, 'jardin-4', 2, 10);
   p.lista(4, 7, 7).lista(18, 21, 7);
@@ -380,7 +382,7 @@ function jardin3() {
 /** Guille's flower, and the exit that only the Cierzo reaches. */
 function jardin4() {
   const p = new Plano('jardin-4', 'jardin', 30, 13, 11);
-  p.mapa(166, 40);
+  p.mapa(6, 1);
   p.salida('izq', 8, 10, 'jardin-3', 24, 9);
   p.rect(24, 6, 6, 7, '#');
   p.salida('der', 3, 5, 'jardin-5', 2, 5);
@@ -392,7 +394,7 @@ function jardin4() {
 /** The double jump gauntlet: islands five tiles apart over spikes. */
 function jardin5() {
   const p = new Plano('jardin-5', 'jardin', 52, 14, 13);
-  p.mapa(196, 38);
+  p.mapa(7, 1);
   // The floor is a sea of spikes: no solid ground at all.
   p.rect(1, 13, 50, 1, '^');
   const isla = (c0: number, c1: number, top: number) => p.rect(c0, top, c1 - c0 + 1, 3, '#');
@@ -410,11 +412,61 @@ function jardin5() {
   return p.hecho();
 }
 
+/** Rooms that other modules register (the final boss's arena). The exits towards them are not checked for reciprocity. */
+export const SALAS_EXTERNAS = ['grifo-jefe'];
+
+/**
+ * The rule of the exits (Jesús: «si sales por la derecha entras por la izquierda de la siguiente, y al contrario»): a room has at most ONE opening per
+ * side; it leads to a room that has an opening on the opposite side leading back; you arrive next to that opening, inside its rows, near that wall,
+ * standing on something. Returns what is wrong (empty if all is right). `scripts/comprobar-salas.mjs` fails on it, and the game logs it on opening.
+ */
+export function erroresDeSalidas(salas: Record<string, Sala> = SALAS): string[] {
+  const err: string[] = [];
+  const opuesto = (l: 'izq' | 'der') => (l === 'izq' ? 'der' : 'izq');
+  for (const s of Object.values(salas)) {
+    for (const lado of ['izq', 'der'] as const) {
+      if (s.salidas.filter((e) => e.lado === lado).length > 1) err.push(`${s.id}: dos salidas en el mismo lado (${lado})`);
+    }
+    for (const e of s.salidas) {
+      const d = salas[e.sala];
+      if (!d) {
+        if (!SALAS_EXTERNAS.includes(e.sala)) err.push(`${s.id}: la salida ${e.lado} lleva a una sala que no existe (${e.sala})`);
+        continue;
+      }
+      const vuelta = d.salidas.find((x) => x.lado === opuesto(e.lado));
+      if (!vuelta) err.push(`${s.id}: sale por ${e.lado} a ${d.id}, que no tiene salida por ${opuesto(e.lado)}`);
+      else {
+        if (vuelta.sala !== s.id) err.push(`${s.id}: sale por ${e.lado} a ${d.id}, pero su salida ${opuesto(e.lado)} lleva a ${vuelta.sala}`);
+        if (e.fila < vuelta.fila0 || e.fila > vuelta.fila1) err.push(`${s.id}: llega a ${d.id} en la fila ${e.fila}, fuera de su abertura (${vuelta.fila0}-${vuelta.fila1})`);
+      }
+      const cerca = e.lado === 'der' ? e.col <= 4 : e.col >= d.cols - 5;
+      if (!cerca) err.push(`${s.id}: al salir por ${e.lado} llega a ${d.id} en la columna ${e.col}, lejos del lado ${opuesto(e.lado)}`);
+      const pie = d.filas[e.fila + 1]?.[e.col];
+      if (!pie || !'#=NX'.includes(pie)) err.push(`${s.id}: llega a ${d.id} (${e.col},${e.fila}) sin suelo debajo`);
+      if (d.filas[e.fila]?.[e.col] !== '.') err.push(`${s.id}: llega a ${d.id} (${e.col},${e.fila}) dentro de un muro`);
+    }
+    for (const p of s.puertas) {
+      if (p.sala === 'fin') continue;
+      const d = salas[p.sala];
+      if (!d) {
+        if (!SALAS_EXTERNAS.includes(p.sala)) err.push(`${s.id}: la puerta lleva a una sala que no existe (${p.sala})`);
+        continue;
+      }
+      if (!d.puertas.some((x) => x.sala === s.id)) err.push(`${s.id}: la puerta a ${d.id} no tiene puerta de vuelta`);
+      const pie = d.filas[p.fila2 + 1]?.[p.col2];
+      if (!pie || !'#=NX'.includes(pie)) err.push(`${s.id}: la puerta llega a ${d.id} (${p.col2},${p.fila2}) sin suelo debajo`);
+    }
+  }
+  return err;
+}
+
 export const SALAS: Record<string, Sala> = {};
 for (const s of [recibidor1(), recibidor2(), recibidor3(), recibidor4(), jardin1(), jardin1b(), jardin2(), jardin3(), jardin4(), jardin5()]) {
   for (const f of s.filas) if (f.length !== s.cols) console.error(`[una más] ${s.id}: una fila mide ${f.length} y no ${s.cols}`);
   SALAS[s.id] = s;
 }
+
+for (const e of erroresDeSalidas()) console.error(`[una más] salidas: ${e}`);
 
 /** The first room of each zone (`?unamas&zona=N`). */
 export const PRIMERA_SALA: Record<number, string> = { 1: 'recibidor-1', 2: 'jardin-1' };
