@@ -15,7 +15,7 @@
 // without it, to compare.
 //
 // Usage: node scripts/rendimiento.mjs [escena...]   (against npm run dev on :5173)
-//   escenas: prologo, piso, calle, bar, manga, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, cantofiesta, tragaperras, sol, solcombate, solcamino, solteatro, soljefe, solcalderon, kart, unamas (includes the final boss LA ÚLTIMA), safari, boca, conceptos, caos, pangcompleto, pokecap (all by default)
+//   escenas: prologo, piso, calle, bar, manga, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, cantofiesta, tragaperras, sol, solcombate, solcamino, solteatro, soljefe, solcalderon, kart, unamas (includes the final boss LA ÚLTIMA), safari, boca, pangcompleto, pokecap (all by default)
 import { chromium } from 'playwright';
 import { readFileSync, readdirSync } from 'node:fs';
 
@@ -370,7 +370,7 @@ if (toca('safari')) {
   }
 }
 if (toca('pokecap')) {
-  // PokéUsera, the last game of chapter 2 (src/pokeusera/capitulo.ts), in its real shape: a phone held upright (412 x 915) with the game standing
+  // PokéUsera, a game of its own (src/pokeusera/capitulo.ts; no longer in chapter 2), in its real shape: a phone held upright (412 x 915) with the game standing
   // in its own stage. Two moments: the silhouette (the three falling, the shadow coming down) and the hunt (the wild Ultimosaurio, the moves'
   // effects and the jarra), both on the world of the concepts' backdrop. The keys are pressed from the page, as a player would tap.
   await page.setViewportSize({ width: 412, height: 915 });
@@ -747,7 +747,7 @@ if (toca('solcalderon')) {
 }
 
 // Chapter 2, last stretch: these need the chapter-2 game itself (?capitulo2), so the page is reloaded; they go last.
-if (toca('boca') || toca('conceptos') || toca('caos') || toca('pangcompleto')) {
+if (toca('boca') || toca('pangcompleto')) {
   await page.goto(`http://localhost:${process.env.PUERTO ?? 5173}/?capitulo2&nueva`);
   await page.waitForFunction(() => window.__cyc);
   await page.evaluate(() => window.__cyc.listo());
@@ -785,47 +785,6 @@ if (toca('boca')) {
   })()`, 'boca');
   await page.evaluate(() => window.__cyc.g.hud.setVisible(true));
 }
-const MUNDO = (extra = '') => `(async () => {
-  clearInterval(window.__paseo);
-  const g = window.__cyc.g;
-  g.poner('c2.nivel', 7);
-  const { prepararConceptos } = await import('/src/capitulos/conceptos-vivo.ts');
-  await prepararConceptos(g);
-  for (const id of g.estado.jugables) g.estado.donde[id] = { escena: 'conceptos', X: 1200, y: 900, face: 1 };
-  await g.irA('conceptos', false);
-  await g.velar(false);
-  ${extra}
-})()`;
-if (toca('conceptos')) {
-  // The world of the concepts (level 7): the void with the parallax shapes, the twelve pieces moving (all bitmaps baked once,
-  // only transforms per frame) and Vero's lips; then with Fran found, «LA ÚLTIMA» shown and the dinosaur rising.
-  await medir('conceptos, el mundo quieto', MUNDO());
-  await medir('conceptos, Fran hallado, dino y Guille', MUNDO(`
-    for (const c of ['manana', 'reloj', 'no', 'penultima']) g.poner('c2.con.' + c);
-    g.poner('c2.fran.sinArgumentos');
-    const m = await import('/src/capitulos/conceptos-vivo.ts');
-    m.revelarUltima(g);
-    m.subirDino(g);
-    m.darPasoGuille(g);`));
-}
-if (toca('caos')) {
-  // The total chaos (level 8): hard cuts between normal / manga / Alacant Sun pixels / Pang pixels / pencil (each baked once, see
-  // src/juego/estilos.ts), the hue turning, the camera spinning for good and the pieces at 2.6x.
-  await medir('caos, cortes de estilo y giro', MUNDO(`
-    g.poner('c2.nivel', 8);
-    for (const c of ['manana', 'reloj', 'no', 'penultima']) g.poner('c2.con.' + c);
-    g.poner('c2.fran.sinArgumentos');
-    const m = await import('/src/capitulos/conceptos-vivo.ts');
-    const { prepararCortes } = await import('/src/juego/estilos.ts');
-    m.revelarUltima(g);
-    m.empezarCaos(g);
-    m.subirDino(g);
-    m.darPasoGuille(g);
-    window.__cortes = await prepararCortes(g, null, ['fran:cara:enfado', 'vero:boca:picara', 'chuchi:ojos:seriedad', '!gogogo']);
-    window.__cortes.iniciar();
-    void g.plano.girar(1000, 3500000);`));
-}
-
 if (toca('pangcompleto')) {
   // The whole Pang (src/pang/completo.ts, from the minigames menu): a bot plays the last stage with the DOM layers over it, then the title
   // with its attract demo behind (a bot too) and the screens (plain DOM) over the canvas. Both are counted by the stage's own hook.

@@ -523,13 +523,9 @@ FRAN (sorprendido): Un momento. Si Pablo ha vuelto, ¿por qué seguimos del rev�
 @contrapicado 10 700
 VERO: Porque la noche no ha terminado, mi amor. Ni de lejos.
 
-// ---------------------------------------------------------------- tramo final: de Chuchi al mundo de los conceptos
-// Provisional (los revisa Jesús). Marcas nuevas de la cámara, además de las de más arriba:
+// ---------------------------------------------------------------- tramo final: de Chuchi a «Una más»
+// Provisional (los revisa Jesús). Marca nueva de la cámara, además de las de más arriba:
 //   @girar 2 6000        la imagen entera da 2 vueltas en 6 s y acaba derecha
-//   @caos on / @caos off los cortes rapidísimos entre estilos (normal, manga, píxel de Alacant Sun, píxel del Pang, lápiz)
-//   @caos dino           sube la silueta enorme del dinosaurio (con su rugido; el temblor lo pone @temblor)
-//   @caos guille         Guille da un paso al frente con su jarra
-// En el mundo de los conceptos los amigos son figuras: se les enfoca por el nombre de su figura (@zoom fran 2.2).
 
 // ---- Chuchi se quiere ir (bar del revés) e Impropios Kart
 
@@ -609,182 +605,32 @@ PABLO (chulo): Un héroe nunca deja a su camarera con una boca abierta. ¡Dentro
 ## c2.vero.dentro
 > Y al entrar, se deshicieron. Primero las esquinas, luego los contornos, y por último la idea que tenían de sí mismos.
 
-// ---- El mundo de los conceptos
+// ---- Vuelta al bar tras «Una más» (src/conceptos/, textos en conceptos.md): los cuatro, en su sitio de la barra; Guille, con su tarro
 
-zona.c2.concepto.manana = Mañana
-zona.c2.concepto.penultima = La penúltima
-zona.c2.concepto.reloj = Las tantas
-zona.c2.concepto.no = El no
-zona.c2.concepto.fran = Fran
-zona.c2.concepto.ultima = La última
-zona.c2.concepto.pablo = Pablo
-zona.c2.concepto.chuchi = Chuchi
-zona.c2.concepto.guille = Guille
-zona.c2.concepto.vero = Vero
-
-// Las palabras que se pintan sobre los conceptos (lo que se lee en pantalla, en mayúsculas).
-c2.concepto.manana = MAÑANA
-c2.concepto.penultima = LA PENÚLTIMA
-c2.concepto.reloj = LAS TANTAS
-c2.concepto.unamas = UNA MÁS
-c2.concepto.ultima = LA ÚLTIMA
-c2.concepto.dino = ???
-
-objetivo.c2.conceptos.fran = Usa los conceptos para convencer a Fran de irse a casa
-objetivo.c2.conceptos.ultima = Para salir hace falta LA ÚLTIMA
-pista.c2.conceptos.fran = Fran solo dice «una más». Toca los conceptos que flotan: cada uno es un argumento para llevárnoslo a casa.
-pista.c2.conceptos.ultima = Con Fran no valen excusas. Para salir, toca LA ÚLTIMA, la jarra que nadie ha visto.
-
-## c2.conceptos.entrada
-> Esto no es el Brío. Esto ni siquiera es un sitio. Es donde se quedan colgadas las palabras cuando se les acaba la frase.
-PABLO (sorprendido): ¿Por qué soy una figurita de peana? Y, sobre todo, ¿por qué me favorece?
-CHUCHI (nervioso): Soy un montón de formas sueltas con gafas. Estoy muy reconocible, pero por piezas.
-GUILLE (contento): ¡Estoy hecho de triángulos y de flores! ¡Y soy el más alto! ¡Siempre quise ser el más alto!
-FRAN (contento): ¡Chicos, por fin! ¡Una más!
-CHUCHI (nervioso): ¡Fran! Estás entero. Vámonos a casa, anda, que es tardísimo.
-FRAN (contento): Una más.
-CHUCHI (enfadado): No dice otra cosa.
-PABLO: Aquí las palabras son cosas, y las cosas se pueden lanzar. Cada concepto que veamos es un argumento. Alguno le hará efecto.
-
-// Cada concepto, en dos tiempos: el argumento de un amigo (lo lanza) y la respuesta de Fran (le da la vuelta y lo convierte en «una más»).
-## c2.conceptos.manana
-CHUCHI (nervioso): Fran, MAÑANA se trabaja. Yo llevo diez años empujando esa puerta.
-> La puerta tiembla, se estrecha un poco y vuelve a su sitio. No se abre. Nunca se abre.
-
-## c2.conceptos.manana.fran
-FRAN (chulo): Justo por eso. Mañana se trabaja; hoy se brinda. ¡Una más!
-GUILLE (contento): Es de las que se abren hacia dentro. Hacia dentro de mañana.
-
-## c2.conceptos.reloj
-PABLO: Fran, LAS TANTAS. Un reloj derretido: Dalí lo pintó pensando en una cena que se alargó.
-CHUCHI: Es el único reloj puntual del universo: siempre llega justo a las tantas.
-
-## c2.conceptos.reloj.fran
-FRAN (chulo): Si ya son las tantas, una más no cambia nada. Es matemática pura.
-GUILLE (contento): Mola. Se parece a mis cerdos después de comer.
-
-## c2.conceptos.no
-CHUCHI: Fran, EL NO. El que te digo cada jueves, ¿te acuerdas?
-> Un NO enorme rebota de un lado a otro y, cada vez que cae, el mundo tiembla un poquito.
-
-## c2.conceptos.no.fran
-FRAN (contento): ¡Y rebota, rebota, rebota, hasta que se convierte en un «bueno, una más»! Mira, mira, que ya casi.
-GUILLE (nervioso): Me da un poco de miedo. Parece un «no» de los de madre.
-
-## c2.conceptos.penultima
-PABLO: Fran, LA PENÚLTIMA. Trato hecho: la penúltima, y nos vamos todos.
-> La cerveza sale por arriba, da una vuelta por el aire y vuelve a entrar. El mundo funciona así.
-
-## c2.conceptos.penultima.fran
-FRAN (chulo): Trato. Pero la penúltima nunca es la penúltima: es la antepenúltima de la siguiente. ¡Una más!
-CHUCHI (nervioso): Eso lo sé yo muy bien. Me lo sé desde la universidad.
-
-// Un argumento que ya se ha gastado.
-## c2.conceptos.gastado
-FRAN (chulo): Ese ya me lo has dicho, y míralo: se ha quedado en «una más». Tráeme otro.
----
-FRAN (contento): Ese argumento está gastado, como mi hígado. ¡Prueba con otro!
----
-FRAN (triste): Pobrecillo, qué poco le queda. Anda, dale otra oportunidad... con una caña.
-
-// Cuando se han gastado los cuatro argumentos.
-## c2.conceptos.revela
-PABLO (sorprendido): Un momento. Los hemos probado todos, y a todos les ha dado la vuelta.
-CHUCHI (triste): Con Fran no hay excusa que valga. Para él todas son otra ronda.
-PABLO: Solo hay una cosa que de verdad le hace irse: LA ÚLTIMA. Cuando alguien pide la última, hasta Fran se levanta.
-GUILLE (nervioso): Pues vamos a por ella. ¿Dónde está?
-PABLO: Ese es el problema: LA ÚLTIMA nunca la ha visto nadie.
-> Y entonces, en mitad del mundo, como una idea que se va formando, aparece el contorno de una jarra. Solo el contorno.
-
-## c2.conceptos.ultima
-@zoom ultima 2.2 600
-CHUCHI (sorprendido): LA ÚLTIMA. Existe.
-PABLO: Dicen que quien la pide se va a su casa.
-GUILLE (contento): Pues pídela tú, Chuchi, que eres el que se quería ir.
-CHUCHI (nervioso): Vale... Una ronda más. La última. Pero de verdad.
-FRAN (triste): Una... más...
+## c2.unamas.vuelta
 @general 500
-@temblor 30 1500
-> En cuanto lo dijo en voz alta, el mundo de los conceptos se quedó sin palabras.
+> Y, de una manera o de otra, el bar volvió a ser un bar: la barra, la tele, el olor de siempre. Los cuatro, en su sitio de la barra, como si no se hubieran movido.
+VERO: Mi amor, qué cara traéis. Yo no he crecido ni un centímetro, que conste.
+FRAN (sorprendido): ¡Vero! Estabas enorme. Y yo estaba... ¿dónde estaba yo?
+CHUCHI (nervioso): Dentro de una jarra, Fran. Y nosotros también. Y no hables más de eso, que me mareo.
+GUILLE (contento): Y LA ÚLTIMA, aquí. Mirad: la he metido en mi tarro. Pequeñita, pero bien enfadada.
+PABLO (chulo): Un dinosaurio de cerveza dentro de un tarro. Y nadie se lo creerá nunca.
+VERO: Pues que no se salga, que me mancha la barra.
 
-// Lo que dicen al tocar cada figura (por probar, o cuando ya se ha tocado casi todo).
-## c2.figura.pablo
-PABLO (chulo): Soy un puñado de piezas que flotan, con un aro que me cuelga de la oreja. Me define: doy vueltas a todo.
----
-PABLO: Las piezas que giran son mi forma natural. El teatro, si lo piensas, es un bucle con público.
-
-## c2.figura.chuchi
-CHUCHI: Llevo la barriga hecha de triángulos. Por eso llego tarde: es que llego, pero todavía.
----
-CHUCHI (nervioso): Estas gafas sí que me las reconozco. Lo demás lo estoy asimilando.
-
-## c2.figura.guille
-GUILLE (contento): ¡Soy un montón de flores con la camisa puesta! Lo de ser alto es genética.
----
-GUILLE (contento): Tengo hojas con hibiscos. ¡He nacido para esto!
-
-## c2.figura.fran
-FRAN (contento): ¡Una más!
----
-FRAN (chulo): ¿Otro argumento? Sorpréndeme. Pero con jarra.
-
-## c2.figura.vero
-VERO: Mi amor, estás dentro de mí. Haz el favor de no tocar las paredes.
----
-VERO: Aquí dentro se está calentito, ¿oíste? Tú pide, que yo te lo pongo.
----
-VERO (chulo): Soy una camarera de oro y seda que lo envuelve todo. Ya lo era antes, pero ahora se nota más.
-
-// ---- El caos total
-
-## c2.caos.empieza
-@caos on
-@girar 2 7000
-@temblor 26 4000
-> Y todo, a la vez, dejó de parecerse a lo que era.
-PABLO (sorprendido): ¡Me veo en dibujitos! ¡Y otra vez normal! ¡Y en dibujitos!
-CHUCHI (sorprendido): ¡Yo en píxeles! ¡Y a lápiz! ¡Y en la máquina del Pang!
-GUILLE (contento): ¡Y yo en todos! ¡Es el día de la foto, muchachos!
-VERO: Es que la última, mi niño, enseña todo lo que tiene.
-
-## c2.caos.dino
-@caos dino
-@temblor 32 3600
-> Y al fondo, muy al fondo, algo enorme se levantó.
-CHUCHI (nervioso): ¿Eso es... un dinosaurio?
-PABLO (sorprendido): Tiene un cartel encima. Pone «???».
-GUILLE (nervioso): Es el userito. El mitológico. Lo conoce todo el mundo y no lo ha visto nadie.
-FRAN (sorprendido): ¡Una más!
-
-## c2.caos.guille
-@caos off
-@nivelar 500
-@general 500
-> Entonces Guille, hecho de formas y de flores, dio un paso al frente. Y en una de sus manos, una jarra.
-@caos guille
-GUILLE (chulo): Este es mío.
-
-## c2.pokeusera.vuelve
-@general 500
-> Y, de una manera o de otra, el mitológico acabó dentro de la jarra de Guille.
-GUILLE (contento): Doctor en ciencias animales, señores. Los herbívoros se me daban bien; los mitológicos, todavía mejor.
-FRAN (sorprendido): ¡Guille, te has guardado la última en una jarra!
-CHUCHI (nervioso): Pues no la sueltes, que como se levante otra vez...
-
-// ---- Guille propone el safari (tras cazar al Ultimosaurio) y el cómic de la caravana (src/ui/safari.ts)
+// ---- Guille propone el safari (con el Ultimosaurio en su tarro, tras «Una más») y el cómic de la caravana (src/ui/safari.ts)
 
 ## c2.safari.propone
 @general 500
-GUILLE (contento): Oídme. Ahora que tengo a este pichoncito en la jarra... ¿y si nos vamos de safari?
+GUILLE (contento): Oídme. Ahora que tengo a este pichoncito en el tarro... ¿y si nos vamos de safari?
 CHUCHI (sorprendido): ¿De... safari?
 GUILLE (contento): ¡Que soy guía titulado! Con mi curso oficial y todo: cuarenta horas, diploma y un chaleco con bolsillos.
-PABLO (chulo): Un hombre que caza dinosaurios con una jarra. Qué menos que un diploma.
-GUILLE: Tengo una caravana aparcada ahí fuera. Cabemos todos. Y el Ultimosaurio va en la jarra, que viaja de lujo.
+PABLO (chulo): Un hombre que caza dinosaurios con un tarro. Qué menos que un diploma.
+GUILLE: Tengo una caravana aparcada ahí fuera. Cabemos todos. Y el Ultimosaurio va en el tarro, que viaja de lujo.
 FRAN (sorprendido): ¿Y hay caña en un safari?
 GUILLE (contento): Hay un bar en cada charca, Fran. Los animales también salen de cañas.
 CHUCHI (nervioso): Pero mañana trabajo...
 FRAN (contento): ¡Una más y nos vamos!
-> Y así, con una jarra, un diploma y una caravana, los cuatro se echaron a la carretera.
+> Y así, con un tarro, un diploma y una caravana, los cuatro se echaron a la carretera.
 
 // Las páginas del cómic. Cada viñeta tiene su cartucha (el narrador), sus bocadillos (salen de la caravana: nadie se ve,
 // solo ella habla) y sus onomatopeyas. Lo que dice cada uno: Chuchi se preocupa, Guille presume de curso, Pablo se

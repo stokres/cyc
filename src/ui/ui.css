@@ -2398,27 +2398,6 @@ button:focus-visible {
   transform-origin: 50% 82%;
 }
 
-/* Los estilos del caos (src/juego/estilos.ts): lienzos escondidos dentro del escenario que se enseñan de golpe. */
-.corte-estilo {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: fill;
-  pointer-events: none;
-}
-
-.corte-estilo[hidden] {
-  display: none;
-}
-
-.corte-sol,
-.corte-pang {
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
-}
-.sin-reparto .reparto { display: none; }
-
 /* ------------------------------------------------------------ the safari comic (src/ui/safari.ts) */
 
 .cubierta.safari {
