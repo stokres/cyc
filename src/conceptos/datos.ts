@@ -67,6 +67,8 @@ export interface Sala {
   mapa: { x: number; y: number };
   /** Where the player starts when the game begins in this room. */
   inicio: { col: number; fila: number };
+  /** The final boss's arena (jefe-ultima.ts): fixed camera, painted background, no tiles drawn. */
+  ultima?: boolean;
 }
 
 /**
@@ -410,8 +412,24 @@ function jardin5() {
   return p.hecho();
 }
 
+// ---------------------------------------------------------------- zone 5: El Grifo, LA ÚLTIMA's arena
+
+/**
+ * The arena of the final boss: 19 x 9 tiles, fixed camera (the painted bar counter of fondos/grifo.webp is the floor, the tiles are not drawn: see
+ * jefe-ultima.ts). Inside 17 x 7 tiles (x 48..864, the floor at y 384, the ceiling at 48). No exits: the fight ends with 'hecho'. Whoever builds the
+ * zone's rooms enters it at (col 2, row 7), on the left.
+ */
+function grifoJefe() {
+  const p = new Plano('grifo-jefe', 'grifo', 19, 9, 8);
+  p.mapa(300, 20);
+  p.inicio = { col: 2, fila: 7 };
+  const s = p.hecho();
+  s.ultima = true;
+  return s;
+}
+
 export const SALAS: Record<string, Sala> = {};
-for (const s of [recibidor1(), recibidor2(), recibidor3(), recibidor4(), jardin1(), jardin1b(), jardin2(), jardin3(), jardin4(), jardin5()]) {
+for (const s of [recibidor1(), recibidor2(), recibidor3(), recibidor4(), jardin1(), jardin1b(), jardin2(), jardin3(), jardin4(), jardin5(), grifoJefe()]) {
   for (const f of s.filas) if (f.length !== s.cols) console.error(`[una más] ${s.id}: una fila mide ${f.length} y no ${s.cols}`);
   SALAS[s.id] = s;
 }

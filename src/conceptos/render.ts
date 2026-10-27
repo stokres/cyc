@@ -323,7 +323,8 @@ export class Pintor {
     const x1 = Math.min(m.W, camX + vw);
     const y1 = Math.min(m.H, camY + vh);
     const T4 = TILE * TROZO;
-    for (const [fx, fy] of n.trozos) {
+    // LA ÚLTIMA: the arena's floor and walls are the painted backdrop, no tiles.
+    for (const [fx, fy] of m.sala.ultima ? [] : n.trozos) {
       const a = Math.max(fx * T4, x0);
       const b = Math.min((fx + 1) * T4, x1);
       const c0 = Math.max(fy * T4, y0);
@@ -331,7 +332,7 @@ export class Pintor {
       if (b > a && d0 > c0) ctx.drawImage(n.c, a * n.esc, c0 * n.esc, (b - a) * n.esc, (d0 - c0) * n.esc, a, c0, b - a, d0 - c0);
     }
     // ---- gates shut by a fight
-    for (let f = 0; f < m.rej.rows; f++) {
+    for (let f = 0; f < (m.sala.ultima ? 0 : m.rej.rows); f++) {
       for (let c = 0; c < m.rej.cols; c++) {
         if (m.rej.g[f][c] !== 'X') continue;
         const x = c * TILE;
@@ -413,6 +414,8 @@ export class Pintor {
       if (!visible(e.x, 200)) continue;
       this.enemigo(e, t);
     }
+    // ---- LA ÚLTIMA, the final boss (behind Fran)
+    m.ultima?.dibujar(ctx, t);
     // ---- Guille, once free and out of the flower: drawn by flor()
     // ---- Fran
     m.fx.dibujarArcos(ctx);

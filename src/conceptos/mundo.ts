@@ -9,6 +9,7 @@ import { crearEnemigo, actualizarEnemigos, actualizarProyectiles, type Charco, t
 import type { Mandos } from './entrada';
 import { chocaRect, crearRejilla, haySuelo, moverX, moverY, sueloEn, tocaPinchos, type Caja, type Rejilla } from './fisica';
 import { Efectos } from './fx';
+import { Ultima } from './jefe-ultima';
 import type { Fondo } from './fondos';
 import type { NivelBmp } from './nivel';
 import type { SonidoUnaMas } from './sonido';
@@ -38,7 +39,7 @@ const HW = 17;
 const ALTO = 82;
 const DUR_ATAQUE = 0.3;
 
-export type EstadoJuego = 'jugando' | 'dialogo' | 'transicion' | 'muerte' | 'carta' | 'fin' | 'jefeIntro' | 'jefeMuerte' | 'rescate';
+export type EstadoJuego = 'jugando' | 'dialogo' | 'transicion' | 'muerte' | 'carta' | 'fin' | 'jefeIntro' | 'jefeMuerte' | 'rescate' | 'ultima';
 
 export interface Jugador extends Caja {
   vx: number;
@@ -183,6 +184,8 @@ export class Mundo {
   puertas: PuertaViva[] = [];
   carteles: CartelVivo[] = [];
   jefe: Enem | null = null;
+  /** LA ÚLTIMA, the final boss (jefe-ultima.ts), only in the room `grifo-jefe`. */
+  ultima: Ultima | null = null;
   /** The fight: 0 not started, 1 on, 2 won. */
   pelea = 0;
   flor = { x: 0, y: 0, quien: 'guille' as Amigo, estado: 'ninguna' as 'ninguna' | 'cerrada' | 'abriendo' | 'abierta' | 'entrando', t: 0, guille: 'atrapado' as 'atrapado' | 'libre' | 'dentro', habla: false, chapoteo: false };
@@ -276,6 +279,8 @@ export class Mundo {
     this.charcos = [];
     this.proy = [];
     this.jefe = null;
+    // LA ÚLTIMA: the arena of the final boss.
+    this.ultima = s.ultima && !this.prog.hechos.has('ultima') ? new Ultima(this) : null;
     this.pelea = this.prog.hechos.has(`${s.id}.gran.0`) ? 2 : 0;
     this.visitadas.add(s.id);
     // A false wall already found stays open.
@@ -338,6 +343,8 @@ export class Mundo {
 
   /** Where the camera wants to be: a little ahead of where Fran looks, and a little below the middle. */
   private objetivoCamara(): [number, number] {
+    // LA ÚLTIMA: the arena has a fixed camera.
+    if (this.sala.ultima) return Ultima.camara(this);
     const j = this.j;
     let cx = j.x + this.cam.mira - this.vw / 2;
     let cy = j.y - this.vh * 0.62 + (j.vy > 700 ? 70 : 0);
@@ -410,6 +417,7 @@ export class Mundo {
         this.avanzaDialogo(d, ent);
         this.encuadrar(false, d);
         this.pulsoAmbiente(d);
+        this.ultima?.ambiente(d);
         break;
       case 'transicion':
         this.transiciona(d);
@@ -440,6 +448,11 @@ export class Mundo {
         break;
       case 'rescate':
         this.rescatando(d, ent);
+        break;
+      case 'ultima':
+        // LA ÚLTIMA: its intro, changes of phase, death and end.
+        this.ultima?.escena(d, ent);
+        this.encuadrar(false, d);
         break;
     }
     if (this.estado !== 'dialogo' && this.estado !== 'carta' && this.estado !== 'fin') ent.tomar('tocarP');
@@ -635,6 +648,7 @@ export class Mundo {
     // ---- the world
     actualizarEnemigos(this, d);
     actualizarProyectiles(this, d);
+    this.ultima?.actualizar(d);
     for (const c of this.charcos) c.vida -= d;
     this.charcos = this.charcos.filter((c) => c.vida > 0);
     this.interacciones(d);
@@ -739,6 +753,7 @@ export class Mundo {
       }
       if (j.atq >= 0.06 && j.atq <= 0.2) {
         this.golpear(j.x - j.cara * 8, j.x + j.cara * 104, j.y - ALTO - 12, j.y + 6, 1, false);
+        this.ultima?.golpe(j.x - j.cara * 8, j.x + j.cara * 104, j.y - ALTO - 12, j.y + 6);
         // Chuchi's skill: the ordinary swing breaks the «NO» blocks it reaches.
         if (this.tiene('teclazo')) this.romperBloques(Math.min(j.x - j.cara * 8, j.x + j.cara * 104), Math.max(j.x - j.cara * 8, j.x + j.cara * 104), j.y - ALTO - 12, j.y - 4);
       }

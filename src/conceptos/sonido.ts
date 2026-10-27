@@ -224,4 +224,70 @@ export class SonidoUnaMas {
   cartel() {
     this.t(700, 0.07, 'sine', 0.025);
   }
+
+  // ---------------------------------------------------------------- LA ÚLTIMA (jefe-ultima.ts)
+
+  /** The final boss's theme; the third phase jumps to its faster stretch (the last 32 s of the loop, from 156 s of the file). */
+  musicaJefe(fase: 1 | 3) {
+    if (fase === 1) return this.musica('jefe');
+    if (!hay('unaMasJefe')) return;
+    this.actual = 'jefe';
+    try {
+      this.s?.musica('unaMasJefe' as unknown as Pista, 0.3, { desde: 156, inicio: 156, fin: 188 });
+    } catch {
+      /* no sound is not an error */
+    }
+  }
+
+  /** A deep roar: three growling saws sliding down, a rumble of noise and a wobble on top. */
+  rugido(largo = 1) {
+    const d = 0.9 * largo;
+    this.t(96, d, 'sawtooth', 0.09, 0, 0.5);
+    this.t(71, d, 'square', 0.06, 0.02, 0.55);
+    this.t(48, d * 1.1, 'sine', 0.16, 0, 0.7);
+    for (let i = 0; i < 8; i++) this.t(130 - i * 5, 0.1, 'sawtooth', 0.03, 0.05 + i * 0.1 * largo, 0.8);
+    this.r(d, 0.1, 700);
+  }
+
+  /** Glass: a crack and a shower of glints. */
+  cristal(fuerte = false) {
+    this.r(0.12, fuerte ? 0.14 : 0.08, 6000);
+    const n = fuerte ? 9 : 5;
+    for (let i = 0; i < n; i++) this.t(2200 + ((i * 733) % 3300), 0.12 + (i % 3) * 0.05, i % 2 ? 'sine' : 'triangle', 0.03, i * 0.035, 0.9);
+    if (fuerte) this.t(70, 0.4, 'sine', 0.12, 0, 0.5);
+  }
+
+  /** A bottle cap: a bright little ting. */
+  chapa() {
+    this.t(2100, 0.07, 'triangle', 0.03, 0, 0.7);
+    this.t(3100, 0.05, 'square', 0.012, 0.01, 0.7);
+  }
+
+  /** Beer pouring: a long soft hiss with bubbles. */
+  chorro() {
+    this.r(0.5, 0.045, 2200);
+    for (let i = 0; i < 4; i++) this.t(700 + ((i * 411) % 600), 0.06, 'sine', 0.018, i * 0.1, 1.5);
+  }
+
+  /** The tap bursts: wood, brass and a gush. */
+  barrilRoto() {
+    this.r(0.5, 0.15, 1500);
+    this.t(80, 0.4, 'sine', 0.16, 0, 0.5);
+    this.t(300, 0.25, 'square', 0.05, 0, 0.4);
+    this.cristal();
+  }
+
+  /** The hit that does not hurt it: a dull metallic clang. */
+  clang() {
+    this.t(220, 0.18, 'square', 0.04, 0, 0.8);
+    this.t(1250, 0.2, 'triangle', 0.03, 0, 0.95);
+    this.r(0.05, 0.05, 3000);
+  }
+
+  /** Wobbly belch of the drunk boss. */
+  eructo() {
+    this.t(120, 0.45, 'sawtooth', 0.07, 0, 0.5);
+    this.t(150, 0.35, 'square', 0.03, 0.05, 0.6);
+    this.r(0.3, 0.05, 900);
+  }
 }

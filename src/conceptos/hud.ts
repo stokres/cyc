@@ -95,6 +95,8 @@ export function dibujarHud(ctx: CanvasRenderingContext2D, m: Mundo, arte: Arte, 
     ctx.fillRect(x, y, w * k2, 3);
     ctx.textAlign = 'left';
   }
+  // LA ÚLTIMA's life.
+  m.ultima?.hud(ctx, vw, vh);
   // Notices.
   ctx.textAlign = 'center';
   ctx.font = `700 20px ${CUERPO}`;

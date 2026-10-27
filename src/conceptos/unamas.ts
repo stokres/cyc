@@ -18,6 +18,7 @@ import { cargarArte, soltarArte, type Arte } from './arte';
 import { HABILIDADES, PRIMERA_SALA, SALAS, TILE, type Habilidad, type Sala } from './datos';
 import { crearEntrada } from './entrada';
 import { aplicarPintados, hornearFondo, soltarFondo } from './fondos';
+import { marcarFondoUltima, soltarJefe } from './jefe-ultima';
 import { Mundo } from './mundo';
 import { hornearNivel } from './nivel';
 import { Pintor } from './render';
@@ -236,7 +237,7 @@ export function jugarUnaMas(root: HTMLElement, o: OpcionesUnaMas = {}): Promise<
       if (m.fondo) soltarFondo(m.fondo);
       m.fondo = hornearFondo(s.zona);
     }
-    void aplicarPintados(m.fondo, s.id);
+    void aplicarPintados(m.fondo, s.id).then(() => m.fondo && marcarFondoUltima(m.fondo, !!s.ultima));
     if (zonaNueva || m.zonaActual !== s.zona) {
       m.zonaActual = s.zona;
       m.banner = { titulo: texto(`zona.${s.zona}`), sub: texto(`zona.${s.zona}.sub`), t: 0 };
@@ -317,6 +318,7 @@ export function jugarUnaMas(root: HTMLElement, o: OpcionesUnaMas = {}): Promise<
     if (mundo?.nivel) mundo.nivel.c.width = mundo.nivel.c.height = 0;
     if (mundo?.fondo) soltarFondo(mundo.fondo);
     soltarArte();
+    soltarJefe();
     estilo.remove();
     capa.remove();
     return r;

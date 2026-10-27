@@ -51,7 +51,8 @@ export interface Ambiente {
  * the music's clock, a track loaded in advance, and sounds played once.
  */
 export interface SonidoMinijuego {
-  musica(id: Pista, entra?: number): void;
+  /** `tramo`: plays only this stretch of the track, in a loop (seconds of the file; the track's own loop is ignored). */
+  musica(id: Pista, entra?: number, tramo?: { desde: number; inicio: number; fin: number }): void;
   pararMusica(fundido?: number): void;
   /** For a game of several rounds: while held, stopping the music does not bring the scene's back (`Sound` has it, a stand-in may not). */
   retener?(si: boolean): void;
@@ -140,12 +141,12 @@ export class Sound {
    * A minigame's music: plays alone, in a loop, until pararMusica(). It fades in over
    * `entra` seconds; 0 starts it at full blast (the trailer's first hit).
    */
-  musica(id: Pista, entra = 0.5) {
+  musica(id: Pista, entra = 0.5, tramo?: { desde: number; inicio: number; fin: number }) {
     this.primerPlano = id;
-    for (const c of [...this.capas.values()]) if (c.id !== id) this.callar(c.id, 0.4);
+    for (const c of [...this.capas.values()]) if (c.id !== id || tramo) this.callar(c.id, 0.4);
     const c = this.capas.get(id);
     if (c) this.ajustar(c, 1, 0, true);
-    else this.reproducir(id, 1, 0, entra);
+    else this.reproducir(id, 1, 0, entra, tramo);
   }
 
   /**
@@ -318,7 +319,7 @@ export class Sound {
   }
 
   /** Fades this track in, in a loop, once it has loaded — unless it was dropped meanwhile. */
-  private reproducir(id: Pista, volumen: number, pan: number, entra = 0.5) {
+  private reproducir(id: Pista, volumen: number, pan: number, entra = 0.5, tramo?: { desde: number; inicio: number; fin: number }) {
     const ac = this.ac;
     if (!ac || !this.bus) return;
     const capa: Capa = { id, src: null, g: null, pan: null, volumen, panActual: pan, cambio: 0, cero: 0 };
@@ -329,8 +330,8 @@ export class Sound {
       const src = ac.createBufferSource();
       src.buffer = buf;
       src.loop = true;
-      src.loopStart = pista.inicio;
-      src.loopEnd = Math.min(pista.fin, buf.duration);
+      src.loopStart = tramo?.inicio ?? pista.inicio;
+      src.loopEnd = Math.min(tramo?.fin ?? pista.fin, buf.duration);
       const g = ac.createGain();
       const t = ac.currentTime;
       if (entra > 0) {
@@ -342,7 +343,7 @@ export class Sound {
         p.pan.value = capa.panActual;
         src.connect(g).connect(p).connect(this.bus);
       } else src.connect(g).connect(this.bus);
-      const desde = 'entrada' in pista ? pista.entrada : pista.inicio;
+      const desde = tramo?.desde ?? ('entrada' in pista ? pista.entrada : pista.inicio);
       src.start(t, desde);
       Object.assign(capa, { src, g, pan: p, cero: t - desde });
     });
