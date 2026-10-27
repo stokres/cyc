@@ -33,24 +33,28 @@ cartel.atacar.tactil = Jarrazo: botón de atacar
 cartel.pinchos = Los pinchos duelen. Salta por encima
 cartel.barra.pc = Las barras de bar guardan la partida y rellenan la jarra
 cartel.barra.tactil = Las barras de bar guardan la partida y rellenan la jarra
-cartel.cierzo.pc = Cierzo: Espacio otra vez en el aire
-cartel.cierzo.tactil = Cierzo: toca saltar otra vez en el aire
+cartel.cierzo.pc = Cierzo: pulsa Espacio otra vez en el aire
+cartel.cierzo.tactil = Cierzo: pulsa Saltar otra vez en el aire
+cartel.alto.pc = Esa repisa queda muy alta. Ya volverás
+cartel.alto.tactil = Esa repisa queda muy alta. Ya volverás
+cartel.chuchi.pc = Con el jarrazo normal (Z o J), los NO se rompen
+cartel.chuchi.tactil = Con el jarrazo normal, los NO se rompen
+cartel.pablo.pc = Contra una pared, Espacio te impulsa
+cartel.pablo.tactil = Contra una pared, Saltar te impulsa
 
 // ---------------------------------------------------------------- quién habla
 
 nombre.fran = Fran
 nombre.guille = Guille
+nombre.chuchi = Chuchi
+nombre.pablo = Pablo
 
 // ---------------------------------------------------------------- controles (los rótulos de los botones y de la ayuda de PC)
 
 mando.saltar = Saltar
 mando.atacar = Jarrazo
-mando.habilidad = Cierzo
-mando.habilidad.teclazo = Teclazo
-mando.habilidad.mutis = Mutis
 mando.tecla.saltar = Espacio
 mando.tecla.atacar = Z
-mando.tecla.habilidad = X
 
 // ---------------------------------------------------------------- avisos
 
@@ -59,6 +63,7 @@ aviso.jarra = La jarra, rellena
 aviso.sorbo = Un sorbo más en la jarra
 aviso.jarraMas = ¡La jarra crece un sorbo!
 aviso.pinchos = ¡Ay! Pinchos
+aviso.secreto = ¡Un muro falso! Había un hueco detrás
 muerte.texto = Una más…
 jefe.gran = El Gran Despertador
 jefe.gran.sub = A las tantas, ni se te ocurra
@@ -66,11 +71,11 @@ jefe.gran.sub = A las tantas, ni se te ocurra
 // ---------------------------------------------------------------- habilidades
 
 habilidad.cierzo = CIERZO
-habilidad.cierzo.texto = Un viento mañico: salta otra vez en el aire
+habilidad.cierzo.texto = Un viento mañico, siempre activo: pulsa saltar otra vez en el aire y te da un segundo salto
 habilidad.teclazo = TECLAZO
-habilidad.teclazo.texto = Mantén atacar y suelta: rompe los bloques de NO
-habilidad.mutis = MUTIS POR EL FORO
-habilidad.mutis.texto = Un acelerón invulnerable que atraviesa telones
+habilidad.teclazo.texto = Siempre activo: tu jarrazo normal rompe los bloques de NO
+habilidad.pared = SALTO DE PARED
+habilidad.pared.texto = Siempre activo: desliza por las paredes y salta contra ellas para impulsarte
 habilidad.nueva = Habilidad conseguida
 habilidad.nueva.tocar = Toca para seguir
 
@@ -80,8 +85,10 @@ pausa.titulo = Pausa
 pausa.continuar = Continuar
 pausa.saltar = Saltar «Una más»
 pausa.salir = Salir
+mapa.titulo = Mapa
+mapa.aqui = Estás aquí
 fin.titulo = Y por ahora, hasta aquí
-fin.texto = Fran tiene a Guille y el Cierzo. Faltan Chuchi y Pablo: la Bandeja de Entrada y el Teatro de los Conceptos llegan en la próxima entrega.
+fin.texto = Fran tiene a Guille en la jarra y el Cierzo. Faltan Chuchi y Pablo: la Bandeja de Entrada y el Teatro de los Conceptos llegan en la próxima entrega.
 fin.boton = Terminar
 cargando = Despertando en el mundo de los conceptos…
 
@@ -122,11 +129,20 @@ FRAN (contento): Pues no te muevas, que te saco.
 ## guille.despues
 GUILLE (contento): ¡Libre! Tengo el curso oficial de guía de safari y aun así me ha comido una flor. Cuarenta horas, Fran.
 FRAN: Lo importante es que estás vivo.
-GUILLE (chulo): Toma, un regalo del jardín: el Cierzo. Un viento mañico que te da otro salto en el aire.
-FRAN (contento): ¿Y tú qué haces?
-GUILLE: Yo te sigo. Y no, no se lo contamos a Chuchi.
+GUILLE (chulo): Toma, un regalo del jardín: el Cierzo. Pulsa saltar otra vez en el aire y te da otro salto.
+FRAN (contento): ¿Y tú, por dónde vas?
+GUILLE: Yo me meto en tu jarra, que ahí me conozco el terreno. Y no, no se lo contamos a Chuchi.
+> Guille se encoge y se zambulle en la cerveza de Fran.
 
-## guille.sigue
-GUILLE: Ahí arriba hay una salida. Con el Cierzo llegas de sobra.
+## comenta.guille
+GUILLE: Desde aquí arriba se ve todo. Y huele a malta.
 ---
-GUILLE: Cuando quieras, guía. Que yo ya llevo el chaleco.
+GUILLE: Esto es un ecosistema, Fran. Con espuma.
+---
+GUILLE: Cuarenta horas de curso y nadie me pregunta por los relojes.
+---
+GUILLE: Aquí dentro se está calentito. No saltes tan fuerte, ¿eh?
+---
+GUILLE: En Zaragoza este bar cerraría a las tres.
+---
+GUILLE: Si ves un elefante, es una jirafa con el cuello cerca.

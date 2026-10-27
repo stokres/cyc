@@ -48,7 +48,7 @@ function sombreado(ctx: CanvasRenderingContext2D, t: string, x: number, y: numbe
   ctx.fillText(t, x, y);
 }
 
-const ICONO: Record<Habilidad, 'iconoCierzo' | 'iconoTeclazo' | 'iconoMutis'> = { cierzo: 'iconoCierzo', teclazo: 'iconoTeclazo', mutis: 'iconoMutis' };
+const ICONO: Record<Habilidad, 'iconoCierzo' | 'iconoTeclazo' | 'iconoPared'> = { cierzo: 'iconoCierzo', teclazo: 'iconoTeclazo', pared: 'iconoPared' };
 
 /** Everything that sits over the game: sips, skills, boss bar, notices, banners. */
 export function dibujarHud(ctx: CanvasRenderingContext2D, m: Mundo, arte: Arte, vw: number, vh: number, t: number) {

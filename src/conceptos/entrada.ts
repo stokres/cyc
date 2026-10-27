@@ -1,6 +1,7 @@
 // Controls of «Una más» (docs/JUGABILIDAD.md): on the left, ← → (one pad: the thumb can slide from one to the other); on the right, jump, attack and
-// (once you have a skill) the skill button. The keyboard works at the same time and its keys are shown on the buttons on a computer:
-// arrows or A/D, Space to jump, Z or J to attack, X or K for the skill, Esc or P to pause. Everything writes into one `Mandos`.
+// nothing else: the skills are automatic (double jump on jumping again in the air, ...), so there is no skill button. The keyboard works at the
+// same time and its keys are shown on the buttons on a computer: arrows or A/D, Space to jump, Z or J to attack, Esc or P to pause.
+// Everything writes into one `Mandos`.
 import { texto } from '../juego/textos';
 
 export interface Mandos {
@@ -9,11 +10,9 @@ export interface Mandos {
   abajo: boolean;
   saltar: boolean;
   atacar: boolean;
-  hab: boolean;
   /** Presses the game has not taken yet (each is consumed by `tomar`). */
   saltarP: boolean;
   atacarP: boolean;
-  habP: boolean;
   pausaP: boolean;
   /** A tap on the screen itself (advances the talk). */
   tocarP: boolean;
@@ -23,11 +22,9 @@ export interface Entrada {
   mandos: Mandos;
   /** Shows or hides the touch buttons (hidden in talks and cut-scenes). */
   mostrar(si: boolean): void;
-  /** The skill button appears with the first skill. */
-  habilidad(etiqueta: string | null): void;
   soltarTodo(): void;
   /** Takes a pending press: true once. */
-  tomar(k: 'saltarP' | 'atacarP' | 'habP' | 'pausaP' | 'tocarP'): boolean;
+  tomar(k: 'saltarP' | 'atacarP' | 'pausaP' | 'tocarP'): boolean;
   destruir(): void;
 }
 
@@ -42,23 +39,19 @@ const CSS = `
 .um-pad>div.um-on{background:rgba(201,162,74,.6)}
 .um-saltar{right:var(--mr);bottom:var(--mb);width:calc(var(--b) * 1.22);height:calc(var(--b) * 1.22)}
 .um-atacar{right:calc(var(--mr) + var(--b) * 1.22 + 12px);bottom:var(--mb);width:var(--b);height:var(--b)}
-.um-hab{right:calc(var(--mr) + var(--b) * 0.55);bottom:calc(var(--mb) + var(--b) * 1.22 + 10px);width:calc(var(--b) * 0.9);height:calc(var(--b) * 0.9);border-color:#46e0d0}
-.um-hab.um-on{background:rgba(70,224,208,.55)}
 .um-oculto .um-ctl{display:none}
-.um-hab[hidden]{display:none}
 `;
 
 export function crearEntrada(raiz: HTMLElement): Entrada {
-  const mandos: Mandos = { izq: false, der: false, abajo: false, saltar: false, atacar: false, hab: false, saltarP: false, atacarP: false, habP: false, pausaP: false, tocarP: false };
+  const mandos: Mandos = { izq: false, der: false, abajo: false, saltar: false, atacar: false, saltarP: false, atacarP: false, pausaP: false, tocarP: false };
   const teclas = new Set<string>();
-  const tactil = { izq: false, der: false, saltar: false, atacar: false, hab: false };
+  const tactil = { izq: false, der: false, saltar: false, atacar: false };
   const sumar = () => {
     mandos.izq = tactil.izq || teclas.has('izq');
     mandos.der = tactil.der || teclas.has('der');
     mandos.abajo = teclas.has('abajo');
     mandos.saltar = tactil.saltar || teclas.has('saltar');
     mandos.atacar = tactil.atacar || teclas.has('atacar');
-    mandos.hab = tactil.hab || teclas.has('hab');
   };
 
   const estilo = document.createElement('style');
@@ -115,7 +108,7 @@ export function crearEntrada(raiz: HTMLElement): Entrada {
 
   // ---- the buttons on the right
   const tecla = (k: string) => (k.length === 1 ? k : k);
-  const boton = (clase: string, etiqueta: string, clave: string, k: 'saltar' | 'atacar' | 'hab', pulsa: 'saltarP' | 'atacarP' | 'habP') => {
+  const boton = (clase: string, etiqueta: string, clave: string, k: 'saltar' | 'atacar', pulsa: 'saltarP' | 'atacarP') => {
     const b = caja(`um-ctl ${clase}`, `${etiqueta}<small>${tecla(clave)}</small>`);
     const dedosB = new Set<number>();
     const pon = () => {
@@ -145,13 +138,11 @@ export function crearEntrada(raiz: HTMLElement): Entrada {
   };
   boton('um-saltar', texto('mando.saltar'), texto('mando.tecla.saltar'), 'saltar', 'saltarP');
   boton('um-atacar', texto('mando.atacar'), texto('mando.tecla.atacar'), 'atacar', 'atacarP');
-  const hab = boton('um-hab', texto('mando.habilidad'), texto('mando.tecla.habilidad'), 'hab', 'habP');
-  hab.hidden = true;
 
   // ---- the keyboard
   const MAPA: Record<string, string> = {
     ArrowLeft: 'izq', KeyA: 'izq', ArrowRight: 'der', KeyD: 'der', ArrowDown: 'abajo', KeyS: 'abajo',
-    Space: 'saltar', ArrowUp: 'saltar', KeyW: 'saltar', KeyZ: 'atacar', KeyJ: 'atacar', KeyX: 'hab', KeyK: 'hab',
+    Space: 'saltar', ArrowUp: 'saltar', KeyW: 'saltar', KeyZ: 'atacar', KeyJ: 'atacar',
   };
   const abajo = (e: KeyboardEvent) => {
     if (e.code === 'Escape' || e.code === 'KeyP') {
@@ -166,8 +157,7 @@ export function crearEntrada(raiz: HTMLElement): Entrada {
     teclas.add(k);
     if (k === 'saltar') mandos.saltarP = true;
     if (k === 'atacar') mandos.atacarP = true;
-    if (k === 'hab') mandos.habP = true;
-    if (k === 'saltar' || k === 'atacar' || k === 'hab') mandos.tocarP = true;
+    if (k === 'saltar' || k === 'atacar') mandos.tocarP = true;
     sumar();
   };
   const arriba = (e: KeyboardEvent) => {
@@ -180,10 +170,10 @@ export function crearEntrada(raiz: HTMLElement): Entrada {
   const soltarTodo = () => {
     teclas.clear();
     dedos.clear();
-    tactil.saltar = tactil.atacar = tactil.hab = false;
+    tactil.saltar = tactil.atacar = false;
     for (const b of capa.querySelectorAll('.um-on')) b.classList.remove('um-on');
     leer();
-    mandos.saltarP = mandos.atacarP = mandos.habP = mandos.pausaP = mandos.tocarP = false;
+    mandos.saltarP = mandos.atacarP = mandos.pausaP = mandos.tocarP = false;
     sumar();
   };
   const alOcultar = () => {
@@ -205,10 +195,6 @@ export function crearEntrada(raiz: HTMLElement): Entrada {
   return {
     mandos,
     mostrar: (si) => raiz.classList.toggle('um-oculto', !si),
-    habilidad(etiqueta) {
-      hab.hidden = etiqueta === null;
-      if (etiqueta !== null) hab.firstChild!.textContent = etiqueta;
-    },
     soltarTodo,
     tomar(k) {
       const v = mandos[k];

@@ -151,7 +151,16 @@ export function iconoTeclazo() {
     + bloque(redondo([[-22, -20], [22, -20], [22, 14], [-22, 14]], 7), '#d9d4f0', [], { luz: 0.3, sombra: -0.15 }) + relleno(poli([[4, -14], [-12, 4], [-2, 4], [-6, 14], [12, -4], [2, -4]]), '#ff4f6a'));
 }
 
-/** Mutis por el foro: un telón rojo recogido con un lazo dorado. */
+/** Salto de pared: dos muros y una flecha en zigzag que rebota entre ellos. */
+export function iconoPared() {
+  const c = '#ff9f5a';
+  return ICONO(circ(0, 0, 44, '#2a1250', 0.8)
+    + bloque(redondo([[-34, -30], [-22, -30], [-22, 30], [-34, 30]], 3), '#8a6ad0', [], { luz: 0.3, sombra: -0.3 })
+    + bloque(redondo([[22, -30], [34, -30], [34, 30], [22, 30]], 3), '#8a6ad0', [], { luz: 0.3, sombra: -0.3 })
+    + tubo('M-16 26L16 10L-16 -6L12 -22', c, 7) + relleno(poli([[4, -32], [24, -26], [10, -12]]), tono(c, 0.2)));
+}
+
+/** Mutis por el foro: un telón rojo recogido con un lazo dorado (sin uso: queda para otra entrega). */
 export function iconoMutis() {
   return ICONO(circ(0, 0, 44, '#2a1250', 0.8) + bloque(curva([[-32, -30, 'c'], [0, -34, 'c'], [-8, 0], [-18, 30, 'c'], [-34, 30, 'c'], [-34, 0]]), '#d83a4a', [[poli([[-32, -30], [-10, -30], [-18, 30], [-34, 30]]), 'luz', 0.2]], { luz: 0.3, sombra: -0.4 })
     + bloque(curva([[32, -30, 'c'], [0, -34, 'c'], [8, 0], [18, 30, 'c'], [34, 30, 'c'], [34, 0]]), '#b82a3a', [[poli([[32, -30], [10, -30], [18, 30], [34, 30]]), 'osc', 0.25]], { luz: 0.3, sombra: -0.4 })

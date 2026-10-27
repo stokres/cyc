@@ -4,14 +4,17 @@
 //
 // Tile legend (the grid):
 //   .  empty        #  solid        =  one-way platform (jump up through it, drop down with ↓)
-//   ^  spikes       N  «NO» block (breaks with the Teclazo)       T  stage curtain (only the Mutis goes through)
+//   ^  spikes       N  «NO» block (breaks with the jarrazo once Chuchi's skill is earned)       T  stage curtain
+//   F  false wall: it looks like ground, but Fran walks through it (and finds a hidden chamber)
 //   X  gate (closed by a fight; the grid is changed live, never stored here)
 // What stands on the ground is put with `Plano.pon(col, fila, tipo)` (the tile it stands IN; its feet are at the bottom of that tile).
 
 export const TILE = 48;
 
 export type TipoEnemigo = 'despertador' | 'reloj' | 'gran';
-export type Habilidad = 'cierzo' | 'teclazo' | 'mutis';
+/** The skills are automatic. Guille: Cierzo (double jump). Chuchi: Teclazo (the jarrazo breaks «NO» blocks). Pablo: wall jump (`pared`). */
+export type Habilidad = 'cierzo' | 'teclazo' | 'pared';
+export type Amigo = 'guille' | 'chuchi' | 'pablo';
 export type Material = 'recibidor' | 'jardin' | 'bandeja' | 'teatro' | 'grifo';
 
 export interface Salida {
@@ -57,9 +60,27 @@ export interface Sala {
   sorbos: { col: number; fila: number; id: string }[];
   /** The fight room: where the boss stands, the column that starts it and the gate columns (rows 7..9 are closed). */
   jefe?: { col: number; fila: number; disparo: number; puertas: number[] };
-  flor?: { col: number; fila: number };
+  flor?: { col: number; fila: number; quien: Amigo };
+  /** Slabs that move or fall. */
+  plataformas: PlataformaDef[];
+  /** Where the room sits on the pause map (in tiles). */
+  mapa: { x: number; y: number };
   /** Where the player starts when the game begins in this room. */
   inicio: { col: number; fila: number };
+}
+
+/**
+ * A slab that is not part of the grid. `mueve`: slides `d` tiles to the right and back; `sube`: rises `d` tiles and back down; `cae`: falls shortly
+ * after being stepped on and comes back. `col`, `fila`: its left end and its top surface; `per`: seconds for a whole trip.
+ */
+export interface PlataformaDef {
+  id: string;
+  tipo: 'mueve' | 'sube' | 'cae';
+  col: number;
+  fila: number;
+  ancho: number;
+  d: number;
+  per: number;
 }
 
 export type Zona = 'recibidor' | 'jardin' | 'bandeja' | 'teatro' | 'grifo';
@@ -73,7 +94,10 @@ export const ZONAS: Record<Zona, { numero: number; material: Material }> = {
 };
 
 /** The skills, in the order they are earned (docs: conceptos-metroidvania.md). */
-export const HABILIDADES: Habilidad[] = ['cierzo', 'teclazo', 'mutis'];
+export const HABILIDADES: Habilidad[] = ['cierzo', 'teclazo', 'pared'];
+
+/** Which friend gives which skill. */
+export const DON: Record<Amigo, Habilidad> = { guille: 'cierzo', chuchi: 'teclazo', pablo: 'pared' };
 
 // ---------------------------------------------------------------- the builder
 
@@ -87,6 +111,8 @@ class Plano {
   sorbos: Sala['sorbos'] = [];
   jefe?: Sala['jefe'];
   flor?: Sala['flor'];
+  plataformas: PlataformaDef[] = [];
+  mapaXY = { x: 0, y: 0 };
   inicio = { col: 3, fila: 9 };
 
   constructor(
@@ -148,6 +174,22 @@ class Plano {
     return this;
   }
 
+  /** A slab outside the grid (see `PlataformaDef`). */
+  plat(tipo: PlataformaDef['tipo'], col: number, fila: number, ancho: number, d = 0, per = 4) {
+    this.plataformas.push({ id: `${this.id}.plat.${this.plataformas.length}`, tipo, col, fila, ancho, d, per });
+    return this;
+  }
+
+  /** A false wall over the tiles: looks like ground, can be walked through. */
+  falso(c: number, f: number, w: number, h: number) {
+    return this.rect(c, f, w, h, 'F');
+  }
+
+  mapa(x: number, y: number) {
+    this.mapaXY = { x, y };
+    return this;
+  }
+
   puerta(p: Puerta) {
     this.puertas.push(p);
     return this;
@@ -168,47 +210,68 @@ class Plano {
       sorbos: this.sorbos,
       jefe: this.jefe,
       flor: this.flor,
+      plataformas: this.plataformas,
+      mapa: this.mapaXY,
       inicio: this.inicio,
     };
   }
 }
 
-// ---------------------------------------------------------------- zone 1: El Recibidor (tutorial)
+// ---------------------------------------------------------------- zone 1: El Recibidor (tutorial, then a small loop)
+//
+//   recibidor-1 ── recibidor-2 ──(low)── recibidor-3 ──(top door)── jardin-1
+//                       └─(up)── recibidor-4 ──(low)──┘
+// Two ways cross between the hall and the climb: the low one (pits and falling slabs) and the high one (ledges, then moving slabs over spikes).
+// The high ledge of recibidor-1 is seen from the very start and cannot be reached until the Cierzo: coming back for it is the backtracking.
 
-/** Walk, jump a pit, the first alarm clock. */
+/** Walk, jump a pit, the first alarm clock, and a ledge too high to reach for now. */
 function recibidor1() {
   const p = new Plano('recibidor-1', 'recibidor', 36, 12, 10);
+  p.mapa(0, 6);
   p.inicio = { col: 3, fila: 9 };
   p.foso(15, 18);
-  p.salida('der', 7, 9, 'recibidor-2', 2, 9);
-  p.cartel(5, 9, 'cartel.andar').cartel(12, 9, 'cartel.saltar').cartel(21, 9, 'cartel.atacar');
+  p.salida('der', 7, 9, 'recibidor-2', 2, 11);
+  p.cartel(6, 9, 'cartel.andar').cartel(2, 9, 'cartel.alto').cartel(12, 9, 'cartel.saltar').cartel(21, 9, 'cartel.atacar');
   p.lista(29, 33, 7);
   p.enemigo('despertador', 27, 9);
+  // Five tiles above the floor: only the double jump gets there.
+  p.lista(1, 5, 5);
+  p.sorbo(3, 4);
   return p.hecho();
 }
 
-/** More alarm clocks, a pit, a ledge stair to a sip, and the first bar. */
+/** The hall: a pit, a falling-slab bridge, and a stair of ledges to the high way. */
 function recibidor2() {
-  const p = new Plano('recibidor-2', 'recibidor', 46, 12, 10);
-  p.salida('izq', 7, 9, 'recibidor-1', 33, 9);
-  p.salida('der', 7, 9, 'recibidor-3', 2, 12);
-  p.lista(8, 12, 7);
-  p.lista(17, 21, 8);
-  p.foso(24, 26);
-  p.enemigo('despertador', 15, 9);
-  p.enemigo('despertador', 30, 9);
-  p.enemigo('despertador', 20, 7);
-  p.lista(33, 35, 8).lista(37, 40, 6);
-  p.sorbo(38, 5);
-  p.barra(43, 9);
-  p.cartel(40, 9, 'cartel.barra');
+  const p = new Plano('recibidor-2', 'recibidor', 48, 14, 12);
+  p.mapa(36, 4);
+  p.salida('izq', 9, 11, 'recibidor-1', 33, 9);
+  p.salida('der', 9, 11, 'recibidor-3', 2, 12);
+  p.salida('der', 3, 5, 'recibidor-4', 2, 9);
+  p.foso(9, 11);
+  p.enemigo('despertador', 6, 11);
+  p.enemigo('despertador', 17, 11);
+  // The high way: a stair of ledges, the way out at the far end.
+  p.lista(13, 16, 10).lista(18, 21, 8).lista(23, 27, 6).lista(29, 32, 5).lista(34, 38, 4).lista(41, 46, 6);
+  p.enemigo('despertador', 25, 5);
+  // The low way: a six-tile pit crossed by two slabs that fall when stepped on.
+  p.foso(24, 29);
+  p.plat('cae', 25, 11, 2).plat('cae', 28, 11, 2);
+  p.enemigo('despertador', 33, 11);
+  p.enemigo('despertador', 39, 11);
+  // The sip of the first lesson: ledges above the low way.
+  p.lista(33, 35, 10).lista(37, 41, 8);
+  p.sorbo(39, 7);
+  p.barra(44, 11);
+  p.cartel(42, 11, 'cartel.barra');
   return p.hecho();
 }
 
 /** A climb, three alarm clocks, and the door to the garden at the top. */
 function recibidor3() {
   const p = new Plano('recibidor-3', 'recibidor', 30, 15, 13);
-  p.salida('izq', 10, 12, 'recibidor-2', 43, 9);
+  p.mapa(84, 0);
+  p.salida('izq', 10, 12, 'recibidor-2', 45, 11);
+  p.salida('der', 10, 12, 'recibidor-4', 37, 9);
   p.lista(3, 8, 11).lista(11, 16, 9).lista(19, 24, 7).lista(11, 16, 5).lista(19, 28, 3);
   p.enemigo('despertador', 14, 8);
   p.enemigo('despertador', 22, 6);
@@ -217,14 +280,35 @@ function recibidor3() {
   return p.hecho();
 }
 
-// ---------------------------------------------------------------- zone 2: El Jardín del Cierzo
+/** The coat rack: moving slabs over a sea of spikes. */
+function recibidor4() {
+  const p = new Plano('recibidor-4', 'recibidor', 40, 12, 10);
+  p.mapa(40, 18);
+  p.salida('izq', 7, 9, 'recibidor-2', 44, 5);
+  p.salida('der', 7, 9, 'recibidor-3', 27, 12);
+  p.foso(8, 31);
+  p.enemigo('despertador', 4, 9);
+  p.plat('mueve', 9, 9, 3, 6, 4.5);
+  p.lista(19, 22, 8);
+  p.enemigo('reloj', 20, 7);
+  p.plat('sube', 24, 9, 3, 3, 4);
+  p.lista(27, 30, 6);
+  p.enemigo('despertador', 35, 9);
+  p.barra(34, 9);
+  return p.hecho();
+}
 
-/** The way in: a bar right away, clocks of «las tantas» with their puddles. */
+// ---------------------------------------------------------------- zone 2: El Jardín del Cierzo
+//
+//   jardin-1 ── jardin-1b ── jardin-2 ── jardin-3 (boss) ── jardin-4 (Guille) ── jardin-5 (double-jump gauntlet)
+
+/** The way in: a bar right away, clocks of «las tantas» with their puddles, and a chain of falling slabs to a sip. */
 function jardin1() {
   const p = new Plano('jardin-1', 'jardin', 52, 12, 10);
+  p.mapa(0, 40);
   p.inicio = { col: 4, fila: 9 };
   p.puerta({ col: 1, fila: 9, sala: 'recibidor-3', col2: 25, fila2: 2 });
-  p.salida('der', 7, 9, 'jardin-2', 2, 13);
+  p.salida('der', 7, 9, 'jardin-1b', 2, 11);
   p.barra(7, 9);
   p.enemigo('reloj', 17, 9);
   p.foso(24, 27);
@@ -232,13 +316,38 @@ function jardin1() {
   p.enemigo('reloj', 36, 9);
   p.lista(40, 44, 8);
   p.enemigo('despertador', 46, 9);
+  // The sip up in the leaves: slabs that fall as soon as they are stepped on, a ledge at the top.
+  p.plat('cae', 30, 8, 2).plat('cae', 33, 6, 2).plat('cae', 36, 4, 2);
+  p.lista(39, 46, 3);
+  p.sorbo(42, 2);
   return p.hecho();
 }
 
-/** A tall garden: ledges up through hanging clocks to the boss door. */
+/** The terraces: an elevator, ledges, falling and sliding slabs over a pit of spikes. */
+function jardin1b() {
+  const p = new Plano('jardin-1b', 'jardin', 48, 14, 12);
+  p.mapa(52, 38);
+  p.salida('izq', 9, 11, 'jardin-1', 49, 9);
+  p.salida('der', 9, 11, 'jardin-2', 2, 13);
+  p.foso(9, 43);
+  p.enemigo('despertador', 5, 11);
+  p.plat('sube', 9, 11, 3, 5, 5);
+  p.lista(13, 17, 6);
+  p.enemigo('reloj', 15, 5);
+  p.plat('cae', 19, 6, 2).plat('cae', 22, 6, 2);
+  p.plat('mueve', 25, 6, 3, 6, 5);
+  p.lista(36, 40, 5);
+  p.enemigo('despertador', 38, 4);
+  p.lista(42, 44, 7);
+  p.barra(45, 11);
+  return p.hecho();
+}
+
+/** A tall garden: ledges up through hanging clocks to the boss door, and a hidden chamber behind a false wall. */
 function jardin2() {
   const p = new Plano('jardin-2', 'jardin', 40, 16, 14);
-  p.salida('izq', 11, 13, 'jardin-1', 49, 9);
+  p.mapa(100, 34);
+  p.salida('izq', 11, 13, 'jardin-1b', 45, 11);
   p.foso(13, 17);
   p.lista(4, 9, 12).lista(12, 17, 10).lista(20, 25, 8).lista(28, 33, 6);
   p.rect(34, 4, 6, 1, '#');
@@ -246,15 +355,21 @@ function jardin2() {
   p.enemigo('reloj', 7, 11);
   p.enemigo('despertador', 15, 9);
   p.enemigo('reloj', 23, 7);
-  p.enemigo('reloj', 30, 13);
+  p.enemigo('reloj', 27, 13);
   p.enemigo('despertador', 22, 13);
   p.barra(36, 3);
+  // The hidden chamber: a block of ground whose first two columns are a false wall.
+  p.rect(31, 10, 8, 4, '#');
+  p.rect(33, 12, 5, 2, '.');
+  p.falso(31, 12, 2, 2);
+  p.sorbo(35, 13);
   return p.hecho();
 }
 
 /** The Gran Despertador's arena. */
 function jardin3() {
   const p = new Plano('jardin-3', 'jardin', 26, 12, 10);
+  p.mapa(140, 40);
   p.salida('izq', 7, 9, 'jardin-2', 38, 3);
   p.salida('der', 7, 9, 'jardin-4', 2, 10);
   p.lista(4, 7, 7).lista(18, 21, 7);
@@ -265,10 +380,11 @@ function jardin3() {
 /** Guille's flower, and the exit that only the Cierzo reaches. */
 function jardin4() {
   const p = new Plano('jardin-4', 'jardin', 30, 13, 11);
+  p.mapa(166, 40);
   p.salida('izq', 8, 10, 'jardin-3', 24, 9);
   p.rect(24, 6, 6, 7, '#');
   p.salida('der', 3, 5, 'jardin-5', 2, 5);
-  p.flor = { col: 11, fila: 10 };
+  p.flor = { col: 11, fila: 10, quien: 'guille' };
   p.cartel(19, 10, 'cartel.cierzo');
   return p.hecho();
 }
@@ -276,6 +392,7 @@ function jardin4() {
 /** The double jump gauntlet: islands five tiles apart over spikes. */
 function jardin5() {
   const p = new Plano('jardin-5', 'jardin', 52, 14, 13);
+  p.mapa(196, 38);
   // The floor is a sea of spikes: no solid ground at all.
   p.rect(1, 13, 50, 1, '^');
   const isla = (c0: number, c1: number, top: number) => p.rect(c0, top, c1 - c0 + 1, 3, '#');
@@ -294,7 +411,7 @@ function jardin5() {
 }
 
 export const SALAS: Record<string, Sala> = {};
-for (const s of [recibidor1(), recibidor2(), recibidor3(), jardin1(), jardin2(), jardin3(), jardin4(), jardin5()]) {
+for (const s of [recibidor1(), recibidor2(), recibidor3(), recibidor4(), jardin1(), jardin1b(), jardin2(), jardin3(), jardin4(), jardin5()]) {
   for (const f of s.filas) if (f.length !== s.cols) console.error(`[una más] ${s.id}: una fila mide ${f.length} y no ${s.cols}`);
   SALAS[s.id] = s;
 }

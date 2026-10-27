@@ -4,7 +4,7 @@
 //
 // A minigame like src/kart/ and src/sol/: its own cover (`.cubierta.minijuego`) and loop (never above 60 fps), the pause menu with «Saltar»,
 // and it ends with 'hecho' (the delivery's last door), 'saltado' or 'cancelado'. Not hooked into chapter 2 yet: it only opens with `?unamas`
-// (`&zona=1|2`, `&sala=id`, `&habs=cierzo,teclazo,mutis`, `&fondos=0` for the baked backgrounds). `window.__unamas()` counts frames and gives
+// (`&zona=1|2`, `&sala=id`, `&habs=cierzo,teclazo,pared`, `&fondos=0` for the baked backgrounds). `window.__unamas()` counts frames and gives
 // the tests a hand.
 //
 // Performance (docs/ESTILO.md T5/T6): the backgrounds, the tiles, the characters' frames and the sprites are baked once; a frame is a few dozen
@@ -53,7 +53,7 @@ export interface GanchoUnaMas {
   /** What lies ahead of Fran at `dx` units: ground under it, a wall in front. */
   mirar(dx: number): { suelo: boolean; muro: boolean };
   /** Pretends the controls. */
-  tecla(k: 'izq' | 'der' | 'abajo' | 'saltar' | 'atacar' | 'hab', pulsada: boolean): void;
+  tecla(k: 'izq' | 'der' | 'abajo' | 'saltar' | 'atacar', pulsada: boolean): void;
   /** Takes the dialogue one step on. */
   tocar(): void;
 }
@@ -67,7 +67,34 @@ const CSS = `
 .minijuego.unamas .um-pausa{z-index:12}
 .um-pausa .tarjeta{display:flex;flex-direction:column;gap:12px;align-items:stretch;min-width:min(340px,80vw)}
 .um-pausa .tarjeta h2{margin:0 0 4px}
+.minijuego.unamas .um-mapa{position:static;inset:auto;flex:none;width:100%;aspect-ratio:560/105;height:auto;background:rgba(10,4,26,.6);border-radius:10px;display:block}
 `;
+
+/** The pause map: a box per room already walked into, where it sits in the world, the one Fran is in lit up. */
+function dibujarMapa(c: HTMLCanvasElement, m: Mundo) {
+  const x = c.getContext('2d')!;
+  x.clearRect(0, 0, c.width, c.height);
+  const salas = [...m.visitadas].map((id) => SALAS[id]).filter(Boolean);
+  if (!salas.length) return;
+  const x0 = Math.min(...salas.map((s) => s.mapa.x));
+  const y0 = Math.min(...salas.map((s) => s.mapa.y));
+  const x1 = Math.max(...salas.map((s) => s.mapa.x + s.cols));
+  const y1 = Math.max(...salas.map((s) => s.mapa.y + s.rows));
+  const k = Math.min(2.6, (c.width - 40) / (x1 - x0), (c.height - 40) / (y1 - y0));
+  const ox = (c.width - (x1 - x0) * k) / 2 - x0 * k;
+  const oy = (c.height - (y1 - y0) * k) / 2 - y0 * k;
+  const color: Record<string, string> = { recibidor: '#e0706a', jardin: '#4cc27a', bandeja: '#9a96e0', teatro: '#d8506a', grifo: '#ffd070' };
+  for (const s of salas) {
+    const aqui = s.id === m.sala.id;
+    x.fillStyle = color[s.zona] ?? '#bbb';
+    x.globalAlpha = aqui ? 1 : 0.45;
+    x.fillRect(ox + s.mapa.x * k, oy + s.mapa.y * k, s.cols * k, s.rows * k);
+    x.globalAlpha = 1;
+    x.strokeStyle = aqui ? '#fff6d8' : 'rgba(255,240,200,0.5)';
+    x.lineWidth = aqui ? 3 : 1;
+    x.strokeRect(ox + s.mapa.x * k, oy + s.mapa.y * k, s.cols * k, s.rows * k);
+  }
+}
 
 export function jugarUnaMas(root: HTMLElement, o: OpcionesUnaMas = {}): Promise<Resultado> {
   cargarTextos(textosConceptos);
@@ -125,6 +152,7 @@ export function jugarUnaMas(root: HTMLElement, o: OpcionesUnaMas = {}): Promise<
         'div',
         { class: 'tarjeta vidrio' },
         h('h2', {}, texto('pausa.titulo')),
+        h('canvas', { class: 'um-mapa', width: '560', height: '105' }),
         boton('pausa.continuar', 'primario', cerrarMenu),
         boton('pausa.saltar', '', () => {
           motivo = 'saltado';
@@ -137,6 +165,8 @@ export function jugarUnaMas(root: HTMLElement, o: OpcionesUnaMas = {}): Promise<
       ),
     );
     capa.append(menu);
+    const mp = menu.querySelector('canvas.um-mapa') as HTMLCanvasElement | null;
+    if (mp && mundo) dibujarMapa(mp, mundo);
   };
   pausaBtn.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -187,11 +217,9 @@ export function jugarUnaMas(root: HTMLElement, o: OpcionesUnaMas = {}): Promise<
     mirar: (dx) => mundo?.mirar(dx) ?? { suelo: false, muro: false },
     tecla(k, pulsada) {
       const mm = entrada.mandos;
-      const clave = k === 'izq' || k === 'der' || k === 'abajo' ? k : k === 'saltar' ? 'saltar' : k === 'atacar' ? 'atacar' : 'hab';
-      mm[clave] = pulsada;
+      mm[k] = pulsada;
       if (pulsada && k === 'saltar') mm.saltarP = true;
       if (pulsada && k === 'atacar') mm.atacarP = true;
-      if (pulsada && k === 'hab') mm.habP = true;
     },
     tocar() {
       entrada.mandos.tocarP = true;
@@ -308,7 +336,6 @@ export function jugarUnaMas(root: HTMLElement, o: OpcionesUnaMas = {}): Promise<
     pintor = new Pintor(lienzo, arte, m);
     ajustar();
     m.alCargarSala = alCargar;
-    m.alCambiarHabs = () => entrada.habilidad(m.etiquetaHab());
     m.alTerminar = () => {
       motivo = 'hecho';
       corte.abort();
@@ -316,7 +343,6 @@ export function jugarUnaMas(root: HTMLElement, o: OpcionesUnaMas = {}): Promise<
     const s0 = SALAS[salaId];
     m.cargarSala(salaId, m.j.x, m.j.y);
     alCargar(s0, true);
-    entrada.habilidad(m.etiquetaHab());
     // The very first start: a fade-in and the opening talk.
     m.fade = 1;
     m.fadeObjetivo = 0;

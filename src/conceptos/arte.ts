@@ -2,6 +2,7 @@
 // enemies and props (src/arte/una-mas.mjs) become animation FRAMES (rig.ts) and sprites; the game only blits them. The look is the world of the
 // concepts' own: painted blocks with violet shadows, no black outlines.
 import * as A from '../arte/conceptos.mjs';
+import type { Amigo } from './datos';
 import * as U from '../arte/una-mas.mjs';
 import { hornearDibujo, resplandor, type FiguraDef } from '../capitulos/conceptos-rig';
 import { hornearRig, tenir, type Cuadro, type Pose } from './rig';
@@ -45,11 +46,13 @@ export interface Arte {
     gota: Sprite;
     iconoCierzo: Sprite;
     iconoTeclazo: Sprite;
-    iconoMutis: Sprite;
+    iconoPared: Sprite;
     jarraLlena: Sprite;
     jarraVacia: Sprite;
   };
   brillos: Record<string, HTMLCanvasElement>;
+  /** A friend's little head with foam round its neck: what peeks out of Fran's jar once rescued. Anchored at the bottom centre. */
+  asoma: Partial<Record<Amigo, Sprite>>;
 }
 
 const sen = Math.sin;
@@ -164,6 +167,37 @@ function posesReloj() {
 
 // ---------------------------------------------------------------- baking
 
+/** A portrait frame made small, with a ring of beer foam over its lower third (it is peeking out of the jar). */
+function cabecita(f: Cuadro, esc: number): Sprite {
+  const k = 0.72;
+  const w = (f.c.width / f.ppu) * esc * k;
+  const h = (f.c.height / f.ppu) * esc * k;
+  const q = 2.4;
+  const c = document.createElement('canvas');
+  c.width = Math.ceil(w * q + 8);
+  c.height = Math.ceil(h * q + 8);
+  const x = c.getContext('2d')!;
+  x.drawImage(f.c, 4, 4, w * q, h * q);
+  // Foam: cream bubbles across the bottom, so that the head seems to come up out of it.
+  const cy = c.height - 4;
+  const blobs = [[0.12, 0.2], [0.3, 0.26], [0.5, 0.22], [0.7, 0.27], [0.88, 0.2], [0.04, 0.14], [0.96, 0.14]];
+  for (const [fx, r] of blobs) {
+    const bx = 4 + w * q * fx;
+    const br = w * q * r * 0.7;
+    const g = x.createRadialGradient(bx - br * 0.3, cy - br * 0.55, br * 0.1, bx, cy - br * 0.35, br);
+    g.addColorStop(0, '#fffdf4');
+    g.addColorStop(0.7, '#fbe9cc');
+    g.addColorStop(1, '#e8c898');
+    x.fillStyle = g;
+    x.beginPath();
+    x.arc(bx, cy - br * 0.35, br, 0, 6.3);
+    x.fill();
+  }
+  x.fillStyle = '#fbe9cc';
+  x.fillRect(4, cy - h * q * 0.08, w * q, h * q * 0.08 + 4);
+  return { c, x: -c.width / q / 2, y: -c.height / q + 2, w: c.width / q, h: c.height / q };
+}
+
 async function sprite(d: { x: number; y: number; w: number; h: number; svg: string }, esc: number, q = Q): Promise<Sprite> {
   const c = await hornearDibujo(d, esc * q);
   return { c, x: d.x * esc, y: d.y * esc, w: d.w * esc, h: d.h * esc };
@@ -214,7 +248,7 @@ export function cargarArte(avance?: (f: number) => void): Promise<Arte> {
       sprite(U.gotaCae(), 0.8),
       sprite(U.iconoCierzo(), 0.7),
       sprite(U.iconoTeclazo(), 0.7),
-      sprite(U.iconoMutis(), 0.7),
+      sprite(U.iconoPared(), 0.7),
       sprite(U.jarraVida(true), 0.5),
       sprite(U.jarraVida(false), 0.5),
     ]);
@@ -222,6 +256,7 @@ export function cargarArte(avance?: (f: number) => void): Promise<Arte> {
     // White copies of the enemies' frames, ready for the flash of a hit.
     const blanco = new Map<Cuadro, Cuadro>();
     for (const anim of [d, gr, r] as Record<string, Cuadro[]>[]) for (const lista of Object.values(anim)) for (const c of lista) blanco.set(c, tenir(c, '#fff4e0'));
+    const asoma: Arte['asoma'] = { guille: cabecita(g.retrato[0], E.guille) };
     return {
       fran: f,
       guille: g,
@@ -229,7 +264,7 @@ export function cargarArte(avance?: (f: number) => void): Promise<Arte> {
       gran: gr,
       reloj: r,
       blanco,
-      props: { barra, sorbo, florFondo, florCerrada, florAbierta, portal, charco, gota, iconoCierzo: iC, iconoTeclazo: iT, iconoMutis: iM, jarraLlena: jl, jarraVacia: jv },
+      props: { barra, sorbo, florFondo, florCerrada, florAbierta, portal, charco, gota, iconoCierzo: iC, iconoTeclazo: iT, iconoPared: iM, jarraLlena: jl, jarraVacia: jv },
       brillos: {
         oro: resplandor('#ffd95a', 64, 0.95),
         blanco: resplandor('#ffffff', 64, 0.95),
@@ -240,6 +275,7 @@ export function cargarArte(avance?: (f: number) => void): Promise<Arte> {
         violeta: resplandor('#9a7cff', 64, 0.9),
         ambar: resplandor('#ffb347', 64, 0.95),
       },
+      asoma,
     } satisfies Arte;
   })();
   return hecho;

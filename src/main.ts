@@ -83,7 +83,7 @@ async function arrancar() {
     return;
   }
   // «Una más» (src/conceptos/), the world of the concepts as a metroidvania, opened by itself: the address ending in ?unamas. `&zona=2` starts in the garden,
-  // `&sala=id` in that room, `&habs=cierzo,teclazo,mutis` with those skills, `&rapido` skips the waits. Not part of chapter 2 yet.
+  // `&sala=id` in that room, `&habs=cierzo,teclazo,pared` with those skills, `&rapido` skips the waits. Not part of chapter 2 yet.
   const um = new URLSearchParams(location.search);
   if (um.has('unamas')) {
     const [{ jugarUnaMas }, { Sound }] = await Promise.all([cargarModulo('unamas'), import('./core/audio')]);
@@ -96,7 +96,7 @@ async function arrancar() {
       rapido: um.has('rapido'),
       zona: Number(um.get('zona')) || 1,
       sala: um.get('sala') ?? undefined,
-      habs: (um.get('habs') ?? '').split(',').filter(Boolean) as ('cierzo' | 'teclazo' | 'mutis')[],
+      habs: (um.get('habs') ?? '').split(',').filter(Boolean) as ('cierzo' | 'teclazo' | 'pared')[],
     });
     (window as unknown as { __unamasResultado?: string }).__unamasResultado = r;
     return;

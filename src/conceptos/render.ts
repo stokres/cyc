@@ -7,9 +7,9 @@ import { TILE } from './datos';
 import type { Enem } from './enemigos';
 import { sueloEn } from './fisica';
 import { dibujarCapas } from './fondos';
-import { TROZO } from './nivel';
+import { hornearPlataforma, TROZO, type PlatBmp } from './nivel';
 import { dibujarCarta, dibujarDialogo, dibujarFin, dibujarHud, partir } from './hud';
-import { VISTA_ALTO, ZOOM, type Mundo } from './mundo';
+import { VISTA_ALTO, ZOOM, type Mundo, type Plat } from './mundo';
 import type { Cuadro } from './rig';
 
 /** Largest canvas height in device pixels (the phone's GPU does the rest by scaling it up). */
@@ -39,6 +39,8 @@ export class Pintor {
   private vinetaRoja: HTMLCanvasElement;
   private motas: Mota[] = [];
   private tableros = new Map<string, HTMLCanvasElement>();
+  private plataformas = new Map<string, PlatBmp>();
+  private burbujas = new Map<string, HTMLCanvasElement>();
   tactil = matchMedia('(pointer: coarse)').matches;
 
   constructor(
@@ -129,11 +131,9 @@ export class Pintor {
     const j = m.j;
     if (m.estado === 'muerte') return a.dano[0];
     if (j.aturdido > 0) return a.dano[0];
-    if (j.tec >= 0) return a.ataque[3];
-    if (j.cargando) return a.carga[0];
-    if (j.mutisT > 0) return a.mutis[0];
     if (j.atq >= 0) return a.ataque[j.atq < 0.06 ? 0 : j.atq < 0.12 ? 1 : j.atq < 0.19 ? 2 : 3];
     if (m.estado === 'carta') return a.celebra[Math.floor(m.reloj * 5) % 2];
+    if (j.pared !== 0) return a.baja[0];
     if (!j.suelo) return j.vy < 0 ? a.sube[0] : a.baja[0];
     if (j.aterrizaT > 0) return a.aterriza[0];
     if (Math.abs(j.vx) > 40) return a.correr[Math.floor(j.pasos / 15) % 8];
@@ -349,6 +349,8 @@ export class Pintor {
     }
     const visible = (x: number, ancho = 140) => x > camX - ancho && x < camX + vw + ancho;
     const pulso = 0.8 + 0.2 * Math.sin(t * 2.4);
+    // ---- slabs that move or fall
+    for (const p of m.plats) if (p.alfa > 0.01 && visible(p.x + p.w / 2, p.w / 2 + 60)) this.plat(p, t);
 
     // ---- bars
     for (const b of m.barras) {
@@ -424,7 +426,7 @@ export class Pintor {
       const f = m.flor;
       const tr = f.estado === 'abriendo' ? Math.sin(f.t * 60) * 2 : 0;
       this.sprite(P.florCerrada, f.x + tr, f.y);
-    } else if (m.flor.estado === 'abriendo' || m.flor.estado === 'abierta') {
+    } else if (m.flor.estado === 'abriendo' || m.flor.estado === 'abierta' || m.flor.estado === 'entrando') {
       this.sprite(P.florAbierta, m.flor.x, m.flor.y);
     }
   }
@@ -439,12 +441,20 @@ export class Pintor {
     ctx.drawImage(arte.brillos.magenta, f.x - 150, f.y - 260, 300, 300);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
-    // Guille: inside until the petals open, then he hops out beside it.
+    // Guille: inside until the petals open, then he hops out beside it, and then he shrinks and dives into Fran's jar (rescued: in the jar for good).
     const G = arte.guille;
     if (f.guille === 'atrapado') {
       const fr = G.atrapado[Math.floor(t * 8) % 4];
       this.cuadro(fr, ESCALA.guille, f.x, f.y - 72, false);
-    } else {
+    } else if (f.guille === 'libre' && f.estado === 'entrando') {
+      const k = Math.min(1, f.t / 1.05);
+      const e = k * k * (3 - 2 * k);
+      const [jx, jy] = this.m.posJarra();
+      const x0 = f.x + 118;
+      const gx = x0 + (jx - x0) * e;
+      const gy = f.y + (jy - f.y) * e - Math.sin(Math.PI * k) * 120;
+      this.cuadro(G.celebra[Math.floor(t * 10) % 2], ESCALA.guille * (1 - 0.86 * e), gx, gy, jx > x0);
+    } else if (f.guille === 'libre') {
       const k = f.estado === 'abierta' ? 1 : Math.min(1, Math.max(0, (f.t - 0.55) / 0.75));
       const e = 1 - (1 - k) * (1 - k);
       const gx = f.x + 118 * e;
@@ -453,6 +463,97 @@ export class Pintor {
       if (k >= 1) this.sombra(gx, f.y, 26);
       this.cuadro(fr, ESCALA.guille, gx, gy, true);
     }
+  }
+
+  /** A slab: its baked piece, shaking before it falls. */
+  private plat(p: Plat, t: number) {
+    const { ctx, m } = this;
+    const clave = `${m.sala.zona}|${p.w}|${p.def.tipo}`;
+    let b = this.plataformas.get(clave);
+    if (!b) {
+      b = hornearPlataforma(m.sala.zona, p.w, p.def.tipo);
+      this.plataformas.set(clave, b);
+    }
+    const tiembla = p.estado === 'tiembla' ? Math.sin(t * 90) * 1.8 : 0;
+    if (p.alfa < 1) ctx.globalAlpha = p.alfa;
+    ctx.drawImage(b.c, p.x - b.ox + tiembla, p.y - b.oy, b.c.width / b.esc, b.c.height / b.esc);
+    if (p.alfa < 1) ctx.globalAlpha = 1;
+  }
+
+  /** The friends in Fran's jar: their little heads over the foam (they duck inside while he swings), and now and then a remark over his head. */
+  private asoman(t: number) {
+    const { ctx, m, arte } = this;
+    const j = m.j;
+    const amigos = m.amigos();
+    if (!amigos.length || m.estado === 'muerte' || m.estado === 'fin') return;
+    const [jx, jy] = m.posJarra();
+    const agacha = j.atq >= 0 ? 1 : 0;
+    amigos.forEach((q, i) => {
+      const s = arte.asoma[q];
+      if (!s) return;
+      const off = (i - (amigos.length - 1) / 2) * 15;
+      const bota = j.suelo && Math.abs(j.vx) > 40 ? Math.sin(j.pasos * 0.11 + i * 2) * 2.2 : Math.sin(t * 2.2 + i) * 0.8;
+      ctx.drawImage(s.c, jx + off + s.x, jy + s.y + bota + agacha * s.h * 0.55, s.w, s.h);
+    });
+    const b = m.burbuja;
+    if (b && m.estado === 'jugando') {
+      const img = this.burbuja(b.quien, b.texto);
+      const k = 0.5;
+      const al = Math.min(1, b.t * 5, (b.dur - b.t) * 4);
+      ctx.globalAlpha = Math.max(0, al);
+      const w = img.width * k;
+      const h = img.height * k;
+      ctx.drawImage(img, j.x - w / 2 + j.cara * 14, j.y - 82 - 34 - h - (1 - Math.min(1, b.t * 5)) * -6, w, h);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  /** A speech bubble, baked once per text. */
+  private burbuja(quien: string, tx: string): HTMLCanvasElement {
+    const clave = `${quien}|${tx}`;
+    let c = this.burbujas.get(clave);
+    if (c) return c;
+    const k = 2;
+    const x0 = document.createElement('canvas').getContext('2d')!;
+    x0.font = `700 ${15 * k}px 'Alegreya Sans', sans-serif`;
+    const ls = partir(x0, tx, 230 * k);
+    const nombre = texto(`nombre.${quien}`);
+    const w = Math.ceil(Math.max(...ls.map((l) => x0.measureText(l).width), 60 * k) + 26 * k);
+    const h = Math.ceil((ls.length * 19 + 28) * k + 12 * k);
+    c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    const x = c.getContext('2d')!;
+    const hh = h - 12 * k;
+    x.fillStyle = 'rgba(255,248,230,0.96)';
+    x.strokeStyle = '#6a3a1a';
+    x.lineWidth = 2 * k;
+    x.beginPath();
+    x.roundRect(2, 2, w - 4, hh - 4, 12 * k);
+    x.fill();
+    x.stroke();
+    x.beginPath();
+    x.moveTo(w / 2 - 8 * k, hh - 3);
+    x.lineTo(w / 2, h - 2);
+    x.lineTo(w / 2 + 8 * k, hh - 3);
+    x.closePath();
+    x.fill();
+    x.beginPath();
+    x.moveTo(w / 2 - 8 * k, hh - 2);
+    x.lineTo(w / 2, h - 2);
+    x.lineTo(w / 2 + 8 * k, hh - 2);
+    x.stroke();
+    x.fillStyle = 'rgba(255,248,230,1)';
+    x.fillRect(w / 2 - 7 * k, hh - 5, 14 * k, 5);
+    x.textAlign = 'left';
+    x.font = `800 ${12 * k}px 'Graduate', 'Alegreya Sans', serif`;
+    x.fillStyle = quien === 'guille' ? '#b8780a' : quien === 'chuchi' ? '#c0304a' : '#2a56c8';
+    x.fillText(nombre, 13 * k, 18 * k);
+    x.font = `700 ${15 * k}px 'Alegreya Sans', sans-serif`;
+    x.fillStyle = '#2a1840';
+    ls.forEach((l, i) => x.fillText(l, 13 * k, (36 + i * 19) * k));
+    this.burbujas.set(clave, c);
+    return c;
   }
 
   private enemigo(e: Enem, t: number) {
@@ -544,22 +645,9 @@ export class Pintor {
     ctx.drawImage(arte.brillos.oro, j.x - 70, j.y - 120, 140, 140);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
-    // After-images of the Mutis.
-    if (j.mutisT > 0) {
-      for (let i = 3; i >= 1; i--) this.cuadro(f, ESCALA.fran, j.x - j.cara * i * 26, j.y, j.cara < 0, 0.16 * (4 - i));
-    }
     // Blink while protected.
-    const parpadeo = j.inv > 0 && j.mutisT <= 0 && j.aturdido <= 0 && Math.floor(t * 20) % 2 === 0;
+    const parpadeo = j.inv > 0 && j.aturdido <= 0 && Math.floor(t * 20) % 2 === 0;
     this.cuadro(f, ESCALA.fran, j.x, j.y, j.cara < 0, parpadeo ? 0.4 : 1);
-    // The Teclazo charging: a glow round the mug that grows.
-    if (j.cargando && j.cargaT > 0.1) {
-      const k = Math.min(1, j.cargaT / 0.55);
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.globalAlpha = 0.35 + 0.5 * k;
-      const r = 30 + 40 * k;
-      ctx.drawImage(arte.brillos.turquesa, j.x - r, j.y - 56 - r, r * 2, r * 2);
-      ctx.globalAlpha = 1;
-      ctx.globalCompositeOperation = 'source-over';
-    }
+    this.asoman(t);
   }
 }

@@ -50,7 +50,7 @@ export interface NivelBmp {
   trozos: [number, number][];
 }
 
-const solidoCh = (ch: string) => ch === '#' || ch === 'N' || ch === 'T' || ch === 'X';
+const solidoCh = (ch: string) => ch === '#' || ch === 'N' || ch === 'T' || ch === 'X' || ch === 'F';
 
 /** Bakes the tiles of a room. */
 export function hornearNivel(rej: Rejilla, zona: Zona, id: string): NivelBmp {
@@ -70,7 +70,8 @@ export function hornearNivel(rej: Rejilla, zona: Zona, id: string): NivelBmp {
     return rej.g[fila][col];
   };
   // The ground proper: breakable blocks and the curtain are drawn apart.
-  const piso = (ch: string) => ch === '#' || ch === 'X';
+  // (a false wall «F» is painted exactly like ground: that is the point)
+  const piso = (ch: string) => ch === '#' || ch === 'X' || ch === 'F';
   const sol = (col: number, fila: number) => solidoCh(at(col, fila));
   const suelo = (col: number, fila: number) => piso(at(col, fila));
 
@@ -247,6 +248,72 @@ export function hornearNivel(rej: Rejilla, zona: Zona, id: string): NivelBmp {
     }
   }
   return { c, esc: ESC_TILE, trozos };
+}
+
+/** A slab outside the grid (sliding, elevator, or the kind that falls): a carved ledge with its zone's look, plus a mark of what it does. */
+export interface PlatBmp {
+  c: HTMLCanvasElement;
+  esc: number;
+  /** Where the slab's top-left corner sits inside the bitmap (game units). */
+  ox: number;
+  oy: number;
+}
+
+export function hornearPlataforma(zona: Zona, w: number, tipo: 'mueve' | 'sube' | 'cae'): PlatBmp {
+  const mat = MATERIAL[zona];
+  const ox = 12;
+  const oy = 12;
+  const c = document.createElement('canvas');
+  c.width = Math.ceil((w + ox * 2) * ESC_TILE);
+  c.height = Math.ceil(64 * ESC_TILE);
+  const x = c.getContext('2d')!;
+  x.scale(ESC_TILE, ESC_TILE);
+  const r = azar(hash(`${zona}${w}${tipo}`));
+  x.translate(0, oy);
+  repisa(x, mat, r, ox, w, 0);
+  if (tipo === 'cae') {
+    // Cracks across the slab and crumbs on its edge: it will not hold.
+    x.strokeStyle = 'rgba(6,0,18,0.75)';
+    x.lineWidth = 1.6;
+    x.lineCap = 'round';
+    for (let px = ox + 22; px < ox + w - 14; px += 34 + r() * 20) {
+      x.beginPath();
+      x.moveTo(px, 2);
+      x.lineTo(px + 5, 8);
+      x.lineTo(px - 3, 13);
+      x.lineTo(px + 4, 19);
+      x.stroke();
+    }
+    x.fillStyle = 'rgba(255,214,150,0.55)';
+    for (let i = 0; i < 5; i++) x.fillRect(ox + 6 + r() * (w - 12), 20 + r() * 8, 2.6, 2.6);
+  } else {
+    // A gold rim and chevrons along the face: this one travels.
+    x.strokeStyle = '#ffd24a';
+    x.lineWidth = 2;
+    x.globalAlpha = 0.95;
+    x.beginPath();
+    x.moveTo(ox + 10, 17);
+    x.lineTo(ox + w - 10, 17);
+    x.stroke();
+    x.fillStyle = '#ffe9a8';
+    const horiz = tipo === 'mueve';
+    for (let px = ox + 20; px < ox + w - 14; px += 22) {
+      x.beginPath();
+      if (horiz) {
+        x.moveTo(px - 4, 7);
+        x.lineTo(px + 4, 11);
+        x.lineTo(px - 4, 15);
+      } else {
+        x.moveTo(px - 5, 14);
+        x.lineTo(px, 6);
+        x.lineTo(px + 5, 14);
+      }
+      x.closePath();
+      x.fill();
+    }
+    x.globalAlpha = 1;
+  }
+  return { c, esc: ESC_TILE, ox, oy };
 }
 
 // ---------------------------------------------------------------- the top edge, by zone

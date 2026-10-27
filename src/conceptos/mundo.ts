@@ -1,9 +1,10 @@
 // The game state of «Una más» and its rules: Fran's platforming (coyote time, jump buffer, variable jump, soft acceleration), the jarrazo and the
-// three skills (Cierzo, Teclazo, Mutis), the rooms and their doors, the bars that save, the talks and the cut-scenes, the camera. Fixed time step:
+// three skills, all AUTOMATIC (Guille: the Cierzo, a double jump; Chuchi: the jarrazo breaks «NO» blocks; Pablo: wall jump), the friends that dive into
+// Fran's jar when rescued, slabs that move and fall, false walls, the rooms and their doors, the bars that save, the talks, the camera. Fixed time step:
 // `actualizar(dt)` is called with 1/60. Drawing lives in render.ts, the enemies' brains in enemigos.ts.
 import { dialogo, texto, type Linea } from '../juego/textos';
 import { type Arte } from './arte';
-import { HABILIDADES, PRIMERA_SALA, SALAS, TILE, ZONAS, type Habilidad, type Sala, type Zona } from './datos';
+import { DON, HABILIDADES, PRIMERA_SALA, SALAS, TILE, ZONAS, type Amigo, type Habilidad, type PlataformaDef, type Sala, type Zona } from './datos';
 import { crearEnemigo, actualizarEnemigos, actualizarProyectiles, type Charco, type Enem, type Proyectil } from './enemigos';
 import type { Mandos } from './entrada';
 import { chocaRect, crearRejilla, haySuelo, moverX, moverY, sueloEn, tocaPinchos, type Caja, type Rejilla } from './fisica';
@@ -25,8 +26,11 @@ const ACEL_AIRE = 2300;
 const FREN_AIRE = 1100;
 const COYOTE = 0.1;
 const BUFFER = 0.13;
-const V_MUTIS = 900;
-const T_MUTIS = 0.22;
+/** Where Fran's jar is, from his feet (the friends peek out of its foam and dive into it). */
+export const JARRA = { x: 40, y: 76 };
+const V_PARED = 150;
+/** The most sips the jar can hold. */
+const MAX_VIDA = 10;
 /** The screen shows 540 units of height; the world is drawn zoomed in so that Fran reads at about a sixth of it (the camera sees 540 / ZOOM). */
 export const ZOOM = 1.3;
 export const VISTA_ALTO = 540 / ZOOM;
@@ -52,13 +56,12 @@ export interface Jugador extends Caja {
   atq: number;
   atqArco: boolean;
   golpeados: Set<Enem>;
-  cargando: boolean;
-  cargaT: number;
-  /** The Teclazo's own swing (seconds; -1 none). */
-  tec: number;
-  mutisT: number;
-  mutisCool: number;
-  mutisAire: boolean;
+  /** Sliding down a wall (wall jump): -1 the wall is on the left, 1 on the right, 0 none. */
+  pared: number;
+  /** After a wall jump the push away from the wall cannot be steered for a moment. */
+  paredT: number;
+  /** The slab Fran stands on. */
+  sobre: Plat | null;
   bajarT: number;
   aterrizaT: number;
   /** In a puddle (slowed). */
@@ -66,6 +69,32 @@ export interface Jugador extends Caja {
   animT: number;
   pasos: number;
   seguro: { x: number; y: number };
+}
+
+/** A slab outside the grid, alive. */
+export interface Plat {
+  def: PlataformaDef;
+  x: number;
+  y: number;
+  w: number;
+  x0: number;
+  y0: number;
+  /** How far it moved this step (it carries whoever stands on it). */
+  dx: number;
+  dy: number;
+  estado: 'firme' | 'tiembla' | 'cae' | 'ausente';
+  t: number;
+  vy: number;
+  alfa: number;
+  /** Seconds of its trip. */
+  fase: number;
+}
+
+export interface Burbuja {
+  quien: Amigo;
+  texto: string;
+  t: number;
+  dur: number;
 }
 
 export interface Progreso {
@@ -156,8 +185,14 @@ export class Mundo {
   jefe: Enem | null = null;
   /** The fight: 0 not started, 1 on, 2 won. */
   pelea = 0;
-  flor = { x: 0, y: 0, estado: 'ninguna' as 'ninguna' | 'cerrada' | 'abriendo' | 'abierta', t: 0, guille: 'atrapado' as 'atrapado' | 'libre', habla: false };
+  flor = { x: 0, y: 0, quien: 'guille' as Amigo, estado: 'ninguna' as 'ninguna' | 'cerrada' | 'abriendo' | 'abierta' | 'entrando', t: 0, guille: 'atrapado' as 'atrapado' | 'libre' | 'dentro', habla: false, chapoteo: false };
   cam = { x: 0, y: 0, mira: 0 };
+  plats: Plat[] = [];
+  /** The rooms already walked into (the pause map). */
+  visitadas = new Set<string>();
+  /** A short remark of a friend in the jar, over Fran's head. */
+  burbuja: Burbuja | null = null;
+  comentaT = 14;
   vw = 960;
   vh = VISTA_ALTO;
   dialogo: Dialogo | null = null;
@@ -205,16 +240,17 @@ export class Mundo {
       guardado: { sala: salaId, x: (col + 0.5) * TILE, y: (fila + 1) * TILE },
       muertes: 0,
     };
-    // A start in the garden's later rooms assumes what came before.
-    if ((o.habs ?? []).includes('cierzo')) this.prog.hechos.add('guille').add('jardin-3.gran.0');
+    // A start in the garden's later rooms assumes what came before: each skill brings its friend (in the jar).
+    for (const a of Object.keys(DON) as Amigo[]) if (this.prog.habs.has(DON[a])) this.prog.hechos.add(a);
+    if (this.prog.habs.has('cierzo')) this.prog.hechos.add('jardin-3.gran.0');
     this.j = this.nuevoJugador((col + 0.5) * TILE, (fila + 1) * TILE);
   }
 
   private nuevoJugador(x: number, y: number): Jugador {
     return {
       x, y, hw: HW, h: ALTO, vx: 0, vy: 0, cara: 1, suelo: true, coyote: 0, buffer: 0, saltando: false, dobleLibre: true,
-      vida: this.prog?.vidaMax ?? 5, inv: 0, aturdido: 0, atq: -1, atqArco: false, golpeados: new Set(), cargando: false, cargaT: 0, tec: -1,
-      mutisT: 0, mutisCool: 0, mutisAire: false, bajarT: 0, aterrizaT: 0, chof: false, animT: 0, pasos: 0, seguro: { x, y },
+      vida: this.prog?.vidaMax ?? 5, inv: 0, aturdido: 0, atq: -1, atqArco: false, golpeados: new Set(), pared: 0, paredT: 0, sobre: null,
+      bajarT: 0, aterrizaT: 0, chof: false, animT: 0, pasos: 0, seguro: { x, y },
     };
   }
 
@@ -222,12 +258,9 @@ export class Mundo {
     return this.prog.habs.has(h);
   }
 
-  /** Is the Cierzo (or whichever skill is the first earned) the label of the skill button? Null before any skill. */
-  etiquetaHab(): string | null {
-    if (this.tiene('mutis')) return texto('mando.habilidad.mutis');
-    if (this.tiene('teclazo') && !this.tiene('cierzo')) return texto('mando.habilidad.teclazo');
-    if (this.tiene('cierzo')) return texto('mando.habilidad');
-    return null;
+  /** The friends in the jar, in the order they were rescued. */
+  amigos(): Amigo[] {
+    return (['guille', 'chuchi', 'pablo'] as Amigo[]).filter((a) => this.prog.hechos.has(a));
   }
 
   // ---------------------------------------------------------------- rooms
@@ -244,6 +277,11 @@ export class Mundo {
     this.proy = [];
     this.jefe = null;
     this.pelea = this.prog.hechos.has(`${s.id}.gran.0`) ? 2 : 0;
+    this.visitadas.add(s.id);
+    // A false wall already found stays open.
+    if (this.prog.hechos.has(`${s.id}.secreto`)) for (const f of this.rej.g) for (let c = 0; c < f.length; c++) if (f[c] === 'F') f[c] = '.';
+    this.plats = s.plataformas.map((d) => ({ def: d, x: d.col * TILE, y: d.fila * TILE, w: d.ancho * TILE, x0: d.col * TILE, y0: d.fila * TILE, dx: 0, dy: 0, estado: 'firme' as const, t: 0, vy: 0, alfa: 1, fase: 0 }));
+    this.burbuja = null;
     for (const e of s.enemigos) {
       if (this.prog.hechos.has(e.id)) continue;
       this.enems.push(crearEnemigo(e.tipo, e.id, (e.col + 0.5) * TILE, (e.fila + 1) * TILE));
@@ -260,10 +298,10 @@ export class Mundo {
     this.sorbos = s.sorbos.filter((b) => !this.prog.hechos.has(b.id)).map((b) => ({ x: (b.col + 0.5) * TILE, y: (b.fila + 1) * TILE, id: b.id }));
     this.puertas = s.puertas.map((p) => ({ x: (p.col + 0.5) * TILE, y: (p.fila + 1) * TILE, sala: p.sala, col2: p.col2, fila2: p.fila2, zona: p.zona }));
     this.carteles = s.carteles.map((c) => ({ x: (c.col + 0.5) * TILE, y: (c.fila + 1) * TILE, clave: c.clave, t: 0, visto: false }));
-    this.flor = { x: 0, y: 0, estado: 'ninguna', t: 0, guille: 'atrapado', habla: false };
+    this.flor = { x: 0, y: 0, quien: 'guille', estado: 'ninguna', t: 0, guille: 'atrapado', habla: false, chapoteo: false };
     if (s.flor) {
-      const libre = this.prog.hechos.has('guille');
-      this.flor = { x: (s.flor.col + 0.5) * TILE, y: (s.flor.fila + 1) * TILE, estado: libre ? 'abierta' : 'cerrada', t: 0, guille: libre ? 'libre' : 'atrapado', habla: false };
+      const libre = this.prog.hechos.has(s.flor.quien);
+      this.flor = { x: (s.flor.col + 0.5) * TILE, y: (s.flor.fila + 1) * TILE, quien: s.flor.quien, estado: libre ? 'abierta' : 'cerrada', t: 0, guille: libre ? 'dentro' : 'atrapado', habla: false, chapoteo: false };
     }
     this.fx.limpiar();
     const j = this.j;
@@ -271,9 +309,10 @@ export class Mundo {
     j.y = y;
     j.vx = j.vy = 0;
     j.seguro = { x, y };
-    j.atq = j.tec = -1;
-    j.cargando = false;
-    j.mutisT = 0;
+    j.atq = -1;
+    j.sobre = null;
+    j.pared = 0;
+    j.paredT = 0;
     this.puertaCool = 1.0;
     for (const b of this.barras) b.dentro = Math.abs(x - b.x) < 90 && Math.abs(y - b.y) < 20;
     if (fijarCamara) this.encuadrar(true);
@@ -338,7 +377,7 @@ export class Mundo {
 
   // ---------------------------------------------------------------- the update
 
-  actualizar(dt: number, ent: { mandos: Mandos; tomar: (k: 'saltarP' | 'atacarP' | 'habP' | 'pausaP' | 'tocarP') => boolean }) {
+  actualizar(dt: number, ent: { mandos: Mandos; tomar: (k: 'saltarP' | 'atacarP' | 'pausaP' | 'tocarP') => boolean }) {
     this.fotogramas++;
     this.fx.actualizar(dt);
     // Hit-stop holds the world still for a few frames (real time).
@@ -388,7 +427,6 @@ export class Mundo {
         }
         ent.tomar('saltarP');
         ent.tomar('atacarP');
-        ent.tomar('habP');
         this.pulsoAmbiente(d);
         break;
       case 'fin':
@@ -414,7 +452,7 @@ export class Mundo {
 
   // ---------------------------------------------------------------- talk
 
-  private avanzaDialogo(d: number, ent: { tomar: (k: 'saltarP' | 'atacarP' | 'habP' | 'pausaP' | 'tocarP') => boolean }) {
+  private avanzaDialogo(d: number, ent: { tomar: (k: 'saltarP' | 'atacarP' | 'pausaP' | 'tocarP') => boolean }) {
     const dl = this.dialogo!;
     const l = dl.lineas[dl.i];
     dl.t += d;
@@ -427,7 +465,6 @@ export class Mundo {
     const toque = ent.tomar('tocarP');
     ent.tomar('saltarP');
     ent.tomar('atacarP');
-    ent.tomar('habP');
     if (toque && dl.t > 0.18) {
       if (dl.c < total) dl.c = total;
       else {
@@ -445,15 +482,13 @@ export class Mundo {
 
   // ---------------------------------------------------------------- playing
 
-  private jugando(d: number, ent: { mandos: Mandos; tomar: (k: 'saltarP' | 'atacarP' | 'habP' | 'pausaP' | 'tocarP') => boolean }) {
+  private jugando(d: number, ent: { mandos: Mandos; tomar: (k: 'saltarP' | 'atacarP' | 'pausaP' | 'tocarP') => boolean }) {
     const j = this.j;
     const m = ent.mandos;
     const saltarP = ent.tomar('saltarP');
     const atacarP = ent.tomar('atacarP');
-    const habP = ent.tomar('habP');
     const dir = (m.der ? 1 : 0) - (m.izq ? 1 : 0);
     j.inv = Math.max(0, j.inv - d);
-    j.mutisCool = Math.max(0, j.mutisCool - d);
     j.aterrizaT = Math.max(0, j.aterrizaT - d);
     j.bajarT = Math.max(0, j.bajarT - d);
     const control = j.aturdido <= 0;
@@ -463,34 +498,18 @@ export class Mundo {
     j.chof = this.charcos.some((c) => Math.abs(j.x - c.x) < c.w / 2 + 6 && Math.abs(j.y - c.y) < 12);
     if (j.chof && j.suelo && Math.abs(j.vx) > 60 && Math.random() < 0.3) this.fx.espuma(j.x, j.y - 2, 1, -j.cara, 120);
 
-    // ---- skills
-    const mutisLibre = this.tiene('mutis') && j.mutisCool <= 0 && (j.suelo || !j.mutisAire);
-    if (control && habP && mutisLibre && j.mutisT <= 0) {
-      j.mutisT = T_MUTIS;
-      j.mutisCool = 0.6;
-      j.mutisAire = !j.suelo;
-      j.inv = Math.max(j.inv, T_MUTIS + 0.08);
-      j.atq = -1;
-      j.cargando = false;
-      this.snd.mutis();
-      this.fx.zoom = 0.3;
-    }
-
     // ---- horizontal movement
     const frena = j.chof ? 0.5 : 1;
-    if (j.mutisT > 0) {
-      j.mutisT -= d;
-      j.vx = j.cara * V_MUTIS;
-      j.vy = 0;
-      // A trail of red curtain and gold.
-      if (Math.random() < 0.9) this.fx.chispas(j.x - j.cara * 20, j.y - 40 + (Math.random() - 0.5) * 50, 1, -j.cara, 120, Math.random() < 0.5 ? '#ff5a6a' : '#ffd24a', 0.6);
+    if (j.paredT > 0) {
+      // Pushed off a wall: the push cannot be steered for a moment.
+      j.paredT -= d;
     } else if (control) {
-      const atacando = j.atq >= 0 || j.cargando || j.tec >= 0;
-      const tope = dir * V_CORRE * frena * (j.cargando ? 0.4 : atacando ? 0.8 : 1);
+      const atacando = j.atq >= 0;
+      const tope = dir * V_CORRE * frena * (atacando ? 0.8 : 1);
       let acc = j.suelo ? (dir ? ACEL_SUELO : FREN_SUELO) : dir ? ACEL_AIRE : FREN_AIRE;
       if (dir && Math.sign(j.vx) === -dir) acc *= 1.7;
       j.vx = aprox(j.vx, tope, acc * d);
-      if (dir && j.atq < 0 && j.tec < 0) j.cara = dir as 1 | -1;
+      if (dir && j.atq < 0) j.cara = dir as 1 | -1;
     } else {
       j.vx = aprox(j.vx, 0, FREN_AIRE * 0.3 * d);
     }
@@ -502,7 +521,6 @@ export class Mundo {
       if (j.suelo) {
         j.coyote = COYOTE;
         j.dobleLibre = true;
-        j.mutisAire = false;
       } else j.coyote = Math.max(0, j.coyote - d);
       const quiereBajar = m.abajo && saltarP && this.sobreRepisa();
       if (quiereBajar) {
@@ -510,7 +528,7 @@ export class Mundo {
         j.buffer = 0;
         j.suelo = false;
         j.y += 2;
-      } else if (j.buffer > 0 && j.coyote > 0 && j.mutisT <= 0) {
+      } else if (j.buffer > 0 && j.coyote > 0) {
         j.vy = -V_SALTO * (j.chof ? 0.88 : 1);
         j.coyote = 0;
         j.buffer = 0;
@@ -518,7 +536,18 @@ export class Mundo {
         j.suelo = false;
         this.fx.polvo(j.x, j.y, 5, 14);
         this.snd.salto();
-      } else if ((saltarP || (habP && !this.tiene('mutis'))) && !j.suelo && j.coyote <= 0 && this.tiene('cierzo') && j.dobleLibre && j.mutisT <= 0) {
+      } else if (saltarP && !j.suelo && j.pared !== 0 && this.tiene('pared')) {
+        // Wall jump (Pablo): kicks off the wall, up and away from it, and the air jump comes back.
+        j.vy = -V_SALTO * 0.97;
+        j.vx = -j.pared * 390;
+        j.cara = (-j.pared) as 1 | -1;
+        j.paredT = 0.2;
+        j.dobleLibre = true;
+        j.saltando = true;
+        j.buffer = 0;
+        this.fx.polvo(j.x + j.pared * j.hw, j.y - 40, 4, 8);
+        this.snd.salto();
+      } else if (saltarP && !j.suelo && j.coyote <= 0 && this.tiene('cierzo') && j.dobleLibre) {
         j.vy = -V_SALTO_AIRE;
         j.dobleLibre = false;
         j.saltando = true;
@@ -532,26 +561,45 @@ export class Mundo {
       }
     }
     if (j.vy >= 0) j.saltando = false;
-    if (j.mutisT <= 0) {
-      j.vy += (j.vy < 0 ? G_SUBE : G_BAJA) * d;
-      if (j.vy > V_CAIDA) j.vy = V_CAIDA;
+    j.vy += (j.vy < 0 ? G_SUBE : G_BAJA) * d;
+    if (j.vy > V_CAIDA) j.vy = V_CAIDA;
+    // Sliding down a wall (once Pablo's skill is earned).
+    if (j.pared !== 0 && j.vy > V_PARED && !j.suelo) {
+      j.vy = V_PARED;
+      if (Math.random() < d * 14) this.fx.polvo(j.x + j.pared * j.hw, j.y - 30, 1, 5);
     }
 
     // ---- the jarrazo and the Teclazo
-    if (control) this.ataque(d, m, atacarP);
-    else {
-      j.atq = j.tec = -1;
-      j.cargando = false;
-    }
+    if (control) this.ataque(d, atacarP);
+    else j.atq = -1;
+
+    // ---- the slabs move first; whoever stands on one is carried
+    this.actualizarPlats(d);
+    if (j.sobre && (j.sobre.estado === 'firme' || j.sobre.estado === 'tiembla')) {
+      j.x += j.sobre.dx;
+      j.y += j.sobre.dy;
+    } else j.sobre = null;
 
     // ---- move through the tiles
-    const paso = { bajar: j.bajarT > 0, telones: j.mutisT > 0 };
-    if (moverX(this.rej, j, j.vx * d, paso)) {
-      if (j.mutisT > 0) j.mutisT = 0;
-      j.vx = 0;
-    }
+    const paso = { bajar: j.bajarT > 0, falsos: true };
+    if (moverX(this.rej, j, j.vx * d, paso)) j.vx = 0;
     const antesVy = j.vy;
-    const r = moverY(this.rej, j, j.vy * d, paso);
+    const yAntes = j.y;
+    let r = moverY(this.rej, j, j.vy * d, paso);
+    // The slabs are ledges: landed on from above.
+    if (r === 1) j.sobre = null;
+    else if (j.vy >= 0 && j.bajarT <= 0) {
+      const pl = this.platBajoPies(yAntes);
+      if (pl) {
+        j.y = pl.y;
+        j.sobre = pl;
+        r = 1;
+        if (pl.def.tipo === 'cae' && pl.estado === 'firme') {
+          pl.estado = 'tiembla';
+          pl.t = 0;
+        }
+      } else j.sobre = null;
+    } else j.sobre = null;
     if (r === 1) {
       if (!j.suelo && antesVy > 300) {
         this.fx.polvo(j.x, j.y, 5 + Math.min(6, antesVy / 220), 16);
@@ -563,6 +611,16 @@ export class Mundo {
     } else if (r === -1) j.vy = Math.max(0, j.vy * 0.2);
     else j.suelo = j.vy >= 0 && haySuelo(this.rej, j, paso, 1);
     if (j.suelo && j.vy > 0) j.vy = 0;
+    // Against a wall in the air, pushing towards it: sliding (with Pablo's skill).
+    j.pared = 0;
+    if (!j.suelo && this.tiene('pared')) {
+      const lado = m.der ? 1 : m.izq ? -1 : 0;
+      if (lado !== 0) {
+        const xa = j.x + lado * (j.hw + 1);
+        const xb = j.x + lado * (j.hw + 4);
+        if (chocaRect(this.rej, Math.min(xa, xb), j.y - j.h * 0.75, Math.max(xa, xb), j.y - j.h * 0.3, { falsos: true })) j.pared = lado;
+      }
+    }
     // The last safe place: on solid ground with ground on both sides (spikes and falls send Fran back there).
     if (j.suelo && sueloEn(this.rej, j.x - 30, j.y) && sueloEn(this.rej, j.x + 30, j.y) && !tocaPinchos(this.rej, j)) j.seguro = { x: j.x, y: j.y };
 
@@ -585,11 +643,75 @@ export class Mundo {
     this.ambiente(d);
   }
 
+  /** Moves the slabs: sliders and elevators follow their trip; the falling ones shake, drop, wait and come back. */
+  private actualizarPlats(d: number) {
+    for (const p of this.plats) {
+      const ox = p.x;
+      const oy = p.y;
+      const df = p.def;
+      if (df.tipo === 'mueve' || df.tipo === 'sube') {
+        p.fase += d;
+        const k0 = 0.5 - 0.5 * Math.cos((p.fase * Math.PI * 2) / df.per);
+        const k = k0 * k0 * (3 - 2 * k0);
+        if (df.tipo === 'mueve') p.x = p.x0 + df.d * TILE * k;
+        else p.y = p.y0 - df.d * TILE * k;
+      } else if (p.estado === 'tiembla') {
+        p.t += d;
+        if (p.t > 0.5) {
+          p.estado = 'cae';
+          p.vy = 0;
+          this.fx.polvo(p.x + p.w / 2, p.y + 10, 5, p.w / 2);
+        }
+      } else if (p.estado === 'cae') {
+        p.vy += 2600 * d;
+        p.y += p.vy * d;
+        p.alfa = Math.max(0, 1 - (p.y - p.y0) / 380);
+        if (p.y > p.y0 + 420) {
+          p.estado = 'ausente';
+          p.t = 0;
+        }
+      } else if (p.estado === 'ausente') {
+        p.t += d;
+        if (p.t > 2.4) {
+          p.estado = 'firme';
+          p.y = p.y0;
+          p.alfa = 0;
+        }
+      } else if (p.alfa < 1) p.alfa = Math.min(1, p.alfa + d * 3);
+      p.dx = p.x - ox;
+      p.dy = p.estado === 'cae' ? 0 : p.y - oy;
+    }
+  }
+
+  /** The slab that Fran is landing on this step: under his feet now, and not above them a moment ago. */
+  private platBajoPies(yAntes: number): Plat | null {
+    const j = this.j;
+    for (const p of this.plats) {
+      if (p.estado !== 'firme' && p.estado !== 'tiembla') continue;
+      if (j.x + j.hw <= p.x + 1 || j.x - j.hw >= p.x + p.w - 1) continue;
+      if (yAntes <= p.y + 6 && j.y >= p.y - 1) return p;
+    }
+    return null;
+  }
+
   /** Ambient sparks of the bars and the doors. */
   private ambiente(d: number) {
     for (const b of this.barras) if (Math.random() < d * 5) this.fx.brasas(b.x + 44, b.y - 110, 14);
     for (const p of this.puertas) if (Math.random() < d * 6) this.fx.brasas(p.x, p.y - 20, 40, '#fff2b8');
     for (const c of this.carteles) c.t += d;
+    // A false wall glints now and then, for whoever looks closely.
+    if (Math.random() < d * 1.6) {
+      for (let f = 0; f < this.rej.rows; f++) {
+        let hecho = false;
+        for (let c = 0; c < this.rej.cols; c++) {
+          if (this.rej.g[f][c] !== 'F' || Math.abs((c + 0.5) * TILE - this.j.x) > 520 || Math.random() > 0.2) continue;
+          this.fx.estrellas((c + 0.2 + Math.random() * 0.6) * TILE, (f + Math.random()) * TILE, 1, '#fff2b8');
+          hecho = true;
+          break;
+        }
+        if (hecho) break;
+      }
+    }
   }
 
   private sobreRepisa(): boolean {
@@ -601,9 +723,9 @@ export class Mundo {
 
   // ---- combat of Fran
 
-  private ataque(d: number, m: Mandos, atacarP: boolean) {
+  private ataque(d: number, atacarP: boolean) {
     const j = this.j;
-    if (atacarP && j.atq < 0 && j.tec < 0 && j.mutisT <= 0 && !j.cargando) {
+    if (atacarP && j.atq < 0) {
       j.atq = 0;
       j.atqArco = false;
       j.golpeados.clear();
@@ -615,41 +737,12 @@ export class Mundo {
         j.atqArco = true;
         this.fx.arco(j.x + j.cara * 14, j.y - 52, j.cara);
       }
-      if (j.atq >= 0.06 && j.atq <= 0.2) this.golpear(j.x - j.cara * 8, j.x + j.cara * 104, j.y - ALTO - 12, j.y + 6, 1, false);
-      if (j.atq >= DUR_ATAQUE) {
-        j.atq = -1;
-        // Still holding attack with the Teclazo: charge.
-        if (this.tiene('teclazo') && m.atacar) {
-          j.cargando = true;
-          j.cargaT = 0;
-        }
+      if (j.atq >= 0.06 && j.atq <= 0.2) {
+        this.golpear(j.x - j.cara * 8, j.x + j.cara * 104, j.y - ALTO - 12, j.y + 6, 1, false);
+        // Chuchi's skill: the ordinary swing breaks the «NO» blocks it reaches.
+        if (this.tiene('teclazo')) this.romperBloques(Math.min(j.x - j.cara * 8, j.x + j.cara * 104), Math.max(j.x - j.cara * 8, j.x + j.cara * 104), j.y - ALTO - 12, j.y - 4);
       }
-    }
-    if (j.cargando) {
-      if (!m.atacar) {
-        const lista = j.cargaT >= 0.55;
-        j.cargando = false;
-        if (lista) {
-          j.tec = 0;
-          j.golpeados.clear();
-          this.snd.teclazo();
-          this.fx.arco(j.x + j.cara * 20, j.y - 48, j.cara, 1, 'teclazo');
-          this.fx.teclas(j.x + j.cara * 80, j.y - 50, 12);
-        }
-      } else {
-        const antes = j.cargaT;
-        j.cargaT += d;
-        if (Math.floor(antes * 8) !== Math.floor(j.cargaT * 8)) this.snd.teclazoCarga(Math.min(1, j.cargaT / 0.55));
-        if (j.cargaT > 0.55 && Math.random() < 0.5) this.fx.estrellas(j.x + (Math.random() - 0.5) * 50, j.y - 40 - Math.random() * 40, 1, '#9ff0ec');
-      }
-    }
-    if (j.tec >= 0) {
-      j.tec += d;
-      if (j.tec >= 0.04 && j.tec <= 0.22) {
-        this.golpear(j.x - j.cara * 20, j.x + j.cara * 190, j.y - ALTO - 30, j.y + 10, 3, true);
-        this.romperBloques(j.cara > 0 ? j.x : j.x - 190, j.cara > 0 ? j.x + 190 : j.x, j.y - ALTO - 20, j.y);
-      }
-      if (j.tec >= 0.36) j.tec = -1;
+      if (j.atq >= DUR_ATAQUE) j.atq = -1;
     }
   }
 
@@ -726,12 +819,11 @@ export class Mundo {
 
   herir(desdeX: number, dano = 1) {
     const j = this.j;
-    if (j.inv > 0 || j.mutisT > 0 || this.estado !== 'jugando') return;
+    if (j.inv > 0 || this.estado !== 'jugando') return;
     j.vida -= dano;
     j.inv = 1.4;
     j.aturdido = 0.3;
-    j.atq = j.tec = -1;
-    j.cargando = false;
+    j.atq = -1;
     const lado = j.x >= desdeX ? 1 : -1;
     j.vx = lado * 400;
     j.vy = -340;
@@ -744,7 +836,6 @@ export class Mundo {
 
   private pinchos() {
     const j = this.j;
-    if (j.inv > 0 && j.mutisT > 0) return;
     j.vida -= 1;
     this.fx.danoJugador(j.x, j.y - 30, 0);
     this.fx.estrellas(j.x, j.y - 20, 6, '#ff8aa8');
@@ -810,6 +901,9 @@ export class Mundo {
         j.vx = j.vy = 0;
       }
     }
+    // A false wall: the first touch reveals it (and the whole room's, once and for all).
+    this.falsos(j);
+    this.comentarios(d);
     // Contact with the enemies and the shots.
     // (done in enemigos.ts)
     // Bars: save and refill, once per visit.
@@ -836,7 +930,7 @@ export class Mundo {
       if (Math.abs(j.x - s.x) < 34 && Math.abs(j.y - 30 - s.y + 30) < 60) {
         this.sorbos.splice(i, 1);
         this.prog.hechos.add(s.id);
-        this.prog.vidaMax = Math.min(9, this.prog.vidaMax + 1);
+        this.prog.vidaMax = Math.min(MAX_VIDA, this.prog.vidaMax + 1);
         j.vida = this.prog.vidaMax;
         this.fx.estrellas(s.x, s.y - 40, 14, '#ffe9a8');
         this.fx.onda(s.x, s.y - 40, 10, '#ffd95a', 14, 0.5);
@@ -877,6 +971,48 @@ export class Mundo {
     }
     // The first alarm clock / clock seen: a quip.
     this.disparadores();
+  }
+
+  /** Fran inside a false wall: it dissolves, with a glitter, and stays open. */
+  private falsos(j: Jugador) {
+    const c0 = Math.floor((j.x - j.hw) / TILE);
+    const c1 = Math.floor((j.x + j.hw) / TILE);
+    const f0 = Math.floor((j.y - j.h) / TILE);
+    const f1 = Math.floor((j.y - 1) / TILE);
+    let toca = false;
+    for (let f = f0; f <= f1 && !toca; f++) for (let c = c0; c <= c1; c++) if (this.rej.g[f]?.[c] === 'F') toca = true;
+    if (!toca) return;
+    for (let f = 0; f < this.rej.rows; f++) {
+      for (let c = 0; c < this.rej.cols; c++) {
+        if (this.rej.g[f][c] !== 'F') continue;
+        this.rej.g[f][c] = '.';
+        this.fx.polvo((c + 0.5) * TILE, (f + 0.6) * TILE, 5, 26, 'rgba(255,230,200,0.6)');
+        this.fx.estrellas((c + 0.5) * TILE, (f + 0.5) * TILE, 3, '#fff2b8');
+      }
+    }
+    this.prog.hechos.add(`${this.sala.id}.secreto`);
+    this.nivelSucio = true;
+    this.snd.sorbo();
+    this.aviso(texto('aviso.secreto'), 2.6);
+  }
+
+  /** The friends in the jar speak up now and then, a short remark over Fran. */
+  private comentarios(d: number) {
+    if (this.burbuja) {
+      this.burbuja.t += d;
+      if (this.burbuja.t > this.burbuja.dur) this.burbuja = null;
+      return;
+    }
+    const amigos = this.amigos();
+    if (!amigos.length || this.pelea === 1) return;
+    this.comentaT -= d;
+    if (this.comentaT > 0) return;
+    this.comentaT = 22 + Math.random() * 20;
+    const quien = amigos[Math.floor(Math.random() * amigos.length)];
+    const l = dialogo(`comenta.${quien}`)[0];
+    if (!l) return;
+    this.burbuja = { quien, texto: l.texto, t: 0, dur: 3.4 };
+    this.snd.cartel();
   }
 
   /** Brings back the enemies that were killed (and are not boss fights), when Fran rests at a bar. */
@@ -926,21 +1062,15 @@ export class Mundo {
       });
       return;
     }
-    // Guille's flower.
+    // A friend shut in: talking to him, then the rescue.
     if (s.flor && this.flor.estado === 'cerrada' && Math.abs(j.x - this.flor.x) < 190 && j.suelo && this.estado === 'jugando') {
       j.vx = 0;
-      this.hablar('guille.antes', () => {
+      this.hablar(`${this.flor.quien}.antes`, () => {
         this.estado = 'rescate';
         this.tEstado = 0;
         this.flor.estado = 'abriendo';
         this.flor.t = 0;
       });
-      return;
-    }
-    if (s.flor && this.flor.estado === 'abierta' && this.flor.guille === 'libre' && !this.flor.habla && Math.abs(j.x - this.flor.x) < 150 && j.suelo && this.estado === 'jugando') {
-      this.flor.habla = true;
-      j.vx = 0;
-      this.hablar('guille.sigue');
     }
   }
 
@@ -998,7 +1128,7 @@ export class Mundo {
       this.jefe = null;
       this.snd.musica(this.sala.zona);
       this.estado = 'jugando';
-      this.prog.vidaMax = Math.min(9, this.prog.vidaMax + 1);
+      this.prog.vidaMax = Math.min(MAX_VIDA, this.prog.vidaMax + 1);
       this.j.vida = this.prog.vidaMax;
       this.aviso(texto('aviso.jarraMas'), 3.2);
       this.snd.sorbo();
@@ -1007,7 +1137,7 @@ export class Mundo {
     this.encuadrar(false, d);
   }
 
-  private rescatando(d: number, ent: { tomar: (k: 'saltarP' | 'atacarP' | 'habP' | 'pausaP' | 'tocarP') => boolean }) {
+  private rescatando(d: number, ent: { tomar: (k: 'saltarP' | 'atacarP' | 'pausaP' | 'tocarP') => boolean }) {
     const f = this.flor;
     f.t += d;
     this.encuadrar(false, d);
@@ -1021,17 +1151,45 @@ export class Mundo {
       if (f.t > 0.7 && f.t < 0.9) this.fx.sacudir(5);
       if (f.t > 1.4) {
         f.estado = 'abierta';
-        this.prog.hechos.add('guille');
         f.habla = true;
         this.snd.musica('rescate');
-        this.hablar('guille.despues', () => {
-          this.darHabilidad('cierzo');
+        this.hablar(`${f.quien}.despues`, () => {
+          // Now he shrinks and dives into Fran's jar.
+          this.estado = 'rescate';
+          this.tEstado = 0;
+          f.estado = 'entrando';
+          f.t = 0;
+          f.chapoteo = false;
         });
+      }
+    } else if (f.estado === 'entrando') {
+      const [jx, jy] = this.posJarra();
+      if (f.t > 1.05 && !f.chapoteo) {
+        // The splash: beer and foam from the mug, and the friend is in.
+        f.chapoteo = true;
+        f.guille = 'dentro';
+        this.prog.hechos.add(f.quien);
+        this.fx.gotas(jx, jy, 12, 0, 300, '#f0a21e');
+        this.fx.espuma(jx, jy, 8, 0, 220);
+        this.fx.onda(jx, jy, 8, '#fff3d0', 12, 0.4);
+        this.fx.estrellas(jx, jy - 10, 8, '#ffe9a8');
+        this.snd.sorbo();
+      }
+      if (f.t > 1.7) {
+        f.estado = 'abierta';
+        this.comentaT = 16;
+        this.darHabilidad(DON[f.quien]);
       }
     }
   }
 
-  /** Earning a skill: the card, the sound, the button. */
+  /** Where the mouth of Fran's jar is, in the world. */
+  posJarra(): [number, number] {
+    const j = this.j;
+    return [j.x + j.cara * JARRA.x, j.y - JARRA.y];
+  }
+
+  /** Earning a skill: the card and the sound (the skill works on its own; there is no button). */
   darHabilidad(h: Habilidad) {
     this.prog.habs.add(h);
     this.carta = { hab: h, t: 0 };

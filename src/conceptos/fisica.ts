@@ -17,8 +17,10 @@ export function crearRejilla(sala: Sala): Rejilla {
 export interface Paso {
   /** Falls through one-way ledges (↓ + jump). */
   bajar?: boolean;
-  /** Goes through the curtains «T» (the Mutis). */
+  /** Goes through the curtains «T». */
   telones?: boolean;
+  /** Goes through the false walls «F» (only Fran does). */
+  falsos?: boolean;
 }
 
 /** A box on the ground: x is the centre, y the feet. */
@@ -42,7 +44,7 @@ export function tile(r: Rejilla, c: number, f: number): string {
   return r.g[f][c];
 }
 
-export const esSolido = (ch: string, p?: Paso) => ch === '#' || ch === 'N' || ch === 'X' || (ch === 'T' && !p?.telones);
+export const esSolido = (ch: string, p?: Paso) => ch === '#' || ch === 'N' || ch === 'X' || (ch === 'T' && !p?.telones) || (ch === 'F' && !p?.falsos);
 
 /** Moves a box horizontally by `dx`, stopping at solid tiles. Returns true if it hit a wall. */
 export function moverX(r: Rejilla, b: Caja, dx: number, p?: Paso): boolean {
