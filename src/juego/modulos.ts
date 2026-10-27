@@ -19,6 +19,7 @@ const CARGADORES = {
   kart: () => import('../kart/kart'),
   pokeusera: () => import('../pokeusera/capitulo'),
   pang: () => import('../pang/completo'),
+  unamas: () => import('../conceptos/unamas'),
   // Already in the main chunk (chapter 2 imports it statically), so this never fails; it goes through here for the single way in.
   safari: () => import('../ui/safari'),
 };

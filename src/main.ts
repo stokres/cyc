@@ -82,6 +82,25 @@ async function arrancar() {
     location.href = location.pathname;
     return;
   }
+  // «Una más» (src/conceptos/), the world of the concepts as a metroidvania, opened by itself: the address ending in ?unamas. `&zona=2` starts in the garden,
+  // `&sala=id` in that room, `&habs=cierzo,teclazo,mutis` with those skills, `&rapido` skips the waits. Not part of chapter 2 yet.
+  const um = new URLSearchParams(location.search);
+  if (um.has('unamas')) {
+    const [{ jugarUnaMas }, { Sound }] = await Promise.all([cargarModulo('unamas'), import('./core/audio')]);
+    const sonido = new Sound();
+    // Sound needs a tap first (browsers): the first press or key starts it.
+    addEventListener('pointerdown', () => sonido.start(), { once: true });
+    addEventListener('keydown', () => sonido.start(), { once: true });
+    const r = await jugarUnaMas(root, {
+      sonido,
+      rapido: um.has('rapido'),
+      zona: Number(um.get('zona')) || 1,
+      sala: um.get('sala') ?? undefined,
+      habs: (um.get('habs') ?? '').split(',').filter(Boolean) as ('cierzo' | 'teclazo' | 'mutis')[],
+    });
+    (window as unknown as { __unamasResultado?: string }).__unamasResultado = r;
+    return;
+  }
   // The safari comic (src/ui/safari.ts), the end of chapter 2, opened by itself: the address ending in ?safari. `&pagina=N` starts on page N (1 to 4),
   // `&rapido` skips the waits. Closed with window.__safari().cerrar().
   const sf = new URLSearchParams(location.search);
