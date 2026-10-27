@@ -58,6 +58,12 @@ import solPuzle from './sol-puzle.mp3?url';
 import solChat from './sol-chat.mp3?url';
 import solTelon from './sol-telon.mp3?url';
 import solTransforma from './sol-transforma.mp3?url';
+import unaMasExplora from './una-mas-explora.mp3?url';
+import unaMasJardin from './una-mas-jardin.mp3?url';
+import unaMasTeatro from './una-mas-teatro.mp3?url';
+import unaMasMiniboss from './una-mas-miniboss.mp3?url';
+import unaMasJefe from './una-mas-jefe.mp3?url';
+import unaMasRescate from './una-mas-rescate.mp3?url';
 
 export const MUSICA = {
   /** The farm polka on banjo, from Guille's radio (banjo.py radio). */
@@ -167,6 +173,22 @@ export const MUSICA = {
   solChat: { url: solChat, inicio: 0, fin: 0.3 },
   solTelon: { url: solTelon, inicio: 0, fin: 1.2 },
   solTransforma: { url: solTransforma, inicio: 0, fin: 1.5 },
+  /**
+   * «Una más», the chapter 2 metroidvania (src/conceptos/), all from tools/musica/una_mas.py: strings, harpsichord, harp, choir and
+   * drums around «Ca-mio-neees y ca-ra-va-naaas» reharmonised in the minor. Each loop has an intro heard once (`entrada`).
+   * «Explora»: the world of the concepts, D minor, 90 bpm, 56 bars (149.3 s loop).
+   */
+  unaMasExplora: { url: unaMasExplora, entrada: 0, inicio: 5.333333, fin: 154.666667 },
+  /** The Cierzo garden, A minor, 105 bpm, 52 bars (118.9 s loop): harp, flute and wind. */
+  unaMasJardin: { url: unaMasJardin, entrada: 0, inicio: 4.571429, fin: 123.428571 },
+  /** The Theatre of the Concepts, G minor, 100 bpm, 48 bars (115.2 s loop): harpsichord, pizzicato, organ. */
+  unaMasTeatro: { url: unaMasTeatro, entrada: 0, inicio: 4.8, fin: 120 },
+  /** The Gran Despertador's fight, E minor, 150 bpm, 56 bars (89.6 s loop). */
+  unaMasMiniboss: { url: unaMasMiniboss, entrada: 0, inicio: 3.2, fin: 92.8 },
+  /** LA ÚLTIMA, the Ultimosaurio: D minor, 184 s loop; the last 32 s (from 152.0 s of the loop, 156.0 s of the file) are the third phase, a quarter faster (150 bpm instead of 120). */
+  unaMasJefe: { url: unaMasJefe, entrada: 0, inicio: 4, fin: 188 },
+  /** Played once with Sound.efecto (`inicio` and `fin` are not used): the fanfare for rescuing a friend and winning a skill, the chant in D major (7.2 s, its tail fades out). */
+  unaMasRescate: { url: unaMasRescate, inicio: 0, fin: 7.2 },
 } as const;
 
 export type Pista = keyof typeof MUSICA;
