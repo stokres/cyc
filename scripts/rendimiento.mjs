@@ -326,7 +326,7 @@ if (toca('kart')) {
 if (toca('unamas')) {
   // «Una más» (src/conceptos/), the metroidvania: a bot walks, jumps and swings the jug through the Recibidor (alarm clocks, parallax with the painted
   // backdrop, particles) and through the garden's boss arena (the Gran Despertador, a puddle, the foam and spark effects).
-  for (const [nombre, zona, sala] of [['Una más, el Recibidor', 1, 'recibidor-2'], ['Una más, el Jardín y el jefe', 2, 'jardin-3'], ['Una más, las terrazas (losas móviles y amigo en la jarra)', 2, 'jardin-1b'], ['Una más, la Bandeja (enjambres de sobres y losas de papel)', 3, 'bandeja-2'], ['Una más, La Bandeja Llena', 3, 'bandeja-5'], ['Una más, jefe final LA ÚLTIMA (arena del Grifo, piezas animadas, espuma y cristales)', 2, 'grifo-jefe']]) {
+  for (const [nombre, zona, sala] of [['Una más, el Recibidor', 1, 'recibidor-2'], ['Una más, el Jardín y el jefe', 2, 'jardin-3'], ['Una más, las terrazas (losas móviles y amigo en la jarra)', 2, 'jardin-1b'], ['Una más, la Bandeja (enjambres de sobres y losas de papel)', 3, 'bandeja-2'], ['Una más, La Bandeja Llena', 3, 'bandeja-5'], ['Una más, el Grifo (espuma y las tres habilidades)', 5, 'grifo-1'], ['Una más, jefe final LA ÚLTIMA (arena del Grifo, piezas animadas, espuma y cristales)', 2, 'grifo-jefe']]) {
     await medir(nombre, `(async () => {
       clearInterval(window.__paseo);
       const g = window.__cyc.g;
