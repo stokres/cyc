@@ -2,9 +2,9 @@
 // once (the background layers, the room's tiles, the characters' frames, the sprites; docs/ESTILO.md T5/T6) and a frame is a few dozen drawImage
 // calls plus the particles: no SVG, no gradients built per frame, no filters. The camera is rounded to whole device pixels so nothing shimmers.
 import { texto } from '../juego/textos';
-import { ESCALA, type Arte, type Sprite } from './arte';
+import { ESCALA, MIRA, type Arte, type Sprite } from './arte';
 import { TILE } from './datos';
-import type { Enem } from './enemigos';
+import { esJefe, type Enem } from './enemigos';
 import { sueloEn } from './fisica';
 import { dibujarCapas } from './fondos';
 import { hornearPlataforma, TROZO, type PlatBmp } from './nivel';
@@ -148,12 +148,17 @@ export class Pintor {
       if (e.estado === 'gotea') return r.gotea[Math.floor(e.animT * 7) % 2];
       return r.repta[Math.floor(e.animT * 5) % 4];
     }
-    const a = e.tipo === 'gran' ? A.gran : A.despertador;
-    if (e.kx > 0 || (e.muerto && e.tipo === 'gran')) return a.dano[0];
+    const a = e.tipo === 'gran' ? A.gran : e.tipo === 'bandeja' ? A.buzon : e.tipo === 'apuntador' ? A.apuntador : A.despertador;
+    if (e.kx > 0 || (e.muerto && esJefe(e))) return a.dano[0];
     switch (e.estado) {
       case 'alerta':
       case 'ring':
+      case 'oleada':
         return a.alerta[Math.floor(e.animT * 20) % 2];
+      case 'lluvia':
+      case 'guion':
+      case 'foco':
+        return a.alerta[Math.floor(e.animT * 8) % 2];
       case 'carga':
         return a.carga[Math.floor(e.animT * 16) % 2];
       case 'mareo':
@@ -421,31 +426,36 @@ export class Pintor {
     for (const p of m.proy) this.proyectil(p, t);
     // ---- particles and arcs
     m.fx.dibujar(ctx, t);
-    // The front petals of the flower go over Guille.
+    // What shuts the friend in (the flower's front petals, the heap of envelopes, the ropes) goes over him.
+    const C = P.cautivo[m.flor.quien];
     if (m.flor.estado === 'cerrada' || (m.flor.estado === 'abriendo' && m.flor.t < 0.55)) {
       const f = m.flor;
       const tr = f.estado === 'abriendo' ? Math.sin(f.t * 60) * 2 : 0;
-      this.sprite(P.florCerrada, f.x + tr, f.y);
+      this.sprite(C.cerrada, f.x + tr, f.y);
     } else if (m.flor.estado === 'abriendo' || m.flor.estado === 'abierta' || m.flor.estado === 'entrando') {
-      this.sprite(P.florAbierta, m.flor.x, m.flor.y);
+      this.sprite(C.abierta, m.flor.x, m.flor.y);
     }
   }
 
   private flor(t: number) {
     const { m, arte, ctx } = this;
     const f = m.flor;
-    const P = arte.props;
-    this.sprite(P.florFondo, f.x, f.y);
+    const q = f.quien;
+    const C = arte.props.cautivo[q];
+    this.sprite(C.fondo, f.x, f.y);
     ctx.globalCompositeOperation = 'lighter';
     ctx.globalAlpha = 0.4 + 0.15 * Math.sin(t * 2);
-    ctx.drawImage(arte.brillos.magenta, f.x - 150, f.y - 260, 300, 300);
+    ctx.drawImage(q === 'guille' ? arte.brillos.magenta : q === 'chuchi' ? arte.brillos.rojo : arte.brillos.oro, f.x - 150, f.y - 260, 300, 300);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
-    // Guille: inside until the petals open, then he hops out beside it, and then he shrinks and dives into Fran's jar (rescued: in the jar for good).
-    const G = arte.guille;
+    // The friend: shut in until the front opens, then he hops out beside it, and then he shrinks and dives into Fran's jar (rescued: in the jar for good).
+    const G = arte[q];
+    const esc = ESCALA[q];
+    const volteo = (haciaDerecha: boolean) => (haciaDerecha ? MIRA[q] === -1 : MIRA[q] === 1);
+    const dy = q === 'guille' ? 72 : q === 'chuchi' ? 14 : 4;
     if (f.guille === 'atrapado') {
       const fr = G.atrapado[Math.floor(t * 8) % 4];
-      this.cuadro(fr, ESCALA.guille, f.x, f.y - 72, false);
+      this.cuadro(fr, esc, f.x, f.y - dy, false);
     } else if (f.guille === 'libre' && f.estado === 'entrando') {
       const k = Math.min(1, f.t / 1.05);
       const e = k * k * (3 - 2 * k);
@@ -453,15 +463,15 @@ export class Pintor {
       const x0 = f.x + 118;
       const gx = x0 + (jx - x0) * e;
       const gy = f.y + (jy - f.y) * e - Math.sin(Math.PI * k) * 120;
-      this.cuadro(G.celebra[Math.floor(t * 10) % 2], ESCALA.guille * (1 - 0.86 * e), gx, gy, jx > x0);
+      this.cuadro(G.celebra[Math.floor(t * 10) % 2], esc * (1 - 0.86 * e), gx, gy, volteo(jx > x0));
     } else if (f.guille === 'libre') {
       const k = f.estado === 'abierta' ? 1 : Math.min(1, Math.max(0, (f.t - 0.55) / 0.75));
       const e = 1 - (1 - k) * (1 - k);
       const gx = f.x + 118 * e;
-      const gy = f.y - 72 + 72 * e - Math.sin(Math.PI * k) * 70;
+      const gy = f.y - dy + dy * e - Math.sin(Math.PI * k) * 70;
       const fr = k < 1 ? G.celebra[Math.floor(t * 8) % 2] : G.idle[Math.floor(t * 8) % 6];
       if (k >= 1) this.sombra(gx, f.y, 26);
-      this.cuadro(fr, ESCALA.guille, gx, gy, true);
+      this.cuadro(fr, esc, gx, gy, volteo(true));
     }
   }
 
@@ -502,6 +512,16 @@ export class Pintor {
       ctx.drawImage(s.c, jx + off + empuja + s.x, jy + s.y + (1 - sube) * s.h * 0.85 + salta, s.w, s.h);
       ctx.globalAlpha = 1;
     });
+    const be = m.burbujaEnem;
+    if (be && m.estado === 'jugando' && !be.enem.muerto) {
+      const img = this.burbuja('apuntador', be.texto);
+      const k = 0.5;
+      ctx.globalAlpha = Math.max(0, Math.min(1, be.t * 5, (be.dur - be.t) * 4));
+      const w = img.width * k;
+      const h = img.height * k;
+      ctx.drawImage(img, be.enem.x - w / 2, be.enem.y - be.enem.h - 20 - h, w, h);
+      ctx.globalAlpha = 1;
+    }
     const b = m.burbuja;
     if (b && m.estado === 'jugando') {
       const img = this.burbuja(b.quien, b.texto);
@@ -554,7 +574,7 @@ export class Pintor {
     x.fillRect(w / 2 - 7 * k, hh - 5, 14 * k, 5);
     x.textAlign = 'left';
     x.font = `800 ${12 * k}px 'Graduate', 'Alegreya Sans', serif`;
-    x.fillStyle = quien === 'guille' ? '#b8780a' : quien === 'chuchi' ? '#c0304a' : quien === 'fran' ? '#1a8a7a' : '#2a56c8';
+    x.fillStyle = quien === 'guille' ? '#b8780a' : quien === 'chuchi' ? '#c0304a' : quien === 'fran' ? '#1a8a7a' : quien === 'apuntador' ? '#6a3ad8' : '#2a56c8';
     x.fillText(nombre, 13 * k, 18 * k);
     x.font = `700 ${15 * k}px 'Alegreya Sans', sans-serif`;
     x.fillStyle = '#2a1840';
@@ -563,25 +583,72 @@ export class Pintor {
     return c;
   }
 
+  /** An envelope of EL TRABAJO (a baked sprite, tilted by where it flies) or a bouncing NO (squashed by its jump). */
+  private enemigoSprite(e: Enem, t: number) {
+    const { ctx, arte } = this;
+    const P = arte.props;
+    const cx = e.x;
+    const cy = e.y - e.h / 2;
+    const flash = e.hurtT > 0;
+    if (e.tipo === 'sobre') {
+      const abierto = e.estado === 'alerta' || e.estado === 'pica';
+      const s = abierto ? P.sobreAbierto : P.sobre;
+      ctx.save();
+      ctx.translate(cx, cy);
+      const tilt = e.estado === 'pica' ? Math.atan2(e.vy, Math.abs(e.vx) + 1) * 0.5 * e.dir : Math.sin(t * 4 + e.turno) * 0.12;
+      ctx.rotate(tilt);
+      if (e.dir < 0) ctx.scale(-1, 1);
+      ctx.drawImage(s.c, s.x, s.y + 6, s.w, s.h);
+      ctx.restore();
+      if (e.estado === 'alerta') {
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = 0.35 + 0.25 * Math.sin(t * 40);
+        ctx.drawImage(arte.brillos.rojo, cx - 36, cy - 36, 72, 72);
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = 'source-over';
+      }
+      return;
+    }
+    const s = P.noGrande;
+    // Squash and stretch with the bounce.
+    const k = Math.max(-1, Math.min(1, e.vy / 840));
+    const sy = 1 + k * 0.1 * (e.suelo ? -1 : 1);
+    const sx = 1 / sy;
+    this.sombra(e.x, this.sueloBajo(e.x, e.y) ?? e.y, e.hw);
+    ctx.save();
+    ctx.translate(cx, e.y);
+    ctx.scale(sx, sy);
+    ctx.drawImage(s.c, s.x, s.y + 4 - e.h / 2 + 2, s.w, s.h);
+    ctx.restore();
+    if (flash) {
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.6;
+      ctx.drawImage(arte.brillos.blanco, cx - 56, cy - 56, 112, 112);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+    }
+  }
+
   private enemigo(e: Enem, t: number) {
     const { ctx, arte } = this;
+    if (e.tipo === 'sobre' || e.tipo === 'no') return this.enemigoSprite(e, t);
     const f = this.frameEnemigo(e);
     const flash = e.hurtT > 0 ? arte.blanco.get(f) ?? f : f;
-    const esc = e.tipo === 'gran' ? ESCALA.gran : e.tipo === 'reloj' ? ESCALA.reloj : ESCALA.despertador;
+    const esc = e.tipo === 'gran' ? ESCALA.gran : e.tipo === 'bandeja' ? ESCALA.buzon : e.tipo === 'apuntador' ? ESCALA.apuntador : e.tipo === 'reloj' ? ESCALA.reloj : ESCALA.despertador;
     // The telegraphs: a red glow while it winds up.
-    const aviso = e.estado === 'alerta' || e.estado === 'agacha' || e.estado === 'ring';
-    if (e.suelo && !e.muerto) this.sombra(e.x, e.y, e.hw * 1.05);
-    if (aviso || (e.tipo === 'gran' && e.fase === 2 && !e.muerto)) {
+    const aviso = e.estado === 'alerta' || e.estado === 'agacha' || e.estado === 'ring' || e.estado === 'lluvia' || e.estado === 'oleada' || e.estado === 'foco';
+    if (e.suelo && !e.muerto && e.alfa > 0.5) this.sombra(e.x, e.y, e.hw * 1.05);
+    if (aviso || (esJefe(e) && e.fase === 2 && !e.muerto)) {
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = aviso ? 0.5 + 0.3 * Math.sin(t * 30) : 0.28 + 0.1 * Math.sin(t * 6);
-      const r = e.tipo === 'gran' ? 140 : 56;
+      const r = esJefe(e) ? 140 : 56;
       ctx.drawImage(arte.brillos.rojo, e.x - r, e.y - e.h * 0.55 - r, r * 2, r * 2);
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'source-over';
     }
     let ox = 0;
-    if (aviso || e.estado === 'carga') ox = (Math.random() - 0.5) * (e.tipo === 'gran' ? 5 : 3);
-    const alfa = e.muerto && e.tipo === 'gran' ? Math.max(0, 1 - this.m.tEstado / 1.6) * (0.55 + 0.45 * Math.sin(t * 50)) : 1;
+    if (aviso || e.estado === 'carga') ox = (Math.random() - 0.5) * (esJefe(e) ? 5 : 3);
+    const alfa = e.muerto && esJefe(e) ? Math.max(0, 1 - this.m.tEstado / 1.6) * (0.55 + 0.45 * Math.sin(t * 50)) : e.alfa;
     this.cuadro(flash, esc, e.x + ox, e.y, e.dir < 0, alfa);
     if (e.estado === 'dormido') return;
     // Sleepy clock: a small «z» is not text, it is two strokes drawn as a zig-zag.
@@ -600,6 +667,39 @@ export class Pintor {
 
   private proyectil(p: Mundo['proy'][number], t: number) {
     const { ctx, arte } = this;
+    if (p.tipo === 'sobre' || p.tipo === 'guion') {
+      // A letter or a script flying, spinning.
+      const s = p.tipo === 'sobre' ? arte.props.sobreAbierto : arte.props.guion;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.tipo === 'sobre' ? Math.sin(p.t * 14) * 0.25 : p.t * 9);
+      if (p.vx < 0 && p.tipo === 'sobre') ctx.scale(-1, 1);
+      ctx.drawImage(s.c, s.x * 0.8, s.y * 0.8, s.w * 0.8, s.h * 0.8);
+      ctx.restore();
+      return;
+    }
+    if (p.tipo === 'foco') {
+      // The warning of a spotlight: a column of light from the ceiling that fills, then the NO drops.
+      const k = Math.min(1, p.t / p.vida);
+      const w = 52 + 14 * Math.sin(t * 30);
+      ctx.globalCompositeOperation = 'lighter';
+      const g = ctx.createLinearGradient(0, p.y - 520, 0, p.y);
+      g.addColorStop(0, `rgba(255,243,176,${0.1 + 0.25 * k})`);
+      g.addColorStop(1, `rgba(255,243,176,${0.25 + 0.45 * k})`);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(p.x - 12, p.y - 520);
+      ctx.lineTo(p.x + 12, p.y - 520);
+      ctx.lineTo(p.x + w / 2, p.y);
+      ctx.lineTo(p.x - w / 2, p.y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 0.5 + 0.4 * k;
+      ctx.drawImage(arte.brillos.blanco, p.x - 50, p.y - 18, 100, 36);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+      return;
+    }
     if (p.tipo === 'onda') {
       // A running bank of dust and foam, 34 high: a wedge with a golden crest.
       const lado = Math.sign(p.vx);

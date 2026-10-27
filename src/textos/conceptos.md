@@ -21,6 +21,12 @@ zona.recibidor = El Recibidor
 zona.recibidor.sub = Donde cae Fran
 zona.jardin = El Jardín del Cierzo
 zona.jardin.sub = Flores, triángulos y relojes de las tantas
+zona.bandeja = La Bandeja de Entrada
+zona.bandeja.sub = Doce mil correos sin leer
+zona.teatro = El Teatro de los Conceptos
+zona.teatro.sub = Telón arriba, miedo abajo
+zona.grifo = El Grifo
+zona.grifo.sub = Donde nace la última caña
 
 // ---------------------------------------------------------------- carteles del tutorial (PC y móvil)
 
@@ -37,6 +43,12 @@ cartel.cierzo.pc = Cierzo: pulsa Espacio otra vez en el aire
 cartel.cierzo.tactil = Cierzo: pulsa Saltar otra vez en el aire
 cartel.alto.pc = Esa repisa queda muy alta. Ya volverás
 cartel.alto.tactil = Esa repisa queda muy alta. Ya volverás
+cartel.sobres.pc = Los sobres de EL TRABAJO vuelan en bandada y pican uno tras otro. Jarrazo al primero
+cartel.sobres.tactil = Los sobres de EL TRABAJO vuelan en bandada y pican uno tras otro. Jarrazo al primero
+cartel.no.pc = Un bloque de NO. De momento, aquí no se pasa
+cartel.no.tactil = Un bloque de NO. De momento, aquí no se pasa
+cartel.telon.pc = Los telones se atraviesan. Los NO que rebotan, no
+cartel.telon.tactil = Los telones se atraviesan. Los NO que rebotan, no
 cartel.chuchi.pc = Con el jarrazo normal (Z o J), los NO se rompen
 cartel.chuchi.tactil = Con el jarrazo normal, los NO se rompen
 cartel.pablo.pc = Contra una pared, Espacio te impulsa
@@ -48,6 +60,7 @@ nombre.fran = Fran
 nombre.guille = Guille
 nombre.chuchi = Chuchi
 nombre.pablo = Pablo
+nombre.apuntador = El Apuntador
 
 // ---------------------------------------------------------------- controles (los rótulos de los botones y de la ayuda de PC)
 
@@ -67,6 +80,10 @@ aviso.secreto = ¡Un muro falso! Había un hueco detrás
 muerte.texto = Una más…
 jefe.gran = El Gran Despertador
 jefe.gran.sub = A las tantas, ni se te ocurra
+jefe.bandeja = LA BANDEJA LLENA
+jefe.bandeja.sub = Responder a todos
+jefe.apuntador = EL APUNTADOR
+jefe.apuntador.sub = Te sopla un texto que no es el tuyo
 
 // ---------------------------------------------------------------- habilidades
 
@@ -124,6 +141,15 @@ FRAN (nervioso): Eso no es un despertador. Es un despertador con oposiciones.
 ## jefe.despues
 FRAN (contento): ¡Eso por sonar a deshoras!
 > La jarra de Fran crece un sorbo.
+
+## sobre
+FRAN (nervioso): Sobres con colmillos. «EL TRABAJO» viene a por mí y ni siquiera es lunes.
+
+## no
+FRAN: Un NO gigante que rebota. Cuanto más lo evitas, más grande se pone.
+
+## grifo.entra
+FRAN (sorprendido): Espuma dorada por todas partes. Esto no es un grifo: es de donde salen todas las cañas.
 
 ## guille.antes
 GUILLE (sorprendido): ¡Fran! ¡Aquí! Estoy dentro de una flor. Y no es de las que huelen bien.
@@ -288,3 +314,57 @@ CHUCHI: Yo pido ventana.
 GUILLE: Aquí no hay ventanas, hay asa.
 PABLO: Pues yo pido el asa, que es de galán.
 FRAN: A la próxima, cada uno en su caña.
+
+## chuchi.antes
+CHUCHI (nervioso): ¡Fran! Aquí abajo, entre el correo. Llevo… ¿qué día es? Da igual: llevo mil doscientos correos sin leer.
+FRAN: ¿Estás bien?
+CHUCHI: Estoy sepultado en la bandeja de entrada de un jueves. O sea, como siempre, pero con más papel.
+FRAN (contento): Pues aguanta, que te saco.
+
+## chuchi.despues
+CHUCHI (contento): ¡Libre! Y llegando tarde, como siempre. Pero esta vez es culpa de los sobres.
+CHUCHI: Ahora mis NO se rompen de un jarrazo. Ojalá mis jefes también.
+
+## jefe.bandeja.antes
+FRAN (nervioso): Un buzón enorme con la boca llena de cartas.
+CHUCHI (nervioso): Es mi bandeja de entrada. Lleva meses sin vaciarse. Por lo que más quieras, no le des a «responder a todos».
+
+## jefe.bandeja.despues
+FRAN (contento): ¡Bandeja vacía! Eso no se veía desde el siglo pasado.
+CHUCHI (contento): Cero correos. Lo apunto como el mejor día de mi vida laboral.
+> La jarra de Fran crece un sorbo.
+
+## pablo.antes
+PABLO (sorprendido): ¡Fran! Estoy atado a un foco. Es el peor camerino que he tenido, y eso que ensayé en un trastero.
+FRAN: ¿Qué te han hecho?
+PABLO: Me han dado papel de foco. Sin una línea de texto. Es mi pesadilla.
+FRAN (contento): Pues te saco del reparto.
+
+## pablo.despues
+PABLO (contento): ¡Libre! Que conste que no he llorado: era lagrimeo de reflector.
+PABLO: Ahora me agarro a cualquier pared. En el teatro lo llamamos «trepar a la crítica».
+
+## jefe.apuntador.antes
+FRAN: ¿Quién habla bajito detrás del telón?
+PABLO (nervioso): El Apuntador. Me sopla frases que no son mías desde que empecé. Cuidado con sus guiones.
+
+## jefe.apuntador.despues
+PABLO (contento): ¡Se quedó sin texto! Qué justicia poética.
+FRAN (contento): Y sin apuntar.
+> La jarra de Fran crece un sorbo.
+
+## apuntador.guion
+> ¡Tu frase es «estoy bien»! Es mentira, pero queda bien.
+---
+> ¡Entrada! Tu frase: «una más».
+---
+> Psst… «y cae el telón». Dilo, dilo.
+---
+> ¡Aquí está tu texto! Lo he subrayado.
+
+## apuntador.foco
+> ¡Luces! ¡Que caiga el NO!
+---
+> ¡Foco al protagonista!
+---
+> Y ahora, un NO de efecto.

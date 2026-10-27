@@ -5,7 +5,7 @@
 import { dialogo, texto, type Linea } from '../juego/textos';
 import { type Arte } from './arte';
 import { DON, HABILIDADES, PRIMERA_SALA, SALAS, TILE, ZONAS, type Amigo, type Habilidad, type PlataformaDef, type Sala, type Zona } from './datos';
-import { crearEnemigo, actualizarEnemigos, actualizarProyectiles, type Charco, type Enem, type Proyectil } from './enemigos';
+import { crearEnemigo, actualizarEnemigos, actualizarProyectiles, esJefe, type Charco, type Enem, type Proyectil } from './enemigos';
 import type { Mandos } from './entrada';
 import { chocaRect, crearRejilla, haySuelo, moverX, moverY, sueloEn, tocaPinchos, type Caja, type Rejilla } from './fisica';
 import { Efectos } from './fx';
@@ -204,6 +204,8 @@ export class Mundo {
   visitadas = new Set<string>();
   /** A short remark of a friend in the jar, over Fran's head. */
   burbuja: Burbuja | null = null;
+  /** A line over a boss's head (El Apuntador feeds Fran lines). */
+  burbujaEnem: { enem: Enem; texto: string; t: number; dur: number } | null = null;
   /** Seconds until the friends may speak again. */
   comentaT = 10;
   escena: EscenaAmigos | null = null;
@@ -300,16 +302,24 @@ export class Mundo {
     this.visitadas.add(s.id);
     // A false wall already found stays open.
     if (this.prog.hechos.has(`${s.id}.secreto`)) for (const f of this.rej.g) for (let c = 0; c < f.length; c++) if (f[c] === 'F') f[c] = '.';
+    // «NO» blocks already broken stay broken.
+    this.rej.g.forEach((fila, f) => fila.forEach((ch, c) => ch === 'N' && this.prog.hechos.has(`${s.id}.N.${f}.${c}`) && (fila[c] = '.')));
     this.plats = s.plataformas.map((d) => ({ def: d, x: d.col * TILE, y: d.fila * TILE, w: d.ancho * TILE, x0: d.col * TILE, y0: d.fila * TILE, dx: 0, dy: 0, estado: 'firme' as const, t: 0, vy: 0, alfa: 1, fase: 0 }));
     this.burbuja = null;
+    this.burbujaEnem = null;
     this.escena = null;
     this.asoma = { guille: 0, chuchi: 0, pablo: 0 };
     for (const e of s.enemigos) {
       if (this.prog.hechos.has(e.id)) continue;
-      this.enems.push(crearEnemigo(e.tipo, e.id, (e.col + 0.5) * TILE, (e.fila + 1) * TILE));
+      const en = crearEnemigo(e.tipo, e.id, (e.col + 0.5) * TILE, (e.fila + 1) * TILE);
+      if (e.grupo !== undefined) {
+        en.turno = e.grupo;
+        en.cd = 1.3 + e.grupo * 0.5;
+      }
+      this.enems.push(en);
     }
     if (s.jefe && !this.prog.hechos.has(`${s.id}.gran.0`)) {
-      const b = crearEnemigo('gran', `${s.id}.gran.0`, (s.jefe.col + 0.5) * TILE, (s.jefe.fila + 1) * TILE);
+      const b = crearEnemigo(s.jefe.tipo ?? 'gran', `${s.id}.gran.0`, (s.jefe.col + 0.5) * TILE, (s.jefe.fila + 1) * TILE);
       b.estado = 'dormido';
       this.enems.push(b);
       this.jefe = b;
@@ -342,7 +352,14 @@ export class Mundo {
 
   private cerrarPuerta(col: number, cerrada: boolean) {
     const ch = cerrada ? 'X' : '.';
-    for (let f = 7; f <= 9; f++) this.rej.g[f][col] = ch;
+    const [f0, f1] = this.sala.jefe?.filas ?? [7, 9];
+    for (let f = f0; f <= f1; f++) this.rej.g[f][col] = ch;
+  }
+
+  /** A boss says a line (the first line of the dialogue block `clave`) over its head. */
+  decirEnem(e: Enem, clave: string) {
+    const l = dialogo(clave)[0];
+    if (l?.texto) this.burbujaEnem = { enem: e, texto: l.texto, t: 0, dur: Math.max(1.8, 0.9 + l.texto.length * 0.05) };
   }
 
   /** Starts crossing to another room: fade out, load, fade in. */
@@ -412,6 +429,10 @@ export class Mundo {
     this.reloj += d;
     this.tEstado += d;
     for (const a of this.avisos) a.t += d;
+    if (this.burbujaEnem) {
+      this.burbujaEnem.t += d;
+      if (this.burbujaEnem.t > this.burbujaEnem.dur) this.burbujaEnem = null;
+    }
     this.avisos = this.avisos.filter((a) => a.t < a.dur);
     if (this.banner) {
       this.banner.t += d;
@@ -603,7 +624,7 @@ export class Mundo {
     } else j.sobre = null;
 
     // ---- move through the tiles
-    const paso = { bajar: j.bajarT > 0, falsos: true };
+    const paso = { bajar: j.bajarT > 0, falsos: true, telones: true };
     if (moverX(this.rej, j, j.vx * d, paso)) j.vx = 0;
     const antesVy = j.vy;
     const yAntes = j.y;
@@ -640,7 +661,7 @@ export class Mundo {
       if (lado !== 0) {
         const xa = j.x + lado * (j.hw + 1);
         const xb = j.x + lado * (j.hw + 4);
-        if (chocaRect(this.rej, Math.min(xa, xb), j.y - j.h * 0.75, Math.max(xa, xb), j.y - j.h * 0.3, { falsos: true })) j.pared = lado;
+        if (chocaRect(this.rej, Math.min(xa, xb), j.y - j.h * 0.75, Math.max(xa, xb), j.y - j.h * 0.3, { falsos: true, telones: true })) j.pared = lado;
       }
     }
     // The last safe place: on solid ground with ground on both sides (spikes and falls send Fran back there).
@@ -785,10 +806,10 @@ export class Mundo {
     const j = this.j;
     e.hp -= dano;
     e.hurtT = 0.12;
-    const pesado = e.tipo === 'gran' ? 0.18 : 1;
+    const pesado = esJefe(e) ? 0.18 : 1;
     e.vx = j.cara * (fuerte ? 520 : 330) * pesado;
-    e.kx = e.tipo === 'gran' ? 0 : 0.22;
-    e.vy = e.tipo === 'gran' ? e.vy : -140;
+    e.kx = esJefe(e) ? 0 : e.tipo === 'sobre' ? 0 : 0.22;
+    e.vy = esJefe(e) || e.tipo === 'sobre' ? e.vy : -140;
     const px = Math.max(e.x - e.hw, Math.min(e.x + e.hw, j.x + j.cara * 60));
     const py = e.y - e.h * 0.55;
     this.fx.golpe(px, py, j.cara, fuerte);
@@ -803,11 +824,18 @@ export class Mundo {
 
   matar(e: Enem) {
     e.muerto = true;
-    const col = e.tipo === 'despertador' ? '#ff8a46' : e.tipo === 'reloj' ? '#8a7aff' : '#ff5a7a';
-    const grande = e.tipo === 'gran';
+    const col = e.tipo === 'despertador' ? '#ff8a46' : e.tipo === 'reloj' ? '#8a7aff' : e.tipo === 'sobre' ? '#f6ead0' : e.tipo === 'no' ? '#e8453c' : e.tipo === 'bandeja' ? '#f2c63a' : e.tipo === 'apuntador' ? '#b08aff' : '#ff5a7a';
+    const grande = esJefe(e);
     this.fx.muerteEnemigo(e.x, e.y - e.h * 0.5, col, grande);
     this.snd.muerteEnemigo(grande);
     if (grande) {
+      // What the boss had called (swarms, giant NOs) goes with it.
+      for (const x of this.enems) {
+        if (x === e || x.muerto) continue;
+        x.muerto = true;
+        this.fx.muerteEnemigo(x.x, x.y - x.h * 0.5, x.tipo === 'no' ? '#e8453c' : '#f6ead0', false);
+      }
+      this.enems = this.enems.filter((x) => x === e);
       this.prog.hechos.add(e.id);
       this.pelea = 2;
       this.estado = 'jefeMuerte';
@@ -825,6 +853,7 @@ export class Mundo {
       for (let c = Math.floor(x0 / TILE); c <= Math.floor(x1 / TILE); c++) {
         if (this.rej.g[f]?.[c] === 'N') {
           this.rej.g[f][c] = '.';
+          this.prog.hechos.add(`${this.sala.id}.N.${f}.${c}`);
           rompio = true;
           this.fx.muerteEnemigo((c + 0.5) * TILE, (f + 0.5) * TILE, '#e8453c');
           this.fx.teclas((c + 0.5) * TILE, (f + 0.5) * TILE, 8);
@@ -1101,7 +1130,7 @@ export class Mundo {
     for (const e of this.enems) {
       if (e.muerto || this.estado !== 'jugando') continue;
       if (Math.abs(e.x - j.x) < 380 && Math.abs(e.y - j.y) < 160) {
-        const clave = e.tipo === 'despertador' ? 'despertador' : e.tipo === 'reloj' ? 'reloj' : '';
+        const clave = e.tipo === 'despertador' || e.tipo === 'reloj' || e.tipo === 'sobre' || e.tipo === 'no' ? e.tipo : '';
         if (clave && !this.vistos.has(clave)) {
           this.vistos.add(clave);
           this.hablar(clave);
@@ -1116,11 +1145,12 @@ export class Mundo {
       this.cerrarPuerta(s.jefe.puertas[0], true);
       this.cerrarPuerta(s.jefe.puertas[1], true);
       j.vx = 0;
-      this.hablar('jefe.antes', () => {
+      const tj = s.jefe.tipo ?? 'gran';
+      this.hablar(tj === 'gran' ? 'jefe.antes' : `jefe.${tj}.antes`, () => {
         this.estado = 'jefeIntro';
         this.tEstado = 0;
         this.banner = null;
-        this.bannerJefe = { titulo: texto('jefe.gran'), sub: texto('jefe.gran.sub'), t: 0 };
+        this.bannerJefe = { titulo: texto(`jefe.${tj}`), sub: texto(`jefe.${tj}.sub`), t: 0 };
         this.snd.jefeEntra();
         this.fx.sacudir(6);
         this.snd.musica('miniboss');
@@ -1201,7 +1231,8 @@ export class Mundo {
       this.j.vida = this.prog.vidaMax;
       this.aviso(texto('aviso.jarraMas'), 3.2);
       this.snd.sorbo();
-      this.hablar('jefe.despues');
+      const tj = s.tipo ?? 'gran';
+      this.hablar(tj === 'gran' ? 'jefe.despues' : `jefe.${tj}.despues`);
     }
     this.encuadrar(false, d);
   }

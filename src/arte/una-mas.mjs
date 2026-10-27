@@ -175,3 +175,129 @@ export function jarraVida(llena) {
   const espuma = llena ? `<g>${[[-14, -66, 9], [0, -72, 10], [13, -66, 9]].map(([x, y, r]) => bola(x, y, r, '#fff6e6', { luz: 0.1, sombra: -0.2 })).join('')}</g>` : trazo('M-18 -62H18', '#8a7ac0', 3, { opacity: 0.6 });
   return lienzo(-26, -80, 76, 86, asa + vaso + espuma);
 }
+
+// ================================================================ zona 3: la Bandeja de Entrada (los sobres de EL TRABAJO)
+
+const CREMA = '#f6ead0';
+const ROJO = '#e8453c';
+const AZUL = '#3b6fd8';
+
+/** Un sobre con mala uva: crema, con el borde de correo aéreo, ceño fruncido y sello. `abierto`: la solapa alzada y colmillos fuera (se lanza en picado). 96 × 100. */
+export function sobre(abierto = false) {
+  const borde = (d, c) => trazo(d, c, 4);
+  const cuerpo = bloque(redondo([[-38, -22], [38, -22], [38, 26], [-38, 26]], 5), CREMA, [[poli([[12, -22], [38, -22], [38, 26], [-4, 26]]), 'osc', 0.22], [poli([[-38, -22], [-24, -22], [-38, 6]]), 'luz', 0.3]], { luz: 0.4, sombra: -0.3 });
+  const franja = borde('M-34 22H-12M-4 22H18M26 22H34', ROJO) + borde('M-34 -18H-16M-8 -18H14', AZUL);
+  const ojos = ojoPunto(-15, 0, 6.5, '#2a1230') + ojoPunto(13, 0, 6.5, '#2a1230') + trazo('M-26 -10L-8 -2M24 -10L6 -2', OSC, 5.5);
+  const boca = abierto
+    ? relleno(poli([[-28, 8], [28, 8], [22, 20], [-22, 20]]), '#3a0a28') + relleno(poli([[-24, 8], [-17, 8], [-20.5, 16]]), '#fff6e6') + relleno(poli([[17, 8], [24, 8], [20.5, 16]]), '#fff6e6')
+    : trazo('M-12 14Q0 8 12 14', OSC, 4);
+  const solapa = abierto
+    ? bloque(redondo([[-38, -22], [38, -22], [0, -62]], 4), tono(CREMA, -0.14), [[poli([[0, -62], [38, -22], [4, -22]]), 'osc', 0.24]], { luz: 0.3, sombra: -0.25 })
+    : bloque(redondo([[-38, -22], [38, -22], [0, 8]], 4), tono(CREMA, -0.1), [[poli([[0, -22], [38, -22], [0, 8]]), 'osc', 0.2]], { luz: 0.3, sombra: -0.25 }) + bola(0, -2, 7, ROJO, { luz: 0.4, sombra: -0.4 });
+  return lienzo(-48, -70, 96, 100, mancha(0, 10, 44, 10, '#10052e', 0.35) + cuerpo + franja + (abierto ? solapa + boca + ojos : boca + solapa + ojos));
+}
+
+/** Un NO gigante: letras rojas facetadas; la O es una cara furiosa. 196 × 116. */
+export function noGrande() {
+  const N = poli([[-84, 46], [-84, -46], [-62, -46], [-30, 14], [-30, -46], [-8, -46], [-8, 46], [-30, 46], [-62, -14], [-62, 46]]);
+  const n = bloque(N, ROJO, [[poli([[-8, -46], [-8, 46], [-30, 46], [-30, -46]]), 'osc', 0.3], [poli([[-84, -46], [-62, -46], [-62, 40], [-84, 46]]), 'luz', 0.3]], { luz: 0.45, sombra: -0.4 });
+  const o = ovoide(50, 0, 40, 48, ROJO, { luz: 0.5, sombra: -0.5 }) + ovoide(50, 0, 24, 33, '#3a0a18', { luz: 0.1, sombra: -0.2 })
+    + circ(41, -8, 6, '#fff6e6') + circ(60, -8, 6, '#fff6e6') + circ(43, -7, 3, '#2a1230') + circ(58, -7, 3, '#2a1230')
+    + trazo('M33 -20L46 -14M67 -20L54 -14', '#fff6e6', 4.5) + trazo('M38 14Q50 6 62 14', '#fff6e6', 4);
+  return lienzo(-96, -58, 196, 116, mancha(0, 50, 100, 10, '#10052e', 0.35) + n + o);
+}
+
+/** El buzón de LA BANDEJA LLENA: un buzón de Correos amarillo con ojos, boca de ranura repleta de cartas y una bandera. Origen en los pies. Mismas piezas que el despertador. */
+export function buzon() {
+  const AM = '#f2c63a';
+  const partes = [];
+  const pie = (x) => bloque(redondo([[x - 22, -22], [x + 22, -22], [x + 27, 3], [x - 27, 3]], 8), '#2a3a78', [[poli([[x + 4, -22], [x + 22, -22], [x + 27, 3], [x + 7, 3]]), 'osc', 0.32]], { luz: 0.3, sombra: -0.3 });
+  partes.push(parte('pie.a', [-70, -32, -4, 8], pie(-36), { piv: [-36, -24] }));
+  partes.push(parte('pie.b', [4, -32, 70, 8], pie(36), { piv: [36, -24] }));
+  const sobreOreja = (cx, ang) => `<g transform="translate(${cx} -176) rotate(${ang})">${bloque(redondo([[-26, -4], [26, -4], [26, -40], [-26, -40]], 4), CREMA, [[poli([[8, -40], [26, -40], [26, -4], [2, -4]]), 'osc', 0.24]], { luz: 0.4, sombra: -0.3 })}${trazo('M-26 -40L0 -22L26 -40', tono(CREMA, -0.35), 3.5)}${bola(0, -23, 5, ROJO)}</g>`;
+  partes.push(parte('campana.a', [-80, -230, -2, -170], sobreOreja(-34, -16), { piv: [-34, -176], padre: 'cuerpo' }));
+  partes.push(parte('campana.b', [2, -230, 80, -170], sobreOreja(34, 16), { piv: [34, -176], padre: 'cuerpo' }));
+  const bandera = bloque(redondo([[66, -150], [66, -112], [102, -118], [102, -146]], 3), ROJO, [[poli([[84, -150], [102, -146], [102, -118], [84, -122]]), 'osc', 0.25]], { luz: 0.4, sombra: -0.3 });
+  partes.push(parte('martillo', [58, -170, 112, -80], trazo('M66 -92L66 -156', '#5a3a2a', 6) + bandera, { piv: [66, -92], padre: 'cuerpo' }));
+  const cuerpoD = 'M-66 -26L-66 -118A66 66 0 0 1 66 -118L66 -26Z';
+  const carta = (x, y, a) => `<g transform="translate(${x} ${y}) rotate(${a})">${relleno(poli([[-20, -9], [20, -9], [20, 9], [-20, 9]]), CREMA)}${trazo('M-20 -9L0 3L20 -9', tono(CREMA, -0.4), 2)}</g>`;
+  const cuerpo = mancha(0, 0, 90, 12, '#10052e', 0.45)
+    + bloque(cuerpoD, AM, [[poli([[26, -190], [66, -118], [66, -26], [20, -26]]), 'osc', 0.28], [poli([[-66, -118], [-50, -168], [-34, -184], [-48, -90], [-66, -40]]), 'luz', 0.32]], { luz: 0.5, sombra: -0.4 })
+    + bloque(redondo([[-66, -60], [66, -60], [66, -38], [-66, -38]], 3), '#2a3a78', [], { luz: 0.2, sombra: -0.2 })
+    + relleno('M-44 -108H44A8 8 0 0 1 52 -100V-82A8 8 0 0 1 44 -74H-44A8 8 0 0 1 -52 -82V-100A8 8 0 0 1 -44 -108Z', '#2a0a2a')
+    + carta(-26, -110, -18) + carta(8, -112, 8) + carta(30, -108, 24) + carta(-6, -82, 4)
+    + relleno(poli([[-44, -108], [-34, -96], [-24, -108]]), '#fff6e6') + relleno(poli([[-14, -108], [-4, -96], [6, -108]]), '#fff6e6') + relleno(poli([[16, -108], [26, -96], [36, -108]]), '#fff6e6')
+    + relleno(poli([[-34, -74], [-24, -86], [-14, -74]]), '#fff6e6') + relleno(poli([[6, -74], [16, -86], [26, -74]]), '#fff6e6')
+    + circ(-28, -146, 17, '#fff6e6') + circ(28, -146, 17, '#fff6e6') + ojoPunto(-25, -144, 8, '#2a1230') + ojoPunto(25, -144, 8, '#2a1230')
+    + trazo('M-48 -170L-12 -152M48 -170L12 -152', OSC, 7)
+    + trazo('M-50 -26H50', tono(AM, -0.45), 4) + bloque(redondo([[-18, -32], [18, -32], [18, -10], [-18, -10]], 3), '#8a8aa8', [], {}) + circ(0, -21, 4, '#2a1250');
+  partes.push(parte('cuerpo', [-90, -200, 90, 6], cuerpo, { piv: [0, -4] }));
+  return { id: 'buzon', alto: 235, ancho: 190, color: AM, mira: 1, partes };
+}
+
+/** Los montones de sobres que entierran a Chuchi: lo de atrás (alto), lo de delante hasta el pecho, y el montón desparramado una vez libre. */
+function montoncito(items) {
+  return items.map(([x, y, a, k, c]) => `<g transform="translate(${x} ${y}) rotate(${a}) scale(${k})">${bloque(redondo([[-30, -20], [30, -20], [30, 20], [-30, 20]], 3), c, [[poli([[8, -20], [30, -20], [30, 20], [0, 20]]), 'osc', 0.22]], { luz: 0.3, sombra: -0.25 })}${trazo('M-30 -20L0 4L30 -20', tono(c, -0.4), 3)}${trazo('M-26 16H-8M2 16H22', ROJO, 3, { opacity: 0.8 })}</g>`).join('');
+}
+const COLORES_SOBRE = [CREMA, '#ece0c0', '#f9f0dc', '#e4d4b0', '#d8e4f4'];
+function mezcla(n, x0, x1, y0, y1, sem) {
+  const r = (i) => { const s = Math.sin(i * 127.1 + sem * 311.7) * 43758.5453; return s - Math.floor(s); };
+  return Array.from({ length: n }, (_, i) => [x0 + r(i * 3 + 1) * (x1 - x0), y0 + r(i * 3 + 2) * (y1 - y0), (r(i * 3 + 3) - 0.5) * 70, 0.85 + r(i * 5) * 0.4, COLORES_SOBRE[i % COLORES_SOBRE.length]]);
+}
+export function montonFondo() {
+  return lienzo(-210, -230, 420, 240, mancha(0, -6, 190, 16, '#10052e', 0.4) + montoncito(mezcla(16, -150, 150, -170, -100, 1)) + montoncito(mezcla(14, -170, 170, -110, -40, 2)));
+}
+export function montonCerrada() {
+  return lienzo(-210, -160, 420, 170, montoncito(mezcla(16, -160, 160, -110, -30, 3)) + montoncito(mezcla(10, -170, 170, -50, -12, 4)));
+}
+export function montonAbierta() {
+  return lienzo(-250, -74, 500, 82, mancha(0, -4, 220, 12, '#10052e', 0.3) + montoncito(mezcla(14, -210, 210, -40, -12, 5)));
+}
+
+// ================================================================ zona 4: el Teatro de los Conceptos
+
+/** EL APUNTADOR: un tipo flaco con capa violeta, capucha, gafas redondas y un lápiz tras la oreja; sostiene guiones en cada mano. Mismas piezas que el despertador. */
+export function apuntador() {
+  const CAPA = '#3a2a78';
+  const partes = [];
+  const zapato = (x) => bloque(redondo([[x - 16, -14], [x + 16, -14], [x + 22, 3], [x - 20, 3]], 6), '#1a1030', [[poli([[x + 4, -14], [x + 16, -14], [x + 22, 3], [x + 6, 3]]), 'osc', 0.3]], { luz: 0.2, sombra: -0.2 });
+  partes.push(parte('pie.a', [-50, -22, -2, 8], zapato(-22), { piv: [-22, -16] }));
+  partes.push(parte('pie.b', [2, -22, 50, 8], zapato(22), { piv: [22, -16] }));
+  const brazo = (sg) => `<g>${tubo(`M${sg * 34} -150Q${sg * 74} -128 ${sg * 70} -100`, tono(CAPA, 0.1), 20)}${bola(sg * 70, -96, 12, '#f1dcc4', { luz: 0.3, sombra: -0.3 })}`
+    + `<g transform="translate(${sg * 74} -104) rotate(${sg * 18})">${bloque(redondo([[-9, -34], [9, -34], [9, 34], [-9, 34]], 5), CREMA, [[poli([[2, -34], [9, -34], [9, 34], [2, 34]]), 'osc', 0.24]], { luz: 0.4, sombra: -0.3 })}${trazo('M-9 -20H9M-9 -8H9M-9 4H9', tono(CREMA, -0.45), 2)}${trazo('M-9 24H9', ROJO, 4)}</g></g>`;
+  partes.push(parte('campana.a', [-110, -170, -20, -50], brazo(-1), { piv: [-34, -150], padre: 'cuerpo' }));
+  partes.push(parte('campana.b', [20, -170, 110, -50], brazo(1), { piv: [34, -150], padre: 'cuerpo' }));
+  partes.push(parte('martillo', [-60, -222, -20, -170], trazo('M-46 -212L-34 -176', '#f2c14e', 6) + relleno(poli([[-36, -176], [-32, -170], [-28, -176]]), '#2a1230'), { piv: [-34, -178], padre: 'cuerpo' }));
+  const cuerpo = mancha(0, 0, 70, 10, '#10052e', 0.45)
+    + bloque('M-46 -18L-34 -150A40 22 0 0 1 34 -150L46 -18Z', CAPA, [[poli([[14, -172], [34, -150], [46, -18], [10, -18]]), 'osc', 0.3], [poli([[-34, -150], [-44, -60], [-46, -18], [-24, -18]]), 'luz', 0.22]], { luz: 0.4, sombra: -0.45 })
+    + trazo('M0 -140L0 -24', tono(CAPA, -0.4), 3)
+    + ovoide(0, -178, 34, 36, tono(CAPA, 0.1), { luz: 0.3, sombra: -0.4 })
+    + ovoide(0, -174, 24, 27, '#f1dcc4', { luz: 0.3, sombra: -0.25 })
+    + circ(-11, -176, 11, '#fff6e6') + circ(11, -176, 11, '#fff6e6') + trazo(elipse(-11, -176, 11, 11), '#f2c14e', 3) + trazo(elipse(11, -176, 11, 11), '#f2c14e', 3) + trazo('M-1 -176H1', '#f2c14e', 3)
+    + circ(-10, -175, 4, '#2a1230') + circ(12, -175, 4, '#2a1230') + trazo('M-22 -190L-4 -184M22 -190L4 -184', OSC, 3.5)
+    + ovoide(0, -160, 5, 7, '#7a2a3a', { luz: 0.1, sombra: -0.2 });
+  partes.push(parte('cuerpo', [-70, -222, 70, 6], cuerpo, { piv: [0, -4] }));
+  return { id: 'apuntador', alto: 230, ancho: 170, color: CAPA, mira: 1, partes };
+}
+
+/** Un guion enrollado que vuela. 60 × 32. */
+export function guion() {
+  return lienzo(-30, -16, 60, 32, bloque(redondo([[-26, -11], [26, -11], [26, 11], [-26, 11]], 6), CREMA, [[poli([[0, -11], [26, -11], [26, 11], [0, 11]]), 'osc', 0.24]], { luz: 0.4, sombra: -0.3 })
+    + trazo('M-14 -6H10M-14 0H14M-14 6H6', tono(CREMA, -0.5), 2.2) + trazo('M-26 -11V11', ROJO, 5) + trazo('M20 -11V11', ROJO, 4));
+}
+
+/** El foco al que atan a Pablo: trípode, lámpara y el cono de luz. Origen en el suelo. */
+export function focoFondo() {
+  const patas = tubo('M0 -210L-86 0', '#5a4a7a', 11) + tubo('M0 -210L86 0', '#5a4a7a', 11) + tubo('M0 -210L0 -4', '#6a5a8a', 11);
+  const lampara = `<g transform="translate(0 -236) rotate(-24)">${bloque(redondo([[-40, -30], [40, -30], [48, 38], [-48, 38]], 8), '#403458', [[poli([[14, -30], [40, -30], [48, 38], [22, 38]]), 'osc', 0.3]], { luz: 0.35, sombra: -0.4 })}${bola(0, 40, 36, '#fff3b0', { luz: 0.3, sombra: -0.15 })}${circ(0, 40, 22, '#ffffff', 0.7)}</g>`;
+  const cono = `<defs><linearGradient id="fc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3b0" stop-opacity="0.55"/><stop offset="1" stop-color="#fff3b0" stop-opacity="0.08"/></linearGradient></defs><path d="M-22 -206L-210 0H130Z" fill="url(#fc)"/>`;
+  return lienzo(-230, -290, 380, 296, cono + patas + lampara);
+}
+export function focoCerrada() {
+  const soga = (d) => tubo(d, '#9a6a3a', 9, { luz: 0.35, sombra: -0.4 });
+  return lienzo(-110, -190, 220, 200, soga('M-66 -150Q0 -118 66 -156') + soga('M-70 -112Q0 -80 70 -118') + soga('M-64 -76Q0 -46 66 -82') + soga('M-62 -42Q0 -16 62 -46'));
+}
+export function focoAbierta() {
+  const soga = (d) => tubo(d, '#9a6a3a', 9, { luz: 0.35, sombra: -0.4 });
+  return lienzo(-170, -34, 340, 44, soga('M-120 -8Q-60 -26 0 -8T120 -10') + soga('M-90 2Q-30 -12 30 2T130 0'));
+}

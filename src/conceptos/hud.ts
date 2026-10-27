@@ -82,7 +82,7 @@ export function dibujarHud(ctx: CanvasRenderingContext2D, m: Mundo, arte: Arte, 
     panel(ctx, x - 14, y - 32, w + 28, 58, 12, '#ff7a6a');
     ctx.font = `700 18px ${TITULO}`;
     ctx.textAlign = 'center';
-    sombreado(ctx, texto('jefe.gran'), vw / 2, y - 10, '#ffe9a8');
+    sombreado(ctx, texto(`jefe.${b.tipo}`), vw / 2, y - 10, '#ffe9a8');
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
     ctx.fillRect(x, y, w, 12);
     const k2 = Math.max(0, b.hp / b.hpMax);

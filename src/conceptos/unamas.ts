@@ -4,7 +4,7 @@
 //
 // A minigame like src/kart/ and src/sol/: its own cover (`.cubierta.minijuego`) and loop (never above 60 fps), the pause menu with «Saltar»,
 // and it ends with 'hecho' (the delivery's last door), 'saltado' or 'cancelado'. Not hooked into chapter 2 yet: it only opens with `?unamas`
-// (`&zona=1|2`, `&sala=id`, `&habs=cierzo,teclazo,pared`, `&fondos=0` for the baked backgrounds). `window.__unamas()` counts frames and gives
+// (`&zona=1..5`, `&sala=id`, `&habs=cierzo,teclazo,pared`, `&fondos=0` for the baked backgrounds). `window.__unamas()` counts frames and gives
 // the tests a hand.
 //
 // Performance (docs/ESTILO.md T5/T6): the backgrounds, the tiles, the characters' frames and the sprites are baked once; a frame is a few dozen
@@ -31,7 +31,7 @@ export interface OpcionesUnaMas {
   sonido?: SonidoMinijuego;
   /** Skips the waiting (tests). */
   rapido?: boolean;
-  /** Starts in the first room of this zone (1 or 2). */
+  /** Starts in the first room of this zone (1 to 5). */
   zona?: number;
   /** Starts in this room. */
   sala?: string;
@@ -328,8 +328,10 @@ export function jugarUnaMas(root: HTMLElement, o: OpcionesUnaMas = {}): Promise<
       await dibujando;
       return fin(motivo);
     }
-    const salaId = o.sala && SALAS[o.sala] ? o.sala : PRIMERA_SALA[o.zona === 2 ? 2 : 1];
-    const habs = (o.habs ?? []).filter((x) => HABILIDADES.includes(x));
+    const salaId = o.sala && SALAS[o.sala] ? o.sala : PRIMERA_SALA[o.zona ?? 1] ?? PRIMERA_SALA[1];
+    // Starting in a later zone without saying which skills: the ones the earlier zones give (so that the zone can be tried).
+    const previas = HABILIDADES.slice(0, Math.max(0, Math.min(3, (o.zona ?? 1) - 2)));
+    const habs = (o.habs?.length ? o.habs : previas).filter((x) => HABILIDADES.includes(x));
     mundo = new Mundo(arte, sonido, { sala: salaId, habs });
     const m = mundo;
     pintor = new Pintor(lienzo, arte, m);

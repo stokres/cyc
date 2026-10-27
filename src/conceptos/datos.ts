@@ -11,7 +11,9 @@
 
 export const TILE = 48;
 
-export type TipoEnemigo = 'despertador' | 'reloj' | 'gran';
+export type TipoEnemigo = 'despertador' | 'reloj' | 'gran' | 'sobre' | 'no' | 'bandeja' | 'apuntador';
+/** The mini-bosses (they shut the arena, have a life bar and give a sip when beaten). */
+export type TipoJefe = 'gran' | 'bandeja' | 'apuntador';
 /** The skills are automatic. Guille: Cierzo (double jump). Chuchi: Teclazo (the jarrazo breaks «NO» blocks). Pablo: wall jump (`pared`). */
 export type Habilidad = 'cierzo' | 'teclazo' | 'pared';
 export type Amigo = 'guille' | 'chuchi' | 'pablo';
@@ -55,11 +57,21 @@ export interface Sala {
   salidas: Salida[];
   puertas: Puerta[];
   carteles: Cartel[];
-  enemigos: { tipo: TipoEnemigo; col: number; fila: number; id: string }[];
+  enemigos: { tipo: TipoEnemigo; col: number; fila: number; id: string; /** Place in a swarm of envelopes (0, 1, 2…). */ grupo?: number }[];
   barras: { col: number; fila: number; id: string }[];
   sorbos: { col: number; fila: number; id: string }[];
   /** The fight room: where the boss stands, the column that starts it and the gate columns (rows 7..9 are closed). */
-  jefe?: { col: number; fila: number; disparo: number; puertas: number[] };
+  jefe?: {
+    tipo?: TipoJefe;
+    col: number;
+    fila: number;
+    disparo: number;
+    puertas: number[];
+    /** Rows of the gate columns that shut (default 7..9). */
+    filas?: [number, number];
+    /** Where El Apuntador may appear (tile of his feet). */
+    puestos?: { col: number; fila: number }[];
+  };
   flor?: { col: number; fila: number; quien: Amigo };
   /** Slabs that move or fall. */
   plataformas: PlataformaDef[];
@@ -156,6 +168,15 @@ class Plano {
 
   enemigo(tipo: TipoEnemigo, col: number, fila: number) {
     this.enemigos.push({ tipo, col, fila, id: `${this.id}.${tipo}.${this.enemigos.length}` });
+    return this;
+  }
+
+  /** A swarm of `n` envelopes in a V around (`col`, `fila`): they sway and dive together. */
+  enjambre(col: number, fila: number, n: number) {
+    for (let i = 0; i < n; i++) {
+      const k = i - (n - 1) / 2;
+      this.enemigos.push({ tipo: 'sobre', col: col + k * 1.3, fila: fila + Math.abs(k) * 0.5, id: `${this.id}.sobre.${this.enemigos.length}`, grupo: i });
+    }
     return this;
   }
 
@@ -385,9 +406,14 @@ function jardin4() {
   p.mapa(6, 1);
   p.salida('izq', 8, 10, 'jardin-3', 24, 9);
   p.rect(24, 6, 6, 7, '#');
+  // Backtracking: a «NO» in the flank of the hillside shuts a chamber with a sip; Chuchi's jarrazo opens it.
+  p.rect(25, 9, 3, 2, '.');
+  p.rect(24, 9, 1, 2, 'N');
+  p.sorbo(26, 10);
+  p.cartel(21, 10, 'cartel.no');
   p.salida('der', 3, 5, 'jardin-5', 2, 5);
   p.flor = { col: 11, fila: 10, quien: 'guille' };
-  p.cartel(19, 10, 'cartel.cierzo');
+  p.cartel(17, 10, 'cartel.cierzo');
   return p.hecho();
 }
 
@@ -408,12 +434,111 @@ function jardin5() {
   p.salida('izq', 3, 5, 'jardin-4', 27, 5);
   p.barra(22, 5);
   p.enemigo('reloj', 32, 4);
-  p.puerta({ col: 48, fila: 5, sala: 'fin', col2: 0, fila2: 0 });
+  p.puerta({ col: 48, fila: 5, sala: 'bandeja-1', col2: 4, fila2: 9, zona: 'bandeja' });
+  return p.hecho();
+}
+
+
+// ---------------------------------------------------------------- zone 3: La Bandeja de Entrada (the envelopes of EL TRABAJO, Chuchi, La Bandeja Llena)
+//
+//   jardin-5 ──(door)── bandeja-1 ── bandeja-2 ── bandeja-3 (Chuchi) ── bandeja-4 ── bandeja-5 (La Bandeja Llena) ── teatro-1
+// Swarms of envelopes fly in formation (`enjambre`). From Chuchi on, the «NO» walls that shut the way break with the plain jarrazo; the first one
+// (bandeja-1) hides a sip in a hillside and is the backtracking of this zone.
+
+/** The way in: a door from the garden, the first swarm, a pit, and a hillside with a «NO» in its flank (a sip inside). */
+function bandeja1() {
+  const p = new Plano('bandeja-1', 'bandeja', 44, 12, 10);
+  p.mapa(7, 2);
+  p.inicio = { col: 4, fila: 9 };
+  p.puerta({ col: 2, fila: 9, sala: 'jardin-5', col2: 46, fila2: 5 });
+  p.cartel(7, 9, 'cartel.sobres');
+  p.enjambre(15, 6, 3);
+  p.foso(20, 23);
+  // The hillside: a step to climb it, a «NO» in its flank and a little chamber behind it.
+  p.cartel(26, 9, 'cartel.no');
+  p.lista(27, 29, 8);
+  p.rect(30, 7, 7, 3, '#');
+  p.rect(31, 8, 3, 2, '.');
+  p.rect(30, 8, 1, 2, 'N');
+  p.sorbo(32, 9);
+  p.enjambre(34, 4, 2);
+  p.barra(40, 9);
+  p.salida('der', 7, 9, 'bandeja-2', 2, 12);
+  return p.hecho();
+}
+
+/** A tower of paper: sheets that fall, a slab that slides, a swarm over the rest stop, and the way up to the right. */
+function bandeja2() {
+  const p = new Plano('bandeja-2', 'bandeja', 44, 15, 13);
+  p.mapa(8, 2);
+  p.inicio = { col: 3, fila: 12 };
+  p.salida('izq', 10, 12, 'bandeja-1', 41, 9);
+  p.foso(8, 12);
+  p.plat('cae', 8, 12, 2).plat('cae', 11, 12, 2);
+  p.barra(16, 12);
+  p.enjambre(17, 8, 3);
+  p.enemigo('despertador', 19, 12);
+  p.foso(23, 29);
+  p.plat('mueve', 23, 12, 3, 4, 4.5);
+  p.lista(31, 34, 11);
+  p.lista(37, 40, 9);
+  p.plat('cae', 33, 7, 3);
+  p.enjambre(36, 5, 2);
+  p.plat('sube', 38, 5, 3, 2, 4);
+  p.lista(40, 42, 3);
+  p.salida('der', 1, 3, 'bandeja-3', 2, 9);
+  return p.hecho();
+}
+
+/** Chuchi, buried in the envelopes; the way on is shut by a wall of «NO». */
+function bandeja3() {
+  const p = new Plano('bandeja-3', 'bandeja', 40, 12, 10);
+  p.mapa(9, 2);
+  p.salida('izq', 7, 9, 'bandeja-2', 41, 2);
+  p.enjambre(10, 6, 3);
+  p.enemigo('despertador', 14, 9);
+  p.flor = { col: 20, fila: 9, quien: 'chuchi' };
+  p.cartel(26, 9, 'cartel.chuchi');
+  // A wall of «NO» from floor to ceiling: only the Teclazo opens it.
+  p.rect(29, 1, 1, 9, 'N');
+  p.barra(34, 9);
+  p.salida('der', 7, 9, 'bandeja-4', 2, 10);
+  return p.hecho();
+}
+
+/** A corridor with two walls of «NO», a pit, a swarm and the old enemies mixed in. */
+function bandeja4() {
+  const p = new Plano('bandeja-4', 'bandeja', 50, 13, 11);
+  p.mapa(10, 2);
+  p.salida('izq', 8, 10, 'bandeja-3', 37, 9);
+  p.enjambre(9, 7, 3);
+  p.rect(14, 1, 1, 10, 'N');
+  p.enemigo('despertador', 18, 10);
+  p.foso(21, 24);
+  p.lista(25, 28, 8);
+  p.enjambre(30, 6, 3);
+  p.enemigo('reloj', 28, 10);
+  p.rect(34, 1, 1, 10, 'N');
+  p.enemigo('despertador', 38, 10);
+  p.enjambre(40, 7, 2);
+  p.barra(44, 10);
+  p.salida('der', 8, 10, 'bandeja-5', 2, 9);
+  return p.hecho();
+}
+
+/** LA BANDEJA LLENA's arena. */
+function bandeja5() {
+  const p = new Plano('bandeja-5', 'bandeja', 30, 12, 10);
+  p.mapa(11, 2);
+  p.salida('izq', 7, 9, 'bandeja-4', 47, 10);
+  p.lista(4, 7, 7).lista(22, 25, 7);
+  p.salida('der', 7, 9, 'teatro-1', 2, 9);
+  p.jefe = { tipo: 'bandeja', col: 24, fila: 9, disparo: 6, puertas: [0, 29] };
   return p.hecho();
 }
 
 /** Rooms that other modules register (the final boss's arena). The exits towards them are not checked for reciprocity. */
-export const SALAS_EXTERNAS = ['grifo-jefe'];
+export const SALAS_EXTERNAS = ['grifo-jefe', 'teatro-1'];
 
 /**
  * The rule of the exits (Jesús: «si sales por la derecha entras por la izquierda de la siguiente, y al contrario»): a room has at most ONE opening per
@@ -461,7 +586,7 @@ export function erroresDeSalidas(salas: Record<string, Sala> = SALAS): string[] 
 }
 
 export const SALAS: Record<string, Sala> = {};
-for (const s of [recibidor1(), recibidor2(), recibidor3(), recibidor4(), jardin1(), jardin1b(), jardin2(), jardin3(), jardin4(), jardin5()]) {
+for (const s of [recibidor1(), recibidor2(), recibidor3(), recibidor4(), jardin1(), jardin1b(), jardin2(), jardin3(), jardin4(), jardin5(), bandeja1(), bandeja2(), bandeja3(), bandeja4(), bandeja5()]) {
   for (const f of s.filas) if (f.length !== s.cols) console.error(`[una más] ${s.id}: una fila mide ${f.length} y no ${s.cols}`);
   SALAS[s.id] = s;
 }
@@ -469,4 +594,4 @@ for (const s of [recibidor1(), recibidor2(), recibidor3(), recibidor4(), jardin1
 for (const e of erroresDeSalidas()) console.error(`[una más] salidas: ${e}`);
 
 /** The first room of each zone (`?unamas&zona=N`). */
-export const PRIMERA_SALA: Record<number, string> = { 1: 'recibidor-1', 2: 'jardin-1' };
+export const PRIMERA_SALA: Record<number, string> = { 1: 'recibidor-1', 2: 'jardin-1', 3: 'bandeja-1' };

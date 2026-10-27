@@ -20,7 +20,7 @@ export interface Sprite {
 }
 
 /** Logical pixels per figure unit of each character. */
-export const ESCALA = { fran: 0.155, guille: 0.15, chuchi: 0.16, pablo: 0.15, despertador: 0.36, gran: 0.92, reloj: 0.5 } as const;
+export const ESCALA = { buzon: 0.72, apuntador: 0.66, fran: 0.155, guille: 0.15, chuchi: 0.16, pablo: 0.15, despertador: 0.36, gran: 0.92, reloj: 0.5 } as const;
 
 export type AnimFran = 'idle' | 'correr' | 'sube' | 'baja' | 'aterriza' | 'ataque' | 'carga' | 'dano' | 'mutis' | 'celebra' | 'retrato';
 export type AnimGuille = 'idle' | 'celebra' | 'atrapado' | 'retrato';
@@ -38,6 +38,9 @@ export interface Arte {
   pablo: Record<AnimAmigo, Cuadro[]>;
   despertador: Record<AnimDespertador, Cuadro[]>;
   gran: Record<AnimDespertador, Cuadro[]>;
+  /** LA BANDEJA LLENA (zone 3's mini-boss) and EL APUNTADOR (zone 4's): same poses as the alarm clock. */
+  buzon: Record<AnimDespertador, Cuadro[]>;
+  apuntador: Record<AnimDespertador, Cuadro[]>;
   reloj: Record<AnimReloj, Cuadro[]>;
   /** The same frames flashed white (a hit), by character and animation. */
   blanco: Map<Cuadro, Cuadro>;
@@ -55,6 +58,13 @@ export interface Arte {
     iconoPared: Sprite;
     jarraLlena: Sprite;
     jarraVacia: Sprite;
+    /** EL TRABAJO's envelope (closed, and open with fangs), the bouncing giant NO and a flying script: drawn about their centre. */
+    sobre: Sprite;
+    sobreAbierto: Sprite;
+    noGrande: Sprite;
+    guion: Sprite;
+    /** What shuts a friend in (behind him, in front of him, and once he is free), by friend. Guille's is the flower. */
+    cautivo: Record<Amigo, { fondo: Sprite; cerrada: Sprite; abierta: Sprite }>;
   };
   brillos: Record<string, HTMLCanvasElement>;
   /** A friend's little head with foam round its neck: what peeks out of Fran's jar once rescued. Anchored at the bottom centre. */
@@ -250,7 +260,7 @@ let hecho: Promise<Arte> | null = null;
 /** Bakes everything. `avance` is told how far along it is (0–1). Called once; the result is kept. */
 export function cargarArte(avance?: (f: number) => void): Promise<Arte> {
   hecho ??= (async () => {
-    const pasos = 13;
+    const pasos = 15;
     let n = 0;
     const paso = <T>(p: Promise<T>) => p.then((r) => (avance?.(++n / pasos), r));
     const fran = A.figura('fran') as unknown as FiguraDef;
@@ -261,7 +271,9 @@ export function cargarArte(avance?: (f: number) => void): Promise<Arte> {
     const E = ESCALA;
     const chuchiDef = A.figura('chuchi') as unknown as FiguraDef;
     const pabloDef = A.figura('pablo') as unknown as FiguraDef;
-    const [f, g, d, gr, r, ch, pa] = [
+    const buz = U.buzon() as unknown as FiguraDef;
+    const apu = U.apuntador() as unknown as FiguraDef;
+    const [f, g, d, gr, r, ch, pa, bu, ap] = [
       await paso(rig(fran, posesFran(fran), E.fran)),
       await paso(rig(guille, posesGuille(guille), E.guille)),
       await paso(rig(des, posesDespertador(), E.despertador)),
@@ -269,8 +281,10 @@ export function cargarArte(avance?: (f: number) => void): Promise<Arte> {
       await paso(rig(rel, posesReloj(), E.reloj)),
       await paso(rig(chuchiDef, posesAmigo(chuchiDef, [], ['cabeza', 'cara', 'barba']), E.chuchi)),
       await paso(rig(pabloDef, posesAmigo(pabloDef, ['pelo.a', 'pelo.b'], ['cabeza', 'cara', 'barba', 'pelo.a', 'pelo.b', 'aro']), E.pablo)),
+      await paso(rig(buz, posesDespertador(), E.buzon, 1.2)),
+      await paso(rig(apu, posesDespertador(), E.apuntador, 1.2)),
     ];
-    const [barra, sorbo, florFondo, florCerrada, florAbierta, portal, charco, gota, iC, iT, iM, jl, jv] = await Promise.all([
+    const [barra, sorbo, florFondo, florCerrada, florAbierta, portal, charco, gota, iC, iT, iM, jl, jv, sob, sobA, noG, gui, mF, mC, mA, fF, fC, fA] = await Promise.all([
       sprite(U.barra(), 0.62),
       sprite(U.sorbo(), 0.8),
       sprite(U.florFondo(), 0.62),
@@ -284,11 +298,21 @@ export function cargarArte(avance?: (f: number) => void): Promise<Arte> {
       sprite(U.iconoPared(), 0.7),
       sprite(U.jarraVida(true), 0.5),
       sprite(U.jarraVida(false), 0.5),
+      sprite(U.sobre(false), 0.62),
+      sprite(U.sobre(true), 0.62),
+      sprite(U.noGrande(), 0.5),
+      sprite(U.guion(), 0.7),
+      sprite(U.montonFondo(), 0.6),
+      sprite(U.montonCerrada(), 0.6),
+      sprite(U.montonAbierta(), 0.6),
+      sprite(U.focoFondo(), 0.6),
+      sprite(U.focoCerrada(), 0.6),
+      sprite(U.focoAbierta(), 0.6),
     ]);
     avance?.(1);
     // White copies of the enemies' frames, ready for the flash of a hit.
     const blanco = new Map<Cuadro, Cuadro>();
-    for (const anim of [d, gr, r] as Record<string, Cuadro[]>[]) for (const lista of Object.values(anim)) for (const c of lista) blanco.set(c, tenir(c, '#fff4e0'));
+    for (const anim of [d, gr, r, bu, ap] as Record<string, Cuadro[]>[]) for (const lista of Object.values(anim)) for (const c of lista) blanco.set(c, tenir(c, '#fff4e0'));
     const asoma: Arte['asoma'] = { guille: cabecita(g.retrato[0], E.guille), chuchi: cabecita(ch.retrato[0], E.chuchi), pablo: cabecita(pa.retrato[0], E.pablo) };
     return {
       fran: f,
@@ -297,9 +321,11 @@ export function cargarArte(avance?: (f: number) => void): Promise<Arte> {
       pablo: pa,
       despertador: d,
       gran: gr,
+      buzon: bu,
+      apuntador: ap,
       reloj: r,
       blanco,
-      props: { barra, sorbo, florFondo, florCerrada, florAbierta, portal, charco, gota, iconoCierzo: iC, iconoTeclazo: iT, iconoPared: iM, jarraLlena: jl, jarraVacia: jv },
+      props: { barra, sorbo, florFondo, florCerrada, florAbierta, portal, charco, gota, iconoCierzo: iC, iconoTeclazo: iT, iconoPared: iM, jarraLlena: jl, jarraVacia: jv, sobre: sob, sobreAbierto: sobA, noGrande: noG, guion: gui, cautivo: { guille: { fondo: florFondo, cerrada: florCerrada, abierta: florAbierta }, chuchi: { fondo: mF, cerrada: mC, abierta: mA }, pablo: { fondo: fF, cerrada: fC, abierta: fA } } },
       brillos: {
         oro: resplandor('#ffd95a', 64, 0.95),
         blanco: resplandor('#ffffff', 64, 0.95),

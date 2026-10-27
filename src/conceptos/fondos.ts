@@ -503,7 +503,7 @@ function frente(z: Zona, pal: Pal): HTMLCanvasElement {
     for (const lado of [0, 1]) {
       for (let i = 0; i < 7; i++) {
         const w = 70 + r() * 60;
-        const h = 90 + r() * 120 + i * 26;
+        const h = 26 + r() * 34 + i * 5;
         const x0 = lado ? LW - w - i * 22 : i * 22;
         x.save();
         x.translate(x0 + w / 2, LH);
