@@ -132,19 +132,22 @@ function teselas() {
 }
 
 /** Da a un bitmap recién horneado la textura de pintura: pincelada y grano, solo donde hay dibujo (`source-atop`). */
-export function texturar(c: HTMLCanvasElement, fuerza = 1) {
+export function texturar(c: HTMLCanvasElement, fuerza = 1, zonas?: [number, number, number, number][]) {
   teselas();
   const x = c.getContext('2d')!;
   x.save();
   x.globalCompositeOperation = 'source-atop';
+  // `zonas` (x, y, w, h in bitmap pixels): only those rectangles are shaded (a mostly empty bitmap does not pay for its air).
+  const rects = zonas ?? [[0, 0, c.width, c.height]];
+  const rellenar = (f: CanvasPattern) => {
+    x.fillStyle = f;
+    for (const [rx, ry, rw, rh] of rects) x.fillRect(rx, ry, rw, rh);
+  };
   x.globalAlpha = Math.min(1, 0.6 * fuerza);
-  x.fillStyle = x.createPattern(pincel!, 'repeat')!;
-  x.fillRect(0, 0, c.width, c.height);
-  x.fillStyle = x.createPattern(hebras!, 'repeat')!;
-  x.fillRect(0, 0, c.width, c.height);
+  rellenar(x.createPattern(pincel!, 'repeat')!);
+  rellenar(x.createPattern(hebras!, 'repeat')!);
   x.globalAlpha = Math.min(1, 0.7 * fuerza);
-  x.fillStyle = x.createPattern(grano!, 'repeat')!;
-  x.fillRect(0, 0, c.width, c.height);
+  rellenar(x.createPattern(grano!, 'repeat')!);
   x.restore();
 }
 

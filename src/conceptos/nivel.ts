@@ -90,17 +90,21 @@ export function hornearNivel(rej: Rejilla, zona: Zona, id: string): NivelBmp {
       }
     }
   }
-  x.save();
-  x.clip(masa);
   // 2. light from the top: under every surface the mass lightens toward the lit tone, then falls back to the dark.
+  // (one fill for every run of lit surface in a row, not one per tile)
   for (let f = 0; f < rej.rows; f++) {
-    for (let col = 0; col < rej.cols; col++) {
-      if (!suelo(col, f) || suelo(col, f - 1)) continue;
-      const g = x.createLinearGradient(0, f * TILE, 0, f * TILE + TILE * 2.6);
-      g.addColorStop(0, mat.luz);
-      g.addColorStop(1, 'rgba(0,0,0,0)');
-      x.fillStyle = g;
-      x.fillRect(col * TILE - 0.5, f * TILE, TILE + 1, TILE * 2.6);
+    let c0 = -1;
+    for (let col = 0; col <= rej.cols; col++) {
+      const ok = col < rej.cols && suelo(col, f) && !suelo(col, f - 1);
+      if (ok && c0 < 0) c0 = col;
+      if (!ok && c0 >= 0) {
+        const g = x.createLinearGradient(0, f * TILE, 0, f * TILE + TILE * 2.6);
+        g.addColorStop(0, mat.luz);
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        x.fillStyle = g;
+        x.fillRect(c0 * TILE - 0.5, f * TILE, (col - c0) * TILE + 1, TILE * 2.6);
+        c0 = -1;
+      }
     }
   }
   // Brush texture: soft blotches, crack strokes and speckles, over the whole mass (a few per tile).
@@ -170,7 +174,10 @@ export function hornearNivel(rej: Rejilla, zona: Zona, id: string): NivelBmp {
       }
     }
   }
-  x.restore();
+  // Everything so far lives only inside the mass (a clip would do the same, but a clip over a big path makes every later fill slow).
+  x.globalCompositeOperation = 'destination-in';
+  x.fill(masa);
+  x.globalCompositeOperation = 'source-over';
 
   // Ragged undersides: where the ground has air below it (floating blocks, ceilings), it ends in hanging rock and roots instead of a flat cut.
   for (let f = 0; f < rej.rows - 1; f++) {
@@ -233,7 +240,6 @@ export function hornearNivel(rej: Rejilla, zona: Zona, id: string): NivelBmp {
       else if (ch === 'T') telon(x, r, col * TILE, f * TILE, !sol(col, f - 1) || at(col, f - 1) !== 'T');
     }
   }
-  texturar(c, 0.6);
   // Which chunks have anything (a tile of the grid in them or in the tile around: grass, roots and shadows spill over a tile).
   const trozos: [number, number][] = [];
   for (let fy = 0; fy * TROZO < rej.rows; fy++) {
@@ -247,6 +253,23 @@ export function hornearNivel(rej: Rejilla, zona: Zona, id: string): NivelBmp {
       if (hay) trozos.push([fx, fy]);
     }
   }
+  // The brush texture only over the chunks that hold something (rows of adjacent chunks together, with a tile of margin).
+  const zonas: [number, number, number, number][] = [];
+  const paso = TROZO * TILE;
+  for (let fy = 0; fy * TROZO < rej.rows; fy++) {
+    const fila = trozos.filter((t) => t[1] === fy).map((t) => t[0]).sort((u, v) => u - v);
+    for (let i = 0; i < fila.length; ) {
+      let j = i;
+      while (j + 1 < fila.length && fila[j + 1] === fila[j] + 1) j++;
+      const ux = Math.max(0, fila[i] * paso - TILE);
+      const uy = Math.max(0, fy * paso - TILE);
+      const ux1 = Math.min(W, (fila[j] + 1) * paso + TILE);
+      const uy1 = Math.min(H, (fy + 1) * paso + TILE);
+      zonas.push([Math.floor(ux * ESC_TILE), Math.floor(uy * ESC_TILE), Math.ceil((ux1 - ux) * ESC_TILE) + 1, Math.ceil((uy1 - uy) * ESC_TILE) + 1]);
+      i = j + 1;
+    }
+  }
+  texturar(c, 0.6, zonas);
   return { c, esc: ESC_TILE, trozos };
 }
 
