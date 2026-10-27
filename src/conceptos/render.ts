@@ -7,12 +7,13 @@ import { TILE } from './datos';
 import type { Enem } from './enemigos';
 import { sueloEn } from './fisica';
 import { dibujarCapas } from './fondos';
+import { TROZO } from './nivel';
 import { dibujarCarta, dibujarDialogo, dibujarFin, dibujarHud, partir } from './hud';
-import type { Mundo } from './mundo';
+import { VISTA_ALTO, ZOOM, type Mundo } from './mundo';
 import type { Cuadro } from './rig';
 
 /** Largest canvas height in device pixels (the phone's GPU does the rest by scaling it up). */
-const TOPE_PX = 648;
+const TOPE_PX = 540;
 
 interface Mota {
   x: number;
@@ -29,6 +30,11 @@ export class Pintor {
   esc = 1;
   vw = 960;
   readonly vh = 540;
+  /** The world's view in world units (the screen's divided by the zoom). */
+  get vwM() {
+    return this.vw / ZOOM;
+  }
+  readonly vhM = VISTA_ALTO;
   private vineta: HTMLCanvasElement;
   private vinetaRoja: HTMLCanvasElement;
   private motas: Mota[] = [];
@@ -48,7 +54,7 @@ export class Pintor {
       return () => ((x = (x * 16807) % 2147483647) / 2147483647);
     };
     const a = r(99);
-    for (let i = 0; i < 34; i++) this.motas.push({ x: a() * 1400, y: a() * 540, vx: 6 + a() * 14, vy: -(3 + a() * 12), s: 2 + a() * 5, f: a() * 6 });
+    for (let i = 0; i < 14; i++) this.motas.push({ x: a() * 1400, y: a() * 540, vx: 6 + a() * 14, vy: -(3 + a() * 12), s: 2 + a() * 5, f: a() * 6 });
   }
 
   /** A small image stretched over the screen: the dark corners (and, in the same pass, the tint of the grade). */
@@ -91,7 +97,7 @@ export class Pintor {
     this.lienzo.width = pxW;
     this.lienzo.height = Math.round(pxH);
     this.vw = pxW / this.esc;
-    this.m.vista(this.vw);
+    this.m.vista(this.vw / ZOOM);
   }
 
   // ---------------------------------------------------------------- frames
@@ -230,8 +236,9 @@ export class Pintor {
     const tem = fx.temblor;
     const sx = tem > 0.2 ? (Math.random() - 0.5) * 2 * tem : 0;
     const sy = tem > 0.2 ? (Math.random() - 0.5) * 2 * tem : 0;
-    const camX = Math.round((m.cam.x + sx) * esc) / esc;
-    const camY = Math.round((m.cam.y + sy) * esc) / esc;
+    const ez = esc * ZOOM;
+    const camX = Math.round((m.cam.x + sx) * ez) / ez;
+    const camY = Math.round((m.cam.y + sy) * ez) / ez;
     ctx.save();
     if (fx.zoom > 0.01) {
       const z = 1 + 0.028 * fx.zoom;
@@ -239,7 +246,8 @@ export class Pintor {
       ctx.scale(z, z);
       ctx.translate(-vw / 2, -vh / 2);
     }
-    dibujarCapas(ctx, fondo, camX, camY, vw, vh, m.H, false);
+    ctx.scale(ZOOM, ZOOM);
+    dibujarCapas(ctx, fondo, camX, camY, this.vwM, this.vhM, m.H, false);
     // A drifting haze between the walls and the game.
     this.motasAtras(t, camX, fondo.motas);
 
@@ -248,7 +256,7 @@ export class Pintor {
     this.mundo(t, camX, camY);
     ctx.restore();
 
-    dibujarCapas(ctx, fondo, camX, camY, vw, vh, m.H, true);
+    dibujarCapas(ctx, fondo, camX, camY, this.vwM, this.vhM, m.H, true);
     ctx.restore();
     this.dibujarVineta(this.vineta);
 
@@ -286,7 +294,9 @@ export class Pintor {
 
   /** Floating motes of light in front of the far layers. */
   private motasAtras(t: number, camX: number, colores: string[]) {
-    const { ctx, vw, vh } = this;
+    const { ctx } = this;
+    const vw = this.vwM;
+    const vh = this.vhM;
     const g = this.arte.brillos;
     ctx.globalCompositeOperation = 'lighter';
     const nombres = colores.length ? ['oro', 'blanco', 'turquesa'] : ['oro'];
@@ -302,15 +312,24 @@ export class Pintor {
   }
 
   private mundo(t: number, camX: number, camY: number) {
-    const { ctx, m, arte, vw, vh } = this;
+    const { ctx, m, arte } = this;
+    const vw = this.vwM;
     const P = arte.props;
+    const vh = this.vhM;
     const n = m.nivel!;
     // ---- tiles
     const x0 = Math.max(0, camX);
     const y0 = Math.max(0, camY);
     const x1 = Math.min(m.W, camX + vw);
     const y1 = Math.min(m.H, camY + vh);
-    if (x1 > x0 && y1 > y0) ctx.drawImage(n.c, x0 * n.esc, y0 * n.esc, (x1 - x0) * n.esc, (y1 - y0) * n.esc, x0, y0, x1 - x0, y1 - y0);
+    const T4 = TILE * TROZO;
+    for (const [fx, fy] of n.trozos) {
+      const a = Math.max(fx * T4, x0);
+      const b = Math.min((fx + 1) * T4, x1);
+      const c0 = Math.max(fy * T4, y0);
+      const d0 = Math.min((fy + 1) * T4, y1);
+      if (b > a && d0 > c0) ctx.drawImage(n.c, a * n.esc, c0 * n.esc, (b - a) * n.esc, (d0 - c0) * n.esc, a, c0, b - a, d0 - c0);
+    }
     // ---- gates shut by a fight
     for (let f = 0; f < m.rej.rows; f++) {
       for (let c = 0; c < m.rej.cols; c++) {
@@ -360,7 +379,7 @@ export class Pintor {
       ctx.fillStyle = '#5a3a6a';
       ctx.fillRect(c.x - 3, c.y - 70, 6, 70);
       const tb = this.tablero(c.clave);
-      const k = 0.5;
+      const k = 0.4;
       const cerca = Math.abs(m.j.x - c.x) < 220;
       ctx.globalAlpha = cerca ? 1 : 0.78;
       ctx.drawImage(tb, c.x - (tb.width * k) / 2, c.y - 70 - tb.height * k - 4, tb.width * k, tb.height * k);
@@ -394,6 +413,7 @@ export class Pintor {
     }
     // ---- Guille, once free and out of the flower: drawn by flor()
     // ---- Fran
+    m.fx.dibujarArcos(ctx);
     this.fran(t);
     // ---- shots
     for (const p of m.proy) this.proyectil(p, t);

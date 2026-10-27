@@ -12,7 +12,7 @@ export const TILE = 48;
 
 export type TipoEnemigo = 'despertador' | 'reloj' | 'gran';
 export type Habilidad = 'cierzo' | 'teclazo' | 'mutis';
-export type Material = 'recibidor' | 'jardin';
+export type Material = 'recibidor' | 'jardin' | 'bandeja' | 'teatro' | 'grifo';
 
 export interface Salida {
   lado: 'izq' | 'der';
@@ -62,11 +62,14 @@ export interface Sala {
   inicio: { col: number; fila: number };
 }
 
-export type Zona = 'recibidor' | 'jardin';
+export type Zona = 'recibidor' | 'jardin' | 'bandeja' | 'teatro' | 'grifo';
 
 export const ZONAS: Record<Zona, { numero: number; material: Material }> = {
   recibidor: { numero: 1, material: 'recibidor' },
   jardin: { numero: 2, material: 'jardin' },
+  bandeja: { numero: 3, material: 'bandeja' },
+  teatro: { numero: 4, material: 'teatro' },
+  grifo: { numero: 5, material: 'grifo' },
 };
 
 /** The skills, in the order they are earned (docs: conceptos-metroidvania.md). */
@@ -270,22 +273,22 @@ function jardin4() {
   return p.hecho();
 }
 
-/** The double jump gauntlet: islands six tiles apart over spikes. */
+/** The double jump gauntlet: islands five tiles apart over spikes. */
 function jardin5() {
   const p = new Plano('jardin-5', 'jardin', 52, 14, 13);
   // The floor is a sea of spikes: no solid ground at all.
   p.rect(1, 13, 50, 1, '^');
   const isla = (c0: number, c1: number, top: number) => p.rect(c0, top, c1 - c0 + 1, 3, '#');
   isla(1, 5, 6);
-  isla(12, 15, 5);
-  isla(22, 26, 6);
-  isla(33, 37, 5);
-  isla(44, 50, 6);
+  isla(11, 14, 5);
+  isla(20, 24, 6);
+  isla(30, 34, 5);
+  isla(40, 50, 6);
   p.rect(0, 13, 1, 1, '#');
   p.inicio = { col: 3, fila: 5 };
   p.salida('izq', 3, 5, 'jardin-4', 27, 5);
-  p.barra(24, 5);
-  p.enemigo('reloj', 35, 4);
+  p.barra(22, 5);
+  p.enemigo('reloj', 32, 4);
   p.puerta({ col: 48, fila: 5, sala: 'fin', col2: 0, fila2: 0 });
   return p.hecho();
 }

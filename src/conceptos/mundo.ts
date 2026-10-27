@@ -27,7 +27,9 @@ const COYOTE = 0.1;
 const BUFFER = 0.13;
 const V_MUTIS = 900;
 const T_MUTIS = 0.22;
-export const VISTA_ALTO = 540;
+/** The screen shows 540 units of height; the world is drawn zoomed in so that Fran reads at about a sixth of it (the camera sees 540 / ZOOM). */
+export const ZOOM = 1.3;
+export const VISTA_ALTO = 540 / ZOOM;
 const HW = 17;
 const ALTO = 82;
 const DUR_ATAQUE = 0.3;

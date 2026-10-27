@@ -261,6 +261,12 @@ export function jugarUnaMas(root: HTMLElement, o: OpcionesUnaMas = {}): Promise<
               }
               m.actualizar(1 / 60, entrada);
             }
+            // A «NO» block broke: bake the room's ground again (without it).
+            if (m.nivelSucio) {
+              m.nivelSucio = false;
+              if (m.nivel) m.nivel.c.width = m.nivel.c.height = 0;
+              m.nivel = hornearNivel(m.rej, m.sala.zona, m.sala.id);
+            }
             // The touch buttons only show while Fran is in control.
             entrada.mostrar(m.estado === 'jugando' || m.estado === 'transicion');
           }

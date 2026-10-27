@@ -9,6 +9,7 @@
 // up and down when the camera climbs. `?fondos=0` forces the baked ones (to compare).
 import type { Zona } from './datos';
 import { texturar } from '../capitulos/conceptos-rig';
+import { VISTA_ALTO } from './mundo';
 
 /** zone → file name of each layer (index 0..4); leave a hole (undefined) to keep the baked one. */
 export const FONDOS_PINTADOS: Partial<Record<Zona, (string | undefined)[]>> = {};
@@ -96,6 +97,30 @@ const PALETA: Record<Zona, Pal> = {
     borde: ['#ffb0d8', '#ffc88a', '#ffd88a', '#ffe0a0'],
     niebla: '#a868a8',
     rayos: '#ffe2b0',
+  },
+  bandeja: {
+    cielo: ['#14123a', '#2e2e6e', '#5a5a9a', '#9a96c0', '#d8cde4'],
+    sol: '#fff0d8',
+    cuerpo: ['#6a68a0', '#4a4882', '#303060', '#16153a'],
+    borde: ['#e8e0ff', '#ffd9c0', '#ffe0a8', '#ffe8b0'],
+    niebla: '#9a94c8',
+    rayos: '#ffe8c0',
+  },
+  teatro: {
+    cielo: ['#2a0a1e', '#5a1a38', '#8a2a4a', '#b8505a', '#e89a6a'],
+    sol: '#ffd9a0',
+    cuerpo: ['#8a3050', '#62203e', '#3e1230', '#1c0618'],
+    borde: ['#ffb08a', '#ffc27a', '#ffd88a', '#ffe0a0'],
+    niebla: '#a8506a',
+    rayos: '#ffd0a0',
+  },
+  grifo: {
+    cielo: ['#1a0a2a', '#3a1a48', '#6a2a58', '#a85a5a', '#e8a85a'],
+    sol: '#ffd070',
+    cuerpo: ['#6a3a5a', '#4a2448', '#2e1238', '#160620'],
+    borde: ['#ffc08a', '#ffd070', '#ffe090', '#fff0a8'],
+    niebla: '#b8688a',
+    rayos: '#ffd890',
   },
 };
 
@@ -473,6 +498,65 @@ function frente(z: Zona, pal: Pal): HTMLCanvasElement {
     x.lineTo(LW, 0);
     x.closePath();
     x.fill();
+  } else if (z === 'bandeja') {
+    // Stacks of letters leaning in from the sides and cables hanging from the top.
+    for (const lado of [0, 1]) {
+      for (let i = 0; i < 7; i++) {
+        const w = 70 + r() * 60;
+        const h = 90 + r() * 120 + i * 26;
+        const x0 = lado ? LW - w - i * 22 : i * 22;
+        x.save();
+        x.translate(x0 + w / 2, LH);
+        x.rotate((lado ? -1 : 1) * (0.02 + r() * 0.05));
+        x.fillRect(-w / 2, -h, w, h);
+        x.restore();
+      }
+    }
+    x.strokeStyle = oscuro;
+    x.lineWidth = 3;
+    for (let i = 0; i < 6; i++) {
+      const cx = 120 + i * 210 + r() * 60;
+      x.beginPath();
+      x.moveTo(cx, 0);
+      x.quadraticCurveTo(cx + 40, 70 + r() * 50, cx + 90, 12);
+      x.stroke();
+    }
+  } else if (z === 'teatro') {
+    // Heavy velvet curtains on both sides, swagged at the top.
+    for (const lado of [0, 1]) {
+      x.beginPath();
+      x.moveTo(lado ? LW : 0, 0);
+      x.lineTo(lado ? LW - 170 : 170, 0);
+      x.quadraticCurveTo(lado ? LW - 90 : 90, LH * 0.45, lado ? LW - 140 : 140, LH);
+      x.lineTo(lado ? LW : 0, LH);
+      x.closePath();
+      x.fill();
+    }
+    x.beginPath();
+    x.moveTo(0, 0);
+    for (let i = 0; i <= 6; i++) x.quadraticCurveTo((i + 0.5) * (LW / 6), 60 + (i % 2) * 34, (i + 1) * (LW / 6), 0);
+    x.lineTo(LW, 0);
+    x.closePath();
+    x.fill();
+  } else if (z === 'grifo') {
+    // Rock teeth hanging from the roof and a bank of foam at the bottom.
+    for (let i = 0; i < 18; i++) {
+      const cx = r() * LW;
+      const h = 30 + r() * 110;
+      x.beginPath();
+      x.moveTo(cx - 20, 0);
+      x.lineTo(cx + (r() - 0.5) * 16, h);
+      x.lineTo(cx + 20, 0);
+      x.closePath();
+      x.fill();
+    }
+    for (let i = 0; i < 26; i++) {
+      const cx = r() * LW;
+      const rr = 26 + r() * 50;
+      x.beginPath();
+      x.arc(cx, LH + 14, rr, Math.PI, 0);
+      x.fill();
+    }
   } else {
     // Leaves hanging from above and grass at the bottom.
     for (let i = 0; i < 22; i++) {
@@ -512,6 +596,27 @@ function cargarImagen(url: string): Promise<HTMLImageElement | null> {
   });
 }
 
+/** Is there an approved painting for this zone (and are they not switched off)? Then the baked middle layers are not even drawn. */
+function hayPintado(z: Zona) {
+  return !!CIELOS_PINTADOS[z as keyof typeof CIELOS_PINTADOS] && new URLSearchParams(location.search).get('fondos') !== '0';
+}
+
+/** A stand-in for the sky while a painting loads: one flat colour of the zone. */
+function cieloPlano(pal: Pal): HTMLCanvasElement {
+  const c = lienzo(4, 4);
+  const x = c.getContext('2d')!;
+  x.fillStyle = pal.cielo[2];
+  x.fillRect(0, 0, 4, 4);
+  return c;
+}
+
+/** The procedural layers (when there is no painting): sky, far, middle, near. */
+function completas(z: Zona, pal: Pal): Capa[] {
+  const S = 0.62;
+  const reglas = [0.04, 0.14, 0.32, 0.55];
+  return [cielo(z, pal), lejos(z, pal), medio(z, pal), cerca(z, pal)].map((img, i) => ({ img, w: LW * S, h: LH * S, f: reglas[i] }));
+}
+
 /** The rows of a mostly transparent layer that have any ink, as bands (merged when they are close): so a frame does not blit empty screen. */
 function bandasLlenas(c: HTMLCanvasElement): [number, number][] {
   const d = c.getContext('2d')!.getImageData(0, 0, c.width, c.height).data;
@@ -530,10 +635,11 @@ function bandasLlenas(c: HTMLCanvasElement): [number, number][] {
 /** Bakes the layers of a zone. The painted ones (if any are listed in `FONDOS_PINTADOS`) are swapped in afterwards by `aplicarPintados`. */
 export function hornearFondo(z: Zona): Fondo {
   const pal = PALETA[z];
-  const baked = [cielo(z, pal), lejos(z, pal), medio(z, pal), cerca(z, pal), frente(z, pal)];
-  const reglas = [{ f: 0.04, frente: false }, { f: 0.14, frente: false }, { f: 0.32, frente: false }, { f: 0.55, frente: false }, { f: 1.35, frente: true }];
-  const capas: Capa[] = baked.map((img, i) => ({ img, w: LW, h: LH, ...reglas[i] }));
-  capas[4].bandas = bandasLlenas(baked[4]);
+  const S = 0.62;
+  const conPintura = hayPintado(z);
+  const capas: Capa[] = conPintura ? [{ img: cieloPlano(pal), w: LW * S, h: LH * S, f: 0.04 }] : completas(z, pal);
+  const fr = frente(z, pal);
+  capas.push({ img: fr, w: LW * S, h: LH * S, f: 1.35, frente: true, bandas: bandasLlenas(fr).map(([a, b]) => [a * S, b * S] as [number, number]) });
   return { zona: z, capas, niebla: pal.niebla, tinte: 'rgba(70,20,60,0.12)', motas: ['#ffd95a', '#fff6d8', '#ffb8f0'] };
 }
 
@@ -550,18 +656,19 @@ export async function aplicarPintados(f: Fondo, sala = ''): Promise<void> {
   const clave = boca ? 'boca' : 'normal';
   if (!pint[clave]) {
     const im = await cargarImagen(url);
-    if (!im) return console.warn(`[una más] no se pudo cargar el fondo pintado de ${f.zona}`);
+    if (!im) {
+      // No painting: the procedural layers take its place.
+      console.warn(`[una más] no se pudo cargar el fondo pintado de ${f.zona}`);
+      f.capas.splice(0, 1, ...completas(f.zona, PALETA[f.zona]));
+      return;
+    }
     await im.decode?.().catch(() => undefined);
     if (f.pint !== pint) return; // the zone changed meanwhile
     pint[clave] = im;
   }
   const im = pint[clave]!;
-  const w = Math.round(LH * (im.naturalWidth / im.naturalHeight));
-  Object.assign(f.capas[0], { img: im, w, h: LH });
-  // The painting already has arches, flowers and fog of its own: the baked far layer would only muddy it, the middle one stays as a veil.
-  f.capas[1].alfa = 0;
-  f.capas[2].alfa = 0;
-  f.capas[3].alfa = 0;
+  const h = Math.round(VISTA_ALTO * 1.25);
+  Object.assign(f.capas[0], { img: im, w: Math.round(h * (im.naturalWidth / im.naturalHeight)), h });
 }
 
 /** Releases the bitmaps of a zone's layers. */

@@ -5,7 +5,7 @@ import type { SonidoMinijuego } from '../core/audio';
 import { MUSICA, type Pista } from '../sonido/musica';
 
 /** The zone themes, the mini-boss, the final boss and the rescue theme (the music agent registers them in src/sonido/musica.ts): register them in musica.ts under these names (tools/musica makes the files). */
-const PISTAS = { recibidor: 'unaMasExplora', jardin: 'unaMasJardin', teatro: 'unaMasTeatro', miniboss: 'unaMasMiniboss', jefe: 'unaMasJefe', rescate: 'unaMasRescate' } as const;
+const PISTAS = { recibidor: 'unaMasExplora', bandeja: 'unaMasExplora', grifo: 'unaMasJardin', jardin: 'unaMasJardin', teatro: 'unaMasTeatro', miniboss: 'unaMasMiniboss', jefe: 'unaMasJefe', rescate: 'unaMasRescate' } as const;
 export type PistaUnaMas = keyof typeof PISTAS;
 
 const hay = (id: string) => id in MUSICA;

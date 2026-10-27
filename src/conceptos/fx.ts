@@ -65,7 +65,7 @@ function lienzo(w: number, h: number) {
   return c;
 }
 
-/** The foam crescent: a fan of cream foam with a golden rim, thick in the middle and thin at the tips. 300 px wide, centred on its left edge. */
+/** The foam crescent: a thin, soft trail of foam with a golden outer edge, thick in the middle and fading at the tips. Centred on its left edge. */
 function bakeArco(cremas: [string, string, string], radio: number): HTMLCanvasElement {
   const W = Math.ceil(radio * 1.4);
   const H = Math.ceil(radio * 2.3);
@@ -76,39 +76,46 @@ function bakeArco(cremas: [string, string, string], radio: number): HTMLCanvasEl
   const a0 = -1.95;
   const a1 = 0.85;
   x.translate(cx, cy);
-  // A crescent: the outer arc forward, the inner arc back, shifted, so the middle is thick.
-  const lleno = (r0: number, r1: number, col: string | CanvasGradient) => {
+  // A crescent: the outer arc forward, the inner arc back and shifted, so the middle is thicker than the tips.
+  const lleno = (r0: number, r1: number, desvio: number, col: string | CanvasGradient, alfa: number) => {
     x.beginPath();
     x.arc(0, 0, r1, a0, a1);
-    x.arc(-r1 * 0.34, 0, r0, a1 - 0.05, a0 + 0.05, true);
+    x.arc(-desvio, 0, r0, a1 - 0.04, a0 + 0.04, true);
     x.closePath();
+    x.globalAlpha = alfa;
     x.fillStyle = col;
     x.fill();
   };
-  const g = x.createRadialGradient(-radio * 0.2, 0, radio * 0.35, 0, 0, radio);
+  const g = x.createRadialGradient(-radio * 0.2, 0, radio * 0.5, 0, 0, radio);
   g.addColorStop(0, cremas[0]);
-  g.addColorStop(0.7, cremas[1]);
+  g.addColorStop(0.75, cremas[1]);
   g.addColorStop(1, cremas[2]);
-  lleno(radio * 0.82, radio, cremas[2]);
-  lleno(radio * 0.7, radio * 0.97, g);
-  // Bubbles of foam along the edge.
+  // Soft edge: a wide faint pass, a middle one and the core.
+  lleno(radio * 0.86, radio * 1.04, radio * 0.2, cremas[2], 0.22);
+  lleno(radio * 0.9, radio * 1.0, radio * 0.2, cremas[2], 0.55);
+  lleno(radio * 0.93, radio * 0.99, radio * 0.19, g, 0.95);
+  // A few bubbles of foam along the edge.
+  x.globalAlpha = 1;
   x.globalCompositeOperation = 'lighter';
-  for (let i = 0; i < 26; i++) {
-    const a = a0 + ((a1 - a0) * (i + 0.5)) / 26;
-    const r = radio * (0.9 + (i % 3) * 0.035);
-    const b = 3 + ((i * 7) % 5) * 1.6;
-    x.fillStyle = `rgba(255,250,230,${0.55 + (i % 4) * 0.1})`;
+  for (let i = 0; i < 18; i++) {
+    const a = a0 + 0.12 + ((a1 - a0 - 0.24) * (i + 0.5)) / 18;
+    const r = radio * (0.93 + (i % 3) * 0.025);
+    const b = 1.8 + ((i * 7) % 5) * 0.8;
+    x.fillStyle = `rgba(255,250,230,${0.4 + (i % 4) * 0.1})`;
     x.beginPath();
     x.arc(Math.cos(a) * r, Math.sin(a) * r, b, 0, Math.PI * 2);
     x.fill();
   }
-  // The golden rim.
   x.globalCompositeOperation = 'source-over';
+  // The golden outer edge, thin.
   x.strokeStyle = cremas[2];
-  x.lineWidth = 4;
+  x.globalAlpha = 0.9;
+  x.lineWidth = 2.2;
+  x.lineCap = 'round';
   x.beginPath();
-  x.arc(0, 0, radio * 0.98, a0 + 0.1, a1 - 0.1);
+  x.arc(0, 0, radio * 1.0, a0 + 0.14, a1 - 0.14);
   x.stroke();
+  x.globalAlpha = 1;
   return c;
 }
 
@@ -348,7 +355,7 @@ export class Efectos {
 
   // ---- the arc
   arco(x: number, y: number, dir: number, esc = 1, tipo: Arco['tipo'] = 'espuma') {
-    this.arcos.push({ x, y, dir, t: 0, dur: tipo === 'teclazo' ? 0.3 : 0.22, esc, tipo });
+    this.arcos.push({ x, y, dir, t: 0, dur: tipo === 'teclazo' ? 0.22 : 0.14, esc, tipo });
   }
 
   // ---- update and draw
@@ -396,10 +403,9 @@ export class Efectos {
     return [a.x + a.dir * (Math.cos(ang) * r - r * 0.17), a.y + Math.sin(ang) * r];
   }
 
-  /** The world-space layer: arcs, impacts and particles. The context is already moved to the camera. */
-  dibujar(ctx: CanvasRenderingContext2D, t: number) {
+  /** The arcs of the jug, drawn BEHIND Fran so that he is always seen in front of them. The context is already moved to the camera. */
+  dibujarArcos(ctx: CanvasRenderingContext2D) {
     const sp = this.sp;
-    // Arcs
     for (const a of this.arcos) {
       const k = a.t / a.dur;
       const rev = Math.min(1, k * 2.4);
@@ -416,10 +422,10 @@ export class Efectos {
       ctx.arc(0, 0, R, -2.05, -2.05 + 2.95 * rev);
       ctx.closePath();
       ctx.clip();
-      ctx.globalAlpha = Math.min(0.78, (1 - k) * 2);
+      ctx.globalAlpha = Math.min(0.6, (1 - k) * 1.6);
       ctx.drawImage(img, -cx, -img.height * 0.5 * esc, img.width * esc, img.height * esc);
       ctx.globalCompositeOperation = 'lighter';
-      ctx.globalAlpha *= 0.2;
+      ctx.globalAlpha *= 0.25;
       ctx.drawImage(img, -cx, -img.height * 0.5 * esc, img.width * esc, img.height * esc);
       ctx.restore();
       // sparks along the edge
@@ -428,6 +434,11 @@ export class Efectos {
         this.add({ tipo: T.chispa, x: px, y: py, vx: a.dir * rnd(-40, 160), vy: rnd(-120, 40), g: 500, roza: 2, vida: rnd(0.2, 0.4), tam: rnd(2.5, 5), col: a.tipo === 'teclazo' ? '#9ff0ec' : '#ffd24a', luz: true, crece: -1 });
       }
     }
+  }
+
+  /** The world-space layer: impacts and particles (over everything). */
+  dibujar(ctx: CanvasRenderingContext2D, t: number) {
+    const sp = this.sp;
     // Impacts
     ctx.globalCompositeOperation = 'lighter';
     for (const i of this.impactos) {
