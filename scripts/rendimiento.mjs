@@ -81,6 +81,7 @@ async function medir(nombre, prep, contar = 'escena') {
     clearInterval(window.__lucha);
     window.__sol?.().cerrar();
     window.__kart?.().cerrar();
+    window.__unamas?.().cerrar();
     window.__poke?.().cerrar();
     window.__safari?.().cerrar();
     window.__boca?.().cerrar();
@@ -122,9 +123,10 @@ async function medir(nombre, prep, contar = 'escena') {
     const pf0 = window.__pangFase?.().fotogramas ?? 0;
     const pk0 = window.__poke?.().fotogramas ?? 0;
     const sf0 = window.__safari?.().fotogramas ?? 0;
+    const um0 = window.__unamas?.().fotogramas ?? 0;
     setTimeout(() => {
       m.dibujar = d;
-      res(contar === 'cerdos' ? ((window.__cerdos?.().fotogramas ?? 0) - f0) / seg : contar === 'palabras' ? ((window.__palabras?.().fotogramas ?? 0) - p0) / seg : contar === 'rana' ? ((window.__rana?.().fotogramas ?? 0) - r0) / seg : contar === 'robot' ? ((window.__robot?.().fotogramas ?? 0) - b0) / seg : contar === 'pang' ? ((window.__pang?.().fotogramas ?? 0) - g0) / seg : contar === 'trailer' ? ((window.__trailer?.().fotogramas ?? 0) - t0) / seg : contar === 'canas' ? ((window.__canas?.().fotogramas ?? 0) - ca0) / seg : contar === 'canto' ? ((window.__canto?.().fotogramas ?? 0) - cn0) / seg : contar === 'tragaperras' ? ((window.__tragaperras?.().fotogramas ?? 0) - tg0) / seg : contar === 'sol' ? ((window.__sol?.().fotogramas ?? 0) - so0) / seg : contar === 'kart' ? ((window.__kart?.().fotogramas ?? 0) - ka0) / seg : contar === 'boca' ? ((window.__boca?.().fotogramas ?? 0) - bo0) / seg : contar === 'pangfase' ? ((window.__pangFase?.().fotogramas ?? 0) - pf0) / seg : contar === 'safari' ? ((window.__safari?.().fotogramas ?? 0) - sf0) / seg : contar === 'pokecap' ? ((window.__poke?.().fotogramas ?? 0) - pk0) / seg : n / seg);
+      res(contar === 'cerdos' ? ((window.__cerdos?.().fotogramas ?? 0) - f0) / seg : contar === 'palabras' ? ((window.__palabras?.().fotogramas ?? 0) - p0) / seg : contar === 'rana' ? ((window.__rana?.().fotogramas ?? 0) - r0) / seg : contar === 'robot' ? ((window.__robot?.().fotogramas ?? 0) - b0) / seg : contar === 'pang' ? ((window.__pang?.().fotogramas ?? 0) - g0) / seg : contar === 'trailer' ? ((window.__trailer?.().fotogramas ?? 0) - t0) / seg : contar === 'canas' ? ((window.__canas?.().fotogramas ?? 0) - ca0) / seg : contar === 'canto' ? ((window.__canto?.().fotogramas ?? 0) - cn0) / seg : contar === 'tragaperras' ? ((window.__tragaperras?.().fotogramas ?? 0) - tg0) / seg : contar === 'sol' ? ((window.__sol?.().fotogramas ?? 0) - so0) / seg : contar === 'kart' ? ((window.__kart?.().fotogramas ?? 0) - ka0) / seg : contar === 'boca' ? ((window.__boca?.().fotogramas ?? 0) - bo0) / seg : contar === 'pangfase' ? ((window.__pangFase?.().fotogramas ?? 0) - pf0) / seg : contar === 'unamas' ? ((window.__unamas?.().fotogramas ?? 0) - um0) / seg : contar === 'safari' ? ((window.__safari?.().fotogramas ?? 0) - sf0) / seg : contar === 'pokecap' ? ((window.__poke?.().fotogramas ?? 0) - pk0) / seg : n / seg);
     }, seg * 1000);
   }), { seg: SEG, contar });
   const cpu = ((cpuChrome() - c0) / SEG) * 100;
@@ -320,6 +322,34 @@ if (toca('kart')) {
     };
     espera();
   })()`, 'kart');
+}
+if (toca('unamas')) {
+  // «Una más» (src/conceptos/), the metroidvania: a bot walks, jumps and swings the jug through the Recibidor (alarm clocks, parallax with the painted
+  // backdrop, particles) and through the garden's boss arena (the Gran Despertador, a puddle, the foam and spark effects).
+  for (const [nombre, zona, sala] of [['Una más, el Recibidor', 1, 'recibidor-2'], ['Una más, el Jardín y el jefe', 2, 'jardin-3']]) {
+    await medir(nombre, `(async () => {
+      clearInterval(window.__paseo);
+      const g = window.__cyc.g;
+      const { jugarUnaMas } = await import('/src/conceptos/unamas.ts');
+      g.pausado = true;
+      void jugarUnaMas(g.root, { sonido: g.sound, rapido: true, zona: ${zona}, sala: '${sala}' });
+      for (let i = 0; i < 100 && !window.__unamas?.().mundo; i++) await new Promise((r) => setTimeout(r, 200));
+      const u = window.__unamas();
+      clearInterval(window.__bot);
+      let n = 0;
+      window.__bot = setInterval(() => {
+        n++;
+        u.mundo.j.vida = 5;
+        u.tecla('der', n % 120 < 100);
+        u.tecla('saltar', n % 9 === 0);
+        u.tecla('atacar', n % 4 === 0);
+        if (n % 9 === 1) u.tecla('saltar', false);
+        if (n % 4 === 1) u.tecla('atacar', false);
+        u.tocar();
+      }, 60);
+    })()`, 'unamas');
+    await page.evaluate(() => clearInterval(window.__bot));
+  }
 }
 if (toca('safari')) {
   // The safari comic (src/ui/safari.ts), the end of chapter 2: four pages of panels coming in (each a canvas of its own with its scene
