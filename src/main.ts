@@ -83,7 +83,7 @@ async function arrancar() {
     return;
   }
   // «Una más» (src/conceptos/), the world of the concepts as a metroidvania, opened by itself: the address ending in ?unamas. `&zona=2` starts in the garden,
-  // `&sala=id` in that room, `&habs=cierzo,teclazo,pared` with those skills, `&rapido` skips the waits. Not part of chapter 2 yet.
+  // `&sala=id` in that room, `&habs=cierzo,teclazo,pared` with those skills, `&rapido` skips the waits. In chapter 2 it is the game of the last stretch.
   const um = new URLSearchParams(location.search);
   if (um.has('unamas')) {
     const [{ jugarUnaMas }, { Sound }] = await Promise.all([cargarModulo('unamas'), import('./core/audio')]);
@@ -133,7 +133,7 @@ async function arrancar() {
     location.href = location.pathname;
     return;
   }
-  // «PokéUsera» (src/pokeusera/), the last game of chapter 2, opened by itself: the address ending in ?pokecap. `&dino` goes straight to the silhouette and the
+  // «PokéUsera» (src/pokeusera/), a game of its own (no longer part of chapter 2), opened by itself: the address ending in ?pokecap. `&dino` goes straight to the silhouette and the
   // hunt, `&auto` has the machine play Guille's four-way battle, `&rapido` skips the waits, `&semilla=N` repeats the draw. The result stays on `window.__pokeResultado`.
   const pk = new URLSearchParams(location.search);
   if (pk.has('pokecap')) {
@@ -409,14 +409,15 @@ async function arrancar() {
     { id: 'palabras', quien: 'pablo' },
     { id: 'robot', quien: 'chuchi' },
     { id: 'cerdos', quien: 'guille' },
-    // Chapter 2's three games, played whole and not endless, with no record. Chapter 2 is still hidden (?capitulo2), so
+    // Chapter 2's four games, played whole and not endless, with no record. Chapter 2 is still hidden (?capitulo2), so
     // their rows only show once each is won in the story (SUELTOS); meanwhile they open by themselves with ?pangcompleto,
-    // ?sol and ?kart. The Pang is the whole arcade game (twelve stages, the four friends), not the chapter's five.
+    // ?sol, ?kart and ?unamas. The Pang is the whole arcade game (twelve stages, the four friends), not the chapter's five.
     { id: 'pang', quien: 'fran' },
     { id: 'sol', quien: 'pablo' },
     { id: 'kart', quien: 'chuchi' },
+    { id: 'unamas', quien: 'fran' },
   ];
-  const SUELTOS = ['pang', 'sol', 'kart'];
+  const SUELTOS = ['pang', 'sol', 'kart', 'unamas'];
   const tarjeta = (...kids: Node[]) => g.hud.cubrir('', h('div', { class: 'tarjeta vidrio' }, ...kids));
   const boton = (etiqueta: string, clase: string, alTocar: () => void, id?: string) => {
     const b = h('button', { class: `btn ${clase}`, ...(id ? { id } : {}) }, etiqueta);
@@ -460,7 +461,7 @@ async function arrancar() {
   };
 
   /**
-   * One of chapter 2's games from the list, played whole (Impropios Kart: one race; Alacant Sun: from the bedroom, it keeps
+   * One of chapter 2's games from the list, played whole (Una más: the whole metroidvania; Impropios Kart: one race; Alacant Sun: from the bedroom, it keeps
    * no save; the Pang: the arcade with its twelve stages and its own save), and back to the list whatever happens.
    */
   const jugarSuelto = async (id: string) => {
@@ -468,6 +469,9 @@ async function arrancar() {
     if (id === 'kart') {
       const { jugarKart } = await cargarModulo('kart');
       await jugarKart(g.root, { rapido: g.rapido, sonido: g.sound });
+    } else if (id === 'unamas') {
+      const { jugarUnaMas } = await cargarModulo('unamas');
+      await jugarUnaMas(g.root, { rapido: g.rapido, sonido: g.sound });
     } else if (id === 'sol') {
       const { jugarSol } = await cargarModulo('sol');
       await jugarSol(g.root, { rapido: g.rapido, sonido: g.sound });

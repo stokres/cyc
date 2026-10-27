@@ -6,9 +6,9 @@
 // upside down (bar5), the narrator takes over, the picture is squeezed into the console of Alacant Sun (which is
 // skipped, closed with window.__sol().cerrar()) and Pablo opens his eyes. Then the last stretch: Chuchi's boss and «una
 // más» (manga), the slot machine on his face, the floor turning into Impropios Kart (skipped, closed with
-// window.__kart().cerrar()), Vero growing and swallowing Fran (the mouth), the world of the concepts (taps: three jokes,
-// Fran as «Una más», «LA ÚLTIMA»), the total chaos, PokéUsera (the phone turned upright and back, closed with window.__poke().cerrar())
-// then the safari (Guille proposes it; the comic of src/ui/safari.ts plays out in real time, checked with window.__safari())
+// window.__kart().cerrar()), Vero growing and swallowing Fran (the mouth), «Una más» (src/conceptos/: closed with
+// window.__unamas().cerrar(), which ends it as 'cancelado': there is no hook to finish it as 'hecho'), back at the bar with
+// Guille's mug, then the safari (Guille proposes it; the comic of src/ui/safari.ts plays out in real time, checked with window.__safari())
 // and «¿Continuará?». Screenshots of each level of the night.
 // Fails on any console error or if a step does not do what it should.
 // Usage: node scripts/capitulo2.mjs [url] [outDir]   (against npm run dev; the url gets ?capitulo2&nueva)
@@ -352,7 +352,8 @@ fotoAl('Esta vez la quiero yo', 'final-6b-vero-manga', true, 1400);
 fotoAl('¿Eso es una boca?', 'final-7-boca-de-vero', false, 1500);
 fotoAl('SE LO HA TRAGADO', 'final-8-fran-ya-dentro', false);
 fotoAl('Y al entrar, se deshicieron', 'final-8b-se-deshacen', false);
-fotoAl('Esto no es el Brío', 'final-9-mundo-conceptos', false, 1600);
+fotoAl('el bar volvió a ser un bar', 'final-9-vuelta-al-bar', false, 1200);
+fotoAl('Dentro de una jarra, Fran', 'final-10-vuelta-guille-tarro', false, 600);
 await paso('El narrador, la consola y Alacant Sun', async () => {
   // The pixelated shrink: a few pictures on the way, then the console.
   await page.waitForSelector('.pixelado', { timeout: 60000 });
@@ -396,65 +397,31 @@ await paso('El suelo se estira y se convierte en la pista: Impropios Kart', asyn
   await page.waitForSelector('.cubierta.minijuego.kart', { state: 'detached', timeout: 10000 });
   await wait(600);
 });
-await paso('Chuchi vuelve con la copa, Vero crece y se traga a Fran (la boca)', async () => {
+await paso('Chuchi vuelve con la copa, Vero crece, se traga a Fran y la pantalla cae en «Una más»', async () => {
+  // The dive into the dark is shot as the game takes over.
+  const transicion = page.waitForSelector('.capa-boca', { timeout: 120000 }).then(async () => {
+    await page.waitForFunction(() => window.__boca?.().fase === 'bucea', null, { timeout: 60000 }).catch(() => {});
+    await wait(500);
+    await shot('final-8c-boca-bucea');
+  });
   await charla();
-  await page.waitForFunction(() => window.__cyc.g.escena === 'conceptos', null, { timeout: 60000 });
-  await wait(800);
+  await transicion;
+  await page.waitForSelector('.cubierta.minijuego.unamas', { timeout: 60000 });
+  await wait(2500);
+  await shot('final-8d-una-mas-arranca');
+  check(await page.evaluate(() => !!window.__unamas), 'Una más no arranca');
+  check(!(await page.$('.capa-boca')), 'se queda la capa de la boca');
+  await wait(4000);
+  await shot('final-8e-una-mas-fran-cae');
+  // Una más is not played here: closed from the hook, the story goes on.
+  await page.evaluate(() => window.__unamas().cerrar());
+  await page.waitForSelector('.cubierta.minijuego.unamas', { state: 'detached', timeout: 15000 });
+  await wait(600);
 });
-check((await nivel()) === 7, 'en el mundo de los conceptos la noche no está en el nivel 7');
-check(!(await page.$('.capa-boca')), 'se queda la capa de la boca');
-
-// The world of the concepts: touched by position, because everything floats and the zones follow it (zonaCss reads them live).
-fotoAl('Cada concepto que veamos es un argumento', 'final-10-llegada-fran-visible', false, 300);
-fotoAl('Y rebota, rebota', 'final-11-no-se-vuelve-una-mas', false, 1600);
-fotoAl('aparece el contorno de una jarra', 'final-12-la-ultima-aparece', false, 1500);
-fotoAl('Me veo en dibujitos', 'final-13-caos-cortes-1', false, 1400);
-fotoAl('Yo en píxeles', 'final-14-caos-cortes-2', false, 1100);
-fotoAl('muy al fondo, algo enorme', 'final-15a-dinosaurio-aparece', false, 1900, true);
-fotoAl('Es el userito', 'final-15-dinosaurio', false, 4200, true);
-fotoAl('Este es mío', 'final-16-guille-flor-y-jarra', false, 1300);
-fotoAl('nos vamos de safari', 'safari-0-guille-propone', false, 900);
-
-const tocarConcepto = async (id) => tocar(await zonaCss(id));
-await paso('Convencer a Fran: cada concepto es un argumento y Fran lo gira a «una más»', async () => {
-  await shot('final-9b-mundo-conceptos');
-  for (const id of ['no', 'reloj', 'manana', 'penultima']) await tocarConcepto(id);
-}, 'c2.fran.sinArgumentos');
-check(await flag('c2.con.penultima'), 'los cuatro argumentos no se han gastado');
-await paso('LA ÚLTIMA: el caos total y, de «Este es mío», PokéUsera (el giro, el velo en horizontal, de pie, y la vuelta)', async () => {
-  await tocarConcepto('ultima');
-  // PokéUsera (src/pokeusera/): the screen turns by itself and the game stands up in its own stage. It is not played here (that is
-  // scripts/pokeusera-caza-sim.mjs and a manual game): closed from the hook, the story goes on.
-  await page.waitForFunction(() => window.__poke, null, { timeout: 120000 });
-  await page.waitForSelector('.cubierta.minijuego.pokeusera', { timeout: 20000 });
-  await wait(1200);
-  const velo = () => page.evaluate(() => !document.querySelector('.pk-gira')?.hidden);
-  const aviso = () => page.$('.cubierta.girar');
-  check(await velo(), 'PokéUsera con el móvil en horizontal no pide «Gira el móvil»');
-  check(!(await aviso()), 'con PokéUsera abierta sale el aviso general de girar (en horizontal)');
-  await shot('final-17-pokeusera-gira-el-movil');
-  await page.setViewportSize({ width: 390, height: 844 });
-  await wait(1200);
-  check(!(await velo()), 'PokéUsera con el móvil de pie sigue pidiendo girar');
-  check(!(await aviso()), 'con PokéUsera abierta y el móvil de pie sale el aviso general de girar');
-  await shot('final-18-pokeusera-de-pie');
-  await page.setViewportSize({ width: 844, height: 390 });
-  await wait(900);
-  check(await velo(), 'al volver a horizontal PokéUsera no vuelve a pedir girar');
-  await page.setViewportSize({ width: 390, height: 844 });
-  await wait(700);
-  await page.evaluate(() => window.__poke().cerrar());
-  await page.waitForSelector('.cubierta.minijuego.pokeusera', { state: 'detached', timeout: 10000 });
-  await wait(700);
-  check(!!(await aviso()), 'al acabar PokéUsera con el móvil de pie no pide volver a horizontal');
-  await shot('final-19-pokeusera-vuelve-a-horizontal');
-  await page.setViewportSize({ width: 844, height: 390 });
-  await wait(800);
-  check(!(await aviso()), 'sigue el aviso de girar con el móvil ya en horizontal');
-  // «Este es mío» is followed by Guille's proposal («¿y si nos vamos de safari?»), which ends in the comic.
+await paso('De vuelta en el bar: los cuatro, Guille con su tarro; Guille propone el safari', async () => {
   await charla();
+  check((await nivel()) === 6, 'tras Una más la noche no está en el nivel 6');
 });
-check((await nivel()) === 8, 'tras pedir la última la noche no está en el nivel 8');
 
 await paso('El safari: el cómic de la caravana, de la M-30 a Las Vegas, en tiempo real, y «¿Continuará?»', async () => {
   await page.waitForFunction(() => window.__safari?.().listo, null, { timeout: 60000 });
