@@ -7,7 +7,7 @@ import { TILE } from './datos';
 import { esJefe, type Enem } from './enemigos';
 import { sueloEn } from './fisica';
 import { dibujarCapas } from './fondos';
-import { hornearPlataforma, TROZO, type PlatBmp } from './nivel';
+import { hornearPlataforma, spriteNo, TROZO, type PlatBmp } from './nivel';
 import { dibujarCarta, dibujarDialogo, dibujarFin, dibujarHud, partir } from './hud';
 import { VISTA_ALTO, ZOOM, type Mundo, type Plat } from './mundo';
 import type { Cuadro } from './rig';
@@ -316,6 +316,8 @@ export class Pintor {
     ctx.globalCompositeOperation = 'source-over';
   }
 
+  private spNo?: HTMLCanvasElement;
+
   private mundo(t: number, camX: number, camY: number) {
     const { ctx, m, arte } = this;
     const vw = this.vwM;
@@ -335,6 +337,14 @@ export class Pintor {
       const c0 = Math.max(fy * T4, y0);
       const d0 = Math.min((fy + 1) * T4, y1);
       if (b > a && d0 > c0) ctx.drawImage(n.c, a * n.esc, c0 * n.esc, (b - a) * n.esc, (d0 - c0) * n.esc, a, c0, b - a, d0 - c0);
+    }
+    // ---- «NO» blocks (cached sprite per block, not part of the baked ground)
+    if (!this.spNo) this.spNo = spriteNo();
+    for (let f = Math.max(0, Math.floor(y0 / TILE)); f <= Math.min(m.rej.rows - 1, Math.floor(y1 / TILE)); f++) {
+      const fila = m.rej.g[f];
+      for (let c = Math.max(0, Math.floor(x0 / TILE)); c <= Math.min(m.rej.cols - 1, Math.floor(x1 / TILE)); c++) {
+        if (fila[c] === 'N') ctx.drawImage(this.spNo, c * TILE, f * TILE, TILE, TILE);
+      }
     }
     // ---- gates shut by a fight
     for (let f = 0; f < (m.sala.ultima ? 0 : m.rej.rows); f++) {
@@ -487,10 +497,17 @@ export class Pintor {
       b = hornearPlataforma(m.sala.zona, p.w, p.def.tipo);
       this.plataformas.set(clave, b);
     }
-    const tiembla = p.estado === 'tiembla' ? Math.sin(t * 90) * 1.8 : 0;
+    const tiembla = p.estado === 'tiembla' ? Math.sin(t * 90) * (1.2 + p.t * 4) : 0;
     if (p.alfa < 1) ctx.globalAlpha = p.alfa;
     ctx.drawImage(b.c, p.x - b.ox + tiembla, p.y - b.oy, b.c.width / b.esc, b.c.height / b.esc);
-    if (p.alfa < 1) ctx.globalAlpha = 1;
+    if (p.estado === 'tiembla') {
+      // Warning: the slab blinks bright while it shakes.
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.35 * (0.5 + 0.5 * Math.sin(p.t * 28));
+      ctx.drawImage(b.c, p.x - b.ox + tiembla, p.y - b.oy, b.c.width / b.esc, b.c.height / b.esc);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    if (p.alfa < 1 || p.estado === 'tiembla') ctx.globalAlpha = 1;
   }
 
   /** The friends in Fran's jar: their little heads over the foam (they duck inside while he swings), and now and then a remark over his head. */
