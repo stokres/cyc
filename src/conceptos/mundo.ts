@@ -623,6 +623,7 @@ export class Mundo {
     if (j.pared !== 0 && j.vy > V_PARED && !j.suelo) {
       j.vy = V_PARED;
       if (Math.random() < d * 14) this.fx.polvo(j.x + j.pared * j.hw, j.y - 30, 1, 5);
+      if (Math.random() < d * 22) this.fx.chispas(j.x + j.pared * j.hw, j.y - 24 - Math.random() * 20, 1, -j.pared, 120, '#6fe0ff', 1.2);
     }
 
     // ---- the jarrazo and the Teclazo
@@ -714,7 +715,7 @@ export class Mundo {
         else p.y = p.y0 - df.d * TILE * k;
       } else if (p.estado === 'tiembla') {
         p.t += d;
-        if (p.t > 0.5) {
+        if (p.t > 0.95) {
           p.estado = 'cae';
           p.vy = 0;
           this.fx.polvo(p.x + p.w / 2, p.y + 10, 5, p.w / 2);
@@ -729,7 +730,7 @@ export class Mundo {
         }
       } else if (p.estado === 'ausente') {
         p.t += d;
-        if (p.t > 2.4) {
+        if (p.t > 1.6) {
           p.estado = 'firme';
           p.y = p.y0;
           p.alfa = 0;
@@ -863,19 +864,15 @@ export class Mundo {
   }
 
   private romperBloques(x0: number, x1: number, y0: number, y1: number) {
-    let rompio = false;
     for (let f = Math.floor(y0 / TILE); f <= Math.floor(y1 / TILE); f++) {
       for (let c = Math.floor(x0 / TILE); c <= Math.floor(x1 / TILE); c++) {
         if (this.rej.g[f]?.[c] === 'N') {
           this.rej.g[f][c] = '.';
           this.prog.hechos.add(`${this.sala.id}.N.${f}.${c}`);
-          rompio = true;
-          this.fx.muerteEnemigo((c + 0.5) * TILE, (f + 0.5) * TILE, '#e8453c');
-          this.fx.teclas((c + 0.5) * TILE, (f + 0.5) * TILE, 8);
+          this.fx.romperNo((c + 0.5) * TILE, (f + 0.5) * TILE);
         }
       }
     }
-    if (rompio) this.nivelSucio = true;
   }
 
   /** The renderer rebakes the tiles when this is set (a block broke). */

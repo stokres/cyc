@@ -231,12 +231,28 @@ export function hornearNivel(rej: Rejilla, zona: Zona, id: string): NivelBmp {
     }
   }
 
-  // 5. spikes, «NO» blocks and the stage curtains.
+  // 4b. walls Fran can slide down and kick off (Pablo's wall jump): every bare vertical face three tiles tall or more gets handholds and a soft glow.
+  for (const lado of [-1, 1]) {
+    for (let col = 0; col < rej.cols; col++) {
+      const vecino = col + lado;
+      if (vecino < 0 || vecino >= rej.cols) continue;
+      let f0 = -1;
+      for (let f = 0; f <= rej.rows; f++) {
+        const ok = f < rej.rows && rej.g[f][col] === '#' && !sol(vecino, f) && rej.g[f][vecino] !== '^';
+        if (ok && f0 < 0) f0 = f;
+        if (!ok && f0 >= 0) {
+          if (f - f0 >= 3) agarres(x, r, lado === 1 ? (col + 1) * TILE : col * TILE, f0 * TILE, f * TILE, lado);
+          f0 = -1;
+        }
+      }
+    }
+  }
+
+  // 5. spikes and the stage curtains («NO» blocks are drawn apart from a cached sprite, so breaking one costs nothing).
   for (let f = 0; f < rej.rows; f++) {
     for (let col = 0; col < rej.cols; col++) {
       const ch = rej.g[f][col];
       if (ch === '^') pinchos(x, mat, r, col * TILE, (f + 1) * TILE);
-      else if (ch === 'N') bloqueNo(x, col * TILE, f * TILE);
       else if (ch === 'T') telon(x, r, col * TILE, f * TILE, !sol(col, f - 1) || at(col, f - 1) !== 'T');
     }
   }
@@ -623,6 +639,54 @@ function repisa(x: CanvasRenderingContext2D, mat: Mat, r: () => number, x0: numb
   x.globalAlpha = 1;
 }
 
+/** Colour of Pablo's wall jump: the climbable walls glow with it in every zone. */
+export const COLOR_PARED = '#6fe0ff';
+
+/** A climbable wall face: a dark strip of boards along the edge, rungs sticking out every so often and a soft glowing rim. `lado`: 1 if the air is to the right. */
+function agarres(x: CanvasRenderingContext2D, r: () => number, xe: number, y0: number, y1: number, lado: number) {
+  const dentro = -lado; // towards the rock
+  // Glow: three strokes, widest and faintest first (no gradient).
+  x.lineCap = 'round';
+  for (const [w, a] of [[11, 0.1], [6, 0.18], [2.4, 0.85]] as const) {
+    x.strokeStyle = COLOR_PARED;
+    x.globalAlpha = a;
+    x.lineWidth = w;
+    x.beginPath();
+    x.moveTo(xe, y0 + 3);
+    x.lineTo(xe, y1 - 3);
+    x.stroke();
+  }
+  // The boards: a darker strip inside the rock with a seam every so often.
+  x.globalAlpha = 0.85;
+  x.fillStyle = '#1b3550';
+  x.fillRect(Math.min(xe, xe + dentro * 15), y0, 15, y1 - y0);
+  x.globalAlpha = 0.5;
+  x.fillStyle = '#6fe0ff';
+  x.fillRect(Math.min(xe, xe + dentro * 15), y0, 15, y1 - y0);
+  x.globalAlpha = 0.35;
+  x.fillStyle = '#05101c';
+  x.fillRect(Math.min(xe, xe + dentro * 15), y0, 15, y1 - y0);
+  x.globalAlpha = 0.5;
+  x.strokeStyle = COLOR_PARED;
+  x.lineWidth = 1.2;
+  for (let y = y0 + 12; y < y1 - 6; y += 24) {
+    x.beginPath();
+    x.moveTo(xe + dentro * 15, y);
+    x.lineTo(xe, y);
+    x.stroke();
+  }
+  // Rungs sticking out into the air.
+  x.globalAlpha = 1;
+  for (let y = y0 + 16; y < y1 - 8; y += 24) {
+    const l = 10 + r() * 2;
+    x.fillStyle = '#05101c';
+    x.fillRect(Math.min(xe, xe - dentro * l) - 1, y - 2.5, l + 1, 6);
+    x.fillStyle = COLOR_PARED;
+    x.fillRect(Math.min(xe, xe - dentro * l), y - 1.5, l, 3);
+  }
+  x.globalAlpha = 1;
+}
+
 // ---------------------------------------------------------------- spikes, NO blocks, curtains
 
 function pinchos(x: CanvasRenderingContext2D, mat: Mat, r: () => number, ox: number, base: number) {
@@ -651,6 +715,16 @@ function pinchos(x: CanvasRenderingContext2D, mat: Mat, r: () => number, ox: num
     x.closePath();
     x.fill();
   }
+}
+
+/** The sprite of one «NO» block (baked once): the frame draws it per block, so a broken block is just a cell that is no longer drawn. */
+export function spriteNo(): HTMLCanvasElement {
+  const c = document.createElement('canvas');
+  c.width = c.height = Math.ceil(TILE * ESC_TILE);
+  const x = c.getContext('2d')!;
+  x.scale(ESC_TILE, ESC_TILE);
+  bloqueNo(x, 0, 0);
+  return c;
 }
 
 function bloqueNo(x: CanvasRenderingContext2D, ox: number, oy: number) {

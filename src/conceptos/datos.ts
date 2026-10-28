@@ -338,7 +338,6 @@ function jardin1() {
   p.enemigo('reloj', 17, 9);
   p.foso(24, 27);
   p.lista(23, 28, 8);
-  p.enemigo('reloj', 36, 9);
   p.lista(40, 44, 8);
   p.enemigo('despertador', 46, 9);
   // The sip up in the leaves: slabs that fall as soon as they are stepped on, a ledge at the top.
@@ -358,7 +357,6 @@ function jardin1b() {
   p.enemigo('despertador', 5, 11);
   p.plat('sube', 9, 11, 3, 5, 5);
   p.lista(13, 17, 6);
-  p.enemigo('reloj', 15, 5);
   p.plat('cae', 19, 6, 2).plat('cae', 22, 6, 2);
   p.plat('mueve', 25, 6, 3, 6, 5);
   p.lista(36, 40, 5);
@@ -572,7 +570,7 @@ function teatro2() {
   p.mapa(13, 2);
   p.salida('izq', 7, 9, 'teatro-1', 44, 9);
   p.enemigo('despertador', 9, 9).enemigo('despertador', 14, 9);
-  p.enjambre(12, 5, 3);
+  p.enjambre(12, 5, 2);
   p.flor = { col: 22, fila: 9, quien: 'pablo' };
   p.cartel(27, 9, 'cartel.pablo');
   // The chimney: two walls hang from the ceiling over the way (two rows of clearance below); between them, four columns climb to a sip under the
@@ -639,7 +637,6 @@ function grifo1() {
   p.rect(9, 1, 1, 11, 'N');
   p.foso(12, 21);
   p.plat('mueve', 12, 11, 3, 6, 5);
-  p.enjambre(17, 6, 3);
   p.enemigo('despertador', 26, 11);
   p.enjambre(27, 8, 2);
   // The shaft: a tunnel through its left wall, four columns of air, a plateau for its right wall, and a cap of «NO» over the top.
@@ -647,7 +644,6 @@ function grifo1() {
   p.rect(32, 10, 2, 2, '.');
   p.rect(38, 4, 13, 8, '#');
   p.rect(34, 4, 4, 1, 'N');
-  p.enjambre(44, 1.6, 2);
   p.salida('der', 1, 3, 'grifo-2', 2, 3);
   return p.hecho();
 }
@@ -661,7 +657,6 @@ function grifo2() {
   p.rect(1, 4, 7, 2, '#');
   p.foso(9, 28);
   p.plat('cae', 10, 6, 3).plat('cae', 14, 8, 3).plat('mueve', 18, 10, 3, 5, 4.5).plat('cae', 26, 12, 3);
-  p.enjambre(19, 6, 3);
   p.barra(2, 3);
   p.rect(33, 1, 1, 13, 'N');
   p.enemigo('no', 36, 13);
@@ -675,8 +670,7 @@ function grifo3() {
   const p = new Plano('grifo-3', 'grifo', 44, 12, 10);
   p.mapa(18, 2);
   p.salida('izq', 7, 9, 'grifo-2', 37, 13);
-  p.enjambre(8, 5, 4);
-  p.enemigo('despertador', 11, 9);
+  p.enemigo('despertador', 9, 9);
   p.foso(14, 19);
   p.plat('cae', 14, 9, 2).plat('cae', 17, 9, 2);
   p.rect(24, 1, 1, 9, 'N');

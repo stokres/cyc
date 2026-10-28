@@ -61,6 +61,10 @@ const CRESTA = [1150, 220];
 const GRIFO = [2290, 1335];
 
 const BASE_ESPERA = 0.8;
+/** Extra reach of the jarrazo against the boss, in units. */
+const ALCANCE_JEFE = 80;
+/** Seconds the head stays low and in reach after an attack. */
+const VENTANA = 1.9;
 
 type Est = 'dormido' | 'espera' | 'camina' | 'pisoton' | 'escupe' | 'mordisco' | 'baja' | 'ruta' | 'gira' | 'bebiendo' | 'atontado' | 'prepara' | 'embiste' | 'tambalea' | 'harto' | 'rugido' | 'muerto';
 
@@ -431,6 +435,8 @@ export class Ultima {
   sub = 0;
   anim = 0;
   hurtT = 0;
+  /** Seconds in which a new blow does no harm after one landed (the next one needs a new swing and a moment). */
+  invT = 0;
   vx = 0;
   /** Pose in the making: lean (-: front down), head, jaw, squash, a jump of the whole body. */
   incl = -0.1;
@@ -538,6 +544,7 @@ export class Ultima {
     if (!this.arte) return;
     this.anim += d;
     this.hurtT = Math.max(0, this.hurtT - d);
+    this.invT = Math.max(0, this.invT - d);
     this.aviso = Math.max(0, this.aviso - d * 3);
     this.avisoBarril = Math.max(0, this.avisoBarril - d);
     this.hpVista += (this.hp - this.hpVista) * (1 - Math.exp(-d * 5));
@@ -644,8 +651,8 @@ export class Ultima {
               // The triple stomp: again, with a shorter wind-up.
               this.rep--;
               this.sub = 0;
-              this.t = 0.5;
-            } else this.estar('baja', 1.3);
+              this.t = 0.75;
+            } else this.estar('baja', VENTANA);
           }
         }
         break;
@@ -655,7 +662,7 @@ export class Ultima {
         this.vx = 0;
         this.mirarA(j.x);
         if (this.sub === 0) {
-          const k = suave(1 - this.t / 0.8);
+          const k = suave(1 - this.t / 1.05);
           cab = 0.38 * k;
           mand = -0.35 * k;
           incl = 0.05 * k;
@@ -663,21 +670,24 @@ export class Ultima {
           this.aviso = Math.max(this.aviso, 0.5 + 0.4 * Math.sin(this.anim * 24));
           if (this.t <= 0) {
             this.sub = 1;
-            this.t = 0.45;
-            this.abanico([-0.5, -0.25, 0, 0.25, 0.5]);
+            this.t = 0.9;
+            this.abanico([-0.3, 0.3]);
           }
         } else if (this.sub === 1) {
           cab = -0.05;
           mand = -0.3;
           if (this.t <= 0) {
             this.sub = 2;
-            this.t = 0.5;
-            this.abanico([-0.38, -0.12, 0.12, 0.38]);
+            this.t = 0.9;
+            this.abanico([0]);
           }
         } else {
           cab = -0.08;
           mand = -0.2;
-          if (this.t <= 0) this.estar('espera', this.fase === 1 ? 0.55 : 0.4);
+          if (this.t <= 0) {
+            if (this.fase === 1) this.estar('baja', VENTANA);
+            else this.estar('espera', 0.8);
+          }
         }
         break;
       }
@@ -686,7 +696,7 @@ export class Ultima {
         if (this.sub === 0) {
           this.vx = 0;
           this.mirarA(j.x);
-          const k = suave(1 - this.t / 0.6);
+          const k = suave(1 - this.t / 0.8);
           cab = 0.28 * k;
           mand = -0.5 * k;
           incl = 0.06 * k;
@@ -719,7 +729,7 @@ export class Ultima {
           cab = -0.15;
           mand = 0.45;
           incl = -0.08;
-          if (this.t <= 0) this.estar('baja', 1.1);
+          if (this.t <= 0) this.estar('baja', VENTANA);
         }
         break;
       }
@@ -768,7 +778,7 @@ export class Ultima {
           this.dir = lado === 'der' ? -1 : 1;
           this.sub = -1;
           const tip = this.punto('cola', GRIFO[0], GRIFO[1]);
-          this.barril = { x: tip[0], hp: 6, lado, golpeT: 0, aviso: 0 };
+          this.barril = { x: tip[0], hp: 5, lado, golpeT: 0, aviso: 0 };
           this.curar = 0;
           m.fx.polvo(tip[0], this.suelo, 6, 24);
           m.fx.sacudir(5);
@@ -788,7 +798,7 @@ export class Ultima {
         tiembla = 1;
         if (this.barril) this.barril.golpeT = Math.max(0, this.barril.golpeT - d);
         this.curar += d;
-        if (this.curar > 1.35) {
+        if (this.curar > 1.7) {
           this.curar = 0;
           if (this.hp < HP_LLENO) {
             this.hp += 1;
@@ -829,7 +839,7 @@ export class Ultima {
         if (Math.random() < d * 9) m.fx.estrellas(this.x + this.dir * rnd(80, 150), this.suelo - 150 + this.hundido, 1, '#ffe9a8');
         if (this.t <= 0) {
           if (this.fase === 2) this.estar('espera', 0.6);
-          else this.estar('tambalea', 0.7);
+          else this.estar('tambalea', 1.2);
         }
         break;
       }
@@ -940,8 +950,8 @@ export class Ultima {
       this.dobles = a === 'pisoton+';
       this.estar('pisoton', 0.85, 0);
       m.snd.embiste();
-    } else if (a === 'escupe') this.estar('escupe', 0.85, 0);
-    else if (a === 'mordisco') this.estar('mordisco', 0.6, 0);
+    } else if (a === 'escupe') this.estar('escupe', 1.05, 0);
+    else if (a === 'mordisco') this.estar('mordisco', 0.8, 0);
     else if (a === 'embiste') {
       this.estar('prepara', 1.0, 0);
       m.snd.eructo();
@@ -963,7 +973,7 @@ export class Ultima {
     m.fx.onda(fx, this.suelo - 4, 20, '#ffe9a8', 26, 0.45);
     // In the triple stomp the last one sends a tall wave (the double jump clears it with room to spare).
     const alta = this.dobles && this.rep === 0;
-    for (const lado of [-1, 1]) this.olas.push({ x: fx + lado * 60, vx: lado * 300, h: alta ? 82 : 46, t: 0 });
+    for (const lado of [-1, 1]) this.olas.push({ x: fx + lado * 60, vx: lado * 250, h: alta ? 82 : 46, t: 0 });
   }
 
   /** A fan of bottle caps at Fran, spread by these angles (radians). */
@@ -979,7 +989,7 @@ export class Ultima {
     m.fx.sacudir(3);
     for (const a of angulos) {
       const ang = base + a;
-      this.chapas.push({ x: bx, y: by, vx: Math.cos(ang) * 390, vy: Math.sin(ang) * 390 - 40, rot: 0, t: 0 });
+      this.chapas.push({ x: bx, y: by, vx: Math.cos(ang) * 320, vy: Math.sin(ang) * 320 - 40, rot: 0, t: 0 });
     }
   }
 
@@ -997,7 +1007,7 @@ export class Ultima {
     m.fx.espuma(hx, this.suelo - 100, 16, -this.dir, 340);
     m.fx.gotas(this.x, this.suelo - 150, 14, -this.dir, 380, '#f0a21e');
     this.vx = -this.dir * 110;
-    this.estar('atontado', 2.5);
+    this.estar('atontado', 3.0);
     m.snd.eructo();
   }
 
@@ -1051,7 +1061,7 @@ export class Ultima {
     if (this.fase === 2 && (this.estado === 'bebiendo' || this.estado === 'ruta' || this.estado === 'gira' || this.estado === 'espera' || this.estado === 'pisoton' || this.estado === 'escupe')) {
       this.tVaso -= d;
       if (this.tVaso <= 0) {
-        this.tVaso = this.estado === 'bebiendo' ? 1.05 : 1.7;
+        this.tVaso = this.estado === 'bebiendo' ? 1.6 : 2.6;
         const x = Math.max(this.xl + 30, Math.min(this.xr - 30, j.x + rnd(-170, 170)));
         this.vasos.push({ x, y: 60, vy: 0, t: 0, cae: false });
       }
@@ -1061,7 +1071,7 @@ export class Ultima {
       const v = this.vasos[i];
       v.t += d;
       if (!v.cae) {
-        if (v.t > 0.85) {
+        if (v.t > 1.05) {
           v.cae = true;
           v.y = 40;
         }
@@ -1099,7 +1109,8 @@ export class Ultima {
     if (!this.vivo || m.estado !== 'jugando') return;
     const j = m.j;
     const marcas = j.golpeados as unknown as Set<unknown>;
-    const swing: Caja2 = { x0: Math.min(x0, x1), x1: Math.max(x0, x1), y0, y1 };
+    // The jug reaches farther against the boss: Fran can stand clear of its jaws and still hit the head.
+    const swing: Caja2 = { x0: Math.min(x0, x1) - (j.cara < 0 ? ALCANCE_JEFE : 0), x1: Math.max(x0, x1) + (j.cara > 0 ? ALCANCE_JEFE : 0), y0, y1 };
     // The barrel: only Chuchi's jarrazo breaks it.
     const bc = this.barrilCaja();
     if (bc && choca(swing, bc) && !marcas.has(this.mBarril)) {
@@ -1111,7 +1122,10 @@ export class Ultima {
     const debil = choca(swing, this.crestaCaja()) ? this.crestaCaja() : this.cabezaDebil && choca(swing, this.cabezaCaja()) ? this.cabezaCaja() : null;
     if (debil && !marcas.has(this.mDebil)) {
       marcas.add(this.mDebil);
-      this.herirJefe(swing, debil);
+      if (this.invT > 0) {
+        // Still reeling from the last blow: a spark, no harm.
+        m.fx.chispas((Math.max(swing.x0, debil.x0) + Math.min(swing.x1, debil.x1)) / 2, (Math.max(swing.y0, debil.y0) + Math.min(swing.y1, debil.y1)) / 2, 4, j.cara, 240, '#ffffff', 2);
+      } else this.herirJefe(swing, debil);
     } else if (!debil && choca(swing, this.cuerpoCaja()) && !marcas.has(this.mCuerpo)) {
       // The glass does not give: a dull clang.
       marcas.add(this.mCuerpo);
@@ -1128,6 +1142,7 @@ export class Ultima {
     const j = m.j;
     this.hp = Math.max(0, this.hp - 1);
     this.hurtT = 0.14;
+    this.invT = 0.55;
     const px = (Math.max(sw.x0, c.x0) + Math.min(sw.x1, c.x1)) / 2;
     const py = (Math.max(sw.y0, c.y0) + Math.min(sw.y1, c.y1)) / 2;
     m.fx.golpe(px, py, j.cara, true);
@@ -1166,7 +1181,7 @@ export class Ultima {
     m.snd.golpe(true);
     if (b.hp <= 0) {
       this.quitarBarril(true);
-      this.estar('atontado', 3.6);
+      this.estar('atontado', 4.5);
       this.vx = -this.dir * 20;
       m.fx.camaraLenta(0.4, 0.5);
       m.snd.eructo();
@@ -1563,6 +1578,31 @@ export class Ultima {
     const m = this.m;
     this.dibujarBarril(ctx, a, t);
     if (this.escala > 0.02) this.dibujarJefe(ctx, t);
+    // The window: while the head is low and in reach, a pulsing golden ring and a chevron over it.
+    if (this.vivo && this.cabezaDebil && this.estado !== 'dormido' && this.escala > 0.9) {
+      const c = this.cabezaCaja();
+      const cx = (c.x0 + c.x1) / 2;
+      const cy = (c.y0 + c.y1) / 2;
+      const p = 0.5 + 0.5 * Math.sin(t * 9);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.45 + 0.3 * p;
+      const r = 95 + 12 * p;
+      ctx.drawImage(m.arte.brillos.oro, cx - r, cy - r, r * 2, r * 2);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 1;
+      const by = c.y0 - 22 - 6 * p;
+      ctx.fillStyle = '#ffe9a8';
+      ctx.strokeStyle = '#3a1608';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(cx - 14, by - 16);
+      ctx.lineTo(cx, by);
+      ctx.lineTo(cx + 14, by - 16);
+      ctx.lineTo(cx, by - 8);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.fill();
+    }
     this.dibujarJarra(ctx);
     // Waves of foam.
     for (const o of this.olas) {
@@ -1578,7 +1618,7 @@ export class Ultima {
     // Rain of glasses: the ring on the floor, then the glass.
     for (const v of this.vasos) {
       if (!v.cae) {
-        const k = v.t / 0.85;
+        const k = v.t / 1.05;
         ctx.globalCompositeOperation = 'lighter';
         ctx.strokeStyle = `rgba(255,140,90,${0.35 + 0.5 * Math.abs(Math.sin(t * 22))})`;
         ctx.lineWidth = 3;
