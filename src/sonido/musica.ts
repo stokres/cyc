@@ -176,15 +176,15 @@ export const MUSICA = {
   /**
    * «Una más», the chapter 2 metroidvania (src/conceptos/), all from tools/musica/una_mas.py: strings, harpsichord, harp, choir and
    * drums around «Ca-mio-neees y ca-ra-va-naaas» reharmonised in the minor. Each loop has an intro heard once (`entrada`).
-   * «Explora»: the world of the concepts, D minor, 90 bpm, 56 bars (149.3 s loop).
+   * «Explora»: the world of the concepts, D minor, 90 bpm, 72 bars (192 s loop).
    */
-  unaMasExplora: { url: unaMasExplora, entrada: 0, inicio: 5.333333, fin: 154.666667 },
-  /** The Cierzo garden, A minor, 105 bpm, 52 bars (118.9 s loop): harp, flute and wind. */
-  unaMasJardin: { url: unaMasJardin, entrada: 0, inicio: 4.571429, fin: 123.428571 },
-  /** The Theatre of the Concepts, G minor, 100 bpm, 48 bars (115.2 s loop): harpsichord, pizzicato, organ. */
-  unaMasTeatro: { url: unaMasTeatro, entrada: 0, inicio: 4.8, fin: 120 },
-  /** The Gran Despertador's fight, E minor, 150 bpm, 56 bars (89.6 s loop). */
-  unaMasMiniboss: { url: unaMasMiniboss, entrada: 0, inicio: 3.2, fin: 92.8 },
+  unaMasExplora: { url: unaMasExplora, entrada: 0, inicio: 5.333333, fin: 197.333333 },
+  /** The Cierzo garden, A minor, 105 bpm, 76 bars (173.7 s loop): harp, flute and wind. */
+  unaMasJardin: { url: unaMasJardin, entrada: 0, inicio: 4.571429, fin: 178.285714 },
+  /** The Theatre of the Concepts, G minor, 100 bpm, 72 bars (172.8 s loop): harpsichord, pizzicato, organ. */
+  unaMasTeatro: { url: unaMasTeatro, entrada: 0, inicio: 4.8, fin: 177.6 },
+  /** The Gran Despertador's fight, E minor, 150 bpm, 96 bars (153.6 s loop). */
+  unaMasMiniboss: { url: unaMasMiniboss, entrada: 0, inicio: 3.2, fin: 156.8 },
   /** LA ÚLTIMA, the Ultimosaurio: D minor, 184 s loop; the last 32 s (from 152.0 s of the loop, 156.0 s of the file) are the third phase, a quarter faster (150 bpm instead of 120). */
   unaMasJefe: { url: unaMasJefe, entrada: 0, inicio: 4, fin: 188 },
   /** Played once with Sound.efecto (`inicio` and `fin` are not used): the fanfare for rescuing a friend and winning a skill, the chant in D major (7.2 s, its tail fades out). */
