@@ -1,6 +1,6 @@
 // PokéUsera · Edición Jarra: all the data of docs/POKEUSERA.md (type chart, the 32 useritos,
 // the move table and the engine-side effect of each move). Names are data; every sentence the
-// game says lives in src/textos/pokeusera-combate.md.
+// game says lives in src/textos/pokecap-combate.md.
 import type { EscenarioId, Especie, Estado, HabilidadId, Movimiento, ObjetoId, Stat, SucesoId, Tipo } from './tipos';
 
 export const TIPOS: readonly Tipo[] = ['mindundi', 'petardo', 'droga', 'bronca', 'ventolera', 'chispa', 'alcohol', 'juerga', 'chanza', 'grasa', 'fantasma'];
@@ -107,8 +107,8 @@ export const ESPECIES: Especie[] = [
 
 // ---------------------------------------------------------------- the mythical one (chapter 2 only)
 // The Ultimosaurio is LA ÚLTIMA made a dinosaur: everybody knows it and nobody has seen it. It only exists in the chapter's copy of
-// PokéUsera (src/pokeusera/capitulo.ts): it is NOT in `ESPECIES`, so the draft, the random teams and the bots never meet it. Its name and its
-// types are set here (and its name, sentences and descriptions in src/textos/pokeusera-combate.md: `userito.ultimosaurio.desc`, `hab.ultimo.*`, `mov.*.desc`).
+// PokéUsera (src/pokecap/capitulo.ts): it is NOT in `ESPECIES`, so the draft, the random teams and the bots never meet it. Its name and its
+// types are set here (and its name, sentences and descriptions in src/textos/pokecap-combate.md: `userito.ultimosaurio.desc`, `hab.ultimo.*`, `mov.*.desc`).
 // Its stats are above every other userito's, in each one (the highest of the 37 are 105 HP, 120 Attack, 105 Defence, 115 Speed and 125 Special).
 export const ULTIMOSAURIO_ID = 'ultimosaurio';
 export const ULTIMOSAURIO: Especie = {
@@ -457,7 +457,7 @@ export const sucesosDe = (escenario: EscenarioId): SucesoId[] => (Object.keys(SU
 
 // ---------------------------------------------------------------- objetos de la barra
 
-/** `permanente`: it works every time it can and is never used up (Palillo, Gafas, Zapatillas, Pañuelo); the others work once. Names and sentences: `objeto.<id>.*` in pokeusera-combate.md. */
+/** `permanente`: it works every time it can and is never used up (Palillo, Gafas, Zapatillas, Pañuelo); the others work once. Names and sentences: `objeto.<id>.*` in pokecap-combate.md. */
 export const OBJETO_PERMANENTE: Record<ObjetoId, boolean> = {
   mechero: false,
   chicle: false,

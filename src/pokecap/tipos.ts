@@ -53,7 +53,7 @@ export interface Base {
   esp: number;
 }
 
-/** The 31 passive abilities (docs/POKEUSERA.md, «Habilidades»): one per userito (Caravaner and Camioner share `pareja`). Names and sentences: `hab.<id>.*` in pokeusera-combate.md. */
+/** The 31 passive abilities (docs/POKEUSERA.md, «Habilidades»): one per userito (Caravaner and Camioner share `pareja`). Names and sentences: `hab.<id>.*` in pokecap-combate.md. */
 export type HabilidadId =
   | 'fuego_dragon' | 'gratinado' | 'buena_chica' | 'manico' | 'duro_de_roer' | 'kilos' | 'indigesto' | 'espuma' | 'cajon' | 'inesperado'
   | 'bote' | 'conazo' | 'curado' | 'dos_cabezas' | 'ardiente' | 'pareja' | 'fotosintesis' | 'flipado' | 'volumen' | 'hielo'
@@ -302,7 +302,7 @@ export type Eleccion =
 
 /**
  * What happened in a turn, in order, for the screen to play one by one. Every event can carry
- * a text line (`clave` + `vars`, resolved with `texto()` from src/textos/pokeusera-combate.md)
+ * a text line (`clave` + `vars`, resolved with `texto()` from src/textos/pokecap-combate.md)
  * that the text box shows; `ps` is always the new value after the event.
  */
 export type Evento = {

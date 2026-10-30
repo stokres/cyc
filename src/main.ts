@@ -133,7 +133,7 @@ async function arrancar() {
     location.href = location.pathname;
     return;
   }
-  // «PokéUsera» (src/pokeusera/), a game of its own (no longer part of chapter 2), opened by itself: the address ending in ?pokecap. `&dino` goes straight to the silhouette and the
+  // «PokéUsera» (the chapter 2 copy in src/pokecap/; the whole game is src/pokeusera/, pokeusera.html), no longer part of chapter 2, opened by itself: the address ending in ?pokecap. `&dino` goes straight to the silhouette and the
   // hunt, `&auto` has the machine play Guille's four-way battle, `&rapido` skips the waits, `&semilla=N` repeats the draw. The result stays on `window.__pokeResultado`.
   const pk = new URLSearchParams(location.search);
   if (pk.has('pokecap')) {

@@ -8,7 +8,7 @@ Todo lo que se lee en los menús de PokéUsera está aquí. Mismo formato que ca
   {n}                          el juego lo cambia por un valor
 
 La letra es de píxeles y la pantalla es estrecha (unos 40 caracteres por línea; en las cajas de menú, algo menos): textos cortos.
-Los mensajes del combate y las descripciones de useritos y movimientos están en pokeusera-combate.md.
+Los mensajes del combate y las descripciones de useritos y movimientos están en pokecap-combate.md.
 -->
 
 // ---- guía
@@ -298,10 +298,10 @@ draft.inmune = Inmune a
 draft.x4 = ×4
 draft.habinfo = {nombre}: {desc}
 
-// ---- el Ultimosaurio salvaje (src/pokeusera/caza/batalla.ts; el nombre de su especie está en datos.ts, ULTIMOSAURIO)
+// ---- el Ultimosaurio salvaje (src/pokecap/caza/batalla.ts; el nombre de su especie está en datos.ts, ULTIMOSAURIO)
 caza.salvaje = SALVAJE
 
-// ---- capítulo 2: el último juego de la noche (src/pokeusera/capitulo.ts, pantallas/capitulo.ts, marco.ts)
+// ---- capítulo 2: el último juego de la noche (src/pokecap/capitulo.ts, pantallas/capitulo.ts, marco.ts)
 pokecap.gira = Gira el móvil
 pokecap.gira.sub = Este juego se juega de pie
 pokecap.seguir = SEGUIR

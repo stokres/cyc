@@ -1,7 +1,7 @@
 // PokéUsera · the GUÍA: a paged help screen (CÓMO SE JUEGA, ESTADÍSTICAS, TIPOS, ESTADOS, REGLAS DEL BAR, OBJETOS)
 // that opens over whatever is on screen (main menu, pause box, draft card) and gives it back when closed.
 // ◀ ▶ / swipe / the tabs change page; a long page scrolls (drag or ▲▼); VOLVER goes back.
-// Everything it says lives in src/textos/pokeusera.md (`guia.*`, plus the older `ayuda.*` keys); the type
+// Everything it says lives in src/textos/pokecap.md (`guia.*`, plus the older `ayuda.*` keys); the type
 // table is read from `eficacia` in datos.ts, so it can never disagree with the engine.
 import { ENTRENADORES, OBJETOS, type Estado, type Tipo } from '../tipos';
 import { OBJETO_PERMANENTE, SUCESOS, TIPOS, eficacia } from '../datos';

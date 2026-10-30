@@ -1,4 +1,4 @@
-// Difficulty check of the chapter 2 hunt (src/pokeusera/caza/): the computer plays Guille's team (three useritos drafted at random) against the
+// Difficulty check of the chapter 2 hunt (src/pokecap/caza/): the computer plays Guille's team (three useritos drafted at random) against the
 // wild Ultimosaurio with the machine's usual choices (motor/bot.ts) and throws the jarra the way a person would: when the Ultimosaurio is down to
 // about a third of its HP, and every turn after that. The loop is the one of caza/batalla.ts without the screen: the engine's turn, the revival of
 // the mythical one (`revivir`) and the jarra's chance (`probCaptura`).
@@ -22,11 +22,11 @@ await page.goto(`http://localhost:${puerto}/vacio.html`);
 
 const r = await page.evaluate(
   async ({ partidas, escalaArg }) => {
-    const { ESPECIES, ESPECIE, ULTIMOSAURIO_ID } = await import('/src/pokeusera/datos.ts');
-    const { crearRnd, sacarAlAzar } = await import('/src/pokeusera/motor/azar.ts');
-    const { activo, crearCombate, eliminado, enGrada, reemplazar, resolverTurno, revivir, vivos, eleccionAlAzar } = await import('/src/pokeusera/motor/combate.ts');
-    const { eleccionBot, reemplazoBot } = await import('/src/pokeusera/motor/bot.ts');
-    const { ESCALA_ULTIMOSAURIO, REVIVE_PS, escalar, probCaptura } = await import('/src/pokeusera/caza/modelo.ts');
+    const { ESPECIES, ESPECIE, ULTIMOSAURIO_ID } = await import('/src/pokecap/datos.ts');
+    const { crearRnd, sacarAlAzar } = await import('/src/pokecap/motor/azar.ts');
+    const { activo, crearCombate, eliminado, enGrada, reemplazar, resolverTurno, revivir, vivos, eleccionAlAzar } = await import('/src/pokecap/motor/combate.ts');
+    const { eleccionBot, reemplazoBot } = await import('/src/pokecap/motor/bot.ts');
+    const { ESCALA_ULTIMOSAURIO, REVIVE_PS, escalar, probCaptura } = await import('/src/pokecap/caza/modelo.ts');
     const escala = escalaArg ?? ESCALA_ULTIMOSAURIO;
     const ids = ESPECIES.map((s) => s.id);
     const filas = [];

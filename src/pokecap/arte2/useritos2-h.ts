@@ -1,5 +1,5 @@
 // PokéUsera · Edición Jarra (arte v2): batch h of the 64×64 useritos (same conventions as useritos2.ts).
-// The Ultimosaurio, the mythical userito of chapter 2 (src/pokeusera/capitulo.ts). It lives only in the chapter's copy.
+// The Ultimosaurio, the mythical userito of chapter 2 (src/pokecap/capitulo.ts). It lives only in the chapter's copy.
 import type { Dibujo2 } from './useritos2';
 import { Pintor, bez3, el, poli, rc, rr, trazo, un, type Mat } from './pintor';
 

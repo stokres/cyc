@@ -1,4 +1,4 @@
-// PokéUsera, el último juego del capítulo 2 (docs/CAPITULO2.md, «PokéUsera»). Es el juego de verdad (src/pokeusera/), sin cuentas, sin
+// PokéUsera, el último juego del capítulo 2 (docs/CAPITULO2.md, «PokéUsera»). Es una copia del juego de verdad (src/pokeusera/) apartada en src/pokecap/, sin cuentas, sin
 // red y sin estadísticas, que se juega de pie (240 × 384–520, una Game Boy Advance) en un escenario propio (marco.ts) montado encima del juego del
 // capítulo, que está en horizontal. Guille, con su jarra, se adelanta («Este es mío») y de esa frase sale esto:
 //
@@ -16,8 +16,8 @@
 // efectos y el fondo se calientan en segundo plano mientras suena el caos, `precalentarPokeusera`). `window.__poke()` da acceso a las vistas.
 import type { SonidoMinijuego } from '../core/audio';
 import { cargarTextos } from '../juego/textos';
-import textosInterfaz from '../textos/pokeusera.md?raw';
-import textosCombate from '../textos/pokeusera-combate.md?raw';
+import textosInterfaz from '../textos/pokecap.md?raw';
+import textosCombate from '../textos/pokecap-combate.md?raw';
 import type { EntrenadorId, EstadoCombate } from './tipos';
 import { ESPECIE, ESPECIES, ULTIMOSAURIO_ID } from './datos';
 import { crearRnd, sacarAlAzar } from './motor/azar';

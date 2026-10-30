@@ -17,7 +17,7 @@ import { texto } from './textos';
 const CARGADORES = {
   sol: () => import('../sol/sol'),
   kart: () => import('../kart/kart'),
-  pokeusera: () => import('../pokeusera/capitulo'),
+  pokeusera: () => import('../pokecap/capitulo'),
   pang: () => import('../pang/completo'),
   unamas: () => import('../conceptos/unamas'),
   // Already in the main chunk (chapter 2 imports it statically), so this never fails; it goes through here for the single way in.

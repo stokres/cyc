@@ -460,7 +460,7 @@ export class VistaCombate implements Escena {
   private resolverReemplazo: ((i: number) => void) | null = null;
   /** Set by the flow: the player chose ABANDONAR in the pause box. */
   alAbandonar: (() => void) | null = null;
-  /** Hunting mode (src/pokeusera/caza/): the third action reads CAZAR instead of CAÑA (it still sends `{ tipo: 'cana' }`, which the hunting flow turns into a jarra throw). */
+  /** Hunting mode (src/pokecap/caza/): the third action reads CAZAR instead of CAÑA (it still sends `{ tipo: 'cana' }`, which the hunting flow turns into a jarra throw). */
   cazar = false;
   /** The opening line of the battle (default «¡Empieza la batalla a cuatro!»; the hunting mode has its own: a wild userito, a boss). */
   textoInicio: string | null = null;

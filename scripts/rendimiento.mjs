@@ -370,7 +370,7 @@ if (toca('safari')) {
   }
 }
 if (toca('pokecap')) {
-  // PokéUsera, a game of its own (src/pokeusera/capitulo.ts; no longer in chapter 2), in its real shape: a phone held upright (412 x 915) with the game standing
+  // PokéUsera, a game of its own (src/pokecap/capitulo.ts; no longer in chapter 2), in its real shape: a phone held upright (412 x 915) with the game standing
   // in its own stage. Two moments: the silhouette (the three falling, the shadow coming down) and the hunt (the wild Ultimosaurio, the moves'
   // effects and the jarra), both on the world of the concepts' backdrop. The keys are pressed from the page, as a player would tap.
   await page.setViewportSize({ width: 412, height: 915 });
@@ -378,7 +378,7 @@ if (toca('pokecap')) {
   await medir('pokecap: la silueta baja', `(async () => {
     clearInterval(window.__paseo);
     const g = window.__cyc.g;
-    const { jugarPokeusera } = await import('/src/pokeusera/capitulo.ts');
+    const { jugarPokeusera } = await import('/src/pokecap/capitulo.ts');
     g.pausado = true;
     void jugarPokeusera(g.root, { sonido: g.sound, dino: true, semilla: 7 });
     await new Promise((r) => setTimeout(r, 1500));
@@ -387,7 +387,7 @@ if (toca('pokecap')) {
   await medir('pokecap: la caza (movimientos y jarra)', `(async () => {
     clearInterval(window.__paseo);
     const g = window.__cyc.g;
-    const { jugarPokeusera } = await import('/src/pokeusera/capitulo.ts');
+    const { jugarPokeusera } = await import('/src/pokecap/capitulo.ts');
     g.pausado = true;
     void jugarPokeusera(g.root, { sonido: g.sound, dino: true, semilla: 7 });
     await new Promise((r) => setTimeout(r, 1500));
