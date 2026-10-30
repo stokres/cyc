@@ -1,0 +1,21 @@
+{
+  "id": "./pokeusera.html",
+  "name": "PokéUsera · Edición Jarra",
+  "short_name": "PokéUsera",
+  "description": "Batallas de useritos para cuatro amigos.",
+  "lang": "es",
+  "start_url": "./pokeusera.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "portrait",
+  "background_color": "#101820",
+  "theme_color": "#101820",
+  "categories": ["games"],
+  "icons": [
+    { "src": "pokeusera-icono-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "pokeusera-icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "pokeusera-icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "pokeusera-icono-180.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+  ]
+}

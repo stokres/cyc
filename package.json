@@ -1,18 +1,25 @@
 {
   "name": "camiones-y-caravanas",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.14",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
-    "shots": "node scripts/shots.mjs"
+    "shots": "node scripts/shots.mjs",
+    "start": "node scripts/servir-pokeusera.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",
     "playwright": "1.56.1",
     "typescript": "^5.9.0",
     "vite": "^7.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "ws": "^8.22.0"
   }
 }
