@@ -11,7 +11,7 @@ import { ANCHO } from '../pantalla';
 
 export { ALTO_CELDA, envolver2 as envolver, anchoTexto2 as ancho, TINTA2, TINTA_SUAVE, SOMBRA_TEXTO, PAPEL_ALTO };
 
-/** Battle pacing the player chooses in AJUSTES / the pause box (saved in localStorage 'pokeusera.v1'). */
+/** Battle pacing the player chooses in AJUSTES / the pause box (saved in localStorage 'pokecap.v1'). */
 export type Velocidad = 'lenta' | 'normal' | 'rapida';
 export const VELOCIDADES: readonly Velocidad[] = ['lenta', 'normal', 'rapida'];
 

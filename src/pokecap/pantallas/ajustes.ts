@@ -1,4 +1,4 @@
-// PokéUsera · settings: music and effects volume (0–10, saved in localStorage 'pokeusera.v1') and the pause box of the battle
+// PokéUsera · settings: music and effects volume (0–10, saved in localStorage 'pokecap.v1') and the pause box of the battle
 // (volumes + abandon). The chapter's copy (docs/CAPITULO2.md) has no settings screen of its own: the pause box is the only way in.
 import { anchoTexto2 } from '../arte2/fuente2';
 import { PAPEL_ALTO, SOMBRA_TEXTO, TINTA2, TINTA_SUAVE } from '../arte2/paleta2';
@@ -10,7 +10,8 @@ import { abrirGuia } from './guia';
 import { sobre } from './modal';
 import { VELOCIDADES, boton, centrado, cfg, flecha, mover, oscurecer, realce, rect, t, texto2, type Velocidad } from './ui';
 
-const CLAVE = 'pokeusera.v1';
+// Its own key (the whole PokéUsera, src/pokeusera/, uses 'pokeusera.v1' with more fields and now shares the origin with the chapter).
+const CLAVE = 'pokecap.v1';
 
 export interface Guardado {
   musica: number;
