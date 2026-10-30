@@ -31,7 +31,18 @@ Pasos manuales, una sola vez:
 1. **Reutilizar el servicio de Railway que ya publica PokéUsera** (así se conservan el volumen y las estadísticas) y, en **Settings → Source**, cambiar la rama a `main`.
 2. **Build Command:** `npm run build`. **Start Command:** `npm start`. Node 20 o superior (`engines` en `package.json`).
 3. **Volumen** montado en `/data` y la variable `POKEUSERA_DATOS=/data` (ya están puestos si se reutiliza el servicio; sin ellos cada despliegue borra las estadísticas y las cuentas). `POKEUSERA_CLAVE` protege la sala online.
-4. **Dominio propio:** en **Settings → Networking → Custom Domain**, añadir el dominio y crear en el proveedor el registro DNS que indique Railway. Ver registros DNS de cdmon: _(pendiente de completar)_.
+4. **Dominio propio:** en **Settings → Networking → Custom Domain**, añadir `www.tudominio.es` (y `tudominio.es` si se usa la vía B). Railway da para cada uno un destino CNAME (`algo.up.railway.app`) y un registro TXT de verificación; hacen falta los dos. Registros en cdmon (Dominios → Gestión DNS):
+
+   | Nombre | Tipo | Valor |
+   | --- | --- | --- |
+   | `www` | CNAME | el destino que da Railway para `www` (`algo.up.railway.app`) |
+   | `_railway-verify.www` | TXT | el valor que da Railway (copiar el nombre exacto que muestre) |
+
+   La raíz (`tudominio.es`) no admite CNAME, y Railway no da una IP fija para un registro A. Hay dos vías:
+   - **A, todo en cdmon:** si al crear un registro cdmon ofrece el tipo ALIAS o ANAME, raíz `@` → ALIAS al destino de Railway, más su TXT `_railway-verify`. Si no lo ofrece (lo normal), usar «Crear redirección web» de cdmon para que `tudominio.es` lleve a `https://www.tudominio.es`. Inconveniente: si alguien escribe `https://tudominio.es` puede ver un aviso de certificado, porque la redirección de cdmon no tiene certificado propio.
+   - **B, DNS en Cloudflare (gratis):** el dominio sigue comprado en cdmon, pero en cdmon se cambian los servidores de nombres por los dos que da Cloudflare. En Cloudflare: raíz `@` CNAME al destino de Railway (Cloudflare lo «aplana»), los TXT de Railway, `www` CNAME a `@`, SSL/TLS en «Full» y una redirección 301 de `www` a la raíz. Es la vía que Railway recomienda para la raíz, y funciona con https en las dos direcciones.
+
+   El certificado https lo pone Railway solo cuando ve los registros (de minutos a unas horas).
 5. Comprobar: `/`, `/capitulo1`, `/pokeusera` y `/pang` abren cada juego, y `/api/estadisticas` responde.
 
 PokéUsera se puede seguir instalando como app: su manifiesto (`start_url` `./pokeusera.html`) y su service worker no cambian de sitio, así que las instalaciones que ya hay siguen funcionando. Como ahora comparten dominio, todos los juegos comparten también el `localStorage`; sus claves llevan prefijo propio (`cyc.*`, `pokeusera.*`, `pokecap.*`).
