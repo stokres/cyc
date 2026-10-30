@@ -1,7 +1,7 @@
 // PokéUsera · service worker (docs/POKEUSERA.md, «Publicación»). It is a plain file: `npm run build` (the
 // plugin in vite.config.ts) rewrites the two lines below in dist/ with the version and the list of files of the build.
 // Only PokéUsera goes through here: the page, its scripts, drawings and music. The online room (/sala) and
-// everything else (the chapter 1 included) is left to the network.
+// everything else (the cover, the chapter 1, the Pang...: they share the domain) is left to the network.
 const VERSION = 'dev';
 const ARCHIVOS = [];
 
@@ -38,11 +38,12 @@ self.addEventListener('fetch', (e) => {
   if (u.pathname.endsWith('/sala')) return;
   if (req.mode === 'navigate') {
     const resto = u.pathname.slice(base.pathname.length);
-    // The game's page (any ?query: ?combate, ?rapido...). Cache first: it opens at once, and the update waits for its turn.
-    if (resto === 'pokeusera.html') {
+    // The game's page (any ?query: ?combate, ?rapido...), by its file or by its clean routes (/pokeusera, /aventura: the page reads the route itself).
+    // Cache first: it opens at once, and the update waits for its turn.
+    if (resto === 'pokeusera.html' || resto === 'pokeusera' || resto === 'aventura') {
       e.respondWith(caches.match(PAGINA).then((r) => r || fetch(req)));
     } else if (resto === '') {
-      // «/» is PokéUsera on the server of the game (the chapter elsewhere): network first, the cached game only if it is not there.
+      // «/» is the cover on the server of the game (the chapter elsewhere): network first, the cached game only if it is not there (offline).
       e.respondWith(fetch(req).catch(() => caches.match(PAGINA).then((r) => r || Response.error())));
     }
     return;

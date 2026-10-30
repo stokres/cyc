@@ -23,6 +23,7 @@ import type { Calidad } from './motor/motor';
 import type { Volumen } from './core/audio';
 import { storageGet, storageSet, wait } from './core/util';
 import { cargarModulo } from './juego/modulos';
+import { parametros, volverAlInicio } from './core/direccion';
 
 interface Ajustes {
   /** 2 since the two volumes and «media» as the default quality (8 October 2026). */
@@ -61,30 +62,30 @@ async function arrancar() {
   cargarTextos(textosInterfaz, textosCapitulo, textosCapitulo2);
   const root = document.getElementById('game')!;
   // «Alacant Sun» (src/sol/), the friends' parody, opened by itself: the address ending in ?sol.
-  if (new URLSearchParams(location.search).has('sol')) {
+  if (parametros().has('sol')) {
     const [{ jugarSol }, { Sound }] = await Promise.all([cargarModulo('sol'), import('./core/audio')]);
     const sonido = new Sound();
     // Sound needs a tap first (browsers): the console's first press starts it.
     addEventListener('pointerdown', () => sonido.start(), { once: true });
     addEventListener('keydown', () => sonido.start(), { once: true });
     await jugarSol(root, { sonido });
-    location.href = location.pathname;
+    volverAlInicio();
     return;
   }
   // «Impropios Kart» (src/kart/), opened by itself: the address ending in ?kart.
-  if (new URLSearchParams(location.search).has('kart')) {
+  if (parametros().has('kart')) {
     const [{ jugarKart }, { Sound }] = await Promise.all([cargarModulo('kart'), import('./core/audio')]);
     const sonido = new Sound();
     // Sound needs a tap first (browsers): the first press or key starts it.
     addEventListener('pointerdown', () => sonido.start(), { once: true });
     addEventListener('keydown', () => sonido.start(), { once: true });
     await jugarKart(root, { sonido });
-    location.href = location.pathname;
+    volverAlInicio();
     return;
   }
   // «Una más» (src/conceptos/), the world of the concepts as a metroidvania, opened by itself: the address ending in ?unamas. `&zona=2` starts in the garden,
   // `&sala=id` in that room, `&habs=cierzo,teclazo,pared` with those skills, `&rapido` skips the waits. In chapter 2 it is the game of the last stretch.
-  const um = new URLSearchParams(location.search);
+  const um = parametros();
   if (um.has('unamas')) {
     const [{ jugarUnaMas }, { Sound }] = await Promise.all([cargarModulo('unamas'), import('./core/audio')]);
     const sonido = new Sound();
@@ -103,7 +104,7 @@ async function arrancar() {
   }
   // The safari comic (src/ui/safari.ts), the end of chapter 2, opened by itself: the address ending in ?safari. `&pagina=N` starts on page N (1 to 4),
   // `&rapido` skips the waits. Closed with window.__safari().cerrar().
-  const sf = new URLSearchParams(location.search);
+  const sf = parametros();
   if (sf.has('safari')) {
     const [{ jugarSafari }, { Sound }] = await Promise.all([cargarModulo('safari'), import('./core/audio')]);
     const sonido = new Sound();
@@ -116,8 +117,8 @@ async function arrancar() {
   }
   // The whole «Pang» (src/pang/completo.ts), opened by itself: the address ending in ?pangcompleto. For testing it also takes
   // &fase=N (plays that stage and the ones after it, no menus), &pj=fran|pablo|chuchi|guille and &bot (the computer plays).
-  if (new URLSearchParams(location.search).has('pangcompleto')) {
-    const q = new URLSearchParams(location.search);
+  if (parametros().has('pangcompleto')) {
+    const q = parametros();
     const [{ jugarPangCompleto }, { Sound }] = await Promise.all([cargarModulo('pang'), import('./core/audio')]);
     const sonido = new Sound();
     // Sound needs a tap first (browsers): the first press or key starts it.
@@ -130,12 +131,12 @@ async function arrancar() {
       pj: pj && pj in REPARTO ? pj : undefined,
       control: q.has('bot') ? 'bot' : 'local',
     });
-    location.href = location.pathname;
+    volverAlInicio();
     return;
   }
   // «PokéUsera» (the chapter 2 copy in src/pokecap/; the whole game is src/pokeusera/, pokeusera.html), no longer part of chapter 2, opened by itself: the address ending in ?pokecap. `&dino` goes straight to the silhouette and the
   // hunt, `&auto` has the machine play Guille's four-way battle, `&rapido` skips the waits, `&semilla=N` repeats the draw. The result stays on `window.__pokeResultado`.
-  const pk = new URLSearchParams(location.search);
+  const pk = parametros();
   if (pk.has('pokecap')) {
     const { jugarPokeusera } = await cargarModulo('pokeusera');
     const semilla = Number(pk.get('semilla'));
@@ -149,7 +150,7 @@ async function arrancar() {
   // Two games (see src/juego/partida.ts): the main one and, if any, a chapter
   // being replayed. Switching between them saves and reloads the page.
   // The emergency exit (docs/JUGABILIDAD.md): the address ending in ?nueva starts from nothing.
-  const params = new URLSearchParams(location.search);
+  const params = parametros();
   // Chapter 2 while it is being made (docs/CAPITULO2.md): the address ending in ?capitulo2
   // plays it from the start, with a save of its own; chapter 1's game is never touched.
   const cap2 = params.has('capitulo2');
@@ -157,8 +158,10 @@ async function arrancar() {
   if (params.has('nueva')) {
     if (cap2) storageSet(CLAVE_CAP2, '');
     else borrarPartida();
-    params.delete('nueva');
-    history.replaceState(null, '', location.pathname + (params.size ? `?${params}` : '') + location.hash);
+    // The address keeps its own path (`/capitulo2`) and its own query, without ?nueva: the route's flag is not written into it.
+    const propios = new URLSearchParams(location.search);
+    propios.delete('nueva');
+    history.replaceState(null, '', location.pathname + (propios.size ? `?${propios}` : '') + location.hash);
   }
   const partida = cargarPartida();
   const enCurso = enJuego(partida);

@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import { ESPECIES, MOVS, SUCESOS } from './src/pokeusera/datos';
 import { ENTRENADORES, ESCENARIOS, OBJETOS } from './src/pokeusera/tipos';
 import { crearApiEstadisticas } from './scripts/api-estadisticas.mjs';
+import { RUTAS } from './scripts/rutas.mjs';
 import { prepararCatalogo } from './src/pokeusera/estadisticas/agregado.mjs';
 
 /** The game's lists the server needs to validate a battle summary (ids of useritos, moves, objects, trainers, bars and sucesos). */
@@ -53,6 +54,24 @@ function pokeuseraEstadisticas(): Plugin {
       if (config.command !== 'build') return;
       const dist = resolve(config.root, config.build.outDir);
       if (existsSync(dist)) writeFileSync(resolve(dist, 'pokeusera-catalogo.json'), JSON.stringify(catalogo()));
+    },
+  };
+}
+
+/**
+ * `npm run dev` answers the clean routes of the domain (scripts/rutas.mjs) with their page, as the server of the game does (`/pokeusera`, `/aventura`, `/pang`...),
+ * so they can be tried while developing. «/» stays the chapter here (the scripts and the habit open it): the cover is at /portada.html.
+ */
+function rutasLimpias(): Plugin {
+  return {
+    name: 'rutas-limpias',
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        const [ruta, ...resto] = (req.url ?? '/').split('?');
+        const limpia = ruta.replace(/\/+$/, '');
+        if (limpia && Object.hasOwn(RUTAS, limpia)) req.url = `/${(RUTAS as Record<string, string>)[limpia]}${resto.length ? '?' + resto.join('?') : ''}`;
+        next();
+      });
     },
   };
 }
@@ -112,7 +131,7 @@ function pokeuseraSw(): Plugin {
 export default defineConfig({
   // Relative paths: GitHub Pages serves the game from /<repositorio>/.
   base: './',
-  plugins: [pokeuseraSw(), pokeuseraEstadisticas()],
+  plugins: [pokeuseraSw(), pokeuseraEstadisticas(), rutasLimpias()],
   // __POKEUSERA_LANZAMIENTO__: the release number shown on the title screen (package.json `version`, docs/POKEUSERA.md «Publicación»).
   define: { __POKEUSERA_VERSION__: JSON.stringify(versionJuego()), __POKEUSERA_LANZAMIENTO__: JSON.stringify(lanzamiento) },
   // Online room: `npm start` (PORT=8080) in another terminal serves /sala; POKEUSERA_SALA overrides the target.
@@ -120,8 +139,8 @@ export default defineConfig({
   build: {
     target: 'es2020',
     rollupOptions: {
-      // The chapter (index.html) and PokéUsera (pokeusera.html), a game of its own.
-      input: { main: resolve(__dirname, 'index.html'), pokeusera: resolve(__dirname, 'pokeusera.html') },
+      // The chapter (index.html), PokéUsera (pokeusera.html), a game of its own, and the cover of the domain (portada.html, no game code in it).
+      input: { main: resolve(__dirname, 'index.html'), pokeusera: resolve(__dirname, 'pokeusera.html'), portada: resolve(__dirname, 'portada.html') },
     },
   },
 });

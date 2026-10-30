@@ -1,11 +1,17 @@
-// PokéUsera (docs/POKEUSERA.md). Serves ./dist for Railway (`npm start`, after `npm run build`), plus the online room at /sala (scripts/sala-pokeusera.mjs).
-// «/» opens PokéUsera (dist/pokeusera.html); the chapter 1 stays at /index.html.
+// Server of all the games, for Railway (`npm start`, after `npm run build`): serves ./dist with clean URLs (scripts/rutas.mjs), plus the online room of
+// PokéUsera at /sala (scripts/sala-pokeusera.mjs) and its statistics API at /api (scripts/api-estadisticas.mjs, docs/POKEUSERA.md).
+//   /            the cover (dist/portada.html)           /pokeusera   PokéUsera (dist/pokeusera.html)       /aventura   PokéUsera, straight into AVENTURA
+//   /capitulo1   the chapter (dist/index.html)           /pang        the whole Pang (index.html opens it, see src/core/direccion.ts)
+//   /capitulo2 /sol /kart /unamas   hidden games, the same way (they work, the cover does not announce them)
+// A route with a final slash (/pang/) redirects (301) to the one without: the relative paths of the build (./assets/...) would break under it.
+// The files of dist/ keep their own paths (/assets/..., /pokeusera-sw.js, /index.html, /pokeusera.html?aventura...): old links and installed apps still work.
 import { createServer } from 'node:http';
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { adjuntarSala } from './sala-pokeusera.mjs';
+import { RUTAS } from './rutas.mjs';
 import { crearApiEstadisticas, leerCatalogo } from './api-estadisticas.mjs';
 
 // POKEUSERA_DIST: another build folder (to try a build without touching ./dist).
@@ -46,7 +52,7 @@ async function buscar(ruta) {
     return null;
   }
   if (decodificada.includes('\0')) return null;
-  const limpia = normalize(decodificada === '/' ? '/pokeusera.html' : decodificada);
+  const limpia = normalize(decodificada);
   const archivo = resolve(join(RAIZ, limpia));
   if (archivo !== RAIZ && !archivo.startsWith(RAIZ + sep)) return null;
   try {
@@ -74,8 +80,15 @@ try {
 const servidor = createServer(async (req, res) => {
   if (estadisticas?.manejar(req, res)) return;
   if (req.method !== 'GET' && req.method !== 'HEAD') return responder(res, 405, 'Method Not Allowed');
-  const ruta = new URL(req.url ?? '/', 'http://localhost').pathname;
-  const hallado = await buscar(ruta);
+  const url = new URL(req.url ?? '/', 'http://localhost');
+  const ruta = url.pathname;
+  // /pang/ → /pang (keeping the query)
+  if (ruta.length > 1 && ruta.endsWith('/') && Object.hasOwn(RUTAS, ruta.replace(/\/+$/, ''))) {
+    res.writeHead(301, { Location: ruta.replace(/\/+$/, '') + url.search, 'Cache-Control': 'no-cache' });
+    return res.end();
+  }
+  // A clean route is served as the page it stands for (the file keeps its own path: `ruta` below is what was asked).
+  const hallado = await buscar(Object.hasOwn(RUTAS, ruta) ? '/' + RUTAS[ruta] : ruta);
   if (!hallado) return responder(res, 404, 'No encontrado');
   const ext = extname(hallado.archivo).toLowerCase();
   const cabeceras = {

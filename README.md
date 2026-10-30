@@ -22,12 +22,27 @@ La luz con relieve (WebGL2) está aplazada: para verla, añade `?relieve` a la d
 
 GitHub Pages en un repositorio privado necesita una cuenta de pago (GitHub Pro), y la página queda pública igualmente: cualquiera con la dirección puede jugar. Sin cuenta de pago hay que hacer público el repositorio.
 
+## Publicación en Railway (dominio propio)
+
+Todos los juegos salen de **un único servicio de Railway** (Node), con URLs limpias: `/` (portada), `/capitulo1`, `/pokeusera` y `/pang`. Siguen funcionando, sin anunciarse, `/aventura`, `/capitulo2`, `/sol`, `/kart` y `/unamas`; una ruta con barra final (`/pang/`) redirige a la que no la lleva. La sala online (`/sala`) y las estadísticas (`/api`) van en el mismo servicio. El servidor es `scripts/servir-pokeusera.mjs` y la lista de rutas, `scripts/rutas.mjs`. GitHub Pages sigue publicando el capítulo 1 desde `index.html` hasta que se retire; la portada solo funciona en Railway (sus enlaces son rutas limpias).
+
+Pasos manuales, una sola vez:
+
+1. **Reutilizar el servicio de Railway que ya publica PokéUsera** (así se conservan el volumen y las estadísticas) y, en **Settings → Source**, cambiar la rama a `main`.
+2. **Build Command:** `npm run build`. **Start Command:** `npm start`. Node 20 o superior (`engines` en `package.json`).
+3. **Volumen** montado en `/data` y la variable `POKEUSERA_DATOS=/data` (ya están puestos si se reutiliza el servicio; sin ellos cada despliegue borra las estadísticas y las cuentas). `POKEUSERA_CLAVE` protege la sala online.
+4. **Dominio propio:** en **Settings → Networking → Custom Domain**, añadir el dominio y crear en el proveedor el registro DNS que indique Railway. Ver registros DNS de cdmon: _(pendiente de completar)_.
+5. Comprobar: `/`, `/capitulo1`, `/pokeusera` y `/pang` abren cada juego, y `/api/estadisticas` responde.
+
+PokéUsera se puede seguir instalando como app: su manifiesto (`start_url` `./pokeusera.html`) y su service worker no cambian de sitio, así que las instalaciones que ya hay siguen funcionando. Como ahora comparten dominio, todos los juegos comparten también el `localStorage`; sus claves llevan prefijo propio (`cyc.*`, `pokeusera.*`, `pokecap.*`).
+
 ## Cambiar los textos
 
 Todo lo que se dice en el juego está en `src/textos/`:
 
 - `capitulo1.md`: diálogos, objetivos, pistas y nombres de las cosas.
 - `interfaz.md`: menús y botones.
+- `portada.md`: la portada del dominio (`portada.html`).
 
 El formato se explica al principio de `capitulo1.md`. Basta con editar el texto y recargar; no hace falta tocar código. Si una clave falta o una línea no se entiende, sale un error en la consola y la partida automática falla.
 
@@ -37,7 +52,7 @@ El formato se explica al principio de `capitulo1.md`. Basta con editar el texto 
 npm run typecheck
 node scripts/playthrough.mjs http://localhost:5173/ revisiones/partida   # partida completa del piloto en viewport de móvil
 node scripts/shots.mjs http://localhost:5173/ revisiones/captura.png 844x390 3
-node scripts/rendimiento.mjs [escena...]                                  # CPU, fotogramas y memoria, con la música sonando; falla con los errores de la regla T5 (docs/ESTILO.md)
+node scripts/rendimiento.mjs [escena...]                                  # (también `portada`, sin arrancar el juego) CPU, fotogramas y memoria, con la música sonando; falla con los errores de la regla T5 (docs/ESTILO.md)
 node tools/personajes/lamina-crew.mjs                                     # lámina de la crew (artifact/crew-lamina.html)
 node tools/personajes/frentes.mjs                                         # caras de frente de los retratos, por ánimo y boca (revisiones/frentes.png)
 node tools/personajes/cerdos.mjs                                          # los cerdos de Guille (revisiones/cerdos.png)
@@ -72,6 +87,8 @@ node tools/icono.mjs                                                      # icon
 | `docs/PERSONAJES.md` | Cómo son y cómo hablan los cuatro y Aceituna |
 | `docs/ESCENA-1.md` | Encargo del capítulo 1: piso, calle, cámara y puzle inicial |
 | `src/textos/` | Todos los textos del juego, editables |
+| `portada.html`, `src/portada/` | Portada del dominio: tres tarjetas (Capítulo 1, PokéUsera, Pang), solo DOM y CSS |
+| `scripts/servir-pokeusera.mjs`, `scripts/rutas.mjs` | Servidor de Railway y sus URLs limpias; `src/core/direccion.ts` es la mitad que lee el juego |
 | `src/capitulos/` | Lógica de cada capítulo: zonas, puzles, objetivos y pistas (las historias de Pablo y Guille, en `pablo.ts` y `guille.ts`) |
 | `src/juego/` | Aventura (guion, entrada táctil, cambio de personaje), reparto, textos y partida guardada |
 | `src/motor/` | Escenas en capas con parallax, luz horneada, actores y la luz con relieve en WebGL2 (aplazada) |
