@@ -139,8 +139,8 @@ export default defineConfig({
   build: {
     target: 'es2020',
     rollupOptions: {
-      // The chapter (index.html), PokéUsera (pokeusera.html), a game of its own, and the cover of the domain (portada.html, no game code in it).
-      input: { main: resolve(__dirname, 'index.html'), pokeusera: resolve(__dirname, 'pokeusera.html'), portada: resolve(__dirname, 'portada.html') },
+      // The chapter (index.html), PokéUsera (pokeusera.html), a game of its own, the cover of the domain (portada.html, no game code in it) and its entry page (entrar.html: the group's key, scripts/pase.mjs).
+      input: { main: resolve(__dirname, 'index.html'), pokeusera: resolve(__dirname, 'pokeusera.html'), portada: resolve(__dirname, 'portada.html'), entrar: resolve(__dirname, 'entrar.html') },
     },
   },
 });

@@ -29,6 +29,7 @@ menu.reiniciar = Empezar de nuevo
 menu.reiniciarRejuego = Empezar el capítulo otra vez
 menu.capitulos = Capítulos
 menu.minijuegos = Minijuegos
+menu.web = Volver a la web
 menu.seguro = ¿Seguro? Toca otra vez
 menu.ayuda = Toca para andar, usar, coger y hablar. Arriba a la izquierda cambias de personaje cuando quieras: cada uno sigue su historia donde la dejaste. Abajo a la derecha está la bolsa. El ojo enseña lo que se puede tocar y la bombilla da pistas.
 si = Sí

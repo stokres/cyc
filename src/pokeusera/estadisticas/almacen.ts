@@ -61,7 +61,7 @@ export async function enviarPendientes(): Promise<void> {
       if (!lista.length) return;
       let res: Response;
       try {
-        res = await fetch('api/batallas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(lista[0]) });
+        res = await fetch('/api/batallas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(lista[0]) });
       } catch {
         break; // no network
       }
@@ -115,7 +115,7 @@ function cuentasValidas(x: unknown): ResumenCuenta[] {
 /** Everybody's aggregates from the server; if it cannot be reached, the last copy saved; null if there is none. */
 export async function agregadoDeTodos(): Promise<DeTodos | null> {
   try {
-    const res = await fetch('api/estadisticas', { cache: 'no-store' });
+    const res = await fetch('/api/estadisticas', { cache: 'no-store' });
     if (res.ok) {
       const cuerpo = (await res.json()) as { v?: number; ag?: unknown; cuentas?: unknown };
       const ag = cuerpo.v === FORMATO ? agregadoValido(cuerpo.ag) : null;

@@ -5,7 +5,7 @@
 //
 // It opens from the minigames menu (src/main.ts) once the chapter 2 Pang is beaten, and by itself with the
 // address ending in ?pangcompleto. `jugarPangCompleto` resolves when the player picks «Volver a los
-// minijuegos» in the menu (or, with `fase`, when the stage(s) end or are left).
+// minijuegos» (or «Volver a la web» if `desdeWeb`) in the menu (or, with `fase`, when the stage(s) end or are left).
 //
 // Performance (docs/ESTILO.md, T5): the same as the chapter's Pang: stages are pixel art painted once
 // (juego.ts), the screens are plain DOM, and the loops never run faster than 60 fps.
@@ -35,6 +35,8 @@ export interface OpcionesPangCompleto {
   control?: Control;
   /** With 'bot': seconds between its decisions (bot.ts). */
   reaccion?: number;
+  /** Opened by itself (`/pang`, not from the minigames menu): the menu's last button says «Volver a la web» instead of «Volver a los minijuegos». */
+  desdeWeb?: boolean;
   /** Aborting it closes the Pang wherever it is (tests and the performance check). */
   senal?: AbortSignal;
 }
@@ -188,7 +190,7 @@ export async function jugarPangCompleto(root: HTMLElement, o: OpcionesPangComple
     demo.iniciar();
     await pantallaTitulo(ui);
     for (;;) {
-      const accion = await pantallaMenu(ui, true);
+      const accion = await pantallaMenu(ui, o.desdeWeb ? 'web' : true);
       if (accion === 'salir') break;
       if (accion === 'nueva') await partida(1);
       else if (accion === 'seguir') await partida(datos.faseMax);

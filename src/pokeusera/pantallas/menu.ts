@@ -13,10 +13,10 @@ import { capasTitulo, dibujarCapasTitulo, dibujarFiesta, disenoTitulo, estadoNeo
 import { dibujarLogo } from './titulo';
 import { Firma, mover, rect, reposo, t } from './ui';
 
-export type OpcionMenu = 'solo' | 'aventura' | 'online' | 'useritopedia' | 'estadisticas' | 'guia' | 'ajustes' | 'instalar' | 'actualizar' | 'titulo';
+export type OpcionMenu = 'solo' | 'aventura' | 'online' | 'useritopedia' | 'estadisticas' | 'guia' | 'ajustes' | 'web' | 'instalar' | 'actualizar' | 'titulo';
 /** AVENTURA is hidden from the menu for now (15-oct-2026): its code and the `?aventura` shortcut stay. Set to true to bring the row back. */
 const AVENTURA_VISIBLE = false;
-const BASE: OpcionMenu[] = (['solo', 'aventura', 'online', 'useritopedia', 'estadisticas', 'guia', 'ajustes'] as OpcionMenu[]).filter((o) => o !== 'aventura' || AVENTURA_VISIBLE);
+const BASE: OpcionMenu[] = (['solo', 'aventura', 'online', 'useritopedia', 'estadisticas', 'guia', 'ajustes', 'web'] as OpcionMenu[]).filter((o) => o !== 'aventura' || AVENTURA_VISIBLE);
 /** The rows now: the update notice on top, the install option at the end, each only while it applies. */
 const opciones = (): OpcionMenu[] => [...(app.hayActualizacion ? (['actualizar'] as const) : []), ...BASE, ...(instalable() ? (['instalar'] as const) : [])];
 const ICONOS: Record<string, string> = { solo: 'luchar', aventura: 'cana', online: 'online', useritopedia: 'userito', ajustes: 'ajustes' };
@@ -40,6 +40,32 @@ function iconoInstalar(ctx: CanvasRenderingContext2D, x: number, y: number) {
       'kGGGGGGGGGGGk',
     ];
     const col: Record<string, string> = { k: TINTA2, g: '#e8c25a', G: '#b08428' };
+    filas.forEach((fila, j) => {
+      for (let i = 0; i < fila.length; i++) if (col[fila[i]]) rect(cx, col[fila[i]], i, j, 1, 1);
+    });
+  });
+  ctx.drawImage(c, x, y);
+}
+
+/** A left arrow out of a door (VOLVER A LA WEB), baked once. */
+function iconoWeb(ctx: CanvasRenderingContext2D, x: number, y: number) {
+  const c = hornear('icono|web', 13, 13, (cx) => {
+    const filas = [
+      '.kkkkkkkk....',
+      '.kgggggk.....',
+      '.kgggggk.....',
+      '.kggggkkk....',
+      '.kgkkkkgk....',
+      'kkkgggggkk...',
+      'kggggggggk...',
+      'kkkgggggkk...',
+      '.kgkkkkgk....',
+      '.kggggkkk....',
+      '.kgggggk.....',
+      '.kgggggk.....',
+      '.kkkkkkkk....',
+    ];
+    const col: Record<string, string> = { k: TINTA2, g: '#e8c25a' };
     filas.forEach((fila, j) => {
       for (let i = 0; i < fila.length; i++) if (col[fila[i]]) rect(cx, col[fila[i]], i, j, 1, 1);
     });
@@ -115,6 +141,10 @@ export function pantallaMenu(inicial: OpcionMenu = 'solo'): Promise<OpcionMenu> 
             filaMenu(ctx, x + 6, yy, w - 12, fila, '', null, activa);
             iconoAcumuladas(ctx, x + 6 + 17, yy + Math.floor((fila - 6 - 13) / 2));
             dibujarTexto2(ctx, t('menu.estadisticas'), x + 6 + 37, yy + Math.floor((fila - 6 - 7) / 2) + 1, TINTA2, activa ? '#f0c860' : SOMBRA_TEXTO);
+          } else if (o === 'web') {
+            filaMenu(ctx, x + 6, yy, w - 12, fila, '', null, activa);
+            iconoWeb(ctx, x + 6 + 17, yy + Math.floor((fila - 6 - 13) / 2));
+            dibujarTexto2(ctx, t('menu.web'), x + 6 + 37, yy + Math.floor((fila - 6 - 7) / 2) + 1, TINTA2, activa ? '#f0c860' : SOMBRA_TEXTO);
           } else if (o === 'guia') {
             // The «?» icon is drawn by the guide itself (the menu's icon set has no such one).
             filaMenu(ctx, x + 6, yy, w - 12, fila, '', null, activa);

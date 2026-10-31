@@ -24,6 +24,7 @@ menu.ajustes = AJUSTES
 menu.guia = GUÍA
 menu.useritopedia = USERITOPEDIA
 menu.estadisticas = ESTADÍSTICAS
+menu.web = VOLVER A LA WEB
 
 // ---- estadísticas acumuladas de todas las partidas (pantallas/acumuladas.ts)
 acum.volver = VOLVER
@@ -193,7 +194,7 @@ cuenta.codigo.ayuda = Lo ves en AJUSTES, MI CUENTA, en el móvil donde ya jugaba
 cuenta.mi.titulo = MI CUENTA
 cuenta.mi.nombre = NOMBRE
 cuenta.mi.codigo = CÓDIGO DE RECUPERACIÓN
-cuenta.mi.ayuda = Con este código entras con tu cuenta desde otro móvil. Guárdalo.
+cuenta.mi.ayuda = Con este código entras con tu cuenta desde otro móvil o el ordenador. Guárdalo.
 cuenta.mi.cambiar = CAMBIAR NOMBRE
 cuenta.mi.otra = USAR OTRA CUENTA
 cuenta.mi.sin = Este móvil aún no tiene cuenta. Para crearla hace falta conexión.
@@ -225,6 +226,7 @@ escenario.feria = LA FERIA
 
 pausa.titulo = PAUSA
 pausa.abandonar = ABANDONAR
+pausa.web = VOLVER A LA WEB
 pausa.seguir = SEGUIR
 pausa.seguro = ¿Seguro?
 pausa.si = SÍ

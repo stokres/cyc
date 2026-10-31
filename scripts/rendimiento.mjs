@@ -15,7 +15,8 @@
 // without it, to compare.
 //
 // Usage: node scripts/rendimiento.mjs [escena...]   (against npm run dev on :5173)
-//   escenas: prologo, piso, calle, bar, manga, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, cantofiesta, tragaperras, sol, solcombate, solcamino, solteatro, soljefe, solcalderon, kart, unamas (includes the final boss LA ÚLTIMA), safari, boca, pangcompleto, pokecap, portada (all by default)
+//   escenas: prologo, piso, calle, bar, manga, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, cantofiesta, tragaperras, sol, solcombate, solcamino, solteatro, soljefe, solcalderon, kart, unamas (includes the final boss LA ÚLTIMA), safari, boca, pangcompleto, pokecap, portada, entrar (all by default)
+//   entrar: the entry page of the group's key (entrar.html, same measures as the cover: `node scripts/rendimiento.mjs entrar`)
 //   portada: the cover page of the domain (portada.html, plain DOM and CSS, no game): measures it alone, without starting the game (`node scripts/rendimiento.mjs portada`)
 import { chromium } from 'playwright';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
@@ -59,14 +60,14 @@ await page.addInitScript(() => {
 });
 /**
  * The cover page (portada.html): DOM and CSS only. Measured on its own tab: CPU, frames and the mistakes of the rule T5 that could creep in
- * (a canvas, more than 60 frames a second). The page must also open without errors, with its three games and without scrolling sideways.
+ * (a canvas, more than 60 frames a second). The page must also open without errors, with its five games (Camiones y Caravanas, PokéUsera, Pang, Fly, Trazo) and without scrolling sideways.
  */
-async function medirPortada(nombre, ancho, alto) {
+async function medirPortada(nombre, ancho, alto, pagina = 'portada.html', juegos = 5) {
   const ctxP = await b.newContext({ viewport: { width: ancho, height: alto }, deviceScaleFactor: 2.625, hasTouch: true, isMobile: true });
   const p = await ctxP.newPage();
   const fallos = [];
   p.on('pageerror', (e) => errores.push(`portada: ${e}`));
-  await p.goto(`http://localhost:${process.env.PUERTO ?? 5173}/portada.html`);
+  await p.goto(`http://localhost:${process.env.PUERTO ?? 5173}/${pagina}`);
   await p.waitForSelector('.portada.lista');
   await p.waitForTimeout(2000);
   const c0 = cpuChrome();
@@ -77,18 +78,20 @@ async function medirPortada(nombre, ancho, alto) {
     setTimeout(() => (window.__fin = true), seg * 1000);
   }), SEG);
   const cpu = ((cpuChrome() - c0) / SEG) * 100;
-  const pagina = await p.evaluate(() => ({ canvas: document.querySelectorAll('canvas').length, tarjetas: document.querySelectorAll('a.juego').length, ancho: document.documentElement.scrollWidth, visible: innerWidth }));
-  if (pagina.canvas) fallos.push(`${pagina.canvas} canvas en la portada (debe ser solo DOM y CSS)`);
-  if (pagina.tarjetas !== 3) fallos.push(`${pagina.tarjetas} juegos en la portada (deben ser 3)`);
-  if (pagina.ancho > pagina.visible) fallos.push(`la portada se sale de la pantalla a lo ancho (${pagina.ancho} > ${pagina.visible})`);
+  const medidas = await p.evaluate(() => ({ canvas: document.querySelectorAll('canvas').length, tarjetas: document.querySelectorAll('a.juego').length, ancho: document.documentElement.scrollWidth, visible: innerWidth }));
+  if (medidas.canvas) fallos.push(`${medidas.canvas} canvas en ${pagina} (debe ser solo DOM y CSS)`);
+  if (medidas.tarjetas !== juegos) fallos.push(`${medidas.tarjetas} juegos en ${pagina} (deben ser ${juegos})`);
+  if (medidas.ancho > medidas.visible) fallos.push(`${pagina} se sale de la pantalla a lo ancho (${medidas.ancho} > ${medidas.visible})`);
   if (fps > 62) fallos.push(`${fps.toFixed(0)} fps, por encima del tope de 60`);
   console.log(`${nombre.padEnd(32)} CPU ${cpu.toFixed(0).padStart(4)} %   ${fps.toFixed(0).padStart(3)} fotogramas/s${fallos.length ? '   ✗ ' + fallos.join('; ') : ''}`);
   await ctxP.close();
   return fallos;
 }
 // Only the cover: no need to start the game.
-if (quiero.length === 1 && quiero[0] === 'portada') {
-  const f = [...(await medirPortada('portada (horizontal)', 915, 412)), ...(await medirPortada('portada (vertical)', 412, 915))];
+if (quiero.length === 1 && (quiero[0] === 'portada' || quiero[0] === 'entrar')) {
+  const f = quiero[0] === 'entrar'
+    ? [...(await medirPortada('entrar (horizontal)', 915, 412, 'entrar.html', 0)), ...(await medirPortada('entrar (vertical)', 412, 915, 'entrar.html', 0))]
+    : [...(await medirPortada('portada (horizontal)', 915, 412)), ...(await medirPortada('portada (vertical)', 412, 915))];
   await b.close();
   if (errores.length) console.log('ERRORES:\n' + errores.join('\n'));
   if (errores.length || f.length) process.exit(1);

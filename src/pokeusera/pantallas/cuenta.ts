@@ -1,7 +1,7 @@
 // PokéUsera · las pantallas de la cuenta de usuario (docs/POKEUSERA.md, «Cuentas»): «¿Cómo te llamas?» (la primera vez que se abre el juego, tras el
 // título), «YA TENGO CUENTA» (meter el código) y AJUSTES → MI CUENTA (nombre, código, cambiar el nombre, usar otra cuenta). Un único formulario con un
 // campo de texto real sobre el lienzo (el mismo `Campo` que la contraseña de la sala online). Estáticas: solo se repintan al tocar o al cambiar algo.
-import { CODIGO_LARGO, NOMBRE_MAX, limpiarCodigo, limpiarNombre } from '../cuentas/reglas.mjs';
+import { CODIGO_LARGO, NOMBRE_MAX, limpiarCodigo, limpiarNombre } from '../../cuenta/reglas.mjs';
 import { cambiarNombre, crearCuenta, cuentaLocal, recuperarCuenta, type Fallo, type Resultado } from '../cuentas/almacen';
 import { anchoTexto2 } from '../arte2/fuente2';
 import { TINTA2, TINTA_SUAVE } from '../arte2/paleta2';

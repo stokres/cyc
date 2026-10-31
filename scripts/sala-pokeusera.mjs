@@ -12,10 +12,13 @@ const ESPERA_ENTRAR_MS = 10_000;
 const MAX_PENDIENTE = 1024 * 1024;
 const PJS = ['fran', 'pablo', 'chuchi', 'guille', 'vinas', 'ari', 'fer'];
 
-/** Attaches the room to an existing HTTP server. */
-export function adjuntarSala(servidor) {
+/**
+ * Attaches the room to an existing HTTP server.
+ * `autorizar(req)`: whether the upgrade may go on (the cookie of the site's door, scripts/pase.mjs); `puerta`: the door is on, so a missing room password is no news.
+ */
+export function adjuntarSala(servidor, { autorizar = () => true, puerta = false } = {}) {
   const clave = (process.env.POKEUSERA_CLAVE ?? '').trim();
-  if (!clave) console.warn('[sala] POKEUSERA_CLAVE no está definida: la sala admite a cualquiera.');
+  if (!clave && !puerta) console.warn('[sala] POKEUSERA_CLAVE no está definida: la sala admite a cualquiera.');
 
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_MENSAJE });
   /** ws → { id, pj, anfitrion } for the sockets that are in the room. */
@@ -142,6 +145,10 @@ export function adjuntarSala(servidor) {
   servidor.on('upgrade', (req, socket, head) => {
     const ruta = new URL(req.url ?? '/', 'http://localhost').pathname;
     if (ruta !== RUTA) return socket.destroy();
+    if (!autorizar(req)) {
+      socket.end('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\nContent-Length: 0\r\n\r\n');
+      return;
+    }
     wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws, req));
   });
 

@@ -29,3 +29,9 @@ export function parametros(): URLSearchParams {
 export function volverAlInicio(): void {
   location.href = porRutaLimpia() ? new URL('./', location.href).href : location.pathname;
 }
+
+/** «Volver a la web»: the cover page of the domain (`/`), from any game. Whatever the game saves it saves on every action (and the chapter's own
+ *  `pagehide` saves the last position), so leaving loses nothing. On the dev server `/` opens the chapter, which does as well. */
+export function volverALaWeb(): void {
+  location.href = new URL('/', location.href).href;
+}

@@ -6,6 +6,9 @@ export const RUTAS = {
   '/pokeusera': 'pokeusera.html',
   '/aventura': 'pokeusera.html',
   '/pang': 'index.html',
+  // Games of juegos/ (docs in juegos/README.md): each one is built into its own folder of dist/ (scripts/construir-juegos.mjs).
+  '/fly': 'fly/index.html',
+  '/trazo': 'trazo/index.html',
   // Hidden: they work but the cover does not announce them.
   '/capitulo2': 'index.html',
   '/sol': 'index.html',

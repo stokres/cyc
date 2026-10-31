@@ -1,7 +1,7 @@
 // PokéUsera · cuentas en las partidas online (docs/POKEUSERA.md, «Cuentas»): al entrar en la sala cada invitado manda a su anfitrión el token de su cuenta
 // y su nombre (`{ k: 'cuenta' }`, con el mismo `juego` del resto de mensajes). El anfitrión usa el nombre como nombre del asiento y pone el token en el
 // resumen de la batalla (`cu`); el servidor lo cambia por el id público. El token no se muestra a nadie ni viaja a otros invitados.
-import { limpiarNombre } from './reglas.mjs';
+import { limpiarNombre } from '../../cuenta/reglas.mjs';
 import { cuentaLocal } from './almacen';
 
 /** What a guest tells the host: their account token and name. */

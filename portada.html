@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#ea5a1c">
 <title>Camiones y Caravanas</title>
 <link rel="icon" type="image/png" href="./icono-192.png">
@@ -12,22 +13,18 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee+Shade&family=Righteous&family=Shrikhand&display=swap">
 </head>
 <body>
-<div class="fondo" aria-hidden="true"><div class="rayos"></div><div class="anillos"></div></div>
+<div class="fondo" aria-hidden="true"><div class="rayos"></div></div>
 
 <div class="portada" id="portada">
 <div class="cartel">
   <header class="cabecera">
+    <button class="chapa" id="chapa" type="button" aria-haspopup="dialog"><i aria-hidden="true"></i><span id="chapa-texto"></span></button>
     <span class="cinta" data-t="cinta"></span>
     <h1 class="titulo" data-aria="titulo">
       <span class="palabra p1" aria-hidden="true" data-letras="titulo.1" data-desde="0"></span>
       <span class="fila" aria-hidden="true"><span class="ye" data-t="titulo.y"></span></span>
       <span class="palabra p2" aria-hidden="true" data-letras="titulo.2" data-desde="3"></span>
     </h1>
-    <div class="sello" aria-hidden="true">
-      <div class="disco"><svg viewBox="0 0 100 100"><circle class="cir" cx="50" cy="50" r="49"/><defs><path id="circ" d="M50,50 m-37,0 a37,37 0 1,1 74,0 a37,37 0 1,1 -74,0"/></defs>
-        <text><textPath href="#circ" textLength="228" lengthAdjust="spacing" data-t="sello.circular"></textPath></text></svg></div>
-      <div class="centro"><span data-t="sello.centro1"></span><span data-t="sello.centro2"></span></div>
-    </div>
   </header>
 
   <main class="pegatinas">
@@ -57,19 +54,18 @@
         <div class="medalla"><img src="./src/portada/pokeusera.webp" data-alt="pokeusera.icono" alt="" width="512" height="512"></div>
         <h2 data-t="pokeusera.nombre"></h2>
         <p data-t="pokeusera.desc"></p>
-        <ul class="etq">
-          <li><i class="movil"></i><span data-t="pokeusera.vertical"></span></li>
-          <li data-t="pokeusera.online"></li>
-        </ul>
-        <span class="dale ros"><a class="juego" href="/pokeusera" data-t="pokeusera.jugar"></a></span>
+        <div class="acciones">
+          <ul class="etq">
+            <li><i class="movil"></i><span data-t="pokeusera.vertical"></span></li>
+            <li data-t="pokeusera.online"></li>
+          </ul>
+          <span class="dale ros"><a class="juego" href="/pokeusera" data-t="pokeusera.jugar"></a></span>
+        </div>
       </article>
     </div>
 
     <!-- 3 · Pang -->
     <div class="peg burbuja" id="pang">
-      <div class="cabezas" aria-hidden="true">
-        <img src="./src/portada/retratos/fran.webp" alt="" width="195" height="255"><img src="./src/portada/retratos/pablo.webp" alt="" width="195" height="255"><img src="./src/portada/retratos/chuchi.webp" alt="" width="195" height="255"><img src="./src/portada/retratos/guille.webp" alt="" width="195" height="255">
-      </div>
       <article class="cuerpo">
         <div class="interno">
           <h2 data-t="pang.nombre"></h2>
@@ -80,7 +76,27 @@
       </article>
     </div>
 
-    <!-- 4 · Próximamente -->
+    <!-- 4 · Fly y Trazo: fichas pequeñas, sin imagen propia (dibujo en CSS) -->
+    <div class="chicas">
+      <article class="peg chica fly" id="fly">
+        <div class="dibujo" aria-hidden="true"><i class="sol"></i><i class="pajaro"></i><i class="isla i1"></i><i class="isla i2"></i><i class="isla i3"></i></div>
+        <div class="texto">
+          <h2 data-t="fly.nombre"></h2>
+          <p data-t="fly.desc"></p>
+          <span class="dale"><a class="juego" href="/fly" data-t="fly.jugar"></a></span>
+        </div>
+      </article>
+      <article class="peg chica trazo" id="trazo">
+        <div class="dibujo" aria-hidden="true"><i class="borron"></i><i class="linea"></i><i class="gota"></i></div>
+        <div class="texto">
+          <h2 data-t="trazo.nombre"></h2>
+          <p data-t="trazo.desc"></p>
+          <span class="dale ros"><a class="juego" href="/trazo" data-t="trazo.jugar"></a></span>
+        </div>
+      </article>
+    </div>
+
+    <!-- 5 · Próximamente -->
     <div class="peg mas">
       <div class="rafaga-w">
         <span class="f f1"></span><span class="f f2"></span><span class="f f3"></span><span class="f f4"></span>
@@ -98,6 +114,58 @@
   <p class="url" data-t="pie.url"></p>
 </footer>
 </div>
+<!-- Account (src/portada/cuenta.ts): the badge at the top opens this panel -->
+<dialog class="panel-cuenta" id="panel" aria-labelledby="panel-titulo">
+  <h2 id="panel-titulo" tabindex="-1"></h2>
+
+  <section data-vista="quien" hidden>
+    <p data-t="cuenta.quien.desc"></p>
+    <form data-form="crear" novalidate>
+      <label class="solo-lector" for="cuenta-nombre" data-t="cuenta.nombre.etiqueta"></label>
+      <input id="cuenta-nombre" type="text" maxlength="12" autocomplete="off" autocapitalize="words" spellcheck="false" required>
+      <p class="nota" data-t="cuenta.nombre.ayuda"></p>
+      <p class="aviso" role="alert" hidden></p>
+      <span class="dale"><button type="submit" data-t="cuenta.crear"></button></span>
+    </form>
+    <div class="otros">
+      <button type="button" class="enlace" data-ir="codigo" data-t="cuenta.yatengo"></button>
+      <button type="button" class="enlace flojo" data-ahora-no data-t="cuenta.ahorano"></button>
+    </div>
+  </section>
+
+  <section data-vista="codigo" hidden>
+    <p data-t="cuenta.codigo.desc"></p>
+    <form data-form="codigo" novalidate>
+      <label class="solo-lector" for="cuenta-codigo" data-t="cuenta.codigo.etiqueta"></label>
+      <input id="cuenta-codigo" class="codigo" type="text" maxlength="9" autocomplete="off" autocapitalize="characters" spellcheck="false" required>
+      <p class="aviso" role="alert" hidden></p>
+      <span class="dale"><button type="submit" data-t="cuenta.entrar"></button></span>
+    </form>
+    <div class="otros"><button type="button" class="enlace" data-ir="quien" data-t="cuenta.volver"></button></div>
+  </section>
+
+  <section data-vista="cuenta" hidden>
+    <p class="nota creada" id="cuenta-creada" data-t="cuenta.mi.creada" hidden></p>
+    <p class="etiqueta" data-t="cuenta.mi.codigo.nombre"></p>
+    <p class="clave-codigo" id="cuenta-codigo-ver"></p>
+    <p class="nota" data-t="cuenta.mi.codigo.desc"></p>
+    <div class="otros">
+      <button type="button" class="enlace" data-ir="cambiar" data-t="cuenta.mi.cambiar"></button>
+      <button type="button" class="enlace flojo" data-cerrar data-t="cuenta.cerrar"></button>
+    </div>
+  </section>
+
+  <section data-vista="cambiar" hidden>
+    <form data-form="cambiar" novalidate>
+      <label class="solo-lector" for="cuenta-otro" data-t="cuenta.cambiar.etiqueta"></label>
+      <input id="cuenta-otro" type="text" maxlength="12" autocomplete="off" autocapitalize="words" spellcheck="false" required>
+      <p class="nota" data-t="cuenta.nombre.ayuda"></p>
+      <p class="aviso" role="alert" hidden></p>
+      <span class="dale"><button type="submit" data-t="cuenta.guardar"></button></span>
+    </form>
+    <div class="otros"><button type="button" class="enlace" data-ir="cuenta" data-t="cuenta.volver"></button></div>
+  </section>
+</dialog>
 <script type="module" src="/src/portada/main.ts"></script>
 </body>
 </html>
