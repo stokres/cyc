@@ -963,3 +963,5 @@ a {
     animation: none !important;
   }
 }
+
+.pie .url { margin-top: 0.6rem; font-size: 0.875rem; letter-spacing: 0.14em; opacity: 0.75; }

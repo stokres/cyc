@@ -50,3 +50,4 @@ pie.pablo = Pablo
 pie.chuchi = Chuchi
 pie.guille = Guille
 pie.perra = Con Aceituna, la perra, que se ha colado.
+pie.url = camionesycaravanas.es
