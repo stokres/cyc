@@ -1489,7 +1489,7 @@ button:focus-visible {
   z-index: 8;
 }
 
-/* ------------------------------------------------------------ PokéUsera (chapter 2, src/pokeusera/) */
+/* ------------------------------------------------------------ PokéUsera (chapter 2 copy, src/pokecap/) */
 
 /* The game is played upright (240 × 384–520, like a Game Boy). The stage (marco.ts) is one box with its own size: a column centred on a computer,
    the whole screen on an upright phone, and turned a quarter behind the «Gira el móvil» veil on a phone held in landscape. */

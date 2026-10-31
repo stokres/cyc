@@ -17,7 +17,7 @@ import { spriteFrente2 } from '../arte2/sprites2';
 import { COLOR_TIPO } from '../arte/paleta';
 import { hornear, panel, panelCacheado, relleno } from '../arte2/ui2';
 import { entrada, type Accion } from '../entrada';
-import { ANCHO, altoActual, pantalla, type Escena } from '../pantalla';
+import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
 import { menuPausa } from './ajustes';
 import { abrirGuia, atacantesFuertes, defensoresCon, hileraTipos } from './guia';
@@ -240,7 +240,7 @@ function disenoDraft(H: number): Diseno & { yJug: number; hCelda: number; yGrid:
 /** One task per userito for the background baking (`precalentar.ts`): its sheet as the player first sees it, for the current screen height. */
 export const tareasPrecalentarDraft = (): (() => void)[] =>
   ESPECIES.map((sp) => () => {
-    const L = disenoDraft(altoActual());
+    const L = disenoDraft(pantalla().alto);
     fichaBase(sp.id, L.completa, L.hInfo, -1);
   });
 

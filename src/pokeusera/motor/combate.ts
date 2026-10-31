@@ -129,24 +129,6 @@ export const activo = (estado: EstadoCombate, j: number): Userito => estado.juga
 /** Indices (in `equipo`) of the useritos that can still fight. */
 export const vivos = (jugador: Jugador): number[] => jugador.equipo.flatMap((u, i) => (u.ps > 0 ? [i] : []));
 
-/**
- * Chapter 2, the mythical userito: after the fight has ended with it on the ground (a one-against-one against a wild one), it stands up again with `fraccion` of its
- * HP (no status, no stat changes, all its PP back) and the battle goes on as if nothing had ended. Returns the new state (the old one is left alone).
- */
-export function revivir(estado: EstadoCombate, j: number, fraccion: number): EstadoCombate {
-  const e = structuredClone(estado);
-  e.ganador = null;
-  e.reemplazos = [];
-  for (const q of e.jugadores) q.puesto = 0;
-  const u = activo(e, j);
-  reiniciar(u);
-  u.estado = null;
-  u.sueno = 0;
-  u.ps = Math.max(1, Math.round(u.psMax * fraccion));
-  u.pp = ESPECIE[u.especie].movs.map((id) => MOVS[id].pp) as Userito['pp'];
-  return e;
-}
-
 /** Out of the fight (no useritos left, or already placed). */
 export const eliminado = (estado: EstadoCombate, j: number): boolean => estado.jugadores[j].puesto > 0 || vivos(estado.jugadores[j]).length === 0;
 
@@ -446,14 +428,6 @@ function alSalirAlCampo(c: Ctx, j: number) {
       if (!rivales.some((r) => act(c, r).niveles.vel > -6)) break;
       habilidad(c, j, 'feria', 'hab.feria.activa');
       for (const r of rivales) cambiarNivel(c, r, 'vel', -1, j, undefined, true);
-      break;
-    }
-    case 'ultimo': {
-      // Lo conoce todo el mundo (the Ultimosaurio, chapter 2): the rivals are left speechless, their Special goes down 1. Like the two above, it stays quiet when nobody can go lower.
-      const rivales = rivalesEnPie(c.e, j);
-      if (!rivales.some((r) => act(c, r).niveles.esp > -6)) break;
-      habilidad(c, j, 'ultimo', 'hab.ultimo.activa');
-      for (const r of rivales) cambiarNivel(c, r, 'esp', -1, j, undefined, true);
       break;
     }
     case 'conazo': {
@@ -945,7 +919,7 @@ function avisoAguante(c: Ctx, t: number) {
 }
 
 /** Lines that go with the blow itself (what it did to its target), not with what comes after it. */
-const TEXTOS_DEL_GOLPE = new Set(['combate.golpe_critico', 'combate.muy_eficaz', 'combate.poco_eficaz', 'combate.veces', 'combate.no_afecta', 'combate.esconde_protege', 'combate.venganza', 'combate.aguanta']);
+const TEXTOS_DEL_GOLPE = new Set(['combate.critico', 'combate.muy_eficaz', 'combate.poco_eficaz', 'combate.veces', 'combate.no_afecta', 'combate.esconde_protege', 'combate.venganza', 'combate.aguanta']);
 
 /** Whether the event is the blow on a target (or its miss) and the lines about it, as opposed to its consequences. */
 function esDelGolpe(ev: Evento): boolean {
@@ -1152,7 +1126,7 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
           const { dano, bruto, perk } = aplicarPerks(c, t, dano0, esSonido(m.id));
           totalDano += danar(c, t, topeAguante(c, t, topeCajon(c, t, dano)), { ef: r.ef, critico, de: j, mov: m.id, acorralado, bruto });
           hechos++;
-          if (critico) decir(c, 'combate.golpe_critico', varsDe(c, t), t);
+          if (critico) decir(c, 'combate.critico', varsDe(c, t), t);
           if (cosecha) decir(c, 'combate.perk.ari', varsDe(c, j), t);
           if (perk) decir(c, `combate.perk.${perk}`, varsDe(c, t), t);
           avisoAguante(c, t);
@@ -1375,7 +1349,7 @@ function actuar(c: Ctx, a: Extract<Accion, { tipo: 'atacar' }>) {
       habilidad(c, j, 'inesperado', 'hab.inesperado.activa');
     }
   }
-  const evUsa: Extract<Evento, { k: 'usa' }> = { k: 'usa', j, mov: m.id, obj: [], clave: 'combate.usa_mov', vars: varsDe(c, j, { mov: m.nombre.replace(/^¡(.*)!$/, '$1') }) };
+  const evUsa: Extract<Evento, { k: 'usa' }> = { k: 'usa', j, mov: m.id, obj: [], clave: 'combate.usa', vars: varsDe(c, j, { mov: m.nombre.replace(/^¡(.*)!$/, '$1') }) };
   c.ev.push(evUsa);
 
   let efectivo = m;
@@ -1590,7 +1564,7 @@ function finDeTurno(c: Ctx, alInicio: number[]) {
       u.vol.atrapado--;
       if (u.vol.atrapado === 0) u.vol.atrapadoPor = -1;
       revisarCaida(c, j);
-      if (u.ps > 0 && u.vol.atrapado === 0) decir(c, 'combate.suelta_barra', varsDe(c, j));
+      if (u.ps > 0 && u.vol.atrapado === 0) decir(c, 'combate.suelta', varsDe(c, j));
     }
   }
 

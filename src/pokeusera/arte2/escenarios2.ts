@@ -8,8 +8,6 @@
 //  - 'juan':    Bar Donde Juan: brown brick wall with the big abstract painting, black pendant lamps, a wine
 //               rack, a yellow wall, terracotta floor tiles on the diagonal, dark wooden chairs with cream
 //               seats, white tablecloths and hearty dishes (torreznos, croquetas, cocido, huevos rotos, chuletón).
-//  - 'conceptos': the world of the concepts (chapter 2 only): a violet void with the ideas of the night floating (a spiral and a ring, a clock, the
-//               mug that is still forming, a hibiscus flower, a golden smile on the horizon) over a faded checker floor.
 //  - 'feria':   a fair at night: a big wheel with lights behind a shooting gallery and a candy-floss stall, bunting, and the
 //               steel floor of a dodgem rink in front (a rubber barrier, little cars with their poles sparking).
 //
@@ -1379,191 +1377,6 @@ function fondoFeria(ancho: number, alto: number): HTMLCanvasElement {
 }
 
 // ================================================================================================
-//  EL MUNDO DE LOS CONCEPTOS (capítulo 2: solo en la copia del capítulo, sin sucesos propios)
-// ================================================================================================
-
-const BAYER4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
-
-/** A hibiscus: five round petals around a yellow heart, with its stamen. */
-function hibisco(cx: Cx, x: number, y: number, rad: number): void {
-  for (let i = 0; i < 5; i++) {
-    const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
-    elip(cx, '#c8307a', Math.round(x + Math.cos(a) * rad * 0.8), Math.round(y + Math.sin(a) * rad * 0.8), Math.round(rad * 0.62), Math.round(rad * 0.62));
-  }
-  for (let i = 0; i < 5; i++) {
-    const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
-    elip(cx, '#ff5aa8', Math.round(x + Math.cos(a) * rad * 0.78 - 1), Math.round(y + Math.sin(a) * rad * 0.78 - 1), Math.max(1, Math.round(rad * 0.42)), Math.max(1, Math.round(rad * 0.42)));
-  }
-  elip(cx, '#ffd84a', x, y, Math.max(1, Math.round(rad * 0.3)), Math.max(1, Math.round(rad * 0.3)));
-  r(cx, '#fff2a8', x - 1, y - 1, 1, 1);
-}
-
-/** A spiral drawn as a polyline of pixels. */
-function espiral(cx: Cx, color: string, x: number, y: number, rad: number, vueltas: number): void {
-  cx.fillStyle = color;
-  const n = Math.round(rad * vueltas * 8);
-  for (let i = 0; i <= n; i++) {
-    const t = i / n;
-    const a = t * vueltas * Math.PI * 2;
-    cx.fillRect(Math.round(x + Math.cos(a) * rad * t), Math.round(y + Math.sin(a) * rad * t * 0.9), 1, 1);
-  }
-}
-
-/** The outline of a mug (only the contour, as if the idea of it were still forming): dotted, with a soft glow. */
-function jarraContorno(cx: Cx, x: number, y: number): void {
-  halo(cx, [255, 210, 120], x + 8, y + 12, 24, 22, 0.3, 4);
-  const pts: [number, number][] = [];
-  for (let j = 0; j < 22; j++) pts.push([x, y + j], [x + 15, y + j]);
-  for (let i = 0; i <= 15; i++) pts.push([x + i, y + 21]);
-  for (let i = 0; i <= 15; i++) pts.push([x + i, y]);
-  for (let j = 4; j < 16; j++) pts.push([x + 20, y + j]);
-  for (let i = 15; i <= 20; i++) pts.push([x + i, y + 4], [x + i, y + 15]);
-  pts.forEach(([px, py], k) => {
-    if (k % 3 !== 0) r(cx, k % 7 === 0 ? '#ffffff' : '#ffd890', px, py, 1, 1);
-  });
-  // The foam as a cloud of dots on top.
-  for (const [dx, dy] of [[2, -2], [6, -3], [10, -2], [13, -3], [4, -4], [9, -5]] as [number, number][]) r(cx, '#fff2d0', x + dx, y + dy, 2, 1);
-}
-
-/** A clock hand: a thin ring with two hands, in teal. */
-function relojFlota(cx: Cx, x: number, y: number, rad: number): void {
-  halo(cx, [60, 230, 210], x, y, rad + 8, rad + 8, 0.25, 3);
-  for (let a = 0; a < 360; a += 4) {
-    const rr_ = (a * Math.PI) / 180;
-    r(cx, '#2fe0d0', Math.round(x + Math.cos(rr_) * rad), Math.round(y + Math.sin(rr_) * rad), 1, 1);
-  }
-  for (let h = 0; h < 12; h++) {
-    const rr_ = (h * Math.PI) / 6;
-    r(cx, '#bff8f0', Math.round(x + Math.cos(rr_) * (rad - 2)), Math.round(y + Math.sin(rr_) * (rad - 2)), 1, 1);
-  }
-  linea(cx, '#ffffff', x, y, x + Math.round(rad * 0.65), y - Math.round(rad * 0.25));
-  linea(cx, '#bff8f0', x, y, x - Math.round(rad * 0.15), y + Math.round(rad * 0.55));
-  r(cx, '#ffffff', x - 1, y - 1, 2, 2);
-}
-
-function fondoConceptos(ancho: number, alto: number): HTMLCanvasElement {
-  const [cv, cx] = lienzo(ancho, alto);
-  const yB = 118; // the horizon of the void
-  const yP = 128; // where the floor starts
-  // ---- the void: a stepped, dithered gradient from deep violet through purple to a teal depth (the colours of the chapter's scene)
-  const sky = cx.createImageData(ancho, yP);
-  const A = rgb('#170a3a');
-  const B = rgb('#34116c');
-  const C = rgb('#0c3556');
-  const PASOS = 7;
-  for (let y = 0; y < yP; y++) {
-    for (let x = 0; x < ancho; x++) {
-      const t = y / yP;
-      const k = t < 0.5 ? t * 2 : (t - 0.5) * 2;
-      const de = t < 0.5 ? A : B;
-      const a = t < 0.5 ? B : C;
-      const q = k * PASOS;
-      const nivel = Math.floor(q) + (q - Math.floor(q) > BAYER4[(y & 3) * 4 + (x & 3)] / 16 ? 1 : 0);
-      const u = Math.min(1, nivel / PASOS);
-      const o = (y * ancho + x) * 4;
-      sky.data[o] = de[0] + (a[0] - de[0]) * u;
-      sky.data[o + 1] = de[1] + (a[1] - de[1]) * u;
-      sky.data[o + 2] = de[2] + (a[2] - de[2]) * u;
-      sky.data[o + 3] = 255;
-    }
-  }
-  cx.putImageData(sky, 0, 0);
-  // ---- three great soft glows: magenta (top left), orange (top right), teal (low centre)
-  halo(cx, [255, 63, 164], 50, 46, 80, 50, 0.4, 6);
-  halo(cx, [255, 164, 58], 196, 40, 70, 44, 0.36, 6);
-  halo(cx, [47, 224, 208], 122, 112, 110, 32, 0.34, 6);
-  // ---- stars
-  for (let i = 0; i < 46; i++) {
-    const h = hash(i, 11);
-    const x = h % ancho;
-    const y = (h >>> 8) % 104;
-    r(cx, h % 4 === 0 ? '#ffffff' : h % 4 === 1 ? '#9ad8ff' : h % 4 === 2 ? '#ffb0e0' : '#ffe0a0', x, y, 1, 1);
-    if (i % 9 === 0) {
-      r(cx, '#ffffff', x - 1, y, 3, 1);
-      r(cx, '#ffffff', x, y - 1, 1, 3);
-    }
-  }
-  // ---- the ideas, floating in the top band and in the strips by the panels (low and soft, the same as the bars)
-  // Pablo: a spiral with a ring.
-  espiral(cx, '#ff9ad0', 26, 38, 14, 2.6);
-  for (let a = 0; a < 360; a += 5) {
-    const rr_ = (a * Math.PI) / 180;
-    r(cx, '#ffd84a', Math.round(26 + Math.cos(rr_) * 17), Math.round(38 + Math.sin(rr_) * 8 + 14), 1, 1);
-  }
-  // Chuchi: a clock hand.
-  relojFlota(cx, 78, 26, 11);
-  // The mug that is still forming, in the middle: la última.
-  jarraContorno(cx, 112, 24);
-  // Guille: a flower with a hibiscus, on a long stem.
-  linea(cx, '#3ab86a', 198, 46, 200, 96);
-  linea(cx, '#3ab86a', 199, 46, 201, 96);
-  for (const [lx, ly, dir] of [[200, 70, -1], [200, 82, 1]] as [number, number, number][]) {
-    elip(cx, '#2f9a58', lx + dir * 6, ly, 6, 2);
-    elip(cx, '#5ad88a', lx + dir * 6 - dir, ly - 1, 3, 1);
-  }
-  hibisco(cx, 198, 40, 10);
-  // Fran: a stack of mugs ("una más") in a little column.
-  for (let k = 0; k < 3; k++) {
-    const x = 160 + (k % 2) * 3;
-    const y = 52 + k * 11;
-    r(cx, '#6a3a08', x - 1, y - 1, 14, 11);
-    r(cx, '#e8901a', x, y, 12, 9);
-    r(cx, '#ffc84a', x, y, 3, 9);
-    r(cx, '#fff2d0', x, y - 3, 12, 3);
-    r(cx, '#e8901a', x + 12, y + 2, 3, 5);
-    r(cx, '#6a3a08', x + 13, y + 3, 1, 3);
-  }
-  // Vero: a wide golden smile on the horizon, with its glow.
-  halo(cx, [255, 200, 70], ancho / 2, yB - 2, 130, 12, 0.3, 4);
-  for (let x = 8; x < ancho - 8; x++) {
-    const u = (x - ancho / 2) / (ancho / 2 - 8);
-    const y = Math.round(yB - 7 + 9 * (1 - u * u) * 0.9);
-    r(cx, '#8a4e10', x, y + 2, 1, 1);
-    r(cx, '#ffc84a', x, y, 1, 2);
-    r(cx, '#fff2a8', x, y - 1, 1, 1);
-    if (x % 9 === 4) r(cx, '#ffffff', x, y + 1, 3, 2);
-  }
-  // ---- far, tiny floating squares and triangles of other ideas
-  for (let i = 0; i < 9; i++) {
-    const h = hash(i, 91);
-    const x = (h % (ancho - 20)) + 10;
-    const y = 60 + ((h >>> 9) % 48);
-    const c = ['#9a6af0', '#ff6ab8', '#6ae8ff', '#ffb04a'][i & 3];
-    if (i & 1) r(cx, c, x, y, 3, 3);
-    else {
-      r(cx, c, x, y + 2, 5, 1);
-      r(cx, c, x + 1, y + 1, 3, 1);
-      r(cx, c, x + 2, y, 1, 1);
-    }
-  }
-  // ---- the floor: a pale checker of violet tiles in perspective that fades into the void, with glassy joints
-  suelo(cx, {
-    ancho,
-    alto,
-    y0: yP,
-    vy: 48,
-    K: 3500,
-    fw: 0.2,
-    id: (X, Z) => (Math.floor(X * 0.5) + Math.floor(Z * 0.5)) & 1,
-    color: (id, X, _Z, x, y) => {
-      const v = hash(x >> 1, y >> 1) % 23 === 0 ? 6 : 0;
-      const base: RGB = id === 0 ? [44, 24, 98] : [36, 20, 84];
-      const brillo = Math.max(0, 14 - Math.abs(X - 0.1) * 18);
-      return tono(base, v + brillo);
-    },
-    junta: [70, 52, 140],
-    bruma: [30, 40, 100],
-    brumaH: 70,
-    brumaF: 0.55,
-  });
-  halo(cx, [255, 80, 180], 40, yP + 60, 70, 20, 0.14, 4);
-  halo(cx, [60, 230, 210], 190, yP + 120, 80, 22, 0.12, 4);
-  // ---- low veil: keeps the contrast down so the panels and the useritos read first
-  r(cx, 'rgba(26,14,60,0.10)', 0, 0, ancho, alto);
-  return cv;
-}
-
-// ================================================================================================
 
 /** The battle backdrop for a scene, ancho × alto, baked once (the caller keeps it). */
 export function fondoEscenario(id: EscenarioId, ancho = 240, alto = 360): HTMLCanvasElement {
@@ -1576,8 +1389,6 @@ export function fondoEscenario(id: EscenarioId, ancho = 240, alto = 360): HTMLCa
       return fondoJuan(ancho, alto);
     case 'feria':
       return fondoFeria(ancho, alto);
-    case 'conceptos':
-      return fondoConceptos(ancho, alto);
     default:
       return fondoBar(ancho, alto);
   }

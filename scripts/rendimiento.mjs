@@ -15,9 +15,10 @@
 // without it, to compare.
 //
 // Usage: node scripts/rendimiento.mjs [escena...]   (against npm run dev on :5173)
-//   escenas: prologo, piso, calle, bar, manga, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, cantofiesta, tragaperras, sol, solcombate, solcamino, solteatro, soljefe, solcalderon, kart, unamas (includes the final boss LA ÚLTIMA), safari, boca, pangcompleto, pokecap (all by default)
+//   escenas: prologo, piso, calle, bar, manga, granja, cerdos, backstage, palabras, rana, parque, robot, pang, sinfin, trailer, canas, canto, cantofiesta, tragaperras, sol, solcombate, solcamino, solteatro, soljefe, solcalderon, kart, unamas (includes the final boss LA ÚLTIMA), safari, boca, pangcompleto, pokecap, portada (all by default)
+//   portada: the cover page of the domain (portada.html, plain DOM and CSS, no game): measures it alone, without starting the game (`node scripts/rendimiento.mjs portada`)
 import { chromium } from 'playwright';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 
 const HZ = 100;
 const SEG = 5;
@@ -36,7 +37,9 @@ function cpuChrome() {
   return t;
 }
 
-const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-gpu-rasterization', '--autoplay-policy=no-user-gesture-required'] });
+// CHROMIUM: another browser binary; if the usual one is not installed Playwright uses its own.
+const EJECUTABLE = process.env.CHROMIUM ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+const b = await chromium.launch({ ...(existsSync(EJECUTABLE) ? { executablePath: EJECUTABLE } : {}), args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-gpu-rasterization', '--autoplay-policy=no-user-gesture-required'] });
 const ctx = await b.newContext({ viewport: { width: 915, height: 412 }, deviceScaleFactor: 2.625, hasTouch: true, isMobile: true });
 const page = await ctx.newPage();
 const errores = [];
@@ -54,6 +57,44 @@ await page.addInitScript(() => {
     return d.call(this, img, ...a);
   };
 });
+/**
+ * The cover page (portada.html): DOM and CSS only. Measured on its own tab: CPU, frames and the mistakes of the rule T5 that could creep in
+ * (a canvas, more than 60 frames a second). The page must also open without errors, with its three games and without scrolling sideways.
+ */
+async function medirPortada(nombre, ancho, alto) {
+  const ctxP = await b.newContext({ viewport: { width: ancho, height: alto }, deviceScaleFactor: 2.625, hasTouch: true, isMobile: true });
+  const p = await ctxP.newPage();
+  const fallos = [];
+  p.on('pageerror', (e) => errores.push(`portada: ${e}`));
+  await p.goto(`http://localhost:${process.env.PUERTO ?? 5173}/portada.html`);
+  await p.waitForSelector('.portada.lista');
+  await p.waitForTimeout(2000);
+  const c0 = cpuChrome();
+  const fps = await p.evaluate((seg) => new Promise((res) => {
+    let n = 0;
+    const f = () => (n++, (window.__fin ? res(n / seg) : requestAnimationFrame(f)));
+    requestAnimationFrame(f);
+    setTimeout(() => (window.__fin = true), seg * 1000);
+  }), SEG);
+  const cpu = ((cpuChrome() - c0) / SEG) * 100;
+  const pagina = await p.evaluate(() => ({ canvas: document.querySelectorAll('canvas').length, tarjetas: document.querySelectorAll('a.juego').length, ancho: document.documentElement.scrollWidth, visible: innerWidth }));
+  if (pagina.canvas) fallos.push(`${pagina.canvas} canvas en la portada (debe ser solo DOM y CSS)`);
+  if (pagina.tarjetas !== 3) fallos.push(`${pagina.tarjetas} juegos en la portada (deben ser 3)`);
+  if (pagina.ancho > pagina.visible) fallos.push(`la portada se sale de la pantalla a lo ancho (${pagina.ancho} > ${pagina.visible})`);
+  if (fps > 62) fallos.push(`${fps.toFixed(0)} fps, por encima del tope de 60`);
+  console.log(`${nombre.padEnd(32)} CPU ${cpu.toFixed(0).padStart(4)} %   ${fps.toFixed(0).padStart(3)} fotogramas/s${fallos.length ? '   ✗ ' + fallos.join('; ') : ''}`);
+  await ctxP.close();
+  return fallos;
+}
+// Only the cover: no need to start the game.
+if (quiero.length === 1 && quiero[0] === 'portada') {
+  const f = [...(await medirPortada('portada (horizontal)', 915, 412)), ...(await medirPortada('portada (vertical)', 412, 915))];
+  await b.close();
+  if (errores.length) console.log('ERRORES:\n' + errores.join('\n'));
+  if (errores.length || f.length) process.exit(1);
+  console.log('Sin fallos de rendimiento conocidos');
+  process.exit(0);
+}
 await page.goto(`http://localhost:${process.env.PUERTO ?? 5173}/`);
 await page.waitForFunction(() => window.__cyc);
 await page.evaluate(() => window.__cyc.listo());
@@ -370,7 +411,7 @@ if (toca('safari')) {
   }
 }
 if (toca('pokecap')) {
-  // PokéUsera, a game of its own (src/pokeusera/capitulo.ts; no longer in chapter 2), in its real shape: a phone held upright (412 x 915) with the game standing
+  // PokéUsera, a game of its own (src/pokecap/capitulo.ts; no longer in chapter 2), in its real shape: a phone held upright (412 x 915) with the game standing
   // in its own stage. Two moments: the silhouette (the three falling, the shadow coming down) and the hunt (the wild Ultimosaurio, the moves'
   // effects and the jarra), both on the world of the concepts' backdrop. The keys are pressed from the page, as a player would tap.
   await page.setViewportSize({ width: 412, height: 915 });
@@ -378,7 +419,7 @@ if (toca('pokecap')) {
   await medir('pokecap: la silueta baja', `(async () => {
     clearInterval(window.__paseo);
     const g = window.__cyc.g;
-    const { jugarPokeusera } = await import('/src/pokeusera/capitulo.ts');
+    const { jugarPokeusera } = await import('/src/pokecap/capitulo.ts');
     g.pausado = true;
     void jugarPokeusera(g.root, { sonido: g.sound, dino: true, semilla: 7 });
     await new Promise((r) => setTimeout(r, 1500));
@@ -387,7 +428,7 @@ if (toca('pokecap')) {
   await medir('pokecap: la caza (movimientos y jarra)', `(async () => {
     clearInterval(window.__paseo);
     const g = window.__cyc.g;
-    const { jugarPokeusera } = await import('/src/pokeusera/capitulo.ts');
+    const { jugarPokeusera } = await import('/src/pokecap/capitulo.ts');
     g.pausado = true;
     void jugarPokeusera(g.root, { sonido: g.sound, dino: true, semilla: 7 });
     await new Promise((r) => setTimeout(r, 1500));
@@ -808,6 +849,11 @@ if (toca('pangcompleto')) {
     window.__cierraPang?.abort();
     window.__cyc.g.pausado = false;
   });
+}
+
+if (toca('portada')) {
+  filas.push(await medirPortada('portada (horizontal)', 915, 412));
+  filas.push(await medirPortada('portada (vertical)', 412, 915));
 }
 
 // Memory after the whole tour (docs/ESTILO.md, T5.11): baked scenery and decoded music are

@@ -105,22 +105,7 @@ export const ESPECIES: Especie[] = [
   e('ollalocah', 'OllaLocah', ['juerga', 'ventolera'], 95, 90, 90, 70, 75, ['vueltas', 'conga', 'rebufo', 'remolino'], 'feria'),
 ];
 
-// ---------------------------------------------------------------- the mythical one (chapter 2 only)
-// The Ultimosaurio is LA ÚLTIMA made a dinosaur: everybody knows it and nobody has seen it. It only exists in the chapter's copy of
-// PokéUsera (src/pokeusera/capitulo.ts): it is NOT in `ESPECIES`, so the draft, the random teams and the bots never meet it. Its name and its
-// types are set here (and its name, sentences and descriptions in src/textos/pokeusera-combate.md: `userito.ultimosaurio.desc`, `hab.ultimo.*`, `mov.*.desc`).
-// Its stats are above every other userito's, in each one (the highest of the 37 are 105 HP, 120 Attack, 105 Defence, 115 Speed and 125 Special).
-export const ULTIMOSAURIO_ID = 'ultimosaurio';
-export const ULTIMOSAURIO: Especie = {
-  id: ULTIMOSAURIO_ID,
-  nombre: 'Ultimosaurio',
-  tipos: ['juerga', 'fantasma'],
-  base: { ps: 130, ata: 125, def: 115, vel: 125, esp: 135 },
-  movs: ['penultima', 'persiana', 'lunes', 'ultimaronda'],
-  habilidad: 'ultimo',
-};
-
-export const ESPECIE: Record<string, Especie> = Object.fromEntries([...ESPECIES, ULTIMOSAURIO].map((s) => [s.id, s]));
+export const ESPECIE: Record<string, Especie> = Object.fromEntries(ESPECIES.map((s) => [s.id, s]));
 
 // ---------------------------------------------------------------- moves
 
@@ -238,11 +223,6 @@ const LISTA_MOVS: Movimiento[] = [
   m('carisimo', 'Está carísimo', 'chanza', 70, 100, 8, 'uno'),
   m('calada', 'Calada', 'petardo', 60, 100, 10, 'uno'),
   m('vueltas', 'Dar vueltas', 'ventolera', 60, 100, 10, 'uno'),
-  // Chapter 2 (24-oct): the four moves of the Ultimosaurio, all with one owner.
-  m('penultima', 'La penúltima', 'juerga', 95, 100, 8, 'uno'),
-  m('persiana', 'Cierre de persiana', 'fantasma', 110, 90, 5, 'todos'),
-  m('lunes', 'Lunes por la mañana', 'fantasma', null, 100, 8, 'uno'),
-  m('ultimaronda', '¡La última ronda!', 'juerga', 130, 85, 3, 'uno'),
   // Used when no move has PP left (Mindundi, 50, never misses, recoil 1/4).
   m('desesperada', 'A la desesperada', 'mindundi', 50, null, 1, 'uno'),
 ];
@@ -399,22 +379,12 @@ export const EFECTOS: Record<string, Efecto> = {
     ],
     especial: 'morrina',
   },
-  // Chapter 2: the Ultimosaurio.
-  penultima: { estado: { estado: 'achispado', prob: 30 } },
-  persiana: { nivel: [{ a: 'objetivo', stat: 'vel', cambio: -1, prob: 30 }] },
-  lunes: {
-    nivel: [
-      { a: 'objetivo', stat: 'ata', cambio: -1 },
-      { a: 'objetivo', stat: 'esp', cambio: -1 },
-    ],
-  },
-  ultimaronda: { retrocede: 20 },
 };
 
 /** The moves ¡Improvisa! can pick: every move that has not exactly one owner among the useritos (so not the ones made for one userito, like Al tendedero
  *  or Remate por bulerías), without the protections (priority +2), «Sí, y…», «A la desesperada» and itself. */
 export const MOVS_IMPROVISA: readonly string[] = Object.keys(MOVS).filter((id) => {
-  const duenos = [...ESPECIES, ULTIMOSAURIO].filter((sp) => sp.movs.includes(id)).length;
+  const duenos = ESPECIES.filter((sp) => sp.movs.includes(id)).length;
   return duenos !== 1 && (MOVS[id].prioridad ?? 0) < 2 && id !== 'siy' && id !== DESESPERADA && id !== 'improvisa';
 });
 

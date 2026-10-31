@@ -1,9 +1,9 @@
 // PokéUsera · warms the art up in the background: baking a 64×64 userito takes a few milliseconds on a
-// computer and tens of them on a slow phone, so doing it the moment a screen first needs it (the draft's grid, the first battle
-// and its move effects) made those screens stall. In chapter 2 this starts while the chaos and the turn of the screen play (capitulo.ts,
-// `precalentarPokeusera`), whenever the browser says it has nothing better to do, so that PokéUsera opens with everything baked.
-import type { EntrenadorId } from '../tipos';
-import { ESPECIES, ULTIMOSAURIO_ID } from '../datos';
+// computer and tens of them on a slow phone, so doing it the moment a screen first needs it (the trainer pick,
+// the draft's grid of twenty, the first battle and its move effects) made those screens stall. This bakes them one at a time
+// while the player is still on the title and the menu, whenever the browser says it has nothing better to do.
+import { ENTRENADORES, ESCENARIOS } from '../tipos';
+import { ESPECIES } from '../datos';
 import { entrenador2, icono2 } from '../arte2/entrenadores2';
 import { spriteEspalda2, spriteFrente2 } from '../arte2/sprites2';
 import { tareasPrecalentarBarra } from './barra';
@@ -12,7 +12,7 @@ import { tareasPrecalentarDraft } from './draft';
 import { hornearFondoEscenario, miniatura } from './fondos';
 import { tareasPrecalentarEfectos } from './efectosMov';
 import { tareasPrecalentarObjetos } from './iconosObjeto';
-import { altoActual, fijarAltoPrevisto } from '../pantalla';
+import { pantalla } from '../pantalla';
 
 let cola: (() => void)[] | null = null;
 /** Tasks asked for by a screen that is already running (the battle's benched useritos): done before the rest of `cola`, popped from the end too. */
@@ -22,13 +22,10 @@ let pendiente = false;
 type Ocioso = (cb: (d: { timeRemaining(): number; didTimeout: boolean }) => void, o?: { timeout: number }) => number;
 const ocioso: Ocioso | null = typeof requestIdleCallback === 'function' ? (requestIdleCallback as unknown as Ocioso) : null;
 
-/** The four trainers of the chapter's game. */
-const ENTRENADORES_CAPITULO: EntrenadorId[] = ['guille', 'fran', 'pablo', 'chuchi'];
-
 function construir(): (() => void)[] {
   const tareas: (() => void)[] = [];
-  // In the order the screens need them: the draft (its trainers, the grid and its card), the battle.
-  for (const id of ENTRENADORES_CAPITULO) {
+  // In the order the screens need them: the trainer pick, the draft's grid (and its card), the battle.
+  for (const id of ENTRENADORES) {
     tareas.push(() => entrenador2(id, 0));
     tareas.push(() => entrenador2(id, 1));
     tareas.push(() => icono2(id));
@@ -40,12 +37,10 @@ function construir(): (() => void)[] {
     tareas.push(() => spriteEspalda2(s.id, 0));
     tareas.push(() => spriteEspalda2(s.id, 1));
   }
-  // The Ultimosaurio (the mythical one) is not in the draft, but its fight comes right after.
-  tareas.push(() => miniatura(ULTIMOSAURIO_ID), () => spriteFrente2(ULTIMOSAURIO_ID, 0), () => spriteFrente2(ULTIMOSAURIO_ID, 1));
-  // The pixel icons of the objects («La barra», the panels) and the backdrop of the world of the concepts (one canvas per screen height; the battle
-  // bakes the one it needs again if the window changed size meanwhile).
+  // The pixel icons of the objects («La barra», the panels) and the four bars' backdrops (one canvas per screen height; the battle bakes the one it
+  // needs again if the window changed size meanwhile).
   tareas.push(...tareasPrecalentarObjetos(), ...tareasPrecalentarBarra());
-  tareas.push(() => hornearFondoEscenario('conceptos', alturaCampo(altoActual())));
+  for (const id of ESCENARIOS) tareas.push(() => hornearFondoEscenario(id, alturaCampo(pantalla().alto)));
   // The move effects of the battle: one move or one type per task (tiny canvases, but not all in one frame).
   tareas.push(...tareasPrecalentarEfectos());
   return tareas.reverse(); // popped from the end
@@ -75,9 +70,8 @@ function siguiente() {
   else setTimeout(() => hacer(), 120);
 }
 
-/** Starts baking, in the background, the art the next screens will want, for a canvas of logical height `alto` (the stage's expected one). Safe to call again. */
-export function precalentar(alto?: number): void {
-  if (alto) fijarAltoPrevisto(alto);
+/** Starts baking, in the background, the art the next screens will want. Safe to call again. */
+export function precalentar(): void {
   if (cola) return;
   cola = construir();
   siguiente();

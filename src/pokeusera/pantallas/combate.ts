@@ -22,7 +22,7 @@ import { sonido } from '../sonido';
 import { CajaTexto } from './caja';
 import { menuPausa } from './ajustes';
 import { precalentarPronto } from './precalentar';
-import { EfectosMov, jarraDePie, jarraGiros, llegadaFx, tareasEfectosDe, type PuntoFx } from './efectosMov';
+import { EfectosMov, llegadaFx, tareasEfectosDe, type PuntoFx } from './efectosMov';
 import { cajaSprite, dibujarBandeja, dibujarFondoEscenario, hornearFondoEscenario, miniatura, pieSprite, plataformaCacheada } from './fondos';
 import { abrirGuia } from './guia';
 import { LADO_ICONO_OBJETO, iconoObjeto, tareasPrecalentarObjetos } from './iconosObjeto';
@@ -271,7 +271,7 @@ const ALTO_CHAPA = 13;
 const colorAyuda = '#a8501c';
 
 /** The heading of the banner and of the card of a suceso: «SUCESO EN EL BAR», or «SUCESO EN LA FERIA» at the fair. */
-const tituloSuceso = (esc: EscenarioId): string => t(esc === 'feria' ? 'suceso.titulo.feria' : esc === 'conceptos' ? 'suceso.titulo.conceptos' : 'suceso.titulo');
+const tituloSuceso = (esc: EscenarioId): string => t(esc === 'feria' ? 'suceso.titulo.feria' : 'suceso.titulo');
 
 /** The big banner of a suceso of the bar («SUCESO EN EL BAR», its name in big letters, how long it lasts), baked once per suceso: a blit per frame while it is up. */
 function cartelSucesoImg(id: SucesoId, esc: EscenarioId): HTMLCanvasElement {
@@ -401,7 +401,7 @@ function anilloCacheado(rx: number, ry: number, color: string): HTMLCanvasElemen
 }
 
 /** Text lines that only comment on a hit that the screen already shows (tags, numbers). */
-const REACCIONES = new Set(['combate.golpe_critico', 'combate.muy_eficaz', 'combate.poco_eficaz', 'combate.veces']);
+const REACCIONES = new Set(['combate.critico', 'combate.muy_eficaz', 'combate.poco_eficaz', 'combate.veces']);
 
 type EvGolpe = Extract<Evento, { k: 'golpe' }>;
 
@@ -464,10 +464,6 @@ export class VistaCombate implements Escena {
   cazar = false;
   /** The opening line of the battle (default «¡Empieza la batalla a cuatro!»; the hunting mode has its own: a wild userito, a boss). */
   textoInicio: string | null = null;
-  /** Chapter 2's fight against the mythical userito: this tune plays all through (the number of players still standing does not choose it). */
-  musicaFija: 'combate' | 'final' | null = null;
-  /** The jarra of CAZAR on the field (see `jarra`): where it is (its centre, screen px) and the spin frame (−1: upright). Null: none. */
-  private jarraVista: { x: number; y: number; giro: number } | null = null;
   private yo: number;
 
   /** `miSeat`: this screen's player (null = just watching: seat 0 goes at the bottom). */
@@ -663,10 +659,6 @@ export class VistaCombate implements Escena {
 
   private musicaSegunJugadores() {
     const enPie = this.disp.jugadores.filter((q) => q.puesto === 0).length;
-    if (this.musicaFija) {
-      sonido.musica(this.musicaFija);
-      return;
-    }
     sonido.musica(enPie <= 2 ? 'final' : 'combate');
     // The next tunes are fetched and decoded before they are needed, so that they start at once: the final one when three are left,
     // the fanfare when two are (a decode takes a while on a phone, and a late tune is worse than none).
@@ -1317,96 +1309,6 @@ export class VistaCombate implements Escena {
     if (conGrito || j === this.yo) sonido.grito(this.userito(j).especie);
   }
 
-  // ------------------------------------------------------------------ the hunt (chapter 2: the mythical userito)
-
-  /**
-   * CAZAR: the jarra is thrown at rival `j` (the whole throw, with its three lines). It flies spinning from the player's userito, the rival
-   * sinks into it (`caza.lanza`), it wobbles three times (`caza.tambalea`) and then either closes with it inside (`atrapa`: it stays there for the
-   * rest of the battle, `caza.atrapado`) or opens and the rival comes out again (`caza.escapa`). `vars`: the texts' placeholders.
-   */
-  async jarra(j: number, atrapa: boolean, vars: Record<string, string | number>): Promise<void> {
-    this.cerrarMenus();
-    this.enReemplazo = false;
-    const f = this.fx[j];
-    const desde = this.centroSprite(this.yo);
-    const { x: sx, pies } = this.posSprite(j);
-    // Where it lands: on the rival's mat, at the foot of its sprite.
-    const aqui = { x: sx + 32, y: pies - 22 };
-    sonido.efecto('cambio');
-    const lanza = this.decir(t('caza.lanza', vars));
-    const vuelo = this.anim.animar(460, (p) => {
-      const jv = (this.jarraVista ??= { x: desde.x, y: desde.y, giro: 0 });
-      jv.x = desde.x + (aqui.x - desde.x) * p;
-      jv.y = desde.y + (aqui.y - desde.y) * p - 56 * 4 * p * (1 - p);
-      jv.giro = Math.floor(p * 12) % 4;
-    });
-    await Promise.all([lanza, vuelo]);
-    // It lands: the rival sinks into it.
-    const jv = this.jarraVista!;
-    jv.giro = -1;
-    jv.x = aqui.x;
-    jv.y = aqui.y;
-    sonido.efecto('golpeFlojo');
-    await this.anim.animar(340, (p) => {
-      f.alza = 1 - p;
-      jv.y = aqui.y + Math.round(Math.sin(p * Math.PI) * 4);
-    });
-    f.oculto = true;
-    f.alza = 1;
-    // It wobbles: three rocks, a tick at each end.
-    const tambalea = this.decir(t('caza.tambalea', vars));
-    let ultimo = -1;
-    const bamboleo = this.anim.animar(1500, (p) => {
-      const n = Math.floor(p * 3);
-      if (n !== ultimo && p < 1) {
-        ultimo = n;
-        sonido.efecto('tic');
-      }
-      jv.x = aqui.x + Math.round(Math.sin(p * 3 * Math.PI * 2) * 5 * (1 - p * 0.35));
-      jv.y = aqui.y - Math.round(Math.abs(Math.sin(p * 3 * Math.PI * 2)) * 2);
-    });
-    await Promise.all([tambalea, bamboleo]);
-    jv.x = aqui.x;
-    jv.y = aqui.y;
-    if (atrapa) {
-      sonido.efecto('aceptar');
-      this.efectos.lanzar('_jarra_cerrada', 'juerga', { x: 0, y: 0 }, [{ x: aqui.x, y: aqui.y }]);
-        await this.decir(t('caza.atrapado', vars));
-      return;
-    }
-    // It escapes: the jarra pops open and the rival comes out of it.
-    sonido.efecto('falla');
-    this.jarraVista = null;
-    this.efectos.lanzar('_jarra_abierta', 'juerga', { x: 0, y: 0 }, [{ x: aqui.x, y: aqui.y }]);
-    f.oculto = false;
-    f.alza = 0;
-    await Promise.all([
-      this.decir(t('caza.escapa', vars)),
-      this.anim.animar(320, (p) => (f.alza = p)).then(() => sonido.grito(this.userito(j).especie)),
-    ]);
-    f.alza = 1;
-  }
-
-  /**
-   * The mythical userito stands up again (chapter 2): `nuevo` is the engine's state with it back on its feet. The bar fills up again, it
-   * comes out of its cap with its cry and the box says so (`caza.levanta`). The fight goes on.
-   */
-  async levanta(j: number, nuevo: EstadoCombate): Promise<void> {
-    this.cerrarMenus();
-    this.real = nuevo;
-    this.disp = structuredClone(nuevo);
-    const u = activo(nuevo, j);
-    const f = this.fx[j];
-    f.ps = 0;
-    f.oculto = true;
-    f.velo = 0;
-    f.alza = 0;
-    f.caida = 0;
-    sonido.efecto('cura');
-    const vars = { quien: ESPECIE[u.especie].nombre };
-    await Promise.all([this.decir(t('caza.levanta', vars)), this.entra(j, true), this.barra(j, u.ps)]);
-  }
-
   // ------------------------------------------------------------------ choosing
 
   private enviar(e: Eleccion | null) {
@@ -1737,11 +1639,6 @@ export class VistaCombate implements Escena {
     this.filaSprite(ctx, this.yo, ahora);
     // The move effects fly over the sprites and under the panels (a bolt or a gust never covers a name or a bar), the numbers, the tray, the text and the top bar.
     if (this.efectos.activo) this.efectos.dibujar(ctx);
-    if (this.jarraVista) {
-      const jv = this.jarraVista;
-      const img = jv.giro < 0 ? jarraDePie() : jarraGiros()[jv.giro & 3];
-      ctx.drawImage(img, Math.round(jv.x - img.width / 2), Math.round(jv.y - img.height / 2));
-    }
     for (let i = 0; i < riv.length; i++) this.fila(ctx, riv[i]);
     this.fila(ctx, this.yo);
     this.dibujarFoco(ctx, ahora);

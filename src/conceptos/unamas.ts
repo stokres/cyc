@@ -315,7 +315,7 @@ export function jugarUnaMas(root: HTMLElement, o: OpcionesUnaMas = {}): Promise<
               }
               m.actualizar(1 / 60, entrada);
             }
-            // A «NO» block broke: bake the room's ground again (without it).
+            // A secret wall opened (rare): bake the room's ground again.
             if (m.nivelSucio) {
               m.nivelSucio = false;
               if (m.nivel) m.nivel.c.width = m.nivel.c.height = 0;

@@ -1,5 +1,5 @@
-// PokéUsera · the podium: the four trainers on their steps with the useritos they used, and the buttons the chapter's flow asks for
-// (capitulo.ts: SEGUIR when Guille came first; OTRA VEZ and, after two defeats, SALTAR when he did not).
+// PokéUsera · the podium: the four trainers on their steps with the useritos they used, and
+// OTRA (same trainer, new draft) / MENÚ.
 import type { EstadoCombate } from '../tipos';
 import { ANCHO_ENT2, ALTO_ENT2, entrenador2 } from '../arte2/entrenadores2';
 import { anchoTexto2 } from '../arte2/fuente2';
@@ -12,12 +12,7 @@ import { mvp, pantallaEstadisticas } from './estadisticas';
 import { miniatura } from './fondos';
 import { Firma, boton, centrado, colorEnt, colorEntClaro, colorEntOsc, fondoPapel, ordinal, parpadea, rect, reposo, t, texto2 } from './ui';
 
-/** A button under the podium: `id` is what the screen resolves with. */
-export interface BotonPodio {
-  id: string;
-  texto: string;
-  principal?: boolean;
-}
+export type SalidaPodio = 'otra' | 'menu';
 
 const ESTRELLA = ['....X....', '....X....', '...XXX...', 'XXXXXXXXX', '.XXXXXXX.', '..XXXXX..', '.XXX.XXX.', '.XX...XX.', 'X.......X'];
 
@@ -31,22 +26,19 @@ function estrella(ctx: CanvasRenderingContext2D, x: number, y: number) {
   });
 }
 
-/**
- * The podium with `botones` under it (1 to 3), and ESTADÍSTICAS above them; resolves with the `id` of the one pressed. `pista`: a line that replaces
- * the one about the best hit («Tienes que quedar primero»). `sinBotones`: smoke tests, where only ESTADÍSTICAS can be pressed.
- */
-export function pantallaPodio(estado: EstadoCombate, miSeat: number | null, botones: BotonPodio[], pista?: string, sinBotones = false): Promise<string> {
+/** `sinBotones`: no OTRA / MENÚ (smoke tests; ESTADÍSTICAS stays). `soloMenu`: only MENÚ and ESTADÍSTICAS (online guests: the host decides on another game). */
+export function pantallaPodio(estado: EstadoCombate, miSeat: number | null, sinBotones = false, soloMenu = false): Promise<SalidaPodio> {
   return new Promise((res) => {
     const p = pantalla();
-    // Buttons: 0 ESTADÍSTICAS, then the given ones (1..n); the first of them starts marked.
-    let sel = 1;
+    // Buttons: 0 ESTADÍSTICAS, then OTRA (1) and MENÚ (2); a guest has no OTRA.
+    let sel = soloMenu ? 2 : 1;
     let hecho = false;
     const estadisticas = async () => {
       if (hecho) return;
       sonido.efecto('aceptar');
       await pantallaEstadisticas(estado, miSeat);
     };
-    const fin = (v: string) => {
+    const fin = (v: SalidaPodio) => {
       if (hecho) return;
       hecho = true;
       sonido.efecto('aceptar');
@@ -137,7 +129,7 @@ export function pantallaPodio(estado: EstadoCombate, miSeat: number | null, boto
         // The battle in a line: how long it lasted and who hit hardest.
         centrado(ctx, t('podio.turnos', { n: Math.max(1, estado.turno - 1) }), yl + 2);
         const m = mvp(estado);
-        const linea = pista ?? (m ? t('podio.mvp', { nombre: estado.jugadores[m.j].nombre, n: m.dano }) : t('podio.sin_mvp'));
+        const linea = m ? t('podio.mvp', { nombre: estado.jugadores[m.j].nombre, n: m.dano }) : t('podio.sin_mvp');
         centrado(ctx, linea, yl + 16, TINTA2);
         // Buttons.
         const bw = 180;
@@ -145,15 +137,18 @@ export function pantallaPodio(estado: EstadoCombate, miSeat: number | null, boto
         boton(ctx, bx, ys, bw, 26, t('podio.stats'), sel === 0);
         entrada.zona(bx, ys, bw, 26, () => void estadisticas());
         if (!sinBotones) {
-          const n = botones.length;
-          const gap = 8;
-          const w2 = Math.min(110, Math.floor((ANCHO - 16 - gap * (n - 1)) / n));
-          const x1 = Math.floor((ANCHO - n * w2 - gap * (n - 1)) / 2);
-          botones.forEach((b, i) => {
-            const x = x1 + i * (w2 + gap);
-            boton(ctx, x, yb, w2, 28, b.texto, sel === i + 1, true, b.principal ? 'principal' : undefined);
-            entrada.zona(x, yb, w2, 28, () => fin(b.id));
-          });
+          if (soloMenu) {
+            boton(ctx, Math.floor((ANCHO - 100) / 2), yb, 100, 28, t('podio.menu'), sel === 2);
+            entrada.zona(Math.floor((ANCHO - 100) / 2), yb, 100, 28, () => fin('menu'));
+          } else {
+            const w2 = 100;
+            const gap = 10;
+            const x1 = Math.floor((ANCHO - 2 * w2 - gap) / 2);
+            boton(ctx, x1, yb, w2, 28, t('podio.otra'), sel === 1, true, 'principal');
+            boton(ctx, x1 + w2 + gap, yb, w2, 28, t('podio.menu'), sel === 2);
+            entrada.zona(x1, yb, w2, 28, () => fin('otra'));
+            entrada.zona(x1 + w2 + gap, yb, w2, 28, () => fin('menu'));
+          }
         }
       },
       accion(a) {
@@ -161,17 +156,18 @@ export function pantallaPodio(estado: EstadoCombate, miSeat: number | null, boto
           if (a === 'aceptar') void estadisticas();
           return a === 'aceptar';
         }
-        const n = botones.length;
         if (a === 'arriba') sel = 0;
-        else if (a === 'abajo') sel = sel === 0 ? 1 : sel;
+        else if (a === 'abajo') sel = soloMenu ? 2 : sel === 0 ? 1 : sel;
         else if (a === 'izq' || a === 'der') {
-          if (sel === 0) return true;
-          sel = 1 + ((sel - 1 + (a === 'der' ? 1 : n - 1)) % n);
+          if (!soloMenu && sel > 0) sel = sel === 1 ? 2 : 1;
         } else if (a === 'aceptar') {
           if (sel === 0) void estadisticas();
-          else fin(botones[sel - 1].id);
+          else fin(sel === 1 ? 'otra' : 'menu');
           return true;
-        } else return a === 'atras';
+        } else if (a === 'atras') {
+          fin('menu');
+          return true;
+        } else return false;
         sonido.efecto('cursor');
         return true;
       },

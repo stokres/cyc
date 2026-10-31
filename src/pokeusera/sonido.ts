@@ -17,20 +17,36 @@
 //   sonido.grito('aceituna')     the cry of a userito, always the same for the same id.
 //   sonido.setVolumen('musica', 0.5), sonido.getVolumen('efectos')   0–1, as the settings menu has them.
 import type { EscenarioId } from './tipos';
+import urlTitulo from '../sonido/pokeusera-titulo.mp3?url';
 import urlDraft from '../sonido/pokeusera-draft.mp3?url';
 import urlCombate from '../sonido/pokeusera-combate.mp3?url';
+import urlCombateRock from '../sonido/pokeusera-combate-rock.mp3?url';
+import urlCombateVerbena from '../sonido/pokeusera-combate-verbena.mp3?url';
+import urlCombateElectro from '../sonido/pokeusera-combate-electro.mp3?url';
+import urlCombateTerraza from '../sonido/pokeusera-combate-terraza.mp3?url';
+import urlCombateRural from '../sonido/pokeusera-combate-rural.mp3?url';
+import urlCombateJuan from '../sonido/pokeusera-combate-juan.mp3?url';
+import urlCombateFeria from '../sonido/pokeusera-combate-feria.mp3?url';
+import urlCombateRumbacat from '../sonido/pokeusera-combate-rumbacat.mp3?url';
+import urlCombateVerano from '../sonido/pokeusera-combate-verano.mp3?url';
+import urlCombateSevillanas from '../sonido/pokeusera-combate-sevillanas.mp3?url';
+import urlCombateRumbajuan from '../sonido/pokeusera-combate-rumbajuan.mp3?url';
 import urlCombateFeria2 from '../sonido/pokeusera-combate-feria2.mp3?url';
 import urlFinal from '../sonido/pokeusera-final.mp3?url';
 import urlVictoria from '../sonido/pokeusera-victoria.mp3?url';
 
-export type Musica = 'draft' | 'combate' | 'final' | 'victoria';
+export type Musica = 'titulo' | 'draft' | 'combate' | 'final' | 'victoria';
 /** The files behind `Musica`: 'combate' is one of these (see `elegirCombate`). */
-type Pista = Musica | 'combateFeria2';
+type Pista = Musica | 'combateRock' | 'combateVerbena' | 'combateElectro' | 'combateRumbacat' | 'combateTerraza' | 'combateVerano' | 'combateRural' | 'combateSevillanas'
+  | 'combateJuan' | 'combateRumbajuan' | 'combateFeria' | 'combateFeria2';
 /** The rotation of the Bar del Brío (the four classics and the rumba catalana). */
-const COMBATES: readonly Pista[] = ['combate'];
+const COMBATES: readonly Pista[] = ['combate', 'combateRock', 'combateVerbena', 'combateElectro', 'combateRumbacat'];
 /** The two tunes of each scenario that has its own: one is drawn at random for each battle. */
-const COMBATE_DE: Partial<Record<EscenarioId, readonly Pista[]>> = {
-  conceptos: ['combateFeria2'],
+const COMBATE_DE: Record<Exclude<EscenarioId, 'brio'>, readonly Pista[]> = {
+  terraza: ['combateTerraza', 'combateVerano'],
+  rural: ['combateRural', 'combateSevillanas'],
+  juan: ['combateJuan', 'combateRumbajuan'],
+  feria: ['combateFeria', 'combateFeria2'],
 };
 const ES_COMBATE: ReadonlySet<Pista> = new Set<Pista>([...COMBATES, ...Object.values(COMBATE_DE).flat()]);
 export const EFECTOS = [
@@ -52,8 +68,20 @@ export const ESPECIES = [
  * plays once, from the start.
  */
 const PISTAS: Record<Pista, { url: string; inicio: number; fin: number | null }> = {
+  titulo: { url: urlTitulo, inicio: 0.5, fin: 168.119048 },
   draft: { url: urlDraft, inicio: 0.5, fin: 183.78381 },
   combate: { url: urlCombate, inicio: 0.5, fin: 172.792063 },
+  combateRock: { url: urlCombateRock, inicio: 0.5, fin: 173.842766 },
+  combateVerbena: { url: urlCombateVerbena, inicio: 0.5, fin: 182.304989 },
+  combateElectro: { url: urlCombateElectro, inicio: 0.5, fin: 177.714694 },
+  combateTerraza: { url: urlCombateTerraza, inicio: 0.5, fin: 176.484036 },
+  combateRural: { url: urlCombateRural, inicio: 0.5, fin: 181.351519 },
+  combateJuan: { url: urlCombateJuan, inicio: 0.5, fin: 177.714694 },
+  combateFeria: { url: urlCombateFeria, inicio: 0.5, fin: 178.785714 },
+  combateRumbacat: { url: urlCombateRumbacat, inicio: 0.5, fin: 176.471655 },
+  combateVerano: { url: urlCombateVerano, inicio: 0.5, fin: 175.238095 },
+  combateSevillanas: { url: urlCombateSevillanas, inicio: 0.5, fin: 174.204082 },
+  combateRumbajuan: { url: urlCombateRumbajuan, inicio: 0.5, fin: 188.563447 },
   combateFeria2: { url: urlCombateFeria2, inicio: 0.5, fin: 175.15102 },
   final: { url: urlFinal, inicio: 0.5, fin: 167.944898 },
   victoria: { url: urlVictoria, inicio: 0, fin: null },
@@ -122,7 +150,6 @@ export class Sonido {
   /** The battle tune of this battle (or, between battles, of the last one) and the one chosen ahead for the next (by `elegirCombate`, or by `precargar`). */
   private combateElegido: Pista | null = null;
   private combateProximo: Pista | null = null;
-  private fijada: Pista | null = null;
   private pedido = 0;
   private actual: Sonando | null = null;
   private cargas = new Map<Pista, Promise<AudioBuffer | null>>();
@@ -188,14 +215,6 @@ export class Sonido {
     if (this.deseada) this.aplicarMusica();
   }
 
-  /** El escenario no se ve (un móvil vuelto a horizontal tras el velo de «Gira el móvil»): todo el sonido espera; `false` lo devuelve. */
-  silenciar(si: boolean) {
-    const a = this.ac;
-    if (!a) return;
-    if (si) void a.suspend().catch(() => undefined);
-    else if (a.state !== 'running') void a.resume().catch(() => undefined);
-  }
-
   setVolumen(canal: Canal, v: number) {
     this.volumen[canal] = Math.max(0, Math.min(1, v));
     const g = canal === 'musica' ? this.bus : this.fx;
@@ -255,22 +274,11 @@ export class Sonido {
    * more than once for the same battle: the tune chosen (or preloaded) is kept unless the scenario asks for another.
    */
   elegirCombate(escenario?: EscenarioId) {
-    // Chapter 2: the flow can fix the tune of the next battles (`fijarCombate`); then the scenario does not choose.
-    if (this.fijada) {
-      this.combateProximo = this.fijada;
-      return;
-    }
     // Asking again for the same battle (the draft screen does, to preload the tune, and the battle screen does when it starts) keeps the choice made.
-    const suyas = escenario ? COMBATE_DE[escenario] : undefined;
-    if (suyas) {
+    if (escenario && escenario !== 'brio') {
+      const suyas = COMBATE_DE[escenario];
       if (this.combateProximo === null || !suyas.includes(this.combateProximo)) this.combateProximo = this.sortear(suyas);
     } else if (this.combateProximo === null || !COMBATES.includes(this.combateProximo)) this.combateProximo = this.rotacion();
-  }
-
-  /** The tune of every battle from now on (null: the scenario chooses again). The chapter plays the feria one in the four-way battle and the plain one against the wild userito. */
-  fijarCombate(pista: 'combate' | 'combateFeria2' | null) {
-    this.fijada = pista;
-    this.combateProximo = pista;
   }
 
   /** A battle tune of the rotation at random, never the one of the last battle (when there is another). */

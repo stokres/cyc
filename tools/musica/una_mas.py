@@ -5,21 +5,25 @@
 # All of it is our own and in code, the same way as the rest of the game: it stands on sol.py, sol_combate.py and
 # sol_final.py (score tools, mixer, hall, loop export; their harpsichord, harp, pizzicato, choir, organ, kettledrums,
 # tam-tam, trumpet, risers, wind), adds a bowed string section (violins I and II, cello) and a taiko, and exports the
-# same way: -16 LUFS, 24 kHz, 80 kbps MP3, a loop that joins sample-exactly after an intro that is heard once.
+# same way but at -21 LUFS (5 dB under the rest of the game, so that the effects stand out over it; the rescue at -19), 24 kHz, 80 kbps MP3, a loop that joins sample-exactly after an intro that is heard once.
 # Pure synthesis with numpy: no SoundFont, no fluidsynth, no scipy, no mido, no AI.
 #
-#   «unaMasExplora»  the world of the concepts, mysterious and with a pulse: D minor, 90 bpm, 56 bars (149.3 s) in a loop
+#   «unaMasExplora»  the world of the concepts, mysterious and with a pulse: D minor, 90 bpm, 72 bars (192 s) in a loop
 #                    after a 2-bar intro. 1-8 mist (harp, cello pedal, a violin tune, the chant whispered by the choir
-#                    at the end), 9-16 the tune with a pulse (cello eighths, heartbeat, pizzicato), 17-24 a second tune
-#                    over a harpsichord in 3+3+2, 25-32 THE CHANT in full (violins, brass, choir) twice (the second time
-#                    with trumpet and organ), 33-40 the bridge (tremolo, a flute, a whispering choir, a build), 41-48 the
-#                    tune again with everything, 49-56 the way back to the mist.
-#   «unaMasJardin»   the Cierzo garden, the same world seen from the wind: A minor, 105 bpm, 52 bars (the harp and the
-#                    flute, gusts, bells like leaves).
-#   «unaMasTeatro»   the Theatre of the Concepts, the same world on stage: G minor, 100 bpm, 48 bars (harpsichord,
-#                    dramatic pizzicato and string stabs, an organ, kettledrums).
-#   «unaMasMiniboss» the fight against the Gran Despertador: E minor, 150 bpm, 56 bars (a galloping cello and violins, taiko,
-#                    the chant shouted by the choir).
+#                    at the end), 9-16 the tune with a pulse and a counter-melody, 17-24 a second tune over a harpsichord
+#                    in 3+3+2, 25-32 the clearing (a cello alone on a third, calm tune in the major keys, no drums, a
+#                    build at the end), 33-40 THE CHANT in full twice, 41-48 the bridge (tremolo, a flute, a whispering
+#                    choir, a build), 49-56 the first tune again with everything and the counter-melody, 57-64 the second
+#                    tune in tutti, 65-72 the way back to the mist.
+#   «unaMasJardin»   the Cierzo garden, the same world seen from the wind: A minor, 105 bpm, 76 bars (174 s) (the harp and
+#                    the flute, gusts, bells like leaves; a still pond with a music box; a glade where the flute dresses
+#                    the tune up in runs; the second tune at full).
+#   «unaMasTeatro»   the Theatre of the Concepts, the same world on stage: G minor, 100 bpm, 72 bars (173 s) (harpsichord,
+#                    dramatic pizzicato and string stabs, an organ, kettledrums; a harpsichord cadenza, an aria for a cello
+#                    alone, an encore of the second tune).
+#   «unaMasMiniboss» the fight against the Gran Despertador: E minor, 150 bpm, 96 bars (154 s) (a galloping cello and violins,
+#                    taiko, the chant shouted by the choir; a tick-tock bridge, a half-time riff, a breath in the major keys,
+#                    the alarm a third time with a counter-melody).
 #   «unaMasJefe»     LA ÚLTIMA, the Ultimosaurio: D minor, 120 bpm, 76 bars, and then the third phase, a quarter faster (150 bpm),
 #                    20 bars: 152 s + 32 s = 184 s in the loop. Choir, kettledrums, organ, trumpets, the chant at its biggest.
 #   «unaMasRescate»  the fanfare when a friend is rescued and a skill is won: the chant in D major, 6.4 s, heard once.
@@ -41,7 +45,7 @@ from sol_final import voces, pedal, notas_de, canta, arpegio, polvo
 from brio import SR, db, hz, midi, eq, sierra, vel_a_amp
 
 L = 4
-OBJETIVO = -16.0                     # LUFS: the same as the rest of the game's music
+OBJETIVO = -21.0                     # LUFS: 5 dB under the rest of the game's music, so that the effects (hits, jumps, damage) stand out over it
 KBPS = 80
 
 # =================================================================================================================
@@ -168,6 +172,29 @@ TUNE_D = M('D6:8 Bb5:4 G5:4 | Bb5:8 G5:4 Eb5:4 | G5:8 Eb5:4 C5:4 | A5:8 C6:4 F6:
            'D6:4 F6:4 E6:4 D6:4 | C#6:4 E6:4 A5:8')
 
 
+# ---- material added in the second version (more tunes, so that the long tracks do not tire in a loop)
+# a flowing counter-melody under the first tune (D minor, over AC_A; the last two bars hold notes under the chant)
+CONTRA_A = M('D4:2 E4:2 F4:2 A4:2 G4:2 F4:2 E4:2 D4:2 | F4:2 A4:2 Bb4:2 A4:2 F4:4 D4:4 | Bb4:4 D5:4 C5:2 Bb4:2 A4:2 G4:2 | '
+             'A4:4 D5:4 C#5:4 A4:2 G4:2 | F4:2 A4:2 D5:4 A4:2 F4:2 D4:4 | Bb4:4 A4:4 F4:4 D4:4 | D5:8 Bb4:8 | C#5:8 D5:8')
+# the first tune ornamented (turns and runs), over AC_A: the second lap of a long track
+VAR_A = M('A4:2 C5:2 D5:2 F5:2 A5:2 F5:2 E5:2 F5:2 | D5:2 F5:2 A5:2 F5:2 A5:4 D6:4 | G5:2 A5:2 Bb5:2 A5:2 G5:2 F5:2 D5:2 Bb4:2 | '
+          'A5:2 G5:2 E5:2 D5:2 C#5:2 E5:2 G5:2 E5:2 | F5:2 A5:2 D6:4 A5:2 C6:2 D6:4 | D6:2 C6:2 Bb5:2 A5:2 F5:2 A5:2 Bb5:2 D6:2 | '
+          + MOTIVO)
+# a calm third tune, in the relative major (F, C, Dm, Bb): the clearing, the aria, the pond
+AC_G = [['F'], ['C'], ['Dm'], ['Bb'], ['F'], ['C'], ['Bb', 'Gm'], ['A7sus4', 'A7']]
+TUNE_G = M('C5:8 A5:6 G5:2 | G5:8 E5:4 C5:4 | F5:6 E5:2 D5:8 | D5:4 F5:4 Bb5:8 | A5:8 C6:4 A5:4 | G5:6 E5:2 G5:4 C6:4 | '
+           'D6:8 Bb5:4 G5:4 | E6:6 D6:2 C#6:4 E6:4')
+# the mini-boss: a tick-tock tune (the pendulum), a heavier chord line for the half-time riff, a counter-melody for the alarm
+AC_X = [['Dm'], ['Dm'], ['Bb'], ['A7'], ['Dm'], ['Dm'], ['Gm'], ['A7']]
+TUNE_X = M('A5:2 D5:2 A5:2 D5:2 A5:2 D5:2 A5:2 D5:2 | A5:2 D5:2 A5:2 D5:2 F5:4 A5:4 | Bb5:2 F5:2 Bb5:2 F5:2 Bb5:2 F5:2 D6:4 | '
+           'C#6:2 E5:2 C#6:2 E5:2 G5:4 E5:4 | A5:2 D5:2 A5:2 D5:2 A5:2 D5:2 A5:2 D5:2 | F5:2 A5:2 D6:4 A5:4 F5:4 | '
+           'G5:2 D5:2 G5:2 D5:2 Bb5:4 D6:4 | E6:2 C#6:2 A5:2 C#6:2 E6:8')
+AC_Y = [['Dm'], ['Dm'], ['Eb'], ['Eb'], ['Dm'], ['Dm'], ['Bb', 'C'], ['A7sus4', 'A7']]
+CONTRA_MA = M('D4:4 F4:4 A4:4 F4:4 | A4:4 F4:4 Bb4:4 D5:4 | G4:4 Bb4:4 D5:4 Bb4:4 | E4:4 G4:4 C#5:4 E5:4 | '
+              'F4:4 A4:4 D5:4 A4:4 | D5:4 F4:4 E4:4 G4:4 | D5:4 Bb4:4 C#5:4 E5:4 | A4:8 E5:8')
+AC_C4 = H2 + RESP + H3 + RESP
+
+
 def cello(P, c, patron, vel, dur=0.2, art='c', lo=36, pista='chelo', k=0):
     """A bar of cello (or any low string) on the chord's root: R root, O octave, F fifth above, f fifth below."""
     for p, s in enumerate(patron):
@@ -271,25 +298,25 @@ def exportar(componer, hacer_intro, acordes, bpm, barras, barras_intro, auto, au
 # =================================================================================================================
 
 BPM_EXPLORA = 90
-BARRAS_EXPLORA = 56
-ACORDES_EXPLORA = AC_A + AC_A + AC_B + AC_C + AC_D + AC_A + AC_E
+BARRAS_EXPLORA = 72
+ACORDES_EXPLORA = AC_A + AC_A + AC_B + AC_G + AC_C + AC_D + AC_A + AC_B + AC_E
 
 MEZCLA_EXPLORA = dict(vlnI=(-0.4, -23.5, 0.3, 0.0), coro=(0.0, -24.5, 0.45, 0.0), trompeta=(0.0, -27.0, 0.3, 0.0),
                       arpa=(-0.45, -26.0, 0.28, 0.2), clave=(-0.3, -28.0, 0.35, 0.2), viento=(0.0, -32.0, 0.5, 0.0))
-AUTO_EXPLORA = ([-4.5] * 8 + [-2.5] * 8 + [-2.0] * 8 + [1.0] * 8 + [-3.0, -3.0, -2.5, -2.5, -2.0, -1.5, -1.0, 0.0] + [1.0] * 8
+AUTO_EXPLORA = ([-4.5] * 8 + [-2.5] * 8 + [-2.0] * 8 + [-5.0] * 8 + [1.0] * 8
+                + [-3.0, -3.0, -2.5, -2.5, -2.0, -1.5, -1.0, 0.0] + [1.0] * 8 + [0.5] * 8
                 + [-1.0, -2.0, -3.0, -3.5, -4.0, -4.5, -4.5, -4.5])
 AUTO_EXPLORA = suavizar(AUTO_EXPLORA)
-AUTO_INTRO_EXPLORA = [AUTO_EXPLORA[0] - 1.0, AUTO_EXPLORA[55]]
+AUTO_INTRO_EXPLORA = [AUTO_EXPLORA[0] - 1.0, AUTO_EXPLORA[71]]
 
 
 def componer_explora():
-    """The 56 bars of the round -> a Partitura (beats count from the start of the round; a bar is 4)."""
+    """The 72 bars of the round -> a Partitura (beats count from the start of the round; a bar is 4)."""
     P = Partitura()
-    A, A2, B, Cc, D, A3, E = 0.0, 32.0, 64.0, 96.0, 128.0, 160.0, 192.0
-    voces(P, 'cuerdasI', ACORDES_EXPLORA, [36] * 8 + [44] * 8 + [52] * 8 + [58] * 8 + [40, 44, 48, 52, 56, 60, 64, 70] + [60] * 8 + [40] * 8,
-          'D3', 'F5', n=4, lado='I')
-    voces(P, 'cuerdasD', ACORDES_EXPLORA, [36] * 8 + [44] * 8 + [52] * 8 + [58] * 8 + [40, 44, 48, 52, 56, 60, 64, 70] + [60] * 8 + [40] * 8,
-          'D3', 'F5', n=4, lado='D')
+    A, A2, B, G, Cc, D, A3, BT, E = 0.0, 32.0, 64.0, 96.0, 128.0, 160.0, 192.0, 224.0, 256.0
+    pad = [36] * 8 + [44] * 8 + [52] * 8 + [30] * 8 + [58] * 8 + [40, 44, 48, 52, 56, 60, 64, 70] + [60] * 8 + [64] * 8 + [40] * 8
+    voces(P, 'cuerdasI', ACORDES_EXPLORA, pad, 'D3', 'F5', n=4, lado='I')
+    voces(P, 'cuerdasD', ACORDES_EXPLORA, pad, 'D3', 'F5', n=4, lado='D')
     P.nota('bat', 0.0, 1, 'plato', 60)
     # ---- 1-8 mist: a harp on eighths, a cello pedal and a sub, a violin tune, wind and the odd bell; the chant is only whispered
     pedal(P, 'chelo', ACORDES_EXPLORA[:8], 46, lo=36, art='l')
@@ -304,10 +331,11 @@ def componer_explora():
     polvo(P, 3, 8, 0, 32, 'D6', 'A6')
     taikos(P, 3, (3.0,), 50)
     taikos(P, 7, (3.0,), 60)
-    # ---- 9-16 the tune with a pulse: violins and flute, a staccato cello on eighths, a heartbeat, pizzicato off-beats
+    # ---- 9-16 the tune with a pulse: violins and flute, a counter-melody on the second violins, a staccato cello on eighths,
+    # a heartbeat, pizzicato off-beats
     notas_de(P, 'vlnI', TUNE_A, A2, 80, dur=0.97, acento=4, art='l')
     notas_de(P, 'flauta', TUNE_A, A2, 56, dur=0.95, vib=1)
-    segunda(P, 'vlnII', TUNE_A, A2, 56)
+    notas_de(P, 'vlnII', CONTRA_A, A2, 50, dur=0.97, acento=3, art='l')
     for c in range(8, 16):
         cello(P, c, 'R.R.R.R.R.R.R.R.' if c % 2 == 0 else 'R.R.R.R.R.R.ROFO', 66)
         S.arpa_compas(P, c, 'corcheas', 46, desde='D4', hasta='D6')
@@ -316,7 +344,7 @@ def componer_explora():
         bateria(P, c, {'rim': '....x.......x...'}, -14)
     tambores(P, 15 * L + 2.0, ('tom4', 'tom3', 'tom2', 'tom1'), 70, 96, 0.5)
     P.nota('bat', A2, 1, 'plato', 70)
-    # ---- 17-24 the second tune: oboe and violin over a harpsichord in 3+3+2, long chords, the choir comes in humming
+    # ---- 17-24 the second tune: oboe and violin over a harpsichord in 3+3+2, long chords, the choir comes in humming; it settles at the end
     notas_de(P, 'vlnI', TUNE_B, B, 84, dur=0.97, acento=4, art='l')
     notas_de(P, 'oboe', TUNE_B, B, 70, dur=0.95)
     segunda(P, 'vlnII', TUNE_B, B, 58)
@@ -329,11 +357,33 @@ def componer_explora():
         bateria(P, c, {'rim': '....x.......x...', 'charles': 'o...o...o...o...'}, -12)
     voces(P, 'coroI', AC_B[4:], 50, 'D4', 'D6', n=3, b0=B + 16, vocal='o')
     voces(P, 'coroD', AC_B[4:], 50, 'D4', 'D6', n=3, b0=B + 16, vocal='o')
-    redoble(P, 23 * L + 1.0, 3.0, 50, 112, 'caja')
-    for k in range(16):
-        P.nota('timbal', 23 * L + 2.0 + k * 0.125, 0.125, midi('D2'), 56 + 3 * k)
     P.nota('bat', B, 1, 'plato', 74)
-    # ---- 25-32 THE CHANT, twice: violins in unison with the brass an octave below and the trumpet, the choir singing it,
+    # ---- 25-32 the clearing: the mist lifts. A cello alone sings a new, calm tune in the major keys, then the flute and the violins
+    # take it; a harp on eighths, a hummed choir, the wind and the dust; no drums. The last two bars are the build to the chant.
+    tg = [(b, d, m, f) for b, d, m, f in TUNE_G]
+    for b, d, m, _ in tg:
+        if b < 16:
+            P.nota('chelo', G + b, d * 0.97, m - 12, 66, art='l')
+            P.nota('flauta', G + b, d * 0.95, m, 40, vib=1)
+        else:
+            P.nota('vlnI', G + b, d * 0.97, m, 66 + (4 if b % 1 == 0 else 0), art='l')
+            P.nota('flauta', G + b, d * 0.95, m, 58, vib=1)
+            P.nota('chelo', G + b, d * 0.97, m - 24, 56, art='l')
+    for c in range(24, 32):
+        S.arpa_compas(P, c, 'corcheas', 40 + 2 * (c - 24), desde='D3', hasta='D5')
+    voces(P, 'organo', AC_G, 36, 'D3', 'D5', n=3, b0=G, reg='suave')
+    voces(P, 'coroI', AC_G[4:], 40, 'D4', 'D6', n=3, b0=G + 16, vocal='u')
+    voces(P, 'coroD', AC_G[4:], 40, 'D4', 'D6', n=3, b0=G + 16, vocal='u')
+    pedal(P, 'sub', AC_G, 52, lo=26, b0=G)
+    P.nota('viento', G, 16.0, 0, 52)
+    polvo(P, 11, 10, G, G + 32, 'D6', 'A6')
+    taikos(P, 24, (0.0,), 44)
+    taikos(P, 28, (0.0,), 52)
+    P.nota('subida', G + 24, 8.0, 0, 70)
+    redoble(P, 31 * L, 4.0, 40, 118, 'caja')
+    for k in range(16):
+        P.nota('timbal', 31 * L + k * 0.25, 0.25, midi('D2'), 54 + 3 * k)
+    # ---- 33-40 THE CHANT, twice: violins in unison with the brass an octave below and the trumpet, the choir singing it,
     # kettledrums on every beat, a galloping cello; the second time with the organ and the answers an octave higher
     P.nota('bat', Cc, 1, 'crash', 108)
     P.nota('tamtam', Cc, 4, 0, 92)
@@ -345,64 +395,85 @@ def componer_explora():
         canta(P, mel, b0, 92 + 4 * r)
         if r == 1:
             notas_de(P, 'trompeta', mel, b0, 72, dur=0.92, acento=4)
+            notas_de(P, 'flauta', [(b, d, m + 12, f) for b, d, m, f in mel], b0, 52, dur=0.92, vib=1)
             voces(P, 'organo', AC_C[4:], 62, 'D3', 'D5', n=4, b0=b0, reg='pleno')
             pedal(P, 'organo', AC_C[4:], 56, b0=b0, reg='pleno')
     pedal(P, 'sub', AC_C, 84, lo=26, b0=Cc)
-    for c in range(24, 32):
+    for c in range(32, 40):
         cello(P, c, 'RRORRORRRORRORRO'[:16], 78)
-        taikos(P, c, (0.0, 1.0, 2.0, 3.0), 76 if c < 28 else 84)
+        taikos(P, c, (0.0, 1.0, 2.0, 3.0), 76 if c < 36 else 84)
         bateria(P, c, {'bombo_banda': 'x.......x.......', 'caja': '....X.......X...', 'charles': 'x.x.x.x.x.x.x.x.'}, -2)
         if c % 4 == 0:
             P.nota('bat', c * L, 1, 'crash', 104)
-    tambores(P, 27 * L + 3.0, ('tom1', 'tom2', 'tom3', 'tom4'), 90, 116, 0.25)
-    redoble(P, 31 * L + 1.0, 3.0, 54, 120, 'caja')
-    tambores(P, 31 * L + 3.0, ('tom1', 'tom2', 'tom3', 'tom4'), 96, 122, 0.25)
-    # ---- 33-40 the bridge: tremolo violins, a harp falling, a whispering choir, a heartbeat, and a build
-    for c in range(32, 40):
-        v = 46 + 5 * (c - 32)
+    tambores(P, 35 * L + 3.0, ('tom1', 'tom2', 'tom3', 'tom4'), 90, 116, 0.25)
+    redoble(P, 39 * L + 1.0, 3.0, 54, 120, 'caja')
+    tambores(P, 39 * L + 3.0, ('tom1', 'tom2', 'tom3', 'tom4'), 96, 122, 0.25)
+    # ---- 41-48 the bridge: tremolo violins, a harp falling, a whispering choir, a heartbeat, and a build
+    for c in range(40, 48):
+        v = 46 + 5 * (c - 40)
         osti(P, c, 'vlnI', '3232323232323232', v, 'G4', 'G6', art='c', gate=0.2)
         osti(P, c, 'vlnII', '1010101010101010', v - 6, 'G3', 'G5', art='c', gate=0.2)
-        S.arpa_compas(P, c, 'tresytres', 46 + 3 * (c - 32), desde='D4', hasta='D6')
-        cello(P, c, 'R...............', 56 + 3 * (c - 32), dur=3.8, art='l')
-        taikos(P, c, (0.0,), 52 + 3 * (c - 32))
+        S.arpa_compas(P, c, 'tresytres', 46 + 3 * (c - 40), desde='D4', hasta='D6')
+        cello(P, c, 'R...............', 56 + 3 * (c - 40), dur=3.8, art='l')
+        taikos(P, c, (0.0,), 52 + 3 * (c - 40))
     voces(P, 'coroI', AC_D, 40, 'D4', 'D6', n=3, b0=D, vocal='u', extra=0.3)
     voces(P, 'coroD', AC_D, 40, 'D4', 'D6', n=3, b0=D, vocal='u', extra=0.3)
     pedal(P, 'sub', AC_D, 70, lo=26, b0=D)
     notas_de(P, 'flauta', TUNE_D, D, 64, dur=0.97, acento=3, vib=1)
     notas_de(P, 'oboe', TUNE_D, D, 50, dur=0.95)
-    P.nota('subida', 38 * L, 8.0, 0, 88)
-    redoble(P, 38 * L, 8.0, 40, 124, 'caja')
+    P.nota('subida', 46 * L, 8.0, 0, 88)
+    redoble(P, 46 * L, 8.0, 40, 124, 'caja')
     for k in range(32):
-        P.nota('timbal', 38 * L + k * 0.25, 0.25, midi('A1'), 54 + int(2 * k))
+        P.nota('timbal', 46 * L + k * 0.25, 0.25, midi('A1'), 54 + int(2 * k))
     P.nota('bat', D + 28, 1, 'plato', 72)
-    # ---- 41-48 the tune again with everything: violins in unison and a third below, the trumpet, the choir, the cello gallops,
-    # a full kit and the harp in 3+3+2
+    # ---- 49-56 the tune again with everything: violins in unison and a third below, the trumpet, the choir, the oboe on the
+    # counter-melody, the cello gallops, a full kit and the harp in 3+3+2
     P.nota('bat', A3, 1, 'crash', 112)
     P.nota('tamtam', A3, 4, 0, 94)
     notas_de(P, 'vlnI', TUNE_A, A3, 94, dur=0.97, acento=4, art='l')
     segunda(P, 'vlnII', TUNE_A, A3, 76)
     notas_de(P, 'trompeta', TUNE_A, A3, 74, dur=0.95)
     notas_de(P, 'flauta', [(b, d, m + 12, f) for b, d, m, f in TUNE_A], A3, 56, dur=0.95, vib=1)
+    notas_de(P, 'oboe', CONTRA_A, A3, 62, dur=0.95)
     canta(P, TUNE_A, A3, 76)
-    for c in range(40, 48):
+    for c in range(48, 56):
         cello(P, c, 'R.RR.RR.R.RR.RR.' if c % 2 == 0 else 'R.RR.RR.R.RRORO.', 78)
         S.arpa_compas(P, c, 'tresytres', 54, desde='D4', hasta='D6')
         pizzs(P, c, (6, 14), 60)
         taikos(P, c, (0.0, 2.0, 3.0), 76)
         bateria(P, c, {'bombo': 'x.....x...x.....', 'caja': '....X.......X...', 'charles': 'x.x.x.x.x.x.x.x.'}, -4)
-        if c in (40, 44):
+        if c in (48, 52):
             P.nota('bat', c * L, 1, 'crash', 100)
-    redoble(P, 47 * L + 2.0, 2.0, 56, 112, 'caja')
-    # ---- 49-56 the way back to the mist: a flute and a violin, the harp, the strings thinning out, the wind returning
+    redoble(P, 55 * L + 2.0, 2.0, 56, 112, 'caja')
+    # ---- 57-64 the second tune with everything: trumpet and violins on it, the flute an octave up, the choir, the organ at full,
+    # a cello that gallops, the kit in 3+3+2 with the harpsichord; a cymbal at the half and the answer on the brass
+    P.nota('bat', BT, 1, 'crash', 106)
+    notas_de(P, 'vlnI', TUNE_B, BT, 94, dur=0.97, acento=4, art='l')
+    segunda(P, 'vlnII', TUNE_B, BT, 76)
+    notas_de(P, 'trompeta', TUNE_B, BT, 72, dur=0.95)
+    notas_de(P, 'flauta', [(b, d, m + 12, f) for b, d, m, f in TUNE_B], BT, 54, dur=0.95, vib=1)
+    notas_de(P, 'metal', [(b, d, m - 12, f) for b, d, m, f in TUNE_B], BT, 66, dur=0.92)
+    canta(P, TUNE_B, BT, 70)
+    voces(P, 'organo', AC_B, 56, 'D3', 'D5', n=4, b0=BT, reg='pleno')
+    pedal(P, 'sub', AC_B, 78, lo=26, b0=BT)
+    for c in range(56, 64):
+        arpegio(P, c, 'tresytres', 56, 'D4', 'D6', 'clave')
+        cello(P, c, 'R.RR.RR.R.RR.RR.' if c % 2 == 0 else 'R.RR.RR.R.RRORO.', 78)
+        taikos(P, c, (0.0, 1.0, 2.0, 3.0), 78)
+        bateria(P, c, {'bombo': 'x..x..x.x..x..x.', 'caja': '....X.......X...', 'charles': 'x.x.x.x.x.x.x.x.'}, -3)
+        if c in (56, 60):
+            P.nota('bat', c * L, 1, 'crash', 100)
+    tambores(P, 63 * L + 2.0, ('tom1', 'tom2', 'tom3', 'tom4'), 84, 112, 0.25)
+    # ---- 65-72 the way back to the mist: a flute and a violin, the harp, the strings thinning out, the wind returning
     notas_de(P, 'flauta', TUNE_E, E, 74, dur=0.97, acento=3, vib=1)
     notas_de(P, 'vlnI', TUNE_E, E, 56, dur=0.97, acento=3, art='l')
     pedal(P, 'chelo', AC_E, 48, b0=E, lo=36, art='l')
     pedal(P, 'sub', AC_E, 56, lo=26, b0=E)
-    for c in range(48, 56):
-        S.arpa_compas(P, c, 'corcheas', 48 - 2 * (c - 48), desde='D3', hasta='D5')
+    for c in range(64, 72):
+        S.arpa_compas(P, c, 'corcheas', 48 - 2 * (c - 64), desde='D3', hasta='D5')
     P.nota('viento', E + 8, 24.0, 0, 62)
     polvo(P, 9, 6, E, E + 32, 'D6', 'A6')
-    taikos(P, 55, (3.0,), 56)
+    taikos(P, 71, (3.0,), 56)
     return P
 
 
@@ -417,7 +488,7 @@ def intro_explora(P):
     for k, m in enumerate(('D3', 'A3', 'D4', 'F4', 'A4', 'D5', 'F5', 'A5')):
         I.nota('arpa', 0.5 + k * 0.5, 0.5, midi(m), 44 + 3 * k)
     I.nota('taiko', 3.0, 1.0, midi('D2'), 50)
-    I.anadir(P.trozo(55 * L, 56 * L, 1 * L))
+    I.anadir(P.trozo(71 * L, 72 * L, 1 * L))
     return I
 
 
@@ -442,26 +513,27 @@ AC_A_DOM = AC_A[:7] + [['A7']]                                                # 
 # =================================================================================================================
 
 BPM_JARDIN = 105
-BARRAS_JARDIN = 52
+BARRAS_JARDIN = 76
 K_J = -5                                                                      # A minor
-ACORDES_JARDIN = T(AC_A + AC_A + AC_B + AC_C2 + AC_D + AC_A_DOM + AC_E[4:], K_J)
+ACORDES_JARDIN = T(AC_A + AC_A + AC_B + AC_G + AC_C2 + AC_D + AC_A + AC_A + AC_B + AC_E[4:], K_J)
 
 MEZCLA_JARDIN = dict(flauta=(-0.12, -22.0, 0.3, 0.1), arpa=(-0.45, -25.0, 0.3, 0.22), vlnI=(-0.4, -25.0, 0.3, 0.0),
                      viento=(0.0, -30.0, 0.5, 0.0), cajita=(0.45, -30.0, 0.5, 0.3), taiko=(0.0, -24.0, 0.3, 0.0),
                      chelo=(0.05, -25.0, 0.12, 0.0), pizz=(0.5, -28.0, 0.16, 0.0))
-AUTO_JARDIN = ([-4.0] * 8 + [-2.5] * 8 + [-2.0] * 8 + [0.0] * 8 + [-3.0, -3.0, -2.5, -2.5, -2.0, -1.5, -0.5, 0.5] + [0.5] * 8
+AUTO_JARDIN = ([-4.0] * 8 + [-2.5] * 8 + [-2.0] * 8 + [-5.0] * 8 + [0.0] * 8
+               + [-3.0, -3.0, -2.5, -2.5, -2.0, -1.5, -0.5, 0.5] + [0.5] * 8 + [-2.5] * 8 + [0.5] * 8
                + [-1.5, -2.5, -3.5, -4.0])
 AUTO_JARDIN = suavizar(AUTO_JARDIN)
-AUTO_INTRO_JARDIN = [AUTO_JARDIN[0] - 1.0, AUTO_JARDIN[51]]
+AUTO_INTRO_JARDIN = [AUTO_JARDIN[0] - 1.0, AUTO_JARDIN[75]]
 
 
 def componer_jardin():
-    """The 52 bars of the round -> a Partitura: the garden of the Cierzo, wind and harp."""
+    """The 76 bars of the round -> a Partitura: the garden of the Cierzo, wind and harp."""
     P = Partitura()
     k = K_J
-    A, A2, B, Cc, D, A3, E = 0.0, 32.0, 64.0, 96.0, 128.0, 160.0, 192.0
-    ta, tb, te = tr(TUNE_A, k), tr(TUNE_B, k), tr(TUNE_E2, k)
-    pad = [34] * 8 + [42] * 8 + [46] * 8 + [56] * 8 + [38, 42, 46, 50, 54, 58, 62, 66] + [52] * 8 + [36] * 4
+    A, A2, B, G, Cc, D, A3, V, BT, E = 0.0, 32.0, 64.0, 96.0, 128.0, 160.0, 192.0, 224.0, 256.0, 288.0
+    ta, tb, te, tg, tv, tc = tr(TUNE_A, k), tr(TUNE_B, k), tr(TUNE_E2, k), tr(TUNE_G, k), tr(VAR_A, k), tr(CONTRA_A, k)
+    pad = [34] * 8 + [42] * 8 + [46] * 8 + [28] * 8 + [56] * 8 + [38, 42, 46, 50, 54, 58, 62, 66] + [52] * 8 + [32] * 8 + [58] * 8 + [36] * 4
     voces(P, 'cuerdasI', ACORDES_JARDIN, pad, 'A2', 'C5', n=4, lado='I')
     voces(P, 'cuerdasD', ACORDES_JARDIN, pad, 'A2', 'C5', n=4, lado='D')
     P.nota('bat', 0.0, 1, 'plato', 56)
@@ -477,10 +549,11 @@ def componer_jardin():
     for b, d, v in ((0.0, 14.0, 66), (14.0, 12.0, 58), (26.0, 6.0, 52)):
         P.nota('viento', A + b, d, 0, v)
     polvo(P, 21, 10, 0, 32, 'A5', 'E6')
-    # ---- 9-16 the leaves: violins on the tune with the flute an octave up, pizzicato in 3+3+2, a walking cello, tambourine
+    # ---- 9-16 the leaves: violins on the tune with the flute an octave up, a counter-melody on the oboe, pizzicato in 3+3+2,
+    # a walking cello, tambourine
     notas_de(P, 'vlnI', ta, A2, 76, dur=0.97, acento=4, art='l')
     notas_de(P, 'flauta', [(b, d, m + 12, f) for b, d, m, f in ta], A2, 60, dur=0.95, vib=1)
-    segunda(P, 'vlnII', ta, A2, 54)
+    notas_de(P, 'oboe', tc, A2, 52, dur=0.95)
     for c in range(8, 16):
         S.arpa_compas(P, c, 'corcheas', 48, desde='A4', hasta='A6')
         cello(P, c, 'R..R..R.R..R..R.' if c % 2 == 0 else 'R..R..R.R..R..F.', 62, dur=0.3, lo=33)
@@ -502,57 +575,117 @@ def componer_jardin():
     voces(P, 'coroD', ACORDES_JARDIN[20:24], 48, 'A3', 'A5', n=3, b0=B + 16, vocal='o')
     P.nota('bat', B, 1, 'plato', 72)
     P.nota('viento', B + 10, 16.0, 0, 52)
-    redoble(P, 23 * L + 1.0, 3.0, 50, 108, 'caja')
-    # ---- 25-32 THE CHANT, twice, the garden's way: flute and violins, a gentle choir, the harp running; the second time with brass and organ
+    # ---- 25-32 the pond: the drums go, the wind drops. A music box and a harp over still water, a flute alone on a new, calm
+    # tune, then the violins; a hummed choir, bells like drops; the last two bars gather the wind for the chant
+    for b, d, m, _ in tg:
+        if b < 16:
+            P.nota('flauta', G + b, d * 0.95, m, 70, vib=1 if d >= 1.5 else 0)
+            P.nota('cajita', G + b, d * 0.9, m + 12, 42, des=0.3)
+        else:
+            P.nota('vlnI', G + b, d * 0.97, m, 62 + (4 if b % 1 == 0 else 0), art='l')
+            P.nota('flauta', G + b, d * 0.95, m, 66, vib=1)
+            P.nota('cajita', G + b, d * 0.9, m + 12, 46, des=0.3)
+    for c in range(24, 32):
+        S.arpa_compas(P, c, 'tresytres', 40 + 2 * (c - 24), desde='A3', hasta='A5')
+    pedal(P, 'chelo', ACORDES_JARDIN[24:32], 42, lo=33, art='l', b0=G)
+    pedal(P, 'sub', ACORDES_JARDIN[24:32], 50, lo=24, b0=G)
+    voces(P, 'coroI', ACORDES_JARDIN[28:32], 40, 'A3', 'A5', n=3, b0=G + 16, vocal='u')
+    voces(P, 'coroD', ACORDES_JARDIN[28:32], 40, 'A3', 'A5', n=3, b0=G + 16, vocal='u')
+    polvo(P, 13, 12, G, G + 32, 'A5', 'E6')
+    P.nota('viento', G + 20, 12.0, 0, 60)
+    P.nota('subida', 30 * L, 8.0, 0, 70)
+    redoble(P, 31 * L, 4.0, 40, 112, 'caja')
+    # ---- 33-40 THE CHANT, twice, the garden's way: flute and violins, a gentle choir, the harp running; the second time with brass and organ
     P.nota('bat', Cc, 1, 'crash', 104)
     P.nota('tamtam', Cc, 4, 0, 84)
     motivo4(P, Cc, [('vlnI', k, 90, dict(art='m')), ('vlnII', k - 12, 78, dict(art='m')), ('coro', k, 84, {}),
                     ('flauta', k + 12, 60, dict(vib=1))], k)
     motivo4(P, Cc + 16, [('vlnI', k, 94, dict(art='m')), ('vlnII', k - 12, 82, dict(art='m')), ('coro', k, 90, {}),
                          ('flauta', k + 12, 62, dict(vib=1)), ('metal', k - 12, 70, {}), ('trompeta', k, 66, {})], k)
-    voces(P, 'organo', ACORDES_JARDIN[28:32], 60, 'A2', 'A4', n=4, b0=Cc + 16, reg='pleno')
-    pedal(P, 'sub', ACORDES_JARDIN[24:32], 80, lo=24, b0=Cc)
-    for c in range(24, 32):
+    voces(P, 'organo', ACORDES_JARDIN[36:40], 60, 'A2', 'A4', n=4, b0=Cc + 16, reg='pleno')
+    pedal(P, 'sub', ACORDES_JARDIN[32:40], 80, lo=24, b0=Cc)
+    for c in range(32, 40):
         arpegio(P, c, 'semis', 46, 'A3', 'A5', 'arpa')
         cello(P, c, 'R.RR.RR.R.RR.RR.', 74, lo=33)
         taikos(P, c, (0.0, 2.0), 70, k)
         bateria(P, c, {'bombo_banda': 'x.......x.......', 'caja': '....X.......X...', 'pandereta': 'x.x.x.x.x.x.x.x.'}, -6)
-    tambores(P, 31 * L + 2.0, ('tom1', 'tom2', 'tom3', 'tom4'), 84, 112, 0.5)
-    # ---- 33-40 the cierzo: the wind takes over; a flute running on the chords, the harp falling, a choir whispering, a build
-    for c in range(32, 40):
-        pasos(P, c, 'flauta', '0123432101234321', 54 + 3 * (c - 32), 'A4', 'A6', vib=0)
-        arpegio(P, c, 'corcheas', 42 + 3 * (c - 32), 'A3', 'A5', 'arpa', baja=True)
-        cello(P, c, 'R...............', 50 + 3 * (c - 32), dur=3.8, art='l', lo=33)
+    tambores(P, 39 * L + 2.0, ('tom1', 'tom2', 'tom3', 'tom4'), 84, 112, 0.5)
+    # ---- 41-48 the cierzo: the wind takes over; a flute running on the chords, the harp falling, a choir whispering, a build
+    for c in range(40, 48):
+        pasos(P, c, 'flauta', '0123432101234321', 54 + 3 * (c - 40), 'A4', 'A6', vib=0)
+        arpegio(P, c, 'corcheas', 42 + 3 * (c - 40), 'A3', 'A5', 'arpa', baja=True)
+        cello(P, c, 'R...............', 50 + 3 * (c - 40), dur=3.8, art='l', lo=33)
     for b, d, v in ((0.0, 16.0, 84), (16.0, 16.0, 90)):
         P.nota('viento', D + b, d, 0, v)
-    voces(P, 'coroI', ACORDES_JARDIN[32:40], 42, 'A3', 'A5', n=3, b0=D, vocal='u', extra=0.3)
-    voces(P, 'coroD', ACORDES_JARDIN[32:40], 42, 'A3', 'A5', n=3, b0=D, vocal='u', extra=0.3)
-    pedal(P, 'sub', ACORDES_JARDIN[32:40], 64, lo=24, b0=D)
-    P.nota('subida', 38 * L, 8.0, 0, 82)
-    redoble(P, 38 * L + 1.0, 7.0, 42, 120, 'caja')
+    voces(P, 'coroI', ACORDES_JARDIN[40:48], 42, 'A3', 'A5', n=3, b0=D, vocal='u', extra=0.3)
+    voces(P, 'coroD', ACORDES_JARDIN[40:48], 42, 'A3', 'A5', n=3, b0=D, vocal='u', extra=0.3)
+    pedal(P, 'sub', ACORDES_JARDIN[40:48], 64, lo=24, b0=D)
+    P.nota('subida', 46 * L, 8.0, 0, 82)
+    redoble(P, 46 * L + 1.0, 7.0, 42, 120, 'caja')
     for i in range(16):
-        P.nota('timbal', 38 * L + 2.0 + i * 0.125, 0.125, midi('E2'), 54 + 3 * i)
-    # ---- 41-48 the garden in bloom: the tune with the flute, violins and oboe, the harp in 3+3+2, pizzicato, a full light kit, the choir
+        P.nota('timbal', 46 * L + 2.0 + i * 0.125, 0.125, midi('E2'), 54 + 3 * i)
+    # ---- 49-56 the garden in bloom: the tune with the flute, violins and oboe, the harp in 3+3+2, pizzicato, a full light kit, the choir
     P.nota('bat', A3, 1, 'crash', 108)
     notas_de(P, 'vlnI', ta, A3, 90, dur=0.97, acento=4, art='l')
     notas_de(P, 'flauta', ta, A3, 74, dur=0.95, vib=1)
     notas_de(P, 'oboe', [(b, d, m + 12, f) for b, d, m, f in ta], A3, 60, dur=0.95)
     segunda(P, 'vlnII', ta, A3, 70)
     canta(P, ta, A3, 70)
-    for c in range(40, 48):
+    for c in range(48, 56):
         S.arpa_compas(P, c, 'tresytres', 56, desde='A3', hasta='A5')
         cello(P, c, 'R.RR.RR.R.RR.RR.' if c % 2 == 0 else 'R.RR.RR.R.RRORO.', 72, lo=33)
         pizzs(P, c, (0, 3, 6, 8, 11, 14), 54, desde='A4', hasta='E5')
         taikos(P, c, (0.0, 2.0), 66, k)
         bateria(P, c, {'bombo': 'x.....x...x.....', 'caja': '....X.......X...', 'charles': 'x.x.x.x.x.x.x.x.', 'pandereta': 'x.x.x.x.x.x.x.x.'}, -8)
-    redoble(P, 47 * L + 2.0, 2.0, 54, 108, 'caja')
-    # ---- 49-52 the way out: flute and violin on the last bars, the harp, the wind coming back
+    # ---- 57-64 the glade: the same tune dressed up. The flute runs it in turns and trills over a harp in sixteenths and a
+    # pizzicato that walks, the violins answer on the long notes, a music box doubling; light kit, no brass, the choir hums
+    P.nota('bat', V, 1, 'plato', 74)
+    notas_de(P, 'flauta', tv, V, 82, dur=0.9, acento=4, vib=0)
+    notas_de(P, 'cajita', [(b, d, m + 12, f) for b, d, m, f in tv], V, 46, dur=0.8, des=0.3)
+    for b, d, m, _ in ta:
+        if d >= 2.0 and b < 24:
+            P.nota('vlnI', V + b, d * 0.97, m, 60, art='l')
+    segunda(P, 'vlnII', ta[:-8], V, 50)
+    for b, d, m, _ in ta[-8:]:
+        P.nota('coro', V + b, d * 0.96, (m - 12, m), 64, vocal='o')
+        P.nota('vlnI', V + b, d * 0.97, m, 80, art='m')
+    for c in range(56, 64):
+        arpegio(P, c, 'semis', 40, 'A3', 'A5', 'arpa')
+        cello(P, c, 'R..R..R.R..R..R.' if c % 2 == 0 else 'R..R..R.R..R..F.', 60, dur=0.3, lo=33)
+        pizzs(P, c, (2, 5, 9, 12, 14), 52, desde='A4', hasta='E5')
+        bateria(P, c, {'pandereta': 'x.x.x.x.x.x.x.x.', 'rim': '....x.......x...', 'charles': 'x.x.x.x.x.x.x.x.'}, -12)
+    pedal(P, 'sub', ACORDES_JARDIN[56:64], 56, lo=24, b0=V)
+    P.nota('viento', V + 8, 12.0, 0, 50)
+    polvo(P, 17, 8, V, V + 32, 'A5', 'E6')
+    tambores(P, 63 * L + 2.0, ('tom4', 'tom3', 'tom2', 'tom1'), 62, 90, 0.5)
+    # ---- 65-72 the garden at full: the second tune, the brass under the violins and the flute high, the choir singing it,
+    # the organ, the harp in sixteenths, a galloping cello and the whole kit; a cymbal at the half
+    P.nota('bat', BT, 1, 'crash', 108)
+    P.nota('tamtam', BT, 4, 0, 80)
+    notas_de(P, 'vlnI', tb, BT, 92, dur=0.97, acento=4, art='l')
+    segunda(P, 'vlnII', tb, BT, 72)
+    notas_de(P, 'flauta', [(b, d, m + 12, f) for b, d, m, f in tb], BT, 62, dur=0.95, vib=1)
+    notas_de(P, 'oboe', tb, BT, 62, dur=0.95)
+    notas_de(P, 'metal', [(b, d, m - 12, f) for b, d, m, f in tb], BT, 64, dur=0.92)
+    notas_de(P, 'trompeta', tb, BT, 60, dur=0.95)
+    canta(P, tb, BT, 68)
+    voces(P, 'organo', ACORDES_JARDIN[64:72], 54, 'A2', 'A4', n=4, b0=BT, reg='pleno')
+    pedal(P, 'sub', ACORDES_JARDIN[64:72], 78, lo=24, b0=BT)
+    for c in range(64, 72):
+        arpegio(P, c, 'semis', 46, 'A3', 'A5', 'arpa')
+        cello(P, c, 'R.RR.RR.R.RR.RR.' if c % 2 == 0 else 'R.RR.RR.R.RRORO.', 74, lo=33)
+        taikos(P, c, (0.0, 2.0, 3.0), 68, k)
+        bateria(P, c, {'bombo': 'x.....x...x.....', 'caja': '....X.......X...', 'charles': 'x.x.x.x.x.x.x.x.', 'pandereta': 'x.x.x.x.x.x.x.x.'}, -6)
+        if c in (64, 68):
+            P.nota('bat', c * L, 1, 'crash', 100)
+    redoble(P, 71 * L + 2.0, 2.0, 54, 108, 'caja')
+    # ---- 73-76 the way out: flute and violin on the last bars, the harp, the wind coming back
     notas_de(P, 'flauta', te, E, 76, dur=0.97, acento=3, vib=1)
     notas_de(P, 'vlnI', te, E, 54, dur=0.97, acento=3, art='l')
-    pedal(P, 'chelo', ACORDES_JARDIN[48:52], 46, b0=E, lo=33, art='l')
-    pedal(P, 'sub', ACORDES_JARDIN[48:52], 54, lo=24, b0=E)
-    for c in range(48, 52):
-        S.arpa_compas(P, c, 'corcheas', 46 - 2 * (c - 48), desde='A3', hasta='A5')
+    pedal(P, 'chelo', ACORDES_JARDIN[72:76], 46, b0=E, lo=33, art='l')
+    pedal(P, 'sub', ACORDES_JARDIN[72:76], 54, lo=24, b0=E)
+    for c in range(72, 76):
+        S.arpa_compas(P, c, 'corcheas', 46 - 2 * (c - 72), desde='A3', hasta='A5')
     P.nota('viento', E + 4, 12.0, 0, 62)
     polvo(P, 22, 4, E, E + 16, 'A5', 'E6')
     return P
@@ -567,7 +700,7 @@ def intro_jardin(P):
         I.nota(pista, 0.0, 4.15, (45, 52, 57, 60), 34, lado=pista[-1])
     for i, m in enumerate(('A3', 'E4', 'A4', 'C5', 'E5', 'A5')):
         I.nota('arpa', 0.5 + i * 0.5, 0.5, midi(m), 44 + 3 * i)
-    I.anadir(P.trozo(51 * L, 52 * L, 1 * L))
+    I.anadir(P.trozo(75 * L, 76 * L, 1 * L))
     return I
 
 
@@ -581,26 +714,27 @@ def exportar_jardin(salida):
 # =================================================================================================================
 
 BPM_TEATRO = 100
-BARRAS_TEATRO = 48
+BARRAS_TEATRO = 72
 K_T = -7                                                                      # G minor
-ACORDES_TEATRO = T(AC_A + AC_A + AC_B + AC_C3 + AC_D + AC_A_DOM, K_T)
+ACORDES_TEATRO = T(AC_A + AC_A + AC_A + AC_B + AC_G + AC_C3 + AC_D + AC_A + AC_B, K_T)
 
 MEZCLA_TEATRO = dict(clave=(-0.3, -24.0, 0.35, 0.2), organo=(-0.1, -25.0, 0.35, 0.0), pizz=(0.5, -26.0, 0.18, 0.0),
                      vlnI=(-0.4, -24.0, 0.32, 0.0), chelo=(0.05, -23.5, 0.14, 0.0), timbal=(0.0, -23.0, 0.35, 0.0),
                      coro=(0.0, -24.5, 0.45, 0.0), trompeta=(0.0, -27.0, 0.3, 0.0), tramoya=(0.3, -31.0, 0.5, 0.0),
                      viento=(0.0, -34.0, 0.5, 0.0))
-AUTO_TEATRO = ([-4.0] * 8 + [-2.0] * 8 + [-2.5] * 8 + [0.5] * 8 + [-3.0, -3.0, -2.5, -2.5, -2.0, -1.5, 0.0, 1.0] + [1.0] * 7 + [-0.5])
+AUTO_TEATRO = ([-4.0] * 8 + [-2.0] * 8 + [-3.0] * 8 + [-2.5] * 8 + [-5.0] * 8 + [0.5] * 8
+               + [-3.0, -3.0, -2.5, -2.5, -2.0, -1.5, 0.0, 1.0] + [1.0] * 8 + [0.5] * 7 + [-0.5])
 AUTO_TEATRO = suavizar(AUTO_TEATRO)
-AUTO_INTRO_TEATRO = [AUTO_TEATRO[0] - 1.0, AUTO_TEATRO[47]]
+AUTO_INTRO_TEATRO = [AUTO_TEATRO[0] - 1.0, AUTO_TEATRO[71]]
 
 
 def componer_teatro():
-    """The 48 bars of the round -> a Partitura: the theatre, harpsichord and drama."""
+    """The 72 bars of the round -> a Partitura: the theatre, harpsichord and drama."""
     P = Partitura()
     k = K_T
-    A, A2, B, Cc, D, A3 = 0.0, 32.0, 64.0, 96.0, 128.0, 160.0
-    ta, tb = tr(TUNE_A, k), tr(TUNE_B, k)
-    pad = [34] * 8 + [42] * 8 + [48] * 8 + [58] * 8 + [38, 40, 44, 48, 52, 56, 62, 68] + [58] * 8
+    A, A2, V, B, G, Cc, D, A3, BT = 0.0, 32.0, 64.0, 96.0, 128.0, 160.0, 192.0, 224.0, 256.0
+    ta, tb, tg, tv, tc = tr(TUNE_A, k), tr(TUNE_B, k), tr(TUNE_G, k), tr(VAR_A, k), tr(CONTRA_A, k)
+    pad = [34] * 8 + [42] * 8 + [36] * 8 + [48] * 8 + [30] * 8 + [58] * 8 + [38, 40, 44, 48, 52, 56, 62, 68] + [58] * 8 + [60] * 8
     voces(P, 'cuerdasI', ACORDES_TEATRO, pad, 'G2', 'Bb4', n=4, lado='I')
     voces(P, 'cuerdasD', ACORDES_TEATRO, pad, 'G2', 'Bb4', n=4, lado='D')
     P.nota('bat', 0.0, 1, 'plato', 60)
@@ -618,9 +752,10 @@ def componer_teatro():
     P.nota('tramoya', 17.0, 1.2, 0, 56, tipo='cuerda')
     P.nota('viento', 8.0, 14.0, 0, 50)
     polvo(P, 31, 8, 0, 32, 'G5', 'D6')
-    # ---- 9-16 front row: violins marcato on the tune with the oboe, a harpsichord in sixteenths, dramatic pizzicato, a walking cello
+    # ---- 9-16 front row: violins marcato on the tune with the oboe and a counter-melody on the second violins, a harpsichord
+    # in sixteenths, dramatic pizzicato, a walking cello
     notas_de(P, 'vlnI', ta, A2, 88, dur=0.9, acento=5, art='m')
-    segunda(P, 'vlnII', ta, A2, 68, art='m', dur=0.9)
+    notas_de(P, 'vlnII', tc, A2, 58, dur=0.95, acento=3, art='l')
     notas_de(P, 'oboe', ta, A2, 56, dur=0.95)
     for c in range(8, 16):
         arpegio(P, c, 'semis', 46, 'G3', 'G5', 'clave')
@@ -631,77 +766,142 @@ def componer_teatro():
     golpe(P, 11 * L + 3.0, 96)
     golpe(P, 15 * L + 3.0, 104)
     P.nota('bat', A2, 1, 'plato', 74)
-    # ---- 17-24 the interval: the second tune on legato violins and a flute, an organ chorale under it, the harpsichord in 3+3+2, a choir
+    # ---- 17-24 the cadenza: the harpsichord alone dresses the first tune in turns and runs, in the baroque way, over a
+    # cello continuo and pizzicato; a violin answers on the long notes, the organ holds a soft chorale, a flute doubles an octave up
+    P.nota('tramoya', V + 6.0, 1.0, 0, 52, tipo='crujido')
+    notas_de(P, 'clave', tv, V, 80, dur=0.85, acento=6)
+    notas_de(P, 'flauta', [(b, d, m + 12, f) for b, d, m, f in tv], V, 44, dur=0.8, vib=0)
+    for b, d, m, _ in ta:
+        if d >= 2.0 and b < 24:
+            P.nota('vlnI', V + b, d * 0.97, m, 54, art='l')
+    for b, d, m, _ in ta[-8:]:
+        P.nota('coro', V + b, d * 0.96, (m - 12, m), 60, vocal='o')
+        P.nota('vlnI', V + b, d * 0.97, m, 84, art='m')
+        P.nota('trompeta', V + b, d * 0.92, m, 56)
+    voces(P, 'organo', ACORDES_TEATRO[16:24], 38, 'G2', 'G4', n=3, b0=V, reg='suave')
+    for c in range(16, 24):
+        cello(P, c, 'R...R...R...R.F.', 60, dur=0.5, lo=31)
+        pizzs(P, c, (4, 12) if c % 2 == 0 else (4, 10, 14), 50, desde='G3', hasta='D5')
+        taikos(P, c, (0.0,), 50, k)
+        bateria(P, c, {'rim': '....x.......x...'}, -18)
+    golpe(P, V + 31.0 - 0.5, 90)
+    P.nota('bat', V, 1, 'plato', 70)
+    # ---- 25-32 the interval: the second tune on legato violins and a flute, an organ chorale under it, the harpsichord in 3+3+2, a choir
     notas_de(P, 'vlnI', tb, B, 84, dur=0.97, acento=4, art='l')
     notas_de(P, 'flauta', tb, B, 62, dur=0.95, vib=1)
     segunda(P, 'vlnII', tb, B, 60)
-    voces(P, 'organo', ACORDES_TEATRO[16:24], 46, 'G2', 'G4', n=4, b0=B, reg='suave')
-    for c in range(16, 24):
+    voces(P, 'organo', ACORDES_TEATRO[24:32], 46, 'G2', 'G4', n=4, b0=B, reg='suave')
+    for c in range(24, 32):
         arpegio(P, c, 'tresytres', 54, 'G3', 'G5', 'clave')
         cello(P, c, 'R..R..R...R.....' if c % 2 == 0 else 'R..R..R...R.R.F.', 68, lo=31)
         pizzs(P, c, (10,), 54, desde='G3', hasta='D5')
         taikos(P, c, (0.0,), 66, k)
         bateria(P, c, {'rim': '....x.......x...', 'charles': 'o...o...o...o...'}, -12)
-    voces(P, 'coroI', ACORDES_TEATRO[20:24], 50, 'G3', 'G5', n=3, b0=B + 16, vocal='o')
-    voces(P, 'coroD', ACORDES_TEATRO[20:24], 50, 'G3', 'G5', n=3, b0=B + 16, vocal='o')
-    redoble(P, 23 * L + 1.0, 3.0, 50, 112, 'caja')
+    voces(P, 'coroI', ACORDES_TEATRO[28:32], 50, 'G3', 'G5', n=3, b0=B + 16, vocal='o')
+    voces(P, 'coroD', ACORDES_TEATRO[28:32], 50, 'G3', 'G5', n=3, b0=B + 16, vocal='o')
+    # ---- 33-40 the aria: the house lights go down. A cello alone sings a new, calm tune in the major keys over a harpsichord
+    # and a soft organ, then a violin and a flute take it up; a hummed choir, a distant creak; the last bars gather for the chant
+    for b, d, m, _ in tg:
+        if b < 16:
+            P.nota('chelo', G + b, d * 0.97, m - 12, 66, art='l')
+            P.nota('oboe', G + b, d * 0.95, m, 36)
+        else:
+            P.nota('vlnI', G + b, d * 0.97, m, 66 + (4 if b % 1 == 0 else 0), art='l')
+            P.nota('flauta', G + b, d * 0.95, m, 56, vib=1)
+            P.nota('chelo', G + b, d * 0.97, m - 24, 56, art='l')
+    for c in range(32, 40):
+        arpegio(P, c, 'corcheas', 40 + 2 * (c - 32), 'G3', 'G5', 'clave')
+    voces(P, 'organo', ACORDES_TEATRO[32:40], 34, 'G2', 'G4', n=3, b0=G, reg='suave')
+    voces(P, 'coroI', ACORDES_TEATRO[36:40], 40, 'G3', 'G5', n=3, b0=G + 16, vocal='u')
+    voces(P, 'coroD', ACORDES_TEATRO[36:40], 40, 'G3', 'G5', n=3, b0=G + 16, vocal='u')
+    pedal(P, 'sub', ACORDES_TEATRO[32:40], 50, lo=22, b0=G)
+    P.nota('tramoya', G + 9.0, 1.2, 0, 50, tipo='cuerda')
+    P.nota('viento', G + 4.0, 12.0, 0, 42)
+    polvo(P, 41, 8, G, G + 32, 'G5', 'D6')
+    P.nota('subida', 38 * L, 8.0, 0, 70)
+    redoble(P, 39 * L, 4.0, 40, 118, 'caja')
     for i in range(16):
-        P.nota('timbal', 23 * L + 2.0 + i * 0.125, 0.125, midi('G1'), 56 + 3 * i)
-    # ---- 25-32 THE CHANT on stage: the organ at full, violins and brass, the choir, kettledrums on every beat; the second time with trumpets
+        P.nota('timbal', 39 * L + i * 0.25, 0.25, midi('G1'), 54 + 3 * i)
+    # ---- 41-48 THE CHANT on stage: the organ at full, violins and brass, the choir, kettledrums on every beat; the second time with trumpets
     P.nota('bat', Cc, 1, 'crash', 108)
     P.nota('tamtam', Cc, 4, 0, 94)
     motivo4(P, Cc, [('vlnI', k, 94, dict(art='m')), ('vlnII', k - 12, 82, dict(art='m')), ('coro', k, 90, {}),
                     ('metal', k - 12, 72, {})], k)
     motivo4(P, Cc + 16, [('vlnI', k, 98, dict(art='m')), ('vlnII', k - 12, 86, dict(art='m')), ('coro', k, 96, {}),
                          ('metal', k - 12, 76, {}), ('trompeta', k, 76, {})], k)
-    voces(P, 'organo', ACORDES_TEATRO[24:32], 62, 'G2', 'G4', n=4, b0=Cc, reg='pleno')
-    pedal(P, 'organo', ACORDES_TEATRO[24:32], 56, b0=Cc, reg='pleno', lo=26)
-    pedal(P, 'sub', ACORDES_TEATRO[24:32], 84, lo=22, b0=Cc)
-    for c in range(24, 32):
+    voces(P, 'organo', ACORDES_TEATRO[40:48], 62, 'G2', 'G4', n=4, b0=Cc, reg='pleno')
+    pedal(P, 'organo', ACORDES_TEATRO[40:48], 56, b0=Cc, reg='pleno', lo=26)
+    pedal(P, 'sub', ACORDES_TEATRO[40:48], 84, lo=22, b0=Cc)
+    for c in range(40, 48):
         arpegio(P, c, 'semis', 46, 'G3', 'G5', 'clave')
         cello(P, c, 'RRORRORRRORRORRO', 76, lo=31)
-        taikos(P, c, (0.0, 1.0, 2.0, 3.0), 74 if c < 28 else 82, k)
+        taikos(P, c, (0.0, 1.0, 2.0, 3.0), 74 if c < 44 else 82, k)
         bateria(P, c, {'bombo_banda': 'x.......x.......', 'caja': '....X.......X...', 'charles': 'x.x.x.x.x.x.x.x.'}, -3)
-        if c in (24, 28):
+        if c in (40, 44):
             P.nota('bat', c * L, 1, 'crash', 102)
-    golpe(P, 27 * L + 3.0, 104)
-    redoble(P, 31 * L + 1.0, 3.0, 54, 120, 'caja')
-    tambores(P, 31 * L + 3.0, ('tom1', 'tom2', 'tom3', 'tom4'), 96, 122, 0.25)
-    # ---- 33-40 the spotlight: pizzicato scattered like footsteps, the harpsichord running down, tremolo violins, a choir, stabs, a build
-    for c in range(32, 40):
-        arpegio(P, c, 'semis', 40 + 3 * (c - 32), 'G3', 'G5', 'clave', baja=True)
-        pizzs(P, c, (0, 3, 6, 8, 11, 14) if c % 2 == 0 else (2, 5, 9, 12, 14), 60 + 2 * (c - 32), desde='G3', hasta='D5')
-        pasos(P, c, 'vlnI', '3.3.3.3.3.3.3.3.', 44 + 4 * (c - 32), 'D4', 'D6', art='c')
-        cello(P, c, 'R...............', 54 + 3 * (c - 32), dur=3.8, art='l', lo=31)
-        taikos(P, c, (0.0,), 52 + 3 * (c - 32), k)
+    golpe(P, 43 * L + 3.0, 104)
+    redoble(P, 47 * L + 1.0, 3.0, 54, 120, 'caja')
+    tambores(P, 47 * L + 3.0, ('tom1', 'tom2', 'tom3', 'tom4'), 96, 122, 0.25)
+    # ---- 49-56 the spotlight: pizzicato scattered like footsteps, the harpsichord running down, tremolo violins, a choir, stabs, a build
+    for c in range(48, 56):
+        arpegio(P, c, 'semis', 40 + 3 * (c - 48), 'G3', 'G5', 'clave', baja=True)
+        pizzs(P, c, (0, 3, 6, 8, 11, 14) if c % 2 == 0 else (2, 5, 9, 12, 14), 60 + 2 * (c - 48), desde='G3', hasta='D5')
+        pasos(P, c, 'vlnI', '3.3.3.3.3.3.3.3.', 44 + 4 * (c - 48), 'D4', 'D6', art='c')
+        cello(P, c, 'R...............', 54 + 3 * (c - 48), dur=3.8, art='l', lo=31)
+        taikos(P, c, (0.0,), 52 + 3 * (c - 48), k)
     for b in (D + 3.5, D + 11.5, D + 19.5, D + 25.5):
         golpe(P, b, 100)
-    voces(P, 'coroI', ACORDES_TEATRO[32:40], 42, 'G3', 'G5', n=3, b0=D, vocal='u', extra=0.3)
-    voces(P, 'coroD', ACORDES_TEATRO[32:40], 42, 'G3', 'G5', n=3, b0=D, vocal='u', extra=0.3)
-    pedal(P, 'sub', ACORDES_TEATRO[32:40], 70, lo=22, b0=D)
-    P.nota('subida', 38 * L, 8.0, 0, 86)
-    redoble(P, 38 * L, 8.0, 40, 124, 'caja')
+    voces(P, 'coroI', ACORDES_TEATRO[48:56], 42, 'G3', 'G5', n=3, b0=D, vocal='u', extra=0.3)
+    voces(P, 'coroD', ACORDES_TEATRO[48:56], 42, 'G3', 'G5', n=3, b0=D, vocal='u', extra=0.3)
+    pedal(P, 'sub', ACORDES_TEATRO[48:56], 70, lo=22, b0=D)
+    P.nota('subida', 54 * L, 8.0, 0, 86)
+    redoble(P, 54 * L, 8.0, 40, 124, 'caja')
     for i in range(32):
-        P.nota('timbal', 38 * L + i * 0.25, 0.25, midi('D2'), 54 + 2 * i)
-    # ---- 41-48 ovation: the tune with violins, a trumpet and the organ, the choir, a galloping cello, a kit, the harpsichord in 3+3+2
+        P.nota('timbal', 54 * L + i * 0.25, 0.25, midi('D2'), 54 + 2 * i)
+    # ---- 57-64 ovation: the tune with violins, a trumpet and the organ, the choir, the oboe on the counter-melody, a galloping cello,
+    # a kit, the harpsichord in 3+3+2
     P.nota('bat', A3, 1, 'crash', 112)
     P.nota('tamtam', A3, 4, 0, 92)
     notas_de(P, 'vlnI', ta, A3, 96, dur=0.97, acento=4, art='l')
     segunda(P, 'vlnII', ta, A3, 78)
     notas_de(P, 'trompeta', ta, A3, 74, dur=0.95)
     notas_de(P, 'flauta', [(b, d, m + 12, f) for b, d, m, f in ta], A3, 54, dur=0.95, vib=1)
+    notas_de(P, 'oboe', tc, A3, 62, dur=0.95)
     canta(P, ta, A3, 78)
-    voces(P, 'organo', ACORDES_TEATRO[40:48], 56, 'G2', 'G4', n=4, b0=A3, reg='pleno')
-    for c in range(40, 48):
+    voces(P, 'organo', ACORDES_TEATRO[56:64], 56, 'G2', 'G4', n=4, b0=A3, reg='pleno')
+    for c in range(56, 64):
         arpegio(P, c, 'tresytres', 52, 'G3', 'G5', 'clave')
         cello(P, c, 'R.RR.RR.R.RR.RR.' if c % 2 == 0 else 'R.RR.RR.R.RRORO.', 78, lo=31)
         pizzs(P, c, (6, 14), 62, desde='G3', hasta='D5')
         taikos(P, c, (0.0, 2.0, 3.0), 76, k)
         bateria(P, c, {'bombo': 'x.....x...x.....', 'caja': '....X.......X...', 'charles': 'x.x.x.x.x.x.x.x.'}, -4)
-        if c in (40, 44):
+        if c in (56, 60):
             P.nota('bat', c * L, 1, 'crash', 100)
-    golpe(P, 43 * L + 3.0, 100)
-    redoble(P, 47 * L + 1.0, 3.0, 54, 112, 'caja')
+    golpe(P, 59 * L + 3.0, 100)
+    redoble(P, 63 * L + 1.0, 3.0, 54, 112, 'caja')
+    # ---- 65-72 encore: the second tune in full dress, trumpets and violins on it, the choir, the organ, stabs on the off-beats
+    # of the kit and the harpsichord in sixteenths; the last bars settle on the dominant and the curtain rises again
+    P.nota('bat', BT, 1, 'crash', 106)
+    P.nota('tamtam', BT, 4, 0, 86)
+    notas_de(P, 'vlnI', tb, BT, 94, dur=0.97, acento=4, art='l')
+    segunda(P, 'vlnII', tb, BT, 76)
+    notas_de(P, 'trompeta', tb, BT, 72, dur=0.95)
+    notas_de(P, 'flauta', [(b, d, m + 12, f) for b, d, m, f in tb], BT, 54, dur=0.95, vib=1)
+    notas_de(P, 'metal', [(b, d, m - 12, f) for b, d, m, f in tb], BT, 64, dur=0.92)
+    canta(P, tb, BT, 72)
+    voces(P, 'organo', ACORDES_TEATRO[64:72], 56, 'G2', 'G4', n=4, b0=BT, reg='pleno')
+    pedal(P, 'sub', ACORDES_TEATRO[64:72], 76, lo=22, b0=BT)
+    for c in range(64, 72):
+        arpegio(P, c, 'semis', 46, 'G3', 'G5', 'clave')
+        cello(P, c, 'R...R.F.R...R.F.', 72, dur=0.45, lo=31)
+        pizzs(P, c, (0, 3, 6, 10, 12), 62, desde='G3', hasta='D5')
+        taikos(P, c, (0.0, 2.0), 70, k)
+        bateria(P, c, {'bombo': 'x..x..x.x..x..x.', 'caja': '....X.......X...', 'charles': 'x.x.x.x.x.x.x.x.'}, -5)
+        if c in (64, 68):
+            P.nota('bat', c * L, 1, 'crash', 98)
+    golpe(P, 67 * L + 3.0, 100)
+    golpe(P, 71 * L + 3.0, 96)
+    redoble(P, 71 * L + 1.0, 2.0, 50, 108, 'caja')
     return P
 
 
@@ -716,7 +916,7 @@ def intro_teatro(P):
         I.nota(pista, 0.0, 4.15, (43, 50, 55, 58), 34, lado=pista[-1])
     for i, m in enumerate(('G3', 'D4', 'G4', 'Bb4', 'D5')):
         I.nota('clave', 1.5 + i * 0.5, 0.5, midi(m), 50 + 3 * i)
-    I.anadir(P.trozo(47 * L, 48 * L, 1 * L))
+    I.anadir(P.trozo(71 * L, 72 * L, 1 * L))
     return I
 
 
@@ -730,7 +930,7 @@ def exportar_teatro(salida):
 # =================================================================================================================
 
 BPM_MINIBOSS = 150
-BARRAS_MINIBOSS = 56
+BARRAS_MINIBOSS = 96
 K_M = 2                                                                       # E minor
 AC_MA = [['Dm'], ['Dm', 'Bb'], ['Gm'], ['A7'], ['Dm'], ['Bb', 'C'], ['Gm', 'A7'], ['A7']]
 TUNE_MA = M('D5:2 D5:2 F5:4 A5:4 D6:4 | D6:4 A5:4 F6:4 D6:4 | G5:2 G5:2 Bb5:4 D6:4 G6:4 | E6:4 C#6:4 A5:8 | '
@@ -741,28 +941,32 @@ TUNE_MD = M('D5:2 D5:2 G5:4 D5:2 D5:2 G5:4 | D5:2 D5:2 G5:4 Bb5:4 D6:4 | G5:2 G5
 AC_ME = [['Dm'], ['Dm'], ['Bb'], ['Bb'], ['Gm'], ['Gm'], ['A7sus4'], ['A7']]
 TUNE_ME = M('D5:4 F5:4 A5:4 D6:4 | F6:4 E6:4 D6:4 A5:4 | Bb5:4 D6:4 F6:4 D6:4 | Bb5:8 D6:4 F6:4 | '
             'G5:4 Bb5:4 D6:4 G6:4 | F6:4 Eb6:4 D6:4 Bb5:4 | A5:4 D6:4 E6:4 G6:4 | C#6:4 E6:4 G6:4 E6:4')
-ACORDES_MINIBOSS = T(AC_MA + AC_C2 + AC_D + AC_MA + AC_C3 + AC_MD + AC_ME, K_M)
+# a riff for the half-time section (over AC_Y): the three notes of the chant's start hammered, answers on the brass
+TUNE_Y = M('D5:2 -:2 D5:2 F5:2 A5:4 F5:4 | D5:2 -:2 D5:2 F5:2 A5:4 D6:4 | Eb5:2 -:2 Eb5:2 G5:2 Bb5:4 G5:4 | Eb5:2 -:2 Eb5:2 G5:2 Bb5:4 Eb6:4 | '
+           'D5:2 -:2 D5:2 F5:2 A5:4 F5:4 | F5:2 -:2 F5:2 A5:2 D6:4 A5:4 | Bb5:4 F5:4 E6:4 G5:4 | D6:4 A5:4 C#6:4 E6:4')
+ACORDES_MINIBOSS = T(AC_MA + AC_C2 + AC_X + AC_D + AC_MA + AC_Y + AC_C3 + AC_MD + AC_G + AC_MA + AC_C4 + AC_ME, K_M)
 
 MEZCLA_MINIBOSS = dict(vlnI=(-0.4, -23.0, 0.25, 0.0), vlnII=(0.4, -26.5, 0.25, 0.0), chelo=(0.05, -22.5, 0.1, 0.0),
                        taiko=(0.0, -21.5, 0.25, 0.0), coro=(0.0, -24.0, 0.4, 0.0), trompeta=(0.0, -26.0, 0.3, 0.0),
                        organo=(-0.1, -25.5, 0.3, 0.0), timbal=(0.0, -23.0, 0.3, 0.0), clave=(-0.3, -27.0, 0.3, 0.2))
-AUTO_MINIBOSS = ([-1.0] * 8 + [1.0] * 8 + [-3.0] * 6 + [-2.0, -1.0] + [0.0] * 8 + [1.5] * 8 + [1.0] * 8 + [0.0, 0.0, 0.5, 0.5, 1.0, 1.0, 1.5, 2.0])
+AUTO_MINIBOSS = ([-1.0] * 8 + [1.0] * 8 + [-3.0] * 8 + [-3.0] * 6 + [-2.0, -1.0] + [0.0] * 8 + [0.5] * 8 + [1.5] * 8 + [1.0] * 8
+                 + [-3.5] * 8 + [0.0] * 8 + [2.0] * 8 + [0.0, 0.0, 0.5, 0.5, 1.0, 1.0, 1.5, 2.0])
 AUTO_MINIBOSS = suavizar(AUTO_MINIBOSS)
-AUTO_INTRO_MINIBOSS = [AUTO_MINIBOSS[0] + 1.0, AUTO_MINIBOSS[55]]
+AUTO_INTRO_MINIBOSS = [AUTO_MINIBOSS[0] + 1.0, AUTO_MINIBOSS[95]]
 
 
 def componer_miniboss():
-    """The 56 bars of the round -> a Partitura: the fight against the Gran Despertador."""
+    """The 96 bars of the round -> a Partitura: the fight against the Gran Despertador."""
     P = Partitura()
     k = K_M
-    A, B, Cc, A2, B2, Dd, E = 0.0, 32.0, 64.0, 96.0, 128.0, 160.0, 192.0
-    tma, tmd, tme = tr(TUNE_MA, k), tr(TUNE_MD, k), tr(TUNE_ME, k)
-    pad = [56] * 8 + [74] * 8 + [48] * 8 + [62] * 8 + [78] * 8 + [80] * 8 + [60, 62, 66, 70, 76, 82, 90, 100]
+    A, B, X, Cc, A2, Y, B2, Dd, Z, W, B3, E = 0.0, 32.0, 64.0, 96.0, 128.0, 160.0, 192.0, 224.0, 256.0, 288.0, 320.0, 352.0
+    tma, tmd, tme, tx, ty, tg, ca = tr(TUNE_MA, k), tr(TUNE_MD, k), tr(TUNE_ME, k), tr(TUNE_X, k), tr(TUNE_Y, k), tr(TUNE_G, k), tr(CONTRA_MA, k)
+    pad = [56] * 8 + [74] * 8 + [44] * 8 + [48] * 8 + [62] * 8 + [70] * 8 + [78] * 8 + [80] * 8 + [34] * 8 + [66] * 8 + [84] * 8 + [60, 62, 66, 70, 76, 82, 90, 100]
     voces(P, 'cuerdasI', ACORDES_MINIBOSS, pad, 'E2', 'G4', n=4, lado='I')
     voces(P, 'cuerdasD', ACORDES_MINIBOSS, pad, 'E2', 'G4', n=4, lado='D')
     P.nota('bat', 0.0, 1, 'crash', 106)
 
-    def galope(desde, hasta, vel, fill_final=None):
+    def galope(desde, hasta, vel):
         for c in range(desde, hasta):
             cello(P, c, 'R.RR.RR.R.RR.RR.' if c % 2 == 0 else 'R.RR.RR.R.RRORO.', vel, lo=28)
             pasos(P, c, 'vlnII', '0101010101010101', vel - 22, 'E4', 'E6', dur=0.2, art='c')
@@ -795,39 +999,79 @@ def componer_miniboss():
             P.nota('bat', c * L, 1, 'crash', 104)
     redoble(P, 15 * L + 1.0, 3.0, 54, 120, 'caja')
     tambores(P, 15 * L + 3.0, ('tom1', 'tom2', 'tom3', 'tom4'), 100, 124, 0.25)
-    # ---- 17-24 the bridge, half time: a harpsichord in 3+3+2, tremolo violins growing, a choir whispering, a long cello; the build
+    # ---- 17-24 tick-tock: the fight holds its breath. A harpsichord and a pizzicato swing the pendulum (a note up, a note down)
+    # over a rim click on every beat and a low cello; the oboe and violins creep in, a hummed choir, then the brass hits the hour
+    P.nota('bat', X, 1, 'plato', 70)
+    notas_de(P, 'clave', tx, X, 84, dur=0.7, acento=8)
+    notas_de(P, 'pizz', [(b, d, m - 12, f) for b, d, m, f in tx], X, 66, dur=0.6, acento=6)
+    for b, d, m, _ in tx:
+        if b >= 16:
+            P.nota('oboe', X + b, d * 0.9, m, 56 + int(b))
     for c in range(16, 24):
+        cello(P, c, 'R...R...R...R...', 62, dur=0.5, lo=28)
+        taikos(P, c, (0.0,) if c < 20 else (0.0, 2.0), 62, k)
+        bateria(P, c, {'rim': 'x...x...x...x...', 'charles': '..x...x...x...x.'}, -6)
+        pasos(P, c, 'vlnI', '3.3.3.3.3.3.3.3.', 38 + 4 * (c - 16), 'E4', 'E6', dur=0.15, art='c')
+    pedal(P, 'chelo', ACORDES_MINIBOSS[16:24], 52, lo=28, b0=X, art='l')
+    voces(P, 'coroI', ACORDES_MINIBOSS[20:24], 42, 'E3', 'E5', n=3, b0=X + 16, vocal='u')
+    voces(P, 'coroD', ACORDES_MINIBOSS[20:24], 42, 'E3', 'E5', n=3, b0=X + 16, vocal='u')
+    pedal(P, 'sub', ACORDES_MINIBOSS[16:24], 66, lo=24, b0=X)
+    for m in S.tonos(S.ch_en(X + 31.0), 'E3', 'G4'):
+        P.nota('metal', X + 31.0, 0.9, m, 100)
+    redoble(P, 23 * L + 2.0, 2.0, 46, 116, 'caja')
+    # ---- 25-32 the bridge, half time: a harpsichord in 3+3+2, tremolo violins growing, a choir whispering, a long cello; the build
+    for c in range(24, 32):
         arpegio(P, c, 'tresytres', 56, 'E3', 'E5', 'clave')
-        pasos(P, c, 'vlnI', '3232323232323232', 46 + 5 * (c - 16), 'E4', 'E6', dur=0.2, art='c')
+        pasos(P, c, 'vlnI', '3232323232323232', 46 + 5 * (c - 24), 'E4', 'E6', dur=0.2, art='c')
         cello(P, c, 'R...............', 64, dur=3.8, art='l', lo=28)
-        taikos(P, c, (0.0, 2.5), 72 + 2 * (c - 16), k)
+        taikos(P, c, (0.0, 2.5), 72 + 2 * (c - 24), k)
         bateria(P, c, {'bombo': 'x.......x.x.....', 'caja': '........X.......', 'rim': '....x.......x...'}, -6)
-    voces(P, 'coroI', ACORDES_MINIBOSS[16:24], 44, 'E3', 'E5', n=3, b0=Cc, vocal='u', extra=0.3)
-    voces(P, 'coroD', ACORDES_MINIBOSS[16:24], 44, 'E3', 'E5', n=3, b0=Cc, vocal='u', extra=0.3)
-    pedal(P, 'sub', ACORDES_MINIBOSS[16:24], 74, lo=24, b0=Cc)
+    voces(P, 'coroI', ACORDES_MINIBOSS[24:32], 44, 'E3', 'E5', n=3, b0=Cc, vocal='u', extra=0.3)
+    voces(P, 'coroD', ACORDES_MINIBOSS[24:32], 44, 'E3', 'E5', n=3, b0=Cc, vocal='u', extra=0.3)
+    pedal(P, 'sub', ACORDES_MINIBOSS[24:32], 74, lo=24, b0=Cc)
     P.nota('bat', Cc, 1, 'plato', 80)
-    P.nota('subida', 22 * L, 8.0, 0, 86)
-    redoble(P, 22 * L, 8.0, 40, 124, 'caja')
+    P.nota('subida', 30 * L, 8.0, 0, 86)
+    redoble(P, 30 * L, 8.0, 40, 124, 'caja')
     for i in range(32):
-        P.nota('timbal', 22 * L + i * 0.25, 0.25, midi('A1') + k, 56 + 2 * i)
-    # ---- 25-32 the alarm again, with brass under the violins and a trumpet; the choir hums
+        P.nota('timbal', 30 * L + i * 0.25, 0.25, midi('A1') + k, 56 + 2 * i)
+    # ---- 33-40 the alarm again, with brass under the violins and a trumpet; the choir hums; a counter-melody on the flute
     P.nota('bat', A2, 1, 'crash', 112)
     notas_de(P, 'vlnI', tma, A2, 102, dur=0.93, acento=6, art='m')
     notas_de(P, 'metal', [(b, d, m - 12, f) for b, d, m, f in tma], A2, 80, dur=0.9)
     notas_de(P, 'trompeta', tma, A2, 66, dur=0.93)
     segunda(P, 'oboe', tma, A2, 58)
     canta(P, tma, A2, 66, vocal='o')
-    galope(24, 32, 84)
-    for c in range(24, 32):
+    galope(32, 40, 84)
+    for c in range(32, 40):
         taikos(P, c, (0.0, 1.0, 2.0, 3.0), 80, k)
         bateria(P, c, {'bombo': 'x.x...x.x.x.....' if c % 2 == 0 else 'x.x...x.x.x.x.x.', 'caja': '....X.......X...', 'charles': 'xoxoxoxoxoxoxoxo'}, 0)
-        if c in (24, 28):
+        if c in (32, 36):
             P.nota('bat', c * L, 1, 'crash', 102)
-    for c in (27, 31):
+    for c in (35, 39):
         for m in S.tonos(S.ch_en(c * L + 3.0), 'E3', 'G4'):
             P.nota('metal', c * L + 3.0, 0.9, m, 100)
-    tambores(P, 31 * L + 2.0, ('tom1', 'tom2', 'tom3', 'tom4', 'tom1', 'tom2', 'tom3', 'tom4'), 90, 120, 0.25)
-    # ---- 33-40 the chant, bigger: everything, the answer an octave higher on the trumpet, the kettledrums rolling, a tam-tam on every four bars
+    tambores(P, 39 * L + 2.0, ('tom1', 'tom2', 'tom3', 'tom4', 'tom1', 'tom2', 'tom3', 'tom4'), 90, 120, 0.25)
+    # ---- 41-48 snooze: half time, heavy. The three notes of the chant's start hammered on violins and brass, the cello and the bass drum
+    # on the same off-beat figure, a trumpet answering, the choir shouting on the chord changes; the snare only on the third beat
+    P.nota('bat', Y, 1, 'crash', 108)
+    P.nota('tamtam', Y, 4, 0, 92)
+    notas_de(P, 'vlnI', ty, Y, 100, dur=0.8, acento=6, art='m')
+    notas_de(P, 'metal', [(b, d, m - 12, f) for b, d, m, f in ty], Y, 86, dur=0.8)
+    notas_de(P, 'trompeta', ty, Y, 64, dur=0.8)
+    for c in range(40, 48):
+        cello(P, c, 'R..R..R.R..R..R.', 80, dur=0.3, lo=28)
+        pasos(P, c, 'vlnII', '0.1.0.1.0.1.0.1.', 62, 'E4', 'E6', dur=0.2, art='c')
+        taikos(P, c, (0.0, 1.5, 2.5, 3.5) if c % 2 == 0 else (0.0, 1.5, 2.5), 84, k)
+        bateria(P, c, {'bombo': 'x..x..x.x..x..x.', 'caja': '........X.......', 'charles': 'x.x.x.x.x.x.x.x.', 'abierto': '..o...o...o...o.'}, 0)
+        raiz = S.raiz_grave(S.ch_en(c * L), 52)
+        P.nota('coro', c * L, 1.5, (raiz, raiz + 12), 84, vocal='o')
+    pedal(P, 'sub', ACORDES_MINIBOSS[40:48], 90, lo=24, b0=Y)
+    pedal(P, 'organo', ACORDES_MINIBOSS[40:48], 52, b0=Y, reg='pleno', lo=28)
+    for c in (43, 47):
+        for m in S.tonos(S.ch_en(c * L + 3.0), 'E3', 'G4'):
+            P.nota('metal', c * L + 3.0, 0.9, m, 100)
+    tambores(P, 47 * L + 2.0, ('tom1', 'tom2', 'tom3', 'tom4', 'tom1', 'tom2', 'tom3', 'tom4'), 94, 122, 0.25)
+    # ---- 49-56 the chant, bigger: everything, the answer an octave higher on the trumpet, the kettledrums rolling, a tam-tam on every four bars
     P.nota('bat', B2, 1, 'crash', 114)
     P.nota('tamtam', B2, 4, 0, 98)
     P.nota('tamtam', B2 + 16, 4, 0, 98)
@@ -835,35 +1079,94 @@ def componer_miniboss():
                     ('metal', k - 12, 84, {}), ('trompeta', k, 78, {}), ('flauta', k + 12, 60, dict(vib=1))], k)
     motivo4(P, B2 + 16, [('vlnI', k, 106, dict(art='m')), ('vlnII', k - 12, 94, dict(art='m')), ('coro', k, 104, {}),
                          ('metal', k - 12, 86, {}), ('trompeta', k, 82, {}), ('flauta', k + 12, 62, dict(vib=1))], k)
-    voces(P, 'organo', ACORDES_MINIBOSS[32:40], 66, 'E2', 'E4', n=4, b0=B2, reg='pleno')
-    pedal(P, 'organo', ACORDES_MINIBOSS[32:40], 60, b0=B2, reg='pleno', lo=28)
-    pedal(P, 'sub', ACORDES_MINIBOSS[32:40], 88, lo=24, b0=B2)
-    galope(32, 40, 86)
-    for c in range(32, 40):
+    voces(P, 'organo', ACORDES_MINIBOSS[48:56], 66, 'E2', 'E4', n=4, b0=B2, reg='pleno')
+    pedal(P, 'organo', ACORDES_MINIBOSS[48:56], 60, b0=B2, reg='pleno', lo=28)
+    pedal(P, 'sub', ACORDES_MINIBOSS[48:56], 88, lo=24, b0=B2)
+    galope(48, 56, 86)
+    for c in range(48, 56):
         taikos(P, c, (0.0, 1.0, 2.0, 3.0), 88, k)
         bateria(P, c, {'bombo': 'x.xxx..xx.xxx..x', 'caja': '....X.......X..x', 'charles': 'x.x.x.x.x.x.x.x.', 'abierto': '..o...o...o...o.'}, 2)
-        if c in (32, 36):
+        if c in (48, 52):
             P.nota('bat', c * L, 1, 'crash', 106)
     for i in range(16):
-        P.nota('timbal', 39 * L + i * 0.25, 0.25, midi('E2'), 60 + 3 * i)
-    redoble(P, 39 * L + 1.0, 3.0, 56, 124, 'caja')
-    # ---- 41-48 the last stand: the three notes «Ca-mio-neees» over and over, in unison on everything, the drums in sixteenths
+        P.nota('timbal', 55 * L + i * 0.25, 0.25, midi('E2'), 60 + 3 * i)
+    redoble(P, 55 * L + 1.0, 3.0, 56, 124, 'caja')
+    # ---- 57-64 the last stand: the three notes «Ca-mio-neees» over and over, in unison on everything, the drums in sixteenths
     P.nota('bat', Dd, 1, 'crash', 116)
     notas_de(P, 'vlnI', tmd, Dd, 104, dur=0.9, acento=4, art='m')
     notas_de(P, 'vlnII', [(b, d, m - 12, f) for b, d, m, f in tmd], Dd, 92, dur=0.9, acento=4, art='m')
     notas_de(P, 'metal', [(b, d, m - 12, f) for b, d, m, f in tmd], Dd, 84, dur=0.9)
     notas_de(P, 'trompeta', tmd, Dd, 80, dur=0.9)
     canta(P, tmd, Dd, 98)
-    voces(P, 'organo', ACORDES_MINIBOSS[40:48], 64, 'E2', 'E4', n=4, b0=Dd, reg='pleno')
-    pedal(P, 'sub', ACORDES_MINIBOSS[40:48], 88, lo=24, b0=Dd)
-    galope(40, 48, 88)
-    for c in range(40, 48):
+    voces(P, 'organo', ACORDES_MINIBOSS[56:64], 64, 'E2', 'E4', n=4, b0=Dd, reg='pleno')
+    pedal(P, 'sub', ACORDES_MINIBOSS[56:64], 88, lo=24, b0=Dd)
+    galope(56, 64, 88)
+    for c in range(56, 64):
         taikos(P, c, (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5), 80, k)
         bateria(P, c, {'bombo': 'x.xxx.xxx.xxx.xx', 'caja': '....X.......X.xx', 'charles': 'x.x.x.x.x.x.x.x.', 'abierto': '..o...o...o...o.'}, 4)
-        if c in (40, 44):
+        if c in (56, 60):
             P.nota('bat', c * L, 1, 'crash', 108)
-    tambores(P, 47 * L + 2.0, ('tom1', 'tom2', 'tom3', 'tom4', 'tom1', 'tom2', 'tom3', 'tom4'), 94, 124, 0.25)
-    # ---- 49-56 the build: a rising line in unison, a riser and a roll, back to the alarm
+    tambores(P, 63 * L + 2.0, ('tom1', 'tom2', 'tom3', 'tom4', 'tom1', 'tom2', 'tom3', 'tom4'), 94, 124, 0.25)
+    # ---- 65-72 winded: the Despertador stumbles. The drums drop out and a cello sings a calm tune in the major keys over a harp, then
+    # the violins and the flute take it; a hummed choir and a soft organ; a heartbeat on the kettledrum; the last bars gather for the alarm
+    for b, d, m, _ in tg:
+        if b < 16:
+            P.nota('chelo', Z + b, d * 0.97, m - 12, 68, art='l')
+            P.nota('flauta', Z + b, d * 0.95, m, 40, vib=1)
+        else:
+            P.nota('vlnI', Z + b, d * 0.97, m, 68 + (4 if b % 1 == 0 else 0), art='l')
+            P.nota('flauta', Z + b, d * 0.95, m, 58, vib=1)
+            P.nota('chelo', Z + b, d * 0.97, m - 24, 58, art='l')
+    for c in range(64, 72):
+        S.arpa_compas(P, c, 'corcheas', 40 + 2 * (c - 64), desde='E3', hasta='E5')
+        taikos(P, c, (0.0,) if c < 68 else (0.0, 2.0), 46 + 2 * (c - 64), k)
+    voces(P, 'organo', ACORDES_MINIBOSS[64:72], 34, 'E2', 'E4', n=3, b0=Z, reg='suave')
+    voces(P, 'coroI', ACORDES_MINIBOSS[68:72], 42, 'E3', 'E5', n=3, b0=Z + 16, vocal='u')
+    voces(P, 'coroD', ACORDES_MINIBOSS[68:72], 42, 'E3', 'E5', n=3, b0=Z + 16, vocal='u')
+    pedal(P, 'sub', ACORDES_MINIBOSS[64:72], 50, lo=24, b0=Z)
+    P.nota('subida', 70 * L, 8.0, 0, 82)
+    redoble(P, 71 * L, 4.0, 42, 118, 'caja')
+    # ---- 73-80 the alarm, a third time: the violins, a counter-melody on the second violins, the flute an octave up, a trumpet,
+    # a galloping cello and a kit in sixteenths on the hat
+    P.nota('bat', W, 1, 'crash', 114)
+    notas_de(P, 'vlnI', tma, W, 102, dur=0.93, acento=6, art='m')
+    notas_de(P, 'vlnII', ca, W, 70, dur=0.95, acento=4, art='l')
+    notas_de(P, 'flauta', [(b, d, m + 12, f) for b, d, m, f in tma], W, 56, dur=0.93, vib=1)
+    notas_de(P, 'trompeta', tma, W, 62, dur=0.93)
+    notas_de(P, 'metal', [(b, d, m - 12, f) for b, d, m, f in tma], W, 74, dur=0.9)
+    segunda(P, 'oboe', tma, W, 54)
+    for c in range(72, 80):
+        cello(P, c, 'R.RR.RR.R.RR.RR.' if c % 2 == 0 else 'R.RR.RR.R.RRORO.', 82, lo=28)
+        taikos(P, c, (0.0, 1.0, 2.0, 3.0), 80, k)
+        bateria(P, c, {'bombo': 'x..x..x.x..x..x.', 'caja': '....X.......X..x', 'charles': 'xxxxxxxxxxxxxxxx', 'abierto': '..o...o...o...o.'}, 0)
+        if c in (72, 76):
+            P.nota('bat', c * L, 1, 'crash', 102)
+    for c in (75, 79):
+        for m in S.tonos(S.ch_en(c * L + 3.0), 'E3', 'G4'):
+            P.nota('metal', c * L + 3.0, 0.9, m, 100)
+    tambores(P, 79 * L + 2.0, ('tom1', 'tom2', 'tom3', 'tom4', 'tom1', 'tom2', 'tom3', 'tom4'), 92, 122, 0.25)
+    # ---- 81-88 the chant, the last time: the biggest; the organ's toccata under it, violins sawing in sixteenths, two tam-tams
+    P.nota('bat', B3, 1, 'crash', 116)
+    P.nota('tamtam', B3, 4, 0, 100)
+    P.nota('tamtam', B3 + 16, 4, 0, 100)
+    motivo4(P, B3, [('vlnI', k, 106, dict(art='m')), ('vlnII', k - 12, 94, dict(art='m')), ('coro', k, 102, {}),
+                    ('metal', k - 12, 86, {}), ('trompeta', k, 80, {}), ('flauta', k + 12, 62, dict(vib=1))], k)
+    motivo4(P, B3 + 16, [('vlnI', k, 108, dict(art='m')), ('vlnII', k - 12, 96, dict(art='m')), ('coro', k, 106, {}),
+                         ('metal', k - 12, 88, {}), ('trompeta', k, 84, {}), ('flauta', k + 12, 64, dict(vib=1))], k)
+    voces(P, 'organo', ACORDES_MINIBOSS[80:88], 66, 'E2', 'E4', n=4, b0=B3, reg='pleno')
+    pedal(P, 'organo', ACORDES_MINIBOSS[80:88], 60, b0=B3, reg='pleno', lo=28)
+    pedal(P, 'sub', ACORDES_MINIBOSS[80:88], 90, lo=24, b0=B3)
+    galope(80, 88, 88)
+    for c in range(80, 88):
+        F.organo_16(P, c, 36, 'E2', 'B3', gate=0.13)
+        taikos(P, c, (0.0, 1.0, 2.0, 3.0), 90, k)
+        bateria(P, c, {'bombo': 'x.xxx..xx.xxx..x', 'caja': '....X.......X..x', 'charles': 'x.x.x.x.x.x.x.x.', 'abierto': '..o...o...o...o.'}, 3)
+        if c in (80, 84):
+            P.nota('bat', c * L, 1, 'crash', 108)
+    for i in range(16):
+        P.nota('timbal', 87 * L + i * 0.25, 0.25, midi('E2'), 60 + 3 * i)
+    redoble(P, 87 * L + 1.0, 3.0, 56, 124, 'caja')
+    # ---- 89-96 the build: a rising line in unison, a riser and a roll, back to the alarm
     for b, d, m, _ in tme:
         f = 74 + int(30 * b / 32)
         P.nota('vlnI', E + b, d * 0.92, m, f, art='m')
@@ -871,16 +1174,16 @@ def componer_miniboss():
         P.nota('metal', E + b, d * 0.92, m - 12, f - 6)
         P.nota('coro', E + b, d * 0.96, (m - 12, m), f - 10, vocal='a')
         P.nota('trompeta', E + b, d * 0.92, m, f - 14)
-    galope(48, 56, 84)
-    for c in range(48, 56):
+    galope(88, 96, 84)
+    for c in range(88, 96):
         taikos(P, c, (0.0, 1.0, 2.0, 3.0), 84, k)
-        if c < 54:
+        if c < 94:
             bateria(P, c, {'bombo': 'x.x...x.x.x.....' if c % 2 == 0 else 'x.x...x.x.x.x.x.', 'caja': '....X.......X...', 'charles': 'xoxoxoxoxoxoxoxo'}, 0)
-    P.nota('subida', 54 * L, 8.0, 0, 90)
-    redoble(P, 54 * L + 2.0, 6.0, 50, 124, 'caja')
-    P.nota('bat', 55 * L, 0.25, 'bombo', 110)
-    P.nota('bat', 55 * L + 2.0, 0.25, 'bombo', 112)
-    tambores(P, 55 * L + 3.0, ('tom1', 'tom2', 'tom3', 'tom4'), 100, 124, 0.25)
+    P.nota('subida', 94 * L, 8.0, 0, 90)
+    redoble(P, 94 * L + 2.0, 6.0, 50, 124, 'caja')
+    P.nota('bat', 95 * L, 0.25, 'bombo', 110)
+    P.nota('bat', 95 * L + 2.0, 0.25, 'bombo', 112)
+    tambores(P, 95 * L + 3.0, ('tom1', 'tom2', 'tom3', 'tom4'), 100, 124, 0.25)
     return P
 
 
@@ -896,7 +1199,7 @@ def intro_miniboss(P):
     for pista in ('cuerdasI', 'cuerdasD'):
         I.nota(pista, 0.0, 4.15, (48, 55, 59, 62), 80, lado=pista[-1])
     redoble(I, 2.0, 2.0, 50, 100, 'caja')
-    I.anadir(P.trozo(55 * L, 56 * L, 1 * L))
+    I.anadir(P.trozo(95 * L, 96 * L, 1 * L))
     return I
 
 
@@ -1194,7 +1497,7 @@ def componer_rescate():
 
 def exportar_rescate(salida):
     F.exportar_una_vez(componer_rescate, AC_RESCATE, BPM_RESCATE, DUR_RESCATE, [0.0, 0.0, 1.5, 0.0], salida,
-                       mezcla={**NUEVOS, **MEZCLA_RESCATE}, bateria_db=-22.0, final_db=-4.0, rt=1.5, fundido=1.0, kbps=KBPS)
+                       mezcla={**NUEVOS, **MEZCLA_RESCATE}, bateria_db=-22.0, final_db=-4.0, rt=1.5, fundido=1.0, objetivo=OBJETIVO + 2.0, kbps=KBPS)
     print(f"  musica.ts: {{ url: unaMasRescate, inicio: 0, fin: {DUR_RESCATE} }}")
 
 
@@ -1244,15 +1547,20 @@ def revisar():
     tones, the C sharp of the chant, a suspension)."""
     coro = M(CORO4)
     trabajos = (
-        (ACORDES_EXPLORA, BPM_EXPLORA, (('explora A', TUNE_A, 0), ('explora A\'\'', TUNE_A, 160), ('explora B', TUNE_B, 64), ('explora C1', coro, 96),
-                                        ('explora C2', coro, 112), ('explora E', TUNE_E, 192))),
-        (ACORDES_JARDIN, BPM_JARDIN, (('jardin A', tr(TUNE_A, K_J), 0), ('jardin B', tr(TUNE_B, K_J), 64), ('jardin C1', tr(coro, K_J), 96),
-                                      ('jardin C2', tr(coro, K_J), 112), ('jardin A3', tr(TUNE_A, K_J), 160), ('jardin E', tr(TUNE_E2, K_J), 192))),
-        (ACORDES_TEATRO, BPM_TEATRO, (('teatro A', tr(TUNE_A, K_T), 0), ('teatro B', tr(TUNE_B, K_T), 64), ('teatro C1', tr(coro, K_T), 96),
-                                      ('teatro C2', tr(coro, K_T), 112), ('teatro A3', tr(TUNE_A, K_T), 160))),
+        (ACORDES_EXPLORA, BPM_EXPLORA, (('explora A', TUNE_A, 0), ('explora contra', CONTRA_A, 32), ('explora B', TUNE_B, 64), ('explora G', TUNE_G, 96),
+                                        ('explora C1', coro, 128), ('explora C2', coro, 144), ('explora A3', TUNE_A, 192), ('explora BT', TUNE_B, 224),
+                                        ('explora E', TUNE_E, 256))),
+        (ACORDES_JARDIN, BPM_JARDIN, (('jardin A', tr(TUNE_A, K_J), 0), ('jardin B', tr(TUNE_B, K_J), 64), ('jardin G', tr(TUNE_G, K_J), 96),
+                                      ('jardin C1', tr(coro, K_J), 128), ('jardin C2', tr(coro, K_J), 144), ('jardin A3', tr(TUNE_A, K_J), 192),
+                                      ('jardin V', tr(VAR_A, K_J), 224), ('jardin BT', tr(TUNE_B, K_J), 256), ('jardin E', tr(TUNE_E2, K_J), 288))),
+        (ACORDES_TEATRO, BPM_TEATRO, (('teatro A', tr(TUNE_A, K_T), 0), ('teatro V', tr(VAR_A, K_T), 64), ('teatro B', tr(TUNE_B, K_T), 96),
+                                      ('teatro G', tr(TUNE_G, K_T), 128), ('teatro C1', tr(coro, K_T), 160), ('teatro C2', tr(coro, K_T), 176),
+                                      ('teatro A3', tr(TUNE_A, K_T), 224), ('teatro BT', tr(TUNE_B, K_T), 256))),
         (ACORDES_MINIBOSS, BPM_MINIBOSS, (('miniboss A', tr(TUNE_MA, K_M), 0), ('miniboss B1', tr(coro, K_M), 32), ('miniboss B2', tr(coro, K_M), 48),
-                                          ('miniboss B3', tr(coro, K_M), 128), ('miniboss B4', tr(coro, K_M), 144), ('miniboss D', tr(TUNE_MD, K_M), 160),
-                                          ('miniboss E', tr(TUNE_ME, K_M), 192))),
+                                          ('miniboss X', tr(TUNE_X, K_M), 64), ('miniboss A2', tr(TUNE_MA, K_M), 128), ('miniboss contra', tr(CONTRA_MA, K_M), 288),
+                                          ('miniboss Y', tr(TUNE_Y, K_M), 160), ('miniboss B3', tr(coro, K_M), 192), ('miniboss B4', tr(coro, K_M), 208),
+                                          ('miniboss D', tr(TUNE_MD, K_M), 224), ('miniboss Z', tr(TUNE_G, K_M), 256), ('miniboss W', tr(TUNE_MA, K_M), 288),
+                                          ('miniboss B5', tr(coro, K_M), 320), ('miniboss B6', tr(coro, K_M), 336), ('miniboss E', tr(TUNE_ME, K_M), 352))),
         (ACORDES_JEFE, BPM_JEFE, (('jefe I', TUNE_I, 0), ('jefe II', TUNE_II, 32), ('jefe II\'', TUNE_II, 64), ('jefe III1', coro, 96),
                                   ('jefe III2', coro, 112), ('jefe III3', coro, 128), ('jefe III4', coro, 144), ('jefe D', TUNE_D, 160),
                                   ('jefe D\'', TUNE_D, 192), ('jefe B', TUNE_B, 224), ('jefe V1', coro, 256), ('jefe V2', coro, 272),

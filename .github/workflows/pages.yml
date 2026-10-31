@@ -6,7 +6,7 @@ name: Publicar en GitHub Pages
 
 on:
   push:
-    branches: ['claude/camiones-caravanas-gameplay-b7ecna']
+    branches: ['main']
   workflow_dispatch:
 
 permissions:

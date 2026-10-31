@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1124">
+<title>Camiones y Caravanas</title>
+<link rel="icon" type="image/png" href="./icono-192.png">
+<link rel="apple-touch-icon" href="./icono-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:wght@500;700&family=Graduate&display=swap">
+</head>
+<body>
+<main class="portada" id="portada">
+  <header class="cabecera">
+    <h1 data-t="titulo"></h1>
+    <p data-t="sub"></p>
+  </header>
+  <nav class="juegos">
+    <a class="juego" id="juego-capitulo1" href="/capitulo1">
+      <span class="arte">
+        <img class="logo" src="./assets/logo.png" alt="" width="704" height="797">
+        <span class="orientacion" data-t="orientacion.horizontal"></span>
+      </span>
+      <span class="cuerpo">
+        <span class="nombre" data-t="capitulo1.nombre"></span>
+        <span class="desc" data-t="capitulo1.desc"></span>
+        <span class="boton" data-t="jugar"></span>
+      </span>
+    </a>
+    <a class="juego" id="juego-pokeusera" href="/pokeusera">
+      <span class="arte">
+        <img class="icono" src="/pokeusera-icono-512.png" alt="" width="512" height="512">
+        <span class="orientacion vertical" data-t="orientacion.vertical"></span>
+      </span>
+      <span class="cuerpo">
+        <span class="nombre" data-t="pokeusera.nombre"></span>
+        <span class="desc" data-t="pokeusera.desc"></span>
+        <span class="boton" data-t="jugar"></span>
+      </span>
+    </a>
+    <a class="juego" id="juego-pang" href="/pang">
+      <span class="arte">
+        <span class="burbuja b1"></span><span class="burbuja b2"></span><span class="burbuja b3"></span>
+        <span class="cabezas">
+          <img src="./src/portada/retratos/fran.webp" alt="" width="195" height="255">
+          <img src="./src/portada/retratos/pablo.webp" alt="" width="195" height="255">
+          <img src="./src/portada/retratos/chuchi.webp" alt="" width="195" height="255">
+          <img src="./src/portada/retratos/guille.webp" alt="" width="195" height="255">
+        </span>
+        <span class="orientacion" data-t="orientacion.horizontal"></span>
+      </span>
+      <span class="cuerpo">
+        <span class="nombre" data-t="pang.nombre"></span>
+        <span class="desc" data-t="pang.desc"></span>
+        <span class="boton" data-t="jugar"></span>
+      </span>
+    </a>
+  </nav>
+</main>
+<script type="module" src="/src/portada/main.ts"></script>
+</body>
+</html>

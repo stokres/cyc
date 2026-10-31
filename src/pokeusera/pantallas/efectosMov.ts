@@ -12,7 +12,7 @@
 // Movimientos con diseño propio (el resto usa una chispa genérica del color de su tipo; los de estado sobre uno
 // mismo, unos brillos). Sobre rivales (`FX`): lluvia, almendrazo, traca, fogonazo, petardazo, chispazo, cierzo, chupitazo,
 // garrafon, cancion, esporas, temblor, bocinazo, chapa, planeo, pringue, cara_de_pena, vacile, venganza, adoquin, barrigazo,
-// ronda, unamas, zasca, coz, raices, setas, burbujeo, pesao, tubo, goudamadre, tendedero, remate, maletazo, embarque, monologo, carambola, crujiente, cortepapel, pasodoble, mancha, ayayay, serenata, picante, ochotortas, tinta, morrina, fiestapagana, todosdentro, flash, nubarron, carisimo, calada, vueltas y, del capítulo 2, penultima, persiana, lunes, ultimaronda. Sobre uno mismo (`FX_YO`, `lanzar` los llama
+// ronda, unamas, zasca, coz, raices, setas, burbujeo, pesao, tubo, goudamadre, tendedero, remate, maletazo, embarque, monologo, carambola, crujiente, cortepapel, pasodoble, mancha, ayayay, serenata, picante, ochotortas, tinta, morrina, fiestapagana, todosdentro, flash, nubarron, carisimo, calada, vueltas. Sobre uno mismo (`FX_YO`, `lanzar` los llama
 // con la lista de objetivos vacía): siesta, esconderse, rebozado, caparazon, compas, pantalones, cinturones, improvisa, ficha, limon, papiroflexia. Los de «todos» llegan a
 // todos los rivales a la vez. Para añadir uno: función `(e, tipo, desde, a)` + entrada en `FX` o `FX_YO` + `LLEGA`/`LLEGA_YO`;
 // el precalentado (`tareasPrecalentarEfectos`) lo recoge solo.
@@ -3273,243 +3273,6 @@ const vueltas: Efecto = (e, tipo, _d, a) => {
   }
 };
 
-// ---- Capítulo 2: los cuatro movimientos del Ultimosaurio ---------------------------------------------------------------
-const MAT_CERV2: Mat = { ol: '#3a1a04', base: '#e8901a', luz: '#ffc84a', som: '#a24e0c' };
-const MAT_ESPUMA2: Mat = { ol: '#7c68e6', base: '#f2ecff', luz: '#ffffff', som: '#cbbfe0' };
-const MAT_CHAPA: Mat = { ol: '#2a3040', base: '#9aa6b8', luz: '#e6ecf5', som: '#6a7488' };
-
-/** Una jarra de cerveza (cuerpo ámbar, espuma, asa y un brillo de cristal): cuatro giros de 90° para que dé vueltas al volar. */
-function dibujoJarra(): HTMLCanvasElement {
-  const c = lienzo(18, 19);
-  const x = ctxDe(c);
-  const asa = sombrear(8, 10, (i, j) => disco(3.2, 4.6, 3.6)(i, j) && !disco(3.2, 4.6, 1.5)(i, j) && i >= 2, MAT_CHAPA);
-  x.drawImage(asa, 11, 6);
-  x.drawImage(sombrear(12, 13, (i, j) => i >= 0 && i < 12 && j >= 0 && j < 13 && !(j >= 11 && (i < 1 || i > 10)), MAT_CERV2), 0, 5);
-  x.drawImage(sombrear(14, 8, union(disco(3, 4.4, 3.2), disco(7, 3.4, 3.7), disco(10.6, 4.4, 2.9), (i, j) => j >= 3 && j <= 6 && i >= 2 && i <= 11), MAT_ESPUMA2), -1, 0);
-  pix(x, '#fff0a0', 2, 9, 1, 6);
-  pix(x, '#fff0a0', 4, 13, 1, 1);
-  pix(x, '#ffffff', 8, 11, 1, 1);
-  return c;
-}
-function hJarraGira(): Hoja {
-  return girar(dibujoJarra());
-}
-/** La jarra grande de LA ÚLTIMA ronda (dos veces el tamaño). */
-function hJarraGrande(): Hoja {
-  return [amp(dibujoJarra())];
-}
-/** Gotas de cerveza (ámbar) y de espuma (blancas), de dos tamaños cada una. */
-function hGotasCerveza(): Hoja {
-  return [
-    sombrear(5, 5, disco(2, 2, 1.8), MAT_CERV2),
-    sombrear(7, 7, disco(3, 3, 2.9), MAT_CERV2),
-    sombrear(5, 5, disco(2, 2, 1.8), MAT_ESPUMA2),
-    sombrear(7, 7, disco(3, 3, 2.9), MAT_ESPUMA2),
-  ];
-}
-/** El chapoteo de espuma al romperse la jarra: una estrella de espuma que se abre y un anillo de gotas. */
-function hChapoteo(): Hoja {
-  return [astro(6, '#a24e0c', '#ffc84a', '#fff0a0'), astro(10, '#7c68e6', '#f2ecff', '#ffffff'), astro(8, '#7c68e6', '#cbbfe0', '#f2ecff')];
-}
-function hChapoteoGrande(): Hoja {
-  return [astro(9, '#a24e0c', '#ffc84a', '#fff0a0'), astro(15, '#7c68e6', '#f2ecff', '#ffffff'), astro(13, '#7c68e6', '#cbbfe0', '#f2ecff')];
-}
-
-/** La persiana metálica (58 × 38): lamas grises con su brillo y su sombra, listón de abajo con el tirador amarillo y las guías a los lados. */
-function hPersiana(): Hoja {
-  const W = 58;
-  const H = 38;
-  const c = lienzo(W, H);
-  const x = ctxDe(c);
-  for (let j = 0; j < H - 5; j++) {
-    const fila = j % 5;
-    const col = fila === 0 ? '#e6ecf5' : fila === 1 ? '#b8c2d2' : fila === 2 ? '#9aa6b8' : fila === 3 ? '#6a7488' : '#3a4258';
-    pix(x, col, 2, j, W - 4, 1);
-    // Los agujeritos de ventilación.
-    if (fila === 2) for (let i = 6; i < W - 6; i += 6) pix(x, '#3a4258', i, j, 3, 1);
-  }
-  // Listón de abajo con su tirador.
-  pix(x, '#2a3040', 0, H - 6, W, 6);
-  pix(x, '#6a7488', 1, H - 5, W - 2, 4);
-  pix(x, '#9aa6b8', 1, H - 5, W - 2, 1);
-  pix(x, '#2a3040', 24, H - 5, 10, 3);
-  pix(x, AMARILLO, 25, H - 4, 8, 1);
-  // Guías a los lados.
-  pix(x, '#2a3040', 0, 0, 2, H - 5);
-  pix(x, '#2a3040', W - 2, 0, 2, H - 5);
-  pix(x, '#6a7488', 1, 0, 1, H - 6);
-  return [c];
-}
-
-/** Un despertador (22 × 25): campanas amarillas, esfera blanca con las manecillas en las seis y patas; dos fotogramas con las campanas a cada lado. */
-function hDespertador(): Hoja {
-  const hoja: Hoja = [];
-  for (const f of [0, 1]) {
-    const c = lienzo(22, 25);
-    const x = ctxDe(c);
-    const campana = sombrear(8, 7, disco(3.6, 4.6, 3.6), { ol: '#8a5a10', base: AMARILLO, luz: '#fff0a0', som: AMARILLO_OSC });
-    x.drawImage(campana, 1 + f, 0 + (f ? 1 : 0));
-    x.drawImage(campana, 13 - f, 0 + (f ? 0 : 1));
-    pix(x, '#4a1010', 10, 2, 2, 5);
-    x.drawImage(
-      sombrear(22, 21, union(disco(11, 11, 9.4), (i, j) => j >= 17 && j <= 20 && ((i >= 4 && i <= 7) || (i >= 14 && i <= 17))), { ol: '#4a1010', base: ROJO, luz: '#ff7a5c', som: ROJO_OSC }),
-      0,
-      4,
-    );
-    rellenarDisco(x, '#fff8e0', 11, 15, 6.4);
-    // Marcas de las horas, manecillas (las seis y cinco, un lunes) y el centro.
-    for (const [i, j] of [[11, 10], [11, 20], [6, 15], [16, 15]] as [number, number][]) pix(x, TINTA, i, j, 1, 1);
-    linea(x, TINTA, 11, 15, 11, 19, 1);
-    linea(x, TINTA, 11, 15, 8, 13, 1);
-    pix(x, ROJO, 11, 15, 1, 1);
-    pix(x, '#ffffff', 8, 11, 2, 1);
-    hoja.push(c);
-  }
-  return hoja;
-}
-/** Las ondas de un timbrazo (dos arcos): de lado a lado, `dir` = -1 mira a la izquierda. */
-function hOndasTimbre(): Hoja {
-  const a = filas(['..x.', '.x..', 'x...', 'x...', 'x...', '.x..', '..x.'], { x: '#fff0a0' });
-  const b = filas(['...x', '..x.', '.x..', '.x..', '.x..', '..x.', '...x'], { x: '#fff0a0' });
-  return [amp(a), amp(b)];
-}
-function hNubeLunes(): Hoja {
-  return [sombrear(40, 18, union(disco(9, 11, 6), disco(17, 8, 7.5), disco(26, 8, 7.5), disco(33, 11, 6), (i, j) => j >= 10 && j <= 15 && i >= 9 && i <= 33), { ol: '#2a3040', base: '#6a7488', luz: '#9aa6b8', som: '#46506a' })];
-}
-/** Gotas finas de lluvia gris del lunes. */
-function hLloviznaLunes(): Hoja {
-  return [filas(['t', 't', 'T'], { t: '#9aa6b8', T: '#e6ecf5' })];
-}
-
-/** La penúltima: una jarra llena sale volando dando vueltas, deja un rastro de gotas y, al llegar, se rompe en un chapoteo de espuma. */
-const penultima: Efecto = (e, tipo, d, a) => {
-  const jarra = memo('jarra-gira', hJarraGira);
-  const gotas = unos('gotas-cerveza', hGotasCerveza);
-  const chap = memo('chapoteo', hChapoteo);
-  for (const t of a) {
-    const VUELO = 240;
-    e.mk(jarra, d.x + 6, d.y - 6, t.x, t.y - 4, 0, VUELO, -22, 0, 1, 0, 55);
-    for (let i = 0; i < 4; i++) {
-      const u = (i + 1) / 5;
-      const x = hasta(d.x + 6, t.x, u);
-      const y = hasta(d.y - 6, t.y - 4, u) - 22 * 4 * u * (1 - u);
-      e.mk(gotas[i & 1 ? 2 : 0], x, y, x + entre(-4, 4), y + 12, u * VUELO, 260, 0, 0, 1, 2, 0, 90);
-    }
-    e.mk(chap, t.x, t.y - 4, t.x, t.y - 4, VUELO, 260);
-    for (let i = 0; i < 7; i++) {
-      const ang = (i / 7) * 6.283 + az() * 0.5;
-      const r = entre(14, 28);
-      e.mk(gotas[i % 4], t.x, t.y - 4, t.x + Math.cos(ang) * r, t.y - 4 + Math.sin(ang) * r * 0.8 + 6, VUELO + 10, 320, -10, 0, 1, 1, 0, 100);
-    }
-    golpe(e, tipo, t.x, t.y, VUELO, 1);
-  }
-};
-
-/** Cierre de persiana: una persiana metálica cae de golpe sobre cada rival, rebota, lanza chispas de golpe seco y se queda un momento echada. */
-const persiana: Efecto = (e, tipo, _d, a) => {
-  const pers = memo('persiana', hPersiana);
-  const des = memo('destello-chapa', () => hDestello('#6a7488', '#e6ecf5', [3, 5, 3]));
-  const polvo = unos('polvo-persiana', hHumo);
-  for (const t of a) {
-    const cy = t.y - 2;
-    e.mk(pers, t.x, alto(cy - 78), t.x, cy, 0, 210, 0, 0, 1, 2);
-    e.mk(pers, t.x, cy, t.x, cy - 4, 210, 90, 0, 0, 1, 1);
-    e.mk(pers, t.x, cy - 4, t.x, cy, 300, 80, 0, 0, 1, 2);
-    e.mk(pers, t.x, cy, t.x, cy, 380, 360, 0, 0, 1, 0, 0, 110);
-    for (const dx of [-26, 26]) e.mk(des, t.x + dx, cy + 14, t.x + dx, cy + 14, 205, 200);
-    for (const dx of [-1, 1]) e.mk(polvo[0], t.x + dx * 24, cy + 16, t.x + dx * 40, cy + 8, 215, 330, 0, 0, 1, 1, 0, 110);
-    golpe(e, tipo, t.x, t.y, 215, 2);
-  }
-};
-
-/** Lunes por la mañana: un despertador suena encima del rival (vibra, con ondas a los lados) y un nubarrón gris le empieza a lloviznar. */
-const lunes: Efecto = (e, tipo, _d, a) => {
-  const desp = memo('despertador', hDespertador);
-  const ondas = unos('ondas-timbre', hOndasTimbre);
-  const nube = memo('nube-lunes', hNubeLunes);
-  const lluvia = memo('llovizna-lunes', hLloviznaLunes);
-  const bri = memoT('brillo', tipo, hBrillo);
-  for (const t of a) {
-    const cy = alto(t.y - 34);
-    e.mk(desp, t.x, cy - 14, t.x, cy, 0, 140, 0, 0, 1, 1);
-    e.mk(desp, t.x, cy, t.x, cy, 140, 560, 0, -3, 1, 0, 70, 120);
-    for (const [dx, k] of [[-19, 0], [19, 1]] as [number, number][]) {
-      e.mk(ondas[k], t.x + dx, cy, t.x + dx + (k ? 5 : -5), cy, 160, 520, 0, 0, 1, 0, 90, 120);
-      e.mk(ondas[k], t.x + dx * 1.35, cy - 2, t.x + dx * 1.35 + (k ? 5 : -5), cy - 2, 260, 420, 0, 0, 1, 0, 90, 120);
-    }
-    e.mk(nube, t.x - 30, cy - 4, t.x, cy + 10, 200, 380, 0, 0, 1, 1);
-    e.mk(nube, t.x, cy + 10, t.x, cy + 10, 580, 320, 0, 0, 1, 0, 0, 100);
-    for (let i = 0; i < 6; i++) {
-      const x = t.x - 12 + i * 5;
-      e.mk(lluvia, x, cy + 20, x, t.y + 12, 340 + i * 45, 180, 0, 0, 1, 2, 0, 50);
-    }
-    for (let i = 0; i < 3; i++) e.mk(bri, t.x + (i - 1) * 14, t.y + entre(-6, 6), t.x + (i - 1) * 14, t.y - entre(10, 18), 330 + i * 50, 320, 0, 0, 1, 1);
-  }
-};
-
-/** ¡La última ronda!: cuatro jarras vuelan seguidas hacia el rival y, tras ellas, cae del cielo una jarra enorme que revienta en una explosión de espuma. */
-const ultimaronda: Efecto = (e, tipo, d, a) => {
-  const jarra = memo('jarra-gira', hJarraGira);
-  const grande = memo('jarra-grande', hJarraGrande);
-  const gotas = unos('gotas-cerveza', hGotasCerveza);
-  const chap = memo('chapoteo', hChapoteo);
-  const chapG = memo('chapoteo-grande', hChapoteoGrande);
-  for (const t of a) {
-    for (let i = 0; i < 4; i++) {
-      const ret = i * 60;
-      const tx = t.x + (i - 1.5) * 9;
-      e.mk(jarra, d.x + 6, d.y - 6, tx, t.y - 6 + (i & 1) * 6, ret, 170, -18 - i * 3, 0, 1, 0, 50);
-      e.mk(chap, tx, t.y - 6 + (i & 1) * 6, tx, t.y - 6 + (i & 1) * 6, ret + 168, 170);
-    }
-    const CAE = 250;
-    const cy = alto(t.y - 6);
-    e.mk(grande, t.x, alto(cy - 96), t.x, cy, CAE, 170, 0, 0, 1, 2);
-    const IMP = CAE + 170;
-    e.mk(chapG, t.x, cy, t.x, cy, IMP, 280);
-    e.mk(memo('pum', hPum), t.x, cy - 4, t.x, cy - 4, IMP, 240);
-    for (let i = 0; i < 10; i++) {
-      const ang = (i / 10) * 6.283 + az() * 0.4;
-      const r = entre(24, 44);
-      e.mk(gotas[(i & 1) + (i % 3 === 0 ? 2 : 0)], t.x, cy, t.x + Math.cos(ang) * r, cy + Math.sin(ang) * r * 0.75 + 8, IMP + 10, 380, -16, 0, 1, 1, 0, 120);
-    }
-    golpe(e, tipo, t.x, t.y, IMP, 4);
-  }
-};
-
-/** La jarra de CAZAR (capítulo 2, `VistaCombate.jarra`), al doble de tamaño: de pie y en sus cuatro giros de 90°. La pantalla de combate las dibuja. */
-export const jarraDePie = (): HTMLCanvasElement => memo('jarra-grande', hJarraGrande)[0];
-export const jarraGiros = (): HTMLCanvasElement[] => memo('jarra-gira-grande', () => girar(amp(dibujoJarra())));
-
-/** La jarra se cierra con el userito dentro: un estallido de brillos dorados y blancos a su alrededor. */
-const jarraCerrada: Efecto = (e, _tipo, _d, a) => {
-  const oro = memo('destello-oro-jarra', () => hDestello('#a24e0c', '#ffd84a', [3, 6, 5, 2]));
-  const blanco = memo('destello-blanco-jarra', () => hDestello('#7c68e6', '#f2ecff', [2, 4, 3]));
-  for (const t of a) {
-    for (let i = 0; i < 8; i++) {
-      const ang = (i / 8) * 6.283;
-      e.mk(i & 1 ? blanco : oro, t.x, t.y, t.x + Math.cos(ang) * 30, t.y + Math.sin(ang) * 26, i * 18, 420, -6, 0, 1, 1, 70, 90);
-    }
-    e.mk(oro, t.x, t.y - 4, t.x, t.y - 4, 0, 260);
-    e.mk(blanco, t.x, t.y - 4, t.x, t.y - 4, 120, 260);
-  }
-};
-
-/** La jarra se abre y el userito se escapa: chapoteo de espuma, gotas y un fogonazo. */
-const jarraAbierta: Efecto = (e, tipo, _d, a) => {
-  const chapG = memo('chapoteo-grande', hChapoteoGrande);
-  const gotas = unos('gotas-cerveza', hGotasCerveza);
-  for (const t of a) {
-    e.mk(chapG, t.x, t.y, t.x, t.y, 0, 280);
-    e.mk(memo('pum', hPum), t.x, t.y - 4, t.x, t.y - 4, 0, 240);
-    for (let i = 0; i < 9; i++) {
-      const ang = (i / 9) * 6.283 + az() * 0.4;
-      const r = entre(22, 40);
-      e.mk(gotas[(i & 1) + (i % 3 === 0 ? 2 : 0)], t.x, t.y, t.x + Math.cos(ang) * r, t.y + Math.sin(ang) * r * 0.75 + 8, 10, 360, -14, 0, 1, 1, 0, 110);
-    }
-    golpe(e, tipo, t.x, t.y, 0, 2);
-  }
-};
-
 /** Efectos de los movimientos sobre rivales (y «todos»). */
 const FX: Record<string, Efecto> = {
   lluvia, almendrazo, traca, fogonazo, petardazo, chispazo, cierzo, chupitazo, garrafon, cancion, esporas, temblor, bocinazo,
@@ -3518,10 +3281,6 @@ const FX: Record<string, Efecto> = {
   maletazo, embarque, monologo, carambola, crujiente, cortepapel, pasodoble, mancha,
   ayayay, serenata, picante, ochotortas, tinta, morrina,
   fiestapagana, todosdentro, flash, nubarron, carisimo, calada, vueltas,
-  penultima, persiana, lunes, ultimaronda,
-  // No son movimientos: la jarra de CAZAR (`VistaCombate.jarra`).
-  _jarra_cerrada: jarraCerrada,
-  _jarra_abierta: jarraAbierta,
 };
 
 /** Efectos de los movimientos sobre uno mismo (objetivo «yo»: `lanzar` los llama sin objetivos). */
@@ -3586,10 +3345,6 @@ const LLEGA: Record<string, number> = {
   carisimo: 290,
   calada: 190,
   vueltas: 200,
-  penultima: 240,
-  persiana: 215,
-  lunes: 330,
-  ultimaronda: 420,
 };
 
 /** Lo mismo para los movimientos sobre uno mismo (cuándo se nota el efecto: el texto de lo que sube o baja viene detrás). */

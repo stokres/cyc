@@ -65,11 +65,11 @@ ficha.stat.prec = PRE
 ficha.prec_ayuda = PRE (Precisión): la probabilidad de acertar el golpe.
 
 // ---- mensajes del combate
-combate.usa_mov = ¡{quien} usó {mov}!
+combate.usa = ¡{quien} usó {mov}!
 combate.muy_eficaz = ¡Muy eficaz contra {quien}!
 combate.poco_eficaz = Poco eficaz contra {quien}...
 combate.no_afecta = No afecta a {quien}...
-combate.golpe_critico = ¡Golpe crítico!
+combate.critico = ¡Golpe crítico!
 combate.falla = ¡Pero falló!
 combate.esquiva = ¡{quien} esquiva el golpe!
 combate.sin_efecto = Pero no le hizo nada a {quien}.
@@ -109,7 +109,7 @@ combate.achispado_golpe = ¡{quien} va tan achispado que se pega solo!
 combate.sobrio = A {quien} se le pasó la chispa.
 combate.atrapa = ¡{quien} no puede irse de la barra!
 combate.atrapado_dano = ¡{quien} sufre pegado a la barra!
-combate.suelta_barra = ¡{quien} se escapa de la barra!
+combate.suelta = ¡{quien} se escapa de la barra!
 combate.bostezo = ¡{quien} empieza a bostezar!
 combate.cizana = ¡{quien} está lleno de cizaña!
 combate.siesta = ¡{quien} se echa una siesta y se recupera!
@@ -199,7 +199,6 @@ userito.fotomaton.desc = El fotomatón de la calle, con su cortinilla. Te mete d
 userito.cloudtrio.desc = Tres nubes blanditas, carísimas y muy polémicas. Nadie sabe por qué se compraron.
 userito.cigarr.desc = Un cigarro de liar. Se enciende rápido, se lía solo y deja humo por todas partes.
 userito.ollalocah.desc = La olla loca de la feria. Da vueltas hasta que se te revuelve todo lo que has comido.
-userito.ultimosaurio.desc = LA ÚLTIMA hecha dinosaurio. Lo conoce todo el mundo y no lo ha visto nadie. Es mitológico: se levanta otra vez.
 
 // ---- movimientos: efecto corto para el menú
 mov.barrigazo.desc = Golpe fuerte. Puede paralizar.
@@ -301,10 +300,6 @@ mov.nubarron.desc = Una nube les tapa el sol y les pega a todos.
 mov.carisimo.desc = Les cobra una barbaridad. Puede bajar 1 el Especial.
 mov.calada.desc = Una calada y un soplo de humo. Puede quemar.
 mov.vueltas.desc = Gira que gira hasta marear. Puede hacerle perder el turno (si aún no ha actuado).
-mov.penultima.desc = La penúltima, que siempre cae. Puede achispar.
-mov.persiana.desc = Baja la persiana sobre todos. Puede bajar 1 la Velocidad.
-mov.lunes.desc = Suena el despertador. Baja 1 el Ataque y 1 el Especial.
-mov.ultimaronda.desc = LA ÚLTIMA, de verdad. Pega muy fuerte y puede hacer perder el turno (si aún no ha actuado).
 
 // ---- habilidades (motor/combate.ts, evento «habilidad»). Por cada una: .nombre = el rótulo sobre el userito y la ficha ·
 //      .desc = lo que hace · .activa = la frase al activarse (si la tiene; {quien} = el que la tiene, {otro} = el otro userito)
@@ -441,10 +436,6 @@ hab.feria.nombre = Vueltas de feria
 hab.feria.desc = Al salir al combate, todos los rivales bajan 1 su Velocidad.
 hab.feria.activa = ¡{quien} da vueltas y a los rivales se les revuelve todo!
 
-hab.ultimo.nombre = Lo conoce todo el mundo
-hab.ultimo.desc = Al salir al combate, todos los rivales se quedan sin palabras: bajan 1 su Especial.
-hab.ultimo.activa = ¡{quien} aparece y los rivales se quedan sin palabras!
-
 // ---- ventajas de entrenador (motor/combate.ts: Chuchi «Llega tarde», Guille «Mañico», Ari «De su cosecha», Fer «Cancelación de ruido»)
 combate.perk.chuchi = {quien} llegaba tarde: el golpe le pilla a medias.
 combate.perk.guille = ¡{quien} aguanta como un buen mañico!
@@ -484,7 +475,6 @@ combate.todos.baja2.prec = ¡La precisión de {quienes} baja mucho!
 //      .nombre = el cartel y la chapita · .frase = lo que se dice al salir · .desc = lo que explica al tocar la chapita
 suceso.titulo = SUCESO EN EL BAR
 suceso.titulo.feria = SUCESO EN LA FERIA
-suceso.titulo.conceptos = SUCESO EN EL MUNDO
 suceso.al_momento = AL MOMENTO
 suceso.dura1 = ESTE TURNO
 suceso.dura = {n} TURNOS
@@ -610,8 +600,7 @@ objeto.llavero.activa = ¡El llavero de {quien} se venga de {otro}!
 // ---- AVENTURA (modo a un jugador): la jarra para cazar useritos salvajes
 caza.lanza = ¡{jugador} lanza una jarra vacía a {quien}!
 caza.tambalea = La jarra se tambalea... una... dos...
-caza.atrapado = ¡Has cazado al {quien}!
-caza.levanta = ¡Se levanta!
+caza.atrapado = ¡Atrapado! {quien} se mete en la jarra.
 caza.escapa = ¡Oh, no! {quien} se escapa de la jarra.
 
 // ---- por qué un tipo le gana a otro (una frase por pareja ×2 o ×0; salen bajo «¡Muy eficaz!» las primeras veces y en la Guía)

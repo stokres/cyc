@@ -1,11 +1,15 @@
-// PokéUsera · settings: music and effects volume (0–10, saved in localStorage 'pokeusera.v1') and the pause box of the battle
-// (volumes + abandon). The chapter's copy (docs/CAPITULO2.md) has no settings screen of its own: the pause box is the only way in.
+// PokéUsera · settings: music and effects volume (0–10, saved in localStorage 'pokeusera.v1'),
+// the settings screen, and the pause box of the battle (volumes + abandon).
+import type { EntrenadorId, EscenarioId, ModoJuego } from '../tipos';
+import { ENTRENADORES, ESCENARIOS, MODOS_JUEGO } from '../tipos';
 import { anchoTexto2 } from '../arte2/fuente2';
 import { PAPEL_ALTO, SOMBRA_TEXTO, TINTA2, TINTA_SUAVE } from '../arte2/paleta2';
 import { panelCacheado, relleno } from '../arte2/ui2';
 import { entrada, type Accion } from '../entrada';
 import { ANCHO, pantalla, type Escena } from '../pantalla';
-import { sonido, type Canal } from '../sonido';
+import { sonido } from '../sonido';
+import { dibujarFondoBar } from './fondos';
+import { pantallaCuenta } from './cuenta';
 import { abrirGuia } from './guia';
 import { sobre } from './modal';
 import { VELOCIDADES, boton, centrado, cfg, flecha, mover, oscurecer, realce, rect, t, texto2, type Velocidad } from './ui';
@@ -17,6 +21,11 @@ export interface Guardado {
   efectos: number;
   /** Battle pacing (VELOCIDAD DEL COMBATE). */
   velocidad: Velocidad;
+  entrenador?: EntrenadorId;
+  /** The bar of the battles (ESCENARIO); missing = AL AZAR, drawn from each battle's seed. */
+  escenario?: EscenarioId;
+  /** The way of playing last used (NORMAL / AL AZAR), solo and online; missing = NORMAL. */
+  modo?: ModoJuego;
 }
 
 const POR_DEFECTO: Guardado = { musica: 7, efectos: 10, velocidad: 'normal' };
@@ -31,6 +40,9 @@ export function cargarAjustes(): Guardado {
         musica: n(o.musica, POR_DEFECTO.musica),
         efectos: n(o.efectos, POR_DEFECTO.efectos),
         velocidad: VELOCIDADES.includes(o.velocidad as Velocidad) ? (o.velocidad as Velocidad) : POR_DEFECTO.velocidad,
+        entrenador: ENTRENADORES.includes(o.entrenador as EntrenadorId) ? (o.entrenador as EntrenadorId) : undefined,
+        escenario: ESCENARIOS.includes(o.escenario as EscenarioId) ? (o.escenario as EscenarioId) : undefined,
+        modo: MODOS_JUEGO.includes(o.modo as ModoJuego) ? (o.modo as ModoJuego) : undefined,
       };
     }
   } catch {
@@ -46,6 +58,15 @@ export function guardarAjustes(parcial: Partial<Guardado>) {
   } catch {
     /* no storage */
   }
+}
+
+/** The mode last used for a game (NORMAL by default), saved with the settings. */
+export function modoElegido(): ModoJuego {
+  return cargarAjustes().modo ?? 'normal';
+}
+
+export function guardarModo(modo: ModoJuego) {
+  guardarAjustes({ modo });
 }
 
 /** Applies the saved volumes and battle speed (call once at start). */
@@ -89,6 +110,55 @@ export function ajustarVelocidad(a: Accion) {
   else if (a === 'der') cambiarVelocidad(VELOCIDADES[Math.min(VELOCIDADES.length - 1, i + 1)]);
 }
 
+/** The scenario row's values: AL AZAR (undefined) and the four bars. */
+const ESCENARIOS_FILA: readonly (EscenarioId | undefined)[] = [undefined, ...ESCENARIOS];
+
+/** The saved scenario, read once (the row draws it every frame): `null` = not read yet. */
+let escenarioGuardado: EscenarioId | undefined | null = null;
+
+/** The bar for the next battles (AJUSTES → ESCENARIO): undefined = at random. */
+export function escenarioElegido(): EscenarioId | undefined {
+  if (escenarioGuardado === null) escenarioGuardado = cargarAjustes().escenario;
+  return escenarioGuardado;
+}
+
+function cambiarEscenario(v: EscenarioId | undefined) {
+  if (v === escenarioElegido()) return;
+  escenarioGuardado = v;
+  // `undefined` is dropped by JSON, which is what «AL AZAR» means.
+  guardarAjustes({ escenario: v });
+  sonido.efecto('cursor');
+}
+
+/** The scenario row: the label and «◀ AL AZAR ▶» (AL AZAR / the four bars). Height 44. */
+export function filaEscenario(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, sel: boolean) {
+  if (sel) realce(ctx, x, y, w, 44);
+  texto2(ctx, t('ajustes.escenario'), x + 18, y + 6, TINTA2, sel ? '#f0c860' : SOMBRA_TEXTO);
+  const actual = escenarioElegido();
+  const i = ESCENARIOS_FILA.indexOf(actual);
+  const valor = t(actual ? `escenario.${actual}` : 'escenario.azar');
+  const yy = y + 21;
+  const cx = x + Math.floor(w / 2);
+  const bw = 136;
+  relleno(ctx, TINTA2, cx - bw / 2, yy - 1, bw, 17);
+  relleno(ctx, PAPEL_ALTO, cx - bw / 2 + 1, yy, bw - 2, 15);
+  rect(ctx, '#d6c08a', cx - bw / 2 + 3, yy + 13, bw - 6, 1);
+  texto2(ctx, valor, cx - Math.floor(anchoTexto2(valor) / 2), yy + 4, TINTA2, null);
+  flecha(ctx, cx - bw / 2 - 18, yy + 4, -1, i > 0 ? TINTA2 : '#a898a8');
+  flecha(ctx, cx + bw / 2 + 13, yy + 4, 1, i < ESCENARIOS_FILA.length - 1 ? TINTA2 : '#a898a8');
+  entrada.zona(cx - bw / 2 - 40, yy - 4, 36, 26, () => cambiarEscenario(ESCENARIOS_FILA[Math.max(0, i - 1)]));
+  entrada.zona(cx + bw / 2 + 4, yy - 4, 36, 26, () => cambiarEscenario(ESCENARIOS_FILA[Math.min(ESCENARIOS_FILA.length - 1, i + 1)]));
+  // Tapping the value goes round.
+  entrada.zona(cx - bw / 2 - 1, yy - 4, bw + 2, 26, () => cambiarEscenario(ESCENARIOS_FILA[(i + 1) % ESCENARIOS_FILA.length]));
+}
+
+export function ajustarEscenario(a: Accion) {
+  const i = ESCENARIOS_FILA.indexOf(escenarioElegido());
+  if (a === 'izq') cambiarEscenario(ESCENARIOS_FILA[Math.max(0, i - 1)]);
+  else if (a === 'der') cambiarEscenario(ESCENARIOS_FILA[Math.min(ESCENARIOS_FILA.length - 1, i + 1)]);
+}
+
+type Canal = 'musica' | 'efectos';
 const nivel = (c: Canal) => Math.round(sonido.getVolumen(c) * 10);
 
 function cambiar(c: Canal, nuevo: number) {
@@ -124,6 +194,69 @@ export function filaVolumen(ctx: CanvasRenderingContext2D, x: number, y: number,
 export function ajustarCanal(canal: Canal, a: Accion) {
   if (a === 'izq') cambiar(canal, nivel(canal) - 1);
   else if (a === 'der') cambiar(canal, nivel(canal) + 1);
+}
+
+/** The settings screen; resolves when the player goes back. */
+export function pantallaAjustes(): Promise<void> {
+  return new Promise((res) => {
+    const p = pantalla();
+    let sel = 0;
+    const salir = () => {
+      sonido.efecto('atras');
+      res();
+    };
+    /** AJUSTES → MI CUENTA (docs/POKEUSERA.md, «Cuentas»); comes back to this screen. */
+    const miCuenta = async () => {
+      sonido.efecto('aceptar');
+      await pantallaCuenta();
+      p.poner(e);
+    };
+    const e: Escena = {
+      // Nothing here moves by itself: redrawn only when a key or a tap changes something.
+      estatica: true,
+      dibujar(ctx) {
+        const H = p.alto;
+        dibujarFondoBar(ctx, H, 0.3);
+        const tit = t('ajustes.titulo');
+        const tw = anchoTexto2(tit) + 40;
+        panelCacheado(ctx, Math.floor((ANCHO - tw) / 2), 22, tw, 26);
+        centrado(ctx, tit, 32);
+        const y0 = 70 + Math.round((H - 384) * 0.1);
+        const x = 8;
+        const w = ANCHO - 16;
+        panelCacheado(ctx, x, y0, w, 172);
+        filaVolumen(ctx, x + 6, y0 + 10, w - 12, 'musica', sel === 0);
+        filaVolumen(ctx, x + 6, y0 + 44, w - 12, 'efectos', sel === 1);
+        filaVelocidad(ctx, x + 6, y0 + 78, w - 12, sel === 2);
+        filaEscenario(ctx, x + 6, y0 + 122, w - 12, sel === 3);
+        entrada.zona(x, y0 + 8, 80, 34, () => (sel = 0));
+        entrada.zona(x, y0 + 42, 80, 34, () => (sel = 1));
+        entrada.zona(x, y0 + 76, w, 18, () => (sel = 2));
+        entrada.zona(x, y0 + 120, w, 18, () => (sel = 3));
+        const yc = y0 + 172 + 12;
+        boton(ctx, Math.floor((ANCHO - 140) / 2), yc, 140, 28, t('ajustes.cuenta'), sel === 4);
+        entrada.zona(Math.floor((ANCHO - 140) / 2), yc, 140, 28, () => void miCuenta());
+        const yb = Math.min(H - 44, yc + 28 + 8);
+        boton(ctx, Math.floor((ANCHO - 100) / 2), yb, 100, 28, t('ajustes.volver'), sel === 5);
+        entrada.zona(Math.floor((ANCHO - 100) / 2), yb, 100, 28, salir);
+      },
+      accion(a) {
+        if (a === 'atras') salir();
+        else if (a === 'arriba' || a === 'abajo') {
+          sel = mover(sel, 6, a);
+          sonido.efecto('cursor');
+        } else if (a === 'izq' || a === 'der') {
+          if (sel < 2) ajustarCanal(sel === 0 ? 'musica' : 'efectos', a);
+          else if (sel === 2) ajustarVelocidad(a);
+          else if (sel === 3) ajustarEscenario(a);
+        } else if (a === 'aceptar' && sel === 4) void miCuenta();
+        else if (a === 'aceptar' && sel === 5) salir();
+        else if (a === 'aceptar' && sel === 3) cambiarEscenario(ESCENARIOS_FILA[(ESCENARIOS_FILA.indexOf(escenarioElegido()) + 1) % ESCENARIOS_FILA.length]);
+        return true;
+      },
+    };
+    p.poner(e);
+  });
 }
 
 /** The pause box of the battle: volumes, battle speed, GUÍA (opens over the battle), ABANDONAR (with a «sure?» step), SEGUIR. */

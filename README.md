@@ -22,12 +22,38 @@ La luz con relieve (WebGL2) está aplazada: para verla, añade `?relieve` a la d
 
 GitHub Pages en un repositorio privado necesita una cuenta de pago (GitHub Pro), y la página queda pública igualmente: cualquiera con la dirección puede jugar. Sin cuenta de pago hay que hacer público el repositorio.
 
+## Publicación en Railway (dominio propio)
+
+Todos los juegos salen de **un único servicio de Railway** (Node), con URLs limpias: `/` (portada), `/capitulo1`, `/pokeusera` y `/pang`. Siguen funcionando, sin anunciarse, `/aventura`, `/capitulo2`, `/sol`, `/kart` y `/unamas`; una ruta con barra final (`/pang/`) redirige a la que no la lleva. La sala online (`/sala`) y las estadísticas (`/api`) van en el mismo servicio. El servidor es `scripts/servir-pokeusera.mjs` y la lista de rutas, `scripts/rutas.mjs`. GitHub Pages sigue publicando el capítulo 1 desde `index.html` hasta que se retire; la portada solo funciona en Railway (sus enlaces son rutas limpias).
+
+Pasos manuales, una sola vez:
+
+1. **Reutilizar el servicio de Railway que ya publica PokéUsera** (así se conservan el volumen y las estadísticas) y, en **Settings → Source**, cambiar la rama a `main`.
+2. **Build Command:** `npm run build`. **Start Command:** `npm start`. Node 20 o superior (`engines` en `package.json`).
+3. **Volumen** montado en `/data` y la variable `POKEUSERA_DATOS=/data` (ya están puestos si se reutiliza el servicio; sin ellos cada despliegue borra las estadísticas y las cuentas). `POKEUSERA_CLAVE` protege la sala online.
+4. **Dominio propio:** en **Settings → Networking → Custom Domain**, añadir `www.tudominio.es` (y `tudominio.es` si se usa la vía B). Railway da para cada uno un destino CNAME (`algo.up.railway.app`) y un registro TXT de verificación; hacen falta los dos. Registros en cdmon (Dominios → Gestión DNS):
+
+   | Nombre | Tipo | Valor |
+   | --- | --- | --- |
+   | `www` | CNAME | el destino que da Railway para `www` (`algo.up.railway.app`) |
+   | `_railway-verify.www` | TXT | el valor que da Railway (copiar el nombre exacto que muestre) |
+
+   La raíz (`tudominio.es`) no admite CNAME, y Railway no da una IP fija para un registro A. Hay dos vías:
+   - **A, todo en cdmon:** si al crear un registro cdmon ofrece el tipo ALIAS o ANAME, raíz `@` → ALIAS al destino de Railway, más su TXT `_railway-verify`. Si no lo ofrece (lo normal), usar «Crear redirección web» de cdmon para que `tudominio.es` lleve a `https://www.tudominio.es`. Inconveniente: si alguien escribe `https://tudominio.es` puede ver un aviso de certificado, porque la redirección de cdmon no tiene certificado propio.
+   - **B, DNS en Cloudflare (gratis):** el dominio sigue comprado en cdmon, pero en cdmon se cambian los servidores de nombres por los dos que da Cloudflare. En Cloudflare: raíz `@` CNAME al destino de Railway (Cloudflare lo «aplana»), los TXT de Railway, `www` CNAME a `@`, SSL/TLS en «Full» y una redirección 301 de `www` a la raíz. Es la vía que Railway recomienda para la raíz, y funciona con https en las dos direcciones.
+
+   El certificado https lo pone Railway solo cuando ve los registros (de minutos a unas horas).
+5. Comprobar: `/`, `/capitulo1`, `/pokeusera` y `/pang` abren cada juego, y `/api/estadisticas` responde.
+
+PokéUsera se puede seguir instalando como app: su manifiesto (`start_url` `./pokeusera.html`) y su service worker no cambian de sitio, así que las instalaciones que ya hay siguen funcionando. Como ahora comparten dominio, todos los juegos comparten también el `localStorage`; sus claves llevan prefijo propio (`cyc.*`, `pokeusera.*`, `pokecap.*`).
+
 ## Cambiar los textos
 
 Todo lo que se dice en el juego está en `src/textos/`:
 
 - `capitulo1.md`: diálogos, objetivos, pistas y nombres de las cosas.
 - `interfaz.md`: menús y botones.
+- `portada.md`: la portada del dominio (`portada.html`).
 
 El formato se explica al principio de `capitulo1.md`. Basta con editar el texto y recargar; no hace falta tocar código. Si una clave falta o una línea no se entiende, sale un error en la consola y la partida automática falla.
 
@@ -37,7 +63,7 @@ El formato se explica al principio de `capitulo1.md`. Basta con editar el texto 
 npm run typecheck
 node scripts/playthrough.mjs http://localhost:5173/ revisiones/partida   # partida completa del piloto en viewport de móvil
 node scripts/shots.mjs http://localhost:5173/ revisiones/captura.png 844x390 3
-node scripts/rendimiento.mjs [escena...]                                  # CPU, fotogramas y memoria, con la música sonando; falla con los errores de la regla T5 (docs/ESTILO.md)
+node scripts/rendimiento.mjs [escena...]                                  # (también `portada`, sin arrancar el juego) CPU, fotogramas y memoria, con la música sonando; falla con los errores de la regla T5 (docs/ESTILO.md)
 node tools/personajes/lamina-crew.mjs                                     # lámina de la crew (artifact/crew-lamina.html)
 node tools/personajes/frentes.mjs                                         # caras de frente de los retratos, por ánimo y boca (revisiones/frentes.png)
 node tools/personajes/cerdos.mjs                                          # los cerdos de Guille (revisiones/cerdos.png)
@@ -72,6 +98,8 @@ node tools/icono.mjs                                                      # icon
 | `docs/PERSONAJES.md` | Cómo son y cómo hablan los cuatro y Aceituna |
 | `docs/ESCENA-1.md` | Encargo del capítulo 1: piso, calle, cámara y puzle inicial |
 | `src/textos/` | Todos los textos del juego, editables |
+| `portada.html`, `src/portada/` | Portada del dominio: tres tarjetas (Capítulo 1, PokéUsera, Pang), solo DOM y CSS |
+| `scripts/servir-pokeusera.mjs`, `scripts/rutas.mjs` | Servidor de Railway y sus URLs limpias; `src/core/direccion.ts` es la mitad que lee el juego |
 | `src/capitulos/` | Lógica de cada capítulo: zonas, puzles, objetivos y pistas (las historias de Pablo y Guille, en `pablo.ts` y `guille.ts`) |
 | `src/juego/` | Aventura (guion, entrada táctil, cambio de personaje), reparto, textos y partida guardada |
 | `src/motor/` | Escenas en capas con parallax, luz horneada, actores y la luz con relieve en WebGL2 (aplazada) |

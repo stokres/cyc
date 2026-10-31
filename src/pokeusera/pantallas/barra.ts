@@ -13,7 +13,7 @@ import { hornear, panel, relleno } from '../arte2/ui2';
 import { entrada, type Accion } from '../entrada';
 import { OBJETO_PERMANENTE } from '../datos';
 import { objetoBot, valorObjeto, type EleccionObjeto } from '../motor/objetos';
-import { ANCHO, altoActual, pantalla, type Escena } from '../pantalla';
+import { ANCHO, pantalla, type Escena } from '../pantalla';
 import { sonido } from '../sonido';
 import { menuPausa } from './ajustes';
 import { miniatura } from './fondos';
@@ -58,7 +58,7 @@ export function carta(id: ObjetoId, h: number): HTMLCanvasElement {
 }
 
 /** One task per offer card for the background baking (`precalentar.ts`). */
-export const tareasPrecalentarBarra = (): (() => void)[] => OBJETOS.map((id) => () => void carta(id, medidas(altoActual()).hCarta));
+export const tareasPrecalentarBarra = (): (() => void)[] => OBJETOS.map((id) => () => void carta(id, medidas(pantalla().alto).hCarta));
 
 /** One of the player's useritos, baked: thumbnail, name and types. */
 function celda(especie: string): HTMLCanvasElement {

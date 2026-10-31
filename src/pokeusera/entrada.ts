@@ -1,7 +1,7 @@
 // PokéUsera · input. Taps (pointerup on the same zone where the pointer went down) and keys
 // (arrows, Enter/Z/Space = accept, Escape/X/Backspace = back). The screen being drawn registers
-// its hit zones on every draw (`zona`), later zones on top of earlier ones. In chapter 2 the game lives inside a stage
-// (marco.ts). The keys are listened to in the capture phase and kept from the chapter's own game; `destruir()` stops it all.
+// its hit zones on every draw (`zona`), later zones on top of earlier ones. The browser's back
+// button also counts as «atrás» while a screen handles it.
 import { ANCHO, type Pantalla } from './pantalla';
 import { sonido } from './sonido';
 
@@ -45,14 +45,9 @@ class Entrada {
   private yaTocado = false;
   /** Runs once, on the very first tap or key (fullscreen request, audio unlock). */
   primerToque: (() => void) | null = null;
-  private teclas: ((e: KeyboardEvent) => void) | null = null;
 
   iniciar(pantalla: Pantalla) {
     this.pantalla = pantalla;
-    this.zonas.length = 0;
-    this.bajada = null;
-    this.origen = null;
-    this.arrastrando = false;
     pantalla.antesDeDibujar = () => (this.zonas.length = 0);
     const cv = pantalla.canvas;
     cv.addEventListener('pointerdown', (e) => {
@@ -98,27 +93,36 @@ class Entrada {
       this.origen = null;
       this.arrastrando = false;
     });
-    this.teclas = (e) => {
+    addEventListener('keydown', (e) => {
       const a = TECLAS[e.key];
       if (!a || e.ctrlKey || e.metaKey || e.altKey) return;
       e.preventDefault();
-      // The chapter's game listens to the same keys: while this one is up, they are for this one only.
-      e.stopImmediatePropagation();
       this.despertar();
       this.accion(a);
-    };
-    window.addEventListener('keydown', this.teclas, true);
-  }
-
-  /** The game is over: the keys go back to the chapter. */
-  destruir() {
-    if (this.teclas) window.removeEventListener('keydown', this.teclas, true);
-    this.teclas = null;
-    this.zonas.length = 0;
-    this.bajada = null;
-    this.origen = null;
-    this.arrastrando = false;
-    this.primerToque = null;
+    });
+    // The browser's back button: a screen that handles «atrás» keeps the page where it is.
+    try {
+      history.replaceState({ pu: 0 }, '');
+      history.pushState({ pu: 1 }, '');
+    } catch {
+      /* no history */
+    }
+    addEventListener('popstate', () => {
+      const manejado = this.accion('atras');
+      if (manejado) {
+        try {
+          history.pushState({ pu: 1 }, '');
+        } catch {
+          /* ignore */
+        }
+      } else {
+        try {
+          history.back();
+        } catch {
+          /* ignore */
+        }
+      }
+    });
   }
 
   private despertar() {

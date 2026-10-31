@@ -59,8 +59,7 @@ export type HabilidadId =
   | 'bote' | 'conazo' | 'curado' | 'dos_cabezas' | 'ardiente' | 'pareja' | 'fotosintesis' | 'flipado' | 'volumen' | 'hielo'
   | 'pesadisimo' | 'ola' | 'lavado' | 'maleta' | 'publico' | 'corriente' | 'grasiento' | 'viento' | 'fan'
   | 'cantaynollores' | 'malaleche'
-  | 'jabon' | 'tira' | 'blandito' | 'humo' | 'feria'
-  | 'ultimo';
+  | 'jabon' | 'tira' | 'blandito' | 'humo' | 'feria';
 export const HAB_PAREJA = 20; // Pareja de carretera / Fan de la gira: % more damage on its attacks while the partner is on the field
 export const HAB_PROB_REACCION = 30; // Buena chica / Indigesto / Ardiente: % chance that whoever hits them pays for it
 export const HAB_GRASIENTO = 10; // Grasiento: % chance that its Grasa attacks give the target an empacho
@@ -251,7 +250,7 @@ export interface Estadisticas {
 }
 
 /** The bars the battle can be played in (the background, the music and the events of the place; docs/POKEUSERA.md, «Sucesos del bar»). */
-export type EscenarioId = 'brio' | 'terraza' | 'rural' | 'juan' | 'feria' | 'conceptos';
+export type EscenarioId = 'brio' | 'terraza' | 'rural' | 'juan' | 'feria';
 export const ESCENARIOS: readonly EscenarioId[] = ['brio', 'terraza', 'rural', 'juan', 'feria'];
 
 /** Things that happen in the bar on turns 5, 10, 15, 20 and 25 (datos.ts: `SUCESOS`). */

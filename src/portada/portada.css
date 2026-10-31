@@ -1,0 +1,349 @@
+/* Cover page (portada.html). Same look as the game (docs/ESTILO.md): night blue, gold fillet, cream text, Graduate for titles and
+   Alegreya Sans for the rest, touch targets of 44 px or more (I4), text of 14 px or more (I3), safe areas (I5).
+   Landscape: three cards side by side, the whole page in one screen. Portrait (PokéUsera is played that way): three cards one under the other.
+   Only CSS: no canvas, and the only animation is the bubbles of Pang (transform, well below 60 fps of work, off with «reduce motion»). */
+:root {
+  --ink: #0b1124;
+  --glass: rgba(15, 21, 40, 0.86);
+  --gold: #dbb46c;
+  --gold-soft: rgba(219, 180, 108, 0.5);
+  --cream: #f3ead6;
+  --muted: #b8b2a6;
+  --display: 'Graduate', 'Rockwell', 'Georgia', serif;
+  --body: 'Alegreya Sans', 'Trebuchet MS', 'Segoe UI', sans-serif;
+  --safe-l: max(env(safe-area-inset-left, 0px), 12px);
+  --safe-r: max(env(safe-area-inset-right, 0px), 12px);
+  --safe-t: max(env(safe-area-inset-top, 0px), 8px);
+  --safe-b: max(env(safe-area-inset-bottom, 0px), 8px);
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  background: var(--ink);
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  color: var(--cream);
+  font-family: var(--body);
+  font-size: 17px;
+  background: radial-gradient(ellipse at 50% 0%, #1b2342 0%, var(--ink) 70%);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+.portada {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 2.4vh, 18px);
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: var(--safe-t) var(--safe-r) var(--safe-b) var(--safe-l);
+  opacity: 0;
+}
+
+.portada.lista {
+  opacity: 1;
+  transition: opacity 0.2s;
+}
+
+/* ---------------------------------------------------------------- header */
+.cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 4px 0;
+}
+
+.cabecera h1 {
+  margin: 0;
+  font: 400 clamp(20px, 6.2vh, 28px) / 1.1 var(--display);
+  color: var(--gold);
+  letter-spacing: 0.02em;
+}
+
+.cabecera p {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* ---------------------------------------------------------------- cards */
+.juegos {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(10px, 2.4vw, 20px);
+  min-height: 0;
+}
+
+.juego {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  padding: 8px 8px 10px;
+  border-radius: 18px;
+  border: 1px solid var(--gold-soft);
+  background: var(--glass);
+  color: inherit;
+  text-decoration: none;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  transition: transform 0.12s;
+}
+
+.juego:active {
+  transform: scale(0.98);
+}
+
+.juego:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.arte {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.orientacion {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 2;
+  padding: 1px 9px 1px 8px;
+  border-radius: 999px;
+  background: rgba(11, 17, 36, 0.78);
+  border: 1px solid var(--gold-soft);
+  color: var(--cream);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+/* Capítulo 1: the crew's sticker, black ink on cream (the logo comes with a white background: «multiply» leaves the cream). */
+#juego-capitulo1 .arte {
+  background: #efe4c8;
+}
+
+.logo {
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+/* PokéUsera: the jar of its icon (pixel art) on the purple of the icon. */
+#juego-pokeusera .arte {
+  background: #3a1334;
+}
+
+.icono {
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+/* Pang: the four friends among bubbles, on the blues of the game. */
+#juego-pang .arte {
+  background: linear-gradient(180deg, #34406a 0%, #151b36 100%);
+}
+
+.cabezas {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  height: 74%;
+  padding: 18px 4px 0;
+}
+
+.cabezas img {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+  height: auto;
+  max-height: 100%;
+  margin: 0 -2.5%;
+  object-fit: contain;
+  object-position: bottom;
+}
+
+.cabezas img:nth-child(even) {
+  max-height: 88%;
+}
+
+.burbuja {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 30%, #f6a89c 0 12%, #e0685c 14% 60%, #a8362e 100%);
+  animation: rebote 3.2s steps(48) infinite alternate;
+  will-change: transform;
+}
+
+.b1 {
+  width: 34%;
+  aspect-ratio: 1;
+  left: -6%;
+  top: 8%;
+}
+
+.b2 {
+  width: 20%;
+  aspect-ratio: 1;
+  right: 6%;
+  top: 14%;
+  animation-delay: -1.3s;
+  animation-duration: 2.6s;
+}
+
+.b3 {
+  width: 12%;
+  aspect-ratio: 1;
+  right: 30%;
+  bottom: 12%;
+  animation-delay: -0.6s;
+  animation-duration: 2.1s;
+}
+
+@keyframes rebote {
+  from {
+    transform: translateY(-10%);
+  }
+  to {
+    transform: translateY(26%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .burbuja {
+    animation: none;
+  }
+}
+
+.cuerpo {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2px;
+  padding: 0 4px;
+}
+
+.nombre {
+  font: 400 clamp(17px, 5.2vh, 22px) / 1.15 var(--display);
+  color: var(--gold);
+}
+
+.desc {
+  min-height: 2.5em;
+  color: var(--cream);
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.boton {
+  margin-top: 6px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 18px;
+}
+
+/* ---------------------------------------------------------------- portrait: one card under the other */
+@media (orientation: portrait) {
+  .portada {
+    gap: 14px;
+    padding-top: max(var(--safe-t), 16px);
+  }
+
+  .cabecera {
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    text-align: center;
+  }
+
+  .cabecera h1 {
+    font-size: clamp(24px, 7.4vw, 34px);
+  }
+
+  .juegos {
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-rows: minmax(240px, 1fr);
+    gap: 14px;
+  }
+
+  .juego {
+    padding: 10px 10px 12px;
+  }
+
+  /* Name and description on the left, the button on the right: more room for the picture. */
+  .cuerpo {
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 12px;
+    align-items: center;
+  }
+
+  .nombre,
+  .desc {
+    grid-column: 1;
+  }
+
+  .boton {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    margin-top: 0;
+    padding: 0 22px;
+  }
+
+  .nombre {
+    font-size: 23px;
+  }
+
+  .desc {
+    min-height: 0;
+    font-size: 18px;
+  }
+}
+
+/* Landscape: the label sits over the top of the picture, so the sticker leaves room for it. */
+@media (orientation: landscape) {
+  #juego-capitulo1 .arte {
+    padding-top: 24px;
+  }
+}
+
+/* Very low landscape screens: tighter, and the page may scroll if it still does not fit. */
+@media (orientation: landscape) and (max-height: 380px) {
+  .desc {
+    font-size: 16px;
+    min-height: 2.5em;
+  }
+
+  .orientacion {
+    display: none;
+  }
+}

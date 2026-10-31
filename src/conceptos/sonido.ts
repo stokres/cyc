@@ -19,12 +19,29 @@ export class SonidoUnaMas {
     this.activo = !!s?.tono && !!s?.ruido;
   }
 
+  /**
+   * Gain of the effect being built (see `con`). The music of «Una más» is orchestral and dense (tools/musica/una_mas.py, -21 LUFS),
+   * so the effects that are heard all the time (jumps, the mug, hits, damage, breaking things) are boosted: their gains were
+   * measured offline (loudest 300 ms) against the music's level so that they stand clearly over it.
+   */
+  private k = 1;
+
+  private con(k: number, f: () => void) {
+    const antes = this.k;
+    this.k = k;
+    try {
+      f();
+    } finally {
+      this.k = antes;
+    }
+  }
+
   private t(f: number, dur: number, tipo: OscillatorType, vol: number, cuando = 0, desliza = 0) {
-    if (this.activo) this.s?.tono?.(f, dur, tipo, vol, cuando, desliza);
+    if (this.activo) this.s?.tono?.(f, dur, tipo, vol * this.k, cuando, desliza);
   }
 
   private r(dur: number, vol: number, filtro: number) {
-    if (this.activo) this.s?.ruido?.(dur, vol, filtro);
+    if (this.activo) this.s?.ruido?.(dur, vol * this.k, filtro);
   }
 
   // ---------------------------------------------------------------- music hooks
@@ -54,46 +71,58 @@ export class SonidoUnaMas {
   // ---------------------------------------------------------------- movement
 
   salto() {
-    this.t(300, 0.16, 'square', 0.025, 0, 2.6);
-    this.t(480, 0.12, 'triangle', 0.04, 0.02, 2.2);
-    this.r(0.06, 0.02, 3000);
+    this.con(2.6, () => {
+      this.t(300, 0.16, 'square', 0.025, 0, 2.6);
+      this.t(480, 0.12, 'triangle', 0.04, 0.02, 2.2);
+      this.r(0.06, 0.02, 3000);
+    });
   }
 
   /** Cierzo: a gust (filtered noise) and a bright rising chime. */
   cierzo() {
-    this.r(0.35, 0.07, 1800);
-    this.r(0.22, 0.05, 5200);
-    this.t(520, 0.3, 'sine', 0.06, 0, 2.9);
-    this.t(780, 0.26, 'triangle', 0.04, 0.05, 2.5);
-    this.t(1560, 0.2, 'sine', 0.03, 0.12, 1.6);
+    this.con(1.8, () => {
+      this.r(0.35, 0.07, 1800);
+      this.r(0.22, 0.05, 5200);
+      this.t(520, 0.3, 'sine', 0.06, 0, 2.9);
+      this.t(780, 0.26, 'triangle', 0.04, 0.05, 2.5);
+      this.t(1560, 0.2, 'sine', 0.03, 0.12, 1.6);
+    });
   }
 
   aterriza(fuerte: number) {
-    const v = 0.03 + 0.05 * Math.min(1, fuerte);
-    this.t(120, 0.12, 'sine', v, 0, 0.45);
-    this.r(0.08, v * 0.8, 900);
+    this.con(2.4, () => {
+      const v = 0.03 + 0.05 * Math.min(1, fuerte);
+      this.t(120, 0.12, 'sine', v, 0, 0.45);
+      this.r(0.08, v * 0.8, 900);
+    });
   }
 
   paso(dt: number) {
-    this.tPaso -= dt;
-    if (this.tPaso > 0) return;
-    this.tPaso = 0.17;
-    this.r(0.04, 0.012, 700);
+    this.con(1.6, () => {
+      this.tPaso -= dt;
+      if (this.tPaso > 0) return;
+      this.tPaso = 0.17;
+      this.r(0.04, 0.012, 700);
+    });
   }
 
   mutis() {
-    this.r(0.3, 0.07, 1200);
-    this.t(180, 0.3, 'sawtooth', 0.04, 0, 3.4);
-    this.t(90, 0.25, 'sine', 0.06, 0, 2);
+    this.con(1.6, () => {
+      this.r(0.3, 0.07, 1200);
+      this.t(180, 0.3, 'sawtooth', 0.04, 0, 3.4);
+      this.t(90, 0.25, 'sine', 0.06, 0, 2);
+    });
   }
 
   // ---------------------------------------------------------------- combat
 
   /** The swing of the mug: a swoosh. */
   jarrazo() {
-    this.r(0.16, 0.06, 2600);
-    this.t(720, 0.14, 'triangle', 0.035, 0, 0.35);
-    this.t(300, 0.12, 'sawtooth', 0.015, 0.02, 0.5);
+    this.con(3.2, () => {
+      this.r(0.16, 0.06, 2600);
+      this.t(720, 0.14, 'triangle', 0.035, 0, 0.35);
+      this.t(300, 0.12, 'sawtooth', 0.015, 0.02, 0.5);
+    });
   }
 
   teclazoCarga(k: number) {
@@ -101,41 +130,51 @@ export class SonidoUnaMas {
   }
 
   teclazo() {
-    this.r(0.4, 0.12, 900);
-    this.t(70, 0.4, 'sine', 0.14, 0, 0.4);
-    this.t(220, 0.3, 'square', 0.05, 0, 0.3);
-    for (let i = 0; i < 5; i++) this.t(1400 + i * 260, 0.07, 'square', 0.025, 0.03 * i);
+    this.con(1.3, () => {
+      this.r(0.4, 0.12, 900);
+      this.t(70, 0.4, 'sine', 0.14, 0, 0.4);
+      this.t(220, 0.3, 'square', 0.05, 0, 0.3);
+      for (let i = 0; i < 5; i++) this.t(1400 + i * 260, 0.07, 'square', 0.025, 0.03 * i);
+    });
   }
 
   /** The mug connects: a thump, a crack and a glassy ring. */
   golpe(fuerte = false) {
-    this.t(fuerte ? 90 : 130, 0.2, 'sine', fuerte ? 0.16 : 0.11, 0, 0.35);
-    this.r(0.12, fuerte ? 0.14 : 0.09, 2400);
-    this.t(1900, 0.1, 'square', 0.03, 0, 0.5);
-    this.t(2650, 0.28, 'sine', 0.028, 0.01, 0.97);
-    this.t(3400, 0.2, 'sine', 0.02, 0.02, 0.97);
+    this.con(1.6, () => {
+      this.t(fuerte ? 90 : 130, 0.2, 'sine', fuerte ? 0.16 : 0.11, 0, 0.35);
+      this.r(0.12, fuerte ? 0.14 : 0.09, 2400);
+      this.t(1900, 0.1, 'square', 0.03, 0, 0.5);
+      this.t(2650, 0.28, 'sine', 0.028, 0.01, 0.97);
+      this.t(3400, 0.2, 'sine', 0.02, 0.02, 0.97);
+    });
   }
 
   muerteEnemigo(grande = false) {
-    this.r(grande ? 0.7 : 0.35, grande ? 0.16 : 0.1, 1600);
-    this.t(grande ? 70 : 160, grande ? 0.6 : 0.3, 'sine', 0.13, 0, 0.3);
-    this.t(520, 0.25, 'sawtooth', 0.04, 0, 0.3);
-    [880, 1175, 1568, 2093].forEach((f, i) => this.t(f, 0.2, 'triangle', 0.035, 0.05 + i * 0.045));
-    if (grande) for (let i = 0; i < 6; i++) this.t(300 + i * 90, 0.3, 'square', 0.03, 0.1 + i * 0.07, 0.5);
+    this.con(1.3, () => {
+      this.r(grande ? 0.7 : 0.35, grande ? 0.16 : 0.1, 1600);
+      this.t(grande ? 70 : 160, grande ? 0.6 : 0.3, 'sine', 0.13, 0, 0.3);
+      this.t(520, 0.25, 'sawtooth', 0.04, 0, 0.3);
+      [880, 1175, 1568, 2093].forEach((f, i) => this.t(f, 0.2, 'triangle', 0.035, 0.05 + i * 0.045));
+      if (grande) for (let i = 0; i < 6; i++) this.t(300 + i * 90, 0.3, 'square', 0.03, 0.1 + i * 0.07, 0.5);
+    });
   }
 
   /** Fran is hurt: a dull blow and a falling buzz. */
   dano() {
-    this.t(95, 0.28, 'sine', 0.18, 0, 0.4);
-    this.r(0.2, 0.12, 1400);
-    this.t(420, 0.34, 'sawtooth', 0.06, 0, 0.35);
-    this.t(300, 0.34, 'square', 0.035, 0.03, 0.4);
+    this.con(1.3, () => {
+      this.t(95, 0.28, 'sine', 0.18, 0, 0.4);
+      this.r(0.2, 0.12, 1400);
+      this.t(420, 0.34, 'sawtooth', 0.06, 0, 0.35);
+      this.t(300, 0.34, 'square', 0.035, 0.03, 0.4);
+    });
   }
 
   pinchos() {
-    this.r(0.1, 0.08, 4200);
-    this.t(1100, 0.12, 'square', 0.04, 0, 0.5);
-    this.dano();
+    this.con(1.3, () => {
+      this.r(0.1, 0.08, 4200);
+      this.t(1100, 0.12, 'square', 0.04, 0, 0.5);
+      this.dano();
+    });
   }
 
   muerte() {
@@ -156,8 +195,10 @@ export class SonidoUnaMas {
   }
 
   embiste() {
-    this.r(0.25, 0.07, 1000);
-    this.t(110, 0.25, 'sawtooth', 0.04, 0, 0.7);
+    this.con(2.4, () => {
+      this.r(0.25, 0.07, 1000);
+      this.t(110, 0.25, 'sawtooth', 0.04, 0, 0.7);
+    });
   }
 
   goteo() {
@@ -182,15 +223,19 @@ export class SonidoUnaMas {
 
   /** A bar saves: a warm chord and some bubbles. */
   barra() {
-    [392, 494, 587, 784].forEach((f, i) => {
-      this.t(f, 0.7, 'triangle', 0.045, i * 0.07);
-      this.t(f * 2, 0.5, 'sine', 0.018, i * 0.07 + 0.02);
+    this.con(1.4, () => {
+      [392, 494, 587, 784].forEach((f, i) => {
+        this.t(f, 0.7, 'triangle', 0.045, i * 0.07);
+        this.t(f * 2, 0.5, 'sine', 0.018, i * 0.07 + 0.02);
+      });
+      for (let i = 0; i < 6; i++) this.t(900 + ((i * 337) % 700), 0.07, 'sine', 0.02, 0.1 + i * 0.09, 1.6);
     });
-    for (let i = 0; i < 6; i++) this.t(900 + ((i * 337) % 700), 0.07, 'sine', 0.02, 0.1 + i * 0.09, 1.6);
   }
 
   sorbo() {
-    [660, 880, 1320].forEach((f, i) => this.t(f, 0.2, 'triangle', 0.05, i * 0.07));
+    this.con(1.8, () => {
+      [660, 880, 1320].forEach((f, i) => this.t(f, 0.2, 'triangle', 0.05, i * 0.07));
+    });
   }
 
   /** Guille is free: a rising fanfare with a shimmer on top. */
@@ -209,8 +254,10 @@ export class SonidoUnaMas {
   }
 
   puerta() {
-    this.t(200, 0.3, 'triangle', 0.05, 0, 1.8);
-    this.r(0.25, 0.04, 1500);
+    this.con(2.2, () => {
+      this.t(200, 0.3, 'triangle', 0.05, 0, 1.8);
+      this.r(0.25, 0.04, 1500);
+    });
   }
 
   texto() {
@@ -251,16 +298,20 @@ export class SonidoUnaMas {
 
   /** Glass: a crack and a shower of glints. */
   cristal(fuerte = false) {
-    this.r(0.12, fuerte ? 0.14 : 0.08, 6000);
-    const n = fuerte ? 9 : 5;
-    for (let i = 0; i < n; i++) this.t(2200 + ((i * 733) % 3300), 0.12 + (i % 3) * 0.05, i % 2 ? 'sine' : 'triangle', 0.03, i * 0.035, 0.9);
-    if (fuerte) this.t(70, 0.4, 'sine', 0.12, 0, 0.5);
+    this.con(2.0, () => {
+      this.r(0.12, fuerte ? 0.14 : 0.08, 6000);
+      const n = fuerte ? 9 : 5;
+      for (let i = 0; i < n; i++) this.t(2200 + ((i * 733) % 3300), 0.12 + (i % 3) * 0.05, i % 2 ? 'sine' : 'triangle', 0.03, i * 0.035, 0.9);
+      if (fuerte) this.t(70, 0.4, 'sine', 0.12, 0, 0.5);
+    });
   }
 
   /** A bottle cap: a bright little ting. */
   chapa() {
-    this.t(2100, 0.07, 'triangle', 0.03, 0, 0.7);
-    this.t(3100, 0.05, 'square', 0.012, 0.01, 0.7);
+    this.con(3.5, () => {
+      this.t(2100, 0.07, 'triangle', 0.03, 0, 0.7);
+      this.t(3100, 0.05, 'square', 0.012, 0.01, 0.7);
+    });
   }
 
   /** Beer pouring: a long soft hiss with bubbles. */
@@ -271,17 +322,21 @@ export class SonidoUnaMas {
 
   /** The tap bursts: wood, brass and a gush. */
   barrilRoto() {
-    this.r(0.5, 0.15, 1500);
-    this.t(80, 0.4, 'sine', 0.16, 0, 0.5);
-    this.t(300, 0.25, 'square', 0.05, 0, 0.4);
-    this.cristal();
+    this.con(1.3, () => {
+      this.r(0.5, 0.15, 1500);
+      this.t(80, 0.4, 'sine', 0.16, 0, 0.5);
+      this.t(300, 0.25, 'square', 0.05, 0, 0.4);
+      this.cristal();
+    });
   }
 
   /** The hit that does not hurt it: a dull metallic clang. */
   clang() {
-    this.t(220, 0.18, 'square', 0.04, 0, 0.8);
-    this.t(1250, 0.2, 'triangle', 0.03, 0, 0.95);
-    this.r(0.05, 0.05, 3000);
+    this.con(2.2, () => {
+      this.t(220, 0.18, 'square', 0.04, 0, 0.8);
+      this.t(1250, 0.2, 'triangle', 0.03, 0, 0.95);
+      this.r(0.05, 0.05, 3000);
+    });
   }
 
   /** Wobbly belch of the drunk boss. */

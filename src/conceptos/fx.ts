@@ -325,6 +325,14 @@ export class Efectos {
     this.destello(0.18 * k, '#fff6e0');
   }
 
+  /** A «NO» block breaks: cheap on purpose (a handful of particles, no flash, no freeze). */
+  romperNo(x: number, y: number) {
+    this.chispas(x, y, 5, 0, 300, '#ff6a52', Math.PI * 2);
+    this.teclas(x, y, 3);
+    this.polvo(x, y + 6, 3, 14);
+    this.sacudir(2);
+  }
+
   /** Cierzo: a gust under the feet, leaves and triangles flying. */
   cierzo(x: number, y: number) {
     this.hojas(x, y, 18);
