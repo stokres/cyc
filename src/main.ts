@@ -24,6 +24,7 @@ import type { Volumen } from './core/audio';
 import { storageGet, storageSet, wait } from './core/util';
 import { cargarModulo } from './juego/modulos';
 import { parametros, volverAlInicio } from './core/direccion';
+import { bajarPartidas, vigilar } from './cuenta/cuenta';
 
 interface Ajustes {
   /** 2 since the two volumes and «media» as the default quality (8 October 2026). */
@@ -59,6 +60,10 @@ function cargarAjustes(): Ajustes {
 }
 
 async function arrancar() {
+  // The saves of the account come down from the profile BEFORE any game reads its own (the whole Pang reads its save as its chunk loads, the chapters in a moment):
+  // without account or network it costs nothing, a slow network gives up after 2.5 s. Then the changes are watched to copy them up (src/cuenta/sincronizar.ts).
+  await bajarPartidas().catch(() => undefined);
+  vigilar();
   cargarTextos(textosInterfaz, textosCapitulo, textosCapitulo2);
   const root = document.getElementById('game')!;
   // «Alacant Sun» (src/sol/), the friends' parody, opened by itself: the address ending in ?sol.

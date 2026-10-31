@@ -2,7 +2,8 @@
 //   POST /api/batallas      un resumen de batalla (JSON, hasta 32 KB): se valida, se añade al final de un JSONL y se suma al agregado.
 //   GET  /api/estadisticas  { v, n, ag, cuentas }: los agregados de todas las batallas (se calculan al arrancar y al añadir; el GET no recorre el archivo)
 //                           y, de cada cuenta con batallas, sus sumas (la tabla de ENTRENADORES). Con `?cuenta=<id público>`: { v, n, nombre, racha, ag } de esa cuenta.
-//   POST /api/cuentas, POST /api/cuentas/recuperar, GET|PUT /api/cuentas/yo: las cuentas de usuario (scripts/cuentas.mjs; docs/POKEUSERA.md, «Cuentas»).
+//   POST /api/cuentas, POST /api/cuentas/recuperar, GET|PUT /api/cuentas/yo, GET|PUT /api/cuentas/yo/juegos/<juego>: las cuentas de usuario de la web, con lo guardado
+//                           de cada juego (scripts/cuentas.mjs; docs/POKEUSERA.md, «Cuentas»).
 //                           Cada jugador de un resumen llega con su token en `cu`; aquí se cambia por el id público de su cuenta (o null): el token no se guarda ni se devuelve nunca.
 // Los resúmenes viven en `${POKEUSERA_DATOS}/batallas.jsonl` (por defecto ./datos-pokeusera). En Railway hace falta un Volume montado ahí, o el disco se borra en cada despliegue.
 // La suma es `src/pokeusera/estadisticas/agregado.mjs`, la misma que usa el móvil para sus datos locales.
@@ -12,10 +13,13 @@ import { appendFile, mkdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
 import { FORMATO, agregadoVacio, normalizarResumen, prepararCatalogo, sumarResumen } from '../src/pokeusera/estadisticas/agregado.mjs';
-import { limpiarCodigo } from '../src/pokeusera/cuentas/reglas.mjs';
+import { limpiarCodigo } from '../src/cuenta/reglas.mjs';
+import { esJuego, MAX_JUEGO } from '../src/cuenta/juegos.mjs';
 import { crearAlmacenCuentas } from './cuentas.mjs';
 
 const MAX_CUERPO = 32 * 1024;
+/** El cuerpo de un juego: su texto (hasta MAX_JUEGO) va dentro de un JSON, donde cada comilla se duplica, y lleva el `act`. */
+const MAX_CUERPO_JUEGO = 2 * MAX_JUEGO + 1024;
 /** Por IP: envíos de batallas y lecturas permitidos en cada ventana. Una batalla dura minutos: esto da mucho margen a un grupo de amigos tras la misma wifi. */
 const LIMITES = {
   envio: { max: 60, ms: 10 * 60_000 },
@@ -133,14 +137,14 @@ export async function crearApiEstadisticas({ carpeta, catalogo, aviso = (m) => c
     res.end(s);
   };
 
-  /** Reads the body up to `MAX_CUERPO` bytes; null if it is bigger. */
-  const leerCuerpo = (req) =>
+  /** Reads the body up to `tope` bytes (32 KB by default); null if it is bigger. */
+  const leerCuerpo = (req, tope = MAX_CUERPO) =>
     new Promise((ok) => {
       const trozos = [];
       let n = 0;
       req.on('data', (t) => {
         n += t.length;
-        if (n > MAX_CUERPO) {
+        if (n > tope) {
           ok(null);
           req.destroy();
         } else trozos.push(t);
@@ -193,9 +197,9 @@ export async function crearApiEstadisticas({ carpeta, catalogo, aviso = (m) => c
     return typeof t === 'string' ? t.trim() : '';
   };
   /** El cuerpo como objeto JSON, o responde el error y devuelve null. */
-  async function cuerpoJson(req, res) {
+  async function cuerpoJson(req, res, tope = MAX_CUERPO) {
     const largo = Number(req.headers['content-length']);
-    const texto = Number.isFinite(largo) && largo > MAX_CUERPO ? null : await leerCuerpo(req);
+    const texto = Number.isFinite(largo) && largo > tope ? null : await leerCuerpo(req, tope);
     if (texto === null) return void json(res, 413, { error: 'demasiado grande' });
     try {
       const o = JSON.parse(texto || '{}');
@@ -205,7 +209,7 @@ export async function crearApiEstadisticas({ carpeta, catalogo, aviso = (m) => c
     }
     return void json(res, 400, { error: 'json' });
   }
-  const perfil = (c, conProgreso) => ({ id: c.id, nombre: c.nombre, codigo: c.codigo, alta: c.alta, ...(conProgreso ? { progreso: c.progreso } : {}) });
+  const perfil = (c, conJuegos) => ({ id: c.id, nombre: c.nombre, codigo: c.codigo, alta: c.alta, ...(conJuegos ? { juegos: cuentas.actsDe(c) } : {}) });
   const errorCambio = (res, e) => json(res, e === 'repetido' ? 409 : e === 'disco' ? 503 : 400, { error: e });
 
   async function crearCuenta(req, res) {
@@ -224,7 +228,7 @@ export async function crearApiEstadisticas({ carpeta, catalogo, aviso = (m) => c
     if (!codigo) return json(res, 400, { error: 'codigo' });
     const c = cuentas.recuperar(codigo);
     if (!c) return json(res, 404, { error: 'no existe' });
-    return json(res, 200, { token: c.token, nombre: c.nombre, progreso: c.progreso, codigo: c.codigo, id: c.id });
+    return json(res, 200, { token: c.token, nombre: c.nombre, codigo: c.codigo, id: c.id });
   }
   async function miCuenta(req, res) {
     if (!permitido(`p|${ip(req)}`, LIMITES.perfil)) return json(res, 429, { error: 'demasiadas peticiones' });
@@ -233,12 +237,27 @@ export async function crearApiEstadisticas({ carpeta, catalogo, aviso = (m) => c
     if (req.method === 'GET') return json(res, 200, perfil(c, true));
     const o = await cuerpoJson(req, res);
     if (!o) return;
-    const cambios = {};
-    if ('nombre' in o) cambios.nombre = o.nombre;
-    if ('progreso' in o) cambios.progreso = o.progreso;
-    const r = await cuentas.cambiar(c, cambios);
+    const r = await cuentas.cambiar(c, { nombre: o.nombre });
     if (r.error) return errorCambio(res, r.error);
     return json(res, 200, perfil(c, false));
+  }
+  /** GET|PUT /api/cuentas/yo/juegos/<juego>: lo guardado de un juego en el perfil (`{ datos, act }`). */
+  async function miJuego(req, res, juego) {
+    if (!permitido(`p|${ip(req)}`, LIMITES.perfil)) return json(res, 429, { error: 'demasiadas peticiones' });
+    const c = cuentas.deToken(tokenDe(req));
+    if (!c) return json(res, 401, { error: 'token' });
+    if (!esJuego(juego)) return json(res, 404, { error: 'juego' });
+    if (req.method === 'GET') {
+      const g = cuentas.juego(c, juego);
+      return g ? json(res, 200, { datos: g.datos, act: g.act }) : json(res, 404, { error: 'sin datos' });
+    }
+    const o = await cuerpoJson(req, res, MAX_CUERPO_JUEGO);
+    if (!o) return;
+    const r = await cuentas.guardarJuego(c, juego, o);
+    if (r.error === 'viejo') return json(res, 409, { error: 'viejo', act: r.act });
+    if (r.error === 'grande') return json(res, 413, { error: 'demasiado grande' });
+    if (r.error) return json(res, r.error === 'disco' ? 503 : 400, { error: r.error });
+    return json(res, 200, { ok: true, act: r.act });
   }
 
   /** Las sumas de una cuenta para la tabla de ENTRENADORES: partidas, victorias, suma de puestos, daño hecho/recibido, KO y el entrenador que más usa. */
@@ -296,6 +315,11 @@ export async function crearApiEstadisticas({ carpeta, catalogo, aviso = (m) => c
           const f = ruta === '/api/cuentas' ? crearCuenta : ruta === '/api/cuentas/recuperar' ? recuperarCuenta : miCuenta;
           void f(req, res).catch((e) => json(res, 500, { error: String(e?.message ?? e) }));
         }
+        return true;
+      }
+      if (ruta.startsWith('/api/cuentas/yo/juegos/')) {
+        if (req.method !== 'GET' && req.method !== 'PUT') json(res, 405, { error: 'método' });
+        else void miJuego(req, res, ruta.slice('/api/cuentas/yo/juegos/'.length)).catch((e) => json(res, 500, { error: String(e?.message ?? e) }));
         return true;
       }
       return false;

@@ -18,6 +18,7 @@
 <div class="portada" id="portada">
 <div class="cartel">
   <header class="cabecera">
+    <button class="chapa" id="chapa" type="button" aria-haspopup="dialog"><i aria-hidden="true"></i><span id="chapa-texto"></span></button>
     <span class="cinta" data-t="cinta"></span>
     <h1 class="titulo" data-aria="titulo">
       <span class="palabra p1" aria-hidden="true" data-letras="titulo.1" data-desde="0"></span>
@@ -99,6 +100,58 @@
   <p class="url" data-t="pie.url"></p>
 </footer>
 </div>
+<!-- Account (src/portada/cuenta.ts): the badge at the top opens this panel -->
+<dialog class="panel-cuenta" id="panel" aria-labelledby="panel-titulo">
+  <h2 id="panel-titulo" tabindex="-1"></h2>
+
+  <section data-vista="quien" hidden>
+    <p data-t="cuenta.quien.desc"></p>
+    <form data-form="crear" novalidate>
+      <label class="solo-lector" for="cuenta-nombre" data-t="cuenta.nombre.etiqueta"></label>
+      <input id="cuenta-nombre" type="text" maxlength="12" autocomplete="off" autocapitalize="words" spellcheck="false" required>
+      <p class="nota" data-t="cuenta.nombre.ayuda"></p>
+      <p class="aviso" role="alert" hidden></p>
+      <span class="dale"><button type="submit" data-t="cuenta.crear"></button></span>
+    </form>
+    <div class="otros">
+      <button type="button" class="enlace" data-ir="codigo" data-t="cuenta.yatengo"></button>
+      <button type="button" class="enlace flojo" data-ahora-no data-t="cuenta.ahorano"></button>
+    </div>
+  </section>
+
+  <section data-vista="codigo" hidden>
+    <p data-t="cuenta.codigo.desc"></p>
+    <form data-form="codigo" novalidate>
+      <label class="solo-lector" for="cuenta-codigo" data-t="cuenta.codigo.etiqueta"></label>
+      <input id="cuenta-codigo" class="codigo" type="text" maxlength="9" autocomplete="off" autocapitalize="characters" spellcheck="false" required>
+      <p class="aviso" role="alert" hidden></p>
+      <span class="dale"><button type="submit" data-t="cuenta.entrar"></button></span>
+    </form>
+    <div class="otros"><button type="button" class="enlace" data-ir="quien" data-t="cuenta.volver"></button></div>
+  </section>
+
+  <section data-vista="cuenta" hidden>
+    <p class="nota creada" id="cuenta-creada" data-t="cuenta.mi.creada" hidden></p>
+    <p class="etiqueta" data-t="cuenta.mi.codigo.nombre"></p>
+    <p class="clave-codigo" id="cuenta-codigo-ver"></p>
+    <p class="nota" data-t="cuenta.mi.codigo.desc"></p>
+    <div class="otros">
+      <button type="button" class="enlace" data-ir="cambiar" data-t="cuenta.mi.cambiar"></button>
+      <button type="button" class="enlace flojo" data-cerrar data-t="cuenta.cerrar"></button>
+    </div>
+  </section>
+
+  <section data-vista="cambiar" hidden>
+    <form data-form="cambiar" novalidate>
+      <label class="solo-lector" for="cuenta-otro" data-t="cuenta.cambiar.etiqueta"></label>
+      <input id="cuenta-otro" type="text" maxlength="12" autocomplete="off" autocapitalize="words" spellcheck="false" required>
+      <p class="nota" data-t="cuenta.nombre.ayuda"></p>
+      <p class="aviso" role="alert" hidden></p>
+      <span class="dale"><button type="submit" data-t="cuenta.guardar"></button></span>
+    </form>
+    <div class="otros"><button type="button" class="enlace" data-ir="cuenta" data-t="cuenta.volver"></button></div>
+  </section>
+</dialog>
 <script type="module" src="/src/portada/main.ts"></script>
 </body>
 </html>

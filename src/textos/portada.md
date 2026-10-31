@@ -51,3 +51,42 @@ pie.chuchi = Chuchi
 pie.guille = Guille
 pie.perra = Con Aceituna, la perra, que se ha colado.
 pie.url = camionesycaravanas.es
+
+// ---- la cuenta de la web (chapa y panel de arriba; src/portada/cuenta.ts, docs/POKEUSERA.md «Cuentas»)
+cuenta.chapa.sin = ¿Quién eres?
+cuenta.chapa.aria = Tu cuenta: {nombre}. Toca para ver tu código.
+cuenta.chapa.aria.sin = ¿Quién eres? Toca para crear tu cuenta o entrar con tu código.
+cuenta.cerrar = Cerrar
+
+cuenta.quien.titulo = ¿Quién eres?
+cuenta.quien.desc = Ponte un nombre y tu partida te sigue a cualquier móvil u ordenador.
+cuenta.nombre.etiqueta = Tu nombre
+cuenta.nombre.ayuda = Hasta 12 letras o números.
+cuenta.crear = Crear mi cuenta
+cuenta.yatengo = Ya tengo cuenta
+cuenta.ahorano = Ahora no
+
+cuenta.codigo.titulo = Ya tengo cuenta
+cuenta.codigo.desc = Escribe el código de 6 letras que te salió al crearla.
+cuenta.codigo.etiqueta = Tu código
+cuenta.entrar = Entrar
+cuenta.volver = Volver
+
+cuenta.mi.titulo = Hola, {nombre}
+cuenta.mi.creada = Cuenta creada. Apunta el código: es la llave para entrar desde otro sitio.
+cuenta.mi.codigo.nombre = Tu código
+cuenta.mi.codigo.desc = Para entrar desde otro móvil o el ordenador.
+cuenta.mi.cambiar = Cambiar nombre
+
+cuenta.cambiar.titulo = Otro nombre
+cuenta.cambiar.etiqueta = Tu nuevo nombre
+cuenta.guardar = Guardar
+
+cuenta.espera = Un momento…
+cuenta.error.nombre = Ese nombre no vale. Usa letras y números, hasta 12.
+cuenta.error.repetido = Ese nombre ya lo tiene otro. Prueba con otro.
+cuenta.error.codigo = El código son 6 letras y números.
+cuenta.error.noexiste = Ese código no existe. Míralo bien.
+cuenta.error.red = No hay conexión. Prueba otra vez cuando haya.
+cuenta.error.limite = Demasiados intentos: espera un poco.
+cuenta.error.servidor = Algo ha fallado. Prueba otra vez.

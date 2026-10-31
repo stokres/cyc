@@ -1,4 +1,4 @@
-// PokéUsera · cuentas de usuario: las reglas puras (sin DOM, sin Node) que comparten el servidor (scripts/cuentas.mjs) y el móvil, para que
+// Cuentas de usuario de toda la web: las reglas puras (sin DOM, sin Node) que comparten el servidor (scripts/cuentas.mjs) y el móvil, para que
 // ambos validen igual el nombre y el código (docs/POKEUSERA.md, «Cuentas»). JavaScript con tipos en reglas.d.mts porque el servidor no compila TypeScript.
 
 export const NOMBRE_MAX = 12;

@@ -4,6 +4,7 @@
 import './portada.css';
 import raw from '../textos/portada.md?raw';
 import { cargarTextos, texto } from '../juego/textos';
+import { iniciarCuenta } from './cuenta';
 
 cargarTextos(raw);
 document.querySelectorAll<HTMLElement>('[data-t]').forEach((el) => {
@@ -27,3 +28,4 @@ document.querySelectorAll<HTMLElement>('[data-letras]').forEach((el) => {
   });
 });
 document.getElementById('portada')!.classList.add('lista');
+iniciarCuenta();
