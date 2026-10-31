@@ -3,62 +3,101 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0b1124">
+<meta name="theme-color" content="#ea5a1c">
 <title>Camiones y Caravanas</title>
 <link rel="icon" type="image/png" href="./icono-192.png">
 <link rel="apple-touch-icon" href="./icono-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:wght@500;700&family=Graduate&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee+Shade&family=Righteous&family=Shrikhand&display=swap">
 </head>
 <body>
-<main class="portada" id="portada">
+<div class="fondo" aria-hidden="true"><div class="rayos"></div><div class="anillos"></div></div>
+
+<div class="portada" id="portada">
+<div class="cartel">
   <header class="cabecera">
-    <h1 data-t="titulo"></h1>
-    <p data-t="sub"></p>
+    <span class="cinta" data-t="cinta"></span>
+    <h1 class="titulo" data-aria="titulo">
+      <span class="palabra p1" aria-hidden="true" data-letras="titulo.1" data-desde="0"></span>
+      <span class="fila" aria-hidden="true"><span class="ye" data-t="titulo.y"></span></span>
+      <span class="palabra p2" aria-hidden="true" data-letras="titulo.2" data-desde="3"></span>
+    </h1>
+    <div class="sello" aria-hidden="true">
+      <div class="disco"><svg viewBox="0 0 100 100"><circle class="cir" cx="50" cy="50" r="49"/><defs><path id="circ" d="M50,50 m-37,0 a37,37 0 1,1 74,0 a37,37 0 1,1 -74,0"/></defs>
+        <text><textPath href="#circ" textLength="228" lengthAdjust="spacing" data-t="sello.circular"></textPath></text></svg></div>
+      <div class="centro"><span data-t="sello.centro1"></span><span data-t="sello.centro2"></span></div>
+    </div>
   </header>
-  <nav class="juegos">
-    <a class="juego" id="juego-capitulo1" href="/capitulo1">
-      <span class="arte">
-        <img class="logo" src="./assets/logo.png" alt="" width="704" height="797">
-        <span class="orientacion" data-t="orientacion.horizontal"></span>
-      </span>
-      <span class="cuerpo">
-        <span class="nombre" data-t="capitulo1.nombre"></span>
-        <span class="desc" data-t="capitulo1.desc"></span>
-        <span class="boton" data-t="jugar"></span>
-      </span>
-    </a>
-    <a class="juego" id="juego-pokeusera" href="/pokeusera">
-      <span class="arte">
-        <img class="icono" src="/pokeusera-icono-512.png" alt="" width="512" height="512">
-        <span class="orientacion vertical" data-t="orientacion.vertical"></span>
-      </span>
-      <span class="cuerpo">
-        <span class="nombre" data-t="pokeusera.nombre"></span>
-        <span class="desc" data-t="pokeusera.desc"></span>
-        <span class="boton" data-t="jugar"></span>
-      </span>
-    </a>
-    <a class="juego" id="juego-pang" href="/pang">
-      <span class="arte">
-        <span class="burbuja b1"></span><span class="burbuja b2"></span><span class="burbuja b3"></span>
-        <span class="cabezas">
-          <img src="./src/portada/retratos/fran.webp" alt="" width="195" height="255">
-          <img src="./src/portada/retratos/pablo.webp" alt="" width="195" height="255">
-          <img src="./src/portada/retratos/chuchi.webp" alt="" width="195" height="255">
-          <img src="./src/portada/retratos/guille.webp" alt="" width="195" height="255">
-        </span>
-        <span class="orientacion" data-t="orientacion.horizontal"></span>
-      </span>
-      <span class="cuerpo">
-        <span class="nombre" data-t="pang.nombre"></span>
-        <span class="desc" data-t="pang.desc"></span>
-        <span class="boton" data-t="jugar"></span>
-      </span>
-    </a>
-  </nav>
-</main>
+
+  <main class="pegatinas">
+
+    <!-- 1 · Camiones y Caravanas -->
+    <article class="peg arco" id="capitulo1">
+      <div class="cielo"><img class="logo" src="./src/portada/logo.webp" data-alt="capitulo1.logo" alt="" width="563" height="637"></div>
+      <div class="interior">
+        <h2 class="solo-lector" data-t="capitulo1.nombre"></h2>
+        <p data-t="capitulo1.desc"></p>
+        <ol class="caps">
+          <li class="cap on">
+            <div class="nom"><span class="n">1</span><span class="t" data-t="capitulo1.1"></span></div>
+            <span class="dale"><a class="juego" href="/capitulo1" data-t="capitulo1.jugar"></a></span>
+          </li>
+          <li class="cap off" aria-disabled="true">
+            <div class="nom"><span class="n">2</span><span class="t" data-t="capitulo1.2"></span></div>
+            <span class="sellito" data-t="capitulo1.pronto"></span>
+          </li>
+        </ol>
+      </div>
+    </article>
+
+    <!-- 2 · PokéUsera -->
+    <div class="peg huevo-w">
+      <article class="huevo" id="pokeusera">
+        <div class="medalla"><img src="./src/portada/pokeusera.webp" data-alt="pokeusera.icono" alt="" width="512" height="512"></div>
+        <h2 data-t="pokeusera.nombre"></h2>
+        <p data-t="pokeusera.desc"></p>
+        <ul class="etq">
+          <li><i class="movil"></i><span data-t="pokeusera.vertical"></span></li>
+          <li data-t="pokeusera.online"></li>
+        </ul>
+        <span class="dale ros"><a class="juego" href="/pokeusera" data-t="pokeusera.jugar"></a></span>
+      </article>
+    </div>
+
+    <!-- 3 · Pang -->
+    <div class="peg burbuja" id="pang">
+      <div class="cabezas" aria-hidden="true">
+        <img src="./src/portada/retratos/fran.webp" alt="" width="195" height="255"><img src="./src/portada/retratos/pablo.webp" alt="" width="195" height="255"><img src="./src/portada/retratos/chuchi.webp" alt="" width="195" height="255"><img src="./src/portada/retratos/guille.webp" alt="" width="195" height="255">
+      </div>
+      <article class="cuerpo">
+        <div class="interno">
+          <h2 data-t="pang.nombre"></h2>
+          <p data-t="pang.desc"></p>
+          <span class="dale oli"><a class="juego" href="/pang" data-t="pang.jugar"></a></span>
+        </div>
+        <div class="doce"><i></i><span><b data-t="pang.fases.numero"></b><span data-t="pang.fases"></span></span></div>
+      </article>
+    </div>
+
+    <!-- 4 · Próximamente -->
+    <div class="peg mas">
+      <div class="rafaga-w">
+        <span class="f f1"></span><span class="f f2"></span><span class="f f3"></span><span class="f f4"></span>
+        <div class="txt"><h2 data-t="mas.nombre"></h2><p data-t="mas.desc"></p></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<footer class="pie">
+  <p class="en" data-t="pie.en"></p>
+  <p class="nombres"><span data-t="pie.fran"></span><i>✶</i><span data-t="pie.pablo"></span><i>✶</i><span data-t="pie.chuchi"></span><i>✶</i><span data-t="pie.guille"></span></p>
+  <p class="perra" data-t="pie.perra"></p>
+  <p class="url" data-t="pie.url"></p>
+</footer>
+</div>
 <script type="module" src="/src/portada/main.ts"></script>
 </body>
 </html>

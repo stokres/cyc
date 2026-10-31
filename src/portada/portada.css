@@ -1,21 +1,36 @@
-/* Cover page (portada.html). Same look as the game (docs/ESTILO.md): night blue, gold fillet, cream text, Graduate for titles and
-   Alegreya Sans for the rest, touch targets of 44 px or more (I4), text of 14 px or more (I3), safe areas (I5).
-   Landscape: three cards side by side, the whole page in one screen. Portrait (PokéUsera is played that way): three cards one under the other.
-   Only CSS: no canvas, and the only animation is the bubbles of Pang (transform, well below 60 fps of work, off with «reduce motion»). */
+/* Cover page (portada.html): cartel psicodélico de los 70. Only DOM and CSS, no canvas.
+   Fonts: Shrikhand (titles), Bungee Shade (Pang), Righteous (text and labels), from Google Fonts (index of portada.html).
+   Performance (docs/ESTILO.md, T5 and T6): the only animations are slow turns of `transform` (the rays of the background, the round stamp,
+   the two bursts), each on its own layer, with no filters on the big layers; all of it stops with «reduce motion».
+   They turn in `steps` of a quarter of a second (4 frames a second, a little stop-motion): measured with software GPU, a turn at 60 fps
+   made the browser compose the whole screen 60 times a second (above 110 % of CPU) and the page is not worth that; in steps the page costs about 14 %.
+   Text of 14 px or more (I3), touch targets of 44 px or more (I4).
+   Layouts: portrait phone (one sticker under another), landscape phone (two columns) and computer (three columns). The order of the cards
+   is the same in the three: Camiones y Caravanas, PokéUsera, Pang, Próximamente más. */
 :root {
-  --ink: #0b1124;
-  --glass: rgba(15, 21, 40, 0.86);
-  --gold: #dbb46c;
-  --gold-soft: rgba(219, 180, 108, 0.5);
-  --cream: #f3ead6;
-  --muted: #b8b2a6;
-  --display: 'Graduate', 'Rockwell', 'Georgia', serif;
-  --body: 'Alegreya Sans', 'Trebuchet MS', 'Segoe UI', sans-serif;
-  --safe-l: max(env(safe-area-inset-left, 0px), 12px);
-  --safe-r: max(env(safe-area-inset-right, 0px), 12px);
-  --safe-t: max(env(safe-area-inset-top, 0px), 8px);
-  --safe-b: max(env(safe-area-inset-bottom, 0px), 8px);
-  color-scheme: dark;
+  --rafaga: polygon(50.0% 0.0%, 55.8% 9.4%, 64.1% 2.0%, 67.0% 12.7%, 77.0% 7.9%, 76.8% 19.0%, 87.8% 17.3%, 84.5% 27.8%, 95.5% 29.2%, 89.3% 38.4%, 99.5% 42.9%, 91.0% 50.0%, 99.5% 57.1%, 89.3% 61.6%, 95.5% 70.8%, 84.5% 72.2%, 87.8% 82.7%, 76.8% 81.0%, 77.0% 92.1%, 67.0% 87.3%, 64.1% 98.0%, 55.8% 90.6%, 50.0% 100.0%, 44.2% 90.6%, 35.9% 98.0%, 33.0% 87.3%, 23.0% 92.1%, 23.2% 81.0%, 12.2% 82.7%, 15.5% 72.2%, 4.5% 70.8%, 10.7% 61.6%, 0.5% 57.1%, 9.0% 50.0%, 0.5% 42.9%, 10.7% 38.4%, 4.5% 29.2%, 15.5% 27.8%, 12.2% 17.3%, 23.2% 19.0%, 23.0% 7.9%, 33.0% 12.7%, 35.9% 2.0%, 44.2% 9.4%);
+  --naranja: #ea5a1c;
+  --mostaza: #f4b41a;
+  --mostaza2: #e29d0e;
+  --marron: #3a1c10;
+  --rosa: #f6a0bf;
+  --rosa2: #e0457b;
+  --oliva: #6f7a2b;
+  --oliva2: #566019;
+  --crema: #fff1cc;
+  --papel: #fff8e4;
+  --gris: #b8ad96;
+  --tit: 'Shrikhand', 'Georgia', cursive;
+  --lab: 'Righteous', 'Trebuchet MS', 'Segoe UI', sans-serif;
+  --sombra: #2b130a;
+  /* Side of the square of rays: it has to cover the screen from its centre, which is the farthest from the bottom corners. */
+  --lado: 170vmax;
+}
+
+@supports (width: calc(2 * hypot(1px, 1px))) {
+  :root {
+    --lado: calc(2.1 * hypot(50vw, 78vh));
+  }
 }
 
 * {
@@ -23,28 +38,91 @@
 }
 
 html {
-  height: 100%;
-  background: var(--ink);
-}
-
-body {
-  min-height: 100%;
-  margin: 0;
-  color: var(--cream);
-  font-family: var(--body);
-  font-size: 17px;
-  background: radial-gradient(ellipse at 50% 0%, #1b2342 0%, var(--ink) 70%);
-  -webkit-tap-highlight-color: transparent;
+  background: var(--naranja);
   -webkit-text-size-adjust: 100%;
 }
 
-.portada {
-  display: flex;
-  flex-direction: column;
-  gap: clamp(8px, 2.4vh, 18px);
+body {
+  position: relative;
   min-height: 100vh;
-  min-height: 100dvh;
-  padding: var(--safe-t) var(--safe-r) var(--safe-b) var(--safe-l);
+  margin: 0;
+  overflow-x: hidden;
+  background: var(--naranja);
+  color: var(--marron);
+  font-family: var(--lab);
+  font-size: 17px;
+  line-height: 1.25;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1,
+h2,
+h3,
+p,
+ul,
+ol {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+}
+
+.solo-lector {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+/* ---------- background: rays of sun that turn slowly + op-art rings ---------- */
+.fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.rayos {
+  position: absolute;
+  left: 50%;
+  top: 22%;
+  width: var(--lado);
+  height: var(--lado);
+  margin: calc(var(--lado) / -2) 0 0 calc(var(--lado) / -2);
+  background: repeating-conic-gradient(from 0deg, var(--naranja) 0 6deg, var(--mostaza) 6deg 12deg);
+  animation: gira 300s steps(1200) infinite;
+  will-change: transform;
+}
+
+/* The rings only show around the centre of the rays: a small disc, not a layer as big as the screen. */
+.anillos {
+  position: absolute;
+  left: 50%;
+  top: 22%;
+  width: 13.4vmax;
+  aspect-ratio: 1;
+  margin: -6.7vmax 0 0 -6.7vmax;
+  border-radius: 50%;
+  background: repeating-radial-gradient(circle, transparent 0 34px, rgba(58, 28, 16, 0.92) 34px 40px, transparent 40px 78px, var(--rosa2) 78px 84px);
+  -webkit-mask: radial-gradient(circle closest-side, #000 90%, transparent 100%);
+  mask: radial-gradient(circle closest-side, #000 90%, transparent 100%);
+  opacity: 0.9;
+}
+
+@keyframes gira {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- page ---------- */
+.portada {
+  /* The stamp and the bursts turn: their corners must not make the page scroll sideways. */
+  overflow-x: clip;
   opacity: 0;
 }
 
@@ -53,297 +131,837 @@ body {
   transition: opacity 0.2s;
 }
 
-/* ---------------------------------------------------------------- header */
-.cabecera {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 2px 4px 0;
-}
-
-.cabecera h1 {
-  margin: 0;
-  font: 400 clamp(20px, 6.2vh, 28px) / 1.1 var(--display);
-  color: var(--gold);
-  letter-spacing: 0.02em;
-}
-
-.cabecera p {
-  margin: 0;
-  color: var(--muted);
-  font-weight: 500;
-}
-
-/* ---------------------------------------------------------------- cards */
-.juegos {
-  flex: 1;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(10px, 2.4vw, 20px);
-  min-height: 0;
-}
-
-.juego {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-height: 0;
-  padding: 8px 8px 10px;
-  border-radius: 18px;
-  border: 1px solid var(--gold-soft);
-  background: var(--glass);
-  color: inherit;
-  text-decoration: none;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-  transition: transform 0.12s;
-}
-
-.juego:active {
-  transform: scale(0.98);
-}
-
-.juego:focus-visible {
-  outline: 3px solid var(--gold);
-  outline-offset: 3px;
-}
-
-.arte {
-  position: relative;
-  flex: 1 1 0;
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border-radius: 12px;
-}
-
-.orientacion {
-  position: absolute;
-  top: 6px;
-  left: 6px;
-  z-index: 2;
-  padding: 1px 9px 1px 8px;
-  border-radius: 999px;
-  background: rgba(11, 17, 36, 0.78);
-  border: 1px solid var(--gold-soft);
-  color: var(--cream);
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1.35;
-}
-
-/* Capítulo 1: the crew's sticker, black ink on cream (the logo comes with a white background: «multiply» leaves the cream). */
-#juego-capitulo1 .arte {
-  background: #efe4c8;
-}
-
-.logo {
-  height: 100%;
-  width: auto;
-  max-width: 100%;
-  object-fit: contain;
-  mix-blend-mode: multiply;
-}
-
-/* PokéUsera: the jar of its icon (pixel art) on the purple of the icon. */
-#juego-pokeusera .arte {
-  background: #3a1334;
-}
-
-.icono {
-  height: 100%;
-  width: auto;
-  max-width: 100%;
-  object-fit: contain;
-  image-rendering: pixelated;
-}
-
-/* Pang: the four friends among bubbles, on the blues of the game. */
-#juego-pang .arte {
-  background: linear-gradient(180deg, #34406a 0%, #151b36 100%);
-}
-
-.cabezas {
+.cartel {
   position: relative;
   z-index: 1;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  width: 100%;
-  height: 74%;
-  padding: 18px 4px 0;
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 18px 16px 0;
 }
 
-.cabezas img {
-  flex: 1 1 0;
-  width: 0;
-  min-width: 0;
-  height: auto;
-  max-height: 100%;
-  margin: 0 -2.5%;
-  object-fit: contain;
-  object-position: bottom;
+/* Header: title of a concert poster */
+.cabecera {
+  position: relative;
+  padding: 6px 0 30px;
 }
 
-.cabezas img:nth-child(even) {
-  max-height: 88%;
+.cinta {
+  display: inline-block;
+  padding: 8px 14px;
+  background: var(--marron);
+  color: var(--mostaza);
+  font-size: 15px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transform: rotate(-2deg);
+  box-shadow: 4px 4px 0 var(--rosa2);
 }
 
-.burbuja {
-  position: absolute;
+.titulo {
+  margin-top: 14px;
+  color: var(--crema);
+  font-family: var(--tit);
+  font-weight: 400;
+  line-height: 0.9;
+}
+
+.palabra {
+  display: block;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
+.palabra span {
+  --a: calc(var(--i) * 41deg);
+  display: inline-block;
+  transform: translateY(calc(sin(var(--a)) * 0.11em)) rotate(calc(cos(var(--a)) * -5deg));
+}
+
+.p1 {
+  font-size: clamp(3.1rem, 15.5vw, 9.6rem);
+  text-shadow: 0.035em 0.035em 0 var(--marron), 0.07em 0.07em 0 var(--rosa2), 0.105em 0.105em 0 var(--marron);
+}
+
+.p2 {
+  margin-top: 0.02em;
+  color: var(--mostaza);
+  font-size: clamp(2.7rem, 13.4vw, 8.4rem);
+  text-shadow: 0.035em 0.035em 0 var(--marron), 0.07em 0.07em 0 var(--oliva), 0.105em 0.105em 0 var(--marron);
+}
+
+.ye {
+  display: inline-grid;
+  place-items: center;
+  width: 2.1em;
+  height: 2.1em;
+  margin: 0.2em 0 0.1em 0.4em;
   border-radius: 50%;
-  background: radial-gradient(circle at 32% 30%, #f6a89c 0 12%, #e0685c 14% 60%, #a8362e 100%);
-  animation: rebote 3.2s steps(48) infinite alternate;
+  background: var(--marron);
+  color: var(--rosa);
+  font-size: clamp(1.5rem, 7vw, 3.4rem);
+  box-shadow: 0.08em 0.08em 0 var(--rosa2);
+  transform: rotate(-12deg);
+}
+
+.titulo .fila {
+  display: flex;
+  align-items: center;
+}
+
+.sello {
+  position: absolute;
+  right: -4px;
+  top: 44px;
+  z-index: 3;
+  width: 150px;
+  aspect-ratio: 1;
+}
+
+.sello .disco {
+  position: absolute;
+  inset: 0;
+  animation: gira 28s steps(112) infinite;
   will-change: transform;
 }
 
-.b1 {
-  width: 34%;
-  aspect-ratio: 1;
-  left: -6%;
-  top: 8%;
+.sello svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
-.b2 {
-  width: 20%;
-  aspect-ratio: 1;
-  right: 6%;
-  top: 14%;
-  animation-delay: -1.3s;
-  animation-duration: 2.6s;
+.sello .cir {
+  fill: var(--marron);
 }
 
-.b3 {
-  width: 12%;
-  aspect-ratio: 1;
-  right: 30%;
-  bottom: 12%;
-  animation-delay: -0.6s;
-  animation-duration: 2.1s;
+.sello text {
+  fill: var(--mostaza);
+  font-family: var(--lab);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
 }
 
-@keyframes rebote {
-  from {
-    transform: translateY(-10%);
+.sello .centro {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  color: var(--crema);
+  font-family: var(--tit);
+  font-size: clamp(1.3rem, 5vw, 2.1rem);
+  line-height: 0.9;
+  text-align: center;
+  transform: rotate(-8deg);
+}
+
+/* ---------- stickers ---------- */
+.pegatinas {
+  position: relative;
+  display: grid;
+  gap: 34px;
+  padding: 6px 0 56px;
+}
+
+.peg {
+  --giro: 0deg;
+  position: relative;
+  min-width: 0;
+  transform: rotate(var(--giro));
+}
+
+.peg h2 {
+  font-family: var(--tit);
+  font-weight: 400;
+  line-height: 0.95;
+}
+
+.peg p {
+  font-size: 18px;
+}
+
+.dale {
+  display: inline-block;
+  filter: drop-shadow(3px 4px 0 rgba(0, 0, 0, 0.35));
+  transform: rotate(-2deg);
+}
+
+.dale > a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 40px 0 20px;
+  background: var(--marron);
+  color: var(--crema);
+  clip-path: polygon(0 0, 100% 0, 89% 50%, 100% 100%, 0 100%);
+  font-family: var(--lab);
+  font-size: 19px;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.dale > a:hover {
+  background: #5a2a18;
+}
+
+.dale > a:focus-visible {
+  outline: 3px solid var(--rosa2);
+  outline-offset: -5px;
+}
+
+.dale.ros > a {
+  background: var(--rosa2);
+  color: var(--papel);
+}
+
+.dale.oli > a {
+  background: var(--oliva2);
+  color: var(--papel);
+}
+
+/* 1 · Arch (a window of the 70s): Camiones y Caravanas */
+.arco {
+  --giro: -1.8deg;
+  border: 7px solid var(--papel);
+  border-radius: 50% 50% 26px 26px / 190px 190px 26px 26px;
+  background: var(--papel);
+  box-shadow: 9px 11px 0 var(--sombra);
+}
+
+.arco .cielo {
+  padding: 44px 22px 20px;
+  border-radius: 50% 50% 12px 12px / 180px 180px 12px 12px;
+  background: repeating-radial-gradient(circle at 50% 100%, var(--mostaza) 0 22px, var(--mostaza2) 22px 44px);
+  text-align: center;
+}
+
+.arco .logo {
+  display: block;
+  width: min(100%, 330px);
+  height: auto;
+  margin: 0 auto;
+}
+
+.arco .interior {
+  display: grid;
+  gap: 14px;
+  padding: 16px 14px 18px;
+}
+
+.arco .interior > p {
+  font-size: 19px;
+}
+
+.caps {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.cap {
+  position: relative;
+  display: grid;
+  gap: 6px 14px;
+  align-items: center;
+  padding: 10px 12px 12px;
+}
+
+.cap .n {
+  color: var(--oliva2);
+  font-family: var(--tit);
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.cap .t {
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.cap.on {
+  border: 3px solid var(--marron);
+  border-radius: 14px 30px 14px 30px;
+  background: var(--crema);
+  transform: rotate(0.6deg);
+}
+
+.cap.off {
+  border: 3px dashed var(--gris);
+  border-radius: 30px 14px 30px 14px;
+  color: #8e846f;
+  transform: rotate(-0.8deg);
+}
+
+.cap.off .n {
+  color: var(--gris);
+}
+
+.cap .nom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.sellito {
+  display: inline-block;
+  align-content: center;
+  width: max-content;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 3px solid #a79c85;
+  color: #7d745f;
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transform: rotate(-3deg);
+}
+
+/* 2 · Egg: PokéUsera */
+.huevo-w {
+  --giro: 2.5deg;
+}
+
+.huevo {
+  position: relative;
+  isolation: isolate;
+  padding: 64px 30px 62px;
+  overflow: hidden;
+  border: 7px solid var(--papel);
+  border-radius: 50% 50% 46% 46% / 34% 34% 66% 66%;
+  background: var(--rosa);
+  box-shadow: 9px 11px 0 var(--sombra);
+  text-align: center;
+}
+
+.huevo::before {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  z-index: -1;
+  background: repeating-conic-gradient(from 0deg at 50% 38%, rgba(224, 69, 123, 0.55) 0 7deg, transparent 7deg 14deg);
+}
+
+.huevo .medalla {
+  width: min(58%, 190px);
+  aspect-ratio: 1;
+  margin: 0 auto 6px;
+  overflow: hidden;
+  border: 6px solid var(--papel);
+  border-radius: 50%;
+  background: #3a1235;
+  box-shadow: 5px 6px 0 var(--marron);
+}
+
+.huevo .medalla img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+.huevo h2 {
+  color: var(--papel);
+  font-size: clamp(2.2rem, 9vw, 3rem);
+  text-shadow: 0.04em 0.04em 0 var(--marron), 0.08em 0.08em 0 var(--oliva);
+}
+
+.huevo p {
+  max-width: 20em;
+  margin: 8px auto 12px;
+  font-size: 18px;
+}
+
+.etq {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 10px;
+  margin: 0 0 16px;
+  padding: 0;
+}
+
+.etq li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 4px 14px 4px 14px;
+  background: var(--marron);
+  color: var(--mostaza);
+  font-size: 15px;
+  letter-spacing: 0.1em;
+  list-style: none;
+  text-transform: uppercase;
+  transform: rotate(-2deg);
+}
+
+.etq li:nth-child(2) {
+  background: var(--oliva2);
+  color: var(--papel);
+  transform: rotate(2.5deg);
+}
+
+.movil {
+  display: inline-block;
+  width: 12px;
+  height: 20px;
+  border: 3px solid currentColor;
+  border-radius: 3px;
+}
+
+/* 3 · Bubble: Pang */
+.burbuja {
+  --giro: -2.5deg;
+  margin-top: 96px;
+}
+
+.burbuja .cuerpo {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1 / 1;
+  padding: 12% 14%;
+  border: 7px solid var(--papel);
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #8d9b38 0, var(--oliva) 35%, var(--oliva2) 100%);
+  box-shadow: 9px 11px 0 var(--sombra);
+  color: var(--papel);
+  text-align: center;
+}
+
+.burbuja .cuerpo::before {
+  content: '';
+  position: absolute;
+  left: 11%;
+  top: 9%;
+  width: 30%;
+  height: 15%;
+  border: 0;
+  border-top: 7px solid rgba(255, 248, 228, 0.75);
+  border-radius: 50%;
+  transform: rotate(-34deg);
+}
+
+.burbuja .interno {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+}
+
+.burbuja h2 {
+  color: var(--mostaza);
+  font-family: 'Bungee Shade', var(--tit);
+  font-size: clamp(3rem, 13vw, 5rem);
+  line-height: 0.95;
+}
+
+.burbuja p {
+  max-width: 15em;
+  font-size: 18px;
+}
+
+.cabezas {
+  position: absolute;
+  left: 50%;
+  top: -84px;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  transform: translateX(-50%);
+}
+
+.cabezas img {
+  width: clamp(64px, 21%, 96px);
+  height: auto;
+  margin: 0 -5px;
+  filter: drop-shadow(3px 3px 0 rgba(0, 0, 0, 0.35));
+  transform: rotate(var(--r));
+}
+
+.cabezas img:nth-child(1) {
+  --r: -12deg;
+  margin-top: 14px;
+}
+
+.cabezas img:nth-child(2) {
+  --r: 6deg;
+}
+
+.cabezas img:nth-child(3) {
+  --r: -5deg;
+  margin-top: 6px;
+}
+
+.cabezas img:nth-child(4) {
+  --r: 13deg;
+  margin-top: 16px;
+}
+
+.doce {
+  position: absolute;
+  right: -2%;
+  bottom: 6%;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: clamp(78px, 23%, 112px);
+  aspect-ratio: 1;
+  color: var(--marron);
+  font-size: 15px;
+  line-height: 0.95;
+  text-align: center;
+  transform: rotate(10deg);
+}
+
+.doce i {
+  position: absolute;
+  inset: 0;
+  background: var(--mostaza);
+  clip-path: var(--rafaga);
+  animation: gira 40s steps(160) infinite reverse;
+}
+
+.doce > span {
+  position: relative;
+}
+
+.doce b {
+  display: block;
+  font-family: var(--tit);
+  font-size: 1.9rem;
+  font-weight: 400;
+}
+
+/* 4 · Burst: Próximamente */
+.rafaga-w {
+  position: relative;
+  container-type: inline-size;
+  aspect-ratio: 1 / 0.98;
+  margin: 6px 0 0;
+}
+
+.rafaga-w .f {
+  position: absolute;
+  inset: 0;
+  clip-path: var(--rafaga);
+}
+
+.rafaga-w .f1 {
+  background: var(--sombra);
+  transform: translate(9px, 11px);
+}
+
+.rafaga-w .f2 {
+  background: var(--papel);
+}
+
+.rafaga-w .f3 {
+  inset: 5%;
+  background: var(--rosa2);
+  animation: gira 70s steps(280) infinite;
+}
+
+.rafaga-w .f4 {
+  inset: 14%;
+  border-radius: 50%;
+  background: var(--marron);
+}
+
+.rafaga-w .txt {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  gap: 6px;
+  place-content: center;
+  padding: 17%;
+  color: var(--crema);
+  text-align: center;
+}
+
+.rafaga-w h2 {
+  color: var(--mostaza);
+  font-size: max(14px, 8cqw);
+}
+
+.rafaga-w p {
+  font-size: max(14px, 4.7cqw);
+  line-height: 1.15;
+}
+
+/* ---------- footer: poster of the village fiestas ---------- */
+.pie {
+  position: relative;
+  z-index: 1;
+  padding: 44px 18px 30px;
+  background: var(--marron);
+  color: var(--crema);
+  text-align: center;
+}
+
+.pie::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -22px;
+  height: 23px;
+  background: radial-gradient(circle at 22px 22px, var(--marron) 21px, transparent 22px) 0 0 / 44px 23px repeat-x;
+}
+
+.pie .en {
+  color: var(--rosa);
+  font-size: 15px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.pie .nombres {
+  margin-top: 6px;
+  color: var(--mostaza);
+  font-family: var(--tit);
+  font-size: clamp(1.7rem, 7.4vw, 3.4rem);
+  line-height: 1.1;
+}
+
+.pie .nombres span {
+  display: inline-block;
+}
+
+.pie .nombres i {
+  display: inline-block;
+  margin: 0 0.3em;
+  color: var(--rosa2);
+  font-style: normal;
+}
+
+.pie .perra {
+  margin-top: 8px;
+  font-size: 17px;
+}
+
+/* ============ LAYOUTS ============ */
+/* Portrait phone: stickers one under another, from one side to the other and overlapping a little */
+@media (max-width: 699px) {
+  .peg:nth-child(1) {
+    margin-right: 4px;
   }
-  to {
-    transform: translateY(26%);
+
+  .peg:nth-child(2) {
+    margin-left: 22px;
+    margin-top: -6px;
+  }
+
+  .peg:nth-child(3) {
+    margin-right: 20px;
+  }
+
+  .peg:nth-child(4) {
+    margin-left: 34px;
+    margin-right: 6px;
+  }
+
+  .sello {
+    top: auto;
+    right: -8px;
+    bottom: -104px;
+    width: 128px;
+  }
+
+  .sello text {
+    font-size: 11.2px;
+  }
+
+  .cabecera {
+    padding-top: 18px;
+  }
+
+  .cap {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Landscape phone: title across the screen and stickers in two columns, a little out of line */
+@media (min-width: 700px) and (max-height: 520px) {
+  .cartel {
+    padding: 14px 26px 0;
+  }
+
+  .cabecera {
+    padding-bottom: 0;
+  }
+
+  .titulo {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    justify-items: start;
+    width: max-content;
+    max-width: 100%;
+  }
+
+  .p1 {
+    grid-column: 1;
+    grid-row: 1;
+    font-size: 4.6rem;
+  }
+
+  .titulo .fila {
+    grid-column: 2;
+    grid-row: 1;
+    margin-left: 0.3em;
+  }
+
+  .titulo .ye {
+    margin: 0;
+    font-size: 2.2rem;
+  }
+
+  .p2 {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin-left: 2.2rem;
+    font-size: 4.1rem;
+  }
+
+  .sello {
+    right: 3%;
+    top: 30px;
+    width: 132px;
+  }
+
+  .sello text {
+    font-size: 11px;
+  }
+
+  .pegatinas {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 30px 34px;
+    align-items: start;
+    margin-top: 18px;
+  }
+
+  .arco {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .huevo-w {
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: 34px;
+  }
+
+  .burbuja {
+    grid-column: 1;
+    grid-row: 2;
+    width: 88%;
+    justify-self: center;
+    margin-top: 100px;
+  }
+
+  .peg.mas {
+    grid-column: 2;
+    grid-row: 2;
+    width: 80%;
+    justify-self: center;
+    margin-top: 20px;
+  }
+}
+
+/* Computer */
+@media (min-width: 900px) and (min-height: 521px) {
+  .cartel {
+    padding: 30px 40px 0;
+  }
+
+  .cabecera {
+    padding-bottom: 0;
+  }
+
+  .titulo {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    justify-items: start;
+    width: max-content;
+    max-width: 100%;
+  }
+
+  .p1 {
+    grid-column: 1;
+    grid-row: 1;
+    font-size: 7.4rem;
+  }
+
+  .titulo .fila {
+    grid-column: 2;
+    grid-row: 1;
+    margin-left: 0.3em;
+  }
+
+  .titulo .ye {
+    margin: 0;
+    font-size: 3.2rem;
+  }
+
+  .p2 {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin-left: 3.5rem;
+    font-size: 6.6rem;
+  }
+
+  .sello {
+    right: 3%;
+    top: 30px;
+    width: 170px;
+  }
+
+  .pegatinas {
+    grid-template-columns: 5fr 3.5fr 4fr;
+    gap: 0 26px;
+    margin-top: -20px;
+    padding-bottom: 84px;
+  }
+
+  .arco {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    margin-top: 60px;
+  }
+
+  .huevo-w {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    align-self: start;
+    margin-top: 30px;
+  }
+
+  .burbuja {
+    grid-column: 3;
+    grid-row: 1;
+    margin-top: 100px;
+  }
+
+  .peg.mas {
+    grid-column: 3;
+    grid-row: 2;
+    margin: 10px -4% 0 10%;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .burbuja {
-    animation: none;
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
   }
 }
 
-.cuerpo {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 2px;
-  padding: 0 4px;
-}
-
-.nombre {
-  font: 400 clamp(17px, 5.2vh, 22px) / 1.15 var(--display);
-  color: var(--gold);
-}
-
-.desc {
-  min-height: 2.5em;
-  color: var(--cream);
-  font-weight: 500;
-  line-height: 1.25;
-}
-
-.boton {
-  margin-top: 6px;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: var(--gold);
-  color: var(--ink);
-  font-weight: 700;
-  font-size: 18px;
-}
-
-/* ---------------------------------------------------------------- portrait: one card under the other */
-@media (orientation: portrait) {
-  .portada {
-    gap: 14px;
-    padding-top: max(var(--safe-t), 16px);
-  }
-
-  .cabecera {
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    text-align: center;
-  }
-
-  .cabecera h1 {
-    font-size: clamp(24px, 7.4vw, 34px);
-  }
-
-  .juegos {
-    grid-template-columns: minmax(0, 1fr);
-    grid-auto-rows: minmax(240px, 1fr);
-    gap: 14px;
-  }
-
-  .juego {
-    padding: 10px 10px 12px;
-  }
-
-  /* Name and description on the left, the button on the right: more room for the picture. */
-  .cuerpo {
-    grid-template-columns: minmax(0, 1fr) auto;
-    column-gap: 12px;
-    align-items: center;
-  }
-
-  .nombre,
-  .desc {
-    grid-column: 1;
-  }
-
-  .boton {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-    margin-top: 0;
-    padding: 0 22px;
-  }
-
-  .nombre {
-    font-size: 23px;
-  }
-
-  .desc {
-    min-height: 0;
-    font-size: 18px;
-  }
-}
-
-/* Landscape: the label sits over the top of the picture, so the sticker leaves room for it. */
-@media (orientation: landscape) {
-  #juego-capitulo1 .arte {
-    padding-top: 24px;
-  }
-}
-
-/* Very low landscape screens: tighter, and the page may scroll if it still does not fit. */
-@media (orientation: landscape) and (max-height: 380px) {
-  .desc {
-    font-size: 16px;
-    min-height: 2.5em;
-  }
-
-  .orientacion {
-    display: none;
-  }
-}
+.pie .url { margin-top: 0.6rem; font-size: 0.875rem; letter-spacing: 0.14em; opacity: 0.75; }
