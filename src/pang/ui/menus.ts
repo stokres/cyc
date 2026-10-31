@@ -28,19 +28,21 @@ export function pantallaTitulo(ui: HTMLElement): Promise<void> {
 
 export type AccionMenu = 'nueva' | 'seguir' | 'fases' | 'records' | 'ajustes' | 'salir';
 
-/** `conSalir`: the Pang opened from the minigames menu, which gets a last button to go back there. */
-export function pantallaMenu(ui: HTMLElement, conSalir = false): Promise<AccionMenu> {
+/** `conSalir`: the Pang opened from the minigames menu gets a last button to go back there («Volver a los minijuegos»); opened by itself (`/pang`), «web»,
+ *  the last button says «Volver a la web» (the caller then goes to the cover). */
+export function pantallaMenu(ui: HTMLElement, conSalir: boolean | 'web' = false): Promise<AccionMenu> {
   const el = h('div', { class: 'pg-pantalla pg-menu' });
   return mostrar<AccionMenu>(ui, el, (fin) => {
     const botones: Array<[AccionMenu, string]> = [];
     if (datos.faseMax > 1) botones.push(['seguir', texto('menu.seguir', { n: datos.faseMax })]);
     botones.push(['nueva', texto('menu.nueva')], ['fases', texto('menu.fases')], ['records', texto('menu.records')], ['ajustes', texto('menu.ajustes')]);
-    if (conSalir) botones.push(['salir', texto('menu.minijuegos')]);
+    if (conSalir) botones.push(['salir', texto(conSalir === 'web' ? 'menu.web' : 'menu.minijuegos')]);
     el.append(
       h('div', { class: 'pg-marca' }, h('div', { class: 'pg-nombre-juego' }, texto('titulo')), h('div', { class: 'pg-pang' }, texto('titulo.pang'))),
       h('div', { class: 'pg-panel pg-menu-botones' }, ...botones.map(([a, t], i) => boton(t, () => fin(a), i === 0 ? 'primario' : a === 'salir' ? 'fantasma' : ''))),
     );
-    if (conSalir) return alTeclear((e) => {
+    // Escape goes back to the minigames, but never out to the web (a key pressed by mistake must not close the game).
+    if (conSalir === true) return alTeclear((e) => {
       if (e.key === 'Escape') fin('salir');
     });
   });

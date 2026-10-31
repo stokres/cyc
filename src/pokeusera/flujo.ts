@@ -11,6 +11,7 @@ import { cuentaLocal, tokenLocal } from './cuentas/almacen';
 import { pantallaNombre } from './pantallas/cuenta';
 import { Partida, esCancelada, type Asiento, type Ganchos } from './partida';
 import { actualizarApp, hayConexion, instalarApp } from './aplicacion';
+import { volverALaWeb } from '../core/direccion';
 import { pantalla } from './pantalla';
 import { sonido } from './sonido';
 import { cargarAjustes, escenarioElegido, guardarAjustes, guardarModo, pantallaAjustes } from './pantallas/ajustes';
@@ -167,6 +168,7 @@ export async function ejecutar(o: OpcionesFlujo): Promise<void> {
       else if (m === 'guia') await abrirGuia(null);
       else if (m === 'useritopedia') await abrirUseritopedia(null);
       else if (m === 'estadisticas') await abrirAcumuladas();
+      else if (m === 'web') volverALaWeb(); // nothing to save: the settings and the account's copies are written as they change (the menu stays up until the page goes)
       else if (m === 'aventura') await jugarAventura({});
       else if (m === 'online') {
         // Without connection there is no room: say so (solo play, the Useritopedia and the guide work offline).

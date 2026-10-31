@@ -23,7 +23,7 @@
 // Environment: SEG=4 (seconds measured per screen), CPU=4 (throttling rate; 1 = none, budgets then do not apply),
 //   VOLCAR=carpeta (also write a PNG of every screen there, to compare looks before/after).
 import { chromium } from 'playwright';
-import { mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
 
 const args = process.argv.slice(2);
 const puertoArg = args.find((a) => /^\d{4,5}$/.test(a));
@@ -245,7 +245,9 @@ async function hastaPodio(p) {
   await dormir(1200);
 }
 
-const b = await chromium.launch({ args: ['--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] });
+// CHROMIUM=/path/to/chrome when Playwright's own browser is not where it looks (as in scripts/rendimiento.mjs).
+const EJECUTABLE = process.env.CHROMIUM;
+const b = await chromium.launch({ ...(EJECUTABLE && existsSync(EJECUTABLE) ? { executablePath: EJECUTABLE } : {}), args: ['--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] });
 const filas = [];
 const fallos = [];
 
@@ -256,11 +258,12 @@ for (const nombre of Object.keys(PANTALLAS)) {
   const page = await ctx.newPage();
   const errores = [];
   page.on('pageerror', (e) => errores.push(String(e)));
-  page.on('console', (m) => { if (m.type() === 'error') errores.push(m.text()); });
+  // (The invented account of the check is refused by the account API, 401: not a mistake of the screen.)
+  page.on('console', (m) => { if (m.type() === 'error' && !/status of 401/.test(m.text())) errores.push(m.text()); });
   await page.addInitScript((sinCuenta) => {
     try { localStorage.clear(); } catch {}
     // Every screen but «nombre» starts with an account on the phone (otherwise the name screen would come between the title and the menu).
-    try { if (!sinCuenta) localStorage.setItem('pokeusera.cuenta', JSON.stringify({ token: '0'.repeat(40), codigo: 'K7MZ4Q', nombre: 'Pablito', id: 'uperf000000' })); } catch {}
+    try { if (!sinCuenta) localStorage.setItem('cyc.cuenta', JSON.stringify({ token: '0'.repeat(40), codigo: 'K7MZ4Q', nombre: 'Pablito', id: 'uperf000000' })); } catch {}
     const w = window;
     w.__lienzos = 0;
     w.__di = 0;

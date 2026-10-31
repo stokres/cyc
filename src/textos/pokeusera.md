@@ -24,6 +24,7 @@ menu.ajustes = AJUSTES
 menu.guia = GUÍA
 menu.useritopedia = USERITOPEDIA
 menu.estadisticas = ESTADÍSTICAS
+menu.web = VOLVER A LA WEB
 
 // ---- estadísticas acumuladas de todas las partidas (pantallas/acumuladas.ts)
 acum.volver = VOLVER
@@ -225,6 +226,7 @@ escenario.feria = LA FERIA
 
 pausa.titulo = PAUSA
 pausa.abandonar = ABANDONAR
+pausa.web = VOLVER A LA WEB
 pausa.seguir = SEGUIR
 pausa.seguro = ¿Seguro?
 pausa.si = SÍ

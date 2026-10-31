@@ -1,5 +1,6 @@
 // PokéUsera · settings: music and effects volume (0–10, saved in localStorage 'pokeusera.v1'),
 // the settings screen, and the pause box of the battle (volumes + abandon).
+import { volverALaWeb } from '../../core/direccion';
 import type { EntrenadorId, EscenarioId, ModoJuego } from '../tipos';
 import { ENTRENADORES, ESCENARIOS, MODOS_JUEGO } from '../tipos';
 import { anchoTexto2 } from '../arte2/fuente2';
@@ -259,11 +260,13 @@ export function pantallaAjustes(): Promise<void> {
   });
 }
 
-/** The pause box of the battle: volumes, battle speed, GUÍA (opens over the battle), ABANDONAR (with a «sure?» step), SEGUIR. */
+/** The pause box of the battle: volumes, battle speed, GUÍA (opens over the battle), ABANDONAR and VOLVER A LA WEB (each with a «sure?» step), SEGUIR. */
 export function menuPausa(base: Escena | null): Promise<'seguir' | 'abandonar'> {
   return sobre<'seguir' | 'abandonar'>(base, (cerrar) => {
-    let sel = 5;
+    let sel = 6;
     let seguro = false;
+    /** What the «sure?» step is about: leaving the battle for the menu, or leaving the game for the web. */
+    let destino: 'abandonar' | 'web' = 'abandonar';
     let selSeguro = 1;
     const seguir = () => {
       sonido.efecto('atras');
@@ -275,14 +278,25 @@ export function menuPausa(base: Escena | null): Promise<'seguir' | 'abandonar'> 
       // Over this very box (it and the battle under it keep running); closing the guide brings the box back.
       void abrirGuia(pantalla().escena);
     };
+    const preguntar = (que: 'abandonar' | 'web') => {
+      sel = que === 'web' ? 5 : 4;
+      destino = que;
+      seguro = true;
+      selSeguro = 1;
+    };
+    /** The battle is abandoned as always (online too: the room hears it) and, for the web, the page goes to the cover. */
+    const confirmar = () => {
+      cerrar('abandonar');
+      if (destino === 'web') volverALaWeb();
+    };
     return {
       dibujar(ctx) {
         const x = 6;
         const w = ANCHO - 12;
         oscurecer(ctx, pantalla().alto);
         if (!seguro) {
-          const h = 274;
-          const y = Math.max(20, Math.round((pantalla().alto - h) / 2));
+          const h = 316;
+          const y = Math.max(16, Math.round((pantalla().alto - h) / 2));
           panelCacheado(ctx, x, y, w, h);
           texto2(ctx, t('pausa.titulo'), x + 14, y + 12, TINTA_SUAVE);
           filaVolumen(ctx, x + 6, y + 28, w - 12, 'musica', sel === 0);
@@ -294,13 +308,11 @@ export function menuPausa(base: Escena | null): Promise<'seguir' | 'abandonar'> 
           boton(ctx, x + 14, y + 148, w - 28, 30, t('menu.guia'), sel === 3);
           entrada.zona(x + 14, y + 148, w - 28, 30, guia);
           boton(ctx, x + 14, y + 190, w - 28, 30, t('pausa.abandonar'), sel === 4, true, 'salir');
-          entrada.zona(x + 14, y + 190, w - 28, 30, () => {
-            sel = 4;
-            seguro = true;
-            selSeguro = 1;
-          });
-          boton(ctx, x + 14, y + 232, w - 28, 30, t('pausa.seguir'), sel === 5, true, 'principal');
-          entrada.zona(x + 14, y + 232, w - 28, 30, seguir);
+          entrada.zona(x + 14, y + 190, w - 28, 30, () => preguntar('abandonar'));
+          boton(ctx, x + 14, y + 232, w - 28, 30, t('pausa.web'), sel === 5, true, 'salir');
+          entrada.zona(x + 14, y + 232, w - 28, 30, () => preguntar('web'));
+          boton(ctx, x + 14, y + 274, w - 28, 30, t('pausa.seguir'), sel === 6, true, 'principal');
+          entrada.zona(x + 14, y + 274, w - 28, 30, seguir);
         } else {
           const h = 96;
           const y = Math.round((pantalla().alto - h) / 2);
@@ -309,7 +321,7 @@ export function menuPausa(base: Escena | null): Promise<'seguir' | 'abandonar'> 
           const bw = 80;
           boton(ctx, x + 18, y + 46, bw, 30, t('pausa.si'), selSeguro === 0, true, 'salir');
           boton(ctx, x + w - 18 - bw, y + 46, bw, 30, t('pausa.no'), selSeguro === 1);
-          entrada.zona(x + 18, y + 46, bw, 30, () => cerrar('abandonar'));
+          entrada.zona(x + 18, y + 46, bw, 30, confirmar);
           entrada.zona(x + w - 18 - bw, y + 46, bw, 30, () => (seguro = false));
         }
       },
@@ -318,24 +330,23 @@ export function menuPausa(base: Escena | null): Promise<'seguir' | 'abandonar'> 
           if (a === 'izq' || a === 'der' || a === 'arriba' || a === 'abajo') selSeguro = 1 - selSeguro;
           else if (a === 'atras') seguro = false;
           else if (a === 'aceptar') {
-            if (selSeguro === 0) cerrar('abandonar');
+            if (selSeguro === 0) confirmar();
             else seguro = false;
           }
           return true;
         }
         if (a === 'atras') seguir();
         else if (a === 'arriba' || a === 'abajo') {
-          sel = mover(sel, 6, a);
+          sel = mover(sel, 7, a);
           sonido.efecto('cursor');
         } else if (a === 'izq' || a === 'der') {
           if (sel < 2) ajustarCanal(sel === 0 ? 'musica' : 'efectos', a);
           else if (sel === 2) ajustarVelocidad(a);
         } else if (a === 'aceptar') {
           if (sel === 3) guia();
-          else if (sel === 4) {
-            seguro = true;
-            selSeguro = 1;
-          } else if (sel === 5) seguir();
+          else if (sel === 4) preguntar('abandonar');
+          else if (sel === 5) preguntar('web');
+          else if (sel === 6) seguir();
         }
         return true;
       },

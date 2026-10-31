@@ -26,6 +26,7 @@ menu.musica = Música
 menu.efectos = Efectos
 menu.volver = Volver
 menu.minijuegos = Volver a los minijuegos
+menu.web = Volver a la web
 menu.pausa = Pausa
 menu.reanudar = Seguir jugando
 menu.salir = Salir al menú

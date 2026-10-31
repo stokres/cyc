@@ -8,6 +8,7 @@ Decisiones de diseño para que una aventura gráfica con minijuegos funcione en 
 - **Solo en horizontal.** En vertical aparece un aviso para girar el móvil, porque iPhone no deja bloquear la orientación.
 - **Pantalla completa** en el móvil, desde el toque de la pantalla de título. Algunos navegadores la quitan al salir un momento de la app (Firefox en Android) y solo dejan pedirla desde un toque, así que el siguiente toque la vuelve a pedir (8 de octubre de 2026). Se quita y se pone con «Pantalla completa» en el menú (no sale en iPhone, que no la tiene).
 - **Autoguardado** en el propio navegador (cada jugador en su móvil) tras cada acción y al salir de la página, para seguir otro día donde lo dejaste.
+- **Volver a la web** (31 de octubre de 2026): cada juego deja volver a la portada (`/`) con `volverALaWeb()` (`src/core/direccion.ts`). Capítulo 1 y 2: botón en la pantalla de título y en el menú de pausa (guarda la posición antes de salir). Pang (`/pang`): último botón del menú principal en lugar de «Volver a los minijuegos» (Escape no sale a la web). PokéUsera: fila en el menú principal y botón en la pausa del combate (pide «¿Seguro?» y abandona la batalla como ABANDONAR).
 
 ## Partida guardada y capítulos
 

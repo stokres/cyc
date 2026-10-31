@@ -23,7 +23,7 @@ import type { Calidad } from './motor/motor';
 import type { Volumen } from './core/audio';
 import { storageGet, storageSet, wait } from './core/util';
 import { cargarModulo } from './juego/modulos';
-import { parametros, volverAlInicio } from './core/direccion';
+import { parametros, volverAlInicio, volverALaWeb } from './core/direccion';
 import { bajarPartidas, vigilar } from './cuenta/cuenta';
 
 interface Ajustes {
@@ -135,8 +135,9 @@ async function arrancar() {
       fase: q.has('fase') ? Number(q.get('fase')) || 1 : undefined,
       pj: pj && pj in REPARTO ? pj : undefined,
       control: q.has('bot') ? 'bot' : 'local',
+      desdeWeb: true,
     });
-    volverAlInicio();
+    volverALaWeb();
     return;
   }
   // «PokéUsera» (the chapter 2 copy in src/pokecap/; the whole game is src/pokeusera/, pokeusera.html), no longer part of chapter 2, opened by itself: the address ending in ?pokecap. `&dino` goes straight to the silhouette and the
@@ -208,6 +209,11 @@ async function arrancar() {
   const alSalir = () => !g.ocupadoAhora && g.guardar();
   addEventListener('pagehide', alSalir);
   document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && alSalir());
+  /** «Volver a la web»: the game is saved after every action; this saves the last position too (if nothing is half done) and goes to the cover. */
+  const irALaWeb = () => {
+    alSalir();
+    volverALaWeb();
+  };
 
   // «Auto» starts where this phone was left last time (it only ever steps down), else medium on phones.
   if (ajustes.calidad !== 'auto') g.motor.setCalidad(ajustes.calidad);
@@ -292,6 +298,11 @@ async function arrancar() {
       el.remove();
       menuCapitulos();
     });
+    const web = h('button', { class: 'btn fantasma', id: 'm-web' }, texto('menu.web'));
+    web.addEventListener('click', (e) => {
+      e.stopPropagation();
+      irALaWeb();
+    });
     const minijuegos = h('button', { class: 'btn', id: 'm-minijuegos' }, texto('menu.minijuegos'));
     minijuegos.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -342,6 +353,7 @@ async function arrancar() {
           h('button', { class: 'btn primario', onclick: (e) => (e.stopPropagation(), cerrar()) }, texto('menu.continuar')),
           ...(cap2 ? [] : [capitulos, minijuegos]),
           reiniciar,
+          web,
         ),
       ),
     );
@@ -625,6 +637,8 @@ async function arrancar() {
       h('div', { class: 'capitulo' }, texto(cap2 ? 'titulo.capitulo2' : 'titulo.capitulo')),
       ...(g.rejugando ? [h('div', { class: 'aviso-rejuego' }, texto('titulo.rejugando'))] : []),
       h('div', { class: 'toca' }, texto(nueva ? 'titulo.empezar' : 'titulo.seguir')),
+      // Not to start: this one button goes back to the cover (the tap on it does not reach the title's).
+      h('button', { class: 'btn fantasma', id: 't-web', onclick: (e: Event) => (e.stopPropagation(), volverALaWeb()) }, texto('menu.web')),
     ),
   );
   titulo.addEventListener('click', async (e) => {
