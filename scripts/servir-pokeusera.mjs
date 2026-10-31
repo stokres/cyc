@@ -3,7 +3,8 @@
 //   /            the cover (dist/portada.html)           /pokeusera   PokéUsera (dist/pokeusera.html)       /aventura   PokéUsera, straight into AVENTURA
 //   /capitulo1   the chapter (dist/index.html)           /pang        the whole Pang (index.html opens it, see src/core/direccion.ts)
 //   /capitulo2 /sol /kart /unamas   hidden games, the same way (they work, the cover does not announce them)
-// A route with a final slash (/pang/) redirects (301) to the one without: the relative paths of the build (./assets/...) would break under it.
+//   /fly         Fly (dist/fly/index.html, built with base /fly/)     /trazo   Trazo (dist/trazo/index.html)
+// A route with a final slash (/pang/) redirects (301) to the one without: the relative paths of the build (./assets/...) would break under it (Fly uses absolute /fly/... paths).
 // The door (scripts/pase.mjs): with CYC_CLAVE set, without the cookie the HTML pages answer 401 with the entry page (dist/entrar.html), /api and /sala answer 401, and
 // /assets, robots.txt, icons and manifests stay free. Every response carries X-Robots-Tag (no indexing).
 // The files of dist/ keep their own paths (/assets/..., /pokeusera-sw.js, /index.html, /pokeusera.html?aventura...): old links and installed apps still work.
@@ -38,6 +39,7 @@ const TIPOS = {
   '.ogg': 'audio/ogg',
   '.woff2': 'font/woff2',
   '.woff': 'font/woff',
+  '.glb': 'model/gltf-binary',
   '.txt': 'text/plain; charset=utf-8',
 };
 
@@ -115,14 +117,25 @@ const servidor = createServer(async (req, res) => {
   const cabeceras = {
     'Content-Type': TIPOS[ext] ?? 'application/octet-stream',
     'Content-Length': info.size,
-    // Built files in /assets carry a hash in their name: they never change. Everything else is rechecked.
-    'Cache-Control': codigo === 401 ? 'no-store' : ruta.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'no-cache',
+    // Built files in /assets (and in /fly/assets) carry a hash in their name: they never change. Everything else is rechecked.
+    'Cache-Control': codigo === 401 ? 'no-store' : /^\/(fly\/)?assets\//.test(ruta) ? 'public, max-age=31536000, immutable' : 'no-cache',
     'X-Content-Type-Options': 'nosniff',
   };
   // The service worker (the installed app, docs/POKEUSERA.md): never cached, so a new version is noticed at once; it lives at the root, so its scope is the whole site.
   if (ruta === '/pokeusera-sw.js') {
     cabeceras['Cache-Control'] = 'no-cache, no-store, must-revalidate';
     cabeceras['Service-Worker-Allowed'] = '/';
+  }
+  // Files that are not hashed (Fly's models in /fly/models, the pages...) are rechecked each time: with Last-Modified the check costs a 304 instead of the whole file.
+  if (cabeceras['Cache-Control'] === 'no-cache') {
+    const modificado = new Date(Math.floor(info.mtimeMs / 1000) * 1000);
+    cabeceras['Last-Modified'] = modificado.toUTCString();
+    const desde = Date.parse(req.headers['if-modified-since'] ?? '');
+    if (desde >= modificado.getTime()) {
+      delete cabeceras['Content-Length'];
+      res.writeHead(304, cabeceras);
+      return res.end();
+    }
   }
   res.writeHead(codigo, cabeceras);
   if (req.method === 'HEAD') return res.end();

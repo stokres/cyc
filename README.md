@@ -14,7 +14,7 @@ La luz con relieve (WebGL2) está aplazada: para verla, añade `?relieve` a la d
 
 ## Publicación en Railway (dominio propio)
 
-Todos los juegos salen de **un único servicio de Railway** (Node), con URLs limpias: `/` (portada), `/capitulo1`, `/pokeusera` y `/pang`. Siguen funcionando, sin anunciarse, `/aventura`, `/capitulo2`, `/sol`, `/kart` y `/unamas`; una ruta con barra final (`/pang/`) redirige a la que no la lleva. La sala online (`/sala`) y las estadísticas (`/api`) van en el mismo servicio. El servidor es `scripts/servir-pokeusera.mjs` y la lista de rutas, `scripts/rutas.mjs`. GitHub Pages ya no publica nada: la dirección es https://camionesycaravanas.es. En el móvil, abre un juego y usa **Añadir a pantalla de inicio** para que se abra a pantalla completa.
+Todos los juegos salen de **un único servicio de Railway** (Node), con URLs limpias: `/` (portada), `/capitulo1`, `/pokeusera`, `/pang`, `/fly` y `/trazo`. Siguen funcionando, sin anunciarse, `/aventura`, `/capitulo2`, `/sol`, `/kart` y `/unamas`; una ruta con barra final (`/pang/`) redirige a la que no la lleva. La sala online (`/sala`) y las estadísticas (`/api`) van en el mismo servicio. El servidor es `scripts/servir-pokeusera.mjs` y la lista de rutas, `scripts/rutas.mjs`. `/fly` y `/trazo` son dos juegos que viven en `juegos/` (ver `juegos/README.md`). `npm run build` los construye después del de cyc con `scripts/construir-juegos.mjs`: Fly (que conserva su propio `package.json` y su Vite) se instala con `npm ci` si hace falta y se construye con base absoluta `/fly/` en `dist/fly/` (por eso sus `.glb`, `.json` y audio cargan bien bajo la ruta); Trazo se copia tal cual a `dist/trazo/`. Los archivos con hash de `/fly/assets/` llevan la misma caché larga que `/assets/`. Para probarlos en local hace falta `npm run build && npm start` (`npm run dev` no sirve esas dos rutas). GitHub Pages ya no publica nada: la dirección es https://camionesycaravanas.es. En el móvil, abre un juego y usa **Añadir a pantalla de inicio** para que se abra a pantalla completa.
 
 Pasos manuales, una sola vez:
 
@@ -97,5 +97,6 @@ node tools/icono.mjs                                                      # icon
 | `src/arte/` | Personajes (con vestuario), escenas y objetos, generados como SVG |
 | `src/ui/` | Interfaz: selector, bolsa, diálogos, móvil y minijuegos (la rana, palabras, el robot y los cerdos), con su versión sin fin para el menú de minijuegos |
 | `src/core/` | Gestos, sonido y utilidades |
+| `juegos/` | Juegos con su propio código, servidos en `/fly` y `/trazo`; `juegos/README.md` dice de dónde vino cada uno y `scripts/construir-juegos.mjs` los construye |
 | `tools/` | Láminas de personajes, exportación de capas e iconos |
 | `public/` | Manifiesto e iconos para instalarlo en el móvil |

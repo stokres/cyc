@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && node scripts/construir-juegos.mjs",
+    "build:juegos": "node scripts/construir-juegos.mjs",
     "typecheck": "tsc --noEmit",
     "shots": "node scripts/shots.mjs",
     "start": "node scripts/servir-pokeusera.mjs"
