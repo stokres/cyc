@@ -12,19 +12,9 @@ npm run build      # typecheck + build en dist/
 
 La luz con relieve (WebGL2) está aplazada: para verla, añade `?relieve` a la dirección.
 
-## Publicarlo en GitHub Pages
-
-`.github/workflows/pages.yml` construye el juego y lo publica cada vez que se sube algo a la rama principal del repositorio (o a mano, desde la pestaña **Actions** → *Publicar en GitHub Pages* → *Run workflow*).
-
-1. Una sola vez: en el repositorio, **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-2. Sube un cambio a la rama principal (o lanza el workflow a mano). Al terminar, la dirección sale en **Settings → Pages** y en el resumen del workflow: `https://<usuario>.github.io/<repositorio>/`.
-3. En el móvil, ábrela y usa **Añadir a pantalla de inicio**: así se abre a pantalla completa y en horizontal, con el icono de Fran.
-
-GitHub Pages en un repositorio privado necesita una cuenta de pago (GitHub Pro), y la página queda pública igualmente: cualquiera con la dirección puede jugar. Sin cuenta de pago hay que hacer público el repositorio.
-
 ## Publicación en Railway (dominio propio)
 
-Todos los juegos salen de **un único servicio de Railway** (Node), con URLs limpias: `/` (portada), `/capitulo1`, `/pokeusera` y `/pang`. Siguen funcionando, sin anunciarse, `/aventura`, `/capitulo2`, `/sol`, `/kart` y `/unamas`; una ruta con barra final (`/pang/`) redirige a la que no la lleva. La sala online (`/sala`) y las estadísticas (`/api`) van en el mismo servicio. El servidor es `scripts/servir-pokeusera.mjs` y la lista de rutas, `scripts/rutas.mjs`. GitHub Pages sigue publicando el capítulo 1 desde `index.html` hasta que se retire; la portada solo funciona en Railway (sus enlaces son rutas limpias).
+Todos los juegos salen de **un único servicio de Railway** (Node), con URLs limpias: `/` (portada), `/capitulo1`, `/pokeusera` y `/pang`. Siguen funcionando, sin anunciarse, `/aventura`, `/capitulo2`, `/sol`, `/kart` y `/unamas`; una ruta con barra final (`/pang/`) redirige a la que no la lleva. La sala online (`/sala`) y las estadísticas (`/api`) van en el mismo servicio. El servidor es `scripts/servir-pokeusera.mjs` y la lista de rutas, `scripts/rutas.mjs`. GitHub Pages ya no publica nada: la dirección es https://camionesycaravanas.es. En el móvil, abre un juego y usa **Añadir a pantalla de inicio** para que se abra a pantalla completa.
 
 Pasos manuales, una sola vez:
 
@@ -108,4 +98,3 @@ node tools/icono.mjs                                                      # icon
 | `src/core/` | Gestos, sonido y utilidades |
 | `tools/` | Láminas de personajes, exportación de capas e iconos |
 | `public/` | Manifiesto e iconos para instalarlo en el móvil |
-| `.github/workflows/pages.yml` | Publicación en GitHub Pages |

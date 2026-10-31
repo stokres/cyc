@@ -1,6 +1,6 @@
 // Cover page (portada.html): the cartel of the domain. Plain DOM and CSS, no game code: it only loads its texts
 // (src/textos/portada.md), so it opens at once on a mid-range phone. The links are clean routes (`/capitulo1`, `/pokeusera`, `/pang`),
-// which only exist on the server of the game (scripts/servir-pokeusera.mjs): the page is not linked from GitHub Pages.
+// which only exist on the server of the game (scripts/servir-pokeusera.mjs).
 import './portada.css';
 import raw from '../textos/portada.md?raw';
 import { cargarTextos, texto } from '../juego/textos';

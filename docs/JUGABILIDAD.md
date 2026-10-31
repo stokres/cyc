@@ -21,7 +21,7 @@ En el menú, **Capítulos** enseña cada capítulo (superado, en curso o todaví
 
 **Partidas de versiones antiguas.** Al cargar, `reparar` (`src/juego/aventura.ts`) arregla lo que una versión nueva haya dejado atrás: quien esté en una escena que ya no existe (Chuchi en su escena provisional, antes de Bolilandia), o cuya historia el capítulo diga que ha cambiado (`caducados`), empieza su historia otra vez; los demás conservan su avance, y los objetos que ya no existen salen de la bolsa. Si una escena falla al cargar, el velo se levanta y sigues en la escena de antes en vez de quedarte en «Preparando la escena…».
 
-**Salida de emergencia.** Abrir el juego con `?nueva` al final de la dirección (por ejemplo `https://stokres.github.io/cyc/?nueva`) borra la partida guardada (no los ajustes) y empieza desde cero.
+**Salida de emergencia.** Abrir el juego con `?nueva` al final de la dirección (por ejemplo `https://camionesycaravanas.es/capitulo1?nueva`) borra la partida guardada (no los ajustes) y empieza desde cero.
 
 ## Point and click en pantalla táctil
 
