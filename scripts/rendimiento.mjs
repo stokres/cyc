@@ -60,9 +60,9 @@ await page.addInitScript(() => {
 });
 /**
  * The cover page (portada.html): DOM and CSS only. Measured on its own tab: CPU, frames and the mistakes of the rule T5 that could creep in
- * (a canvas, more than 60 frames a second). The page must also open without errors, with its three games and without scrolling sideways.
+ * (a canvas, more than 60 frames a second). The page must also open without errors, with its five games (Camiones y Caravanas, PokéUsera, Pang, Fly, Trazo) and without scrolling sideways.
  */
-async function medirPortada(nombre, ancho, alto, pagina = 'portada.html', juegos = 3) {
+async function medirPortada(nombre, ancho, alto, pagina = 'portada.html', juegos = 5) {
   const ctxP = await b.newContext({ viewport: { width: ancho, height: alto }, deviceScaleFactor: 2.625, hasTouch: true, isMobile: true });
   const p = await ctxP.newPage();
   const fallos = [];

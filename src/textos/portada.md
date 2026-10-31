@@ -14,19 +14,15 @@ titulo = Camiones y Caravanas
 titulo.1 = CAMIONES
 titulo.y = Y
 titulo.2 = CARAVANAS
-cinta = Entrada libre · Jueves · 21:00 · Bar del Brío
-
-sello.circular = ★ 100% USERA ★ SIN CONSERVANTES ★
-sello.centro1 = hecho
-sello.centro2 = a mano
+cinta = Solo la peña · Jueves · 21:00 · Bar del Brío
 
 capitulo1.logo = Camiones y Caravanas: un camión y una caravana
 capitulo1.nombre = Camiones y Caravanas
 capitulo1.desc = El juego de verdad. Cuatro amigos, un jueves y una caravana que no estaba para tanto.
-capitulo1.1 = Capítulo 1 · El jueves que casi no fue
+capitulo1.1 = El jueves que casi no fue
 capitulo1.jugar = ¡A jugar!
-capitulo1.2 = Capítulo 2 · Lo que pasó dentro
-capitulo1.pronto = Próximamente
+capitulo1.2 = Lo que pasó dentro
+capitulo1.pronto = Pronto
 
 pokeusera.icono = PokéUsera: una jarra de cerveza en pixel art
 pokeusera.nombre = PokéUsera
@@ -40,6 +36,14 @@ pang.desc = Revienta burbujas de espuma con los cuatro de siempre.
 pang.jugar = ¡A reventar!
 pang.fases.numero = 12
 pang.fases = fases
+
+fly.nombre = Fly
+fly.desc = Vuela como un pájaro espíritu sobre un archipiélago.
+fly.jugar = ¡A volar!
+
+trazo.nombre = Trazo
+trazo.desc = Dibuja el suelo y salva la gota del borrón.
+trazo.jugar = ¡A trazar!
 
 mas.nombre = Próximamente más…
 mas.desc = Cuando Fran diga «una más y nos vamos».
