@@ -285,7 +285,8 @@ a {
   transform: rotate(-2deg);
 }
 
-.dale > a {
+.dale > a,
+.dale > button {
   display: inline-flex;
   align-items: center;
   min-height: 48px;
@@ -301,16 +302,24 @@ a {
   white-space: nowrap;
 }
 
-.dale > a:hover {
+.dale > button {
+  border: 0;
+  cursor: pointer;
+}
+
+.dale > a:hover,
+.dale > button:hover {
   background: #5a2a18;
 }
 
-.dale > a:focus-visible {
+.dale > a:focus-visible,
+.dale > button:focus-visible {
   outline: 3px solid var(--rosa2);
   outline-offset: -5px;
 }
 
-.dale.ros > a {
+.dale.ros > a,
+.dale.ros > button {
   background: var(--rosa2);
   color: var(--papel);
 }

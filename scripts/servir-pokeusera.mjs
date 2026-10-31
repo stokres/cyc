@@ -4,6 +4,8 @@
 //   /capitulo1   the chapter (dist/index.html)           /pang        the whole Pang (index.html opens it, see src/core/direccion.ts)
 //   /capitulo2 /sol /kart /unamas   hidden games, the same way (they work, the cover does not announce them)
 // A route with a final slash (/pang/) redirects (301) to the one without: the relative paths of the build (./assets/...) would break under it.
+// The door (scripts/pase.mjs): with CYC_CLAVE set, without the cookie the HTML pages answer 401 with the entry page (dist/entrar.html), /api and /sala answer 401, and
+// /assets, robots.txt, icons and manifests stay free. Every response carries X-Robots-Tag (no indexing).
 // The files of dist/ keep their own paths (/assets/..., /pokeusera-sw.js, /index.html, /pokeusera.html?aventura...): old links and installed apps still work.
 import { createServer } from 'node:http';
 import { createReadStream } from 'node:fs';
@@ -13,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { adjuntarSala } from './sala-pokeusera.mjs';
 import { RUTAS } from './rutas.mjs';
 import { crearApiEstadisticas, leerCatalogo } from './api-estadisticas.mjs';
+import { crearPase } from './pase.mjs';
 
 // POKEUSERA_DIST: another build folder (to try a build without touching ./dist).
 const RAIZ = resolve(process.env.POKEUSERA_DIST ?? fileURLToPath(new URL('../dist', import.meta.url)));
@@ -77,7 +80,15 @@ try {
   console.error(`[estadisticas] desactivadas: ${e.code === 'ENOENT' ? 'falta pokeusera-catalogo.json en ' + RAIZ + ' (npm run build lo crea)' : e.message}`);
 }
 
+const pase = crearPase();
+
 const servidor = createServer(async (req, res) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  if (pase.manejar(req, res)) return;
+  if (new URL(req.url ?? '/', 'http://localhost').pathname.startsWith('/api/') && !pase.autorizada(req)) {
+    res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    return res.end('{"error":"pase"}');
+  }
   if (estadisticas?.manejar(req, res)) return;
   if (req.method !== 'GET' && req.method !== 'HEAD') return responder(res, 405, 'Method Not Allowed');
   const url = new URL(req.url ?? '/', 'http://localhost');
@@ -91,11 +102,21 @@ const servidor = createServer(async (req, res) => {
   const hallado = await buscar(Object.hasOwn(RUTAS, ruta) ? '/' + RUTAS[ruta] : ruta);
   if (!hallado) return responder(res, 404, 'No encontrado');
   const ext = extname(hallado.archivo).toLowerCase();
+  // An HTML page without the cookie: the entry page, with a 401 (so no cache, the service worker's included, takes it for the game). It keeps the URL: after the key, the page reloads.
+  let archivo = hallado.archivo;
+  let info = hallado.info;
+  let codigo = 200;
+  if (ext === '.html' && !pase.autorizada(req)) {
+    const entrada = await buscar('/entrar.html');
+    if (!entrada) return responder(res, 401, 'Hace falta la clave');
+    ({ archivo, info } = entrada);
+    codigo = 401;
+  }
   const cabeceras = {
     'Content-Type': TIPOS[ext] ?? 'application/octet-stream',
-    'Content-Length': hallado.info.size,
+    'Content-Length': info.size,
     // Built files in /assets carry a hash in their name: they never change. Everything else is rechecked.
-    'Cache-Control': ruta.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'no-cache',
+    'Cache-Control': codigo === 401 ? 'no-store' : ruta.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'no-cache',
     'X-Content-Type-Options': 'nosniff',
   };
   // The service worker (the installed app, docs/POKEUSERA.md): never cached, so a new version is noticed at once; it lives at the root, so its scope is the whole site.
@@ -103,10 +124,10 @@ const servidor = createServer(async (req, res) => {
     cabeceras['Cache-Control'] = 'no-cache, no-store, must-revalidate';
     cabeceras['Service-Worker-Allowed'] = '/';
   }
-  res.writeHead(200, cabeceras);
+  res.writeHead(codigo, cabeceras);
   if (req.method === 'HEAD') return res.end();
-  createReadStream(hallado.archivo).on('error', () => res.destroy()).pipe(res);
+  createReadStream(archivo).on('error', () => res.destroy()).pipe(res);
 });
 
-adjuntarSala(servidor);
+adjuntarSala(servidor, { autorizar: pase.autorizada, puerta: pase.activa });
 servidor.listen(PUERTO, '0.0.0.0', () => console.log(`PokéUsera en el puerto ${PUERTO} (sirviendo ${RAIZ})`));

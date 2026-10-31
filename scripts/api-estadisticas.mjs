@@ -31,7 +31,7 @@ export async function leerCatalogo(ruta) {
   return prepararCatalogo(JSON.parse(await readFile(ruta, 'utf8')));
 }
 
-const ip = (req) => {
+export const ip = (req) => {
   const real = req.headers['x-real-ip'];
   if (typeof real === 'string' && real) return real.trim();
   const xff = req.headers['x-forwarded-for'];
