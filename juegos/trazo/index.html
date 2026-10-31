@@ -1,0 +1,1811 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Trazo: an endless ink-on-paper game. Draw the ground for a rolling ink drop while the blot chases you.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://camionesycaravanas.es/trazo">
+<meta property="og:title" content="Trazo">
+<meta property="og:description" content="Draw the ground. Outrun the ink. An endless ink-on-paper browser game.">
+<meta property="og:image" content="https://camionesycaravanas.es/trazo/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="An ink drop rolls along a hand-drawn line while a huge ink blot chases it">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Trazo">
+<meta name="twitter:description" content="Draw the ground. Outrun the ink. An endless ink-on-paper browser game.">
+<meta name="twitter:image" content="https://camionesycaravanas.es/trazo/og.jpg">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Trazo">
+<meta name="theme-color" content="#e9e3d6">
+<style>body { margin: 0; } [hidden] { display: none !important; }</style>
+<title>Trazo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Nanum+Brush+Script&display=swap">
+<style>
+/* Layout: one full-bleed sheet of paper (canvas); a borderless ink-lettered veil floats over it between runs. Single deliberate paper look, no dark theme. */
+:root {
+  --paper: #e9e3d6;
+  --paper-veil: rgba(233, 227, 214, 0.8);
+  --ink: #16120e;
+  --graphite: #8e887d;
+  --vignette: rgba(120, 100, 70, 0.32);
+  --font-brush: "Nanum Brush Script", "Segoe Script", "Bradley Hand", cursive;
+  --font-text: "IM Fell English", "Iowan Old Style", Georgia, serif;
+  color-scheme: light;
+}
+html, body { height: 100%; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-text);
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+#stage { position: relative; height: 100%; }
+#game { display: block; width: 100%; height: 100%; cursor: crosshair; }
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding-inline: 16px;
+  text-align: center;
+  background: var(--paper-veil);
+}
+.overlay h1 {
+  margin: 0;
+  font-family: var(--font-brush);
+  font-weight: 400;
+  font-size: clamp(88px, 18vw, 150px);
+  line-height: 0.8;
+  text-wrap: balance;
+}
+.overlay h1.death { font-size: clamp(52px, 10vw, 84px); line-height: 0.9; }
+.overlay p { margin: 0; max-width: 36ch; font-size: 18px; line-height: 1.4; }
+.overlay .score { font-family: var(--font-brush); font-size: 48px; line-height: 1; }
+.overlay .sub { font-style: italic; color: var(--graphite); font-size: 16px; }
+.overlay { overflow-y: auto; padding-block: 16px; }
+.ranking-box { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.ranking-box h2 { margin: 0; font: italic 400 15px var(--font-text); color: var(--graphite); letter-spacing: 0.04em; }
+.ranking {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  column-gap: 16px;
+  row-gap: 2px;
+  align-items: baseline;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-variant-numeric: tabular-nums;
+}
+.ranking li { display: contents; }
+.ranking .rank { text-align: end; color: var(--graphite); font-size: 15px; }
+.ranking .dist { text-align: end; font: 26px/1 var(--font-brush); }
+.ranking .when { text-align: start; color: var(--graphite); font-size: 14px; font-style: italic; }
+.ranking li.current .rank::before { content: "● "; color: var(--ink); }
+.ranking li.current .when { color: var(--ink); }
+.overlay button {
+  margin-top: 10px;
+  padding: 8px 30px 10px;
+  font: 34px/1 var(--font-brush);
+  color: var(--ink);
+  background: transparent;
+  border: 2.5px solid var(--ink);
+  border-radius: 255px 18px 225px 18px / 18px 225px 18px 255px;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+.overlay button:hover { background: var(--ink); color: var(--paper); }
+.overlay button:focus-visible { outline: 2px dashed var(--ink); outline-offset: 5px; }
+/* «Back to the site»: only when the game is served inside camionesycaravanas.es (/trazo); a quieter button than the main one. */
+.overlay button.web { margin-top: 0; padding: 4px 20px 6px; font-size: 22px; color: var(--graphite); border-width: 1.5px; border-color: var(--graphite); }
+.overlay button.web:hover { color: var(--paper); border-color: var(--ink); }
+.corner {
+  position: absolute;
+  right: 12px;
+  bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  gap: 10px;
+}
+.mute {
+  padding: 6px;
+  font: italic 16px var(--font-text);
+  color: var(--graphite);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.mute:hover { color: var(--ink); }
+#mute[aria-pressed="true"] { text-decoration: line-through; }
+.mute:focus-visible { outline: 2px dashed var(--ink); outline-offset: 2px; }
+.controls {
+  position: absolute;
+  left: 12px;
+  bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  gap: 10px;
+}
+.controls button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  font: italic 16px var(--font-text);
+  color: var(--graphite);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.controls button:hover { color: var(--ink); }
+.controls button:focus-visible { outline: 2px dashed var(--ink); outline-offset: 2px; }
+/* Touch screens have no keyboard: drop the shortcut hints. */
+@media (pointer: coarse) { kbd { display: none; } }
+/* Phones in landscape: keep the overlay inside ~390px of height. */
+@media (max-height: 500px) {
+  .overlay { gap: 8px; }
+  .overlay h1 { font-size: 64px; }
+  .overlay h1.death { font-size: 42px; }
+  .overlay p { font-size: 15px; }
+  .overlay .score { font-size: 36px; }
+  .ranking .dist { font-size: 20px; }
+  .overlay button { margin-top: 2px; font-size: 28px; }
+}
+kbd {
+  padding: 0 5px;
+  font: 12px/1.5 var(--font-text);
+  font-style: normal;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+}
+</style>
+
+<div id="stage">
+  <canvas id="game" aria-label="Trazo: draw the ground for an ink drop"></canvas>
+  <div class="overlay" id="overlay">
+    <h1 id="headline">Trazo</h1>
+    <p class="sub" id="tagline">Accessible edition: kinder hills, ink to spare and a drop in a hurry.</p>
+    <p id="line1">Draw the ground near the drop. Downhill it gains speed, uphill it loses it.</p>
+    <p id="line2">Every stroke feeds the blot. Collect drops to refill your ink.</p>
+    <div class="score" id="score" hidden></div>
+    <div class="sub" id="best" hidden></div>
+    <section class="ranking-box" id="rankingBox" hidden>
+      <h2 id="rankingTitle">Your best runs</h2>
+      <ol class="ranking" id="ranking"></ol>
+    </section>
+    <p class="sub" id="hint" hidden>Plays best with your phone in landscape.</p>
+    <button id="start" type="button">Start</button>
+    <button id="web" class="web" type="button" hidden>Back to the site</button>
+  </div>
+  <div class="corner">
+    <button id="fullscreen" class="mute" type="button" aria-pressed="false" hidden><span id="fullscreenLabel">fullscreen</span> <kbd>F</kbd></button>
+    <button id="mute" class="mute" type="button" aria-pressed="false">sound</button>
+  </div>
+  <div class="controls" id="controls" hidden>
+    <button id="pauseBtn" type="button"><span id="pauseLabel">pause</span> <kbd>P</kbd></button>
+    <button id="restartBtn" type="button"><span id="restartLabel">restart</span> <kbd>R</kbd></button>
+  </div>
+</div>
+
+<script>
+(() => {
+  // Tuning knobs, all in world units (world is WORLD_H tall).
+  const C = {
+    WORLD_H: 600,
+    MIN_VIEW_W: 760,
+    PHONE_VIEW_H: 420,
+    CAM_Y_FOLLOW: 3,
+    CAM_ANCHOR: 0.36,
+    GRAVITY: 1000,
+    WALK_ACCEL: 340,
+    WALK_SPEED: 190,
+    FRICTION: 0.00002,
+    DOWNHILL_GRAVITY: 1.3,
+    JELLY_STIFFNESS: 260,
+    JELLY_DAMPING: 9,
+    TIP_STIFFNESS: 110,
+    TIP_DAMPING: 5,
+    UPHILL_GRAVITY: 0.5,
+    BOUNCE: 0.04,
+    MAX_SPEED: 850,
+    SUBSTEPS: 5,
+    DROP_R: 13,
+    DRAW_RADIUS: 260,
+    MIN_POINT_DIST: 7,
+    INK_MAX: 100,
+    INK_PER_UNIT: 0.03,
+    INK_PICKUP: 35,
+    FEED_PER_UNIT: 0.05,
+    FEED_EASE: 5,
+    BLOB_SPEED_START: 35,
+    BLOB_SPEED_GAIN: 0.6,
+    BLOB_SPEED_MAX: 200,
+    BLOB_LEASH: 80,
+    BLOB_SPEED_RATIO: 0.9,
+    BLOB_PACE_SMOOTHING: 1.2,
+    BLOB_HALF: 170,
+    BLOB_ROUND: 140,
+    BLOB_TRACK_Y: 1.8,
+    PICKUP_FLY_TIME: 0.4,
+    START_Y: 440,
+    START_END: 620,
+    UNITS_PER_METER: 40,
+    DIFFICULTY_DIST: 40000,
+    PICKUP_RAMP_DIST: 16000,
+    LOW_INK: 25,
+    FALL_LIMIT: 680,
+  };
+
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const overlay = document.getElementById('overlay');
+  const headline = document.getElementById('headline');
+  const line1 = document.getElementById('line1');
+  const line2 = document.getElementById('line2');
+  const scoreEl = document.getElementById('score');
+  const bestEl = document.getElementById('best');
+  const rankingBox = document.getElementById('rankingBox');
+  const rankingList = document.getElementById('ranking');
+  const startBtn = document.getElementById('start');
+  const hintEl = document.getElementById('hint');
+  const taglineEl = document.getElementById('tagline');
+  const muteBtn = document.getElementById('mute');
+  const fullscreenBtn = document.getElementById('fullscreen');
+  const controlsEl = document.getElementById('controls');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const restartBtn = document.getElementById('restartBtn');
+
+  // ---------- i18n: top 10 internet languages, picked from the browser's Accept-Language (navigator.languages) ----------
+  const STRINGS = {
+    en: {
+      fullscreen: 'fullscreen',
+      pauseBtn: 'pause', restartBtn: 'restart',
+      ranking: 'Your best runs',
+      line1: 'Draw the ground near the drop. Downhill it gains speed, uphill it loses it.',
+      line2: 'Every stroke feeds the blot. Collect drops to refill your ink.',
+      tagline: 'Accessible edition: kinder hills, ink to spare and a drop in a hurry.',
+      start: 'Start', again: 'Again', resume: 'Resume', pause: 'Paused',
+      caught: 'The blot caught you', fell: 'You fell into the void',
+      record: 'Best {d}', newRecord: 'New best', hudBest: 'best {d}', meters: '{n} m',
+      hint: 'Plays best with your phone in landscape.',
+      sound: 'sound', mute: 'Mute', unmute: 'Unmute',
+      ink: 'ink', lowInk: 'low ink', noInkHud: 'out of ink · grab drops', noInk: 'out of ink',
+      aria: 'Trazo: draw the ground for an ink drop',
+      web: 'Back to the site',
+    },
+    zh: {
+      fullscreen: '全屏',
+      pauseBtn: '暂停', restartBtn: '重来',
+      ranking: '你的最佳成绩',
+      line1: '在墨滴附近画出地面。下坡加速，上坡减速。',
+      line2: '每一笔都会喂养墨团。收集墨滴来补充墨水。',
+      tagline: '无障碍版：坡更温柔，墨水管够，墨滴还赶时间。',
+      start: '开始', again: '再来一次', resume: '继续', pause: '暂停',
+      caught: '墨团吞没了你', fell: '你掉进了虚空',
+      record: '最佳 {d}', newRecord: '新纪录', hudBest: '最佳 {d}', meters: '{n} 米',
+      hint: '横屏游玩效果更佳。',
+      sound: '声音', mute: '静音', unmute: '开启声音',
+      ink: '墨水', lowInk: '墨水不足', noInkHud: '没有墨水 · 收集墨滴', noInk: '没有墨水',
+      aria: 'Trazo：为墨滴画出地面',
+      web: '返回网站',
+    },
+    es: {
+      fullscreen: 'pantalla completa',
+      pauseBtn: 'pausa', restartBtn: 'reiniciar',
+      ranking: 'Tus mejores partidas',
+      line1: 'Dibuja el suelo cerca de la gota. Cuesta abajo gana velocidad, cuesta arriba la pierde.',
+      line2: 'Cada trazo alimenta a la mancha. Recoge gotas para recargar tinta.',
+      tagline: 'Versión más accesible: cuestas amables, tinta de sobra y una gota con prisa.',
+      start: 'Empezar', again: 'Otra vez', resume: 'Seguir', pause: 'Pausa',
+      caught: 'Te alcanzó la mancha', fell: 'Caíste al vacío',
+      record: 'Récord {d}', newRecord: 'Nuevo récord', hudBest: 'récord {d}', meters: '{n} m',
+      hint: 'Se juega mejor con el móvil en horizontal.',
+      sound: 'sonido', mute: 'Silenciar', unmute: 'Activar sonido',
+      ink: 'tinta', lowInk: 'poca tinta', noInkHud: 'sin tinta · coge gotas', noInk: 'sin tinta',
+      aria: 'Trazo: dibuja el suelo para la gota de tinta',
+      web: 'Volver a la web',
+    },
+    ar: {
+      fullscreen: 'ملء الشاشة',
+      pauseBtn: 'إيقاف', restartBtn: 'إعادة',
+      ranking: 'أفضل جولاتك',
+      line1: 'ارسم الأرض قرب القطرة. تزداد سرعتها في النزول وتقل في الصعود.',
+      line2: 'كل خط ترسمه يغذّي البقعة. اجمع القطرات لتعيد ملء الحبر.',
+      tagline: 'نسخة أسهل: مرتفعات ألطف، حبر بلا حساب، وقطرة مستعجلة.',
+      start: 'ابدأ', again: 'مرة أخرى', resume: 'تابع', pause: 'إيقاف مؤقت',
+      caught: 'التهمتك البقعة', fell: 'سقطت في الفراغ',
+      record: 'أفضل نتيجة {d}', newRecord: 'رقم قياسي جديد', hudBest: 'الأفضل {d}', meters: '{n} م',
+      hint: 'اللعب أفضل والهاتف في الوضع الأفقي.',
+      sound: 'الصوت', mute: 'كتم الصوت', unmute: 'تشغيل الصوت',
+      ink: 'حبر', lowInk: 'حبر قليل', noInkHud: 'نفد الحبر · اجمع القطرات', noInk: 'نفد الحبر',
+      aria: 'Trazo: ارسم الأرض لقطرة الحبر',
+      web: 'العودة إلى الموقع',
+    },
+    pt: {
+      fullscreen: 'tela cheia',
+      pauseBtn: 'pausar', restartBtn: 'reiniciar',
+      ranking: 'Suas melhores partidas',
+      line1: 'Desenhe o chão perto da gota. Na descida ela ganha velocidade, na subida perde.',
+      line2: 'Cada traço alimenta a mancha. Pegue gotas para recarregar a tinta.',
+      tagline: 'Versão mais acessível: ladeiras simpáticas, tinta de sobra e uma gota com pressa.',
+      start: 'Começar', again: 'De novo', resume: 'Continuar', pause: 'Pausa',
+      caught: 'A mancha te pegou', fell: 'Você caiu no vazio',
+      record: 'Recorde {d}', newRecord: 'Novo recorde', hudBest: 'recorde {d}', meters: '{n} m',
+      hint: 'Fica melhor com o celular na horizontal.',
+      sound: 'som', mute: 'Silenciar', unmute: 'Ativar som',
+      ink: 'tinta', lowInk: 'pouca tinta', noInkHud: 'sem tinta · pegue gotas', noInk: 'sem tinta',
+      aria: 'Trazo: desenhe o chão para uma gota de tinta',
+      web: 'Voltar ao site',
+    },
+    id: {
+      fullscreen: 'layar penuh',
+      pauseBtn: 'jeda', restartBtn: 'ulang',
+      ranking: 'Permainan terbaikmu',
+      line1: 'Gambar tanah di dekat tetesan. Menurun makin cepat, menanjak makin lambat.',
+      line2: 'Setiap goresan memberi makan noda. Kumpulkan tetesan untuk mengisi tinta.',
+      tagline: 'Versi lebih ramah: tanjakan santai, tinta melimpah, dan setetes tinta yang buru-buru.',
+      start: 'Mulai', again: 'Main lagi', resume: 'Lanjut', pause: 'Jeda',
+      caught: 'Noda menangkapmu', fell: 'Kamu jatuh ke kehampaan',
+      record: 'Rekor {d}', newRecord: 'Rekor baru', hudBest: 'rekor {d}', meters: '{n} m',
+      hint: 'Lebih seru dengan ponsel dalam posisi mendatar.',
+      sound: 'suara', mute: 'Bisukan', unmute: 'Nyalakan suara',
+      ink: 'tinta', lowInk: 'tinta menipis', noInkHud: 'tinta habis · ambil tetesan', noInk: 'tinta habis',
+      aria: 'Trazo: gambar tanah untuk tetesan tinta',
+      web: 'Kembali ke situs',
+    },
+    fr: {
+      fullscreen: 'plein écran',
+      pauseBtn: 'pause', restartBtn: 'recommencer',
+      ranking: 'Tes meilleures parties',
+      line1: 'Dessine le sol près de la goutte. En descente elle accélère, en montée elle ralentit.',
+      line2: 'Chaque trait nourrit la tache. Ramasse des gouttes pour recharger ton encre.',
+      tagline: 'Version plus accessible : des pentes gentilles, de l’encre à gogo et une goutte pressée.',
+      start: 'Jouer', again: 'Rejouer', resume: 'Reprendre', pause: 'Pause',
+      caught: 'La tache t’a rattrapé', fell: 'Tu es tombé dans le vide',
+      record: 'Record {d}', newRecord: 'Nouveau record', hudBest: 'record {d}', meters: '{n} m',
+      hint: 'Mieux avec le téléphone à l’horizontale.',
+      sound: 'son', mute: 'Couper le son', unmute: 'Activer le son',
+      ink: 'encre', lowInk: 'peu d’encre', noInkHud: 'plus d’encre · ramasse des gouttes', noInk: 'plus d’encre',
+      aria: 'Trazo : dessine le sol pour une goutte d’encre',
+      web: 'Retour au site',
+    },
+    ja: {
+      fullscreen: '全画面',
+      pauseBtn: '一時停止', restartBtn: 'やり直す',
+      ranking: 'あなたのベスト記録',
+      line1: 'しずくの近くに地面を描こう。下り坂で加速し、上り坂で減速する。',
+      line2: '線を描くたびにシミが育つ。しずくを集めてインクを補充しよう。',
+      tagline: 'やさしめバージョン：坂はゆるく、インクはたっぷり、しずくはせっかち。',
+      start: 'スタート', again: 'もう一度', resume: '再開', pause: '一時停止',
+      caught: 'シミに飲み込まれた', fell: '奈落に落ちた',
+      record: 'ベスト {d}', newRecord: '新記録', hudBest: 'ベスト {d}', meters: '{n} m',
+      hint: 'スマホは横向きがおすすめ。',
+      sound: 'サウンド', mute: 'ミュート', unmute: 'サウンドをオン',
+      ink: 'インク', lowInk: 'インク残りわずか', noInkHud: 'インク切れ・しずくを集めよう', noInk: 'インク切れ',
+      aria: 'Trazo：インクのしずくのために地面を描く',
+      web: 'サイトに戻る',
+    },
+    ru: {
+      fullscreen: 'полный экран',
+      pauseBtn: 'пауза', restartBtn: 'заново',
+      ranking: 'Твои лучшие забеги',
+      line1: 'Рисуй землю рядом с каплей. Под гору она разгоняется, в гору замедляется.',
+      line2: 'Каждый штрих кормит кляксу. Собирай капли, чтобы пополнить чернила.',
+      tagline: 'Версия попроще: горки помягче, чернил вдоволь, а капля вечно спешит.',
+      start: 'Начать', again: 'Ещё раз', resume: 'Продолжить', pause: 'Пауза',
+      caught: 'Клякса тебя поймала', fell: 'Ты упал в пустоту',
+      record: 'Рекорд {d}', newRecord: 'Новый рекорд', hudBest: 'рекорд {d}', meters: '{n} м',
+      hint: 'Лучше играть, повернув телефон горизонтально.',
+      sound: 'звук', mute: 'Выключить звук', unmute: 'Включить звук',
+      ink: 'чернила', lowInk: 'мало чернил', noInkHud: 'нет чернил · собирай капли', noInk: 'нет чернил',
+      aria: 'Trazo: рисуй землю для чернильной капли',
+      web: 'Вернуться на сайт',
+    },
+    de: {
+      fullscreen: 'Vollbild',
+      pauseBtn: 'Pause', restartBtn: 'Neustart',
+      ranking: 'Deine besten Läufe',
+      line1: 'Zeichne den Boden nahe am Tropfen. Bergab wird er schneller, bergauf langsamer.',
+      line2: 'Jeder Strich füttert den Klecks. Sammle Tropfen, um Tinte nachzufüllen.',
+      tagline: 'Barrierearme Fassung: freundlichere Hügel, Tinte im Überfluss und ein Tropfen mit Eile.',
+      start: 'Los', again: 'Nochmal', resume: 'Weiter', pause: 'Pause',
+      caught: 'Der Klecks hat dich erwischt', fell: 'Du bist ins Leere gestürzt',
+      record: 'Rekord {d}', newRecord: 'Neuer Rekord', hudBest: 'Rekord {d}', meters: '{n} m',
+      hint: 'Am besten mit dem Handy im Querformat.',
+      sound: 'Ton', mute: 'Stumm', unmute: 'Ton an',
+      ink: 'Tinte', lowInk: 'wenig Tinte', noInkHud: 'keine Tinte · sammle Tropfen', noInk: 'keine Tinte',
+      aria: 'Trazo: Zeichne den Boden für einen Tintentropfen',
+      web: 'Zurück zur Website',
+    },
+  };
+  // Brush faces for scripts Nanum Brush Script doesn't cover; loaded only for that language.
+  const SCRIPT_BRUSH = { zh: 'Ma Shan Zheng', ja: 'Yuji Syuku', ar: 'Aref Ruqaa', ru: 'Marck Script' };
+
+  function pickLang() {
+    const forced = location.hash.slice(1).toLowerCase(); // e.g. #ja, for testing
+    const wanted = [forced, ...(navigator.languages || [navigator.language || ''])];
+    for (const tag of wanted) {
+      const base = String(tag).toLowerCase().split('-')[0];
+      if (STRINGS[base]) return base;
+    }
+    return 'en';
+  }
+  const LANG = pickLang();
+  const L = STRINGS[LANG];
+  const fmtMeters = (n) => L.meters.replace('{n}', n);
+  const fmtBest = (template, n) => template.replace('{d}', fmtMeters(n));
+
+  document.documentElement.lang = LANG;
+  document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
+  if (SCRIPT_BRUSH[LANG]) {
+    const family = SCRIPT_BRUSH[LANG];
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = `https://fonts.googleapis.com/css2?family=${family.replace(/ /g, '+')}&display=swap`;
+    document.head.appendChild(link);
+    document.documentElement.style.setProperty('--font-brush', `"Nanum Brush Script", "${family}", cursive`);
+  }
+  document.getElementById('line1').textContent = L.line1;
+  document.getElementById('line2').textContent = L.line2;
+  document.getElementById('hint').textContent = L.hint;
+  taglineEl.textContent = L.tagline;
+  document.getElementById('rankingTitle').textContent = L.ranking;
+  document.getElementById('pauseLabel').textContent = L.pauseBtn;
+  document.getElementById('restartLabel').textContent = L.restartBtn;
+  document.getElementById('fullscreenLabel').textContent = L.fullscreen;
+  document.getElementById('start').textContent = L.start;
+  // «Back to the site»: only when served inside camionesycaravanas.es (under /trazo), so the loose copy stays as it was.
+  if (/^\/trazo(\/|$)/.test(location.pathname)) {
+    const webBtn = document.getElementById('web');
+    webBtn.textContent = L.web;
+    webBtn.hidden = false;
+    webBtn.addEventListener('click', () => location.assign('/'));
+  }
+  document.getElementById('mute').textContent = L.sound;
+  document.getElementById('game').setAttribute('aria-label', L.aria);
+
+  const css = getComputedStyle(document.documentElement);
+  const token = (name) => css.getPropertyValue(name).trim();
+  const PAPER = token('--paper');
+  const INK = token('--ink');
+  const GRAPHITE = token('--graphite');
+  const VIGNETTE = token('--vignette');
+  const FONT_BRUSH = token('--font-brush');
+  const FONT_TEXT = token('--font-text');
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  function mulberry32(a) {
+    return () => {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  let rng = mulberry32(1);
+  const rand = (a, b) => a + (b - a) * rng();
+
+  // ---------- sound (all synthesized, no assets) ----------
+  const sound = (() => {
+    let ac = null, master, scratchGain, scratchFilter, rumbleGain, noiseBuf;
+    let muted = false;
+    try { muted = localStorage.getItem('trazo-muted') === '1'; } catch { /* storage blocked */ }
+
+    function loopNoise(filterType, freq, rate) {
+      const src = ac.createBufferSource();
+      src.buffer = noiseBuf;
+      src.loop = true;
+      src.playbackRate.value = rate;
+      const filter = ac.createBiquadFilter();
+      filter.type = filterType;
+      filter.frequency.value = freq;
+      const gain = ac.createGain();
+      gain.gain.value = 0;
+      src.connect(filter).connect(gain).connect(master);
+      src.start();
+      return { filter, gain };
+    }
+
+    function init() {
+      if (ac) { ac.resume(); return; }
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      ac = new AudioCtx();
+      master = ac.createGain();
+      master.gain.value = muted ? 0 : 0.8;
+      master.connect(ac.destination);
+      noiseBuf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
+      const data = noiseBuf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+      const scratch = loopNoise('lowpass', 900, 0.8);
+      scratch.filter.Q.value = 0.4;
+      scratchGain = scratch.gain;
+      scratchFilter = scratch.filter;
+      rumbleGain = loopNoise('lowpass', 110, 0.5).gain;
+    }
+
+    function tone(type, f0, f1, dur, vol) {
+      if (!ac) return;
+      const now = ac.currentTime;
+      const osc = ac.createOscillator();
+      const gain = ac.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(f0, now);
+      osc.frequency.exponentialRampToValueAtTime(f1, now + dur);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(vol, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+      osc.connect(gain).connect(master);
+      osc.start(now);
+      osc.stop(now + dur + 0.02);
+    }
+
+    function burst(freq, dur, vol) {
+      if (!ac) return;
+      const now = ac.currentTime;
+      const src = ac.createBufferSource();
+      src.buffer = noiseBuf;
+      const filter = ac.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = freq;
+      const gain = ac.createGain();
+      gain.gain.setValueAtTime(vol, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+      src.connect(filter).connect(gain).connect(master);
+      src.start(now, Math.random() * 1.5);
+      src.stop(now + dur + 0.02);
+    }
+
+    return {
+      init,
+      isMuted: () => muted,
+      toggleMute() {
+        muted = !muted;
+        try { localStorage.setItem('trazo-muted', muted ? '1' : '0'); } catch { /* storage blocked */ }
+        if (ac) master.gain.setTargetAtTime(muted ? 0 : 0.8, ac.currentTime, 0.05);
+      },
+      scratch(level) {
+        if (!ac) return;
+        // Soft brush swish: low-passed noise, gentle level, and a slower ramp so it never crackles.
+        scratchGain.gain.setTargetAtTime(level * 0.22, ac.currentTime, 0.05);
+        scratchFilter.frequency.setTargetAtTime(600 + level * 1200, ac.currentTime, 0.08);
+      },
+      rumble(level) {
+        if (ac) rumbleGain.gain.setTargetAtTime(level * 1.2, ac.currentTime, 0.2);
+      },
+      plop() { tone('sine', 420, 980, 0.09, 0.35); tone('sine', 900, 1700, 0.06, 0.1); },
+      splat(power) { burst(900, 0.16, 0.5 * power); tone('sine', 150, 60, 0.12, 0.3 * power); },
+      gulp() { tone('sine', 230, 55, 0.24, 0.45); burst(320, 0.2, 0.22); },
+      death() { burst(700, 0.7, 0.9); tone('sine', 190, 38, 0.8, 0.55); },
+      dry() { burst(1300, 0.08, 0.12); tone('sine', 150, 110, 0.09, 0.05); },
+    };
+  })();
+
+  // ---------- viewport ----------
+  let dpr = 1, cssW = 0, cssH = 0, scale = 1, offY = 0, viewW = 0, grain = null;
+  let visTop = 0, visBottom = C.WORLD_H;
+  // camY is the world y at the top of the screen. When the whole world height fits, it just centers it;
+  // on short screens (phones in landscape) it follows the drop vertically.
+  let camY = 0, viewH = C.WORLD_H, followY = false;
+
+  function camYTarget() {
+    return clamp(drop.y - viewH * 0.55, -30, C.WORLD_H + 40 - viewH);
+  }
+  function applyCamY() {
+    offY = -camY * scale;
+    visTop = camY;
+    visBottom = camY + viewH;
+  }
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cssW = canvas.clientWidth;
+    cssH = canvas.clientHeight;
+    canvas.width = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+    const isPortrait = cssW < cssH;
+    const isPhone = Math.min(cssW, cssH) < 520;
+    // Portrait phones get a narrower world view; landscape phones a shorter one, so the drop isn't microscopic.
+    const minViewW = isPortrait ? 520 : C.MIN_VIEW_W;
+    const minViewH = isPhone && !isPortrait ? C.PHONE_VIEW_H : C.WORLD_H;
+    scale = Math.min(cssH / minViewH, cssW / minViewW);
+    hintEl.hidden = !(isPortrait && state === 'title');
+    viewW = cssW / scale;
+    viewH = cssH / scale;
+    followY = viewH < C.WORLD_H - 1;
+    camY = followY && drop ? camYTarget() : -(viewH - C.WORLD_H) / 2;
+    applyCamY();
+    grain = makeGrain(cssW, cssH);
+  }
+
+  function makeGrain(w, h) {
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(w / 2));
+    c.height = Math.max(1, Math.round(h / 2));
+    const g = c.getContext('2d');
+    const img = g.createImageData(c.width, c.height);
+    const px = img.data;
+    for (let i = 0; i < px.length; i += 4) {
+      const v = 255 - Math.random() * 24;
+      px[i] = v; px[i + 1] = v - 2; px[i + 2] = v - 6; px[i + 3] = 255;
+    }
+    g.putImageData(img, 0, 0);
+    // The vignette is separate: grain scrolls with the paper, the vignette stays on the screen.
+    const v = document.createElement('canvas');
+    v.width = c.width;
+    v.height = c.height;
+    const vg = v.getContext('2d');
+    const cx = v.width / 2, cy = v.height / 2;
+    const grad = vg.createRadialGradient(cx, cy, Math.min(cx, cy) * 0.5, cx, cy, Math.max(cx, cy) * 1.25);
+    grad.addColorStop(0, 'rgba(255,255,255,0)');
+    grad.addColorStop(1, VIGNETTE);
+    vg.fillStyle = grad;
+    vg.fillRect(0, 0, v.width, v.height);
+    return { noise: c, vignette: v };
+  }
+
+  // ---------- state ----------
+  let state = 'title';
+  let time = 0, ink = C.INK_MAX, distance = 0;
+  let segments = [], strokes = [], decor = [], pickups = [], particles = [], tendrils = [], flyers = [];
+  let shake = 0, danger = 0, barPulse = 0, drawnThisFrame = 0, animT = 0;
+  let dryAlert = 0, lastDrySound = 0, dryMarks = [];
+  // Hidden perf overlay, toggled with D. Stats are averaged over half-second windows.
+  const perf = { visible: false, frames: 0, windowStart: 0, updateMs: 0, renderMs: 0, fps: 0, avgUpdate: 0, avgRender: 0, worstFrame: 0, worst: 0 };
+  let drop, blob, cam, gen;
+  let pen = null, pointer = null;
+  // Personal ranking: top RANKING_SIZE runs, kept only in this browser's localStorage.
+  const RANKING_SIZE = 10;
+  const RANKING_SHOWN = 5;
+  let ranking = loadRanking();
+  let best = ranking[0]?.m || 0;
+
+  function loadRanking() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem('trazo-ranking') || '[]');
+      const runs = Array.isArray(parsed) ? parsed.filter((r) => Number.isFinite(r?.m) && r.m > 0) : [];
+      const legacyBest = Number(localStorage.getItem('trazo-best')) || 0;
+      const needsMigration = runs.length === 0 && legacyBest > 0;
+      if (needsMigration) runs.push({ m: legacyBest, at: null });
+      return runs.sort((a, b) => b.m - a.m).slice(0, RANKING_SIZE);
+    } catch {
+      return [];
+    }
+  }
+  function saveRanking() {
+    try { localStorage.setItem('trazo-ranking', JSON.stringify(ranking)); } catch { /* storage blocked */ }
+  }
+  // Returns the run's position in the ranking, or -1 if it didn't make the cut.
+  function addRun(meters) {
+    if (meters <= 0) return -1;
+    const run = { m: meters, at: Date.now() };
+    ranking = [...ranking, run].sort((a, b) => b.m - a.m).slice(0, RANKING_SIZE);
+    saveRanking();
+    best = ranking[0].m;
+    return ranking.indexOf(run);
+  }
+
+  const dateFmt = new Intl.DateTimeFormat(LANG, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  function renderRanking(currentIndex) {
+    rankingList.replaceChildren();
+    const hasRuns = ranking.length > 0;
+    rankingBox.hidden = !hasRuns;
+    const shown = ranking.map((run, i) => ({ run, i })).filter(({ i }) => i < RANKING_SHOWN || i === currentIndex);
+    for (const { run, i } of shown) {
+      const li = document.createElement('li');
+      if (i === currentIndex) li.className = 'current';
+      const cells = [
+        ['rank', `${i + 1}`],
+        ['dist', fmtMeters(run.m)],
+        ['when', run.at ? dateFmt.format(run.at) : '—'],
+      ];
+      for (const [cls, text] of cells) {
+        const span = document.createElement('span');
+        span.className = cls;
+        span.textContent = text;
+        li.appendChild(span);
+      }
+      rankingList.appendChild(li);
+    }
+  }
+
+  function reset() {
+    rng = mulberry32((Math.random() * 2 ** 32) >>> 0);
+    segments = []; strokes = []; decor = []; pickups = []; particles = []; flyers = [];
+    shake = 0; danger = 0; barPulse = 0; drawnThisFrame = 0;
+    dryAlert = 0; dryMarks = [];
+    time = 0; ink = C.INK_MAX; distance = 0; pen = null; pointer = null;
+    drop = { x: 0, y: C.START_Y - C.DROP_R - 1, vx: 60, vy: 0, grounded: false, gnx: 0, gny: -1, tilt: 0, impact: 0, squash: 0, squashV: 0, tip: 0, tipV: 0, alive: true };
+    blob = { x: -520, feed: 0, pace: 0, cy: C.START_Y, drips: [], gulpAcc: 0 };
+    cam = drop.x - viewW * C.CAM_ANCHOR;
+    if (followY) { camY = camYTarget(); applyCamY(); }
+    gen = { x: C.START_END, inkX: 460 };
+    tendrils = Array.from({ length: 6 }, () => ({ u: rand(-0.8, 0.8), len: rand(25, 70), phase: rand(0, 6.28) }));
+
+    const startPts = [];
+    for (let x = -900; x <= C.START_END; x += 20) startPts.push({ x, y: C.START_Y + rand(-0.8, 0.8) });
+    addLand(startPts);
+    decor.push(makeTree(-230, C.START_Y));
+    decor.push(makeSprout(-360, C.START_Y));
+    for (let x = -120; x < 260; x += rand(38, 55)) decor.push(makeFlower(x, C.START_Y));
+    generate(cam + viewW + 800);
+  }
+
+  // ---------- world generation ----------
+  function addLand(pts) {
+    const stroke = newStroke(false);
+    let w = 3;
+    for (let i = 0; i < pts.length; i++) {
+      w = w * 0.6 + 3 * rand(0.75, 1.3) * 0.4;
+      pushStrokePoint(stroke, pts[i].x, pts[i].y, w);
+      if (i > 0) addSegment(pts[i - 1].x, pts[i - 1].y, pts[i].x, pts[i].y);
+    }
+  }
+  function addSegment(ax, ay, bx, by) {
+    segments.push({ ax, ay, bx, by, minX: Math.min(ax, bx), maxX: Math.max(ax, bx) });
+  }
+  // Strokes are the visual brush layer; segments are the physics layer.
+  function newStroke(isPen) {
+    const stroke = { pts: [], minX: Infinity, maxX: -Infinity, isPen };
+    strokes.push(stroke);
+    return stroke;
+  }
+  function pushStrokePoint(stroke, x, y, w) {
+    stroke.pts.push({ x, y, w, jx: rand(-0.35, 0.35), jy: rand(-0.35, 0.35) });
+    stroke.minX = Math.min(stroke.minX, x);
+    stroke.maxX = Math.max(stroke.maxX, x);
+  }
+
+  function makeIsland(x0, w, type) {
+    const amp = type === 'hill' ? rand(30, 120) : rand(50, 170);
+    const base = rand(Math.max(260, amp + 90), 560);
+    const steps = Math.max(4, Math.round(w / 18));
+    const pts = [];
+    for (let i = 0; i <= steps; i++) {
+      const u = i / steps;
+      const shape = type === 'hill'
+        ? base - amp * Math.sin(Math.PI * u)
+        : base - amp * (1 - u) + amp * 0.15 * Math.sin(Math.PI * u);
+      pts.push({ x: x0 + u * w, y: shape + rand(-1.2, 1.2) });
+    }
+    addLand(pts);
+    // Early on, ink sits right on the islands so rolling over them refills you.
+    const climb = Math.min(1, x0 / C.PICKUP_RAMP_DIST);
+    const hasIslandInk = rng() < 0.85 * (1 - climb);
+    if (hasIslandInk) {
+      const p = pts[Math.floor(rand(1, pts.length - 1))];
+      pickups.push({ x: p.x, y: p.y - rand(14, 34) });
+    }
+    for (let i = 1; i < pts.length - 1; i++) {
+      if (rng() < 0.55) decor.push({ type: 'tick', x: pts[i].x, y: pts[i].y });
+    }
+    const hasFlowers = rng() < 0.35;
+    if (hasFlowers) {
+      const count = Math.floor(rand(2, 6));
+      for (let k = 0; k < count; k++) {
+        const p = pts[Math.floor(rand(1, pts.length - 1))];
+        decor.push(makeFlower(p.x, p.y));
+      }
+    }
+    const hasTree = w > 420 && rng() < 0.25;
+    if (hasTree) {
+      const p = pts[Math.floor(pts.length / 2)];
+      decor.push(makeTree(p.x, p.y));
+    }
+  }
+
+  function generate(untilX) {
+    while (gen.x < untilX) {
+      const difficulty = Math.min(1, gen.x / C.DIFFICULTY_DIST);
+      gen.x += rand(100, 190 + 220 * difficulty);
+      const w = rand(260, 640 - 220 * difficulty);
+      makeIsland(gen.x, w, rng() < 0.55 ? 'hill' : 'ramp');
+      gen.x += w;
+    }
+    while (gen.inkX < untilX) {
+      const difficulty = Math.min(1, gen.inkX / C.DIFFICULTY_DIST);
+      gen.inkX += rand(200, 380 + 220 * difficulty);
+      // Biased toward the top: descending is free, ink makes you climb.
+      // Free-floating ink starts low (200-450) and drifts toward the top (55-355) with distance.
+      const climb = Math.min(1, gen.inkX / C.PICKUP_RAMP_DIST);
+      const lowY = 200 + 250 * rng();
+      const highY = 55 + 300 * Math.pow(rng(), 1.5);
+      pickups.push({ x: gen.inkX, y: lowY + (highY - lowY) * climb });
+    }
+  }
+
+  function makeTree(x, y) {
+    const branches = [], leaves = [];
+    const grow = (bx, by, ang, len, depth, w) => {
+      const ex = bx + Math.cos(ang) * len, ey = by + Math.sin(ang) * len;
+      branches.push({ ax: bx, ay: by, bx: ex, by: ey, w });
+      if (depth === 0) { leaves.push({ x: ex, y: ey, r: rand(0, 6.28), s: rand(4, 7) }); return; }
+      const children = depth > 3 ? 2 : (rng() < 0.5 ? 2 : 3);
+      for (let k = 0; k < children; k++) {
+        grow(ex, ey, ang + rand(-0.7, 0.7), len * rand(0.62, 0.8), depth - 1, w * 0.66);
+      }
+      if (depth <= 2 && rng() < 0.6) leaves.push({ x: ex, y: ey, r: rand(0, 6.28), s: rand(4, 6.5) });
+    };
+    grow(x, y, -Math.PI / 2 + rand(-0.08, 0.08), rand(70, 95), 5, 6.5);
+    return { type: 'tree', x, branches, leaves };
+  }
+
+  function makeSprout(x, y) {
+    return { type: 'sprout', x, y, h: rand(60, 80) };
+  }
+
+  function makeFlower(x, y) {
+    return { type: 'flower', x, y, h: rand(12, 22), lean: rand(-0.15, 0.15) };
+  }
+
+  // ---------- drawing input ----------
+  function toWorld(p) {
+    return { x: cam + p.x / scale, y: (p.y - offY) / scale };
+  }
+
+  function addPenPoint(world) {
+    const wx = world.x;
+    const wy = clamp(world.y, 0, C.WORLD_H);
+    const inRange = Math.hypot(wx - drop.x, wy - drop.y) <= C.DRAW_RADIUS;
+    const outsideBlob = wx > blob.x + 20;
+    const isOutOfInk = ink <= 0;
+    if (inRange && outsideBlob && isOutOfInk) scratchDry(wx, wy);
+    const canDraw = inRange && outsideBlob && !isOutOfInk;
+    if (!canDraw) { pen.last = null; pen.stroke = null; return; }
+    if (!pen.last) { pen.last = { x: wx, y: wy }; return; }
+    let len = Math.hypot(wx - pen.last.x, wy - pen.last.y);
+    if (len < C.MIN_POINT_DIST) return;
+    let tx = wx, ty = wy;
+    const cost = len * C.INK_PER_UNIT;
+    if (cost > ink) {
+      const frac = ink / cost;
+      tx = pen.last.x + (wx - pen.last.x) * frac;
+      ty = pen.last.y + (wy - pen.last.y) * frac;
+      len *= frac;
+    }
+    if (!pen.stroke) {
+      pen.stroke = newStroke(true);
+      pen.w = 4.2;
+      pushStrokePoint(pen.stroke, pen.last.x, pen.last.y, pen.w);
+    }
+    // Brush feel: slow strokes pool ink (thick), fast strokes run dry (thin).
+    pen.w = pen.w * 0.6 + clamp(5.4 - len * 0.1, 1.8, 5.4) * 0.4;
+    pushStrokePoint(pen.stroke, tx, ty, pen.w);
+    addSegment(pen.last.x, pen.last.y, tx, ty);
+    drawnThisFrame += len;
+    ink = Math.max(0, ink - len * C.INK_PER_UNIT);
+    blob.feed += len * C.FEED_PER_UNIT;
+    pen.last = { x: tx, y: ty };
+  }
+
+  // Dry pen: faint graphite scrapes where you try to draw, a dull scrape sound, and a "sin tinta" alert.
+  function scratchDry(wx, wy) {
+    dryAlert = 1;
+    const lastMark = dryMarks[dryMarks.length - 1];
+    const isFarEnough = !lastMark || Math.hypot(wx - lastMark.x, wy - lastMark.y) > 10;
+    if (isFarEnough) dryMarks.push({ x: wx, y: wy, a: rand(-0.6, 0.6), life: 0.6 });
+    const isSoundDue = animT - lastDrySound > 0.22;
+    if (isSoundDue) { lastDrySound = animT; sound.dry(); }
+  }
+
+  function pointerPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  canvas.addEventListener('pointerdown', (e) => {
+    if (state !== 'play') return;
+    canvas.setPointerCapture(e.pointerId);
+    pointer = pointerPos(e);
+    pen = { last: null, stroke: null, w: 4.2 };
+    addPenPoint(toWorld(pointer));
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (!pen) return;
+    const events = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+    for (const ce of events) {
+      pointer = pointerPos(ce);
+      addPenPoint(toWorld(pointer));
+    }
+  });
+  const endPen = () => { pen = null; pointer = null; };
+  canvas.addEventListener('pointerup', endPen);
+  canvas.addEventListener('pointercancel', endPen);
+
+  // ---------- simulation ----------
+  function stepDrop(dt) {
+    const d = drop, R = C.DROP_R;
+    d.vy += C.GRAVITY * dt;
+    d.x += d.vx * dt;
+    d.y += d.vy * dt;
+    d.grounded = false;
+    for (const s of segments) {
+      const isNear = s.maxX >= d.x - R && s.minX <= d.x + R;
+      if (!isNear) continue;
+      const ex = s.bx - s.ax, ey = s.by - s.ay;
+      const len2 = ex * ex + ey * ey || 1;
+      const t = clamp(((d.x - s.ax) * ex + (d.y - s.ay) * ey) / len2, 0, 1);
+      let nx = d.x - (s.ax + ex * t), ny = d.y - (s.ay + ey * t);
+      const dist = Math.hypot(nx, ny);
+      const isTouching = dist < R && dist > 0;
+      if (!isTouching) continue;
+      nx /= dist; ny /= dist;
+      d.x += nx * (R - dist);
+      d.y += ny * (R - dist);
+      const vn = d.vx * nx + d.vy * ny;
+      if (vn < 0) {
+        d.impact = Math.max(d.impact, -vn);
+        d.vx -= (1 + C.BOUNCE) * vn * nx;
+        d.vy -= (1 + C.BOUNCE) * vn * ny;
+      }
+      if (ny < -0.35) { d.grounded = true; d.gnx = nx; d.gny = ny; }
+    }
+    if (d.grounded) {
+      const tx = -d.gny, ty = d.gnx; // tangent pointing right
+      const tangentSpeed = d.vx * tx + d.vy * ty;
+      // Arcade slopes: downhill pulls harder, uphill brakes less, so speed carries over hills.
+      const isDownhill = ty > 0;
+      const slopeFactor = isDownhill ? C.DOWNHILL_GRAVITY : C.UPHILL_GRAVITY;
+      const slopeBoost = C.GRAVITY * ty * (slopeFactor - 1) * dt;
+      d.vx += tx * slopeBoost;
+      d.vy += ty * slopeBoost;
+      if (tangentSpeed < C.WALK_SPEED) {
+        d.vx += tx * C.WALK_ACCEL * dt;
+        d.vy += ty * C.WALK_ACCEL * dt;
+      }
+      d.vx *= 1 - C.FRICTION;
+      d.vy *= 1 - C.FRICTION;
+    }
+    if (d.y - R < 0) { d.y = R; if (d.vy < 0) d.vy = -d.vy * 0.3; }
+    const speed = Math.hypot(d.vx, d.vy);
+    if (speed > C.MAX_SPEED) { d.vx *= C.MAX_SPEED / speed; d.vy *= C.MAX_SPEED / speed; }
+  }
+
+  function splash(x, y, count, power) {
+    for (let i = 0; i < count; i++) {
+      const a = rand(0, 6.28), v = rand(0.3, 1) * power;
+      particles.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - power * 0.3, r: rand(1.5, 4.5), life: rand(0.5, 1.1), max: 1 });
+    }
+  }
+
+  function updateParticles(dt) {
+    for (const p of particles) {
+      if (!p.still) p.vy += 700 * dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.life -= dt;
+    }
+    particles = particles.filter((p) => p.life > 0);
+  }
+
+  // Visual-only springs: squash on impacts, a lagging tip that whips and overshoots. Collision stays a circle.
+  function updateJelly(dt) {
+    const d = drop;
+    const isHardImpact = d.impact > 60;
+    if (isHardImpact) d.squashV += Math.min(d.impact, 900) * 0.006;
+    const isLanding = d.impact > 220;
+    if (isLanding) {
+      const power = Math.min(1, d.impact / 700);
+      sound.splat(power);
+      if (!reduceMotion) shake = Math.max(shake, power * 7);
+      splash(d.x - d.gnx * C.DROP_R, d.y - d.gny * C.DROP_R, Math.round(3 + power * 6), 60 + power * 120);
+    }
+    d.impact = 0;
+    d.squashV += (-C.JELLY_STIFFNESS * d.squash - C.JELLY_DAMPING * d.squashV) * dt;
+    d.squash = clamp(d.squash + d.squashV * dt, -0.35, 0.45);
+    const tipTarget = clamp(-d.vx * 0.0009, -0.6, 0.6);
+    d.tipV += (C.TIP_STIFFNESS * (tipTarget - d.tip) - C.TIP_DAMPING * d.tipV) * dt;
+    d.tip += d.tipV * dt;
+  }
+
+  function blobHalf() {
+    return C.BLOB_HALF + Math.min(30, blob.feed * 0.6) * 1.5;
+  }
+  // How far the band's front recedes at height y: 0 at its center, BLOB_ROUND at its top/bottom edge.
+  function blobRecede(y) {
+    const u = (y - blob.cy) / blobHalf();
+    const inside = 1 - u * u;
+    return inside > 0 ? (1 - Math.sqrt(inside)) * C.BLOB_ROUND : C.BLOB_ROUND;
+  }
+  function blobFront(y, t) {
+    const k = reduceMotion ? 0.3 : 1;
+    const hunger = Math.min(30, blob.feed * 0.6);
+    let x = (18 + hunger) * Math.sin(y * 0.021 + t * 1.3 * k)
+      + 11 * Math.sin(y * 0.057 - t * 2.1 * k)
+      + 6 * Math.sin(y * 0.13 + t * 3.7 * k);
+    const half = blobHalf();
+    for (const td of tendrils) {
+      const reach = Math.max(0, 1 - Math.abs(y - (blob.cy + td.u * half)) / 12);
+      x += reach * td.len * (0.55 + 0.45 * Math.sin(t * 2 * k + td.phase));
+    }
+    return blob.x + x - blobRecede(y);
+  }
+  function blobTopY(x, t) {
+    const spikes = Math.pow(Math.max(0, Math.sin(x * 0.035 + 1.3)), 3) * 38;
+    return blob.cy - blobHalf() - spikes - 8 * Math.sin(x * 0.013 + t * 0.8) - 6;
+  }
+  function blobBottomY(x, t) {
+    return blob.cy + blobHalf() + 5 * Math.sin(x * 0.021 + t * 1.1);
+  }
+  function isInBand(y) {
+    return Math.abs(y - blob.cy) < blobHalf();
+  }
+
+  function updateBlob(dt) {
+    blob.cy += (clamp(drop.y, 160, 440) - blob.cy) * Math.min(1, dt * C.BLOB_TRACK_Y);
+    const isDripping = rng() < dt * 4;
+    if (isDripping) {
+      blob.drips.push({ x: blob.x - rand(20, 320), len: 0, max: rand(20, 110), w: rand(3, 9), speed: rand(25, 60) });
+    }
+    for (const dr of blob.drips) {
+      dr.len += dr.speed * dt;
+      if (dr.len >= dr.max) {
+        particles.push({ x: dr.x, y: blobBottomY(dr.x, animT) + dr.len, vx: 0, vy: 40, r: dr.w * 0.6, life: 1.2, max: 1.2 });
+        dr.done = true;
+      }
+    }
+    blob.drips = blob.drips.filter((dr) => !dr.done && dr.x > cam - 300);
+    const isSpattering = rng() < dt * 6;
+    if (isSpattering) {
+      const y = blob.cy + rand(-1, 1) * blobHalf();
+      particles.push({ x: blobFront(y, animT), y, vx: rand(40, 140), vy: rand(-80, 20), r: rand(1.5, 4), life: 0.8, max: 0.8 });
+    }
+  }
+
+  function update(dt) {
+    time += dt;
+    const sub = dt / C.SUBSTEPS;
+    for (let i = 0; i < C.SUBSTEPS; i++) stepDrop(sub);
+    updateJelly(dt);
+    const surfaceAngle = drop.grounded ? Math.atan2(drop.gnx, -drop.gny) : 0;
+    drop.tilt += (surfaceAngle - drop.tilt) * Math.min(1, dt * 10);
+    const isSliding = drop.grounded && Math.abs(drop.vx) > 40;
+    if (isSliding && rng() < 0.6) {
+      // Wet trail left on the line as it slides.
+      particles.push({ x: drop.x - drop.gnx * C.DROP_R, y: drop.y - drop.gny * C.DROP_R, vx: 0, vy: 0, r: rand(1.5, 2.8), life: 0.6, max: 0.6, still: true });
+    }
+
+    const target = drop.x - viewW * C.CAM_ANCHOR;
+    cam += (target - cam) * Math.min(1, dt * 4);
+    if (followY) {
+      camY += (camYTarget() - camY) * Math.min(1, dt * C.CAM_Y_FOLLOW);
+      applyCamY();
+    }
+
+    // Holding still keeps drawing as the page scrolls under the pen.
+    if (pen && pointer) addPenPoint(toWorld(pointer));
+    sound.scratch(clamp(drawnThisFrame / dt / 900, 0, 1));
+    drawnThisFrame = 0;
+
+    // The blob matches the drop's sustained pace, so going fast only buys distance while you keep it up.
+    blob.pace += (Math.max(0, drop.vx) - blob.pace) * Math.min(1, dt * C.BLOB_PACE_SMOOTHING);
+    const baseSpeed = Math.min(C.BLOB_SPEED_MAX, C.BLOB_SPEED_START + C.BLOB_SPEED_GAIN * time);
+    const blobSpeed = Math.max(baseSpeed, blob.pace * C.BLOB_SPEED_RATIO);
+    const lunge = blob.feed * Math.min(1, dt * C.FEED_EASE);
+    blob.feed -= lunge;
+    blob.x = Math.max(blob.x + blobSpeed * dt + lunge, cam - C.BLOB_LEASH);
+    blob.gulpAcc += lunge;
+    const isGulp = blob.gulpAcc > 14;
+    if (isGulp) { blob.gulpAcc = 0; sound.gulp(); }
+    const isFeeding = lunge > 0.5;
+    if (isFeeding && rng() < 0.5) {
+      const y = blob.cy + rand(-1, 1) * blobHalf();
+      particles.push({ x: blobFront(y, animT) + 10, y, vx: rand(60, 160), vy: rand(-60, 0), r: rand(1.5, 4), life: 0.7, max: 0.7 });
+    }
+    updateBlob(dt);
+
+    for (const p of pickups) {
+      const isCollected = Math.hypot(p.x - drop.x, p.y - drop.y) < C.DROP_R + 12;
+      if (isCollected) {
+        p.taken = true;
+        splash(p.x, p.y, 8, 140);
+        sound.plop();
+        flyers.push({ sx: (p.x - cam) * scale, sy: p.y * scale + offY, age: 0 });
+      }
+    }
+    for (const f of flyers) {
+      f.age += dt;
+      if (f.age >= C.PICKUP_FLY_TIME) {
+        f.done = true;
+        ink = Math.min(C.INK_MAX, ink + C.INK_PICKUP);
+        barPulse = 1;
+      }
+    }
+    flyers = flyers.filter((f) => !f.done);
+    barPulse = Math.max(0, barPulse - dt * 4);
+    dryAlert = Math.max(0, dryAlert - dt * 1.5);
+    for (const m of dryMarks) m.life -= dt;
+    dryMarks = dryMarks.filter((m) => m.life > 0);
+
+    // The blob eats everything behind its rearmost front point.
+    const eatX = blob.x - C.BLOB_ROUND - 40;
+    segments = segments.filter((s) => s.maxX > eatX);
+    strokes = strokes.filter((s) => s.maxX > eatX || s === pen?.stroke);
+    decor = decor.filter((d) => d.x > eatX - 120);
+    pickups = pickups.filter((p) => !p.taken && p.x > eatX);
+    generate(cam + viewW + 800);
+
+    distance = Math.max(distance, drop.x / C.UNITS_PER_METER);
+    updateParticles(dt);
+
+    const front = blobFront(drop.y, animT);
+    const inBand = isInBand(drop.y);
+    const gap = drop.x - front;
+    danger = inBand ? clamp(1 - gap / 260, 0, 1) : clamp(1 - gap / 260, 0, 1) * 0.4;
+    sound.rumble(danger);
+    shake *= Math.exp(-dt * 10);
+
+    if (inBand && gap < C.DROP_R * 0.3) die('caught');
+    else if (drop.y > C.FALL_LIMIT) die('fell');
+  }
+
+  function updateDead(dt) {
+    blob.x += 140 * dt;
+    updateBlob(dt);
+    shake *= Math.exp(-dt * 8);
+    if (drop.alive) {
+      for (let i = 0; i < C.SUBSTEPS; i++) stepDrop(dt / C.SUBSTEPS);
+      updateJelly(dt);
+    }
+    updateParticles(dt);
+  }
+
+  function die(reason) {
+    state = 'dead';
+    pen = null;
+    sound.scratch(0);
+    sound.rumble(0);
+    sound.death();
+    if (!reduceMotion) shake = 12;
+    if (reason === 'caught') {
+      drop.alive = false;
+      splash(drop.x, drop.y, 22, 260);
+    }
+    const meters = Math.floor(distance);
+    const previousBest = best;
+    const rankIndex = addRun(meters);
+    const isRecord = rankIndex === 0 && meters > previousBest;
+    setTimeout(() => { if (state === 'dead') showOverlay(reason, meters, isRecord, rankIndex); }, 850);
+  }
+
+  // ---------- rendering ----------
+  function drawBackdrop() {
+    ctx.lineWidth = 1.3;
+    ctx.strokeStyle = GRAPHITE;
+    const layers = [{ p: 0.3, base: 300, a: 0.55 }, { p: 0.55, base: 350, a: 0.8 }];
+    for (const layer of layers) {
+      ctx.globalAlpha = layer.a;
+      ctx.beginPath();
+      // Sample on a grid fixed in parallax space so the hills slide instead of reshaping every frame.
+      const shift = cam * (1 - layer.p);
+      const firstPx = Math.floor((cam * layer.p - 14) / 14) * 14;
+      for (let px = firstPx; px <= cam * layer.p + viewW + 28; px += 14) {
+        const y = layer.base + 22 * Math.sin(px * 0.0045) + 12 * Math.sin(px * 0.0112 + 1.7);
+        if (px === firstPx) ctx.moveTo(px + shift, y); else ctx.lineTo(px + shift, y);
+      }
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawLeaf(x, y, r, s) {
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const a = r + (i / 10) * Math.PI * 2;
+      const rad = i % 2 === 0 ? s : s * 0.42;
+      const px = x + Math.cos(a) * rad, py = y + Math.sin(a) * rad;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawDecor(t) {
+    const left = cam - 200, right = cam + viewW + 200;
+    ctx.strokeStyle = INK;
+    ctx.fillStyle = INK;
+    ctx.lineCap = 'round';
+    const sway = reduceMotion ? 0 : Math.sin(t * 1.4) * 0.04;
+    for (const d of decor) {
+      if (d.x < left || d.x > right) continue;
+      if (d.type === 'tick') {
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(d.x + 2, d.y + 6);
+        ctx.lineTo(d.x - 2, d.y + 13);
+        ctx.stroke();
+      } else if (d.type === 'flower') {
+        const lean = d.lean + sway;
+        const hx = d.x + Math.sin(lean) * d.h, hy = d.y - Math.cos(lean) * d.h;
+        ctx.lineWidth = 1.3;
+        ctx.beginPath();
+        ctx.moveTo(d.x, d.y);
+        ctx.lineTo(hx, hy);
+        ctx.moveTo(d.x - 5, d.y); ctx.lineTo(d.x - 2, d.y - 7);
+        ctx.moveTo(d.x + 5, d.y); ctx.lineTo(d.x + 2, d.y - 6);
+        ctx.stroke();
+        ctx.lineWidth = 1.1;
+        for (let k = 0; k < 5; k++) {
+          const a = (k / 5) * Math.PI * 2;
+          ctx.beginPath();
+          ctx.arc(hx + Math.cos(a) * 3.6, hy + Math.sin(a) * 3.6, 2.4, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.beginPath();
+        ctx.arc(hx, hy, 1.4, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (d.type === 'tree') {
+        for (const b of d.branches) {
+          ctx.lineWidth = b.w;
+          ctx.beginPath();
+          ctx.moveTo(b.ax, b.ay);
+          ctx.lineTo(b.bx, b.by);
+          ctx.stroke();
+        }
+        for (const l of d.leaves) drawLeaf(l.x, l.y, l.r + sway * 3, l.s);
+      } else if (d.type === 'sprout') {
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(d.x, d.y);
+        ctx.quadraticCurveTo(d.x + 4, d.y - d.h * 0.5, d.x, d.y - d.h);
+        ctx.stroke();
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(d.x + 8, d.y - d.h - 8, 12, Math.PI * 0.6, Math.PI * 1.9);
+        ctx.stroke();
+        for (let k = 1; k <= 3; k++) {
+          const ly = d.y - (d.h * k) / 4;
+          drawLeaf(d.x + (k % 2 ? 6 : -6), ly, k, 5);
+        }
+      }
+    }
+  }
+
+  // Each stroke is filled as a ribbon: offset both sides along the normal, tapering at the ends.
+  function drawStroke(stroke) {
+    const p = stroke.pts, n = p.length;
+    if (n < 2) return;
+    const left = [], right = [];
+    for (let i = 0; i < n; i++) {
+      const a = p[Math.max(0, i - 1)], b = p[Math.min(n - 1, i + 1)];
+      let dx = b.x - a.x, dy = b.y - a.y;
+      const l = Math.hypot(dx, dy) || 1;
+      dx /= l; dy /= l;
+      // Pen strokes start blunt (the nib lands) and only taper where the nib lifts; land tapers both ends.
+      const fromStart = stroke.isPen ? 3 : i;
+      const taper = Math.min(1, 0.3 + 0.7 * Math.min(fromStart, n - 1 - i) / 3);
+      const hw = p[i].w * 0.5 * taper;
+      left.push(p[i].x - dy * hw + p[i].jx, p[i].y + dx * hw + p[i].jy);
+      right.push(p[i].x + dy * hw - p[i].jx, p[i].y - dx * hw - p[i].jy);
+    }
+    ctx.beginPath();
+    ctx.moveTo(left[0], left[1]);
+    for (let i = 2; i < left.length; i += 2) ctx.lineTo(left[i], left[i + 1]);
+    for (let i = right.length - 2; i >= 0; i -= 2) ctx.lineTo(right[i], right[i + 1]);
+    ctx.closePath();
+    ctx.fill();
+    if (stroke.isPen) {
+      // Round cap exactly as wide as the stroke, so the start reads as the nib landing, not a dot.
+      ctx.beginPath();
+      ctx.arc(p[0].x, p[0].y, p[0].w * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function drawStrokes() {
+    const left = cam - 20, right = cam + viewW + 20;
+    ctx.fillStyle = INK;
+    for (const stroke of strokes) {
+      if (stroke.maxX < left || stroke.minX > right) continue;
+      drawStroke(stroke);
+    }
+  }
+
+  function teardrop(size) {
+    ctx.beginPath();
+    ctx.moveTo(0, -size * 2.1);
+    ctx.quadraticCurveTo(size * 1.15, -size * 0.9, size, 0);
+    ctx.arc(0, 0, size, 0, Math.PI);
+    ctx.quadraticCurveTo(-size * 1.15, -size * 0.9, 0, -size * 2.1);
+    ctx.fill();
+  }
+
+  function drawDryMarks() {
+    ctx.strokeStyle = GRAPHITE;
+    ctx.lineWidth = 1.4;
+    for (const m of dryMarks) {
+      ctx.globalAlpha = m.life / 0.6 * 0.7;
+      ctx.beginPath();
+      ctx.moveTo(m.x - Math.cos(m.a) * 6, m.y - Math.sin(m.a) * 6);
+      ctx.lineTo(m.x + Math.cos(m.a) * 6, m.y + Math.sin(m.a) * 6);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawPickups(t) {
+    const isLowInk = state === 'play' && ink < C.LOW_INK;
+    if (isLowInk) {
+      // Rings pulse around every drop so you know where to go.
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 1.3;
+      const ring = 13 + Math.sin(t * 6) * 3;
+      for (const p of pickups) {
+        if (p.x < cam - 20 || p.x > cam + viewW + 20) continue;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y - 4, ring, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+    ctx.fillStyle = INK;
+    for (const p of pickups) {
+      if (p.x < cam - 20 || p.x > cam + viewW + 20) continue;
+      const bob = reduceMotion ? 0 : Math.sin(t * 3 + p.x * 0.01) * 3;
+      ctx.save();
+      ctx.translate(p.x, p.y + bob);
+      teardrop(5.5);
+      ctx.restore();
+    }
+  }
+
+  function jellyDrop(size, bend, t, wobble) {
+    const k = reduceMotion ? 0 : wobble;
+    const w1 = k * Math.sin(t * 9), w2 = k * Math.sin(t * 11 + 1.3);
+    const tipX = bend * size * 1.6, tipY = -size * 2.1;
+    ctx.beginPath();
+    ctx.moveTo(tipX, tipY);
+    ctx.quadraticCurveTo(size * (1.15 + w1) + tipX * 0.4, -size * 0.9, size * (1 + w2 * 0.5), 0);
+    ctx.arc(0, 0, size, 0, Math.PI);
+    ctx.quadraticCurveTo(-size * (1.15 + w2) + tipX * 0.4, -size * 0.9, tipX, tipY);
+    ctx.fill();
+  }
+
+  function drawDrop(t) {
+    const d = drop, R = C.DROP_R;
+    const speed = Math.hypot(d.vx, d.vy) || 1;
+    const stretch = clamp(speed / 700, 0, 0.22);
+    const breathe = d.grounded && !reduceMotion ? Math.sin(t * 3) * 0.03 : 0;
+    const squash = d.squash + breathe;
+    drawSpeedStreaks(d, R, speed);
+    ctx.save();
+    ctx.fillStyle = INK;
+    // Pivot on the contact point so the drop hugs the slope and squashes against it.
+    ctx.translate(d.x, d.y);
+    ctx.rotate(d.tilt);
+    ctx.translate(0, R);
+    ctx.scale(1 + stretch + squash, 1 - stretch * 0.6 - squash * 1.1);
+    ctx.translate(0, -R);
+    ctx.rotate(d.tip * 0.4);
+    jellyDrop(R, d.tip, t, 0.03 + Math.min(0.12, Math.abs(d.squashV) * 0.03));
+
+    // Scared: eyes widen and glance back at the blob.
+    const isScared = danger > 0.55;
+    const lookX = isScared ? -2 : (d.vx / speed) * 1.8;
+    const lookY = isScared ? 0 : (d.vy / speed) * 1.8;
+    const eyeR = R * (isScared ? 0.36 : 0.3);
+    ctx.fillStyle = PAPER;
+    const eyes = [[R * 0.15, -R * 0.35], [R * 0.72, -R * 0.28]];
+    for (const [ex, ey] of eyes) {
+      ctx.beginPath();
+      ctx.arc(ex, ey, eyeR, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = INK;
+    for (const [ex, ey] of eyes) {
+      ctx.beginPath();
+      ctx.arc(ex + lookX, ey + lookY, R * 0.14, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Belly mark: a tiny lightning bolt, the sign of the faster drop.
+    ctx.fillStyle = PAPER;
+    ctx.beginPath();
+    const bx = R * 0.38, by = R * 0.4, bs = R * 0.38;
+    const bolt = [[0.15, -1], [-0.6, 0.1], [-0.08, 0.1], [-0.25, 1], [0.6, -0.2], [0.08, -0.2]];
+    bolt.forEach(([px, py], i) => (i ? ctx.lineTo : ctx.moveTo).call(ctx, bx + px * bs, by + py * bs));
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Ink dashes trailing behind the drop: always there, longer the faster it goes.
+  function drawSpeedStreaks(d, R, speed) {
+    const isMoving = speed > 40;
+    const dx = isMoving ? d.vx / speed : 1, dy = isMoving ? d.vy / speed : 0;
+    const px = -dy, py = dx;
+    const base = R * 0.7 + Math.min(speed, 700) * 0.04;
+    const streaks = [[-0.75, 1.0], [0, 1.5], [0.75, 0.8]];
+    ctx.save();
+    ctx.fillStyle = INK;
+    ctx.globalAlpha = 0.45;
+    for (const [off, k] of streaks) {
+      const len = base * k;
+      const nx = d.x - dx * (R * 1.35) + px * off * R;
+      const ny = d.y - dy * (R * 1.35) + py * off * R;
+      ctx.beginPath();
+      ctx.moveTo(nx + px * 1.3, ny + py * 1.3);
+      ctx.lineTo(nx - px * 1.3, ny - py * 1.3);
+      ctx.lineTo(nx - dx * len, ny - dy * len);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawRadius() {
+    // Sized in screen pixels (divide by scale) so it stays readable on small screens.
+    const isEmpty = ink <= 0;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(drop.x, drop.y, C.DRAW_RADIUS, 0, Math.PI * 2);
+    ctx.fillStyle = INK;
+    ctx.globalAlpha = isEmpty ? 0 : (pen ? 0.06 : 0.035);
+    ctx.fill();
+    ctx.setLineDash([8 / scale, 7 / scale]);
+    ctx.lineWidth = 2 / scale;
+    ctx.strokeStyle = INK;
+    ctx.globalAlpha = isEmpty ? 0.12 : (pen ? 0.6 : 0.35);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawParticles() {
+    ctx.fillStyle = INK;
+    for (const p of particles) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r * Math.sqrt(Math.max(0, p.life / p.max)), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // A horizontal band like the reference: spiky top, rounded snapping front, a horn curl, drips below.
+  function drawBlob(t) {
+    const half = blobHalf();
+    const topEdge = blob.cy - half, bottomEdge = blob.cy + half;
+    const back = Math.min(blob.x, cam) - 240;
+    const frontTopX = blobFront(topEdge, t);
+    const frontBottomX = blobFront(bottomEdge, t);
+    ctx.fillStyle = INK;
+    ctx.strokeStyle = INK;
+    ctx.beginPath();
+    // Spikes fade out over the last 80 units so the top flows into the front instead of stepping.
+    const topAt = (x) => {
+      const fade = clamp((frontTopX - x) / 80, 0, 1);
+      return topEdge + (blobTopY(x, t) - topEdge) * fade;
+    };
+    ctx.moveTo(back, topAt(back));
+    // Contours sample on world-fixed grids (not screen- or band-relative) so the outline doesn't shimmer.
+    for (let x = Math.floor(back / 12) * 12 + 12; x < frontTopX; x += 12) ctx.lineTo(x, topAt(x));
+    ctx.lineTo(frontTopX, topEdge);
+    for (let y = Math.ceil(topEdge / 5) * 5; y < bottomEdge; y += 5) ctx.lineTo(blobFront(y, t), y);
+    ctx.lineTo(frontBottomX, bottomEdge);
+    for (let x = Math.floor(frontBottomX / 12) * 12; x > back; x -= 12) ctx.lineTo(x, blobBottomY(x, t));
+    ctx.lineTo(back, blobBottomY(back, t));
+    ctx.closePath();
+    ctx.fill();
+
+    for (const dr of blob.drips) {
+      const by = blobBottomY(dr.x, t);
+      ctx.beginPath();
+      ctx.moveTo(dr.x - dr.w, by - 3);
+      ctx.quadraticCurveTo(dr.x - dr.w * 0.25, by + dr.len * 0.6, dr.x, by + dr.len);
+      ctx.quadraticCurveTo(dr.x + dr.w * 0.25, by + dr.len * 0.6, dr.x + dr.w, by - 3);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(dr.x, by + dr.len, dr.w * 0.55, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    drawHorn(frontTopX - 70, topEdge + 30, t);
+  }
+
+  // Filled, tapering curl rooted inside the body: thick at the root, a sharp point at the hooked tip.
+  function drawHorn(rx, ry, t) {
+    const sway = reduceMotion ? 0 : Math.sin(t * 1.7) * 8;
+    const p0 = [rx, ry], p1 = [rx + 10, ry - 110 + sway], p2 = [rx + 120, ry - 100 + sway], p3 = [rx + 95, ry - 38];
+    const at = (u) => {
+      const v = 1 - u;
+      return [
+        v * v * v * p0[0] + 3 * v * v * u * p1[0] + 3 * v * u * u * p2[0] + u * u * u * p3[0],
+        v * v * v * p0[1] + 3 * v * v * u * p1[1] + 3 * v * u * u * p2[1] + u * u * u * p3[1],
+      ];
+    };
+    const steps = 20, left = [], right = [];
+    for (let i = 0; i <= steps; i++) {
+      const u = i / steps;
+      const [x, y] = at(u);
+      const [ax, ay] = at(Math.max(0, u - 0.02));
+      const [bx, by] = at(Math.min(1, u + 0.02));
+      let dx = bx - ax, dy = by - ay;
+      const l = Math.hypot(dx, dy) || 1;
+      dx /= l; dy /= l;
+      const hw = 16 * Math.pow(1 - u, 0.8);
+      left.push([x - dy * hw, y + dx * hw]);
+      right.push([x + dy * hw, y - dx * hw]);
+    }
+    ctx.beginPath();
+    ctx.moveTo(left[0][0], left[0][1]);
+    for (const [x, y] of left) ctx.lineTo(x, y);
+    for (let i = right.length - 1; i >= 0; i--) ctx.lineTo(right[i][0], right[i][1]);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawFlyers() {
+    const barX = 20 + Math.min(170, cssW * 0.4) * (ink / C.INK_MAX), barY = 26;
+    ctx.fillStyle = INK;
+    for (const f of flyers) {
+      const u = f.age / C.PICKUP_FLY_TIME;
+      const ease = u * u * (3 - 2 * u);
+      const x = f.sx + (barX - f.sx) * ease;
+      const y = f.sy + (barY - f.sy) * ease - Math.sin(u * Math.PI) * 60;
+      ctx.save();
+      ctx.translate(x, y);
+      teardrop(4.5 * (1 - u * 0.4));
+      ctx.restore();
+    }
+  }
+
+  function drawDanger() {
+    if (danger <= 0) return;
+    const w = cssW * 0.35;
+    const grad = ctx.createLinearGradient(0, 0, w, 0);
+    grad.addColorStop(0, INK);
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.globalAlpha = danger * 0.35;
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, cssH);
+    ctx.globalAlpha = 1;
+  }
+
+  function drawHud(t) {
+    const isEmpty = ink <= 0;
+    const isLowInk = ink < C.LOW_INK;
+    const jitter = dryAlert > 0 && !reduceMotion ? Math.sin(t * 50) * 4 * dryAlert : 0;
+    const x = 20 + jitter, y = 26;
+    const barLen = Math.min(170, cssW * 0.4);
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = GRAPHITE;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, y + 6); ctx.lineTo(x + barLen, y + 6);
+    ctx.stroke();
+    const fill = barLen * (ink / C.INK_MAX);
+    if (fill > 0) {
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 8 + barPulse * 5;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      for (let i = 4; i <= fill; i += 4) ctx.lineTo(x + i, y + Math.sin(i * 0.35) * 0.9);
+      ctx.stroke();
+    }
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    if (isEmpty) {
+      ctx.fillStyle = INK;
+      ctx.font = `28px ${FONT_BRUSH}`;
+      ctx.globalAlpha = 0.55 + 0.45 * Math.abs(Math.sin(t * 5));
+      ctx.fillText(L.noInkHud, x, y + 10);
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.fillStyle = isLowInk ? INK : GRAPHITE;
+      ctx.font = `italic 15px ${FONT_TEXT}`;
+      ctx.fillText(isLowInk ? L.lowInk : L.ink, x, y + 12);
+    }
+
+    // Right next to the pen, so the reason the line stopped is where you're looking.
+    const isDryAtPen = dryAlert > 0 && pointer;
+    if (isDryAtPen) {
+      ctx.globalAlpha = Math.min(1, dryAlert * 1.5);
+      ctx.fillStyle = INK;
+      ctx.font = `26px ${FONT_BRUSH}`;
+      ctx.textAlign = 'center';
+      ctx.fillText(L.noInk, pointer.x, pointer.y - 44);
+      ctx.globalAlpha = 1;
+      ctx.textAlign = 'left';
+    }
+
+    ctx.fillStyle = INK;
+    ctx.textAlign = 'right';
+    ctx.font = `46px ${FONT_BRUSH}`;
+    ctx.fillText(fmtMeters(Math.floor(distance)), cssW - 20, 10);
+    if (best > 0) {
+      ctx.fillStyle = GRAPHITE;
+      ctx.font = `italic 15px ${FONT_TEXT}`;
+      ctx.fillText(fmtBest(L.hudBest, best), cssW - 20, 54);
+    }
+  }
+
+  function render(t) {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = PAPER;
+    ctx.fillRect(0, 0, cssW, cssH);
+
+    const shakeX = shake > 0.1 ? (Math.random() - 0.5) * shake : 0;
+    const shakeY = shake > 0.1 ? (Math.random() - 0.5) * shake : 0;
+    ctx.setTransform(dpr * scale, 0, 0, dpr * scale, (-cam * scale + shakeX) * dpr, (offY + shakeY) * dpr);
+    drawBackdrop();
+    drawStrokes();
+    drawDecor(t);
+    drawPickups(t);
+    drawDryMarks();
+    if (state === 'play') drawRadius();
+    if (drop.alive) drawDrop(t);
+    drawParticles();
+    drawBlob(t);
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.globalCompositeOperation = 'multiply';
+    // Paper grain is tiled horizontally and scrolls with the world, so content and paper move together.
+    const grainX = -(((cam * scale) % cssW) + cssW) % cssW;
+    ctx.drawImage(grain.noise, grainX, 0, cssW, cssH);
+    ctx.drawImage(grain.noise, grainX + cssW, 0, cssW, cssH);
+    ctx.drawImage(grain.vignette, 0, 0, cssW, cssH); // multiply too, so it darkens paper but never greys the ink
+    ctx.globalCompositeOperation = 'source-over';
+    if (state === 'play') drawDanger();
+    if (state !== 'title') { drawHud(t); drawFlyers(); }
+    if (perf.visible) drawPerf();
+  }
+
+  function drawPerf() {
+    const lines = [
+      `${perf.fps.toFixed(0)} fps  worst ${perf.worst.toFixed(1)} ms`,
+      `update ${perf.avgUpdate.toFixed(2)} ms  render ${perf.avgRender.toFixed(2)} ms`,
+      `segments ${segments.length}  strokes ${strokes.length}  decor ${decor.length}`,
+      `particles ${particles.length}  pickups ${pickups.length}  drips ${blob.drips.length}`,
+      `canvas ${canvas.width}×${canvas.height} @${dpr}x`,
+    ];
+    ctx.font = '12px ui-monospace, Menlo, monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    const x = 20, y = 70;
+    ctx.globalAlpha = 0.8;
+    ctx.fillStyle = PAPER;
+    ctx.fillRect(x - 6, y - 4, 330, lines.length * 16 + 8);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = INK;
+    lines.forEach((line, i) => ctx.fillText(line, x, y + i * 16));
+  }
+
+  function trackPerf(now, frameMs, updateMs, renderMs) {
+    perf.frames++;
+    perf.updateMs += updateMs;
+    perf.renderMs += renderMs;
+    perf.worstFrame = Math.max(perf.worstFrame, frameMs);
+    const elapsed = now - perf.windowStart;
+    if (elapsed >= 500) {
+      perf.fps = (perf.frames * 1000) / elapsed;
+      perf.avgUpdate = perf.updateMs / perf.frames;
+      perf.avgRender = perf.renderMs / perf.frames;
+      perf.worst = perf.worstFrame;
+      Object.assign(perf, { frames: 0, updateMs: 0, renderMs: 0, worstFrame: 0, windowStart: now });
+    }
+  }
+
+  // ---------- flow ----------
+  function showOverlay(reason, meters, isRecord, rankIndex) {
+    renderRanking(rankIndex);
+    headline.textContent = reason === 'caught' ? L.caught : L.fell;
+    headline.classList.add('death');
+    line1.hidden = true;
+    line2.hidden = true;
+    scoreEl.hidden = false;
+    scoreEl.textContent = fmtMeters(meters);
+    bestEl.hidden = false;
+    bestEl.textContent = isRecord ? L.newRecord : fmtBest(L.record, best);
+    startBtn.textContent = L.again;
+    controlsEl.hidden = true;
+    overlay.hidden = false;
+    startBtn.focus();
+  }
+
+  function pause() {
+    if (state !== 'play') return;
+    state = 'paused';
+    pen = null;
+    sound.scratch(0);
+    sound.rumble(0);
+    headline.textContent = L.pause;
+    headline.classList.add('death');
+    line1.hidden = true;
+    line2.hidden = true;
+    scoreEl.hidden = true;
+    bestEl.hidden = true;
+    hintEl.hidden = true;
+    rankingBox.hidden = true;
+    startBtn.textContent = L.resume;
+    controlsEl.hidden = true;
+    overlay.hidden = false;
+    startBtn.focus();
+  }
+
+  function play(isResume) {
+    sound.init();
+    if (!isResume) reset();
+    state = 'play';
+    taglineEl.hidden = true;
+    hintEl.hidden = true;
+    overlay.hidden = true;
+    controlsEl.hidden = false;
+  }
+  const restart = () => play(false);
+  const togglePause = () => { if (state === 'play') pause(); else if (state === 'paused') play(true); };
+
+  startBtn.addEventListener('click', () => play(state === 'paused'));
+  // blur so a later Space/Enter doesn't re-trigger the button behind the player's back
+  pauseBtn.addEventListener('click', () => { pauseBtn.blur(); togglePause(); });
+  restartBtn.addEventListener('click', () => { restartBtn.blur(); restart(); });
+
+  function syncMute() {
+    muteBtn.setAttribute('aria-pressed', String(sound.isMuted()));
+    muteBtn.setAttribute('aria-label', sound.isMuted() ? L.unmute : L.mute);
+  }
+  muteBtn.addEventListener('click', () => { sound.init(); sound.toggleMute(); syncMute(); });
+  syncMute();
+  renderRanking(-1);
+
+  const canFullscreen = Boolean(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+  fullscreenBtn.hidden = !canFullscreen;
+  const isFullscreen = () => Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+  async function toggleFullscreen() {
+    if (!canFullscreen) return;
+    const root = document.documentElement;
+    try {
+      if (isFullscreen()) {
+        await (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      } else {
+        await (root.requestFullscreen || root.webkitRequestFullscreen).call(root, { navigationUI: 'hide' });
+        // Android can lock to landscape once fullscreen; everywhere else this quietly fails.
+        await screen.orientation?.lock?.('landscape');
+      }
+    } catch { /* refused by the browser or the frame */ }
+  }
+  const syncFullscreen = () => fullscreenBtn.setAttribute('aria-pressed', String(isFullscreen()));
+  document.addEventListener('fullscreenchange', syncFullscreen);
+  document.addEventListener('webkitfullscreenchange', syncFullscreen);
+  fullscreenBtn.addEventListener('click', () => { fullscreenBtn.blur(); toggleFullscreen(); });
+
+  document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
+  window.addEventListener('keydown', (e) => {
+    if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+    const key = e.key.toLowerCase();
+    const isPauseKey = key === 'escape' || key === 'p';
+    const isRestartKey = key === 'r';
+    const canRestart = state !== 'title';
+    if (isPauseKey) togglePause();
+    else if (isRestartKey && canRestart) restart();
+    else if (key === 'm') muteBtn.click();
+    else if (key === 'f') toggleFullscreen();
+    else if (key === 'd') perf.visible = !perf.visible;
+  });
+
+  let last = performance.now();
+  function frame(now) {
+    const frameMs = now - last;
+    const dt = Math.min(0.033, frameMs / 1000);
+    last = now;
+    animT = now / 1000;
+    const t0 = performance.now();
+    if (state === 'play') update(dt);
+    else if (state === 'dead') updateDead(dt);
+    const t1 = performance.now();
+    render(animT);
+    trackPerf(now, frameMs, t1 - t0, performance.now() - t1);
+    requestAnimationFrame(frame);
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  reset();
+  requestAnimationFrame(frame);
+})();
+</script>
