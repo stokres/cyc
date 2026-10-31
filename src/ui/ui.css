@@ -1765,9 +1765,9 @@ button:focus-visible {
 
 .resultado .puntos-grandes {
   margin: 0;
-  font: 400 clamp(30px, 11vh, 52px) var(--display);
+  font: 400 clamp(28px, 9vh, 48px) var(--display);
   color: var(--gold);
-  line-height: 1.1;
+  line-height: 1.05;
 }
 
 .resultado .record-nuevo {
@@ -1779,6 +1779,16 @@ button:focus-visible {
 /* The result card: your five best next to the five best of everybody (two columns; one under the other on a narrow screen). */
 .tarjeta.resultado {
   width: min(92vw, 640px);
+  gap: 8px;
+}
+
+.resultado .ranking {
+  gap: 3px;
+}
+
+.resultado .ranking li {
+  padding: 2px 12px;
+  line-height: 1.25;
 }
 
 .rankings {

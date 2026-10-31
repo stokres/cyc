@@ -1255,13 +1255,13 @@ a {
     font-size: 1.9rem;
   }
 
+  /* Over the upper-left rim of the round bubble: the «12 fases» burst has the lower right */
   .record-pegatina {
-    top: auto;
-    bottom: 3%;
-    left: 50%;
-    max-width: 80%;
+    top: 7%;
+    left: -7%;
+    max-width: 85%;
     font-size: 15px;
-    transform: translateX(-50%) rotate(-3deg);
+    transform: rotate(-9deg);
     white-space: nowrap;
   }
 
