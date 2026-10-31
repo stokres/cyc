@@ -611,6 +611,27 @@ a {
   font-weight: 400;
 }
 
+/* The first of everybody: a little tag stuck over the rim of the bubble (absolute, so the card does not move when it appears) */
+.record-pegatina {
+  position: absolute;
+  top: -15px;
+  left: 30px;
+  z-index: 3;
+  max-width: calc(100% - 60px);
+  margin: 0;
+  padding: 3px 12px 2px;
+  border-radius: 4px 12px 4px 12px;
+  background: var(--marron);
+  box-shadow: 2px 3px 0 var(--sombra);
+  color: var(--mostaza);
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  text-transform: uppercase;
+  transform: rotate(-3deg);
+}
+
 /* 4 · Fly and Trazo: two small stickers with no picture of their own yet (a drawing in CSS: islands and a bird, a blot and a drop of ink) */
 .chicas {
   display: grid;
@@ -1232,6 +1253,16 @@ a {
 
   .burbuja .doce b {
     font-size: 1.9rem;
+  }
+
+  /* Over the upper-left rim of the round bubble: the «12 fases» burst has the lower right */
+  .record-pegatina {
+    top: 7%;
+    left: -7%;
+    max-width: 85%;
+    font-size: 15px;
+    transform: rotate(-9deg);
+    white-space: nowrap;
   }
 
   .chica .dibujo {

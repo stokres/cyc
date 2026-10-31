@@ -3,7 +3,10 @@
 import type { Sound, Volumen } from '../../core/audio';
 import { texto } from '../../juego/textos';
 import { REPARTO, retrato } from '../../juego/reparto';
+import { cuentaLocal } from '../../cuenta/base';
+import { leerRecords, type Fila } from '../../cuenta/records';
 import { datos, FASES_TOTAL, guardarVolumen, type Marca } from '../guardado';
+import type { PjId } from '../tipos';
 import { alTeclear, boton, h, miles, mostrar } from './dom';
 
 // ---------------------------------------------------------------- title
@@ -132,35 +135,127 @@ const fechaCorta = (iso: string) => {
   return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('es-ES', { day: 'numeric', month: 'numeric', year: '2-digit' });
 };
 
-/** The table: the legendary CYC always first, then the saved runs. `nuevo` is highlighted. */
+/** The little round face of a friend (nothing if the id is not one of the four). */
+function caraPj(pj: string): HTMLElement {
+  const cara = h('span', { class: 'pg-mini' });
+  if (pj in REPARTO) cara.innerHTML = retrato(pj as PjId);
+  return cara;
+}
+
+/** This phone's table: the legendary CYC always first, then the saved runs. `nuevo` is highlighted. */
+function tablaLocal(nuevo: Marca | null): HTMLElement {
+  const tabla = h('div', { class: 'pg-records', role: 'table' });
+  tabla.append(
+    h('div', { class: 'pg-record cyc', role: 'row' }, h('span', { class: 'pg-pos', 'aria-hidden': 'true' }, '★'), h('span', { class: 'pg-pts' }, miles(999999)), h('span', { class: 'pg-quien-r' }, texto('records.cyc')), h('span', { class: 'pg-fase-r' }), h('span', { class: 'pg-fecha' })),
+  );
+  if (!datos.records.length) tabla.append(h('p', { class: 'pg-vacio' }, texto('records.vacio')));
+  datos.records.forEach((r, i) => {
+    const f = REPARTO[r.pj];
+    tabla.append(
+      h(
+        'div',
+        { class: `pg-record${r === nuevo ? ' nuevo' : ''}`, role: 'row' },
+        h('span', { class: 'pg-pos' }, String(i + 1)),
+        h('span', { class: 'pg-pts' }, miles(r.puntos)),
+        h('span', { class: 'pg-quien-r', style: `color:${f.color}` }, caraPj(r.pj), f.nombre),
+        h('span', { class: 'pg-fase-r' }, texto('records.fase', { n: r.fase })),
+        h('span', { class: 'pg-fecha' }, r === nuevo ? texto('records.nuevo') : fechaCorta(r.fecha)),
+      ),
+    );
+  });
+  return tabla;
+}
+
+/** The table of everybody (the ten best, with the name of the account): yours in gold, and `nuevo` (the run just played) with its label. */
+function tablaTodos(filas: Fila[], nuevo: Marca | null): HTMLElement {
+  const tabla = h('div', { class: 'pg-records todos', role: 'table' });
+  if (!filas.length) tabla.append(h('p', { class: 'pg-vacio' }, texto('records.vaciotodos')));
+  filas.forEach((r, i) => {
+    const es = !!nuevo && r.mia === true && r.puntos === nuevo.puntos && r.fecha === nuevo.fecha;
+    const pj = r.extra?.pj ?? '';
+    const f = pj in REPARTO ? REPARTO[pj as PjId] : null;
+    tabla.append(
+      h(
+        'div',
+        { class: `pg-record${r.mia ? ' mia' : ''}${es ? ' nuevo' : ''}`, role: 'row' },
+        h('span', { class: 'pg-pos' }, String(i + 1)),
+        h('span', { class: 'pg-pts' }, miles(r.puntos)),
+        h('span', { class: 'pg-quien-r pg-cuenta' }, r.nombre),
+        h('span', { class: 'pg-fase-r pg-con-cara', title: f?.nombre ?? '' }, f ? caraPj(pj) : '', r.extra ? texto('records.fase', { n: r.extra.fase }) : ''),
+        h('span', { class: 'pg-fecha' }, es ? texto('records.nuevo') : fechaCorta(r.fecha)),
+      ),
+    );
+  });
+  return tabla;
+}
+
+/**
+ * The records: two tables behind two tabs, «De todos» first (the ten best of every account, from the server, or the last seen without network)
+ * and «En este móvil» (this phone's five). `nuevo` is the run just played, highlighted. Without an account the table of everybody says how to get a name;
+ * a run that made the phone's top five and has no account to go to everybody's opens on the phone's tab, where it is.
+ */
 export function pantallaRecords(ui: HTMLElement, nuevo: Marca | null = null): Promise<void> {
   const el = h('div', { class: 'pg-pantalla pg-hoja' });
   return mostrar<void>(ui, el, (fin) => {
-    const tabla = h('div', { class: 'pg-records', role: 'table' });
-    tabla.append(
-      h('div', { class: 'pg-record cyc', role: 'row' }, h('span', { class: 'pg-pos', 'aria-hidden': 'true' }, '★'), h('span', { class: 'pg-pts' }, miles(999999)), h('span', { class: 'pg-quien-r' }, texto('records.cyc')), h('span', { class: 'pg-fase-r' }), h('span', { class: 'pg-fecha' })),
+    const hayCuenta = cuentaLocal() !== null;
+    let cerrada = false;
+    let vista: 'todos' | 'local' = nuevo && !hayCuenta ? 'local' : 'todos';
+    const cuerpo = h('div', { class: 'pg-records-cuerpo' });
+    const nota = h('p', { class: 'pg-nota' });
+    const botones = {
+      todos: h('button', { type: 'button', class: 'pg-pestana', role: 'tab' }, texto('records.todos')),
+      local: h('button', { type: 'button', class: 'pg-pestana', role: 'tab' }, texto('records.local')),
+    };
+    /** What the last answer of the server was: undefined while it comes, null if there is nothing to show. */
+    let lectura: { filas: Fila[]; enVivo: boolean } | null | undefined;
+
+    const pintar = () => {
+      for (const k of ['todos', 'local'] as const) {
+        botones[k].classList.toggle('activa', k === vista);
+        botones[k].setAttribute('aria-selected', String(k === vista));
+      }
+      cuerpo.scrollTop = 0;
+      if (vista === 'local') {
+        cuerpo.replaceChildren(tablaLocal(nuevo));
+        nota.textContent = '';
+        return;
+      }
+      if (lectura === undefined) cuerpo.replaceChildren(h('p', { class: 'pg-vacio' }, texto('records.cargando')));
+      else if (lectura === null) cuerpo.replaceChildren(h('p', { class: 'pg-vacio' }, texto('records.sinred')));
+      else cuerpo.replaceChildren(tablaTodos(lectura.filas, nuevo));
+      nota.textContent = [hayCuenta ? '' : texto('records.sincuenta'), lectura && !lectura.enVivo ? texto('records.viejo') : ''].filter(Boolean).join(' ');
+    };
+    const elegir = (v: 'todos' | 'local') => {
+      vista = v;
+      pintar();
+    };
+    botones.todos.addEventListener('click', () => elegir('todos'));
+    botones.local.addEventListener('click', () => elegir('local'));
+    pintar();
+    void leerRecords('pang').then((r) => {
+      if (cerrada) return;
+      lectura = r;
+      if (vista === 'todos') pintar();
+    });
+
+    el.append(
+      h(
+        'div',
+        { class: 'pg-panel pg-ancho pg-hoja-records', role: 'dialog', 'aria-label': texto('records.titulo') },
+        h('div', { class: 'pg-cabecera' }, h('div', { class: 'pg-pestanas', role: 'tablist' }, botones.todos, botones.local), boton(texto('menu.volver'), () => fin(), 'fantasma')),
+        cuerpo,
+        nota,
+      ),
     );
-    if (!datos.records.length) tabla.append(h('p', { class: 'pg-vacio' }, texto('records.vacio')));
-    datos.records.forEach((r, i) => {
-      const f = REPARTO[r.pj];
-      const cara = h('span', { class: 'pg-mini' });
-      cara.innerHTML = retrato(r.pj);
-      tabla.append(
-        h(
-          'div',
-          { class: `pg-record${r === nuevo ? ' nuevo' : ''}`, role: 'row' },
-          h('span', { class: 'pg-pos' }, String(i + 1)),
-          h('span', { class: 'pg-pts' }, miles(r.puntos)),
-          h('span', { class: 'pg-quien-r', style: `color:${f.color}` }, cara, f.nombre),
-          h('span', { class: 'pg-fase-r' }, texto('records.fase', { n: r.fase })),
-          h('span', { class: 'pg-fecha' }, r === nuevo ? texto('records.nuevo') : fechaCorta(r.fecha)),
-        ),
-      );
+    const parar = alTeclear((e) => {
+      if (e.key === 'Escape') fin();
+      else if (e.key === 'Enter' && e.target === document.body) fin();
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') elegir(vista === 'todos' ? 'local' : 'todos');
     });
-    el.append(h('div', { class: 'pg-panel pg-ancho' }, h('h2', { class: 'pg-h2' }, texto('records.titulo')), tabla, h('div', { class: 'pg-pie' }, boton(texto('menu.volver'), () => fin()))));
-    return alTeclear((e) => {
-      if (e.key === 'Escape' || e.key === 'Enter') fin();
-    });
+    return () => {
+      cerrada = true;
+      parar();
+    };
   });
 }
 

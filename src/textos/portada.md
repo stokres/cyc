@@ -36,6 +36,7 @@ pang.desc = Revienta burbujas de espuma con los cuatro de siempre.
 pang.jugar = ¡A reventar!
 pang.fases.numero = 12
 pang.fases = fases
+pang.record = Récord: {nombre} · {puntos}
 
 fly.nombre = Fly
 fly.desc = Vuela como un pájaro espíritu sobre un archipiélago.

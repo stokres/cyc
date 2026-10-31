@@ -81,10 +81,10 @@ export function guardarVolumen(que: 'musica' | 'efectos', v: number) {
 }
 
 /**
- * Adds a run to the table if it makes the top five (and has points). Returns the saved entry,
- * or null if it did not make it.
+ * Adds a run to the table if it makes the top five (and has points). Returns the run (`marca`, the one that also goes to the
+ * table of everybody, src/cuenta/records.ts) and whether it `entra` in this phone's top five; null if it has no points.
  */
-export function anotarRecord(puntos: number, pj: PjId, fase: number): Marca | null {
+export function anotarRecord(puntos: number, pj: PjId, fase: number): { marca: Marca; entra: boolean } | null {
   if (!(puntos > 0)) return null;
   const marca: Marca = { puntos: Math.round(puntos), pj, fase: Math.min(FASES_TOTAL, Math.max(1, fase)), fecha: new Date().toISOString() };
   // A tie goes below the older run.
@@ -92,5 +92,5 @@ export function anotarRecord(puntos: number, pj: PjId, fase: number): Marca | nu
   datos.records = lista.slice(0, MAX_RECORDS);
   const entra = datos.records.includes(marca);
   guardar();
-  return entra ? marca : null;
+  return { marca, entra };
 }

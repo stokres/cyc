@@ -4,6 +4,7 @@
 import './portada.css';
 import raw from '../textos/portada.md?raw';
 import { cargarTextos, texto } from '../juego/textos';
+import { iniciarRecords, leerPrimeros } from '../cuenta/records';
 import { iniciarCuenta } from './cuenta';
 
 cargarTextos(raw);
@@ -29,3 +30,14 @@ document.querySelectorAll<HTMLElement>('[data-letras]').forEach((el) => {
 });
 document.getElementById('portada')!.classList.add('lista');
 iniciarCuenta();
+iniciarRecords();
+
+// The first of everybody in the Pang's sticker: asked once, after painting. Without network, or without a mark yet, the line does not appear.
+const miles = (n: number): string => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+void leerPrimeros().then((primeros) => {
+  const r = primeros?.pang;
+  const linea = document.getElementById('pang-record');
+  if (!r || !linea) return;
+  linea.textContent = texto('pang.record', { nombre: r.nombre, puntos: miles(r.puntos) });
+  linea.hidden = false;
+});
