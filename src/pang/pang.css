@@ -438,6 +438,97 @@
   font-weight: 800;
 }
 
+/* The records sheet: two tabs («De todos», «En este móvil») and «Volver» in one row, the table under them. The ten rows of everybody's table are
+   short and, if the screen is lower still, the table scrolls inside the panel (the tabs and the note stay). */
+.pg-hoja-records {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: clamp(6px, 1.8vh, 12px);
+}
+
+.pg-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.pg-pestanas {
+  display: flex;
+  gap: 4px;
+  padding: 2px;
+  border-radius: 999px;
+  background: rgba(243, 234, 214, 0.07);
+}
+
+.pg-pestana {
+  min-height: 44px;
+  padding: 4px clamp(12px, 3vw, 22px);
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font: 400 clamp(14px, 4vh, 17px) var(--display);
+  letter-spacing: 0.04em;
+}
+
+.pg-pestana.activa {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.pg-records-cuerpo {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.pg-nota {
+  margin: 0;
+  min-height: 1.2em;
+  text-align: center;
+  color: var(--gold);
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.pg-nota:empty {
+  display: none;
+}
+
+.pg-records.todos .pg-record {
+  grid-template-columns: 2em 6.8em minmax(0, 1fr) 8.6em 5.5em;
+  min-height: clamp(24px, 6.2vh, 34px);
+}
+
+.pg-cuenta {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--cream);
+}
+
+.pg-con-cara {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.pg-records.todos .pg-mini {
+  width: 24px;
+  height: 24px;
+}
+
+.pg-record.mia {
+  background: rgba(219, 180, 108, 0.14);
+}
+
+.pg-record.mia .pg-cuenta {
+  color: var(--gold);
+  font-weight: 700;
+}
+
 /* The legendary entry: initials nobody wrote. Gold, with a halo that breathes (opacity only). */
 .pg-record.cyc {
   position: relative;
@@ -707,6 +798,12 @@
 @media (max-width: 560px) {
   .pg-record {
     grid-template-columns: 1.6em 7.4em minmax(0, 1fr) 5em;
+  }
+  .pg-records.todos .pg-record {
+    grid-template-columns: 1.6em 6.4em minmax(0, 1fr) 7.6em;
+  }
+  .pg-pestana {
+    padding: 4px 10px;
   }
   .pg-fecha {
     display: none;

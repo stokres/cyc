@@ -24,7 +24,8 @@ import type { Volumen } from './core/audio';
 import { storageGet, storageSet, wait } from './core/util';
 import { cargarModulo } from './juego/modulos';
 import { parametros, volverAlInicio, volverALaWeb } from './core/direccion';
-import { bajarPartidas, vigilar } from './cuenta/cuenta';
+import { bajarPartidas, cuentaLocal, enviarRecord, iniciarRecords, leerRecords, vigilar, type Envio, type Fila } from './cuenta/cuenta';
+import { esTabla } from './cuenta/tablas.mjs';
 
 interface Ajustes {
   /** 2 since the two volumes and «media» as the default quality (8 October 2026). */
@@ -64,6 +65,7 @@ async function arrancar() {
   // without account or network it costs nothing, a slow network gives up after 2.5 s. Then the changes are watched to copy them up (src/cuenta/sincronizar.ts).
   await bajarPartidas().catch(() => undefined);
   vigilar();
+  iniciarRecords();
   cargarTextos(textosInterfaz, textosCapitulo, textosCapitulo2);
   const root = document.getElementById('game')!;
   // «Alacant Sun» (src/sol/), the friends' parody, opened by itself: the address ending in ?sol.
@@ -438,6 +440,8 @@ async function arrancar() {
     { id: 'unamas', quien: 'fran' },
   ];
   const SUELTOS = ['pang', 'sol', 'kart', 'unamas'];
+  /** How many marks of everybody the result card shows (the server keeps ten per table). */
+  const PUESTOS_TODOS = 5;
   const tarjeta = (...kids: Node[]) => g.hud.cubrir('', h('div', { class: 'tarjeta vidrio' }, ...kids));
   const boton = (etiqueta: string, clase: string, alTocar: () => void, id?: string) => {
     const b = h('button', { class: `btn ${clase}`, ...(id ? { id } : {}) }, etiqueta);
@@ -524,26 +528,58 @@ async function arrancar() {
     const puntos = inf.puntos ?? 0;
     const puesto = apuntarPuntos(partida, id, puntos);
     guardar();
-    resultado(id, puntos, puesto, puntos > antes && antes > 0);
+    // The score also goes to the table of everybody (src/cuenta/records.ts; nothing is sent without an account).
+    const envio: Promise<Envio> = esTabla(id) ? enviarRecord(id, puntos) : Promise.resolve('descartado');
+    resultado(id, puntos, puesto, puntos > antes && antes > 0, envio);
   };
 
-  const resultado = (id: string, puntos: number, puesto: number, recordNuevo: boolean) => {
+  /** The column «De todos» of the result card: the five best of everybody, with the name of the account. It fills in when the server answers (the card does not wait). */
+  const rellenarTodos = async (id: string, puntos: number, envio: Promise<Envio>, col: HTMLElement) => {
+    const nota = (clave: string) => col.append(h('p', { class: 'pequeno' }, texto(clave)));
+    await Promise.race([envio, wait(2500)]);
+    const r = esTabla(id) ? await leerRecords(id) : null;
+    col.querySelector('.cargando')?.remove();
+    if (!r) return nota('resultado.sinred');
+    let la: Fila | undefined;
+    const filas = r.filas.slice(0, PUESTOS_TODOS);
+    // The game just played is the first of yours with those points.
+    if (r.enVivo) la = filas.find((f) => f.mia && f.puntos === puntos);
+    col.append(
+      filas.length
+        ? h('ol', { class: 'ranking todos' }, ...filas.map((f, i) => h('li', { class: `${f === la ? 'esta' : ''}${f.mia ? ' mia' : ''}`.trim() }, h('span', {}, `${i + 1}. ${f.nombre}`), h('span', {}, String(f.puntos)))))
+        : h('p', { class: 'pequeno' }, texto('resultado.vacio')),
+    );
+    if (!r.enVivo) nota('resultado.viejo');
+    if (!cuentaLocal()) nota('resultado.sincuenta');
+  };
+
+  const resultado = (id: string, puntos: number, puesto: number, recordNuevo: boolean, envio: Promise<Envio>) => {
     const ranking = partida.progreso.minijuegos[id]?.ranking ?? [];
     const fecha = (iso: string) => new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+    const todos = h('div', { class: 'ranking-col' }, h('p', { class: 'pequeno' }, texto('resultado.todos')), h('p', { class: 'pequeno cargando' }, texto('resultado.cargando')));
     const el = tarjeta(
       h('h2', {}, texto(`minijuego.${id}`)),
       h('p', { class: 'puntos-grandes' }, puntos === 1 ? texto('resultado.punto') : texto('resultado.puntos', { n: puntos })),
       ...(recordNuevo ? [h('p', { class: 'record-nuevo' }, texto('resultado.record'))] : []),
-      ...(ranking.length
-        ? [
-            h('p', { class: 'pequeno' }, texto('resultado.ranking')),
-            h(
-              'ol',
-              { class: 'ranking' },
-              ...ranking.map((p, i) => h('li', { class: i === puesto ? 'esta' : '' }, h('span', {}, `${i + 1}. ${p.puntos}`), h('span', { class: 'fecha' }, fecha(p.fecha)))),
-            ),
-          ]
-        : []),
+      h(
+        'div',
+        { class: 'rankings' },
+        ...(ranking.length
+          ? [
+              h(
+                'div',
+                { class: 'ranking-col' },
+                h('p', { class: 'pequeno' }, texto('resultado.ranking')),
+                h(
+                  'ol',
+                  { class: 'ranking' },
+                  ...ranking.map((p, i) => h('li', { class: i === puesto ? 'esta' : '' }, h('span', {}, `${i + 1}. ${p.puntos}`), h('span', { class: 'fecha' }, fecha(p.fecha)))),
+                ),
+              ),
+            ]
+          : []),
+        todos,
+      ),
       h('p', { class: 'pequeno' }, texto(`minijuego.${id}.puntos`)),
       h(
         'div',
@@ -560,6 +596,7 @@ async function arrancar() {
       ),
     );
     el.querySelector('.tarjeta')?.classList.add('resultado');
+    void rellenarTodos(id, puntos, envio, todos);
   };
 
   // ---------------------------------------------------------- end of the pilot

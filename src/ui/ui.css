@@ -1776,6 +1776,35 @@ button:focus-visible {
   animation: late 1.6s infinite;
 }
 
+/* The result card: your five best next to the five best of everybody (two columns; one under the other on a narrow screen). */
+.tarjeta.resultado {
+  width: min(92vw, 640px);
+}
+
+.rankings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 6px 18px;
+}
+
+.ranking-col {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+}
+
+.ranking-col .pequeno {
+  line-height: 1.25;
+}
+
+.ranking.todos li.mia {
+  color: var(--gold);
+}
+
+.ranking.todos li.mia.esta {
+  color: var(--cream);
+}
+
 .ranking {
   margin: 0;
   padding: 0;

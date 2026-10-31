@@ -14,7 +14,8 @@ import type { Sound, Volumen } from '../core/audio';
 import { cargarTextos } from '../juego/textos';
 import textosPang from '../textos/pang.md?raw';
 import { FASES } from './fases';
-import { alcanzarFase, anotarRecord, datos, type Marca } from './guardado';
+import { enviarRecord } from '../cuenta/records';
+import { alcanzarFase, anotarRecord, datos } from './guardado';
 import { jugarFase, type Control, type OpcionesFase } from './juego';
 import { elegirPersonaje, pantallaAjustes, pantallaContinuar, pantallaFases, pantallaFinal, pantallaMenu, pantallaPausa, pantallaRecords, pantallaTitulo } from './pantallas';
 import { PJS, type PjId, type ResultadoFase } from './tipos';
@@ -42,6 +43,8 @@ export interface OpcionesPangCompleto {
 }
 
 const VIDAS = 3;
+/** Before showing the records, how long to wait for the server to take the run (so the table of everybody already has it). */
+const ESPERA_ENVIO_MS = 2500;
 /** The attract demo changes stage this often (ms). */
 const CICLO_DEMO = 25000;
 
@@ -125,10 +128,15 @@ export async function jugarPangCompleto(root: HTMLElement, o: OpcionesPangComple
   };
 
   // ---------------------------------------------------------- a run
-  /** Writes the run in the table; if it makes the top five, shows the table with it highlighted. */
+  /** Writes the run in this phone's table and sends it to the table of everybody (src/cuenta/records.ts; nothing is sent without an account);
+   *  if it makes the phone's top five, shows the tables with it highlighted (waiting a moment for the server, so the table of everybody has it). */
   const cerrarPartida = async (puntos: number, pj: PjId, fase: number, mostrar: boolean) => {
-    const marca: Marca | null = anotarRecord(puntos, pj, fase);
-    if (marca && mostrar) await pantallaRecords(ui, marca);
+    const r = anotarRecord(puntos, pj, fase);
+    if (!r) return;
+    const envio = enviarRecord('pang', r.marca.puntos, { pj, fase: r.marca.fase }, r.marca.fecha);
+    if (!r.entra || !mostrar) return;
+    await Promise.race([envio, new Promise((fin) => setTimeout(fin, ESPERA_ENVIO_MS))]);
+    await pantallaRecords(ui, r.marca);
   };
 
   /** From stage `inicio` to the end (or until the player leaves). */
