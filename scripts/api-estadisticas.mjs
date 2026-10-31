@@ -4,6 +4,7 @@
 //                           y, de cada cuenta con batallas, sus sumas (la tabla de ENTRENADORES). Con `?cuenta=<id público>`: { v, n, nombre, racha, ag } de esa cuenta.
 //   POST /api/cuentas, POST /api/cuentas/recuperar, GET|PUT /api/cuentas/yo, GET|PUT /api/cuentas/yo/juegos/<juego>: las cuentas de usuario de la web, con lo guardado
 //                           de cada juego (scripts/cuentas.mjs; docs/POKEUSERA.md, «Cuentas»).
+//   POST /api/records       una marca de la cuenta (`{ tabla, puntos, extra?, fecha? }`, solo con cuenta) y GET /api/records[?tabla=x]: los récords de todos (scripts/records.mjs).
 //                           Cada jugador de un resumen llega con su token en `cu`; aquí se cambia por el id público de su cuenta (o null): el token no se guarda ni se devuelve nunca.
 // Los resúmenes viven en `${POKEUSERA_DATOS}/batallas.jsonl` (por defecto ./datos-pokeusera). En Railway hace falta un Volume montado ahí, o el disco se borra en cada despliegue.
 // La suma es `src/pokeusera/estadisticas/agregado.mjs`, la misma que usa el móvil para sus datos locales.
@@ -15,7 +16,9 @@ import { createInterface } from 'node:readline';
 import { FORMATO, agregadoVacio, normalizarResumen, prepararCatalogo, sumarResumen } from '../src/pokeusera/estadisticas/agregado.mjs';
 import { limpiarCodigo } from '../src/cuenta/reglas.mjs';
 import { esJuego, MAX_JUEGO } from '../src/cuenta/juegos.mjs';
+import { esTabla, limpiarExtra, limpiarFecha, limpiarPuntos } from '../src/cuenta/tablas.mjs';
 import { crearAlmacenCuentas } from './cuentas.mjs';
+import { crearAlmacenRecords } from './records.mjs';
 
 const MAX_CUERPO = 32 * 1024;
 /** El cuerpo de un juego: su texto (hasta MAX_JUEGO) va dentro de un JSON, donde cada comilla se duplica, y lleva el `act`. */
@@ -28,7 +31,11 @@ const LIMITES = {
   crear: { max: 12, ms: 60 * 60_000 },
   recuperar: { max: 20, ms: 10 * 60_000 },
   perfil: { max: 120, ms: 60_000 },
+  /** Marcas de los récords: subir las del aparato al crear la cuenta son unas 25 de golpe. */
+  marca: { max: 120, ms: 10 * 60_000 },
 };
+/** El cuerpo de una marca: `{ tabla, puntos, extra, fecha }` ocupa unos 100 bytes. */
+const MAX_CUERPO_MARCA = 2 * 1024;
 
 /** Carga `pokeusera-catalogo.json` (lo escribe `npm run build` junto al juego, a partir de datos.ts). */
 export async function leerCatalogo(ruta) {
@@ -57,6 +64,7 @@ export async function crearApiEstadisticas({ carpeta, catalogo, aviso = (m) => c
   let escribible = true;
   // Las cuentas (su archivo es hermano de batallas.jsonl). Cuando cambia un nombre o entra una cuenta, el JSON de /api/estadisticas se rehace.
   const cuentas = await crearAlmacenCuentas({ carpeta: dir, aviso, alCambiar: () => (respuesta = null) });
+  const records = await crearAlmacenRecords({ carpeta: dir, cuentas, aviso });
   /** Por id público de cuenta: sus agregados (con el mismo agregado.mjs, solo con su jugador) y su racha de victorias, en el orden en que llegaron. */
   const porCuenta = new Map();
   const deCuenta = (id) => {
@@ -260,6 +268,33 @@ export async function crearApiEstadisticas({ carpeta, catalogo, aviso = (m) => c
     return json(res, 200, { ok: true, act: r.act });
   }
 
+  // ---- récords de todos
+  /** POST /api/records: la marca de una partida, a nombre de la cuenta del token. */
+  async function recibirMarca(req, res) {
+    if (!permitido(`m|${ip(req)}`, LIMITES.marca)) return json(res, 429, { error: 'demasiadas marcas' });
+    const c = cuentas.deToken(tokenDe(req));
+    if (!c) return json(res, 401, { error: 'token' });
+    const o = await cuerpoJson(req, res, MAX_CUERPO_MARCA);
+    if (!o) return;
+    if (!esTabla(o.tabla)) return json(res, 400, { error: 'tabla' });
+    const puntos = limpiarPuntos(o.tabla, o.puntos);
+    if (puntos === null) return json(res, 400, { error: 'puntos' });
+    const extra = limpiarExtra(o.tabla, o.extra);
+    if (extra === undefined) return json(res, 400, { error: 'extra' });
+    const r = await records.anotar(c, o.tabla, { puntos, extra, fecha: limpiarFecha(o.fecha) });
+    if (r.error) return json(res, 503, { error: r.error });
+    return json(res, 200, { ok: true, puesto: r.puesto, ...(r.repetida ? { repetida: true } : {}) });
+  }
+  /** GET /api/records: con `?tabla=` sus 10 mejores (`mia` en las de la cuenta del token, si viene); sin ella, la primera de cada tabla (la portada). */
+  function leerMarcas(req, res) {
+    if (!permitido(`l|${ip(req)}`, LIMITES.lectura)) return json(res, 429, { error: 'demasiadas lecturas' });
+    const tabla = new URL(req.url ?? '/', 'http://localhost').searchParams.get('tabla');
+    if (tabla === null) return json(res, 200, { primeros: records.primeros() });
+    if (!esTabla(tabla)) return json(res, 400, { error: 'tabla' });
+    const mio = cuentas.deToken(tokenDe(req))?.id ?? null;
+    return json(res, 200, { tabla, records: records.mejores(tabla, mio) });
+  }
+
   /** Las sumas de una cuenta para la tabla de ENTRENADORES: partidas, victorias, suma de puestos, daño hecho/recibido, KO y el entrenador que más usa. */
   function resumenCuenta(id, c) {
     const s = c.ag.personas;
@@ -286,7 +321,7 @@ export async function crearApiEstadisticas({ carpeta, catalogo, aviso = (m) => c
   };
 
   return {
-    /** Answers /api/batallas, /api/estadisticas and /api/cuentas* (true), or does nothing (false). */
+    /** Answers /api/batallas, /api/estadisticas, /api/cuentas* and /api/records (true), or does nothing (false). */
     manejar(req, res) {
       const ruta = new URL(req.url ?? '/', 'http://localhost').pathname;
       if (ruta === '/api/batallas') {
@@ -306,6 +341,12 @@ export async function crearApiEstadisticas({ carpeta, catalogo, aviso = (m) => c
             else json(res, 200, { v: FORMATO, n: c.ag.personas.n, nombre: cuentas.nombreDe(id), racha: { a: c.actual, m: c.mejor }, ag: c.ag });
           }
         }
+        return true;
+      }
+      if (ruta === '/api/records') {
+        if (req.method === 'POST') void recibirMarca(req, res).catch((e) => json(res, 500, { error: String(e?.message ?? e) }));
+        else if (req.method === 'GET') leerMarcas(req, res);
+        else json(res, 405, { error: 'método' });
         return true;
       }
       if (ruta === '/api/cuentas' || ruta === '/api/cuentas/recuperar' || ruta === '/api/cuentas/yo') {
