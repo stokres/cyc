@@ -2,7 +2,7 @@
 // modules of the game (reglas, fisica, armas, jefes, objetos, especiales, bot) work on a
 // `Mundo`; juego.ts owns it and the flow around it.
 import type { HojaJefe } from './arte/sprites';
-import type { Bloque, ColorBola, Estilo, Fase, Jefe, Objeto, PjId, Talla, Variante } from './tipos';
+import type { Arma, Bloque, ColorBola, Estilo, Fase, Jefe, Objeto, PjId, Talla, Variante } from './tipos';
 import type { Efectos } from './sonido';
 
 /** Fixed simulation step, seconds. */
@@ -53,7 +53,9 @@ export interface Cable {
   base: number;
   punta: number;
   ancho: number;
-  /** Stuck to the ceiling or a block (Pablo's): seconds it has been there. */
+  /** Fired with the sticky weapon: it stays under the ceiling or a block instead of vanishing. */
+  pega: boolean;
+  /** Stuck to the ceiling or a block (the sticky weapon's): seconds it has been there. */
   fijo: boolean;
   t: number;
   /** Index (in `Mundo.jugadores`) of the player who fired it: points, bar and limits are his. */
@@ -134,12 +136,12 @@ export interface Aviso {
   color: string;
 }
 
-export type Escudo = 0 | 1 | 2; // none, bear hug (pops on break), item
-
 /** One player of the stage: body, weapon state and his own score, lives and special bar. */
 export interface JugadorVivo {
   pj: PjId;
   estilo: Estilo;
+  /** The weapon in hand: 'normal' until he picks one up; lost with a life (Pablo keeps it). */
+  arma: Arma;
   puntos: number;
   vidas: number;
   barra: number;
@@ -162,7 +164,10 @@ export interface JugadorVivo {
   escalado: number;
   disparoT: number;
   inv: number;
-  escudo: Escudo;
+  /** Hits the shield still takes (0: none). The shield item gives 1 (Guille: 2), the bear hug 1. */
+  escudo: number;
+  /** The shield is the bear hug's: when it breaks it bursts what is near. */
+  abrazo: boolean;
   /** Seconds in the current animation (frames come from it). */
   animT: number;
   /** Walking this step (for the walk cycle). */
@@ -176,6 +181,8 @@ export interface Mundo {
   t: number;
   tiempo: number;
   canaDada: boolean;
+  /** The chapter's short Pang: everybody holds this weapon always and no weapon items drop. Null: the full game. */
+  armaFija: Arma | null;
   sigId: number;
   burbujas: Burbuja[];
   bloques: Bloque[];

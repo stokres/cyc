@@ -5,7 +5,7 @@ import { avisar } from './base';
 import { golpearJefe } from './jefes';
 import { type JugadorVivo, type Mundo, BARRA_LLENA } from './mundo';
 import { ponerObjeto } from './objetos';
-import { partirTodas } from './reglas';
+import { partirTodas, RADIO_ABRAZO, reventarCercanas } from './reglas';
 import { rotulo } from './hud';
 import { texto } from '../juego/textos';
 import { AREA } from './tipos';
@@ -18,7 +18,7 @@ const DURA_KINKI = 6;
 /**
  * Player `j` uses his special if his bar is full. Returns true if it went off. Fran's
  * freezes everything for everybody; Pablo's splits every bubble (the points are his);
- * the kinki and the bear hug are only his.
+ * the kinki and the bear hug are only his (the hug bursts what is near at once and again when its shield breaks).
  */
 export function usarPoder(m: Mundo, j: JugadorVivo): boolean {
   if (j.barra < BARRA_LLENA) return false;
@@ -37,7 +37,10 @@ export function usarPoder(m: Mundo, j: JugadorVivo): boolean {
       j.kinki = DURA_KINKI;
       break;
     case 'abrazo':
+      // First he bursts what is near him; then the hug shield, which bursts again when it breaks.
+      reventarCercanas(m, j, j.x, j.y - 16, RADIO_ABRAZO);
       j.escudo = 1;
+      j.abrazo = true;
       break;
   }
   j.barra = 0;

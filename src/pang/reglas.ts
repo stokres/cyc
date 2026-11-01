@@ -2,7 +2,7 @@
 import { avisar, crearBurbuja, efectoPop, llenarBarra, sumar, vidaExtra, velocidadBurbujas } from './base';
 import { PUNTOS_BURBUJA, PUNTOS_COMIDA, type Burbuja, type JugadorVivo, type Mundo, type ObjetoSuelto } from './mundo';
 import { soltarObjeto } from './objetos';
-import type { Talla } from './tipos';
+import { ARMA_DE_OBJETO, type Talla } from './tipos';
 
 export interface OpcionesReventar {
   /** Score it (default true). */
@@ -84,22 +84,34 @@ export function chupito(m: Mundo, j: JugadorVivo) {
   }
 }
 
+/** The bear hug's reach (px): what is within it bursts when the hug starts and when its shield breaks. */
+export const RADIO_ABRAZO = 48;
+
 /**
  * Something touches player `j`. Returns true if it really hurts: not while invulnerable
- * (after a shield breaks) and not when a shield absorbs it (the bear hug also bursts what
- * is near, for him).
+ * (after a shield breaks) and not when a shield absorbs it (a hit takes one of its hits; the
+ * bear hug also bursts what is near, for him, when it is spent).
  */
 export function herir(m: Mundo, j: JugadorVivo): boolean {
   if (j.inv > 0) return false;
-  if (j.escudo) {
-    const era = j.escudo;
-    j.escudo = 0;
+  if (j.escudo > 0) {
+    j.escudo--;
     j.inv = 1.5;
     m.sfx.escudoRoto();
-    if (era === 1) reventarCercanas(m, j, j.x, j.y - 16, 48);
+    if (j.escudo === 0 && j.abrazo) {
+      j.abrazo = false;
+      reventarCercanas(m, j, j.x, j.y - 16, RADIO_ABRAZO);
+    }
     return false;
   }
   return true;
+}
+
+/** The shield item: one hit (two for Guille's «maño»). Does nothing if he already has a shield. */
+function ponerEscudo(j: JugadorVivo) {
+  if (j.escudo > 0) return;
+  j.escudo = j.estilo.cualidad === 'mano' ? 2 : 1;
+  j.abrazo = false;
 }
 
 /** Player `j` picks an item up: the clock and the shot work for everybody, the rest for him. */
@@ -115,12 +127,23 @@ export function recoger(m: Mundo, j: JugadorVivo, o: ObjetoSuelto) {
       chupito(m, j);
       break;
     case 'escudo':
-      if (!j.escudo) j.escudo = 2;
+      ponerEscudo(j);
       avisar(m, 'hud.escudo');
       break;
     case 'cana':
       vidaExtra(m, j);
       break;
+    case 'armaDoble':
+    case 'armaTriple':
+    case 'armaFijo':
+    case 'armaRafaga': {
+      // The weapon changes at once; wires already in the air finish their flight.
+      const arma = ARMA_DE_OBJETO[o.tipo]!;
+      j.arma = arma;
+      m.hudSucio = true;
+      avisar(m, `hud.arma.${arma}`);
+      break;
+    }
     default:
       sumar(m, j, PUNTOS_COMIDA[o.tipo] ?? 0, o.x, o.y - 8);
   }

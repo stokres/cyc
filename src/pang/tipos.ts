@@ -135,24 +135,43 @@ export interface Fase {
   jefeEscupe?: number;
 }
 
-/** How each character plays (juego.ts uses these numbers). */
-export type Arma = 'doble' | 'fijo' | 'rafaga' | 'ancho';
+/**
+ * The player's weapon (everybody starts with 'normal'; the others are items bubbles drop):
+ *   normal  one harpoon in the air at a time
+ *   doble   two      triple  three
+ *   fijo    sticks to the ceiling (or under a block) for a while: one flying, up to three in all
+ *   rafaga  hold to fire short, fast bullets (up to five at once)
+ */
+export type Arma = 'normal' | 'doble' | 'triple' | 'fijo' | 'rafaga';
+/** The weapons bubbles can drop (every one but 'normal'). */
+export const ARMAS_OBJETO: Arma[] = ['doble', 'triple', 'fijo', 'rafaga'];
 export type Poder = 'penultima' | 'siy' | 'kinki' | 'abrazo';
+/**
+ * What each character has of his own besides the special (juego.ts and friends read these):
+ *   convocatoria  Fran: items resting near him slide to his feet
+ *   aprovecha     Pablo: keeps his weapon when he loses a life
+ *   atajo         Chuchi: his harpoons and bullets travel faster
+ *   mano          Guille: the shield item takes two hits, and the cierzo does not push him
+ */
+export type Cualidad = 'convocatoria' | 'aprovecha' | 'atajo' | 'mano';
 export interface Estilo {
-  arma: Arma;
   poder: Poder;
+  cualidad: Cualidad;
   /** Walking speed, logical px/s. */
   paso: number;
 }
 export const ESTILO: Record<PjId, Estilo> = {
-  fran: { arma: 'doble', poder: 'penultima', paso: 62 },
-  pablo: { arma: 'fijo', poder: 'siy', paso: 72 },
-  chuchi: { arma: 'rafaga', poder: 'kinki', paso: 84 },
-  guille: { arma: 'ancho', poder: 'abrazo', paso: 72 },
+  fran: { poder: 'penultima', cualidad: 'convocatoria', paso: 62 },
+  pablo: { poder: 'siy', cualidad: 'aprovecha', paso: 72 },
+  chuchi: { poder: 'kinki', cualidad: 'atajo', paso: 84 },
+  guille: { poder: 'abrazo', cualidad: 'mano', paso: 72 },
 };
 
-/** Things bubbles drop. */
-export type Objeto = 'reloj' | 'chupito' | 'escudo' | 'cana' | 'jamon' | 'aceitunas' | 'croqueta' | 'turron' | 'yema';
+/** Things bubbles drop. The four `arma*` are weapons (src/pang/objetos.ts). */
+export type Objeto = 'reloj' | 'chupito' | 'escudo' | 'cana' | 'jamon' | 'aceitunas' | 'croqueta' | 'turron' | 'yema' | 'armaDoble' | 'armaTriple' | 'armaFijo' | 'armaRafaga';
+
+/** The weapon each weapon item gives. */
+export const ARMA_DE_OBJETO: Partial<Record<Objeto, Arma>> = { armaDoble: 'doble', armaTriple: 'triple', armaFijo: 'fijo', armaRafaga: 'rafaga' };
 
 /** Player animations. Frames face right; the game mirrors them to face left. */
 export type Anim = 'quieto' | 'andar' | 'disparar' | 'escalar' | 'herido' | 'victoria';
@@ -161,5 +180,5 @@ export interface ResultadoFase {
   /** true: stage cleared; false: nobody left standing (the caller offers to continue). */
   superada: boolean;
   /** One per player, in order. `vidas` 0: he was out of lives when the stage ended (the next stage starts him with 1). */
-  jugadores: { puntos: number; vidas: number }[];
+  jugadores: { puntos: number; vidas: number; arma: Arma }[];
 }

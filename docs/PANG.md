@@ -2,7 +2,7 @@
 
 Juego aparte (12 de octubre de 2026, a petición de Jesús): un *Pang* de recreativa con los cuatro amigos y doce fases de Usera a Las Vegas. **Por ahora es solo el juego, sin historia** (ni intro ni conversaciones; decidido por Jesús el mismo día): título, elegir personaje y las doce fases seguidas. Nació en la rama `claude/pang-cyc-56o0iv` como página aparte (`pang.html`, con un modo online). **Ahora vive dentro del juego** (24 de octubre de 2026, a petición de Jesús): se abre desde el menú de minijuegos, en la fila «Pang», cuando se supera el Pang corto del capítulo 2, y suelto con `?pangcompleto`. **Sin modo online**: GitHub Pages solo sirve archivos y no hay servidor, así que no se trajo `src/pang/red/` ni «Jugar online» (lo que había queda en la rama original, con `docs/PANG-ONLINE.md`). El motor sigue admitiendo varios jugadores (`Partida`), pero ahora solo juega uno.
 
-El Pang corto del capítulo 2 (`src/pang/capitulo.ts`, `docs/CAPITULO2.md`) usa el mismo motor y las mismas fases (Usera, el piso, Zaragoza, la granja y Las Vegas, suavizadas).
+El Pang corto del capítulo 2 (`src/pang/capitulo.ts`, `docs/CAPITULO2.md`) usa el mismo motor y las mismas fases (Usera, el piso, Zaragoza, la granja y Las Vegas, suavizadas). **No cambia con las armas del completo**: Fran juega siempre con el arpón doble (`armaFija: 'doble'` en las opciones de la fase; también tras perder una vida), no sueltan armas las burbujas (y conserva el 12 % y el reparto de objetos de antes) y el marcador no enseña el icono del arma.
 
 ## Dónde está cada cosa
 
@@ -10,7 +10,7 @@ El Pang corto del capítulo 2 (`src/pang/capitulo.ts`, `docs/CAPITULO2.md`) usa 
 |---|---|
 | `src/pang/completo.ts` | El juego entero: `jugarPangCompleto(root, { sonido, volumenes })` (título con demo, menú, elegir personaje, fases, continuar, final, récords y ajustes) y cierra con «Volver a los minijuegos». `?pangcompleto` lo abre suelto; con `&fase=N&pj=fran&bot` juega esa fase y las siguientes sin menús (para probar) |
 | `src/pang/capitulo.ts`, `espuma.ts` | El Pang corto del capítulo 2 (cinco fases, solo Fran, la espuma de la caña como entrada) |
-| `src/pang/tipos.ts` | Contrato común: pantalla lógica, área de juego, tallas de burbuja, datos de fase, estilo de cada personaje |
+| `src/pang/tipos.ts` | Contrato común: pantalla lógica, área de juego, tallas de burbuja, datos de fase, armas, objetos y estilo (paso, cualidad y especial) de cada personaje |
 | `src/pang/fases.ts` | Las doce fases (burbujas, bloques, escaleras, jefe, especial, música, tiempo) |
 | `src/pang/juego.ts` | Una fase jugada (`Partida`: un `Mandos` y un `JugadorVivo` por jugador): bucle, física, armas, objetos, jefes, marcador y botones táctiles. Con `pausa` abre el menú de pausa (el Pang corto no la tiene) y con `demo` la juegan solos los bots (el título) |
 | `src/pang/mundo.ts`, `hud.ts`, `bot.ts` | El estado de la fase (`Mundo.jugadores`), el marcador (un panel por jugador si son varios) y el bot (uno por jugador) |
@@ -35,20 +35,37 @@ El Pang corto del capítulo 2 (`src/pang/capitulo.ts`, `docs/CAPITULO2.md`) usa 
 
 ### Los cuatro
 
-| | Disparo | Paso (px/s) | Especial |
+Todos empiezan con el mismo arma (el arpón normal) y encuentran las demás como objetos; lo que los distingue es el paso, una **cualidad** pasiva («Lo suyo» al elegir personaje) y el especial.
+
+| | Paso (px/s) | Cualidad | Especial |
 |---|---|---|---|
-| Fran | Arpón doble: dos a la vez | 62 | **¡Una más!**: las burbujas (y el jefe) se quedan quietas 5 s |
-| Pablo | Arpón de impro: se clava en el techo y se queda 2,5 s | 72 | **¡Sí, y…!**: cada burbuja se parte a la vez; al jefe le quita 3 |
-| Chuchi | Ráfaga: balas cortas y rápidas (hasta 5 a la vez) | 84 | **Modo kinki**: 6 s de ráfaga triple que atraviesa |
-| Guille | Arpón ancho (7 px en vez de 3) | 72 | **Abrazo de oso**: escudo que aguanta un golpe y al romperse revienta lo que tiene a menos de 48 px |
+| Fran | 62 | **Poder de convocatoria**: los objetos que esperan en su mismo suelo (a menos de 64 px en horizontal y 24 en vertical) se deslizan hacia sus pies a 40 px/s; si pasan del borde de una plataforma, caen | **¡Una más!**: las burbujas (y el jefe) se quedan quietas 5 s |
+| Pablo | 72 | **Nunca dice que no**: si pierde una vida, conserva el arma que llevaba | **¡Sí, y…!**: cada burbuja se parte a la vez; al jefe le quita 3 |
+| Chuchi | 84 | **Atajo de teclado**: sus arpones y balas (también las del kinki) van un 25 % más rápido | **Modo kinki**: 6 s de ráfaga triple que atraviesa (manda sobre el arma que lleve y, al acabar, vuelve) |
+| Guille | 72 | **Maño**: el escudo del objeto aguanta dos golpes en vez de uno, y el cierzo de Zaragoza no le empuja | **Abrazo de oso**: al usarlo revienta lo que tiene a menos de 48 px y le deja un escudo (un golpe) que, al romperse, vuelve a reventar lo cercano |
 
-La barra del especial se llena con 16 burbujas reventadas (o golpes al jefe) y se conserva entre vidas.
+La barra del especial se llena con 16 burbujas reventadas (o golpes al jefe) y se conserva entre vidas. Tras un golpe con escudo hay 1,5 s de invulnerabilidad.
 
-### Objetos (12 % de las burbujas sueltan uno; caen, esperan 6 s y parpadean antes de irse)
+### Las armas
 
+| Arma | Cómo dispara |
+|---|---|
+| Arpón normal | Un arpón en el aire a la vez (el de salida de todos) |
+| Arpón doble | Dos a la vez |
+| Arpón triple | Tres a la vez |
+| Arpón fijo | Se clava en el techo o bajo un bloque y se queda 2,5 s; uno en el aire, hasta tres en total |
+| Ráfaga | Se mantiene pulsado y salen balas cortas y rápidas (hasta 5 a la vez; 0,34 de daño al jefe) |
+
+Los cables miden siempre 3 px de ancho. El **modo kinki** manda sobre cualquier arma mientras dura y luego vuelve la que había.
+
+### Objetos (15 % de las burbujas sueltan uno; caen, esperan 6 s y parpadean antes de irse)
+
+Reparto por cada 100 objetos: armas 32 (doble 12, fijo 8, ráfaga 8, triple 4), reloj 10, chupito 8, escudo 10, caña 5 y comida 35. Lo que no tiene sentido pasa a ser comida (el chupito con jefe, la caña si ya salió en la fase).
+
+- **Armas** (cápsula de colores con flechas o balas; ver «Las armas»): al cogerla, el jugador cambia de arma al momento (los cables que ya van por el aire terminan su vuelo), suena el efecto de objeto y sale el aviso («¡ARPÓN DOBLE!», etc.). Nunca sale el arma que el jugador ya lleva. **Dura hasta que pierde una vida** (vuelve al arpón normal; Pablo la conserva) **o coge otra**. Se conserva de una fase a la siguiente; «¿Continuar?» tras quedarse sin vidas empieza con el arpón normal. El marcador enseña un icono del arma junto a las vidas.
 - **Reloj** de la cocina de Fran: congela las burbujas 5 s.
 - **Chupito**: dinamita, todas las burbujas a la talla más pequeña (no sale con jefe).
-- **Escudo**: aguanta un golpe.
+- **Escudo**: aguanta un golpe (dos, Guille).
 - **Caña**: vida extra (una por fase como mucho).
 - **Comida** para puntos: taquitos de jamón, aceitunas, croqueta, turrón y yema de Ávila.
 
@@ -67,7 +84,7 @@ Tres temas propios, sintetizados con `tools/musica/pang.py` (12 de octubre de 20
 
 ## Controles
 
-- **Móvil (horizontal):** ◀ ▶ abajo a la izquierda (se puede deslizar el dedo de uno a otro), Disparo y Especial abajo a la derecha, y Pausa arriba a la derecha. En la fase 8 salen ▲ ▼ para las escaleras (el Pang corto no tiene la pausa). Botones de al menos 44 px CSS, semitransparentes y en las zonas seguras.
+- **Móvil (horizontal):** ◀ ▶ grandes abajo a la izquierda (cada flecha mide 1,15 × la altura del botón, que va de 64 a 96 px según la pantalla; se puede deslizar el dedo de una a otra) y, alrededor, un margen invisible de 32 px que también cuenta como zona táctil (toda la esquina inferior izquierda): izquierda o derecha se decide por el punto medio entre las dos flechas visibles. Disparo y Especial abajo a la derecha, y Pausa arriba a la derecha. En la fase 8 salen ▲ ▼ para las escaleras, centradas justo encima de las flechas y sin pisar su zona táctil (el Pang corto no tiene la pausa). Botones de al menos 44 px CSS, semitransparentes y en las zonas seguras. Los controles son los mismos en el Pang corto del capítulo.
 - **Teclado:** flechas o A/D para andar, ↑/↓ o W/S en las escaleras, espacio, Z o J para disparar, ↑ (o W, fuera de las escaleras), Ctrl o Cmd, X, K o Mayúsculas para el especial, Esc o P para la pausa.
 
 ## Guardado

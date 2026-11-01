@@ -36,8 +36,8 @@ export function elegirPersonaje(ui: HTMLElement, previo: PjId | null = null): Pr
         'button',
         { type: 'button', class: 'pg-carta', 'aria-pressed': 'false', style: `--color:${f.color}` },
         h('div', { class: 'pg-carta-cab' }, cara, h('div', {}, h('div', { class: 'pg-carta-nombre' }, f.nombre), dato(texto('elegir.paso'), texto(`pj.${id}.paso`)))),
-        dato(texto('elegir.arma'), texto(`pj.${id}.arma`)),
-        h('p', { class: 'pg-texto' }, texto(`pj.${id}.arma.texto`)),
+        dato(texto('elegir.cualidad'), texto(`pj.${id}.cualidad`)),
+        h('p', { class: 'pg-texto' }, texto(`pj.${id}.cualidad.texto`)),
         dato(texto('elegir.poder'), texto(`pj.${id}.poder`)),
         h('p', { class: 'pg-texto' }, texto(`pj.${id}.poder.texto`)),
       );

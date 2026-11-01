@@ -30,6 +30,8 @@ export class Bot {
   private n = 0;
   /** The wind (cierzo) when it last decided, taken as constant for the second ahead. */
   private viento = 0;
+  /** px/s the wind pushes this bot's player at full strength (0 for Guille). */
+  private empuje = VIENTO_JUGADOR;
 
   /** Called every simulation step; decides ten or twenty times a second. */
   pensar(m: Mundo, mandos: Mandos, dt: number) {
@@ -42,6 +44,8 @@ export class Bot {
     this.predecir(m);
     const j = m.jugadores[this.idx];
     const paso = j.estilo.paso;
+    // Guille's «maño»: the cierzo does not push him.
+    this.empuje = j.estilo.cualidad === 'mano' ? 0 : VIENTO_JUGADOR;
     if (j.barra >= BARRA_LLENA && this.n > 0) mandos.especial = true;
 
     // The target: big, near in x, and above.
@@ -67,7 +71,7 @@ export class Bot {
     let coste = 1e9;
     this.bloques = m.bloques;
     for (const d of [0, -1, 1]) {
-      const fin = Math.max(AREA.izq + 8, Math.min(AREA.der - 8, j.x + (d * paso + this.viento * VIENTO_JUGADOR) * N * MUESTRA));
+      const fin = Math.max(AREA.izq + 8, Math.min(AREA.der - 8, j.x + (d * paso + this.viento * this.empuje) * N * MUESTRA));
       const c = this.peligro(j.x, j.y, d, paso) * 10 + (this.tapado(fin, j.y) ? 3 : 0) + Math.abs(objetivo - fin) * 0.05 + (d !== 0 ? 0.2 : 0) + (Math.abs(objetivo - j.x) < 3 && d !== 0 ? 1 : 0);
       if (c < coste) {
         coste = c;
@@ -77,7 +81,7 @@ export class Bot {
     mandos.izq = elegido < 0;
     mandos.der = elegido > 0;
     const alineado = mejor >= 0 && Math.abs(objetivo - j.x) <= Math.max(3, radio * 0.6) && !this.tapado(j.x, j.y);
-    const auto = j.estilo.arma === 'rafaga' || j.kinki > 0;
+    const auto = j.arma === 'rafaga' || j.kinki > 0;
     mandos.fuego = alineado && auto;
     if (alineado && this.disparoEn <= 0) {
       mandos.disparo = true;
@@ -97,7 +101,7 @@ export class Bot {
   private peligro(x: number, y: number, d: number, paso: number): number {
     let p = 0;
     for (let s = 0; s < N; s++) {
-      const px = Math.max(AREA.izq + 8, Math.min(AREA.der - 8, x + (d * paso + this.viento * VIENTO_JUGADOR) * MUESTRA * (s + 1)));
+      const px = Math.max(AREA.izq + 8, Math.min(AREA.der - 8, x + (d * paso + this.viento * this.empuje) * MUESTRA * (s + 1)));
       for (let i = 0; i < this.n; i++) {
         if (circuloRect(this.bx[i * N + s], this.by[i * N + s], this.br[i] + 4, px - 7, y - 24, 14, 24)) p += N - s;
       }
