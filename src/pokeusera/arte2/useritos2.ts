@@ -8,6 +8,7 @@ import { LOTE_D } from './useritos2-d';
 import { LOTE_E } from './useritos2-e';
 import { LOTE_F } from './useritos2-f';
 import { LOTE_G } from './useritos2-g';
+import { LOTE_H } from './useritos2-h';
 import { Pintor, Mascara, bez3, cur, el, espejo, mover, par, poli, rc, rr, trazo, un, men, inter, lin, type Mat } from './pintor';
 
 export interface Dibujo2 {
@@ -407,7 +408,7 @@ export const DIBUJOS2: Dibujo2[] = [
   { id: 'ego-ego', nombre: 'Ego-Ego', dibujar: egoEgo },
 ];
 // The other useritos, drawn in batches; a batch may redraw one above (the later one wins).
-for (const d of [...LOTE_A, ...LOTE_B, ...LOTE_C, ...LOTE_D, ...LOTE_E, ...LOTE_F, ...LOTE_G]) {
+for (const d of [...LOTE_A, ...LOTE_B, ...LOTE_C, ...LOTE_D, ...LOTE_E, ...LOTE_F, ...LOTE_G, ...LOTE_H]) {
   const i = DIBUJOS2.findIndex((x) => x.id === d.id);
   if (i >= 0) DIBUJOS2[i] = d;
   else DIBUJOS2.push(d);
