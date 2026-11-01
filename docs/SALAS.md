@@ -63,9 +63,9 @@ Una sola infraestructura de salas para **todos los juegos** de la web. Cada jueg
 
 ## Enlaces a una sala y la portada
 
-`src/sala/reglas.mjs` guarda `SALAS_EN_WEB`: los juegos cuya página sabe abrir una sala desde un enlace, con su ruta (hoy solo `{ pokeusera: '/pokeusera' }`). `enlaceSala(juego, codigo | 'nueva')` da el enlace (`'/pokeusera?sala=K7MZ'` o `'/pokeusera?sala=nueva'`), o `null` si el juego no está ahí.
+`src/sala/reglas.mjs` guarda `SALAS_EN_WEB`: los juegos cuya página sabe abrir una sala desde un enlace, con su ruta (hoy `{ pokeusera: '/pokeusera', pang: '/pang' }`). `enlaceSala(juego, codigo | 'nueva')` da el enlace (`'/pokeusera?sala=K7MZ'` o `'/pokeusera?sala=nueva'`), o `null` si el juego no está ahí.
 
-**Contrato de los enlaces** (lo debe cumplir cualquier juego que se añada a `SALAS_EN_WEB`; el Pang lo hará al tener online). La página del juego lee `sala` con `parametros()` (`src/core/direccion.ts`, no `location.search`):
+**Contrato de los enlaces** (lo debe cumplir cualquier juego que se añada a `SALAS_EN_WEB`). La página del juego lee `sala` con `parametros()` (`src/core/direccion.ts`, no `location.search`):
 
 - `?sala=CODIGO` entra en esa sala (si no se puede —no existe, llena, en partida, sin red—, avisa con el texto de ese caso y enseña la lista de salas del juego).
 - `?sala=nueva` **crea** una sala de 4 (`SALA_NUEVA`, como el botón de crear de su lista). Si no se puede (ya hay 4 salas, sin red) avisa igual y enseña la lista.
@@ -82,4 +82,4 @@ El Pang completo usa este servicio (`'pang'` en `JUEGOS_ONLINE`; `src/pang/red/`
 - **Mensajes de `juego`** (`datos.k`): `mandos` (invitado → anfitrión), `fase`, `estado` (la foto, unas 30 por segundo), `fin`, `final`, `menu` y `vivo` (anfitrión → todos). Cada pestaña cierra la sala con `cerrada`/`perdida` y vuelve a la lista con un aviso corto.
 - **Inactividad:** durante la partida hay tráfico (los invitados mandan sus botones cada 0,5 s), pero en las pantallas entre fases (continuar, final, elegir fase) no; por eso **el anfitrión manda `{ k: 'vivo' }` cada 60 s** mientras dura la partida y la sala no se cierra a los 30 minutos con la gente mirando una pantalla. Una sala parada en la pantalla de la sala sí se cierra a los 30 minutos, como en PokéUsera.
 - Al acabar la partida (final de las doce fases, o «Al menú» tras perder, o «Volver» al elegir la fase) el anfitrión manda `volver` y todos regresan a la sala, donde pueden entrar otros o jugar otra vez. «Salir de la partida» del menú de pausa saca de la partida y de la sala (si es el anfitrión, la cierra).
-- `SALAS_EN_WEB` (la lista de salas que aparecen en la web) no existe todavía en `src/sala/reglas.mjs`: cuando exista, el Pang tiene que estar en ella.
+- El Pang está en `SALAS_EN_WEB` (`/pang?sala=CODIGO`, `/pang?sala=nueva`).
