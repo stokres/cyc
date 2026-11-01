@@ -28,7 +28,7 @@
 //    abilities, objects, falls...): see `golpesPrimero`. The state and the dice do not change, only the order of the events.
 // Every event may carry `clave` + `vars` (quien = userito name, jugador = player name, mov, ...).
 import type { Eleccion, EscenarioId, EstadoCombate, Estadisticas, EntrenadorId, Estado, Evento, HabilidadId, Jugador, Movimiento, ObjetoId, Stat, StatsUserito, SucesoId, Tipo, Userito } from '../tipos';
-import { ESCENARIOS, HAB_CANTA_MULT, HAB_FOTOSINTESIS, HAB_GRASIENTO, HAB_LAVADO_CURA, HAB_MALETA_ATA, HAB_MANICO_ATA, HAB_BLANDITO, HAB_PAREJA, HAB_PROB_REACCION, OBJ_BOCATA_CURA, OBJ_GAFAS_PREC, OBJ_MECHERO_QUEMA, OBJ_PALILLO_CRIT, OBJ_PANUELO, OBJ_TAPON_USOS, PERK_CANA_FRAN, PERK_COSECHA_ARI, PERK_PRECISION_PABLO, PERK_RUIDO_FER, PERK_TARDE_CHUCHI, PERK_VERSO_VINAS, TIPOS_FISICOS } from '../tipos';
+import { ESCENARIOS, HAB_CANTA_MULT, HAB_FOTOSINTESIS, HAB_GRASIENTO, HAB_LAVADO_CURA, HAB_MALETA_ATA, HAB_MANICO_ATA, HAB_MANO_LARGA, HAB_BLANDITO, HAB_PAREJA, HAB_PROB_REACCION, OBJ_BOCATA_CURA, OBJ_GAFAS_PREC, OBJ_MECHERO_QUEMA, OBJ_PALILLO_CRIT, OBJ_PANUELO, OBJ_TAPON_USOS, PERK_CANA_FRAN, PERK_COSECHA_ARI, PERK_PRECISION_PABLO, PERK_RUIDO_FER, PERK_TARDE_CHUCHI, PERK_VERSO_VINAS, TIPOS_FISICOS } from '../tipos';
 import { DESESPERADA, EFECTOS, ESPECIE, MOVS, MOVS_IMPROVISA, SUCESOS, TURNOS_SUCESO, eficacia, esSonido, potenciaRemate, sucesosDe } from '../datos';
 import { azar, elegir, entero, probar, type ConSemilla } from './azar';
 
@@ -422,6 +422,13 @@ function alSalirAlCampo(c: Ctx, j: number) {
         cambiarNivel(c, j, 'vel', 1, j);
       }
       break;
+    case 'espiritu_navideno':
+      // Espíritu navideño (Navicesta): its Defence goes up 1 every time it comes out (nothing is announced when it is at +6 already).
+      if (u.niveles.def < 6) {
+        habilidad(c, j, 'espiritu_navideno', 'hab.espiritu_navideno.activa');
+        cambiarNivel(c, j, 'def', 1, j);
+      }
+      break;
     case 'feria': {
       // Vueltas de feria: the rivals that can still go slower get dizzy; the others stay as they are, without «no puede bajar más».
       const rivales = rivalesEnPie(c.e, j);
@@ -536,6 +543,7 @@ function revisarCaida(c: Ctx, j: number, por?: number) {
   const u = act(c, j);
   if (u.ps > 0) {
     abrirMaleta(c, j);
+    todaLaVida(c, j);
     comerBocata(c, j);
     return;
   }
@@ -577,6 +585,15 @@ function abrirMaleta(c: Ctx, j: number) {
   if (u.niveles.ata >= 6) return;
   habilidad(c, j, 'maleta', 'hab.maleta.activa');
   cambiarNivel(c, j, 'ata', HAB_MALETA_ATA, j);
+}
+
+/** De toda la vida (Josex): the first time it drops under half of its HP and is still standing, it heals 1/4 of its max HP (once per userito and battle: `habUsada`). */
+function todaLaVida(c: Ctx, j: number) {
+  const u = act(c, j);
+  if (habilidadDe(u) !== 'toda_la_vida' || u.habUsada || u.ps <= 0 || u.ps * 2 >= u.psMax) return;
+  u.habUsada = true;
+  habilidad(c, j, 'toda_la_vida', 'hab.toda_la_vida.activa');
+  curar(c, j, Math.max(1, Math.floor(u.psMax / 4)));
 }
 
 /** `por`: the player who causes the change (counts as a change on itself or on others). `deRival`: the change is a rival's doing (by default, when `por` is
@@ -728,7 +745,7 @@ function efectosPropios(c: Ctx, j: number, m: Movimiento) {
     c.usoProt[j] = true;
     if (ef.especial === 'esconderse') {
       u.vol.escondido = true;
-      decir(c, 'combate.esconde', varsDe(c, j));
+      decir(c, ef.frase ?? 'combate.esconde', varsDe(c, j));
     } else if (ef.especial === 'quepague') {
       u.vol.desvia = true;
       decir(c, 'combate.quepague', varsDe(c, j));
@@ -752,6 +769,11 @@ function efectosPropios(c: Ctx, j: number, m: Movimiento) {
     }
     u.estado = 'dormido';
     u.sueno = 2;
+    // Leche calentita (Baticao): its Siesta puts it to sleep for 1 turn instead of 2.
+    if (habilidadDe(u) === 'leche_calentita') {
+      habilidad(c, j, 'leche_calentita', 'hab.leche_calentita.activa');
+      u.sueno = 1;
+    }
     u.achispado = 0;
     c.ev.push({ k: 'estado', j, estado: 'dormido', clave: 'combate.siesta', vars: varsDe(c, j) });
     curar(c, j, Math.floor(u.psMax / 2));
@@ -793,7 +815,8 @@ function limpiarEstados(c: Ctx, j: number) {
   u.vol.bostezo = -1;
 }
 
-function forzarCambio(c: Ctx, t: number) {
+/** Makes the target change to another userito at random. `clave`: what is said (Remolino's by default); `callar`: nobody left to come in says nothing (Gentrificación: the damage is done anyway). */
+function forzarCambio(c: Ctx, t: number, clave = 'combate.remolino', callar = false) {
   const q = c.e.jugadores[t];
   // 152 kilos (Tocinón): nobody moves it.
   if (habilidadDe(act(c, t)) === 'kilos') {
@@ -802,10 +825,10 @@ function forzarCambio(c: Ctx, t: number) {
   }
   const banco = vivos(q).filter((i) => i !== q.activo);
   if (!banco.length) {
-    decir(c, 'combate.sin_efecto', varsDe(c, t), t);
+    if (!callar) decir(c, 'combate.sin_efecto', varsDe(c, t), t);
     return;
   }
-  decir(c, 'combate.remolino', varsDe(c, t), t);
+  decir(c, clave, varsDe(c, t), t);
   sacar(c, t, elegir(c.e, banco));
   if (!c.actuo[t]) c.anulada[t] = true;
 }
@@ -862,6 +885,11 @@ function efectosSecundarios(c: Ctx, j: number, t: number, m: Movimiento, danino:
     }
   }
   if (ef.especial === 'remolino') forzarCambio(c, t);
+  // Mano larga (Culotouchi): 20 % that its physical attacks at one lower the Defence of the target (the roll is always drawn; it only speaks when the Defence can still go down).
+  if (danino && m.objetivo !== 'todos' && TIPOS_FISICOS.includes(m.tipo) && habilidadDe(act(c, j)) === 'mano_larga' && act(c, j).ps > 0 && probar(e, HAB_MANO_LARGA) && v.niveles.def > -6) {
+    habilidad(c, j, 'mano_larga', 'hab.mano_larga.activa', { otro: nom(v) });
+    cambiarNivel(c, t, 'def', -1, j);
+  }
 }
 
 /** Trainer perks that change a hit from another player on player `t`'s active userito (`dano` is
@@ -897,6 +925,15 @@ function topeCajon(c: Ctx, t: number, dano: number): number {
   const v = act(c, t);
   if (habilidadDe(v) !== 'cajon' || v.ps !== v.psMax || dano < v.ps) return dano;
   habilidad(c, t, 'cajon', 'hab.cajon.activa');
+  return v.ps - 1;
+}
+
+/** Fu (Arcochin): once per battle, a blow that would knock out a userito that had more than half of its HP leaves it at 1 HP (`habUsada`, so it survives switching out). */
+function topeFu(c: Ctx, t: number, dano: number): number {
+  const v = act(c, t);
+  if (habilidadDe(v) !== 'fu' || v.habUsada || v.ps * 2 <= v.psMax || dano < v.ps) return dano;
+  v.habUsada = true;
+  habilidad(c, t, 'fu', 'hab.fu.activa');
   return v.ps - 1;
 }
 
@@ -1077,7 +1114,7 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
       if (ef.especial === 'remate') pot = potenciaRemate(u.ps, u.psMax);
       if (ef.especial === 'premio') {
         pot = elegir(e, [0, 40, 80, 150]);
-        decir(c, `combate.premio${pot}`, varsDe(c, j));
+        decir(c, `${ef.frase ?? 'combate.premio'}${pot}`, varsDe(c, j));
       }
       if (ef.especial === 'venganza' && c.agresoresIni[j].includes(t)) {
         pot *= 2;
@@ -1124,7 +1161,7 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
             dano0 = Math.max(1, Math.floor(dano0 / 2));
           }
           const { dano, bruto, perk } = aplicarPerks(c, t, dano0, esSonido(m.id));
-          totalDano += danar(c, t, topeAguante(c, t, topeCajon(c, t, dano)), { ef: r.ef, critico, de: j, mov: m.id, acorralado, bruto });
+          totalDano += danar(c, t, topeAguante(c, t, topeFu(c, t, topeCajon(c, t, dano))), { ef: r.ef, critico, de: j, mov: m.id, acorralado, bruto });
           hechos++;
           if (critico) decir(c, 'combate.critico', varsDe(c, t), t);
           if (cosecha) decir(c, 'combate.perk.ari', varsDe(c, j), t);
@@ -1150,7 +1187,7 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
       // «Devolvérsela»: 1.5 times what it took this turn, whatever the types (a fixed amount: no dice, no critical).
       if (ef.especial === 'devolver') {
         const { dano, bruto, perk } = aplicarPerks(c, t, Math.max(1, Math.floor(c.recibido[j] * 1.5)));
-        totalDano += danar(c, t, topeAguante(c, t, topeCajon(c, t, dano)), { ef: 1, critico: false, de: j, mov: m.id, bruto });
+        totalDano += danar(c, t, topeAguante(c, t, topeFu(c, t, topeCajon(c, t, dano))), { ef: 1, critico: false, de: j, mov: m.id, bruto });
         hechos++;
         if (perk) decir(c, `combate.perk.${perk}`, varsDe(c, t), t);
         avisoAguante(c, t);
@@ -1174,6 +1211,9 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
   // Whoever hit Aceituna, Roscochoco, Chupitochu or P pays for it (Buena chica, Indigesto, Ardiente, Pesadísimo), target by target once the move is told.
   for (const t of golpeados) reaccionAlGolpe(c, j, t, m);
 
+  // Gentrificación: once the blow and the answers to it are told, the target that is still standing has to move out (152 kilos stays; nobody to come in: just the damage).
+  if (ef.especial === 'gentrificacion') for (const t of golpeados) if (act(c, t).ps > 0) forzarCambio(c, t, ef.frase, true);
+
   // Self stage changes of a move that hits others (e.g. «Tubo perfecto»): once, if it reached anybody, even if the target fell.
   if (acerto && u.ps > 0) for (const n of ef.nivel ?? []) if (n.a === 'yo' && (n.prob === undefined || probar(e, n.prob))) cambiarNivel(c, j, n.stat, n.cambio, j);
 
@@ -1195,7 +1235,7 @@ function usarMovimiento(c: Ctx, j: number, m: Movimiento, pedido: number | undef
     const q = e.jugadores[j];
     if (vivos(q).some((i) => i !== q.activo)) {
       c.tendedero[j] = true;
-      decir(c, 'combate.tendedero_vuelve', varsDe(c, j));
+      decir(c, ef.frase ?? 'combate.tendedero_vuelve', varsDe(c, j));
     }
   }
 }

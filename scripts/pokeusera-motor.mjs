@@ -38,7 +38,7 @@ const decir = (ev) => (ev.clave ? textos.get(ev.clave)?.replace(/\{(\w+)\}/g, (_
 
 const fallos = [];
 // Data: 32 useritos with valid moves; every userito, move and type has its text.
-if (M.ESPECIES.length !== 37) console.error('FALLO: no hay 37 useritos');
+if (M.ESPECIES.length !== 42) console.error('FALLO: no hay 42 useritos');
 for (const sp of M.ESPECIES) {
   if (!textos.has(`userito.${sp.id}.desc`)) console.error('FALLO: falta userito.' + sp.id + '.desc');
   for (const mv of sp.movs) if (!M.MOVS[mv]) console.error('FALLO: movimiento desconocido', sp.id, mv);
@@ -2212,6 +2212,7 @@ revisarTanda8();
 revisarTanda9();
 revisarUseritos33();
 revisarTanda12();
+revisarUseritos38();
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Tanda 8: the six new useritos (Nº 25-30), their 13 moves and the 29 abilities. Deterministic cases: every move (data and effect), each
@@ -2273,7 +2274,7 @@ function revisarTanda8() {
 
   // --- Data: 30 useritos, the six new ones at the end (Nº 25-30), all of them adding up to 420, the types spread between 4 and 6.
   {
-    if (M.ESPECIES.length !== 37) falla(`hay ${M.ESPECIES.length} useritos, esperaba 37`);
+    if (M.ESPECIES.length !== 42) falla(`hay ${M.ESPECIES.length} useritos, esperaba 42`);
     const viejos = 'draguserin,goudazard,aceituna,cierzon,turroncho,tocinon,roscochoco,espumarro,cajonazo,lentejasur,tragaperras,turito,resacon,evoscar,chupitochu,caravaner,camioner,criaturitah,ego-ego,kbronero,cubatillo,p,jesuspelo,pantaloneto';
     if (M.ESPECIES.slice(0, 24).map((s) => s.id).join() !== viejos) falla('los Nº 1-24 han cambiado de sitio');
     const nuevos = [
@@ -2298,7 +2299,7 @@ function revisarTanda8() {
     }
     const porTipo = {};
     for (const sp of M.ESPECIES) for (const tp of sp.tipos) porTipo[tp] = (porTipo[tp] ?? 0) + 1;
-    for (const [tp, n] of Object.entries(porTipo)) if (tp === 'mindundi' ? n !== 8 : n < 4 || n > 8) falla(`tipo ${tp}: ${n} useritos (4-8, Mindundi 8)`);
+    for (const [tp, n] of Object.entries(porTipo)) if (tp === 'mindundi' ? n !== 9 : n < 4 || n > 10) falla(`tipo ${tp}: ${n} useritos (4-10, Mindundi 9)`);
   }
 
   // --- Data: the 13 new moves.
@@ -2512,12 +2513,13 @@ function revisarTanda8() {
       criaturitah: 'fotosintesis', 'ego-ego': 'flipado', kbronero: 'volumen', cubatillo: 'hielo', p: 'pesadisimo', jesuspelo: 'ola', pantaloneto: 'lavado', maletrio: 'maleta', teloneon: 'publico',
       choquechu: 'corriente', torrezmon: 'grasiento', papiroflexeon: 'viento', ceceseta: 'fan', mariachi: 'cantaynollores', pulpino: 'malaleche',
       cilantrox: 'jabon', fotomaton: 'tira', cloudtrio: 'blandito', cigarr: 'humo', ollalocah: 'feria',
+      culotouchi: 'mano_larga', baticao: 'leche_calentita', josex: 'toda_la_vida', arcochin: 'fu', navicesta: 'espiritu_navideno',
     };
     for (const sp of M.ESPECIES) {
       if (sp.habilidad !== tabla[sp.id]) falla(`${sp.id}: habilidad ${sp.habilidad}, esperaba ${tabla[sp.id]}`);
       for (const c of ['nombre', 'desc']) if (!textos.has(`hab.${sp.habilidad}.${c}`)) falla(`falta hab.${sp.habilidad}.${c}`);
     }
-    if (new Set(Object.values(tabla)).size !== 36) falla('deberían ser 36 habilidades distintas (Caravaner y Camioner comparten una)');
+    if (new Set(Object.values(tabla)).size !== 41) falla('deberían ser 41 habilidades distintas (Caravaner y Camioner comparten una)');
   }
 
   // Fuego de dragón: its Petardo attacks burn twice as often (Petardazo 30 % → 60 %), and the ability is told before the burn.
@@ -3225,7 +3227,7 @@ function revisarTanda9() {
 
   // --- Data: 32 useritos, the Nº 1-30 where they were, Mariachi and Pulpiño at the end, both adding up to 420.
   {
-    if (M.ESPECIES.length !== 37) falla(`hay ${M.ESPECIES.length} useritos, esperaba 37`);
+    if (M.ESPECIES.length !== 42) falla(`hay ${M.ESPECIES.length} useritos, esperaba 42`);
     const antes = 'draguserin,goudazard,aceituna,cierzon,turroncho,tocinon,roscochoco,espumarro,cajonazo,lentejasur,tragaperras,turito,resacon,evoscar,chupitochu,caravaner,camioner,criaturitah,ego-ego,kbronero,cubatillo,p,jesuspelo,pantaloneto,maletrio,teloneon,choquechu,torrezmon,papiroflexeon,ceceseta';
     if (M.ESPECIES.slice(0, 30).map((x) => x.id).join() !== antes) falla('los Nº 1-30 han cambiado de sitio');
     const nuevos = [
@@ -3269,7 +3271,7 @@ function revisarTanda9() {
     if (M.MOVS_IMPROVISA.some((id) => ['ayayay', 'serenata', 'picante', 'ochotortas', 'tinta', 'morrina'].includes(id))) falla('¡Improvisa! no debe sacar los movimientos de un solo dueño');
     const porTipo = {};
     for (const sp of M.ESPECIES) for (const tp of sp.tipos) porTipo[tp] = (porTipo[tp] ?? 0) + 1;
-    for (const [tp, n] of Object.entries(porTipo)) if (tp === 'mindundi' ? n !== 8 : n < 4 || n > 8) falla(`tipo ${tp}: ${n} useritos`);
+    for (const [tp, n] of Object.entries(porTipo)) if (tp === 'mindundi' ? n !== 9 : n < 4 || n > 10) falla(`tipo ${tp}: ${n} useritos`);
   }
 
   // --- ¡Ay, ay, ay!: pega a los tres rivales y el 10 % de las veces uno retrocede (rivales lentos, que aún no han actuado).
@@ -4211,6 +4213,452 @@ function revisarUseritos33() {
     }
   }
   void idp;
+}
+
+// Culotouchi, Baticao, Josex, Arcochin and Navicesta (Nº 38-42, tanda 13, 1-nov): eleven moves, five abilities, and the three moves that generalise an older one
+// (Viaje a Cancún = Al tendedero, Horóscopo chino = Premio gordo, Gentrificación = Remolino after the damage).
+function revisarUseritos38() {
+  const ENT = ['fran', 'pablo', 'chuchi', 'guille'];
+  const mk = (equipos, semilla = 3) => M.crearCombate(equipos.map((especies, i) => ({ entrenador: ENT[i], nombre: 'J' + i, bot: false, especies })), semilla);
+  const ataca = (mov, objetivo = 1) => ({ tipo: 'atacar', mov, objetivo });
+  const pasa = { tipo: 'pasar' };
+  const idx = (esp, mov) => M.ESPECIE[esp].movs.indexOf(mov);
+  const act0 = (e, j = 0) => e.jugadores[j].equipo[e.jugadores[j].activo];
+  const seguro = (e, j) => (act0(e, j).niveles.prec = 6);
+  const conHab = (esp, hab, fn) => {
+    const sp = M.ESPECIE[esp];
+    const antes = sp.habilidad;
+    sp.habilidad = hab;
+    try {
+      return fn();
+    } finally {
+      sp.habilidad = antes;
+    }
+  };
+  const habs = (r, id, j) => r.eventos.filter((ev) => ev.k === 'habilidad' && ev.id === id && (j === undefined || ev.j === j));
+  const golpes = (r, j) => r.eventos.filter((ev) => ev.k === 'golpe' && ev.j === j && !ev.fin && !ev.clave);
+  const niveles = (r, j) => act0(r.estado, j).niveles;
+  const dice = (r, clave) => r.eventos.filter((ev) => ev.clave === clave);
+  const semillas = (n) => Array.from({ length: n }, (_, i) => i + 1);
+  const cerca = (x, v, m, nombre) => {
+    if (Math.abs(x - v) > m) falla(`${nombre}: ${x.toFixed(2)}, esperaba ~${v}`);
+  };
+  const rival = ['tocinon', 'turito', 'cierzon'];
+  const tasa = (esp, mov, equipoRival, f, n = 200) => {
+    let k = 0;
+    for (const sem of semillas(n)) {
+      const e = mk([[esp, 'turito', 'tocinon'], equipoRival], sem);
+      seguro(e, 0);
+      const r = M.resolverTurno(e, [ataca(idx(esp, mov)), pasa, pasa, pasa]);
+      if (f(r)) k++;
+    }
+    return k / n;
+  };
+
+  // --- Data: the five useritos at the end, the eleven moves (one owner each, none for ¡Improvisa!) and every text.
+  const nuevos = [
+    ['culotouchi', ['mindundi', 'bronca'], [110, 100, 105, 45, 60], 'azote,consentimiento,tentaculo,taconeo', 'mano_larga'],
+    ['baticao', ['chanza', 'droga'], [70, 65, 62, 108, 115], 'lactosa,grumitos,siesta,quepague', 'leche_calentita'],
+    ['josex', ['grasa', 'chanza'], [66, 76, 60, 108, 110], 'tortipapa,cancun,pringue,ronda', 'toda_la_vida'],
+    ['arcochin', ['chanza'], [75, 65, 85, 95, 100], 'horoscopo,gentrificacion,traca,selfie', 'fu'],
+    ['navicesta', ['juerga', 'grasa'], [95, 70, 80, 70, 105], 'tekifresi,fiebre,conga,aguantar', 'espiritu_navideno'],
+  ];
+  nuevos.forEach(([id, tipos, b, movs, hab], i) => {
+    const sp = M.ESPECIES[37 + i];
+    if (!sp || sp.id !== id) falla(`Nº ${38 + i}: es ${sp?.id}, esperaba ${id}`);
+    if (!sp) return;
+    if (sp.tipos.join() !== tipos.join()) falla(`${id}: tipos ${sp.tipos}`);
+    if ([sp.base.ps, sp.base.ata, sp.base.def, sp.base.vel, sp.base.esp].join() !== b.join()) falla(`${id}: estadísticas ${JSON.stringify(sp.base)}`);
+    if (b.reduce((x, y) => x + y, 0) !== 420) falla(`${id} no suma 420`);
+    if (sp.movs.join() !== movs) falla(`${id}: movimientos ${sp.movs}`);
+    if (sp.habilidad !== hab) falla(`${id}: habilidad ${sp.habilidad}`);
+    for (const k of [`userito.${id}.desc`, `hab.${hab}.nombre`, `hab.${hab}.desc`, `hab.${hab}.activa`]) if (!textos.has(k)) falla(`falta el texto ${k}`);
+  });
+  const movs = {
+    azote: ['bronca', 90, 100, 8, 'uno', 0],
+    tentaculo: ['mindundi', 85, 100, 8, 'uno', 0],
+    consentimiento: ['mindundi', null, null, 5, 'yo', 2],
+    lactosa: ['droga', 80, 100, 8, 'uno', 0],
+    grumitos: ['chanza', 25, 90, 10, 'uno', 0],
+    tortipapa: ['grasa', 75, 100, 8, 'uno', 0],
+    cancun: ['chanza', 80, 100, 5, 'uno', 0],
+    horoscopo: ['chanza', null, 100, 5, 'uno', 0],
+    gentrificacion: ['chanza', 70, 100, 5, 'uno', 0],
+    tekifresi: ['alcohol', 60, 100, 5, 'todos', 0],
+    fiebre: ['grasa', 90, 100, 8, 'uno', 0],
+  };
+  for (const [id, [tipo, pot, prec, pp, obj, prio]] of Object.entries(movs)) {
+    const m = M.MOVS[id];
+    if (!m) {
+      falla(`falta el movimiento ${id}`);
+      continue;
+    }
+    if (m.tipo !== tipo || m.pot !== pot || m.prec !== prec || m.pp !== pp || m.objetivo !== obj || (m.prioridad ?? 0) !== prio) falla(`${id}: datos ${JSON.stringify(m)}`);
+    if (!textos.has(`mov.${id}.desc`)) falla(`falta mov.${id}.desc`);
+    if (M.ESPECIES.filter((sp) => sp.movs.includes(id)).length !== 1) falla(`${id}: debe tener un solo dueño`);
+    if (M.MOVS_IMPROVISA.includes(id)) falla(`¡Improvisa! puede sacar ${id}`);
+  }
+  for (const k of ['combate.consentimiento', 'combate.cancun_vuelve', 'combate.gentrificacion', 'combate.horoscopo0', 'combate.horoscopo40', 'combate.horoscopo80', 'combate.horoscopo150']) if (!textos.has(k)) falla(`falta el texto ${k}`);
+  const ef = M.EFECTOS;
+  if (ef.azote.retrocede !== 20 || ef.lactosa.estado.estado !== 'empachado' || ef.lactosa.estado.prob !== 30 || ef.grumitos.golpes !== 'multi' || !ef.tortipapa.drena) falla('efectos de Azote, Golpe lactosa, Grumitos o Tortipapa');
+  if (ef.consentimiento.especial !== 'esconderse' || ef.cancun.especial !== 'tendedero' || ef.horoscopo.especial !== 'premio' || ef.gentrificacion.especial !== 'gentrificacion') falla('efectos de Consentimiento, Viaje a Cancún, Horóscopo chino o Gentrificación');
+  if (ef.tekifresi.estado.estado !== 'achispado' || ef.tekifresi.estado.prob !== 30 || ef.fiebre.estado.estado !== 'empachado' || ef.fiebre.estado.prob !== 20) falla('efectos de Tekifresi o Fiebre navideña');
+
+  // --- Simple side effects, with their odds.
+  {
+    // The rival (Camioner) is slower than Culotouchi and attacks: a flinch shows as «se achanta».
+    let n = 0;
+    for (const sem of semillas(200)) {
+      const e = mk([['culotouchi', 'turito', 'tocinon'], ['camioner', 'turito', 'cierzon']], sem);
+      seguro(e, 0);
+      const r = M.resolverTurno(e, [ataca(idx('culotouchi', 'azote')), ataca(idx('camioner', 'trompazo'), 0), pasa, pasa]);
+      if (dice(r, 'combate.retrocede').length) n++;
+    }
+    cerca(n / 200, 0.2, 0.09, 'Azote hace perder el turno un 20 %');
+  }
+  cerca(tasa('baticao', 'lactosa', rival, (r) => act0(r.estado, 1).estado === 'empachado'), 0.3, 0.1, 'Golpe lactosa empacha un 30 %');
+  cerca(tasa('navicesta', 'fiebre', rival, (r) => act0(r.estado, 1).estado === 'empachado'), 0.2, 0.09, 'Fiebre navideña empacha un 20 %');
+  {
+    // Tekifresi: 30 % to make each of the three rivals tipsy, independently.
+    let n = 0;
+    let total = 0;
+    for (const sem of semillas(120)) {
+      const e = mk([['navicesta', 'turito', 'tocinon'], rival, rival, rival], sem);
+      seguro(e, 0);
+      const r = M.resolverTurno(e, [ataca(idx('navicesta', 'tekifresi')), pasa, pasa, pasa]);
+      for (const j of [1, 2, 3]) {
+        total++;
+        if (act0(r.estado, j).achispado > 0) n++;
+      }
+      if (golpes(r, 1).length !== 1 || golpes(r, 2).length !== 1 || golpes(r, 3).length !== 1) falla('Tekifresi: debe pegar a los tres rivales');
+    }
+    cerca(n / total, 0.3, 0.07, 'Tekifresi achispa a cada rival un 30 %');
+  }
+  {
+    // Grumitos: 2 to 5 blows, all four numbers show up and no other.
+    const vistos = new Set();
+    for (const sem of semillas(200)) {
+      const e = mk([['baticao', 'turito', 'tocinon'], rival], sem);
+      seguro(e, 0);
+      const r = M.resolverTurno(e, [ataca(idx('baticao', 'grumitos')), pasa, pasa, pasa]);
+      const v = dice(r, 'combate.veces')[0]?.vars?.n;
+      if (v !== undefined) vistos.add(v);
+      if (v !== undefined && golpes(r, 1).length !== v) falla(`Grumitos: ${v} golpes dichos y ${golpes(r, 1).length} en los eventos`);
+    }
+    if ([...vistos].sort().join() !== '2,3,4,5') falla(`Grumitos: números de golpes ${[...vistos].sort()} (esperaba 2,3,4,5)`);
+  }
+  {
+    // Tortipapa: it recovers half of the damage it does.
+    const e = mk([['josex', 'turito', 'tocinon'], rival], 5);
+    seguro(e, 0);
+    act0(e, 0).ps = 100;
+    const r = M.resolverTurno(e, [ataca(idx('josex', 'tortipapa')), pasa, pasa, pasa]);
+    const dano = golpes(r, 1).reduce((x, ev) => x + ev.dano, 0);
+    const cura = r.eventos.find((ev) => ev.k === 'cura' && ev.j === 0);
+    if (!dano || !cura || cura.ps !== 100 + Math.max(1, Math.floor(dano / 2))) falla(`Tortipapa: daño ${dano}, PS tras curar ${cura?.ps} (esperaba ${100 + Math.floor(dano / 2)})`);
+  }
+
+  // --- Consentimiento: Esconderse with its own phrase (priority +2, same 50 % rule).
+  {
+    const e = mk([['culotouchi', 'turito', 'tocinon'], ['cubatillo', 'turito', 'cierzon']], 4);
+    seguro(e, 1);
+    const r = M.resolverTurno(e, [ataca(idx('culotouchi', 'consentimiento')), ataca(idx('cubatillo', 'ronda')), pasa, pasa]);
+    if (!dice(r, 'combate.consentimiento').length || dice(r, 'combate.esconde').length) falla('Consentimiento: debe decir su frase y no la de Esconderse');
+    if (golpes(r, 0).length || !dice(r, 'combate.esconde_protege').length) falla('Consentimiento: nadie debe tocar a Culotouchi este turno');
+    const iUsa = r.eventos.findIndex((ev) => ev.k === 'usa' && ev.j === 0);
+    const iUsa1 = r.eventos.findIndex((ev) => ev.k === 'usa' && ev.j === 1);
+    if (iUsa < 0 || iUsa1 < 0 || iUsa > iUsa1) falla('Consentimiento: debe ir antes que el rival más rápido (prioridad +2)');
+    // Second turn in a row: it fails about half of the times, with the phrase of the rule.
+    let n = 0;
+    for (const sem of semillas(200)) {
+      const e2 = mk([['culotouchi', 'turito', 'tocinon'], ['tocinon', 'turito', 'cierzon']], sem);
+      const r1 = M.resolverTurno(e2, [ataca(idx('culotouchi', 'consentimiento')), pasa, pasa, pasa]);
+      const r2 = M.resolverTurno(r1.estado, [ataca(idx('culotouchi', 'consentimiento')), pasa, pasa, pasa]);
+      if (dice(r2, 'combate.esconde_falla').length) n++;
+      else if (!dice(r2, 'combate.consentimiento').length) falla('Consentimiento: ni funciona ni falla');
+    }
+    cerca(n / 200, 0.5, 0.12, 'Consentimiento falla la mitad de las veces tras otra protección');
+  }
+
+  // --- Mano larga: 20 % to lower the Defence of the target with a physical attack at one (never with a special one or one at everybody, never after it falls).
+  {
+    let n = 0;
+    for (const sem of semillas(200)) {
+      const e = mk([['culotouchi', 'turito', 'tocinon'], rival], sem);
+      seguro(e, 0);
+      const r = M.resolverTurno(e, [ataca(idx('culotouchi', 'azote')), pasa, pasa, pasa]);
+      const baja = niveles(r, 1).def === -1;
+      if (baja !== (habs(r, 'mano_larga', 0).length === 1)) falla(`Mano larga (semilla ${sem}): bajada ${baja} y aviso ${habs(r, 'mano_larga', 0).length}`);
+      if (baja) {
+        n++;
+        if (r.eventos.findIndex((ev) => ev.k === 'habilidad') > r.eventos.findIndex((ev) => ev.k === 'nivel' && ev.j === 1)) falla('Mano larga: el aviso va justo antes de la bajada');
+      }
+    }
+    cerca(n / 200, 0.2, 0.09, 'Mano larga');
+    for (const [esp, mov] of [['baticao', 'lactosa'], ['kbronero', 'pogo']]) {
+      const k = conHab(esp, 'mano_larga', () => tasa(esp, mov, rival, (r) => habs(r, 'mano_larga').length > 0 || niveles(r, 1).def < 0, 80));
+      if (k > 0) falla(`Mano larga no debe saltar con ${mov} (especial o a todos)`);
+    }
+    // The blow that knocks the target out lowers nothing.
+    const e = mk([['culotouchi', 'turito', 'tocinon'], ['turito', 'tocinon', 'cierzon']], 6);
+    seguro(e, 0);
+    act0(e, 1).ps = 1;
+    for (const sem of semillas(40)) {
+      const f = structuredClone(e);
+      f.semilla = sem;
+      if (habs(M.resolverTurno(f, [ataca(idx('culotouchi', 'azote')), pasa, pasa, pasa]), 'mano_larga').length) falla('Mano larga: el golpe que tumba no debe avisar');
+    }
+  }
+
+  // --- Leche calentita: its Siesta puts it to sleep 1 turn instead of 2.
+  {
+    const siesta = (hab) =>
+      conHab('baticao', hab, () => {
+        const e = mk([['baticao', 'turito', 'tocinon'], rival], 7);
+        act0(e, 0).ps = 100;
+        const r1 = M.resolverTurno(e, [ataca(idx('baticao', 'siesta')), pasa, pasa, pasa]);
+        const r2 = M.resolverTurno(r1.estado, [ataca(idx('baticao', 'grumitos')), pasa, pasa, pasa]);
+        const r3 = M.resolverTurno(r2.estado, [ataca(idx('baticao', 'grumitos')), pasa, pasa, pasa]);
+        const r4 = M.resolverTurno(r3.estado, [ataca(idx('baticao', 'grumitos')), pasa, pasa, pasa]);
+        return [r1, r2, r3, r4];
+      });
+    const [a1, a2, a3] = siesta('leche_calentita');
+    if (act0(a1.estado).estado !== 'dormido' || act0(a1.estado).sueno !== 1 || habs(a1, 'leche_calentita', 0).length !== 1) falla(`Leche calentita: sueño ${act0(a1.estado).sueno}`);
+    if (!dice(a2, 'combate.dormido_sigue').length || dice(a2, 'combate.despierta').length) falla('Leche calentita: debe dormir el turno siguiente');
+    if (!dice(a3, 'combate.despierta').length || !a3.eventos.some((ev) => ev.k === 'usa' && ev.j === 0)) falla('Leche calentita: debe despertar y actuar al segundo turno');
+    const [b1, b2, b3] = siesta('gratinado');
+    if (act0(b1.estado).sueno !== 2 || habs(b1, 'leche_calentita').length) falla('Siesta normal: duerme 2 turnos');
+    if (dice(b3, 'combate.despierta').length) falla('Siesta normal: no despierta en el segundo turno');
+  }
+
+  // --- De toda la vida: the first time it drops under half of its HP (and stands) it heals 1/4 of its max HP; once per battle, also after switching.
+  {
+    const base = (ps, semilla = 8) => {
+      const e = mk([['josex', 'turito', 'tocinon'], ['tocinon', 'turito', 'cierzon']], semilla);
+      act0(e, 0).ps = ps;
+      seguro(e, 1);
+      return e;
+    };
+    const golpeBarri = () => ataca(idx('tocinon', 'barrigazo'), 0);
+    const e = base(150);
+    const psMax = act0(e, 0).psMax;
+    const r = M.resolverTurno(e, [pasa, golpeBarri(), pasa, pasa]);
+    const d = golpes(r, 0).reduce((x, ev) => x + ev.dano, 0);
+    if (!(150 - d > 0 && (150 - d) * 2 < psMax)) falla(`De toda la vida: el golpe de control debía dejarlo bajo la mitad (${150 - d}/${psMax})`);
+    const cura = r.eventos.find((ev) => ev.k === 'cura' && ev.j === 0);
+    if (!cura || cura.ps !== 150 - d + Math.floor(psMax / 4) || habs(r, 'toda_la_vida', 0).length !== 1) falla(`De toda la vida: PS ${cura?.ps}, esperaba ${150 - d + Math.floor(psMax / 4)}`);
+    if (!act0(r.estado).habUsada) falla('De toda la vida: debe marcarse como usada');
+    // It does not heal when the blow leaves it above half or when it knocks it out.
+    const alta = M.resolverTurno(base(psMax), [pasa, golpeBarri(), pasa, pasa]);
+    if (habs(alta, 'toda_la_vida').length) falla('De toda la vida: sin bajar de la mitad no debe saltar');
+    const mata = M.resolverTurno(base(5), [pasa, golpeBarri(), pasa, pasa]);
+    if (habs(mata, 'toda_la_vida').length || act0(mata.estado).ps !== 0) falla('De toda la vida: si lo tumba no cura');
+    // Once: the next time under half, nothing. It also survives a switch out and back in.
+    const otra = base(150);
+    const r1 = M.resolverTurno(otra, [pasa, golpeBarri(), pasa, pasa]);
+    const e2 = r1.estado;
+    act0(e2).ps = 150;
+    const r2 = M.resolverTurno(e2, [pasa, golpeBarri(), pasa, pasa]);
+    if (habs(r2, 'toda_la_vida').length) falla('De toda la vida: solo una vez por combate');
+    const fuera = M.resolverTurno(r1.estado, [{ tipo: 'cambiar', a: 1 }, pasa, pasa, pasa]);
+    const dentro = M.resolverTurno(fuera.estado, [{ tipo: 'cambiar', a: 0 }, pasa, pasa, pasa]);
+    act0(dentro.estado).ps = 150;
+    const r3 = M.resolverTurno(dentro.estado, [pasa, golpeBarri(), pasa, pasa]);
+    if (habs(r3, 'toda_la_vida').length || !act0(r3.estado).habUsada) falla('De toda la vida: debe sobrevivir al cambio');
+  }
+
+  // --- Fu: once per battle, a blow that would knock out a userito with more than half of its HP leaves it at 1 HP (the notice goes right before the blow).
+  {
+    const base = (ps, psMax = 40, semilla = 9) => {
+      const e = mk([['arcochin', 'turito', 'tocinon'], ['camioner', 'turito', 'cierzon']], semilla);
+      act0(e, 0).psMax = psMax;
+      act0(e, 0).ps = ps;
+      seguro(e, 1);
+      return e;
+    };
+    const golpe = () => ataca(idx('camioner', 'trompazo'), 0);
+    const r = M.resolverTurno(base(40), [pasa, golpe(), pasa, pasa]);
+    if (act0(r.estado).ps !== 1 || habs(r, 'fu', 0).length !== 1 || !act0(r.estado).habUsada) falla(`Fu: PS ${act0(r.estado).ps} (esperaba 1)`);
+    const iH = r.eventos.findIndex((ev) => ev.k === 'habilidad' && ev.id === 'fu');
+    const iG = r.eventos.findIndex((ev) => ev.k === 'golpe' && ev.j === 0);
+    if (iH < 0 || iG < 0 || iH > iG) falla('Fu: el aviso va justo antes del golpe');
+    const g = golpes(r, 0)[0];
+    if (!g || !(g.bruto > 39)) falla(`Fu: el golpe debe llevar su daño bruto (${g?.bruto})`);
+    // Second time: the same blow knocks it out.
+    const e2 = r.estado;
+    act0(e2).ps = 40;
+    const r2 = M.resolverTurno(e2, [pasa, golpe(), pasa, pasa]);
+    if (act0(r2.estado).ps !== 0 || habs(r2, 'fu').length) falla('Fu: solo una vez por combate');
+    // Under half of its HP, or a blow that would not knock it out: nothing.
+    const bajo = M.resolverTurno(base(15), [pasa, golpe(), pasa, pasa]);
+    if (habs(bajo, 'fu').length || act0(bajo.estado).ps !== 0) falla('Fu: con la mitad o menos de PS no salva');
+    const grande = M.resolverTurno(base(270, 270), [pasa, golpe(), pasa, pasa]);
+    if (habs(grande, 'fu').length || act0(grande.estado).habUsada) falla('Fu: si el golpe no lo tumba no se gasta');
+    // It survives the switch: used, out and back in, the same blow knocks it out.
+    const fuera = M.resolverTurno(r.estado, [{ tipo: 'cambiar', a: 1 }, pasa, pasa, pasa]);
+    const dentro = M.resolverTurno(fuera.estado, [{ tipo: 'cambiar', a: 0 }, pasa, pasa, pasa]);
+    act0(dentro.estado).ps = 40;
+    const r3 = M.resolverTurno(dentro.estado, [pasa, golpe(), pasa, pasa]);
+    if (act0(r3.estado).ps !== 0) falla('Fu: debe recordar que ya se gastó tras un cambio');
+  }
+
+  // --- Espíritu navideño: +1 Defensa each time it comes out (and at the start of the battle).
+  {
+    const e = mk([['navicesta', 'turito', 'tocinon'], rival], 10);
+    const r = M.resolverTurno(e, [pasa, pasa, pasa, pasa]);
+    if (niveles(r, 0).def !== 1 || habs(r, 'espiritu_navideno', 0).length !== 1) falla(`Espíritu navideño: Defensa ${niveles(r, 0).def} al empezar`);
+    const e2 = mk([['turito', 'navicesta', 'tocinon'], rival], 10);
+    const r2 = M.resolverTurno(e2, [{ tipo: 'cambiar', a: 1 }, pasa, pasa, pasa]);
+    if (niveles(r2, 0).def !== 1 || habs(r2, 'espiritu_navideno', 0).length !== 1) falla('Espíritu navideño: al entrar en un cambio');
+    const e3 = mk([['navicesta', 'turito', 'tocinon'], rival], 10);
+    act0(e3, 0).niveles.def = 6;
+    const r3 = M.resolverTurno(M.resolverTurno(e3, [{ tipo: 'cambiar', a: 1 }, pasa, pasa, pasa]).estado, [{ tipo: 'cambiar', a: 0 }, pasa, pasa, pasa]);
+    if (habs(r3, 'espiritu_navideno').length !== 0 && niveles(r3, 0).def !== 1) falla('Espíritu navideño: tras salir y entrar vuelve a +1');
+  }
+
+  // --- Viaje a Cancún: Al tendedero for Josex (the hit lands, back to the bench, its player picks who comes in), with its own phrase.
+  {
+    const cancun = idx('josex', 'cancun');
+    const base = (semilla = 3) => mk([['josex', 'turito', 'tocinon'], rival], semilla);
+    const r = M.resolverTurno(base(), [ataca(cancun), pasa, pasa, pasa]);
+    if (!golpes(r, 1).length) falla('Viaje a Cancún: no pega');
+    if (r.estado.reemplazos.join() !== '0' || act0(r.estado).ps <= 0) falla(`Viaje a Cancún: reemplazos ${r.estado.reemplazos}`);
+    const iT = r.eventos.findIndex((ev) => ev.clave === 'combate.cancun_vuelve' && ev.vars?.quien === 'Josex');
+    if (iT < 0 || iT < r.eventos.findIndex((ev) => ev.k === 'golpe' && ev.j === 1) || dice(r, 'combate.tendedero_vuelve').length) falla('Viaje a Cancún: su frase va tras el golpe y no es la del tendedero');
+    const rr = M.reemplazar(r.estado, { 0: 2 });
+    if (act0(rr.estado).especie !== 'tocinon' || rr.estado.jugadores[0].equipo[0].ps <= 0) falla('Viaje a Cancún: debe salir el elegido y Josex seguir vivo en el banquillo');
+    if (M.reemplazoBot(r.estado, 0) === 0) falla('Viaje a Cancún: reemplazoBot no puede elegir al que se va');
+    // No bench: it stays. Esconderse: nothing to hit, it stays.
+    const solo = base();
+    solo.jugadores[0].equipo[1].ps = 0;
+    solo.jugadores[0].equipo[2].ps = 0;
+    const rs = M.resolverTurno(solo, [ataca(cancun), pasa, pasa, pasa]);
+    if (rs.estado.reemplazos.length || dice(rs, 'combate.cancun_vuelve').length || !golpes(rs, 1).length) falla('Viaje a Cancún: sin banquillo no se va');
+    const esc = mk([['josex', 'turito', 'tocinon'], ['draguserin', 'turito', 'cierzon']], 3);
+    const re = M.resolverTurno(esc, [ataca(cancun), ataca(idx('draguserin', 'esconderse')), pasa, pasa]);
+    if (re.estado.reemplazos.length || dice(re, 'combate.cancun_vuelve').length) falla('Viaje a Cancún: no se va si el rival se esconde');
+    // Sin Narrativa copying it sends the copier to the bench too.
+    const sy = mk([['turito', 'tocinon', 'cierzon'], ['josex', 'turito', 'tocinon']], 3);
+    sy.ultimoMov = 'cancun';
+    M.ESPECIE.turito.movs[3] = 'siy';
+    const rsy = M.resolverTurno(sy, [ataca(3, 1), pasa, pasa, pasa]);
+    if (!dice(rsy, 'combate.cancun_vuelve').length || rsy.estado.reemplazos.join() !== '0') falla('Sin Narrativa copiando Viaje a Cancún: debe irse al banquillo');
+    M.ESPECIE.turito.movs[3] = 'bostezo';
+  }
+
+  // --- Horóscopo chino: Premio gordo's roll (0, 40, 80 or 150) in Chanza, with its own phrases.
+  {
+    const visto = { 0: 0, 40: 0, 80: 0, 150: 0 };
+    let sinDano = 0;
+    for (const sem of semillas(300)) {
+      const e = mk([['arcochin', 'turito', 'tocinon'], rival], sem);
+      seguro(e, 0);
+      const r = M.resolverTurno(e, [ataca(idx('arcochin', 'horoscopo')), pasa, pasa, pasa]);
+      const claves = r.eventos.map((ev) => ev.clave).filter((c) => /^combate\.horoscopo(0|40|80|150)$/.test(c ?? ''));
+      if (claves.length !== 1) {
+        falla(`Horóscopo chino (semilla ${sem}): ${claves.length} frases de tirada`);
+        continue;
+      }
+      if (dice(r, 'combate.premio0').length + dice(r, 'combate.premio40').length + dice(r, 'combate.premio80').length + dice(r, 'combate.premio150').length) falla('Horóscopo chino: no debe decir las frases del Premio gordo');
+      const pot = Number(claves[0].slice('combate.horoscopo'.length));
+      visto[pot]++;
+      if (pot === 0) {
+        sinDano++;
+        if (golpes(r, 1).length) falla('Horóscopo chino con 0: no debe pegar');
+      } else if (!golpes(r, 1).length) falla(`Horóscopo chino con ${pot}: debe pegar`);
+    }
+    if (Object.values(visto).some((n) => n < 30)) falla(`Horóscopo chino: tiradas ${JSON.stringify(visto)} (esperaba unas 75 de cada)`);
+    // Same power as Premio gordo at the same roll: 150 hits harder than 40 on the same target.
+    const dano = (pot) => {
+      for (const sem of semillas(300)) {
+        const e = mk([['arcochin', 'turito', 'tocinon'], rival], sem);
+        seguro(e, 0);
+        const r = M.resolverTurno(e, [ataca(idx('arcochin', 'horoscopo')), pasa, pasa, pasa]);
+        if (dice(r, `combate.horoscopo${pot}`).length) return golpes(r, 1).reduce((x, ev) => x + ev.dano, 0);
+      }
+      return 0;
+    };
+    if (!(dano(150) > dano(80) && dano(80) > dano(40) && dano(40) > 0)) falla(`Horóscopo chino: daños ${dano(40)}, ${dano(80)}, ${dano(150)}`);
+    // The machine values it like Premio gordo (it is an attack, with an average power) and the Tapón can make it quick.
+    const e = mk([['arcochin', 'turito', 'tocinon'], rival], 3);
+    const c = M.eleccionBot(e, 0, M.crearRnd(1));
+    if (!c || c.tipo !== 'atacar') falla('Horóscopo chino: la máquina no elige nada');
+  }
+
+  // --- Gentrificación: hits, and then the target that is still standing has to leave (Remolino after the damage).
+  {
+    const gentri = idx('arcochin', 'gentrificacion');
+    const base = (rivalEq, semilla = 3) => mk([['arcochin', 'turito', 'tocinon'], rivalEq], semilla);
+    const r = M.resolverTurno(base(['turito', 'cierzon', 'tocinon']), [ataca(gentri), pasa, pasa, pasa]);
+    if (!golpes(r, 1).length) falla('Gentrificación: no pega');
+    if (act0(r.estado, 1).especie === 'turito') falla('Gentrificación: el rival debe cambiar de userito');
+    const iG = r.eventos.findIndex((ev) => ev.k === 'golpe' && ev.j === 1);
+    const iT = r.eventos.findIndex((ev) => ev.clave === 'combate.gentrificacion' && ev.j === 1);
+    const iS = r.eventos.findIndex((ev) => ev.k === 'sale' && ev.j === 1);
+    if (!(iG >= 0 && iT > iG && iS > iT) || dice(r, 'combate.remolino').length) falla(`Gentrificación: orden golpe ${iG}, frase ${iT}, sale ${iS}`);
+    if (r.estado.jugadores[1].equipo[0].ps <= 0 || r.estado.jugadores[1].equipo[0].ps >= r.estado.jugadores[1].equipo[0].psMax) falla('Gentrificación: el que se muda conserva el daño');
+    // The one that moves in is the new one (a random one of the bench), and it does not act this turn if it had not acted yet.
+    const lento = mk([['arcochin', 'turito', 'tocinon'], ['camioner', 'turito', 'cierzon']], 3);
+    seguro(lento, 0);
+    const rl = M.resolverTurno(lento, [ataca(gentri), ataca(idx('camioner', 'trompazo'), 0), pasa, pasa]);
+    if (rl.eventos.some((ev) => ev.k === 'usa' && ev.j === 1) || act0(rl.estado, 1).especie === 'camioner') falla('Gentrificación: el que cambia sin haber actuado pierde el turno');
+    // The answers to the blow (Malaleche of the one that took it) are for the one that was hit, not for the one that comes in.
+    const pul = mk([['arcochin', 'turito', 'tocinon'], ['turito', 'pulpino']], 3);
+    seguro(pul, 0);
+    const rp = M.resolverTurno(pul, [ataca(gentri), pasa, pasa, pasa]);
+    if (act0(rp.estado, 1).especie !== 'pulpino' || niveles(rp, 1).ata !== 0 || habs(rp, 'malaleche').length) falla('Gentrificación: el que entra no debe heredar las reacciones al golpe');
+    // 152 kilos stays. No bench: only the damage, no line. A knock-out: it falls and that is all.
+    const kilos = M.resolverTurno(base(['tocinon', 'turito', 'cierzon']), [ataca(gentri), pasa, pasa, pasa]);
+    if (act0(kilos.estado, 1).especie !== 'tocinon' || !habs(kilos, 'kilos', 1).length) falla('Gentrificación: 152 kilos no se mueve');
+    const solo = base(['turito', 'cierzon', 'tocinon']);
+    solo.jugadores[1].equipo[1].ps = 0;
+    solo.jugadores[1].equipo[2].ps = 0;
+    const rs = M.resolverTurno(solo, [ataca(gentri), pasa, pasa, pasa]);
+    if (act0(rs.estado, 1).especie !== 'turito' || !golpes(rs, 1).length || dice(rs, 'combate.sin_efecto').length || dice(rs, 'combate.gentrificacion').length) falla('Gentrificación: sin banquillo solo debe haber daño');
+    const ko = base(['turito', 'cierzon', 'tocinon']);
+    act0(ko, 1).ps = 1;
+    const rk = M.resolverTurno(ko, [ataca(gentri), pasa, pasa, pasa]);
+    if (dice(rk, 'combate.gentrificacion').length || !rk.eventos.some((ev) => ev.k === 'cae' && ev.j === 1)) falla('Gentrificación: si lo tumba, no hay mudanza');
+    // A miss does not move anybody.
+    let sinMudanza = 0;
+    for (const sem of semillas(60)) {
+      const f = base(['turito', 'cierzon', 'tocinon'], sem);
+      act0(f).niveles.prec = -4;
+      const rf = M.resolverTurno(f, [ataca(gentri), pasa, pasa, pasa]);
+      const fallo = rf.eventos.some((ev) => ev.clave === 'combate.esquiva');
+      if (fallo !== !dice(rf, 'combate.gentrificacion').length) falla(`Gentrificación (semilla ${sem}): ${fallo ? 'falla y cambia al rival' : 'acierta y no lo cambia'}`);
+      if (fallo) sinMudanza++;
+    }
+    if (sinMudanza < 5) falla('Gentrificación: los fallos no salen');
+    // Recién lavado of the one that moves out still works (it goes to the bench by Remolino's road).
+    const lav = mk([['arcochin', 'turito', 'tocinon'], ['pantaloneto', 'turito', 'cierzon']], 3);
+    seguro(lav, 0);
+    act0(lav, 1).estado = 'quemado';
+    const rv = M.resolverTurno(lav, [ataca(gentri), pasa, pasa, pasa]);
+    if (rv.estado.jugadores[1].equipo[0].estado !== null || !habs(rv, 'lavado', 1).length) falla('Gentrificación: Recién lavado debe quitar el estado al irse');
+  }
+
+  // --- Whole bot battles with the five on the teams: they end, the statistics add up and every line the engine says has its text.
+  {
+    const ids = nuevos.map((x) => x[0]);
+    for (let sem = 1; sem <= 20; sem++) {
+      const rnd = M.crearRnd(sem * 7907);
+      const mezcla = [...ids, ...M.ESPECIES.map((x) => x.id).filter((id) => !ids.includes(id))].map((id, i) => ({ id, k: i < 5 ? rnd() * 0.4 : rnd() })).sort((a, b) => a.k - b.k).map((x) => x.id);
+      let e = mk([mezcla.slice(0, 3), mezcla.slice(3, 6), mezcla.slice(6, 9), mezcla.slice(9, 12)], sem);
+      for (let t = 0; t < 200 && e.ganador === null; t++) {
+        const r = M.resolverTurno(e, e.jugadores.map((_, j) => (M.eliminado(e, j) ? null : M.eleccionBot(e, j, M.crearRnd(t * 17 + j + sem)))));
+        e = r.estado;
+        revisar(e, `bot con los 5 nuevos ${sem}`);
+        for (const ev of r.eventos) if (ev.clave && !textos.has(ev.clave)) falla(`falta el texto ${ev.clave}`);
+        if (e.ganador === null && e.reemplazos.length) {
+          const rr = M.reemplazar(e, Object.fromEntries(e.reemplazos.map((j) => [j, M.reemplazoBot(e, j)])));
+          e = rr.estado;
+        }
+      }
+      if (e.ganador === null) falla(`batalla con los 5 nuevos 2: no acaba (semilla ${sem})`);
+      revisarStatsSimple(e, `batalla con los 5 nuevos ${sem}`);
+    }
+  }
 }
 
 const semillas = process.argv.slice(2).map(Number).filter((n) => Number.isFinite(n)).slice(0, 5);

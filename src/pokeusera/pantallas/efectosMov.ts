@@ -12,8 +12,8 @@
 // Movimientos con diseño propio (el resto usa una chispa genérica del color de su tipo; los de estado sobre uno
 // mismo, unos brillos). Sobre rivales (`FX`): lluvia, almendrazo, traca, fogonazo, petardazo, chispazo, cierzo, chupitazo,
 // garrafon, cancion, esporas, temblor, bocinazo, chapa, planeo, pringue, cara_de_pena, vacile, venganza, adoquin, barrigazo,
-// ronda, unamas, zasca, coz, raices, setas, burbujeo, pesao, tubo, goudamadre, tendedero, remate, maletazo, embarque, monologo, carambola, crujiente, cortepapel, pasodoble, mancha, ayayay, serenata, picante, ochotortas, tinta, morrina, fiestapagana, todosdentro, flash, nubarron, carisimo, calada, vueltas. Sobre uno mismo (`FX_YO`, `lanzar` los llama
-// con la lista de objetivos vacía): siesta, esconderse, rebozado, caparazon, compas, pantalones, cinturones, improvisa, ficha, limon, papiroflexia. Los de «todos» llegan a
+// ronda, unamas, zasca, coz, raices, setas, burbujeo, pesao, tubo, goudamadre, tendedero, remate, maletazo, embarque, monologo, carambola, crujiente, cortepapel, pasodoble, mancha, ayayay, serenata, picante, ochotortas, tinta, morrina, fiestapagana, todosdentro, flash, nubarron, carisimo, calada, vueltas, azote, lactosa, grumitos, tortipapa, cancun, horoscopo, gentrificacion, tekifresi, fiebre. Sobre uno mismo (`FX_YO`, `lanzar` los llama
+// con la lista de objetivos vacía): siesta, esconderse, rebozado, caparazon, compas, pantalones, cinturones, improvisa, ficha, limon, papiroflexia, consentimiento. Los de «todos» llegan a
 // todos los rivales a la vez. Para añadir uno: función `(e, tipo, desde, a)` + entrada en `FX` o `FX_YO` + `LLEGA`/`LLEGA_YO`;
 // el precalentado (`tareasPrecalentarEfectos`) lo recoge solo.
 import { COLOR_TIPO } from '../arte/paleta';
@@ -2031,6 +2031,195 @@ const hLuzAmarilla = (): Hoja => hLuzFeria('#ffd83a');
 const hLuzRoja = (): Hoja => hLuzFeria('#ff3a2c');
 const hEstrellitaMareo = (): Hoja => [astro(3, '#c8a81a', '#ffe83a', '#ffffff')];
 
+// ---- Tanda 13: manos con manga, cartel de «¿puedo?», leche, cacao, tortilla, avión y palmeras, rueda del zodiaco, cartel de grúa, tekila de fresa y turrón ----
+const MAT_PIEL: Mat = { ol: '#8a4a3a', base: '#f4b894', luz: '#ffdcc0', som: '#d08a68' };
+const MAT_MANGA: Mat = { ol: TINTA, base: '#4a7ab8', luz: '#8ab4e8', som: '#2e5088' };
+/** Mano abierta mirando a la derecha (`largo` de dedos; 0 = puño). */
+function maskMano(largo: number): Masc {
+  return union(eli(12, 8, 5, 6.5), caja(14, 1, 13 + largo, 3), caja(14, 5, 14 + largo, 7), caja(14, 9, 13 + largo, 11), caja(13, 13, 11 + largo, 15));
+}
+function manoConManga(largo: number): HTMLCanvasElement {
+  const c = sombrear(26, 17, maskMano(largo), MAT_PIEL);
+  ctxDe(c).drawImage(sombrear(7, 14, caja(0, 0, 6, 13), MAT_MANGA), 0, 1);
+  return c;
+}
+/** Azote: [abierta, plana al golpear, puño] y los mismos tres mirando a la izquierda. */
+function hManoAzote(): Hoja {
+  const hs = [manoConManga(7), manoConManga(5), manoConManga(0)].map((c) => esc(c, 1.5));
+  return [...hs, ...hs.map(espejo)];
+}
+function hHuella(): Hoja {
+  return [esc(sombrear(26, 17, maskMano(7), { ol: '#ff7a7a', base: '#ff9a9a', luz: '#ffb0b0', som: '#ff7a7a' }), 1.5)];
+}
+
+// -- Consentimiento: cartel amarillo con «?» que aparece de golpe
+function cartelPregunta(k: number): HTMLCanvasElement {
+  const c = sombrear(23, 23, (i, j) => Math.abs(i - 11) + Math.abs(j - 11) <= 11, { ol: TINTA, base: AMARILLO, luz: BLANCO, som: AMARILLO_OSC });
+  marca(ctxDe(c), G_INTE, TINTA, 9, 8);
+  return esc(c, k);
+}
+const hCartelPregunta = (): Hoja => [cartelPregunta(0.5), cartelPregunta(1), cartelPregunta(1.5)];
+
+// -- Lactosa: cartón de leche y gotas blancas
+function hCartonLeche(): Hoja {
+  const c = lienzo(13, 19);
+  const x = ctxDe(c);
+  x.drawImage(sombrear(13, 14, caja(0, 0, 12, 13), { ol: '#2e4a8a', base: '#f4f8ff', luz: '#ffffff', som: '#c8d4ec' }), 0, 5);
+  x.drawImage(sombrear(13, 6, (i, j) => i >= 5 - j && i <= 7 + j, { ol: '#2e4a8a', base: '#4a7ad0', luz: '#8ab4f0', som: '#3a5aa8' }), 0, 0);
+  pix(x, '#4a7ad0', 2, 10, 9, 3);
+  pix(x, '#ffffff', 6, 11, 1, 1);
+  return girar(c).map((f) => esc(f, 1.4));
+}
+function hGotaLeche(): Hoja {
+  const m: Mat = { ol: '#8a98b8', base: '#f4f8ff', luz: '#ffffff', som: '#c8d4ec' };
+  return [sombrear(5, 6, eli(2, 3, 1.9, 2.7), m), sombrear(7, 7, disco(3, 3, 2.8), m)];
+}
+
+// -- Grumitos: grumos de cacao y mancha marrón
+const MAT_CACAO: Mat = { ol: '#3a1e10', base: '#7a4a28', luz: '#b0804c', som: '#5a3018' };
+function hGrumos(): Hoja {
+  return [
+    sombrear(9, 8, union(disco(3.5, 4, 3), disco(5.5, 3.5, 2.8)), MAT_CACAO),
+    sombrear(11, 9, union(disco(4, 5, 3.6), disco(7, 4, 3), disco(6, 6, 3)), MAT_CACAO),
+    sombrear(7, 7, disco(3, 3, 2.6), MAT_CACAO),
+  ];
+}
+function hManchaCacao(): Hoja {
+  return [13, 19, 23].map((w) => sombrear(w, 11, union(eli(w / 2, 5, w / 2 - 1, 4.2), disco(w * 0.3, 4, 3), disco(w * 0.7, 6, 3)), MAT_CACAO));
+}
+
+// -- Tortipapa: tortilla de patata que gira y migas
+function tortilla(rx: number): HTMLCanvasElement {
+  const dentro = eli(9, 9, rx, 8.6);
+  const c = sombrear(19, 19, dentro, { ol: '#8a5a10', base: '#f0c040', luz: '#fff0a0', som: '#d09a20' });
+  const x = ctxDe(c);
+  for (const [i, j] of [[3, 5], [8, 4], [12, 8], [6, 11], [10, 13], [4, 9], [13, 12]]) if (dentro(i, j) && dentro(i + 1, j + 1) && dentro(i - 1, j - 1)) pix(x, '#c08020', i, j, 2, 1);
+  return esc(c, 1.3);
+}
+const hTortilla = (): Hoja => [8.6, 6, 3, 6].map(tortilla);
+const hMigaTortilla = (): Hoja => [ampH([filas(['yY'], { y: '#f0c040', Y: '#c08020' })])[0], ampH([filas(['Y', 'y'], { y: '#f0c040', Y: '#c08020' })])[0]];
+
+// -- Cancún: avión, palmera y coco
+function hAvion(): Hoja {
+  const c = lienzo(24, 13);
+  const x = ctxDe(c);
+  x.drawImage(sombrear(24, 7, eli(12, 3, 11.5, 3.2), { ol: '#2e4a6a', base: '#f4f8ff', luz: '#ffffff', som: '#c0d0e4' }), 0, 4);
+  for (let j = 0; j < 5; j++) pix(x, '#e8453c', 1 + j, j, 3, 1);
+  pix(x, '#e8453c', 8, 10, 8, 1);
+  pix(x, '#e8453c', 9, 11, 6, 1);
+  pix(x, '#e8453c', 10, 12, 4, 1);
+  for (let k = 0; k < 5; k++) pix(x, '#7ac4f0', 12 + k * 2, 6, 1, 1);
+  const a = esc(c, 1.5);
+  return [a, espejo(a)];
+}
+function palmera(): HTMLCanvasElement {
+  const c = lienzo(23, 30);
+  const x = ctxDe(c);
+  for (let j = 11; j < 30; j++) {
+    const i = 10 + Math.round(Math.sin(j * 0.22) * 1.6);
+    pix(x, '#8a5a2c', i, j, 3, 1);
+    pix(x, j % 3 === 0 ? '#5a3a1c' : '#b88a4c', i + 2, j, 1, 1);
+  }
+  const fronda = (x1: number, y1: number): void => {
+    linea(x, '#2e8a36', 11, 9, x1, y1, 3);
+    linea(x, '#6ed06a', 11, 8, x1, y1 - 1, 1);
+  };
+  fronda(1, 14);
+  fronda(3, 6);
+  fronda(11, 1);
+  fronda(19, 6);
+  fronda(21, 14);
+  rellenarDisco(x, '#7a4a28', 9.5, 12, 2);
+  rellenarDisco(x, '#7a4a28', 13.5, 12, 2);
+  return c;
+}
+const hPalmera = (): Hoja => [esc(palmera(), 0.55), esc(palmera(), 1.25)];
+function hCoco(): Hoja {
+  const c = sombrear(9, 9, disco(4, 4, 3.6), { ol: '#3a1e10', base: '#8a5a2c', luz: '#c89a5c', som: '#5a3a1c' });
+  const x = ctxDe(c);
+  pix(x, '#3a1e10', 3, 3);
+  pix(x, '#3a1e10', 5, 3);
+  pix(x, '#3a1e10', 4, 5);
+  return [esc(c, 1.3)];
+}
+
+// -- Horóscopo: rueda del zodiaco con doce signos de colores que gira
+const COL_SIGNOS = ['#e8453c', '#4fb04a', '#f0c040', '#4a9aff'];
+function hRuedaZodiaco(): Hoja {
+  return Array.from({ length: 12 }, (_, f) => {
+    const c = sombrear(29, 29, disco(14, 14, 13.4), { ol: '#8a5a10', base: '#3a2060', luz: '#5a3a90', som: '#2a1648' });
+    const x = ctxDe(c);
+    for (let j = 0; j < 29; j++) for (let i = 0; i < 29; i++) if (Math.abs(Math.hypot(i - 14, j - 14) - 11) < 0.7) pix(x, '#f0c040', i, j);
+    for (let k = 0; k < 12; k++) {
+      const ang = ((k * 30 + f * 10) * Math.PI) / 180;
+      pix(x, COL_SIGNOS[k % 4], Math.round(14 + Math.cos(ang) * 8) - 1, Math.round(14 + Math.sin(ang) * 8) - 1, 3, 3);
+    }
+    x.drawImage(astro(3, '#8a5a10', '#f0c040', '#fff8e0'), 11, 11);
+    return esc(c, 1.5);
+  });
+}
+const hEstrellasZodiaco = (): Hoja => [astro(3, '#6a2aa8', '#c8a0ff', '#ffffff'), astro(4, '#8a5a10', '#f0c040', '#fff8e0'), astro(2, '#6a2aa8', '#c8a0ff', '#ffffff')];
+
+// -- Gentrificación: cartel de alquiler caro que cuelga de una grúa
+function hCartelEuro(): Hoja {
+  const tabla = sombrear(24, 19, caja(0, 0, 23, 18), { ol: ROJO_OSC, base: ROJO, luz: '#f0705c', som: '#a82c24' });
+  const t = ctxDe(tabla);
+  pix(t, BLANCO, 2, 2, 20, 1);
+  pix(t, BLANCO, 2, 16, 20, 1);
+  marca(t, EURO, BLANCO, 9, 6);
+  pix(t, '#8a8a94', 2, 0, 2, 1);
+  pix(t, '#8a8a94', 20, 0, 2, 1);
+  const con = lienzo(24, 31);
+  const x = ctxDe(con);
+  linea(x, '#8a8a94', 3, 0, 11, 11, 1);
+  linea(x, '#8a8a94', 20, 0, 12, 11, 1);
+  pix(x, '#4a4a54', 11, 0, 2, 11);
+  x.drawImage(tabla, 0, 12);
+  const sin = lienzo(24, 19);
+  ctxDe(sin).drawImage(tabla, 0, 0);
+  return [esc(con, 1.3), esc(sin, 1.3)];
+}
+
+// -- Tekifresi: botella rosa, gotas rosas y fresas
+function hBotellaRosa(): Hoja {
+  const c = sombrear(13, 20, union(disco(6, 14, 5.8), caja(4, 3, 8, 10)), { ol: '#7a1c4a', base: '#ff6aa8', luz: '#ffc4dc', som: '#d03a7a' });
+  const x = ctxDe(c);
+  pix(x, BLANCO, 3, 11, 7, 4);
+  pix(x, ROJO, 5, 12, 3, 2);
+  pix(x, '#8a5a2c', 4, 0, 5, 3);
+  return [esc(c, 1.5)];
+}
+function hGotaRosa(): Hoja {
+  const m: Mat = { ol: '#a82c6a', base: '#ff6aa8', luz: '#ffc4dc', som: '#d03a7a' };
+  return [sombrear(5, 5, disco(2, 2, 1.8), m), sombrear(7, 7, disco(3, 3, 2.8), m)];
+}
+const hSalpiconRosa = (): Hoja => hSalpicon('#a82c6a', '#ff6aa8', '#ffc4dc');
+function hFresa(): Hoja {
+  const p = { r: '#e8365a', R: '#ffe08a', g: '#4fb04a', G: '#2e8a36' };
+  return [ampH([filas(['.g.G.g.', '.gGGGg.', 'rrrrrrr', 'rRrrrRr', 'rrrRrrr', '.rrrrr.', '..rRr..', '...r...'], p)])[0]];
+}
+
+// -- Fiebre: turrón con almendras y termómetro
+function hTurron(): Hoja {
+  const c = sombrear(19, 11, caja(0, 0, 18, 10), { ol: '#5a3a1c', base: '#e8c890', luz: '#fff0cc', som: '#b8905c' });
+  const x = ctxDe(c);
+  for (const [i, j] of [[3, 3], [8, 6], [13, 3], [6, 2], [14, 7], [10, 3]]) {
+    pix(x, '#b8905c', i, j, 3, 2);
+    pix(x, '#f8e4b8', i, j, 1, 1);
+  }
+  return girar(c).map((f) => esc(f, 1.3));
+}
+function termometro(nivel: number): HTMLCanvasElement {
+  const c = sombrear(11, 34, union(caja(3, 0, 7, 25), disco(5, 28, 4.6)), { ol: TINTA, base: '#e8f4ff', luz: '#ffffff', som: '#b8cce4' });
+  const x = ctxDe(c);
+  rellenarDisco(x, ROJO, 5, 28, 3);
+  const top = Math.round(27 - nivel * 24);
+  pix(x, ROJO, 4, top, 3, 28 - top);
+  for (let j = 3; j < 25; j += 5) pix(x, TINTA, 8, j, 2, 1);
+  return esc(c, 1.2);
+}
+const hTermometro = (): Hoja => [0.15, 0.45, 0.75, 1].map(termometro);
+
 // ------------------------------------------------------------------------------------------------------------
 // Depósito de partículas
 // ------------------------------------------------------------------------------------------------------------
@@ -3273,6 +3462,165 @@ const vueltas: Efecto = (e, tipo, _d, a) => {
   }
 };
 
+// ---- Tanda 13 ---------------------------------------------------------------------------------------------------
+/** Azote: una mano sale de una manga, cruza en arco y da la palmada; pum, onda, estrellitas amarillas y la huella roja. */
+const azote: Efecto = (e, tipo, d, a) => {
+  const hm = unos('mano-azote', hManoAzote);
+  const hh = memo('huella', hHuella);
+  const hc = unos('chispa', hChispa);
+  for (const t of a) {
+    const dir = t.x >= d.x ? 1 : -1;
+    const o = dir > 0 ? 0 : 3;
+    e.mk(hm[o], d.x + 6 * dir, d.y - 20, t.x - 12 * dir, t.y - 8, 0, 190, -24, 0, 1, 2);
+    e.mk(hm[o + 1], t.x - 12 * dir, t.y - 8, t.x - 6 * dir, t.y - 8, 190, 170, 0, 0, 1, 1, 0, 70);
+    e.mk(hh, t.x, t.y - 6, t.x, t.y - 6, 200, 420, 0, 0, 1, 0, 0, 140);
+    e.mk(memo('pum', hPum), t.x, t.y - 6, t.x, t.y - 6, 190, 220);
+    e.mk(memo('onda', hOnda), t.x, t.y - 6, t.x, t.y - 6, 195, 260);
+    for (let i = 0; i < 5; i++) {
+      const ang = (i / 5) * 6.283 + az();
+      e.mk(hc[i & 1], t.x, t.y - 6, t.x + Math.cos(ang) * 28, t.y - 6 + Math.sin(ang) * 24, 200, 330, -8, 0, 1, 1, 0, 100);
+    }
+    golpe(e, tipo, t.x, t.y, 190, 2);
+  }
+};
+
+/** Consentimiento: salta un cartel amarillo de «¿puedo?», una mano abierta pide permiso y se esconde hecha puño en la manga. */
+const consentimiento: Efecto = (e, tipo, d) => {
+  const hc = unos('cartel-pregunta', hCartelPregunta);
+  const hm = unos('mano-azote', hManoAzote);
+  const cy = alto(d.y - 36);
+  e.mk(hc[0], d.x, cy + 6, d.x, cy + 4, 0, 80);
+  e.mk(hc[1], d.x, cy + 3, d.x, cy + 2, 80, 80);
+  e.mk(hc[2], d.x, cy, d.x, cy - 3, 160, 480, 0, -3, 1, 0, 0, 130);
+  e.mk(hm[0], d.x + 24, d.y - 8, d.x + 20, d.y - 10, 0, 140, 0, 0, 1, 1);
+  e.mk(hm[2], d.x + 20, d.y - 10, d.x + 4, d.y, 140, 200, 0, 0, 1, 2, 0, 70);
+  const hb = memoT('brillo', tipo, hBrillo);
+  for (let i = 0; i < 4; i++) {
+    const ang = (i / 4) * 6.283 + 0.6;
+    e.mk(hb, d.x, cy, d.x + Math.cos(ang) * 24, cy + Math.sin(ang) * 18, 220, 360, 0, 0, 1, 1, 70, 100);
+  }
+};
+
+/** Lactosa: un cartón de leche gira hasta el rival y revienta en un charco blanco con gotas y la chispa del tipo. */
+const lactosa: Efecto = (e, tipo, d, a) => {
+  const hg = unos('gota-leche', hGotaLeche);
+  a.forEach((t, k) => {
+    e.mk(memo('carton-leche', hCartonLeche), d.x, d.y, t.x, t.y - 4, k * 25, 230, -26, 0, 1, 0, 45);
+    e.mk(memo('salpicon-leche', () => hSalpicon('#8a98b8', '#f4f8ff', '#ffffff')), t.x, t.y + 2, t.x, t.y + 2, 230 + k * 25, 420, 0, 0, 1, 0, 0, 120);
+    for (let i = 0; i < 5; i++) e.mk(hg[i & 1], t.x, t.y - 4, t.x + (i - 2) * 11 + entre(-3, 3), t.y + 12 + entre(0, 8), 235 + k * 25, 300, -entre(14, 26), 0, 1, 0, 0, 90);
+    golpe(e, tipo, t.x, t.y, 230 + k * 25, 2);
+  });
+};
+
+/** Grumitos: lluvia de grumos de cacao que se quedan pegados al rival, se escurren y lo manchan. */
+const grumitos: Efecto = (e, tipo, d, a) => {
+  const hg = unos('grumos', hGrumos);
+  a.forEach((t, k) => {
+    for (let i = 0; i < 6; i++) {
+      const tx = t.x + entre(-14, 14);
+      const ty = t.y + entre(-14, 8);
+      const ret = i * 45 + k * 15;
+      e.mk(hg[i % 3], d.x, d.y, tx, ty, ret, 160, -entre(14, 26), 0, 1, 0);
+      e.mk(hg[i % 3], tx, ty, tx, ty + 8, ret + 160, 300, 0, 0, 0.8, 1, 0, 100);
+    }
+    e.mk(memo('mancha-cacao', hManchaCacao), t.x, t.y + 4, t.x, t.y + 4, 180 + k * 15, 500, 0, 0, 1, 0, 0, 150);
+    golpe(e, tipo, t.x, t.y, 180 + k * 15, 2);
+  });
+};
+
+/** Tortipapa: una tortilla de patata gira hasta el rival, suelta migas y unas chispas doradas vuelven al que la lanzó (la mitad del daño). */
+const tortipapa: Efecto = (e, tipo, d, a) => {
+  const hmg = unos('miga-tortilla', hMigaTortilla);
+  const hc = unos('chispa', hChispa);
+  a.forEach((t, k) => {
+    e.mk(memo('tortilla', hTortilla), d.x, d.y, t.x, t.y - 4, k * 25, 220, -24, 0, 1, 0, 60);
+    e.mk(memo('pum', hPum), t.x, t.y - 4, t.x, t.y - 4, 220 + k * 25, 220);
+    for (let i = 0; i < 5; i++) {
+      const ang = (i / 5) * 6.283 + az();
+      e.mk(hmg[i & 1], t.x, t.y - 4, t.x + Math.cos(ang) * 26, t.y - 4 + Math.sin(ang) * 20 + 6, 225 + k * 25, 320, -10, 0, 1, 1, 0, 90);
+    }
+    for (let i = 0; i < 4; i++) e.mk(hc[1], t.x, t.y - 6, d.x, d.y - 8, 300 + i * 60 + k * 25, 320, -12, 0, 1, 1, 0, 90);
+    golpe(e, tipo, t.x, t.y, 220 + k * 25, 2);
+  });
+};
+
+/** Cancún: sale el sol sobre el atacante, un avión cruza hasta el rival y a su lado brotan palmeras con cocos que saltan. */
+const cancun: Efecto = (e, tipo, d, a) => {
+  const hav = memo('avion', hAvion);
+  const hp = unos('palmera', hPalmera);
+  const hco = memo('coco', hCoco);
+  const hpo = memo('poof', hPoof);
+  e.mk(memo('solcito', hSolcito), d.x - 6, alto(d.y - 36), d.x - 6, alto(d.y - 38), 0, 560, 0, 0, 1, 0, 0, 150);
+  a.forEach((t, k) => {
+    const dir = t.x >= d.x ? 1 : -1;
+    const x0 = d.x + 6 * dir;
+    const x1 = t.x + 34 * dir;
+    e.mk([hav[dir > 0 ? 0 : 1]], x0, d.y - 14, x1, t.y - 12, k * 20, 220, -20, 0, 1, 0, 0, 60);
+    for (let i = 1; i <= 2; i++) e.mk(hpo, hasta(x0, x1, i / 4), hasta(d.y - 14, t.y - 12, i / 4) - 15 * i * (4 - i) / 4, hasta(x0, x1, i / 4) - 6 * dir, hasta(d.y - 14, t.y - 12, i / 4) - 4, k * 20 + i * 50, 300, 0, 0, 1, 1, 0, 100);
+    for (const s of [-1, 1]) {
+      const px = t.x + s * 26;
+      e.mk(hp[0], px, t.y + 8, px, t.y + 4, 150 + k * 20, 90, 0, 0, 1, 1);
+      e.mk(hp[1], px, t.y + 2, px, t.y, 240 + k * 20, 400, 0, 0, 1, 0, 0, 130);
+    }
+    for (let i = 0; i < 3; i++) e.mk(hco, t.x + (i - 1) * 6, t.y - 22, t.x + (i - 1) * 24, t.y + 12, 200 + i * 30 + k * 20, 340, -26, 0, 1, 0, 0, 90);
+    golpe(e, tipo, t.x, t.y, 200 + k * 20, 2);
+  });
+};
+
+/** Horóscopo: una rueda del zodiaco con sus doce signos sube sobre el rival, gira y le llueven estrellas moradas y doradas. */
+const horoscopo: Efecto = (e, tipo, _d, a) => {
+  const hs = unos('estrellas-zodiaco', hEstrellasZodiaco);
+  for (const t of a) {
+    const cy = alto(t.y - 36);
+    e.mk(memo('rueda-zodiaco', hRuedaZodiaco), t.x, cy + 10, t.x, cy, 0, 640, 0, 0, 0.2, 1, 55, 150);
+    for (let i = 0; i < 7; i++) {
+      const x = t.x + (i - 3) * 8;
+      e.mk(hs[i % 3], x, cy + 6, x + entre(-4, 4), t.y + entre(-4, 8), 280 + i * 35, 300, 0, 0, 1, 2, 0, 80);
+    }
+    e.mk(memo('pum', hPum), t.x, t.y - 4, t.x, t.y - 4, 320, 220);
+    golpe(e, tipo, t.x, t.y, 300, 2);
+  }
+};
+
+/** Gentrificación: un cartel rojo con «€» cuelga de un cable de grúa, cae sobre el rival levantando polvo y salen volando billetes. */
+const gentrificacion: Efecto = (e, tipo, _d, a) => {
+  const hc = unos('cartel-euro', hCartelEuro);
+  const hb = memo('billete', hBillete);
+  const hpv = memo('polvo', hPolvo);
+  for (const t of a) {
+    e.mk(hc[0], t.x, alto(t.y - 90), t.x, t.y - 22, 0, 170, 0, 0, 1, 2);
+    e.mk(hc[1], t.x, t.y - 8, t.x, t.y - 8, 170, 480, -6, 0, 1, 0, 0, 140);
+    e.mk(memo('pum', hPum), t.x, t.y - 6, t.x, t.y - 6, 170, 220);
+    for (const s of [-1, 1]) e.mk(hpv, t.x + s * 8, t.y + 8, t.x + s * 34, t.y + 8, 175, 380, 0, 0, 1, 1, 0, 110);
+    for (let i = 0; i < 4; i++) e.mk(hb, t.x, t.y - 10, t.x + (i - 1.5) * 18, alto(t.y - 44 - (i & 1) * 8), 190 + i * 30, 340, -10, i & 1 ? -3 : 3, 1, 1, 80, 90);
+    golpe(e, tipo, t.x, t.y, 170, 2);
+  }
+};
+
+/** Tekifresi: chorros de tequila rosa de fresa salen de una botella hacia cada rival; salpican y saltan fresas. */
+const tekifresi: Efecto = (e, tipo, d, a) => {
+  const hg = unos('gota-rosa', hGotaRosa);
+  e.mk(memo('botella-rosa', hBotellaRosa), d.x + 12, d.y - 12, d.x + 12, d.y - 16, 0, 280, 0, -3, 1, 0, 0, 80);
+  a.forEach((t, k) => {
+    for (let i = 0; i < 5; i++) e.mk(hg[i & 1], d.x + 14, d.y - 20, t.x + entre(-8, 8), t.y - 6 + entre(-6, 6), 50 + i * 22 + k * 10, 150, -16, 0, 1, 0);
+    e.mk(memo('salpicon-rosa', hSalpiconRosa), t.x, t.y + 4, t.x, t.y + 4, 190 + k * 10, 300, 0, 0, 1, 0, 0, 100);
+    for (const s of [-1, 1]) e.mk(memo('fresa', hFresa), t.x, t.y - 6, t.x + s * 20, t.y + 12, 190 + k * 10, 300, -20, 0, 1, 0, 0, 90);
+    golpe(e, tipo, t.x, t.y, 190 + k * 10, 1);
+  });
+};
+
+/** Fiebre: un taco de turrón gira hasta el rival, a su lado sube el mercurio de un termómetro hasta arriba y saltan brasas. */
+const fiebre: Efecto = (e, tipo, d, a) => {
+  const hbr = memo('brasa', hBrasa);
+  for (const t of a) {
+    e.mk(memo('turron', hTurron), d.x, d.y, t.x, t.y - 4, 0, 220, -26, 0, 1, 0, 45);
+    e.mk(memo('pum-rojo', hPumRojo), t.x, t.y - 4, t.x, t.y - 4, 215, 220);
+    e.mk(memo('termometro', hTermometro), t.x + 24, alto(t.y - 26), t.x + 24, alto(t.y - 28), 200, 620, 0, 0, 1, 0, 0, 150);
+    for (let i = 0; i < 5; i++) e.mk(hbr, t.x + entre(-14, 14), t.y + 4, t.x + entre(-18, 18), t.y - entre(18, 32), 230 + i * 30, 360, -6, 0, 1, 1, 0, 100);
+    golpe(e, tipo, t.x, t.y, 215, 2);
+  }
+};
+
 /** Efectos de los movimientos sobre rivales (y «todos»). */
 const FX: Record<string, Efecto> = {
   lluvia, almendrazo, traca, fogonazo, petardazo, chispazo, cierzo, chupitazo, garrafon, cancion, esporas, temblor, bocinazo,
@@ -3281,10 +3629,11 @@ const FX: Record<string, Efecto> = {
   maletazo, embarque, monologo, carambola, crujiente, cortepapel, pasodoble, mancha,
   ayayay, serenata, picante, ochotortas, tinta, morrina,
   fiestapagana, todosdentro, flash, nubarron, carisimo, calada, vueltas,
+  azote, tentaculo: azote, lactosa, grumitos, tortipapa, cancun, horoscopo, gentrificacion, tekifresi, fiebre,
 };
 
 /** Efectos de los movimientos sobre uno mismo (objetivo «yo»: `lanzar` los llama sin objetivos). */
-const FX_YO: Record<string, Efecto> = { siesta, esconderse, rebozado, caparazon, compas, pantalones, cinturones, improvisa, ficha, limon, papiroflexia };
+const FX_YO: Record<string, Efecto> = { siesta, esconderse, rebozado, caparazon, compas, pantalones, cinturones, improvisa, ficha, limon, papiroflexia, consentimiento };
 
 /** Los movimientos con diseño propio (para la vista previa). */
 export const MOVS_CON_EFECTO: readonly string[] = [...Object.keys(FX), ...Object.keys(FX_YO)];
@@ -3345,10 +3694,20 @@ const LLEGA: Record<string, number> = {
   carisimo: 290,
   calada: 190,
   vueltas: 200,
+  azote: 190,
+  tentaculo: 190,
+  lactosa: 230,
+  grumitos: 170,
+  tortipapa: 220,
+  cancun: 200,
+  horoscopo: 300,
+  gentrificacion: 170,
+  tekifresi: 190,
+  fiebre: 215,
 };
 
 /** Lo mismo para los movimientos sobre uno mismo (cuándo se nota el efecto: el texto de lo que sube o baja viene detrás). */
-const LLEGA_YO: Record<string, number> = { siesta: 200, esconderse: 140, rebozado: 240, caparazon: 280, compas: 260, pantalones: 250, cinturones: 205, improvisa: 300, ficha: 260, limon: 260, papiroflexia: 200 };
+const LLEGA_YO: Record<string, number> = { siesta: 200, esconderse: 140, rebozado: 240, caparazon: 280, compas: 260, pantalones: 250, cinturones: 205, improvisa: 300, ficha: 260, limon: 260, papiroflexia: 200, consentimiento: 200 };
 
 /** Cuándo llega el efecto de `mov` a su objetivo (ms desde `lanzar`); `conObjetivos` false: movimiento sobre uno mismo. */
 export function llegadaFx(mov: string, conObjetivos: boolean): number {
