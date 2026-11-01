@@ -18,8 +18,7 @@
 <div class="portada" id="portada">
 <div class="cartel">
   <header class="cabecera">
-    <button class="chapa" id="chapa" type="button" aria-haspopup="dialog"><i aria-hidden="true"></i><span id="chapa-texto"></span></button>
-    <span class="cinta" data-t="cinta"></span>
+    <button class="chapa" id="chapa" type="button" aria-haspopup="dialog"><span id="chapa-texto"></span></button>
     <h1 class="titulo" data-aria="titulo">
       <span class="palabra p1" aria-hidden="true" data-letras="titulo.1" data-desde="0"></span>
       <span class="fila" aria-hidden="true"><span class="ye" data-t="titulo.y"></span></span>
@@ -78,27 +77,7 @@
       </article>
     </div>
 
-    <!-- 4 · Fly y Trazo: fichas pequeñas, sin imagen propia (dibujo en CSS) -->
-    <div class="chicas">
-      <article class="peg chica fly" id="fly">
-        <div class="dibujo" aria-hidden="true"><i class="sol"></i><i class="pajaro"></i><i class="isla i1"></i><i class="isla i2"></i><i class="isla i3"></i></div>
-        <div class="texto">
-          <h2 data-t="fly.nombre"></h2>
-          <p data-t="fly.desc"></p>
-          <span class="dale"><a class="juego" href="/fly" data-t="fly.jugar"></a></span>
-        </div>
-      </article>
-      <article class="peg chica trazo" id="trazo">
-        <div class="dibujo" aria-hidden="true"><i class="borron"></i><i class="linea"></i><i class="gota"></i></div>
-        <div class="texto">
-          <h2 data-t="trazo.nombre"></h2>
-          <p data-t="trazo.desc"></p>
-          <span class="dale ros"><a class="juego" href="/trazo" data-t="trazo.jugar"></a></span>
-        </div>
-      </article>
-    </div>
-
-    <!-- 5 · Próximamente -->
+    <!-- 4 · Próximamente -->
     <div class="peg mas">
       <div class="rafaga-w">
         <span class="f f1"></span><span class="f f2"></span><span class="f f3"></span><span class="f f4"></span>
@@ -106,12 +85,34 @@
       </div>
     </div>
 
+    <!-- 5 · Otros juegos (no son del universo Camiones y Caravanas): Fly y Trazo, fichas pequeñas sin imagen propia (dibujo en CSS). Cerrado por defecto -->
+    <details class="otros-juegos">
+      <summary data-t="otros.nombre"></summary>
+      <div class="chicas">
+        <article class="peg chica fly" id="fly">
+          <div class="dibujo" aria-hidden="true"><i class="sol"></i><i class="pajaro"></i><i class="isla i1"></i><i class="isla i2"></i><i class="isla i3"></i></div>
+          <div class="texto">
+            <h2 data-t="fly.nombre"></h2>
+            <p data-t="fly.desc"></p>
+            <span class="dale"><a class="juego" href="/fly" data-t="fly.jugar"></a></span>
+          </div>
+        </article>
+        <article class="peg chica trazo" id="trazo">
+          <div class="dibujo" aria-hidden="true"><i class="borron"></i><i class="linea"></i><i class="gota"></i></div>
+          <div class="texto">
+            <h2 data-t="trazo.nombre"></h2>
+            <p data-t="trazo.desc"></p>
+            <span class="dale ros"><a class="juego" href="/trazo" data-t="trazo.jugar"></a></span>
+          </div>
+        </article>
+      </div>
+    </details>
+
   </main>
 </div>
 
 <footer class="pie">
   <p class="en" data-t="pie.en"></p>
-  <p class="nombres"><span data-t="pie.fran"></span><i>✶</i><span data-t="pie.pablo"></span><i>✶</i><span data-t="pie.chuchi"></span><i>✶</i><span data-t="pie.guille"></span></p>
   <p class="perra" data-t="pie.perra"></p>
   <p class="url" data-t="pie.url"></p>
 </footer>

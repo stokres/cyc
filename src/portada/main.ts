@@ -3,11 +3,13 @@
 // which only exist on the server of the game (scripts/servir-pokeusera.mjs).
 import './portada.css';
 import raw from '../textos/portada.md?raw';
+import rawProximo from '../textos/proximo.md?raw';
 import { cargarTextos, texto } from '../juego/textos';
 import { iniciarRecords, leerPrimeros } from '../cuenta/records';
 import { iniciarCuenta } from './cuenta';
+import { iniciarProximo } from './proximo';
 
-cargarTextos(raw);
+cargarTextos(raw, rawProximo);
 document.querySelectorAll<HTMLElement>('[data-t]').forEach((el) => {
   el.textContent = texto(el.dataset.t!);
 });
@@ -28,6 +30,7 @@ document.querySelectorAll<HTMLElement>('[data-letras]').forEach((el) => {
     el.appendChild(s);
   });
 });
+iniciarProximo();
 document.getElementById('portada')!.classList.add('lista');
 iniciarCuenta();
 iniciarRecords();
