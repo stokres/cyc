@@ -1,5 +1,5 @@
 // PokéUsera · Edición Jarra (arte v2): batch h of the 64×64 useritos (same conventions as useritos2.ts).
-// Culotouchi, Baticao, Josex and Arcochin.
+// Culotouchi, Baticao, Josex, Arcochin and Navicesta.
 import type { Dibujo2 } from './useritos2';
 import { Mascara, Pintor, bez3, cur, el, espejo, inter, men, poli, rc, rr, trazo, un, type Mat } from './pintor';
 
@@ -103,13 +103,14 @@ function josex(P: Pintor): void {
 
   // Head: ears, then the face (or the grey nape from behind).
   for (const x of [15.4, 48.6]) P.forma(el(x + (x < 32 ? 0.6 : -0.6), 28 + dy, 2.8, 3.8), PIEL_J, { rad: 2.4, borde: 'suave' });
-  const cabeza = el(32, 24 + dy, 16, 15);
+  // A squarish head: a rounded cranium over a straight, angular jaw.
+  const cabeza = un(rr(16, 9 + dy, 32, 22, 8.5), rr(17, 19 + dy, 30, 20, 3));
   P.sombra(cabeza, 0, 1, 1);
   if (!E) {
     P.forma(cabeza, PIEL_J, { rad: 10, grad: 0.35 });
     // Short grey hair: a cap with a receding hairline, and tufts over the ears.
-    const cara = un(el(32, 29 + dy, 14.6, 15.6), el(22.5, 17.5 + dy, 4.2, 3.2), el(41.5, 17.5 + dy, 4.2, 3.2));
-    const pelo = men(cabeza, cara);
+    const cara = un(rr(18, 15 + dy, 28, 26, 3), el(22.5, 17.5 + dy, 4.2, 3.2), el(41.5, 17.5 + dy, 4.2, 3.2));
+    const pelo = inter(men(cabeza, cara), rc(0, 0, 64, 25 + dy));
     P.forma(pelo, PELO_J, { rad: 5, grad: 0.4, borde: true });
     P.px(31, 15 + dy, PELO_J.r[2]);
     P.px(32, 14 + dy, PELO_J.r[2]);
@@ -125,7 +126,10 @@ function josex(P: Pintor): void {
     P.llenar(cur([[20, 19.5 + dy + cej], [24.6, 17.5 + dy + cej], [29, 19 + dy + cej]], 1), PELO_J.r[1]);
     P.llenar(cur([[35, 19 + dy + cej], [39.4, 17.5 + dy + cej], [44, 19.5 + dy + cej]], 1), PELO_J.r[1]);
     // Big round nose and rosy cheeks.
-    P.forma(el(32, 27.6 + dy, 4, 3.2), PIEL_J, { rad: 3, borde: 'suave', sesgo: 0.1 });
+    P.forma(el(32, 27.6 + dy, 4, 3.2), PIEL_J, { rad: 3, borde: false, sesgo: 0.05 });
+    P.px(30, 29 + dy, PIEL_J.r[0]);
+    P.px(34, 29 + dy, PIEL_J.r[0]);
+    P.llenar(cur([[29, 29.6 + dy], [35, 29.6 + dy]], 1), PIEL_J.r[0]);
     P.px(31, 26 + dy, PIEL_J.r[2]);
     for (const x of [20, 41]) {
       P.llenar(rc(x, 29 + dy, 3, 2), ROJO_J);
@@ -139,7 +143,7 @@ function josex(P: Pintor): void {
   } else {
     P.forma(cabeza, PIEL_J, { rad: 10, grad: 0.35 });
     // Grey hair round the back, a bald crown patch and the fold of the neck.
-    const nuca = inter(cabeza, un(rc(0, 0, 64, 28 + dy), el(32, 28 + dy, 13, 4.6)));
+    const nuca = inter(cabeza, un(rc(0, 0, 64, 29 + dy), rr(19, 26 + dy, 26, 8, 3)));
     P.forma(nuca, PELO_J, { rad: 6, grad: 0.4, borde: true, sesgo: -0.25 });
     P.llenar(cur([[24, 35 + dy], [32, 37 + dy], [40, 35 + dy]], 1), PIEL_J.r[0]);
     P.llenar(cur([[25, 18 + dy], [32, 20 + dy], [39, 18 + dy]], 1), PELO_J.r[2]);
@@ -152,17 +156,16 @@ function josex(P: Pintor): void {
 
 
 // ---------------------------------------------------------------------------------------------
-// Baticao · a chubby glass mug of cocoa milk, wrapped up for a nap: brown milk with a pale foam dome on top, little
-// dark cocoa lumps floating in it and in the foam, a long spoon sticking out, a red-and-cream plaid blanket over
-// its shoulders with the tails hanging, and a drowsy face (heavy lids, a small smile). Frame 1: the foam bobs,
-// the spoon swings and a «z» floats up. From behind: the plaid blanket, the handle on the other side, the lumps.
+// Baticao · a chubby white ceramic mug of cocoa milk, half asleep: a wide mouth full of brown milk with cocoa lumps
+// floating in it, a pale foam dome over it, a long spoon sticking out, a chocolate drip down the side and a drowsy
+// face on the white (heavy lids, a small smile, blushes). Frame 1: the foam bobs, the spoon swings and a «z»
+// floats up. From behind: the mug seen from the back, with the handle on the other side and the drip.
 // ---------------------------------------------------------------------------------------------
 const INK_B = '#24100e';
-const VIDRIO_B: Mat = { r: ['#6a86a8', '#a8c4de', '#e8f4ff'], ol: INK_B, ol2: '#6a86a8' };
+const TAZA: Mat = { r: ['#9a98b8', '#d0cee4', '#ffffff'], ol: INK_B, ol2: '#9a98b8' };
 const LECHE: Mat = { r: ['#2e160e', '#4e2616', '#7a4026', '#a86a40'], ol: INK_B, ol2: '#2e160e' };
 const ESPUMA_B: Mat = { r: ['#a87a50', '#dcae80', '#f8e4c4'], ol: INK_B, ol2: '#a87a50' };
-const MANTA: Mat = { r: ['#7c1424', '#c02c3c', '#e04a54'], ol: INK_B, ol2: '#7c1424' };
-const CREMA_B = '#f8e4c4';
+const ROSA_B = '#f08a9a';
 
 function baticao(P: Pintor): void {
   const f = P.f;
@@ -171,91 +174,74 @@ function baticao(P: Pintor): void {
   const TX = (x: number) => (E ? 63 - x : x);
   const bob = f ? 1 : 0;
 
-  // Handle (a glass loop on the right from the front, on the left from behind).
-  const asa = trazo(bez3([48, 27], [60, 26], [60, 46], [48, 47], 14), 2.4, 2.4);
-  P.forma(T(asa), VIDRIO_B, { rad: 2.4, modo: 'cil', semi: 3 });
-  P.llenar(T(cur(bez3([49, 30], [57, 29], [57, 43], [49, 44], 12), 1)), LECHE.r[2]);
+  // Handle (a ceramic loop on the right from the front, on the left from behind).
+  const asa = trazo(bez3([47, 29], [61, 27], [61, 49], [47, 48], 14), 2.5, 2.5);
+  P.forma(T(asa), TAZA, { rad: 2.5, modo: 'cil', semi: 3 });
+  P.llenar(T(cur(bez3([48, 32], [57, 31], [57, 45], [48, 45], 12), 1)), TAZA.r[0]);
 
-  // Glass body and the milk inside it.
-  const vaso = un(rr(14, 15, 36, 44, 5.4), el(32, 15, 18, 3.6));
-  P.sombra(T(vaso), 0, 1, 1);
-  P.forma(vaso, VIDRIO_B, { modo: 'cil', eje: 32, semi: 18, rad: 3.4 });
-  const leche = rr(16.4, 19, 31.2, 38.4, 3.6);
-  P.forma(leche, LECHE, { modo: 'cil', eje: 32, semi: 15, borde: false, rim: false, grad: 0.15, rad: 2.2, sesgo: 0.1 });
-  // Glass highlights along the wall and the thick base.
-  P.llenar(rc(15, 21, 1, 16), VIDRIO_B.r[2]);
-  P.llenar(rc(48, 22, 1, 14), VIDRIO_B.r[1]);
+  // Body of the mug, a foot ring and the rim.
+  P.forma(rr(19, 58, 26, 4, 1.8), TAZA, { rad: 2, grad: 0.3 });
+  const cuerpo = un(rr(14, 20, 36, 40, 9), el(32, 21, 18, 5.4));
+  P.sombra(T(cuerpo), 0, 1, 1);
+  P.forma(cuerpo, TAZA, { modo: 'cil', eje: 32, semi: 18, rad: 6, grad: 0.3, sesgo: 0.1 });
 
-  // Cocoa lumps floating in the milk.
-  const grumos: [number, number][] = [[19, 22], [43, 23], [20, 33], [44, 34], [31, 22]];
-  for (const [x, y] of grumos) {
-    const yy = y + (f && x % 2 ? -1 : 0);
-    P.llenar(T(rc(x, yy, 3, 2)), LECHE.r[3]);
-    P.llenar(T(rc(x, yy + 1, 3, 1)), LECHE.r[2]);
-    P.px(TX(x + 2), yy + 1, LECHE.r[0]);
+  // The mouth of the mug: dark brown milk with a shine, cocoa lumps floating in it.
+  const boca = el(32, 21, 15.6, 4.6);
+  P.forma(boca, LECHE, { rad: 2.6, grad: 0.5, sesgo: -0.1 });
+  P.llenar(T(cur([[19, 20.4], [22, 22.2]], 1)), LECHE.r[3]);
+  for (const [x, y] of [[20, 21], [42, 21], [26, 24], [37, 24], [41, 18]] as [number, number][]) {
+    const yy = y + (f && x % 2 ? 1 : 0);
+    P.llenar(T(rc(x, yy, 2, 2)), LECHE.r[3]);
+    P.px(TX(x + 1), yy + 1, LECHE.r[0]);
   }
+
+  // A chocolate drip running down the side of the mug.
+  const gota = un(rc(41, 24, 4, 3), el(43, 28, 2.2, 2.6));
+  P.forma(T(gota), LECHE, { rad: 2, grad: 0.3, sesgo: 0.1 });
+  P.px(TX(42), 23, LECHE.r[3]);
+
   P.cara(() => {
-    // Drowsy face on the milk: big heavy-lidded eyes, a small smile, two blushes.
-    for (const cx of [24.6, 39.4]) {
-      const ojo = el(cx, 28.4, 4, 3.4);
+    // Drowsy face on the white: heavy-lidded eyes, a small smile, two blushes.
+    for (const cx of [24.2, 39.8]) {
+      const ojo = el(cx, 36.6, 4.2, 3.6);
       P.aro(ojo, INK_B);
-      P.llenar(ojo, CREMA_B);
-      P.llenar(inter(el(cx + (cx < 32 ? 1 : -1), 29.6, 2, 2), ojo), INK_B);
-      P.px(Math.round(cx) + (cx < 32 ? 1 : -2), 28, CREMA_B);
-      P.llenar(inter(rc(Math.round(cx) - 5, 24, 10, 4), ojo), LECHE.r[2]);
-      P.llenar(cur([[cx - 4.4, 27.6], [cx + 4.4, 27.6]], 1), INK_B);
+      P.llenar(ojo, TAZA.r[2]);
+      P.llenar(inter(el(cx + (cx < 32 ? 1 : -1), 37.8, 2.1, 2.1), ojo), INK_B);
+      P.px(Math.round(cx) + (cx < 32 ? 1 : -2), 37, TAZA.r[2]);
+      P.llenar(inter(rc(Math.round(cx) - 5, 32, 10, 4), ojo), TAZA.r[0]);
+      P.llenar(cur([[cx - 4.6, 35.8], [cx + 4.6, 35.8]], 1), INK_B);
     }
-    P.llenar(cur([[28.5, 35], [32, 36.6], [35.5, 35]], 1), INK_B);
-    for (const x of [19, 43]) {
-      P.llenar(rc(x, 32, 3, 2), MANTA.r[1]);
-      P.px(x + 1, 32, ESPUMA_B.r[1]);
+    P.llenar(cur([[28.4, 44.6], [32, 46.4], [35.6, 44.6]], 1), INK_B);
+    for (const x of [17.5, 43.5]) {
+      P.llenar(rc(x, 41, 3, 2), ROSA_B);
     }
   });
   P.dorso(() => {
-    P.llenar(cur([[24, 24], [26, 28]], 1), LECHE.r[3]);
-    P.llenar(cur([[37, 30], [39, 34]], 1), LECHE.r[3]);
+    // Back: a simple pale band under the rim and a glint.
+    P.llenar(T(cur([[17, 28], [26, 29.4]], 1)), TAZA.r[2]);
+    P.llenar(rc(18, 48, 1, 6), TAZA.r[2]);
   });
 
   // Foam dome rising over the rim, with a few cocoa specks.
-  const espuma = un(el(32, 16.4, 16, 3.2), inter(el(31, 14 + bob * 0.6, 14.2, 7), rc(0, 0, 64, 18)));
+  const espuma = inter(el(30, 20 + bob * 0.6, 10, 8.4), rc(0, 0, 64, 21));
   P.sombra(espuma, 0, 1, 1);
   P.forma(espuma, ESPUMA_B, { rad: 5, grad: 0.4 });
-  for (const [x, y] of [[24, 12], [31, 9], [38, 13], [42, 16], [27, 16]] as [number, number][]) {
+  for (const [x, y] of [[24, 16], [30, 13], [34, 17], [29, 18]] as [number, number][]) {
     P.llenar(rc(x, y + bob, 2, 2), LECHE.r[2]);
     P.px(x, y + bob, LECHE.r[3]);
   }
 
-  // The plaid blanket wrapped round the body up to the chin: a rolled collar, a flap hanging at one side.
-  const envoltorio = un(rr(11, 38, 42, 22, 7), poli([[11, 43], [7, 47], [8, 57], [14, 57]]));
-  P.sombra(T(envoltorio), 0, 1, 1);
-  P.forma(T(envoltorio), MANTA, { rad: 5, grad: 0.4, borde: true });
-  const cuello = un(inter(envoltorio, rc(0, 0, 64, 42)));
-  T(envoltorio).each((x, y) => {
-    const xx = E ? 63 - x : x;
-    const v = xx % 4 === 0;
-    const h = y % 4 === 0;
-    if (v && h) P.px(x, y, MANTA.r[0]);
-    else if (v || h) P.px(x, y, CREMA_B);
-  });
-  P.llenar(T(inter(cuello, rc(0, 38, 64, 1))), CREMA_B);
-  P.llenar(T(cur([[12, 41.5], [32, 44], [52, 41.5]], 1)), MANTA.r[0]);
-  // Fringe on the hanging flap.
-  for (const y of [49, 51, 53, 55]) P.px(TX(7), y, CREMA_B);
-  // Highlight fold on the rolled collar.
-  
-
   // The long spoon sticking out of the foam.
-  const cx = f ? 44 : 47;
+  const cx = f ? 42 : 46;
   const cy = f ? 3 : 5;
-  P.sombra(T(trazo([[33, 15], [cx, cy]], 1.2, 1.2)), 0, 1, 1);
-  P.llenar(T(cur([[33, 15], [cx, cy]], 2)), VIDRIO_B.r[1]);
-  P.llenar(T(cur([[34, 16], [cx + 1, cy + 1]], 1)), VIDRIO_B.r[0]);
-  P.forma(T(el(cx + (f ? -1 : 1.4), cy - 0.6, 3.4, 2.4)), VIDRIO_B, { rad: 2, borde: true });
+  P.llenar(T(cur([[33, 14], [cx, cy]], 2)), TAZA.r[1]);
+  P.llenar(T(cur([[34, 15], [cx + 1, cy + 1]], 1)), TAZA.r[0]);
+  P.forma(T(el(cx + (f ? -1 : 1.4), cy - 0.6, 3.4, 2.4)), TAZA, { rad: 2, borde: true });
   if (f) {
     // A sleepy «z» floating up from the top right.
-    P.llenar(rc(TX(52), 6, 4, 1), VIDRIO_B.r[2]);
-    P.llenar(T(cur([[55, 7], [52, 10]], 1)), VIDRIO_B.r[2]);
-    P.llenar(rc(TX(52), 10, 4, 1), VIDRIO_B.r[2]);
+    P.llenar(rc(TX(52), 6, 4, 1), TAZA.r[0]);
+    P.llenar(T(cur([[55, 7], [52, 10]], 1)), TAZA.r[0]);
+    P.llenar(rc(TX(52), 10, 4, 1), TAZA.r[0]);
   }
 }
 
@@ -562,10 +548,169 @@ function arcochin(P: Pintor): void {
   }
 }
 
+// ---------------------------------------------------------------------------------------------
+// Navicesta · a pretty wicker Christmas hamper with a visible weave, a braided arched handle with a big red bow and a
+// cheerful face on its front, stuffed with festive goods: a strawberry-tequila bottle (the star), a bar of turrón, a
+// ham leg with its frill, a few polvorones in their paper and a sprig of holly tucked into the rim. Frame 1: the
+// goods hop and twinkle. From behind: the weave without a face, the bow's back and the goods peeking out.
+// ---------------------------------------------------------------------------------------------
+const INK_N2 = '#2a140c';
+const MIMBRE: Mat = { r: ['#8a5420', '#c88a3a', '#f0c060', '#f8e4b8'], ol: INK_N2, ol2: '#8a5420' };
+const LAZO: Mat = { r: ['#a01428', '#e0282e', '#ff94b8'], ol: INK_N2, ol2: '#a01428' };
+const FRESA: Mat = { r: ['#a01428', '#f03c78', '#ff94b8'], ol: INK_N2, ol2: '#a01428' };
+const ACEBO: Mat = { r: ['#14602c', '#2c9a44', '#2c9a44'], ol: INK_N2, ol2: '#14602c' };
+const TURRON: Mat = { r: ['#c88a3a', '#f8e4b8', '#ffffff'], ol: INK_N2, ol2: '#8a5420' };
+const JAMON: Mat = { r: ['#a01428', '#e0282e', '#e0784a'], ol: INK_N2, ol2: '#a01428' };
+const ORO_N = '#ffd23a';
+const BLANCO_N = '#ffffff';
+
+function navicesta(P: Pintor): void {
+  const f = P.f;
+  const E = P.espalda;
+  const T = (m: Mascara) => (E ? espejo(m) : m);
+  const TX = (x: number) => (E ? 63 - x : x);
+  const hop = f ? -2 : 0;
+
+  // The handle: a braided arch behind the goods.
+  const asa = trazo(bez3([10, 38], [4, -8], [60, -8], [54, 38], 26), 2.3, 2.3);
+  P.forma(T(asa), MIMBRE, { rad: 2.3, grad: 0.3, modo: 'cil', semi: 3 });
+  asa.each((x, y) => {
+    if ((x + y) % 4 === 0 && P.matEn(TX(x), y) === P.mat(MIMBRE)) P.px(TX(x), y, MIMBRE.r[0]);
+  });
+
+  // Turrón: a tilted bar in a red band.
+  const barra = poli([[31, 21 + hop * 0.5], [44, 14 + hop * 0.5], [47, 20 + hop * 0.5], [34, 27 + hop * 0.5]]);
+  P.sombra(T(barra), 0, 1, 1);
+  P.forma(T(barra), TURRON, { rad: 3, grad: 0.4, borde: true });
+  P.llenar(T(poli([[37, 17.8 + hop * 0.5], [40.6, 16 + hop * 0.5], [43.4, 21.6 + hop * 0.5], [39.8, 23.6 + hop * 0.5]])), LAZO.r[1]);
+  P.px(TX(41), 19 + Math.round(hop * 0.5), ORO_N);
+  P.px(TX(40), 20 + Math.round(hop * 0.5), ORO_N);
+
+  // Ham leg: a plump red leg, a white fat edge, a bone with its paper frill.
+  const jamon = el(16, 26 + hop * 0.5, 6.6, 7);
+  P.sombra(T(jamon), 0, 1, 1);
+  P.forma(T(trazo([[16, 20 + hop * 0.5], [12.6, 12.4 + hop]], 2, 1.7)), TURRON, { rad: 1.8, borde: true });
+  P.forma(T(el(12, 11 + hop, 2.5, 2.2)), { r: [INK_N2, '#5a3018', '#5a3018'], ol: INK_N2 }, { rad: 2 });
+  P.forma(T(jamon), JAMON, { rad: 5, grad: 0.4 });
+  P.llenar(T(inter(el(16, 26 + hop * 0.5, 4.2, 4.6), rc(0, 0, 14, 64))), JAMON.r[2]);
+  for (const [x, y] of [[11, 19], [12, 17], [14.5, 16]] as [number, number][]) P.px(TX(x), Math.round(y + hop * 0.6), BLANCO_N);
+  P.llenar(T(cur([[11, 18 + hop * 0.6], [18, 17 + hop * 0.6]], 1)), BLANCO_N);
+  for (let x = 10; x <= 18; x += 2) P.px(TX(x), 17 + (x % 4 === 0 ? 1 : 0) + Math.round(hop * 0.6), BLANCO_N);
+
+  // The strawberry-tequila bottle, the star of the hamper.
+  const botella = un(rr(22, 21 + hop, 11, 15, 3.4), rr(25, 13 + hop, 5, 10, 1.6));
+  P.sombra(T(botella), 0, 1, 1);
+  P.forma(T(botella), FRESA, { modo: 'cil', eje: 27.5, semi: 5.5, rad: 3, grad: 0.3 });
+  P.forma(T(rc(25, 9 + hop, 5, 4)), { r: ['#c88a3a', ORO_N, ORO_N], ol: INK_N2, ol2: '#8a5420' }, { rad: 1.6 });
+  P.cara(() => {
+    // A white label with a little strawberry.
+    P.llenar(rc(23, 26 + hop, 9, 7), BLANCO_N);
+    P.aro(rc(23, 26 + hop, 9, 7), INK_N2);
+    P.llenar(el(27.5, 30 + hop, 2.4, 2.2), FRESA.r[1]);
+    P.px(26, 27 + hop, ACEBO.r[1]);
+    P.px(27, 27 + hop, ACEBO.r[1]);
+    P.px(28, 27 + hop, ACEBO.r[1]);
+    P.px(27, 30 + hop, BLANCO_N);
+  });
+  P.dorso(() => {
+    P.llenar(T(rc(23, 26 + hop, 9, 5)), FRESA.r[0]);
+    P.llenar(T(rc(24, 27 + hop, 7, 1)), FRESA.r[2]);
+  });
+  P.llenar(T(cur([[24, 22 + hop], [24, 34 + hop]], 1)), FRESA.r[2]);
+
+  // Polvorones in their paper, peeking over the rim on the right.
+  for (const [x, y, k] of [[44, 29, 0], [50, 30, 1], [46.4, 25.4, 2]] as [number, number, number][]) {
+    const yy = y + (f ? (k % 2 ? 1 : -1) : 0) * 0;
+    const polvoron = el(x, yy + (f && k === 2 ? -1 : 0), 3.4, 2.8);
+    P.forma(T(polvoron), TURRON, { rad: 2.6, grad: 0.4 });
+    P.llenar(T(cur([[x - 5.2, yy - 1], [x - 3.4, yy]], 1)), TURRON.r[2]);
+    P.llenar(T(cur([[x + 3.4, yy], [x + 5.2, yy - 1]], 1)), TURRON.r[2]);
+    P.px(TX(Math.round(x) - 6), Math.round(yy - 1), LAZO.r[1]);
+    P.px(TX(Math.round(x) + 5), Math.round(yy - 1), LAZO.r[1]);
+  }
+
+  // The basket: a rope rim and a weave body.
+  const cuerpo = poli([[8, 38], [56, 38], [53, 56], [49, 61], [15, 61], [11, 56]]);
+  P.sombra(cuerpo, 0, 1, 1);
+  P.forma(cuerpo, MIMBRE, { rad: 7, grad: 0.35, sesgo: 0.1 });
+  cuerpo.each((x, y) => {
+    if (y < 40) return;
+    const fila = Math.floor((y - 40) / 3);
+    const cuerda = (y - 40) % 3 === 0;
+    const en = P.matEn(x, y) === P.mat(MIMBRE);
+    if (!en) return;
+    if (cuerda) P.px(x, y, MIMBRE.r[0]);
+    else if ((x + (fila % 2) * 3) % 6 === 0) P.px(x, y, MIMBRE.r[0]);
+    else if ((x + (fila % 2) * 3) % 6 === 1) P.px(x, y, MIMBRE.r[3]);
+  });
+  const borde = rr(5, 31, 54, 8, 3.6);
+  P.sombra(borde, 0, 1, 1);
+  P.forma(borde, MIMBRE, { rad: 3.6, grad: 0.3, sesgo: 0.15 });
+  for (let x = 7; x < 58; x += 3) {
+    P.llenarSobre(rc(x, 33, 1, 5), MIMBRE.r[0], MIMBRE);
+    P.px(x + 1, 33, MIMBRE.r[3]);
+  }
+
+  P.cara(() => {
+    // Cheerful face on the front of the basket.
+    for (const cx of [24.4, 39.6]) {
+      const ojo = el(cx, 46, 3.8, 4.2);
+      P.aro(ojo, INK_N2);
+      P.llenar(ojo, BLANCO_N);
+      P.llenar(inter(el(cx + (f ? 0.6 : -0.6), 46.8, 2.1, 2.5), ojo), INK_N2);
+      P.px(Math.round(cx) + (f ? 0 : -1), 45, BLANCO_N);
+    }
+    const boca = inter(el(32, 51.4, 6.4, 4.6), rc(0, 51, 64, 8));
+    P.llenar(boca, INK_N2);
+    P.llenar(inter(el(32, 56.6, 3.6, 2.4), boca), FRESA.r[1]);
+    P.llenar(inter(rc(0, 51, 64, 1), boca), BLANCO_N);
+    for (const x of [16.6, 46.4]) {
+      P.llenar(rc(x, 50, 3, 2), FRESA.r[2]);
+    }
+  });
+
+  // A sprig of holly tucked into the rim.
+  const hoja = (x: number, y: number, dx: number, dy: number): void => {
+    const m = trazo([[x, y], [x + dx, y + dy]], 1.9, 0.5);
+    P.forma(T(m), ACEBO, { rad: 1.6, grad: 0.3 });
+  };
+  hoja(12, 33, -5, -5);
+  hoja(12, 33, 5, -6);
+  hoja(12, 34, -6, 1);
+  for (const [x, y] of [[12, 32], [14, 33], [11, 34]] as [number, number][]) {
+    P.px(TX(x), y, LAZO.r[1]);
+    P.px(TX(x), y - 1, LAZO.r[2]);
+  }
+
+  // The red bow at the top of the handle.
+  const lazoI = poli([[31, 8], [22, 2.4], [19.6, 7], [22, 12], [31, 10]]);
+  const lazoD = poli([[33, 8], [42, 2.4], [44.4, 7], [42, 12], [33, 10]]);
+  for (const m of [lazoI, lazoD]) {
+    P.sombra(m, 0, 1, 1);
+    P.forma(m, LAZO, { rad: 3.2, grad: 0.4 });
+  }
+  P.llenar(cur([[30, 8.6], [22.5, 6.4]], 1), LAZO.r[0]);
+  P.llenar(cur([[34, 8.6], [41.5, 6.4]], 1), LAZO.r[0]);
+  P.forma(el(32, 8.6, 3, 3), LAZO, { rad: 2.4 });
+  P.px(31, 7, LAZO.r[2]);
+
+  if (f) {
+    // Twinkles around the goods.
+    for (const [x, y] of [[19, 6], [51, 12], [36, 11]] as [number, number][]) {
+      P.px(TX(x), y, BLANCO_N);
+      P.px(TX(x) - 1, y, ORO_N);
+      P.px(TX(x) + 1, y, ORO_N);
+      P.px(TX(x), y - 1, ORO_N);
+      P.px(TX(x), y + 1, ORO_N);
+    }
+  }
+}
+
 export const LOTE_H: Dibujo2[] = [
   { id: 'culotouchi', nombre: 'Culotouchi', dibujar: culotouchi },
   { id: 'baticao', nombre: 'Baticao', dibujar: baticao },
   { id: 'josex', nombre: 'Josex', dibujar: josex },
   { id: 'arcochin', nombre: 'Arcochin', dibujar: arcochin },
+  { id: 'navicesta', nombre: 'Navicesta', dibujar: navicesta },
 ];
 void [bez3];
