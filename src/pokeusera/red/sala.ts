@@ -14,7 +14,7 @@ import { Campo } from '../pantallas/campo';
 import { dibujarFondoBar } from '../pantallas/fondos';
 import { mensaje, sobre } from '../pantallas/modal';
 import { VELOCIDADES, barraArriba, boton, cfg, centrado, colorEnt, envolver, fondoPapel, nombreEnt, oscurecer, rect, t, texto2, velo } from '../pantallas/ui';
-import { JUEGO, MAX_JUGADORES, MAX_SALAS, limpiarCodigoSala, type Conexion, type ResultadoSala } from './conexion';
+import { JUEGO, MAX_JUGADORES, MAX_SALAS, SALA_NUEVA, limpiarCodigoSala, type Conexion, type ResultadoSala } from './conexion';
 
 // ---------------------------------------------------------------- the list of rooms
 
@@ -44,7 +44,8 @@ interface Zona {
 
 /**
  * The list of open rooms of PokéUsera: tap one to join, CREAR SALA, or TENGO UN CÓDIGO (four letters). Opens the connection if it is not open yet.
- * `codigo`: from a link (`?sala=K7MZ`): joins that room first, and shows the list only if that fails.
+ * `codigo`: from a link (`?sala=K7MZ`): joins that room first, and shows the list only if that fails. `?sala=nueva` (`SALA_NUEVA`) creates a room of 4 instead, like CREAR SALA
+ * (if it cannot be done, for example because there are already 4 rooms, the notice of that case and the list).
  * Resolves `'sala'` once the player is in a room (`con.id >= 0`), or `'volver'` when they go back (the caller closes the connection) or there is no connection.
  */
 export function pantallaSalas(con: Conexion, codigo?: string): Promise<SalidaSalas> {
@@ -268,7 +269,8 @@ export function pantallaSalas(con: Conexion, codigo?: string): Promise<SalidaSal
       con.mirarLista(JUEGO);
       p.redibujar();
       if (!codigo) return;
-      // From a link: that room first; if it cannot be joined, the list.
+      // From a link: `nueva` creates a room; otherwise that room first. If it cannot be done, the list.
+      if (codigo.toLowerCase() === SALA_NUEVA) return entrarEn(() => con.crear(JUEGO, MAX_JUGADORES));
       const c = limpiarCodigoSala(codigo);
       if (!c) return error('noexiste');
       await entrarEn(() => con.unirse(c, JUEGO));

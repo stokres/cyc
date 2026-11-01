@@ -6,7 +6,7 @@ import { leerMensajeCuenta, nombreDeCuenta } from '../cuentas/sala';
 import { VELOCIDADES, cfg, type Velocidad } from '../pantallas/ui';
 import { ConexionSala, type JugadorSala as JugadorSalaComun, type MensajeCliente as MensajeClienteComun, type MensajeServidor as MensajeServidorComun, type MotivoRechazo as MotivoRechazoComun } from '../../sala/conexion';
 
-export { MAX_JUGADORES, MAX_SALAS, limpiarCodigoSala } from '../../sala/conexion';
+export { MAX_JUGADORES, MAX_SALAS, SALA_NUEVA, limpiarCodigoSala } from '../../sala/conexion';
 export type { InfoSala, MotivoCierre, ResultadoSala } from '../../sala/conexion';
 
 export type JugadorSala = JugadorSalaComun<PjId>;

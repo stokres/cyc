@@ -3,7 +3,7 @@
 // The server only deals out messages; the host's browser runs the game. No game logic here.
 import { randomInt } from 'node:crypto';
 import { WebSocketServer } from 'ws';
-import { ALFABETO_SALA, CODIGO_SALA_LARGO, JUEGOS_ONLINE, MAX_JUGADORES, MAX_SALAS, limpiarCodigoSala, limpiarPj } from '../src/sala/reglas.mjs';
+import { ALFABETO_SALA, CODIGO_SALA_LARGO, JUEGOS_ONLINE, JUEGO_TODOS, MAX_JUGADORES, MAX_SALAS, limpiarCodigoSala, limpiarPj } from '../src/sala/reglas.mjs';
 
 const RUTA = '/sala';
 const MAX_MENSAJE = 64 * 1024;
@@ -53,10 +53,11 @@ export function adjuntarSalas(servidor, { autorizar = () => true, puerta = false
     return null;
   };
 
+  /** The list of one game's rooms, or of all of them (`juego` is JUEGO_TODOS). `abiertas` always counts the whole web. */
   const listaDe = (juego) => ({
     tipo: 'salas',
     salas: [...salas.values()]
-      .filter((s) => s.juego === juego)
+      .filter((s) => juego === JUEGO_TODOS || s.juego === juego)
       .map((s) => ({ codigo: s.codigo, juego: s.juego, anfitrion: [...s.dentro.values()].find((j) => j.anfitrion)?.nombre ?? null, jugadores: s.dentro.size, max: s.max, enPartida: s.enPartida })),
     abiertas: salas.size,
     max: MAX_SALAS,
@@ -211,7 +212,7 @@ export function adjuntarSalas(servidor, { autorizar = () => true, puerta = false
     if (sala) sala.actividad = Date.now();
     switch (msg.tipo) {
       case 'lista':
-        if (sala || !JUEGOS_ONLINE.includes(msg.juego)) return;
+        if (sala || (msg.juego !== JUEGO_TODOS && !JUEGOS_ONLINE.includes(msg.juego))) return;
         ws.mira = msg.juego;
         return enviar(ws, listaDe(ws.mira));
       case 'crear':

@@ -5,6 +5,7 @@
 // ?azar (no title or menu: a game in mode AL AZAR, where the game deals the teams and the object and you only choose who comes out first; with ?auto a machine plays your seat),
 // ?barra (with ?combate: «La barra» is played too, instead of the machine choosing the objects),
 // ?sala=K7MZ (the link of COMPARTIR in an online room: after the title and the name screen, straight into that room),
+// ?sala=nueva (the cover page's «Crear sala»: the same, but it creates a room of 4),
 // ?aventura, or the route /aventura (no title or menu: straight into AVENTURA, the one-player hunting mode; its saved adventure, or the trainer pick if there is none),
 // ?aventura&demo (a test adventure in memory, never saved: the starter plus seven caught, bar 2 open; ?pj=... picks the trainer, Fran by default),
 // ?aventura&demo=nueva[&pj=fran] (the beginning, never saved: the starter pick, or the trainer pick first when there is no ?pj).
@@ -51,7 +52,7 @@ const pj = q.get('pj') as EntrenadorId | null;
 const semilla = q.get('semilla');
 const escenario = q.get('escenario') as EscenarioId | null;
 cfg.rapido = q.has('auto') || q.has('rapido');
-// A link to a room (`/pokeusera?sala=K7MZ`, from COMPARTIR in a room): goes there after the title.
+// A link to a room (`/pokeusera?sala=K7MZ`, from COMPARTIR in a room or the cover page; `?sala=nueva` creates one): goes there after the title.
 const sala = q.get('sala')?.trim();
 
 // The art of the next screens is baked in the background while the first one is on (see pantallas/precalentar.ts).

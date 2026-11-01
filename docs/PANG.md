@@ -81,7 +81,7 @@ Reparto por cada 100 objetos: armas 32 (doble 12, fijo 8, ráfaga 8, triple 4), 
 
 ## Música
 
-Tres temas propios, sintetizados con `tools/musica/pang.py` (12 de octubre de 2026, Jesús pidió música cañera con melodías buenas, en la línea de *VVVVVV* y *Streets of Rage 2*): «A tope por Usera» (chiptune, 150 ppm, la menor; también en el título y los menús), «La calle de la penúltima» (house con FM de Mega Drive, 126 ppm, re dórico) y «Última ronda» (168 ppm, mi menor; la de los jefes). Se turnan fase a fase (`musica` en `src/pang/fases.ts`). Se generan con `python3 pang.py <usera|calle|ronda> bucle ../../src/sonido/pang-<nombre>.mp3`.
+Cuatro temas propios. Los tres primeros, sintetizados con `tools/musica/pang.py` (12 de octubre de 2026, Jesús pidió música cañera con melodías buenas, en la línea de *VVVVVV* y *Streets of Rage 2*): «A tope por Usera» (chiptune, 150 ppm, la menor; también en el título y los menús), «La calle de la penúltima» (house con FM de Mega Drive, 126 ppm, re dórico) y «Última ronda» (168 ppm, mi menor; la de los jefes). Se generan con `python3 pang.py <usera|calle|ronda> bucle ../../src/sonido/pang-<nombre>.mp3`. El cuarto, «Hora de cerrar» (1 de noviembre de 2026, Jesús lo eligió entre dos muestras), es deep house melancólico de los 2010 (123 ppm, do menor, 64 compases con un parón en medio: bajo de órgano, acordes cortos a contratiempo y un gancho de cortes de voz), hecho con `tools/musica/deephouse.py` (necesita numpy, scipy y numba): `python3 pang_deep.py bucle ../../src/sonido/pang-deep.mp3`. Suena en las fases 3, 7 y 11. Los cuatro se turnan fase a fase (`musica` en `src/pang/fases.ts`).
 
 ## Controles
 

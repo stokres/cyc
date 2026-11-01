@@ -48,7 +48,7 @@ export interface PlazaDraft {
   nombre: string;
 }
 
-/** The grid: 7 columns × 6 rows for the 37 useritos (it was 5 rows for 32; a 32×32 thumbnail per 34×36–43 cell, ≥ 55×58 CSS px on a 390 px phone; the last row has room to spare).
+/** The grid: 7 columns × 6 rows for the 42 useritos (it was 5 rows for 32, 6 for 37; a 32×32 thumbnail per 34×36–43 cell, ≥ 55×58 CSS px on a 390 px phone; the last row has room to spare).
  *  The row is centred (X_REJ: 1 px of margin on a 240 px screen). */
 const COLS = 7;
 const FILAS = Math.ceil(ESPECIES.length / COLS);

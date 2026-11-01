@@ -41,6 +41,21 @@ pang.fases.numero = 12
 pang.fases = fases
 pang.record = Récord: {nombre} · {puntos}
 
+// ---- las salas online abiertas (src/portada/salas.ts, docs/SALAS.md). Los nombres de juego: salas.juego.<id del juego>
+salas.titulo = Salas online · {n}/{max}
+salas.de = Sala de {nombre}
+salas.codigo = Sala {codigo}
+salas.cupo = {n}/{max}
+salas.entrar = Entrar
+salas.entrar.aria = Entrar en {sala} ({juego})
+salas.jugando = Jugando
+salas.llena = Llena
+salas.vacio = No hay nadie jugando online. ¡Monta una sala!
+salas.crear = Crear sala de {juego}
+salas.llenas = Ya hay {max} salas abiertas. Espera a que se cierre una.
+salas.juego.pokeusera = PokéUsera
+salas.juego.pang = Pang
+
 fly.nombre = Fly
 fly.desc = Relájate volando como un pájaro sobre un archipiélago
 fly.jugar = ¡A volar!

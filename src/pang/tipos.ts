@@ -107,7 +107,7 @@ export type Especial = 'aceituna' | 'oscuro' | 'cierzo';
 export type Jefe = 'robi' | 'peor' | 'penultima';
 
 /** Music of the game (src/sonido/musica.ts keys). */
-export type Pista = 'pangUsera' | 'pangCalle' | 'pangRonda';
+export type Pista = 'pangUsera' | 'pangCalle' | 'pangRonda' | 'pangDeep';
 
 export interface Fase {
   /** 1–12. Texts: fase.N.nombre, fase.N.lugar. Also sets the bubbles' pace (base.ts, `velocidadBurbujas`). */
