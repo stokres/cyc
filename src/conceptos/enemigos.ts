@@ -81,7 +81,7 @@ const DEF: Record<TipoEnemigo, { hw: number; h: number; hp: number }> = {
   bola: { hw: 28, h: 56, hp: 2 },
   chupito: { hw: 20, h: 44, hp: 2 },
   altavoz: { hw: 30, h: 96, hp: 3 },
-  dj: { hw: 64, h: 120, hp: 9 },
+  dj: { hw: 64, h: 120, hp: 14 },
   apuntador: { hw: 30, h: 132, hp: 14 },
 };
 

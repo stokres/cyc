@@ -405,7 +405,7 @@ export function devolverVinilos(m: Mundo, x0: number, x1: number, y0: number, y1
 /** What the DJ does in each stretch, by phase: one vinyl, a pair, or the drop (the music stops, then three at once). */
 const SECUENCIA: string[][] = [['uno'], ['uno', 'par', 'uno', 'par'], ['drop', 'par', 'uno', 'par', 'drop']];
 const VUELO = [1.1, 1.0, 0.95];
-const PAUSA = [2.1, 1.7, 1.5];
+const PAUSA = [2.6, 2.1, 1.8];
 
 export function dj(m: Mundo, e: Enem, d: number) {
   const j = m.j;
