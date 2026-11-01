@@ -60,9 +60,9 @@ fly.nombre = Fly
 fly.desc = Relájate volando como un pájaro sobre un archipiélago
 fly.jugar = ¡A volar!
 
-trazo.nombre = Trazo
-trazo.desc = Dibuja el suelo y salva la gota del borrón.
-trazo.jugar = ¡A trazar!
+voycolgao.nombre = Voy colgao
+voycolgao.desc = Dibuja el cable y huye en coche de choque.
+voycolgao.jugar = ¡A colgarse!
 
 otros.nombre = Otros juegos
 

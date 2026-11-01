@@ -1,48 +1,50 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Trazo: an endless ink-on-paper game. Draw the ground for a rolling ink drop while the blot chases you.">
+<meta name="description" content="Voy colgao: dibuja el cable, cuélgate con tu coche de choque y que no te pillen. Un juego de feria nocturna para el móvil.">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://camionesycaravanas.es/trazo">
-<meta property="og:title" content="Trazo">
-<meta property="og:description" content="Draw the ground. Outrun the ink. An endless ink-on-paper browser game.">
+<meta property="og:url" content="https://camionesycaravanas.es/voycolgao">
+<meta property="og:title" content="Voy colgao">
+<meta property="og:description" content="Dibuja el cable. Que no te pillen. Un coche de choque colgado de un cable en una feria nocturna.">
 <meta property="og:image" content="https://camionesycaravanas.es/trazo/og.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="An ink drop rolls along a hand-drawn line while a huge ink blot chases it">
+<meta property="og:image:alt" content="Voy colgao: un coche de choque cuelga de un cable de neón en una feria nocturna">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Trazo">
-<meta name="twitter:description" content="Draw the ground. Outrun the ink. An endless ink-on-paper browser game.">
+<meta name="twitter:title" content="Voy colgao">
+<meta name="twitter:description" content="Dibuja el cable. Que no te pillen. Un coche de choque colgado de un cable en una feria nocturna.">
 <meta name="twitter:image" content="https://camionesycaravanas.es/trazo/og.jpg">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Trazo">
+<meta name="apple-mobile-web-app-title" content="Voy colgao">
 <meta name="theme-color" content="#150a33">
 <style>body { margin: 0; background: #0b0526; } [hidden] { display: none !important; }</style>
-<title>Trazo</title>
+<title>Voy colgao</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Nanum+Brush+Script&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Bangers&display=swap">
 <style>
-/* Layout: one full-bleed sheet of paper (canvas); a borderless ink-lettered veil floats over it between runs. Single deliberate paper look, no dark theme. */
+/* Layout: one full-bleed canvas (the fairground at night); a dark translucent veil with a bulb-lit sign floats over it between runs. Single deliberate dark look. */
 :root {
-  --paper: #e9e3d6;
-  --paper-veil: rgba(233, 227, 214, 0.8);
-  --ink: #16120e;
-  --graphite: #8e887d;
-  --vignette: rgba(120, 100, 70, 0.32);
-  --font-brush: "Nanum Brush Script", "Segoe Script", "Bradley Hand", cursive;
-  --font-text: "IM Fell English", "Iowan Old Style", Georgia, serif;
-  color-scheme: light;
+  --noche: #0b0526;
+  --velo: rgba(11, 5, 38, 0.68);
+  --tinta: #1a0b33;
+  --texto: #f3ecff;
+  --suave: #c9b8ff;
+  --amarillo: #ffe83a;
+  --cian: #2ff3ff;
+  --rosa: #ff3da8;
+  --font-titulo: "Lilita One", "Arial Black", Impact, sans-serif;
+  --font-ono: "Bangers", "Lilita One", "Arial Black", sans-serif;
+  color-scheme: dark;
 }
 html, body { height: 100%; }
 body {
-  background: #0b0526;
-  color: var(--ink);
-  font-family: var(--font-text);
+  background: var(--noche);
+  color: var(--texto);
+  font-family: var(--font-titulo);
   overflow: hidden;
   touch-action: none;
   user-select: none;
@@ -54,34 +56,80 @@ body {
   position: absolute;
   inset: 0;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  padding-inline: 16px;
+  padding: 12px 16px;
   text-align: center;
-  background: var(--paper-veil);
+  background: var(--velo);
+  overflow-y: auto;
+  touch-action: pan-y;
 }
-.overlay h1 {
+/* margin: auto centres the panel and still lets it scroll from its top when it does not fit. */
+.panel { display: flex; flex-direction: column; align-items: center; gap: clamp(5px, 1.6vh, 12px); margin: auto; }
+.izq, .der { display: contents; }
+/* The sign: a red striped board lit with a ring of bulbs (the bulbs are four strips of five colours, see .lt .lb .ll .lr). */
+.letrero {
+  position: relative;
+  margin: 10px 14px;
+  padding: 0.12em 0.5em 0.2em;
+  background: repeating-linear-gradient(115deg, #d9283f 0 26px, #ea4a5e 26px 52px);
+  border: 5px solid var(--tinta);
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.14), 0 8px 30px rgba(255, 61, 168, 0.35);
+  transform: rotate(-2.5deg);
+}
+.letrero i { position: absolute; pointer-events: none; }
+.lt, .lb {
+  left: -9px; right: -9px; height: 14px;
+  background:
+    radial-gradient(circle at 10px 7px, #fff 0 1px, #ff3da8 1.5px 3.6px, rgba(255, 61, 168, 0.35) 4.2px, transparent 7px) 0 0 / 100px 14px repeat-x,
+    radial-gradient(circle at 30px 7px, #fff 0 1px, #ffe83a 1.5px 3.6px, rgba(255, 232, 58, 0.35) 4.2px, transparent 7px) 0 0 / 100px 14px repeat-x,
+    radial-gradient(circle at 50px 7px, #fff 0 1px, #2ff3ff 1.5px 3.6px, rgba(47, 243, 255, 0.35) 4.2px, transparent 7px) 0 0 / 100px 14px repeat-x,
+    radial-gradient(circle at 70px 7px, #fff 0 1px, #ff8a1f 1.5px 3.6px, rgba(255, 138, 31, 0.35) 4.2px, transparent 7px) 0 0 / 100px 14px repeat-x,
+    radial-gradient(circle at 90px 7px, #fff 0 1px, #4dff88 1.5px 3.6px, rgba(77, 255, 136, 0.35) 4.2px, transparent 7px) 0 0 / 100px 14px repeat-x;
+}
+.lt { top: -10px; }
+.lb { bottom: -10px; }
+.ll, .lr {
+  top: -9px; bottom: -9px; width: 14px;
+  background:
+    radial-gradient(circle at 7px 10px, #fff 0 1px, #ff8a1f 1.5px 3.6px, rgba(255, 138, 31, 0.35) 4.2px, transparent 7px) 0 0 / 14px 100px repeat-y,
+    radial-gradient(circle at 7px 30px, #fff 0 1px, #4dff88 1.5px 3.6px, rgba(77, 255, 136, 0.35) 4.2px, transparent 7px) 0 0 / 14px 100px repeat-y,
+    radial-gradient(circle at 7px 50px, #fff 0 1px, #ff3da8 1.5px 3.6px, rgba(255, 61, 168, 0.35) 4.2px, transparent 7px) 0 0 / 14px 100px repeat-y,
+    radial-gradient(circle at 7px 70px, #fff 0 1px, #ffe83a 1.5px 3.6px, rgba(255, 232, 58, 0.35) 4.2px, transparent 7px) 0 0 / 14px 100px repeat-y,
+    radial-gradient(circle at 7px 90px, #fff 0 1px, #2ff3ff 1.5px 3.6px, rgba(47, 243, 255, 0.35) 4.2px, transparent 7px) 0 0 / 14px 100px repeat-y;
+}
+.ll { left: -10px; }
+.lr { right: -10px; }
+.letrero h1 {
   margin: 0;
-  font-family: var(--font-brush);
-  font-weight: 400;
-  font-size: clamp(88px, 18vw, 150px);
-  line-height: 0.8;
-  text-wrap: balance;
+  font: 400 clamp(46px, min(15vh, 14vw), 112px) / 1 var(--font-titulo);
+  color: var(--amarillo);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  -webkit-text-stroke: 0.1em var(--tinta);
+  paint-order: stroke fill;
+  text-shadow: 0.05em 0.07em 0 var(--rosa);
 }
-.overlay h1.death { font-size: clamp(52px, 10vw, 84px); line-height: 0.9; }
-.overlay p { margin: 0; max-width: 36ch; font-size: 18px; line-height: 1.4; }
-.overlay .score { font-family: var(--font-brush); font-size: 48px; line-height: 1; }
-.overlay .sub { font-style: italic; color: var(--graphite); font-size: 16px; }
-.overlay { overflow-y: auto; padding-block: 16px; }
-.ranking-box { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.ranking-box h2 { margin: 0; font: italic 400 15px var(--font-text); color: var(--graphite); letter-spacing: 0.04em; }
+.letrero h1 .voy { font-size: 0.55em; color: var(--cian); text-shadow: 0.06em 0.09em 0 #2f7bff; margin-right: 0.12em; }
+.letrero.fin { transform: rotate(-1.5deg); }
+.letrero.fin h1 { font-size: clamp(34px, min(11vh, 11vw), 78px); }
+.overlay p { margin: 0; max-width: 34ch; font-size: clamp(14px, 3.6vh, 19px); line-height: 1.3; color: var(--texto); text-wrap: balance; }
+.overlay .sub { color: var(--cian); font-size: clamp(15px, 4.2vh, 22px); }
+.overlay .score {
+  font: 400 clamp(34px, 11vh, 58px) / 1 var(--font-titulo);
+  color: var(--amarillo);
+  -webkit-text-stroke: 0.12em var(--tinta);
+  paint-order: stroke fill;
+  text-shadow: 0.05em 0.07em 0 var(--rosa);
+}
+.overlay .best { color: var(--suave); font-size: clamp(14px, 3.6vh, 18px); }
+.overlay .best.nuevo { color: var(--amarillo); }
+.ranking-box { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.ranking-box h2 { margin: 0; font: 400 clamp(13px, 3.4vh, 16px) var(--font-titulo); color: var(--suave); letter-spacing: 0.04em; }
 .ranking {
   display: grid;
   grid-template-columns: auto auto auto;
-  column-gap: 16px;
-  row-gap: 2px;
+  column-gap: 14px;
+  row-gap: 1px;
   align-items: baseline;
   margin: 0;
   padding: 0;
@@ -89,110 +137,136 @@ body {
   font-variant-numeric: tabular-nums;
 }
 .ranking li { display: contents; }
-.ranking .rank { text-align: end; color: var(--graphite); font-size: 15px; }
-.ranking .dist { text-align: end; font: 26px/1 var(--font-brush); }
-.ranking .when { text-align: start; color: var(--graphite); font-size: 14px; font-style: italic; }
-.ranking li.current .rank::before { content: "● "; color: var(--ink); }
-.ranking li.current .when { color: var(--ink); }
-.overlay button {
-  margin-top: 10px;
-  padding: 8px 30px 10px;
-  font: 34px/1 var(--font-brush);
-  color: var(--ink);
-  background: transparent;
-  border: 2.5px solid var(--ink);
-  border-radius: 255px 18px 225px 18px / 18px 225px 18px 255px;
+.ranking .rank { text-align: end; color: var(--suave); font-size: 15px; }
+.ranking .dist { text-align: end; color: #fff; font-size: 20px; line-height: 1.1; }
+.ranking .when { text-align: start; color: var(--suave); font-size: 14px; }
+.ranking li.current .rank::before { content: "★ "; color: var(--amarillo); }
+.ranking li.current .dist, .ranking li.current .when { color: var(--amarillo); }
+/* The pink pill of the sketches, with a bolt on each side. */
+.overlay button.btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 4px 0 6px;
+  padding: 6px 26px 8px;
+  font: 400 clamp(24px, 7.5vh, 34px) / 1.1 var(--font-titulo);
+  color: #fff;
+  background: linear-gradient(#ff7cc6, #ff3da8 55%, #e02592);
+  border: 3px solid #ffd3ec;
+  border-radius: 999px;
+  box-shadow: 0 0 0 4px var(--tinta), 0 0 24px 4px rgba(255, 61, 168, 0.65);
+  -webkit-text-stroke: 0.14em #7a0f4a;
+  paint-order: stroke fill;
   cursor: pointer;
-  transition: background-color 0.15s, color 0.15s;
+  transition: transform 0.12s;
 }
-.overlay button:hover { background: var(--ink); color: var(--paper); }
-.overlay button:focus-visible { outline: 2px dashed var(--ink); outline-offset: 5px; }
-/* «Back to the site»: only when the game is served inside camionesycaravanas.es (/trazo); a quieter button than the main one. */
-.overlay button.web { margin-top: 0; padding: 4px 20px 6px; font-size: 22px; color: var(--graphite); border-width: 1.5px; border-color: var(--graphite); }
-.overlay button.web:hover { color: var(--paper); border-color: var(--ink); }
+.overlay button.btn::before, .overlay button.btn::after {
+  content: "";
+  flex: none;
+  width: 0.55em;
+  height: 0.85em;
+  background: var(--amarillo);
+  clip-path: polygon(62% 0, 8% 56%, 44% 56%, 32% 100%, 92% 38%, 54% 38%);
+}
+.overlay button.btn:hover { transform: scale(1.04); }
+.overlay button.btn:active { transform: scale(0.97); }
+.overlay button:focus-visible { outline: 3px solid var(--amarillo); outline-offset: 4px; }
+/* «Volver a la web»: only when the game is served inside camionesycaravanas.es (/trazo, /voycolgao); a quieter button than the main one. */
+.overlay button.web, .credito {
+  font: 400 clamp(14px, 3.6vh, 17px) / 1.2 var(--font-titulo);
+}
+.overlay button.web {
+  padding: 4px 18px 6px;
+  color: var(--suave);
+  background: rgba(21, 10, 51, 0.7);
+  border: 2px solid #5b3ca8;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.overlay button.web:hover { color: #fff; border-color: var(--cian); }
+.credito { color: var(--suave); opacity: 0.8; text-decoration: none; }
+a.credito:hover { opacity: 1; text-decoration: underline; }
+/* Corners: small dark pills so they read over the night scenery. */
 .corner {
   position: absolute;
   right: 12px;
   bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
-.mute {
-  padding: 6px;
-  font: italic 16px var(--font-text);
-  color: var(--graphite);
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-.mute:hover { color: var(--ink); }
-#mute[aria-pressed="true"] { text-decoration: line-through; }
-.mute:focus-visible { outline: 2px dashed var(--ink); outline-offset: 2px; }
 .controls {
   position: absolute;
   left: 12px;
   bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
-.controls button {
+.mute, .controls button {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px;
-  font: italic 16px var(--font-text);
-  color: var(--graphite);
-  background: none;
-  border: none;
+  padding: 5px 12px 6px;
+  font: 400 15px / 1.1 var(--font-titulo);
+  color: var(--texto);
+  background: rgba(21, 10, 51, 0.72);
+  border: 2px solid #5b3ca8;
+  border-radius: 999px;
   cursor: pointer;
 }
-.controls button:hover { color: var(--ink); }
-.controls button:focus-visible { outline: 2px dashed var(--ink); outline-offset: 2px; }
+.mute:hover, .controls button:hover { border-color: var(--cian); color: #fff; }
+#mute[aria-pressed="true"] { text-decoration: line-through; color: var(--suave); }
+.mute:focus-visible, .controls button:focus-visible { outline: 2px dashed var(--amarillo); outline-offset: 2px; }
 /* Touch screens have no keyboard: drop the shortcut hints. */
 @media (pointer: coarse) { kbd { display: none; } }
-/* Phones in landscape: keep the overlay inside ~390px of height. */
-@media (max-height: 500px) {
-  .overlay { gap: 8px; }
-  .overlay h1 { font-size: 64px; }
-  .overlay h1.death { font-size: 42px; }
-  .overlay p { font-size: 15px; }
-  .overlay .score { font-size: 36px; }
-  .ranking .dist { font-size: 20px; }
-  .overlay button { margin-top: 2px; font-size: 28px; }
-}
 kbd {
   padding: 0 5px;
-  font: 12px/1.5 var(--font-text);
-  font-style: normal;
+  font: 12px / 1.5 var(--font-titulo);
+  color: var(--suave);
   border: 1px solid currentColor;
-  border-radius: 3px;
+  border-radius: 4px;
+}
+/* Phones in landscape: two columns (sign and texts | ranking and buttons) to stay inside ~360px of height. */
+@media (max-height: 520px) and (min-aspect-ratio: 1/1) {
+  .panel { flex-direction: row; align-items: center; gap: 4px 30px; }
+  .izq, .der { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .letrero { margin: 12px 14px; }
+  .letrero h1 { font-size: clamp(34px, 16vh, 68px); }
+  .letrero.fin h1 { font-size: clamp(30px, 12vh, 54px); }
+  .overlay { padding: 8px 14px; }
 }
 </style>
 
 <div id="stage">
-  <canvas id="game" aria-label="Trazo: draw the ground for an ink drop"></canvas>
+  <canvas id="game" aria-label="Voy colgao: dibuja el cable de tu coche de choque"></canvas>
   <div class="overlay" id="overlay">
-    <h1 id="headline">Trazo</h1>
-    <p class="sub" id="tagline">Accessible edition: kinder hills, ink to spare and a drop in a hurry.</p>
-    <p id="line1">Draw the ground near the drop. Downhill it gains speed, uphill it loses it.</p>
-    <p id="line2">Every stroke feeds the blot. Collect drops to refill your ink.</p>
-    <div class="score" id="score" hidden></div>
-    <div class="sub" id="best" hidden></div>
-    <section class="ranking-box" id="rankingBox" hidden>
-      <h2 id="rankingTitle">Your best runs</h2>
-      <ol class="ranking" id="ranking"></ol>
-    </section>
-    <p class="sub" id="hint" hidden>Plays best with your phone in landscape.</p>
-    <button id="start" type="button">Start</button>
-    <button id="web" class="web" type="button" hidden>Back to the site</button>
+    <div class="panel">
+      <div class="izq">
+        <div class="letrero" id="letrero"><i class="lt"></i><i class="lb"></i><i class="ll"></i><i class="lr"></i><h1 id="headline"></h1></div>
+        <p class="sub" id="tagline"></p>
+        <p id="line1"></p>
+        <p id="line2"></p>
+        <div class="score" id="score" hidden></div>
+        <div class="best" id="best" hidden></div>
+      </div>
+      <div class="der">
+        <section class="ranking-box" id="rankingBox" hidden>
+          <h2 id="rankingTitle"></h2>
+          <ol class="ranking" id="ranking"></ol>
+        </section>
+        <p class="sub" id="hint" hidden></p>
+        <button id="start" class="btn" type="button"></button>
+        <button id="web" class="web" type="button" hidden></button>
+        <a id="credito" class="credito" href="https://github.com/mariomka/trazo" target="_blank" rel="noopener"></a>
+      </div>
+    </div>
   </div>
   <div class="corner">
-    <button id="fullscreen" class="mute" type="button" aria-pressed="false" hidden><span id="fullscreenLabel">fullscreen</span> <kbd>F</kbd></button>
-    <button id="mute" class="mute" type="button" aria-pressed="false">sound</button>
+    <button id="fullscreen" class="mute" type="button" aria-pressed="false" hidden><span id="fullscreenLabel"></span> <kbd>F</kbd></button>
+    <button id="mute" class="mute" type="button" aria-pressed="false"></button>
   </div>
   <div class="controls" id="controls" hidden>
-    <button id="pauseBtn" type="button"><span id="pauseLabel">pause</span> <kbd>P</kbd></button>
-    <button id="restartBtn" type="button"><span id="restartLabel">restart</span> <kbd>R</kbd></button>
+    <button id="pauseBtn" type="button"><span id="pauseLabel"></span> <kbd>P</kbd></button>
+    <button id="restartBtn" type="button"><span id="restartLabel"></span> <kbd>R</kbd></button>
   </div>
 </div>
 
@@ -270,213 +344,68 @@ kbd {
   const pauseBtn = document.getElementById('pauseBtn');
   const restartBtn = document.getElementById('restartBtn');
 
-  // ---------- i18n: top 10 internet languages, picked from the browser's Accept-Language (navigator.languages) ----------
-  const STRINGS = {
-    en: {
-      fullscreen: 'fullscreen',
-      pauseBtn: 'pause', restartBtn: 'restart',
-      ranking: 'Your best runs',
-      line1: 'Draw the ground near the drop. Downhill it gains speed, uphill it loses it.',
-      line2: 'Every stroke feeds the blot. Collect drops to refill your ink.',
-      tagline: 'Accessible edition: kinder hills, ink to spare and a drop in a hurry.',
-      start: 'Start', again: 'Again', resume: 'Resume', pause: 'Paused',
-      caught: 'The blot caught you', fell: 'You fell into the void',
-      record: 'Best {d}', newRecord: 'New best', hudBest: 'best {d}', meters: '{n} m',
-      hint: 'Plays best with your phone in landscape.',
-      sound: 'sound', mute: 'Mute', unmute: 'Unmute',
-      ink: 'ink', lowInk: 'low ink', noInkHud: 'out of ink · grab drops', noInk: 'out of ink',
-      aria: 'Trazo: draw the ground for an ink drop',
-      web: 'Back to the site',
-    },
-    zh: {
-      fullscreen: '全屏',
-      pauseBtn: '暂停', restartBtn: '重来',
-      ranking: '你的最佳成绩',
-      line1: '在墨滴附近画出地面。下坡加速，上坡减速。',
-      line2: '每一笔都会喂养墨团。收集墨滴来补充墨水。',
-      tagline: '无障碍版：坡更温柔，墨水管够，墨滴还赶时间。',
-      start: '开始', again: '再来一次', resume: '继续', pause: '暂停',
-      caught: '墨团吞没了你', fell: '你掉进了虚空',
-      record: '最佳 {d}', newRecord: '新纪录', hudBest: '最佳 {d}', meters: '{n} 米',
-      hint: '横屏游玩效果更佳。',
-      sound: '声音', mute: '静音', unmute: '开启声音',
-      ink: '墨水', lowInk: '墨水不足', noInkHud: '没有墨水 · 收集墨滴', noInk: '没有墨水',
-      aria: 'Trazo：为墨滴画出地面',
-      web: '返回网站',
-    },
-    es: {
-      fullscreen: 'pantalla completa',
-      pauseBtn: 'pausa', restartBtn: 'reiniciar',
-      ranking: 'Tus mejores partidas',
-      line1: 'Dibuja el suelo cerca de la gota. Cuesta abajo gana velocidad, cuesta arriba la pierde.',
-      line2: 'Cada trazo alimenta a la mancha. Recoge gotas para recargar tinta.',
-      tagline: 'Versión más accesible: cuestas amables, tinta de sobra y una gota con prisa.',
-      start: 'Empezar', again: 'Otra vez', resume: 'Seguir', pause: 'Pausa',
-      caught: 'Te alcanzó la mancha', fell: 'Caíste al vacío',
-      record: 'Récord {d}', newRecord: 'Nuevo récord', hudBest: 'récord {d}', meters: '{n} m',
-      hint: 'Se juega mejor con el móvil en horizontal.',
-      sound: 'sonido', mute: 'Silenciar', unmute: 'Activar sonido',
-      ink: 'tinta', lowInk: 'poca tinta', noInkHud: 'sin tinta · coge gotas', noInk: 'sin tinta',
-      aria: 'Trazo: dibuja el suelo para la gota de tinta',
-      web: 'Volver a la web',
-    },
-    ar: {
-      fullscreen: 'ملء الشاشة',
-      pauseBtn: 'إيقاف', restartBtn: 'إعادة',
-      ranking: 'أفضل جولاتك',
-      line1: 'ارسم الأرض قرب القطرة. تزداد سرعتها في النزول وتقل في الصعود.',
-      line2: 'كل خط ترسمه يغذّي البقعة. اجمع القطرات لتعيد ملء الحبر.',
-      tagline: 'نسخة أسهل: مرتفعات ألطف، حبر بلا حساب، وقطرة مستعجلة.',
-      start: 'ابدأ', again: 'مرة أخرى', resume: 'تابع', pause: 'إيقاف مؤقت',
-      caught: 'التهمتك البقعة', fell: 'سقطت في الفراغ',
-      record: 'أفضل نتيجة {d}', newRecord: 'رقم قياسي جديد', hudBest: 'الأفضل {d}', meters: '{n} م',
-      hint: 'اللعب أفضل والهاتف في الوضع الأفقي.',
-      sound: 'الصوت', mute: 'كتم الصوت', unmute: 'تشغيل الصوت',
-      ink: 'حبر', lowInk: 'حبر قليل', noInkHud: 'نفد الحبر · اجمع القطرات', noInk: 'نفد الحبر',
-      aria: 'Trazo: ارسم الأرض لقطرة الحبر',
-      web: 'العودة إلى الموقع',
-    },
-    pt: {
-      fullscreen: 'tela cheia',
-      pauseBtn: 'pausar', restartBtn: 'reiniciar',
-      ranking: 'Suas melhores partidas',
-      line1: 'Desenhe o chão perto da gota. Na descida ela ganha velocidade, na subida perde.',
-      line2: 'Cada traço alimenta a mancha. Pegue gotas para recarregar a tinta.',
-      tagline: 'Versão mais acessível: ladeiras simpáticas, tinta de sobra e uma gota com pressa.',
-      start: 'Começar', again: 'De novo', resume: 'Continuar', pause: 'Pausa',
-      caught: 'A mancha te pegou', fell: 'Você caiu no vazio',
-      record: 'Recorde {d}', newRecord: 'Novo recorde', hudBest: 'recorde {d}', meters: '{n} m',
-      hint: 'Fica melhor com o celular na horizontal.',
-      sound: 'som', mute: 'Silenciar', unmute: 'Ativar som',
-      ink: 'tinta', lowInk: 'pouca tinta', noInkHud: 'sem tinta · pegue gotas', noInk: 'sem tinta',
-      aria: 'Trazo: desenhe o chão para uma gota de tinta',
-      web: 'Voltar ao site',
-    },
-    id: {
-      fullscreen: 'layar penuh',
-      pauseBtn: 'jeda', restartBtn: 'ulang',
-      ranking: 'Permainan terbaikmu',
-      line1: 'Gambar tanah di dekat tetesan. Menurun makin cepat, menanjak makin lambat.',
-      line2: 'Setiap goresan memberi makan noda. Kumpulkan tetesan untuk mengisi tinta.',
-      tagline: 'Versi lebih ramah: tanjakan santai, tinta melimpah, dan setetes tinta yang buru-buru.',
-      start: 'Mulai', again: 'Main lagi', resume: 'Lanjut', pause: 'Jeda',
-      caught: 'Noda menangkapmu', fell: 'Kamu jatuh ke kehampaan',
-      record: 'Rekor {d}', newRecord: 'Rekor baru', hudBest: 'rekor {d}', meters: '{n} m',
-      hint: 'Lebih seru dengan ponsel dalam posisi mendatar.',
-      sound: 'suara', mute: 'Bisukan', unmute: 'Nyalakan suara',
-      ink: 'tinta', lowInk: 'tinta menipis', noInkHud: 'tinta habis · ambil tetesan', noInk: 'tinta habis',
-      aria: 'Trazo: gambar tanah untuk tetesan tinta',
-      web: 'Kembali ke situs',
-    },
-    fr: {
-      fullscreen: 'plein écran',
-      pauseBtn: 'pause', restartBtn: 'recommencer',
-      ranking: 'Tes meilleures parties',
-      line1: 'Dessine le sol près de la goutte. En descente elle accélère, en montée elle ralentit.',
-      line2: 'Chaque trait nourrit la tache. Ramasse des gouttes pour recharger ton encre.',
-      tagline: 'Version plus accessible : des pentes gentilles, de l’encre à gogo et une goutte pressée.',
-      start: 'Jouer', again: 'Rejouer', resume: 'Reprendre', pause: 'Pause',
-      caught: 'La tache t’a rattrapé', fell: 'Tu es tombé dans le vide',
-      record: 'Record {d}', newRecord: 'Nouveau record', hudBest: 'record {d}', meters: '{n} m',
-      hint: 'Mieux avec le téléphone à l’horizontale.',
-      sound: 'son', mute: 'Couper le son', unmute: 'Activer le son',
-      ink: 'encre', lowInk: 'peu d’encre', noInkHud: 'plus d’encre · ramasse des gouttes', noInk: 'plus d’encre',
-      aria: 'Trazo : dessine le sol pour une goutte d’encre',
-      web: 'Retour au site',
-    },
-    ja: {
-      fullscreen: '全画面',
-      pauseBtn: '一時停止', restartBtn: 'やり直す',
-      ranking: 'あなたのベスト記録',
-      line1: 'しずくの近くに地面を描こう。下り坂で加速し、上り坂で減速する。',
-      line2: '線を描くたびにシミが育つ。しずくを集めてインクを補充しよう。',
-      tagline: 'やさしめバージョン：坂はゆるく、インクはたっぷり、しずくはせっかち。',
-      start: 'スタート', again: 'もう一度', resume: '再開', pause: '一時停止',
-      caught: 'シミに飲み込まれた', fell: '奈落に落ちた',
-      record: 'ベスト {d}', newRecord: '新記録', hudBest: 'ベスト {d}', meters: '{n} m',
-      hint: 'スマホは横向きがおすすめ。',
-      sound: 'サウンド', mute: 'ミュート', unmute: 'サウンドをオン',
-      ink: 'インク', lowInk: 'インク残りわずか', noInkHud: 'インク切れ・しずくを集めよう', noInk: 'インク切れ',
-      aria: 'Trazo：インクのしずくのために地面を描く',
-      web: 'サイトに戻る',
-    },
-    ru: {
-      fullscreen: 'полный экран',
-      pauseBtn: 'пауза', restartBtn: 'заново',
-      ranking: 'Твои лучшие забеги',
-      line1: 'Рисуй землю рядом с каплей. Под гору она разгоняется, в гору замедляется.',
-      line2: 'Каждый штрих кормит кляксу. Собирай капли, чтобы пополнить чернила.',
-      tagline: 'Версия попроще: горки помягче, чернил вдоволь, а капля вечно спешит.',
-      start: 'Начать', again: 'Ещё раз', resume: 'Продолжить', pause: 'Пауза',
-      caught: 'Клякса тебя поймала', fell: 'Ты упал в пустоту',
-      record: 'Рекорд {d}', newRecord: 'Новый рекорд', hudBest: 'рекорд {d}', meters: '{n} м',
-      hint: 'Лучше играть, повернув телефон горизонтально.',
-      sound: 'звук', mute: 'Выключить звук', unmute: 'Включить звук',
-      ink: 'чернила', lowInk: 'мало чернил', noInkHud: 'нет чернил · собирай капли', noInk: 'нет чернил',
-      aria: 'Trazo: рисуй землю для чернильной капли',
-      web: 'Вернуться на сайт',
-    },
-    de: {
-      fullscreen: 'Vollbild',
-      pauseBtn: 'Pause', restartBtn: 'Neustart',
-      ranking: 'Deine besten Läufe',
-      line1: 'Zeichne den Boden nahe am Tropfen. Bergab wird er schneller, bergauf langsamer.',
-      line2: 'Jeder Strich füttert den Klecks. Sammle Tropfen, um Tinte nachzufüllen.',
-      tagline: 'Barrierearme Fassung: freundlichere Hügel, Tinte im Überfluss und ein Tropfen mit Eile.',
-      start: 'Los', again: 'Nochmal', resume: 'Weiter', pause: 'Pause',
-      caught: 'Der Klecks hat dich erwischt', fell: 'Du bist ins Leere gestürzt',
-      record: 'Rekord {d}', newRecord: 'Neuer Rekord', hudBest: 'Rekord {d}', meters: '{n} m',
-      hint: 'Am besten mit dem Handy im Querformat.',
-      sound: 'Ton', mute: 'Stumm', unmute: 'Ton an',
-      ink: 'Tinte', lowInk: 'wenig Tinte', noInkHud: 'keine Tinte · sammle Tropfen', noInk: 'keine Tinte',
-      aria: 'Trazo: Zeichne den Boden für einen Tintentropfen',
-      web: 'Zurück zur Website',
+  // ---------- texts: the only language is Spanish ----------
+  const L = {
+    titulo: ['VOY', 'COLGAO'],
+    subtitulo: 'Huye en coche de choque. ¡Que no te pillen!',
+    como1: 'Dibuja el cable con el dedo cerca del gancho.',
+    como2: 'Coge fichas para tener más cable.',
+    credito: 'Basado en Trazo, de mariomka.',
+    hint: 'Se juega mejor con el móvil en horizontal.',
+    ranking: 'Tus mejores partidas',
+    empezar: '¡A colgarse!', otraVez: 'Otra vez', seguir: 'Seguir', pausa: 'PAUSA',
+    pillado: '¡TOPETAZO!', pilladoSub: 'Te ha embestido media feria.',
+    caida: '¡SIN CORRIENTE!', caidaSub: 'Has acabado en el puesto de churros.',
+    record: 'Récord {d}', nuevoRecord: '¡Nuevo récord!', hudBest: 'récord {d}', meters: '{n} m',
+    pantallaCompleta: 'pantalla completa', pausaBtn: 'pausa', reiniciar: 'reiniciar',
+    sonido: 'sonido', silenciar: 'Silenciar', activarSonido: 'Activar sonido',
+    cable: 'cable', pocoCable: 'poco cable', sinFicha: '¡Sin ficha!',
+    aria: 'Voy colgao: dibuja el cable de tu coche de choque',
+    web: 'Volver a la web',
+    // The fairground man: short phrases on a sign that pops up when something happens. Several per situation; the game never repeats the last one.
+    feriante: {
+      inicio: ['¡Agárrense que nos vamos!', '¡Bienvenidos a la pista más loca de la feria!'],
+      rapido: ['¡QUE SE VAAA, QUE SE VAAA!', '¡Más fuerte, más fuerte!'],
+      cerca: ['¡Que te pillan, que te pillan!', '¡Ojo al de atrás, que viene sin frenos!'],
+      ficha: ['¡Una fichita más!', '¡Y otra vueltaaa!'],
+      sinFicha: ['¡Sin ficha no hay fiesta!', '¡Se acaba el cable!'],
+      luz: ['¡Se ha ido la luz!', '¡Apagón en la feria!'],
+      vuelve: ['¡Y VUELVE LA FIESTAAA!', '¡Y se hizo la luz!'],
+      // Every 100 m, one per stretch (100 m, 200 m...); after the last one, the generic phrase.
+      hitos: [
+        '¡Cien metros! ¡Esto no lo hace ni la noria!',
+        '¡Doscientos! ¡Que alguien avise al feriante!',
+        '¡Trescientos! ¡Ya no te paga ni la tómbola!',
+        '¡Cuatrocientos! ¡Eso no sale en el cartel!',
+        '¡Quinientos! ¡Medio kilómetro de chispas!',
+        '¡Seiscientos! ¡Se enfrían los churros!',
+        '¡Setecientos! ¡Y sin soltar el palo!',
+        '¡Ochocientos! ¡La noria te hace la ola!',
+        '¡Novecientos! ¡Que vienen los de la tele!',
+        '¡Mil metros! ¡Te ponemos estatua en la entrada!',
+      ],
+      hito: '¡{n} metros, que no pare la música!',
     },
   };
-  // Brush faces for scripts Nanum Brush Script doesn't cover; loaded only for that language.
-  const SCRIPT_BRUSH = { zh: 'Ma Shan Zheng', ja: 'Yuji Syuku', ar: 'Aref Ruqaa', ru: 'Marck Script' };
-
-  function pickLang() {
-    const forced = location.hash.slice(1).toLowerCase(); // e.g. #ja, for testing
-    const wanted = [forced, ...(navigator.languages || [navigator.language || ''])];
-    for (const tag of wanted) {
-      const base = String(tag).toLowerCase().split('-')[0];
-      if (STRINGS[base]) return base;
-    }
-    return 'en';
-  }
-  const LANG = pickLang();
-  const L = STRINGS[LANG];
   const fmtMeters = (n) => L.meters.replace('{n}', n);
   const fmtBest = (template, n) => template.replace('{d}', fmtMeters(n));
 
-  document.documentElement.lang = LANG;
-  document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
-  if (SCRIPT_BRUSH[LANG]) {
-    const family = SCRIPT_BRUSH[LANG];
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = `https://fonts.googleapis.com/css2?family=${family.replace(/ /g, '+')}&display=swap`;
-    document.head.appendChild(link);
-    document.documentElement.style.setProperty('--font-brush', `"Nanum Brush Script", "${family}", cursive`);
-  }
-  document.getElementById('line1').textContent = L.line1;
-  document.getElementById('line2').textContent = L.line2;
+  document.getElementById('line1').textContent = L.como1;
+  document.getElementById('line2').textContent = L.como2;
   document.getElementById('hint').textContent = L.hint;
-  taglineEl.textContent = L.tagline;
+  document.getElementById('credito').textContent = L.credito;
   document.getElementById('rankingTitle').textContent = L.ranking;
-  document.getElementById('pauseLabel').textContent = L.pauseBtn;
-  document.getElementById('restartLabel').textContent = L.restartBtn;
-  document.getElementById('fullscreenLabel').textContent = L.fullscreen;
-  document.getElementById('start').textContent = L.start;
-  // «Back to the site»: only when served inside camionesycaravanas.es (under /trazo), so the loose copy stays as it was.
-  if (/^\/trazo(\/|$)/.test(location.pathname)) {
+  document.getElementById('pauseLabel').textContent = L.pausaBtn;
+  document.getElementById('restartLabel').textContent = L.reiniciar;
+  document.getElementById('fullscreenLabel').textContent = L.pantallaCompleta;
+  // «Volver a la web»: only when served inside camionesycaravanas.es (under /trazo or /voycolgao), so the loose copy stays as it was.
+  if (/^\/(trazo|voycolgao)(\/|$)/.test(location.pathname)) {
     const webBtn = document.getElementById('web');
     webBtn.textContent = L.web;
     webBtn.hidden = false;
     webBtn.addEventListener('click', () => location.assign('/'));
   }
-  document.getElementById('mute').textContent = L.sound;
+  document.getElementById('mute').textContent = L.sonido;
   document.getElementById('game').setAttribute('aria-label', L.aria);
 
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -493,43 +422,763 @@ kbd {
   let rng = mulberry32(1);
   const rand = (a, b) => a + (b - a) * rng();
 
-  // ---------- sound (all synthesized, no assets) ----------
-  const sound = (() => {
-    let ac = null, master, scratchGain, scratchFilter, rumbleGain, noiseBuf;
-    let muted = false;
-    try { muted = localStorage.getItem('trazo-muted') === '1'; } catch { /* storage blocked */ }
+  // ---------- music engine: techno.js of the approved sample, pasted unchanged (only indented) ----------
+  /* techno.js - motor de musica techno fiestera en WebAudio puro (sin ficheros, sin dependencias).
+   *
+   * Uso (tiempo real):
+   *   const T = createTechno(ac, ac.destination);
+   *   T.start();                       // arranca el planificador (setInterval 25 ms, 0,1 s de antelacion)
+   *   T.setIntensity(0..1);            // peligro: abre filtros, mas charles, entra el acid
+   *   T.setPower(0..1);                // contacto del gancho con el cable (1 = enganchado)
+   *   T.drop(); T.death();             // reenganche (drop) / muerte (tape-stop)
+   *   T.chispa(); T.bocina(); T.ficha(); T.topetazo();
+   *
+   * Uso offline (OfflineAudioContext): createTechno(ac, ac.destination) detecta el contexto offline y no usa
+   * setInterval; hay que llamar a T.scheduleUntil(t) para programar la musica hasta el segundo t.
+   * Todas las funciones publicas aceptan un tiempo opcional `t` (por defecto, ac.currentTime).
+   *
+   * Es una funcion global (sin export) para poder pegarla dentro de un <script> de un solo HTML.
+   */
+  function createTechno(ac, destination, options) {
+    options = options || {};
+    const BPM = options.bpm || 128;
+    const BEAT = 60 / BPM, STEP = BEAT / 4, BAR = BEAT * 4;
+    const LOOK = 0.1;            // antelacion del planificador (s)
+    const TICK_MS = 25;
+    const GAP = LOOK + 0.01;     // corte seco del drop (cubre lo ya programado)
+    const manual = options.manual != null ? options.manual
+      : (typeof OfflineAudioContext !== 'undefined' && ac instanceof OfflineAudioContext);
+    const SR = ac.sampleRate;
 
-    function loopNoise(filterType, freq, rate) {
-      const src = ac.createBufferSource();
-      src.buffer = noiseBuf;
-      src.loop = true;
-      src.playbackRate.value = rate;
-      const filter = ac.createBiquadFilter();
-      filter.type = filterType;
-      filter.frequency.value = freq;
-      const gain = ac.createGain();
-      gain.gain.value = 0;
-      src.connect(filter).connect(gain).connect(master);
-      src.start();
-      return { filter, gain };
+    const clamp = (x, a, b) => x < a ? a : x > b ? b : x;
+    const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
+    const rnd = (a, b) => a + Math.random() * (b - a);
+    const now = () => ac.currentTime;
+
+    // ------------------------------------------------------------------ ruido y curvas (una sola vez)
+    const NOISE_LEN = 2;
+    const noiseBuf = ac.createBuffer(1, Math.floor(SR * NOISE_LEN), SR);
+    { const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+
+    function satCurve(k) {
+      const n = 1024, c = new Float32Array(n), norm = Math.tanh(k);
+      for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; c[i] = Math.tanh(k * x) / norm; }
+      return c;
+    }
+
+    function makeIR(seconds, damp) {
+      const len = Math.floor(SR * seconds), ir = ac.createBuffer(2, len, SR);
+      for (let ch = 0; ch < 2; ch++) {
+        const d = ir.getChannelData(ch); let lp = 0;
+        for (let i = 0; i < len; i++) {
+          const w = Math.random() * 2 - 1;
+          lp += (w - lp) * damp;                       // oscurece la cola
+          d[i] = lp * Math.pow(1 - i / len, 2.6);
+        }
+      }
+      return ir;
+    }
+
+    // ------------------------------------------------------------------ cadena fija (se crea una vez)
+    const filt = (type, f, q) => { const n = ac.createBiquadFilter(); n.type = type; n.frequency.value = f; n.Q.value = q == null ? 0.7 : q; return n; };
+    const gainN = (v) => { const g = ac.createGain(); g.gain.value = v; return g; };
+    const panN = (v) => { const p = ac.createStereoPanner(); p.pan.value = v; return p; };
+
+    // salida: comp -> limitador -> recorte suave -> ganancia fija (techo ~ -1,4 dBFS)
+    const outGain = gainN(0.85);
+    const clip = ac.createWaveShaper(); clip.curve = satCurve(1.15); clip.oversample = '2x';
+    const limiter = ac.createDynamicsCompressor();
+    limiter.threshold.value = -4; limiter.knee.value = 1; limiter.ratio.value = 20; limiter.attack.value = 0.001; limiter.release.value = 0.06;
+    const comp = ac.createDynamicsCompressor();
+    comp.threshold.value = -13; comp.knee.value = 8; comp.ratio.value = 3.5; comp.attack.value = 0.006; comp.release.value = 0.16;
+    const sfxSum = gainN(1);            // todo lo que NO pasa por el filtro de corriente (sfx, zumbido) + musica
+    sfxSum.connect(comp); comp.connect(limiter); limiter.connect(clip); clip.connect(outGain); outGain.connect(destination);
+
+    // musica: mixBus -> tilt -> powerLP -> powerGain -> musOut -> saturacion -> sfxSum
+    const mixBus = gainN(0.3);
+    const tilt = filt('highshelf', 3500, 0.7); tilt.gain.value = -2;
+    const powerLP = filt('lowpass', 18000, 0.9);
+    const powerGain = gainN(1);
+    const musOut = gainN(1), levelGain = gainN(0.62);
+    const sat = ac.createWaveShaper(); sat.curve = satCurve(1.8); sat.oversample = '2x';
+    const satTrim = gainN(0.36);
+    mixBus.connect(tilt); tilt.connect(powerLP); powerLP.connect(powerGain); powerGain.connect(levelGain); levelGain.connect(musOut);
+    musOut.connect(sat); sat.connect(satTrim); satTrim.connect(sfxSum);
+
+    // bombo (no le afecta el pump), con su saturacion y su puerta de corriente
+    const kickShaper = ac.createWaveShaper(); kickShaper.curve = satCurve(2.6);
+    const kickGate = gainN(1);
+    const kickClickBus = filt('highpass', 1800, 0.7);
+    kickShaper.connect(kickGate); kickClickBus.connect(kickGate); kickGate.connect(mixBus);
+
+    // pump (sidechain falso): todo lo tonal pasa por aqui
+    const pump = gainN(1); pump.connect(mixBus);
+
+    // bajo
+    const bassFilt = filt('lowpass', 600, 3.5);
+    const bassBus = gainN(0.55); bassFilt.connect(bassBus); bassBus.connect(pump);
+    const bassSubBus = gainN(0.55); bassSubBus.connect(pump);
+
+    // delay ping-pong (corchea con puntillo) y reverb corta
+    const dlyIn = gainN(1);
+    const dlyL = ac.createDelay(1), dlyR = ac.createDelay(1);
+    dlyL.delayTime.value = STEP * 3; dlyR.delayTime.value = STEP * 3;
+    const fbLP = filt('lowpass', 2600, 0.5), fbGain = gainN(0.4);
+    const dlyPanL = panN(-0.75), dlyPanR = panN(0.75), dlyOut = gainN(0.8);
+    dlyIn.connect(dlyL); dlyL.connect(dlyPanL); dlyPanL.connect(dlyOut);
+    dlyL.connect(fbLP); fbLP.connect(dlyR); dlyR.connect(dlyPanR); dlyPanR.connect(dlyOut);
+    dlyR.connect(fbGain); fbGain.connect(dlyL);
+    dlyOut.connect(mixBus);
+    const revIn = gainN(1);
+    const conv = ac.createConvolver(); conv.buffer = makeIR(0.9, 0.35);
+    const revOut = gainN(0.55);
+    revIn.connect(conv); conv.connect(revOut); revOut.connect(mixBus);
+
+    // acordes (stab): dos filtros (izq/der) con la misma envolvente
+    const stabFL = filt('lowpass', 1200, 4), stabFR = filt('lowpass', 1200, 4);
+    const stabPL = panN(-0.55), stabPR = panN(0.55);
+    const stabBus = gainN(0.24);
+    stabFL.connect(stabPL); stabFR.connect(stabPR); stabPL.connect(stabBus); stabPR.connect(stabBus);
+    stabBus.connect(pump);
+    const stabSendD = gainN(0.55), stabSendR = gainN(0.18);
+    stabBus.connect(stabSendD); stabSendD.connect(dlyIn); stabBus.connect(stabSendR); stabSendR.connect(revIn);
+
+    // acid 303: la voz es un oscilador persistente (se crea en start) -> filtro resonante -> vca -> distorsion
+    const acidFilt = filt('lowpass', 800, 13);
+    const acidVca = gainN(0);
+    const acidDist = ac.createWaveShaper(); acidDist.curve = satCurve(2.4);
+    const acidOut = gainN(0.28);
+    const acidHP = filt('highpass', 120, 0.7);
+    acidFilt.connect(acidVca); acidVca.connect(acidDist); acidDist.connect(acidHP); acidHP.connect(acidOut); acidOut.connect(pump);
+    const acidSend = gainN(0.28); acidOut.connect(acidSend); acidSend.connect(dlyIn);
+
+    // gancho de feria (organillo/caliope)
+    const leadHP = filt('highpass', 330, 0.7), leadLP = filt('lowpass', 4300, 2.2);
+    const leadBus = gainN(0.2);
+    leadHP.connect(leadLP); leadLP.connect(leadBus); leadBus.connect(pump);
+    const leadSendD = gainN(0.32), leadSendR = gainN(0.3);
+    leadBus.connect(leadSendD); leadSendD.connect(dlyIn); leadBus.connect(leadSendR); leadSendR.connect(revIn);
+
+    // percusion
+    const hatBus = filt('highpass', 7000, 0.7), hatOut = gainN(0.27), hatPan = panN(0.25);
+    hatBus.connect(hatOut); hatOut.connect(hatPan); hatPan.connect(mixBus);
+    const clapBP = filt('bandpass', 1500, 0.9), clapOut = gainN(0.7);
+    clapBP.connect(clapOut); clapOut.connect(mixBus);
+    const clapSendR = gainN(0.3); clapOut.connect(clapSendR); clapSendR.connect(revIn);
+    const crashBus = filt('highpass', 4500, 0.7), crashOut = gainN(0.4);
+    crashBus.connect(crashOut); crashOut.connect(mixBus);
+    const crashSendR = gainN(0.4); crashOut.connect(crashSendR); crashSendR.connect(revIn);
+    const riserBP = filt('bandpass', 500, 2.5), riserOut = gainN(0.9);
+    riserBP.connect(riserOut); riserOut.connect(mixBus);
+
+    // zumbido electrico y crepitar de "sin corriente" (fuera del filtro de corriente)
+    const humLP = filt('lowpass', 900, 0.7), humGain = gainN(0), humBP = filt('peaking', 300, 1.0);
+    humBP.gain.value = 6;
+    humLP.connect(humBP); humBP.connect(humGain); humGain.connect(sfxSum);
+
+    // efectos
+    const sfxBus = gainN(0.6); sfxBus.connect(sfxSum);
+    const sparkHP = filt('highpass', 2500, 0.7); sparkHP.connect(sfxBus);
+
+    // ------------------------------------------------------------------ estado
+    let running = false, dead = false, timer = null;
+    let nextTime = 0, stepIdx = 0, secBase = 0, hookUntil = 0, hookOn = false, acidOn = false;
+    let inten = 0.1, power = 1, lastPower = -1, lastInten = -1;
+    let pitchCS = null, lfo = null, lfoDepth = null, acidOsc = null, humA = null, humB = null, humSrcs = [];
+    let acidPrevF = 0, acidGateOpen = false, bigNext = false;
+
+    // ------------------------------------------------------------------ utilidades de voces
+    function connectPitch(o) { if (pitchCS) pitchCS.connect(o.detune); }
+
+    function noise(t, dur, dest, offset) {
+      const s = ac.createBufferSource(); s.buffer = noiseBuf;
+      s.connect(dest);
+      s.start(t, offset != null ? offset : Math.random() * (NOISE_LEN - dur - 0.05), dur);
+      return s;
+    }
+    function perc(dest, t, peak, atk, dec) {
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(peak, t + atk);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + atk + dec);
+      g.connect(dest);
+      return g;
+    }
+    function osc(type, f, t, tEnd, dest, detune, pitched) {
+      const o = ac.createOscillator(); o.type = type;
+      o.frequency.setValueAtTime(f, t);
+      if (detune) o.detune.value = detune;
+      if (pitched !== false) connectPitch(o);
+      o.connect(dest); o.start(t); o.stop(tEnd);
+      return o;
+    }
+    function pumpHit(t, depth) {
+      const g = pump.gain;
+      g.setValueAtTime(depth, t);
+      g.setTargetAtTime(1, t + 0.012, 0.085);
+    }
+
+    // ------------------------------------------------------------------ instrumentos
+    function kick(t, vel, big) {
+      const o = ac.createOscillator(); o.type = 'sine';
+      const g = ac.createGain();
+      o.frequency.setValueAtTime(big ? 230 : 185, t);
+      o.frequency.setTargetAtTime(big ? 44 : 49, t, big ? 0.05 : 0.04);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(vel, t + 0.002);
+      g.gain.setValueAtTime(vel, t + (big ? 0.16 : 0.1));
+      g.gain.setTargetAtTime(0, t + (big ? 0.16 : 0.1), big ? 0.09 : 0.065);
+      connectPitch(o);
+      o.connect(g); g.connect(kickShaper);
+      o.start(t); o.stop(t + (big ? 0.8 : 0.5));
+      const gc = perc(kickClickBus, t, 0.5 * vel, 0.0006, 0.014);
+      noise(t, 0.03, gc);
+    }
+
+    function hat(t, vel, open) {
+      const dec = open ? 0.16 : 0.035;
+      const g = perc(hatBus, t, vel, 0.001, dec);
+      noise(t, dec + 0.03, g);
+    }
+
+    function clap(t, vel) {
+      // tres golpes rapidos + cola
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      const offs = [0, 0.011, 0.023];
+      for (let i = 0; i < 3; i++) {
+        g.gain.linearRampToValueAtTime(vel * (0.7 + 0.15 * i), t + offs[i] + 0.0015);
+        g.gain.exponentialRampToValueAtTime(vel * 0.12, t + offs[i] + 0.009);
+      }
+      g.gain.linearRampToValueAtTime(vel, t + 0.026);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+      g.connect(clapBP);
+      noise(t, 0.23, g);
+    }
+
+    function crash(t, vel, dec) {
+      const g = perc(crashBus, t, vel, 0.002, dec);
+      noise(t, Math.min(dec + 0.05, NOISE_LEN - 0.1), g, 0.1);
+      // parciales metalicos
+      const g2 = perc(crashBus, t, vel * 0.5, 0.002, dec * 0.7);
+      const F = [263, 400, 421, 474, 587, 845];
+      for (let i = 0; i < F.length; i++) osc('square', F[i] * 2.2, t, t + dec * 0.7 + 0.05, g2, 0, false);
+    }
+
+    function riser(t, dur) {
+      riserBP.frequency.cancelScheduledValues(t);
+      riserBP.frequency.setValueAtTime(400, t);
+      riserBP.frequency.exponentialRampToValueAtTime(9000, t + dur);
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.5, t + dur);
+      g.gain.linearRampToValueAtTime(0, t + dur + 0.02);
+      g.connect(riserBP);
+      noise(t, Math.min(dur + 0.05, NOISE_LEN - 0.1), g, 0.2);
+    }
+
+    function bassNote(t, f, vel, cut, len) {
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(vel, t + 0.004);
+      g.gain.setValueAtTime(vel, t + len);
+      g.gain.setTargetAtTime(0, t + len, 0.02);
+      const end = t + len + 0.12;
+      osc('sawtooth', f, t, end, g, -4);
+      osc('sawtooth', f, t, end, g, 5);
+      g.connect(bassFilt);
+      bassFilt.frequency.setValueAtTime(cut * 3.2, t);
+      bassFilt.frequency.setTargetAtTime(cut, t, 0.05);
+      const gs = ac.createGain();
+      gs.gain.setValueAtTime(0, t);
+      gs.gain.linearRampToValueAtTime(vel * 0.9, t + 0.006);
+      gs.gain.setValueAtTime(vel * 0.9, t + len);
+      gs.gain.setTargetAtTime(0, t + len, 0.02);
+      osc('sine', f, t, end, gs);
+      gs.connect(bassSubBus);
+    }
+
+    const CHORDS = [
+      { root: 41, notes: [53, 56, 60, 63] },   // Fm7
+      { root: 37, notes: [49, 53, 56, 60] },   // Dbmaj7
+      { root: 44, notes: [56, 60, 63, 67] },   // Abmaj7
+      { root: 39, notes: [51, 55, 58, 65] }    // Eb add9
+    ];
+
+    function stab(t, chord, cut, vel, len) {
+      const end = t + len + 0.15;
+      for (let i = 0; i < chord.notes.length; i++) {
+        const left = (i % 2 === 0);
+        const g = ac.createGain();
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(vel, t + 0.006);
+        g.gain.setValueAtTime(vel, t + len * 0.5);
+        g.gain.setTargetAtTime(0, t + len * 0.5, len * 0.28);
+        const f = mtof(chord.notes[i]);
+        osc('sawtooth', f, t, end, g, left ? -8 : 8);
+        osc('sawtooth', f * 2, t, end, g, left ? 6 : -6);
+        g.connect(left ? stabFL : stabFR);
+      }
+      for (const F of [stabFL, stabFR]) {
+        F.frequency.setValueAtTime(Math.min(cut * 3.5, 9000), t);
+        F.frequency.setTargetAtTime(cut, t, 0.07);
+      }
+    }
+
+    // acid: patron de 16 pasos [semitonos sobre la fundamental, acento, slide]
+    const ACID = [
+      [0, 1, 0], [0, 0, 0], [12, 0, 0], [12, 0, 1],
+      null, [0, 0, 0], [3, 1, 1], [7, 0, 0],
+      [0, 1, 0], null, [12, 0, 0], [10, 0, 1],
+      [7, 0, 0], [0, 0, 0], [3, 1, 1], [0, 0, 0]
+    ];
+    function acidStep(t, s, root) {
+      const n = ACID[s];
+      if (!n) { return; }
+      const f = mtof(root + 12 + n[0]);
+      const acc = n[1], slide = n[2];
+      const nextN = ACID[(s + 1) % 16];
+      const nextSlide = nextN && nextN[2];
+      const base = 380 + inten * 1700 + (acc ? 250 : 0);
+      const peak = Math.min(base * (acc ? 5.5 : 3.2), 9500);
+      if (slide && acidGateOpen) {
+        acidOsc.frequency.setValueAtTime(acidPrevF, t);
+        acidOsc.frequency.exponentialRampToValueAtTime(f, t + 0.055);
+      } else {
+        acidOsc.frequency.setValueAtTime(f, t);
+        acidFilt.frequency.setValueAtTime(peak, t);
+        acidFilt.frequency.setTargetAtTime(base, t, acc ? 0.12 : 0.085);
+      }
+      acidVca.gain.setTargetAtTime(acc ? 1.0 : 0.62, t, 0.003);
+      acidPrevF = f;
+      if (!nextSlide) {
+        acidVca.gain.setTargetAtTime(0, t + STEP * 0.72, 0.01);
+        acidGateOpen = false;
+      } else acidGateOpen = true;
+    }
+
+    // gancho de feria: 4 compases sobre Fm - Db - Ab - Eb. [paso global 0..63, nota midi, duracion en pasos]
+    const HOOK = [
+      // compas 1 (Fm): "ta-ta-taaa ta-ta"
+      [0, 72, 2], [3, 72, 1], [4, 75, 2], [6, 72, 2], [8, 68, 2], [10, 72, 2], [12, 70, 1], [13, 68, 1], [14, 67, 2],
+      // compas 2 (Db)
+      [16, 73, 2], [19, 73, 1], [20, 77, 2], [22, 73, 2], [24, 70, 2], [26, 73, 2], [28, 72, 1], [29, 70, 1], [30, 68, 2],
+      // compas 3 (Ab)
+      [32, 72, 2], [35, 72, 1], [36, 80, 2], [38, 75, 2], [40, 72, 2], [42, 75, 1], [43, 72, 1], [44, 68, 4],
+      // compas 4 (Eb): remate
+      [48, 70, 2], [51, 70, 1], [52, 67, 2], [54, 70, 2], [56, 75, 2], [58, 72, 1], [59, 70, 1], [60, 72, 2], [62, 67, 2]
+    ];
+    const HOOK_BY_STEP = {};
+    HOOK.forEach(h => { HOOK_BY_STEP[h[0]] = h; });
+
+    function leadNote(t, midi, steps, vel) {
+      const f = mtof(midi), len = Math.max(0.07, steps * STEP * 0.88);
+      const end = t + len + 0.12;
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(vel, t + 0.012);
+      g.gain.setValueAtTime(vel * 0.85, t + len);
+      g.gain.setTargetAtTime(0, t + len, 0.025);
+      const a = osc('square', f, t, end, g, -8);
+      const b = osc('square', f, t, end, g, 9);
+      const c = osc('triangle', f * 2, t, end, g, 0);
+      const d = osc('sawtooth', f * 0.5, t, end, g, 3);   // un poco de cuerpo, "fuelle"
+      for (const o of [a, b, c, d]) if (lfoDepth) lfoDepth.connect(o.detune);
+      g.connect(leadHP);
+      // soplido del organillo al atacar
+      const gn = perc(leadHP, t, vel * 0.25, 0.002, 0.03);
+      noise(t, 0.06, gn);
+    }
+
+    // ------------------------------------------------------------------ programacion de un paso (16avo)
+    function scheduleStep(t, idx, tape) {
+      const bar = Math.floor(idx / 16), s = idx % 16;
+      const sec = bar + secBase;
+      const chordIdx = bar % 4;
+      const chord = CHORDS[chordIdx];
+      const I = inten;
+      const lowPower = power < 0.08;
+
+      if (!tape) {
+        if (s === 0) {
+          levelGain.gain.setTargetAtTime(sec < 4 ? 0.62 : sec < 8 ? 0.82 : secBase >= 8 ? 1.12 : 0.95, t, 0.12);
+          acidOn = I >= 0.4 || secBase >= 8 && I >= 0.3;
+          if (chordIdx === 0) hookOn = idx < hookUntil || I > 0.85;
+        }
+      }
+      if (lowPower) {
+        if (!tape && power < 0.4 && Math.random() < (0.4 - power) * 0.35) crackle(t + rnd(0, STEP), 0.4);
+        return;
+      }
+      const rhythm = sec >= 4;
+      const peak = secBase >= 8;
+
+      // bombo
+      if (s % 4 === 0) {
+        kick(t, bigNext ? 1.25 : 0.82, bigNext);
+        pumpHit(t, bigNext ? 0.18 : 0.28);
+        bigNext = false;
+      }
+      // bajo
+      {
+        const root = chord.root;
+        const f1 = mtof(root + 12);   // F2...
+        if (sec < 4) {
+          if (s % 4 === 2) bassNote(t, f1, 0.8, 280 + sec * 90, STEP * 1.6);
+        } else {
+          const cut = 520 + I * 900 + (peak ? 250 : 0);
+          if (s % 4 === 2) bassNote(t, f1, 0.9, cut, STEP * 1.5);
+          else if (s % 4 === 3) bassNote(t, f1 * 2, 0.5, cut, STEP * 0.8);
+          else if (s % 4 === 1 && (I > 0.5 || peak)) bassNote(t, f1, 0.45, cut, STEP * 0.7);
+        }
+      }
+      if (rhythm) {
+        // charles abiertos a contratiempo
+        if (s % 4 === 2) hat(t, 0.75 + (peak ? 0.1 : 0), true);
+        // charles cerrados: mas densos con la intensidad
+        if (s % 2 === 1 && (I >= 0.3 || sec >= 8)) hat(t, 0.28 + I * 0.25 + rnd(-0.03, 0.03), false);
+        if (s % 4 === 0 && (I >= 0.6 || peak)) hat(t, 0.2, false);
+        if (s % 4 === 3 && I >= 0.75) hat(t, 0.22, false);
+        // palmas en 2 y 4
+        if (s === 4 || s === 12) clap(t, 0.8);
+        if (s === 15 && (I >= 0.7 || peak)) clap(t, 0.25);
+        // relleno de palmas al final de cada 4 compases en la zona de subidon
+        if (peak && chordIdx === 3 && s >= 12) clap(t, 0.35 + 0.15 * (s - 12));
+        // acordes
+        const cut = 750 + I * 2600 + (peak ? 500 : 0);
+        const sp = (I >= 0.5 || sec >= 8) ? [3, 6, 10, 13] : [3, 10];
+        if (sp.indexOf(s) >= 0) stab(t, chord, cut, 0.8, STEP * 2.2);
+      }
+      // entrada: crash suave al empezar el ritmo
+      if (s === 0 && sec === 4 && !tape && secBase === 0) crash(t, 0.45, 1.2);
+      // subida de ruido en el compas anterior
+      if (s === 0 && sec === 3 && !tape && secBase === 0) riser(t, BAR);
+      // acid
+      if (acidOn && !tape) {
+        acidStep(t, s, chord.root);
+      }
+      // gancho
+      if (hookOn && !tape) {
+        const h = HOOK_BY_STEP[(chordIdx * 16) + s];
+        if (h) leadNote(t, h[1], h[2], 0.9);
+      }
+    }
+
+    // crepitar de red sin corriente
+    function crackle(t, vel) {
+      const g = perc(sparkHP, t, vel * rnd(0.3, 1), 0.0005, rnd(0.004, 0.012));
+      noise(t, 0.02, g);
+    }
+
+    // ------------------------------------------------------------------ planificador
+    function scheduleUntil(t) {
+      if (!running || dead) return;
+      while (nextTime < t) {
+        scheduleStep(nextTime, stepIdx, false);
+        stepIdx++;
+        nextTime += STEP;
+      }
+    }
+    function tick() {
+      if (!running) return;
+      const n = now();
+      // si la pestana se durmio, salta lo perdido en vez de disparar todo de golpe
+      while (nextTime < n - 0.25) { stepIdx++; nextTime += STEP; }
+      scheduleUntil(n + LOOK);
+    }
+
+    // ------------------------------------------------------------------ control
+    function applyPower(t, instant) {
+      const p = power;
+      const set = (param, v, tc) => {
+        param.cancelScheduledValues(t);
+        if (instant) param.setValueAtTime(v, t); else param.setTargetAtTime(v, t, tc);
+      };
+      set(powerLP.frequency, 100 * Math.pow(180, p), 0.05);
+      set(powerGain.gain, 0.04 + 0.96 * Math.pow(p, 1.3), 0.1);
+      set(kickGate.gain, clamp((p - 0.25) / 0.5, 0, 1), 0.05);
+      set(humGain.gain, 0.035 * Math.pow(1 - p, 2), 0.12);
+      if (pitchCS) set(pitchCS.offset, -950 * Math.pow(1 - p, 1.4), 0.18);
+      lastPower = p;
+    }
+    function applyIntensity(t) {
+      tilt.gain.cancelScheduledValues(t);
+      tilt.gain.setTargetAtTime(-3 + 6 * inten, t, 0.4);
+      lastInten = inten;
+    }
+
+    function buildVoices(t) {
+      pitchCS = ac.createConstantSource(); pitchCS.offset.value = 0; pitchCS.start(t);
+      lfo = ac.createOscillator(); lfo.frequency.value = 5.3; lfoDepth = gainN(11); lfo.connect(lfoDepth); lfo.start(t);
+      acidOsc = ac.createOscillator(); acidOsc.type = 'sawtooth'; acidOsc.frequency.value = 87;
+      connectPitch(acidOsc); acidOsc.connect(acidFilt); acidOsc.start(t);
+      humA = ac.createOscillator(); humA.type = 'sawtooth'; humA.frequency.value = 50;
+      humB = ac.createOscillator(); humB.type = 'square'; humB.frequency.value = 100.4;
+      const hb = gainN(0.4); humA.connect(humLP); humB.connect(hb); hb.connect(humLP);
+      humA.start(t); humB.start(t);
+      humSrcs = [pitchCS, lfo, acidOsc, humA, humB];
+    }
+    function killVoices(t) {
+      for (const s of humSrcs) { try { s.stop(t); } catch (e) { /* ya parado */ } }
+      humSrcs = []; pitchCS = null; lfoDepth = null;
+    }
+
+    function start(t) {
+      t = t == null ? now() : t;
+      if (running) { if (!dead) return; killVoices(t); }
+      if (timer) { clearInterval(timer); timer = null; }
+      running = true; dead = false; bigNext = false;
+      buildVoices(t);
+      musOut.gain.cancelScheduledValues(t); musOut.gain.setValueAtTime(1, t);
+      pump.gain.cancelScheduledValues(t); pump.gain.setValueAtTime(1, t);
+      acidVca.gain.cancelScheduledValues(t); acidVca.gain.setValueAtTime(0, t);
+      levelGain.gain.cancelScheduledValues(t); levelGain.gain.setValueAtTime(0.62, t);
+      acidGateOpen = false; secBase = 0; hookUntil = 0; hookOn = false; acidOn = false;
+      stepIdx = 0; nextTime = t + 0.06;
+      applyPower(t, true); applyIntensity(t);
+      if (!manual) {
+        timer = setInterval(tick, TICK_MS);
+        tick();
+      }
+    }
+
+    function stop(t) {
+      t = t == null ? now() : t;
+      if (!running) return;
+      running = false;
+      if (timer) { clearInterval(timer); timer = null; }
+      musOut.gain.cancelScheduledValues(t);
+      musOut.gain.setTargetAtTime(0, t, 0.03);
+      humGain.gain.cancelScheduledValues(t); humGain.gain.setTargetAtTime(0, t, 0.03);
+      acidVca.gain.cancelScheduledValues(t); acidVca.gain.setTargetAtTime(0, t, 0.02);
+      killVoices(t + 0.3);
+    }
+
+    function setIntensity(x, t) {
+      inten = clamp(+x || 0, 0, 1);
+      if (Math.abs(inten - lastInten) > 0.02 && running) applyIntensity(t == null ? now() : t);
+    }
+    function setPower(x, t) {
+      power = clamp(+x || 0, 0, 1);
+      if (dead || !running) return;
+      if (Math.abs(power - lastPower) < 0.004) return;
+      applyPower(t == null ? now() : t, false);
+    }
+
+    function drop(t) {
+      t = t == null ? now() : t;
+      if (!running) { start(t); }
+      dead = false; power = 1;
+      const t0 = t + GAP;
+      // corte seco: la musica programada de antes se silencia y todo vuelve en el tiempo fuerte
+      musOut.gain.cancelScheduledValues(t);
+      musOut.gain.setValueAtTime(1, t);
+      musOut.gain.linearRampToValueAtTime(0, t + 0.004);
+      musOut.gain.setValueAtTime(0, t0 - 0.002);
+      musOut.gain.linearRampToValueAtTime(1.15, t0);
+      musOut.gain.setTargetAtTime(1, t0 + 0.05, 0.4);
+      humGain.gain.cancelScheduledValues(t); humGain.gain.setValueAtTime(0, t);
+      applyPower(t0 - 0.002, true);
+      if (pitchCS) { pitchCS.offset.cancelScheduledValues(t); pitchCS.offset.setValueAtTime(0, t0 - 0.002); }
+      pump.gain.cancelScheduledValues(t); pump.gain.setValueAtTime(1, t0 - 0.002);
+      acidVca.gain.cancelScheduledValues(t); acidVca.gain.setValueAtTime(0, t); acidGateOpen = false;
+      // nueva rejilla: compas 1 de la zona de subidon, con el gancho de feria
+      levelGain.gain.cancelScheduledValues(t); levelGain.gain.setValueAtTime(1.12, t0 - 0.002);
+      stepIdx = 0; nextTime = t0; secBase = 8; hookUntil = 16 * 8; hookOn = true; acidOn = true;
+      if (inten < 0.8) { inten = 0.85; applyIntensity(t0); }
+      // impacto: bombo grande, golpe grave, platillo
+      bigNext = true;
+      const g = perc(kickShaper, t0, 0.9, 0.003, 0.9);
+      osc('sine', 62, t0, t0 + 1.0, g, 0, false).frequency.exponentialRampToValueAtTime(34, t0 + 0.9);
+      crash(t0, 1.0, 2.2);
+      clap(t0, 0.9);
+    }
+
+    function death(t) {
+      t = t == null ? now() : t;
+      if (!running || dead) return;
+      const D = 1.2;
+      // tape-stop: lo que queda por sonar se estira (tempo y tono caen), la corriente se va
+      const inv = (m) => 1 - Math.pow(Math.max(0, 1 - 2.5 * m / D), 0.4);
+      let n = 0;
+      for (;;) {
+        const m = nextTime + n * STEP - t;
+        if (m >= D / 2.5 - 0.02) break;
+        const rt = t + inv(Math.max(0, m));
+        scheduleStep(rt, stepIdx + n, true);
+        n++;
+      }
+      dead = true;
+      if (pitchCS) {
+        const N = 48, c = new Float32Array(N);
+        for (let i = 0; i < N; i++) {
+          const u = i / (N - 1), r = Math.max(Math.pow(1 - u, 1.5), 0.015);
+          c[i] = 1200 * Math.log2(r);
+        }
+        pitchCS.offset.cancelScheduledValues(t);
+        pitchCS.offset.setValueCurveAtTime(c, t, D);
+      }
+      powerLP.frequency.cancelScheduledValues(t);
+      powerLP.frequency.setValueAtTime(Math.max(300, 100 * Math.pow(180, power)), t);
+      powerLP.frequency.exponentialRampToValueAtTime(110, t + D);
+      musOut.gain.cancelScheduledValues(t);
+      musOut.gain.setValueAtTime(1, t);
+      musOut.gain.setTargetAtTime(0, t + 0.7, 0.2);
+      acidVca.gain.setTargetAtTime(0, t + 0.5, 0.1);
+      // acorde sostenido que se arrastra hacia abajo con la cinta (es lo que se oye caer de tono)
+      {
+        const ch = CHORDS[Math.floor(stepIdx / 16) % 4];
+        const gd2 = ac.createGain();
+        gd2.gain.setValueAtTime(0, t);
+        gd2.gain.linearRampToValueAtTime(1.1, t + 0.03);
+        gd2.gain.setValueAtTime(1.1, t + 0.5);
+        gd2.gain.setTargetAtTime(0, t + 0.5, 0.2);
+        const lpd = filt('lowpass', 2200, 0.8); lpd.connect(gd2); gd2.connect(mixBus);
+        for (const m of ch.notes) { osc('sawtooth', mtof(m), t, t + D + 0.1, lpd, -6); osc('sawtooth', mtof(m), t, t + D + 0.1, lpd, 7); }
+        const gb2 = ac.createGain(); gb2.gain.setValueAtTime(0.9, t); gb2.gain.setTargetAtTime(0, t + 0.5, 0.2); gb2.connect(mixBus);
+        osc('sine', mtof(ch.root + 12), t, t + D + 0.1, gb2);
+      }
+      humGain.gain.cancelScheduledValues(t); humGain.gain.setValueAtTime(0, t);
+      // golpe final
+      const gb = perc(sfxBus, t, 1.0, 0.002, 0.7);
+      const o = osc('sine', 120, t, t + 0.8, gb, 0, false); o.frequency.exponentialRampToValueAtTime(26, t + 0.55);
+      const gn = perc(sfxBus, t, 0.6, 0.001, 0.2);
+      const lp = filt('lowpass', 1800, 0.7); lp.connect(gn); noise(t, 0.25, lp);
+      const gd = perc(sfxBus, t, 0.35, 0.001, 0.12);
+      osc('square', 55, t, t + 0.16, gd, 0, false);
+    }
+
+    // ------------------------------------------------------------------ efectos cortos (no pasan por el filtro de corriente)
+    function chispa(t) {
+      t = t == null ? now() : t;
+      const k = 7 + Math.floor(Math.random() * 4);
+      for (let i = 0; i < k; i++) {
+        const tt = t + Math.pow(Math.random(), 1.3) * 0.28;
+        const g = perc(sparkHP, tt, rnd(0.25, 0.8), 0.0004, rnd(0.003, 0.014));
+        noise(tt, 0.03, g);
+      }
+      // zumbido que se entrecorta
+      const g = ac.createGain(); g.gain.setValueAtTime(0, t);
+      for (let i = 0; i < 20; i++) g.gain.setValueAtTime(Math.random() < 0.6 ? rnd(0.08, 0.22) : 0, t + i * 0.012);
+      g.gain.setValueAtTime(0, t + 0.25);
+      const bp = filt('bandpass', 1900, 1.2); bp.connect(g); g.connect(sfxBus);
+      osc('sawtooth', 97, t, t + 0.26, bp, 0, false);
+      // zap
+      const gz = perc(sfxBus, t, 0.22, 0.002, 0.09);
+      osc('sine', 4200, t, t + 0.12, gz, 0, false).frequency.exponentialRampToValueAtTime(240, t + 0.08);
+    }
+
+    function bocina(t) {
+      t = t == null ? now() : t;
+      const honks = [[0, 330, 0.15], [0.2, 415, 0.2]];     // "mec ... meeec", la segunda mas aguda y larga
+      for (const h of honks) {
+        const tt = t + h[0], f = h[1], d = h[2];
+        const g = ac.createGain();
+        g.gain.setValueAtTime(0, tt);
+        g.gain.linearRampToValueAtTime(0.5, tt + 0.008);
+        g.gain.setValueAtTime(0.5, tt + d);
+        g.gain.linearRampToValueAtTime(0, tt + d + 0.03);
+        const bp = filt('bandpass', 1050, 1.6), bp2 = filt('peaking', 2300, 2); bp2.gain.value = 8;
+        bp.connect(bp2); bp2.connect(g); g.connect(sfxBus);
+        for (const det of [0, 14]) {
+          const o = osc('sawtooth', f * 0.82, tt, tt + d + 0.05, bp, det, false);
+          o.frequency.exponentialRampToValueAtTime(f, tt + 0.045);   // el "scoop" del "mec"
+        }
+        osc('square', f * 0.5, tt, tt + d + 0.05, bp, 0, false).frequency.setValueAtTime(f * 0.5, tt);
+      }
+    }
+
+    function ficha(t) {
+      t = t == null ? now() : t;
+      const g1 = ac.createGain();
+      g1.gain.setValueAtTime(0.0001, t); g1.gain.linearRampToValueAtTime(0.22, t + 0.003); g1.gain.setValueAtTime(0.22, t + 0.07); g1.gain.linearRampToValueAtTime(0, t + 0.075);
+      osc('square', 987.8, t, t + 0.08, g1, 0, false);
+      const g2 = perc(sfxBus, t + 0.075, 0.24, 0.003, 0.45);
+      osc('square', 1318.5, t + 0.075, t + 0.55, g2, 0, false);
+      const g3 = perc(sfxBus, t + 0.075, 0.1, 0.002, 0.5);
+      osc('sine', 1318.5 * 2.76, t + 0.075, t + 0.6, g3, 0, false);
+      const hp = filt('highpass', 600, 0.7); hp.connect(sfxBus); g1.disconnect(); g1.connect(hp);
+    }
+
+    function topetazo(t) {
+      t = t == null ? now() : t;
+      const g = perc(sfxBus, t, 1.0, 0.002, 0.28);
+      osc('sine', 190, t, t + 0.32, g, 0, false).frequency.exponentialRampToValueAtTime(48, t + 0.14);
+      const gn = perc(sfxBus, t, 0.7, 0.001, 0.09);
+      const lp = filt('lowpass', 700, 0.8); lp.connect(gn); noise(t, 0.12, lp);
+      // el "boing" de la goma
+      const gb = perc(sfxBus, t + 0.02, 0.28, 0.004, 0.22);
+      const ob = osc('triangle', 300, t + 0.02, t + 0.27, gb, 0, false);
+      ob.frequency.exponentialRampToValueAtTime(120, t + 0.24);
+      const vib = ac.createOscillator(); vib.frequency.value = 26;
+      const vg = gainN(40); vib.connect(vg); vg.connect(ob.frequency); vib.start(t); vib.stop(t + 0.3);
+    }
+
+    return {
+      start, stop, setIntensity, setPower, drop, death,
+      chispa, bocina, ficha, topetazo,
+      scheduleUntil, LOOK, BPM, BAR, STEP
+    };
+  }
+
+  // ---------- sound: the techno engine above plus a few loose effects. Everything is synthesized, no assets ----------
+  // Life of the music: sound.musica() starts a clean engine on the click that plays (autoplay policy), a new one for every run; sound.pausar() suspends
+  // the whole context (nothing is left scheduled to pile up, and resuming continues right where it was); sound.cerrarMusica() drops the engine after the
+  // tape-stop of a death. The engine's own scheduler (setInterval) is cleared by T.stop(), so there is never more than one running.
+  const sound = (() => {
+    let ac = null, master, fx, noiseBuf, T = null, musicBus = null, hum = null, lastHum = 0;
+    let muted = false;
+    try { muted = localStorage.getItem('voycolgao-muted') === '1'; } catch { /* storage blocked */ }
+
+    function wake() {
+      try { const p = ac.resume(); if (p && p.catch) p.catch(() => {}); } catch { /* no resume */ }
     }
 
     function init() {
-      if (ac) { ac.resume(); return; }
+      if (ac) { if (ac.state !== 'running') wake(); return; }
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return;
       ac = new AudioCtx();
       master = ac.createGain();
       master.gain.value = muted ? 0 : 0.8;
       master.connect(ac.destination);
+      fx = ac.createGain();                   // the loose effects (landing, dry zap, hum), a bit under the music
+      fx.gain.value = 0.55;
+      fx.connect(master);
       noiseBuf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
       const data = noiseBuf.getChannelData(0);
       for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-      const scratch = loopNoise('lowpass', 900, 0.8);
-      scratch.filter.Q.value = 0.4;
-      scratchGain = scratch.gain;
-      scratchFilter = scratch.filter;
-      rumbleGain = loopNoise('lowpass', 110, 0.5).gain;
+      wake();
+    }
+
+    // A run starts: the old engine (if any) fades out and a new one starts from the top.
+    function musica() {
+      if (!ac) return;
+      soltarMusica(0.12);
+      musicBus = ac.createGain();
+      musicBus.connect(master);
+      // Without music the game still plays (an old browser missing some node type).
+      try { T = createTechno(ac, musicBus); T.start(); } catch { T = null; }
+    }
+    function soltarMusica(fade) {
+      if (!T) return;
+      const oldT = T, oldBus = musicBus;
+      T = null; musicBus = null;
+      const now = ac.currentTime;
+      oldBus.gain.cancelScheduledValues(now);
+      oldBus.gain.setTargetAtTime(0, now, fade / 3);
+      oldT.stop();
+      setTimeout(() => { try { oldBus.disconnect(); } catch { /* already gone */ } }, 1500);
+    }
+    // After a death the tape-stop lasts ~1.3 s; then the engine is dropped (and its scheduler stops ticking for nothing).
+    function cerrarMusica() {
+      const mine = T;
+      if (!mine) return;
+      setTimeout(() => { if (T === mine) soltarMusica(0.2); }, 1600);
+    }
+    function pausar() {
+      if (!ac || ac.state !== 'running') return;
+      try { const p = ac.suspend(); if (p && p.catch) p.catch(() => {}); } catch { /* no suspend */ }
     }
 
     function tone(type, f0, f1, dur, vol) {
@@ -543,7 +1192,7 @@ kbd {
       gain.gain.setValueAtTime(0.0001, now);
       gain.gain.linearRampToValueAtTime(vol, now + 0.01);
       gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-      osc.connect(gain).connect(master);
+      osc.connect(gain).connect(fx);
       osc.start(now);
       osc.stop(now + dur + 0.02);
     }
@@ -559,38 +1208,55 @@ kbd {
       const gain = ac.createGain();
       gain.gain.setValueAtTime(vol, now);
       gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-      src.connect(filter).connect(gain).connect(master);
+      src.connect(filter).connect(gain).connect(fx);
       src.start(now, Math.random() * 1.5);
       src.stop(now + dur + 0.02);
     }
 
+    // A soft electric hum while the pen draws: two detuned oscillators through a low-pass, created the first time it is needed.
+    function makeHum() {
+      const filter = ac.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 600;
+      filter.Q.value = 2;
+      const gain = ac.createGain();
+      gain.gain.value = 0;
+      const a = ac.createOscillator(); a.type = 'sawtooth'; a.frequency.value = 62;
+      const b = ac.createOscillator(); b.type = 'square'; b.frequency.value = 124.6;
+      const bg = ac.createGain(); bg.gain.value = 0.35;
+      a.connect(filter); b.connect(bg); bg.connect(filter);
+      filter.connect(gain); gain.connect(fx);
+      a.start(); b.start();
+      return { filter, gain };
+    }
+
     return {
-      init,
+      init, musica, pausar, cerrarMusica,
       isMuted: () => muted,
       toggleMute() {
         muted = !muted;
-        try { localStorage.setItem('trazo-muted', muted ? '1' : '0'); } catch { /* storage blocked */ }
+        try { localStorage.setItem('voycolgao-muted', muted ? '1' : '0'); } catch { /* storage blocked */ }
         if (ac) master.gain.setTargetAtTime(muted ? 0 : 0.8, ac.currentTime, 0.05);
       },
-      scratch(level) {
+      zumbido(level) {
         if (!ac) return;
-        // Soft brush swish: low-passed noise, gentle level, and a slower ramp so it never crackles.
-        scratchGain.gain.setTargetAtTime(level * 0.22, ac.currentTime, 0.05);
-        scratchFilter.frequency.setTargetAtTime(600 + level * 1200, ac.currentTime, 0.08);
+        if (Math.abs(level - lastHum) < 0.03 && level > 0) return;
+        if (level <= 0 && !hum) { lastHum = 0; return; }
+        lastHum = level;
+        if (!hum) hum = makeHum();
+        hum.gain.gain.setTargetAtTime(level * 0.09, ac.currentTime, 0.06);
+        hum.filter.frequency.setTargetAtTime(450 + level * 900, ac.currentTime, 0.08);
       },
-      rumble(level) {
-        if (ac) rumbleGain.gain.setTargetAtTime(level * 1.2, ac.currentTime, 0.2);
-      },
-      // Phase 2 fills these in; the game already calls them at the right moments.
-      power(level) { /* current 0..1, every frame */ },
-      reenganche() { /* big zap: hooked again after a long time in the air */ },
-      chispa() { /* loose sparks from the hook while hooked */ },
-      ficha() { /* token picked up (replaces plop) */ },
-      topetazo() { /* the tide caught you */ },
-      bocina() { /* horn from the chasers when they are close */ },
+      // The engine's own voices: contact of the hook, zap on hooking again, sparks, token, caught, horn, death.
+      power(level) { if (T) T.setPower(level); },
+      intensity(level) { if (T) T.setIntensity(level); },
+      reenganche() { if (T) T.drop(); },
+      chispa() { if (T) T.chispa(); },
+      ficha() { if (T) T.ficha(); },
+      bocina() { if (T) T.bocina(); },
+      topetazo() { if (T) { T.topetazo(); T.death(ac.currentTime + 0.15); } },
+      death() { if (T) T.death(); },
       splat(power) { burst(900, 0.16, 0.5 * power); tone('sine', 150, 60, 0.12, 0.3 * power); },
-      gulp() { tone('sine', 230, 55, 0.24, 0.45); burst(320, 0.2, 0.22); },
-      death() { burst(700, 0.7, 0.9); tone('sine', 190, 38, 0.8, 0.55); },
       dry() { burst(1300, 0.08, 0.12); tone('sine', 150, 110, 0.09, 0.05); },
     };
   })();
@@ -646,6 +1312,7 @@ kbd {
   let shake = 0, danger = 0, barPulse = 0, drawnThisFrame = 0, animT = 0;
   let dryAlert = 0, lastDrySound = 0;
   let power = 1, airTime = 0, sparkAcc = 0, chispaT = 0.6, bocinaT = 2, eatX = -1e9, cutT = 0;
+  let dangerS = 0;       // danger, smoothed: it drives the intensity of the music
   // Hidden perf overlay, toggled with D. Stats are averaged over half-second windows.
   const perf = { visible: false, frames: 0, windowStart: 0, updateMs: 0, renderMs: 0, fps: 0, avgUpdate: 0, avgRender: 0, worstFrame: 0, worst: 0 };
   let drop, blob, car, cam, gen;                // drop = the hook, car = the hanging car (drawing only)
@@ -658,18 +1325,15 @@ kbd {
 
   function loadRanking() {
     try {
-      const parsed = JSON.parse(localStorage.getItem('trazo-ranking') || '[]');
+      const parsed = JSON.parse(localStorage.getItem('voycolgao-ranking') || '[]');
       const runs = Array.isArray(parsed) ? parsed.filter((r) => Number.isFinite(r?.m) && r.m > 0) : [];
-      const legacyBest = Number(localStorage.getItem('trazo-best')) || 0;
-      const needsMigration = runs.length === 0 && legacyBest > 0;
-      if (needsMigration) runs.push({ m: legacyBest, at: null });
       return runs.sort((a, b) => b.m - a.m).slice(0, RANKING_SIZE);
     } catch {
       return [];
     }
   }
   function saveRanking() {
-    try { localStorage.setItem('trazo-ranking', JSON.stringify(ranking)); } catch { /* storage blocked */ }
+    try { localStorage.setItem('voycolgao-ranking', JSON.stringify(ranking)); } catch { /* storage blocked */ }
   }
   // Returns the run's position in the ranking, or -1 if it didn't make the cut.
   function addRun(meters) {
@@ -681,7 +1345,7 @@ kbd {
     return ranking.indexOf(run);
   }
 
-  const dateFmt = new Intl.DateTimeFormat(LANG, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const dateFmt = new Intl.DateTimeFormat('es', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   function renderRanking(currentIndex) {
     rankingList.replaceChildren();
     const hasRuns = ranking.length > 0;
@@ -1371,7 +2035,7 @@ kbd {
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     c.clearRect(0, 0, h.numW, h.numH);
     const unit = L.meters.replace('{n}', '').trim();
-    const numText = n.toLocaleString(LANG);
+    const numText = n.toLocaleString('es');
     c.textBaseline = 'alphabetic'; c.lineJoin = 'round'; c.textAlign = 'right';
     const draw = (s, x, y, size, fill, extra) => {
       c.font = `${size}px ${F_TITLE}`;
@@ -1419,6 +2083,7 @@ kbd {
     }
     a.ring = buildRing();
     a.hud = buildHud();
+    rotulos.clear();
     A = a;
     assetsReady = true;
   }
@@ -1432,13 +2097,14 @@ kbd {
     rng = mulberry32((Math.random() * 2 ** 32) >>> 0);
     segments = []; strokes = []; cables = []; decor = []; pickups = []; sparksFx = []; bursts = []; onos = []; cuts = []; flyers = [];
     shake = 0; danger = 0; barPulse = 0; drawnThisFrame = 0;
-    dryAlert = 0; power = 1; airTime = 0; sparkAcc = 0; chispaT = 0.6; bocinaT = 2; eatX = -1e9; cutT = 0;
+    dryAlert = 0; power = 1; airTime = 0; sparkAcc = 0; chispaT = 0.6; bocinaT = 2; eatX = -1e9; cutT = 0; dangerS = 0;
+    resetFeriante();
     time = 0; ink = C.INK_MAX; distance = 0; pen = null; pointer = null;
     drop = { x: 0, y: C.START_Y - C.HOOK_R - 1, vx: 60, vy: 0, grounded: false, gnx: 0, gny: -1, tilt: 0, impact: 0, alive: true };
     car = { phi: 0, phiV: 0, ax: 0, ay: 0, pvx: 60, pvy: 0, px: 0, py: 0, rot: 0, x: 0, y: 0, low: 0 };
     carPose();
     blob = {
-      x: -520, feed: 0, pace: 0, cy: car.y, gulpAcc: 0, bumpT: 1,
+      x: -520, feed: 0, pace: 0, cy: car.y, bumpT: 1,
       cars: TIDE.map((o, i) => ({ ...o, ph: i * 1.7, kick: 0, kickV: 0, px: 0, py: 0, rot: 0 })),
     };
     blob.order = [...blob.cars].sort((a, b) => a.u - b.u);
@@ -1761,7 +2427,9 @@ kbd {
         addOno('zas', car.px + 10, car.py - 56, 1, 0.8);
         emitSparks(car.px, car.py, 22, 320, -Math.PI / 2, 4.6, drop.vx * 0.3, 0);
         if (!reduceMotion) shake = Math.max(shake, 5);
+        if (fer.luz) pedirRotulo('vuelve', { fuerza: true });
       }
+      fer.luz = false;
       airTime = 0;
       power = 1;
     } else {
@@ -1899,7 +2567,7 @@ kbd {
 
     // Holding still keeps drawing as the world scrolls under the pen.
     if (pen && pointer) addPenPoint(toWorld(pointer));
-    sound.scratch(clamp(drawnThisFrame / dt / 900, 0, 1));
+    sound.zumbido(clamp(drawnThisFrame / dt / 900, 0, 1));
     drawnThisFrame = 0;
 
     // The tide matches the hook's sustained pace, so going fast only buys distance while you keep it up.
@@ -1909,9 +2577,6 @@ kbd {
     const lunge = blob.feed * Math.min(1, dt * C.FEED_EASE);
     blob.feed -= lunge;
     blob.x = Math.max(blob.x + blobSpeed * dt + lunge, cam - C.BLOB_LEASH);
-    blob.gulpAcc += lunge;
-    const isGulp = blob.gulpAcc > 14;
-    if (isGulp) { blob.gulpAcc = 0; sound.gulp(); }
     const isFeeding = lunge > 0.5;
     if (isFeeding && Math.random() < 0.5) {
       const y = blob.cy + (Math.random() * 2 - 1) * blobHalf();
@@ -1926,6 +2591,7 @@ kbd {
         p.taken = true;
         emitSparks(p.x, p.y, 10, 180, -Math.PI / 2, 6.28);
         sound.ficha();
+        pedirRotulo('ficha');
         flyers.push({ sx: (p.x - cam) * scale, sy: p.y * scale + offY, age: 0 });
       }
     }
@@ -1954,13 +2620,15 @@ kbd {
 
     distance = Math.max(distance, drop.x / C.UNITS_PER_METER);
     updateFx(dt);
+    updateFeriante(dt);
 
     // Caught: the tide reaches the middle of the car (not the hook).
     const front = blobFront(car.y, animT);
     const inBand = isInBand(car.y);
     const gap = car.x - front;
     danger = inBand ? clamp(1 - gap / 260, 0, 1) : clamp(1 - gap / 260, 0, 1) * 0.4;
-    sound.rumble(danger);
+    dangerS += (danger - dangerS) * Math.min(1, dt * 1.2);
+    sound.intensity(dangerS);
     shake *= Math.exp(-dt * 10);
 
     if (inBand && gap < C.CATCH_GAP) die('caught');
@@ -1973,15 +2641,15 @@ kbd {
     updateCar(dt);
     shake *= Math.exp(-dt * 8);
     updateFx(dt);
+    tickRotulo(dt);
   }
 
   function die(reason) {
     state = 'dead';
     pen = null;
-    sound.scratch(0);
-    sound.rumble(0);
-    sound.power(0);
+    sound.zumbido(0);
     if (!reduceMotion) shake = 12;
+    sound.cerrarMusica();
     if (reason === 'caught') {
       sound.topetazo();
       drop.alive = false;
@@ -2248,20 +2916,20 @@ kbd {
     if (isEmpty) {
       ctx.font = `15px ${F_TITLE}`;
       ctx.globalAlpha = 0.55 + 0.45 * Math.abs(Math.sin(t * 5));
-      ctx.lineWidth = 4; ctx.lineJoin = 'round'; ctx.strokeStyle = OUT; ctx.strokeText(L.noInkHud, h.fx + jitter, ly);
-      ctx.fillStyle = COL.pink; ctx.fillText(L.noInkHud, h.fx + jitter, ly);
+      ctx.lineWidth = 4; ctx.lineJoin = 'round'; ctx.strokeStyle = OUT; ctx.strokeText(L.sinFicha, h.fx + jitter, ly);
+      ctx.fillStyle = COL.pink; ctx.fillText(L.sinFicha, h.fx + jitter, ly);
       ctx.globalAlpha = 1;
     } else {
       ctx.font = `${isLow ? 15 : 13}px ${isLow ? F_TITLE : F_ONO}`;
       ctx.fillStyle = isLow ? COL.yellow : '#c9b8ff';
-      ctx.fillText(isLow ? L.lowInk : String(L.ink).toUpperCase(), h.fx + jitter, ly);
+      ctx.fillText(isLow ? L.pocoCable : L.cable.toUpperCase(), h.fx + jitter, ly);
     }
     // Right next to the pen, so the reason the line stopped is where you're looking.
     if (dryAlert > 0 && pointer) {
       ctx.globalAlpha = Math.min(1, dryAlert * 1.5);
       ctx.font = `20px ${F_TITLE}`; ctx.textAlign = 'center';
-      ctx.lineWidth = 5; ctx.lineJoin = 'round'; ctx.strokeStyle = OUT; ctx.strokeText(L.noInk, pointer.x, pointer.y - 44);
-      ctx.fillStyle = '#ffffff'; ctx.fillText(L.noInk, pointer.x, pointer.y - 44);
+      ctx.lineWidth = 5; ctx.lineJoin = 'round'; ctx.strokeStyle = OUT; ctx.strokeText(L.sinFicha, pointer.x, pointer.y - 44);
+      ctx.fillStyle = '#ffffff'; ctx.fillText(L.sinFicha, pointer.x, pointer.y - 44);
       ctx.globalAlpha = 1;
       ctx.textAlign = 'left';
     }
@@ -2291,6 +2959,134 @@ kbd {
     ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fill();
   }
 
+  // ---------- the fairground man (feriante) ----------
+  // A fairground sign with bulbs, tilted, that pops up for ~1.8 s with a phrase when something happens. Each phrase is drawn once on its own off-screen
+  // canvas; per frame it is a single drawImage. Signs are spaced at least FER_GAP seconds apart, except the forced ones (the current going away and coming back).
+  const FER_LIFE = 1.8, FER_GAP = 6, FER_MARGIN = 12;
+  const rotulos = new Map();                  // phrase → { cv, w, h } (css pixels); emptied when the images are rebuilt
+  let letrero = null;                         // the sign on screen: { sp, age (negative = still waiting), tilt }
+  let fer = null;                             // what the feriante remembers of this run
+  function resetFeriante() {
+    letrero = null;
+    fer = { desde: FER_GAP, ultimas: {}, luz: false, sin: false, rapido: 0, cerca: 0, hito: 1 };
+  }
+
+  function rotuloSprite(texto) {
+    const hit = rotulos.get(texto);
+    if (hit) return hit;
+    const d = dpr, maxW = Math.min(cssW * 0.46, 360);
+    let fs = clamp(Math.round(cssH * 0.06), 17, 28);
+    const meas = makeCanvas(8, 8).getContext('2d');
+    let lines;
+    for (;;) {
+      meas.font = `${fs}px ${F_TITLE}`;
+      const avail = maxW - fs * 1.8, words = texto.split(' ');
+      lines = [texto];
+      let widest = meas.measureText(texto).width;
+      if (widest > avail) {
+        // Two balanced lines: the split that leaves the shorter longest line.
+        let best = Infinity;
+        for (let i = 1; i < words.length; i++) {
+          const a = words.slice(0, i).join(' '), b = words.slice(i).join(' ');
+          const wide = Math.max(meas.measureText(a).width, meas.measureText(b).width);
+          if (wide < best) { best = wide; lines = [a, b]; }
+        }
+        widest = best;
+      }
+      if (widest <= avail || fs <= 13) break;
+      fs -= 1;
+    }
+    const textW = Math.max(...lines.map((l) => meas.measureText(l).width));
+    const padX = fs * 0.9, padY = fs * 0.5, lh = fs * 1.12;
+    const w = Math.ceil(textW + padX * 2), h = Math.ceil(lines.length * lh + padY * 2), m = 12;
+    const cv = makeCanvas((w + m * 2) * d, (h + m * 2) * d);
+    const c = cv.getContext('2d');
+    c.scale(d, d);
+    c.translate(m, m);
+    // The board: red with diagonal stripes, dark edge, light inner line.
+    rr(c, 0, 0, w, h, 10);
+    c.fillStyle = '#d9283f'; c.fill();
+    c.save(); c.clip();
+    c.fillStyle = '#ea4a5e';
+    for (let x = -h; x < w + h; x += 30) { c.beginPath(); c.moveTo(x, h); c.lineTo(x + 15, h); c.lineTo(x + 15 + h * 0.5, 0); c.lineTo(x + h * 0.5, 0); c.closePath(); c.fill(); }
+    c.restore();
+    rr(c, 3, 3, w - 6, h - 6, 8); c.lineWidth = 1.6; c.strokeStyle = 'rgba(255,255,255,0.35)'; c.stroke();
+    rr(c, 0, 0, w, h, 10); c.lineWidth = 4; c.strokeStyle = OUT; c.lineJoin = 'round'; c.stroke();
+    // The bulbs along the edge.
+    const step = 15;
+    const nx = Math.max(2, Math.round(w / step)), ny = Math.max(1, Math.round(h / step));
+    let k = 0;
+    for (let i = 0; i <= nx; i++) bulb(c, (w * i) / nx, 0, 3.2, BULBS[k++ % 5], true, 3.2);
+    for (let i = 1; i <= ny; i++) bulb(c, w, (h * i) / ny, 3.2, BULBS[k++ % 5], true, 3.2);
+    for (let i = nx - 1; i >= 0; i--) bulb(c, (w * i) / nx, h, 3.2, BULBS[k++ % 5], true, 3.2);
+    for (let i = ny - 1; i >= 1; i--) bulb(c, 0, (h * i) / ny, 3.2, BULBS[k++ % 5], true, 3.2);
+    // The phrase.
+    lines.forEach((line, i) => txt(c, line, w / 2, padY + lh * (i + 0.5) + 1, { size: fs, fill: COL.yellow, lw: fs * 0.26, ext: 2, extCol: '#7a0f4a' }));
+    const sp = { cv, w, h, m };
+    rotulos.set(texto, sp);
+    return sp;
+  }
+
+  // Shows a sign for the situation `grupo` (keys of L.feriante) unless one was shown less than FER_GAP seconds ago. `fuerza` skips that rest; `texto` is a given phrase.
+  function pedirRotulo(grupo, { fuerza = false, retraso = 0, texto = null } = {}) {
+    if (!fuerza && fer.desde < FER_GAP) return false;
+    let frase = texto;
+    if (!frase) {
+      const lista = L.feriante[grupo].filter((f) => f !== fer.ultimas[grupo]);
+      frase = lista[(Math.random() * lista.length) | 0];
+      fer.ultimas[grupo] = frase;
+    }
+    letrero = { sp: rotuloSprite(frase), age: -retraso, tilt: (Math.random() < 0.5 ? -1 : 1) * (0.05 + Math.random() * 0.03) };
+    fer.desde = 0;
+    return true;
+  }
+
+  function tickRotulo(dt) {
+    if (!letrero) return;
+    letrero.age += dt;
+    if (letrero.age > FER_LIFE) letrero = null;
+  }
+
+  function updateFeriante(dt) {
+    fer.desde += dt;
+    tickRotulo(dt);
+    const sp = Math.hypot(drop.vx, drop.vy);
+    fer.rapido = drop.grounded && drop.vy > 100 && sp > 540 ? fer.rapido + dt : 0;
+    fer.cerca = danger > 0.7 ? fer.cerca + dt : 0;
+    if (ink > 1) fer.sin = false;
+    // The current going away: it is the one the other signs give way to (and «vuelve» answers it, see updatePower).
+    if (!drop.grounded && airTime > 0.5 && !fer.luz) { fer.luz = true; pedirRotulo('luz', { fuerza: true }); return; }
+    // Every 100 m, a phrase for the stretch; if another sign was too recent it waits its turn.
+    const tramo = Math.floor(distance / 100);
+    if (tramo >= fer.hito) {
+      const frases = L.feriante.hitos;
+      const texto = tramo <= frases.length ? frases[tramo - 1] : L.feriante.hito.replace('{n}', tramo * 100);
+      if (pedirRotulo('hitos', { texto })) { fer.hito = tramo + 1; return; }
+    }
+    if (ink <= 0 && !fer.sin && pedirRotulo('sinFicha')) { fer.sin = true; return; }
+    if (fer.cerca > 0.3 && pedirRotulo('cerca')) { fer.cerca = 0; return; }
+    if (fer.rapido > 0.4 && pedirRotulo('rapido')) fer.rapido = 0;
+  }
+
+  function drawFeriante() {
+    const s = letrero;
+    if (!s || s.age < 0) return;
+    const sp = s.sp, u = s.age / FER_LIFE, d = dpr;
+    // Pops in with a little overshoot, then holds and fades out.
+    const pop = u < 0.12 ? 0.4 + 0.75 * (u / 0.12) : u < 0.22 ? 1.15 - 0.15 * ((u - 0.12) / 0.1) : 1;
+    const wob = reduceMotion ? 0 : Math.sin(s.age * 9) * 0.012 * Math.max(0, 1 - u * 1.6);
+    ctx.globalAlpha = u > 0.82 ? 1 - (u - 0.82) / 0.18 : 1;
+    // Top right, under the metres, so it never covers the middle of the screen.
+    const cx = cssW - 14 - (sp.w + sp.m) / 2, cy = 82 + (sp.h + sp.m) / 2;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(s.tilt + wob);
+    ctx.scale(pop, pop);
+    ctx.drawImage(sp.cv, -sp.cv.width / d / 2, -sp.cv.height / d / 2, sp.cv.width / d, sp.cv.height / d);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
   function render(t) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     if (!A) { ctx.fillStyle = '#0b0526'; ctx.fillRect(0, 0, cssW, cssH); return; }
@@ -2312,7 +3108,7 @@ kbd {
 
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     if (state === 'play') drawDanger();
-    if (state !== 'title') { drawHud(t); drawFlyers(); }
+    if (state !== 'title') { drawHud(t); drawFlyers(); drawFeriante(); }
     drawPenTip();
     if (perf.visible) drawPerf();
   }
@@ -2353,17 +3149,42 @@ kbd {
   }
 
   // ---------- flow ----------
+  // The sign of the overlay: the two-colour title on the title screen, one word of the same sign for the other screens.
+  const letreroEl = document.getElementById('letrero');
+  const creditoEl = document.getElementById('credito');
+  function setHeadline(text, isTitle) {
+    letreroEl.classList.toggle('fin', !isTitle);
+    if (!isTitle) { headline.textContent = text; return; }
+    const voy = document.createElement('span');
+    voy.className = 'voy';
+    voy.textContent = L.titulo[0];
+    headline.replaceChildren(voy, document.createTextNode(L.titulo[1]));
+  }
+
+  function showTitle() {
+    setHeadline('', true);
+    taglineEl.hidden = false;
+    taglineEl.textContent = L.subtitulo;
+    line1.hidden = false;
+    line2.hidden = false;
+    creditoEl.hidden = false;
+    startBtn.textContent = L.empezar;
+  }
+
   function showOverlay(reason, meters, isRecord, rankIndex) {
     renderRanking(rankIndex);
-    headline.textContent = reason === 'caught' ? L.caught : L.fell;
-    headline.classList.add('death');
+    setHeadline(reason === 'caught' ? L.pillado : L.caida, false);
+    taglineEl.hidden = false;
+    taglineEl.textContent = reason === 'caught' ? L.pilladoSub : L.caidaSub;
     line1.hidden = true;
     line2.hidden = true;
+    creditoEl.hidden = true;
     scoreEl.hidden = false;
     scoreEl.textContent = fmtMeters(meters);
     bestEl.hidden = false;
-    bestEl.textContent = isRecord ? L.newRecord : fmtBest(L.record, best);
-    startBtn.textContent = L.again;
+    bestEl.classList.toggle('nuevo', isRecord);
+    bestEl.textContent = isRecord ? L.nuevoRecord : fmtBest(L.record, best);
+    startBtn.textContent = L.otraVez;
     controlsEl.hidden = true;
     overlay.hidden = false;
     startBtn.focus();
@@ -2373,26 +3194,31 @@ kbd {
     if (state !== 'play') return;
     state = 'paused';
     pen = null;
-    sound.scratch(0);
-    sound.rumble(0);
-    sound.power(0);
-    headline.textContent = L.pause;
-    headline.classList.add('death');
+    sound.zumbido(0);
+    sound.pausar();
+    setHeadline(L.pausa, false);
+    taglineEl.hidden = true;
     line1.hidden = true;
     line2.hidden = true;
+    creditoEl.hidden = true;
     scoreEl.hidden = true;
     bestEl.hidden = true;
     hintEl.hidden = true;
     rankingBox.hidden = true;
-    startBtn.textContent = L.resume;
+    startBtn.textContent = L.seguir;
     controlsEl.hidden = true;
     overlay.hidden = false;
     startBtn.focus();
   }
 
+  // Playing starts (or restarts) the music on the very click that plays, which is what the autoplay policy of the browsers wants.
   function play(isResume) {
     sound.init();
-    if (!isResume) reset();
+    if (!isResume) {
+      reset();
+      sound.musica();
+      pedirRotulo('inicio', { fuerza: true, retraso: 0.5 });
+    }
     state = 'play';
     taglineEl.hidden = true;
     hintEl.hidden = true;
@@ -2409,11 +3235,12 @@ kbd {
 
   function syncMute() {
     muteBtn.setAttribute('aria-pressed', String(sound.isMuted()));
-    muteBtn.setAttribute('aria-label', sound.isMuted() ? L.unmute : L.mute);
+    muteBtn.setAttribute('aria-label', sound.isMuted() ? L.activarSonido : L.silenciar);
   }
   muteBtn.addEventListener('click', () => { sound.init(); sound.toggleMute(); syncMute(); });
   syncMute();
   renderRanking(-1);
+  showTitle();
 
   const canFullscreen = Boolean(document.fullscreenEnabled || document.webkitFullscreenEnabled);
   fullscreenBtn.hidden = !canFullscreen;

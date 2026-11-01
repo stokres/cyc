@@ -5,7 +5,7 @@
    Text of 14 px or more (I3), touch targets of 44 px or more (I4).
    Cards are compact on the phone (portrait and landscape, so there is little to scroll) and big on the computer.
    Layouts: portrait phone (one sticker under another), landscape phone and computer (Camiones y Caravanas on the left, PokéUsera and Pang
-   beside it, then Próximamente más, then the folding «Otros juegos» with Fly and Trazo in two columns inside). The order of the cards is the same
+   beside it, then Próximamente más, then the folding «Otros juegos» with Fly and Voy colgao in two columns inside). The order of the cards is the same
    in all of them: Camiones y Caravanas, PokéUsera, Pang, Próximamente más, Otros juegos (closed). On top of everything, the band of the next
    show (`.proximo`, src/portada/proximo.ts). entrar.html reuses the background, the arch and «dale». */
 :root {
@@ -804,7 +804,7 @@ a.proximo:focus-visible {
   transform: rotate(-3deg);
 }
 
-/* 5 · «Otros juegos»: a folding tab of the poster (closed at first) with Fly and Trazo inside, which are not of the universe of Camiones y Caravanas */
+/* 5 · «Otros juegos»: a folding tab of the poster (closed at first) with Fly and Voy colgao inside, which are not of the universe of Camiones y Caravanas */
 .otros-juegos > summary {
   display: flex;
   align-items: center;
@@ -865,7 +865,7 @@ a.proximo:focus-visible {
   margin: 22px auto 0;
 }
 
-/* Fly and Trazo: two small stickers with no picture of their own yet (a drawing in CSS: islands and a bird, a blot and a drop of ink) */
+/* Fly and Voy colgao: two small stickers with no picture of their own yet (a drawing in CSS: islands and a bird, a neon cable with a bumper car hanging from it) */
 .chicas {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -887,7 +887,7 @@ a.proximo:focus-visible {
   --giro: -1.6deg;
 }
 
-.chica.trazo {
+.chica.voycolgao {
   --giro: 1.6deg;
   border-radius: 34px 14px 34px 14px;
 }
@@ -939,7 +939,7 @@ a.proximo:focus-visible {
   text-shadow: 0.05em 0.05em 0 var(--mostaza);
 }
 
-.trazo h2 {
+.voycolgao h2 {
   color: var(--marron);
   text-shadow: 0.05em 0.05em 0 var(--rosa);
 }
@@ -1021,38 +1021,89 @@ a.proximo:focus-visible {
   background: #1f6f69;
 }
 
-/* Trazo: a blot with its splashes, a line drawn by hand (a hill) and the drop of ink running away over it */
-.trazo .dibujo {
-  background: var(--crema);
+/* Voy colgao: a fairground at night; a neon cable in a curve and a small bumper car hanging from it by its pole (everything in em: the strip is 62 px high on the phone and 86 px on the computer) */
+.voycolgao .dibujo {
+  font-size: 10px;
+  background: linear-gradient(#150a33, #3d1678 70%, #6a2ca0);
 }
 
-.trazo .borron {
-  left: 6%;
-  bottom: 9px;
-  width: 30px;
-  height: 22px;
-  border-radius: 58% 42% 52% 48% / 62% 54% 46% 38%;
-  background: var(--marron);
-  box-shadow: 15px -12px 0 -7px var(--marron), 34px 5px 0 -8px var(--marron);
+.voycolgao .luces {
+  left: 7%;
+  top: 1.5em;
+  width: 0.35em;
+  height: 0.35em;
+  border-radius: 50%;
+  background: #ffe83a;
+  box-shadow:
+    2.4em 0.6em 0 #2ff3ff, 5.6em -0.3em 0 #ff3da8, 8.8em 0.9em 0 #4dff88, 12.5em -0.5em 0 #ffe83a, 15em 0.7em 0 #ff8a1f,
+    18.6em 4.4em 0 #2ff3ff, 2.2em 4.6em 0 #ff3da8, 6em 5.1em 0 #4dff88, 21em 1.5em 0 #ffe83a, 24em 4.8em 0 #ff8a1f;
 }
 
-.trazo .linea {
-  left: 38%;
-  right: 6%;
-  bottom: 9px;
-  height: 34px;
-  border-top: 4px solid var(--rosa2);
-  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+.voycolgao .cable {
+  left: -4%;
+  right: -4%;
+  top: -1.6em;
+  height: 4em;
+  border-bottom: 0.3em solid #ffe83a;
+  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  box-shadow: 0 0.2em 0 #2ff3ff, 0 0.3em 0.9em rgba(47, 243, 255, 0.8);
 }
 
-.trazo .gota {
-  left: 56%;
-  bottom: 38px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50% 0 50% 50%;
-  background: var(--marron);
-  transform: rotate(-45deg);
+.voycolgao .palo {
+  left: 50%;
+  top: 2.2em;
+  width: 0.3em;
+  height: 1.5em;
+  background: #c3cbe6;
+  transform: translateX(-50%);
+}
+
+.voycolgao .palo::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -0.4em;
+  width: 1em;
+  height: 0.6em;
+  border-radius: 0.45em 0.45em 0.15em 0.15em;
+  background: #ffc23a;
+  transform: translateX(-50%);
+}
+
+.voycolgao .coche {
+  left: 50%;
+  top: 3.6em;
+  width: 3.8em;
+  height: 1.1em;
+  border: 0.15em solid #1a0b33;
+  border-radius: 0.8em 1em 0.3em 0.3em;
+  background: #ff2d3d;
+  transform: translateX(-50%);
+}
+
+/* The driver (a head and a raised hand) and the black rubber bumper with its pink light underneath */
+.voycolgao .coche::before {
+  content: '';
+  position: absolute;
+  left: 2em;
+  top: -1em;
+  width: 0.85em;
+  height: 0.85em;
+  border-radius: 50%;
+  background: #f6a867;
+  box-shadow: -0.1em -0.35em 0 -0.2em #ff3da8, 0.8em -0.5em 0 -0.3em #f6a867;
+}
+
+.voycolgao .coche::after {
+  content: '';
+  position: absolute;
+  left: -0.5em;
+  right: -0.5em;
+  top: 0.8em;
+  height: 0.6em;
+  border-radius: 0.3em;
+  background: #15131c;
+  box-shadow: 0 0.35em 0.7em #ff3da8;
 }
 
 /* 5 · Burst: Próximamente, a strip of rays */
@@ -1151,7 +1202,7 @@ a.proximo:focus-visible {
 
 /* ============ LAYOUTS ============ */
 /* Landscape phone and computer: the header is a grid (title on the left, badge and ribbon on the right) and the stickers are three columns:
-   the arch on the left (two rows), PokéUsera and Pang, then Fly and Trazo side by side, then the burst across. */
+   the arch on the left (two rows), PokéUsera and Pang, then Fly and Voy colgao side by side, then the burst across. */
 @media (min-width: 700px) and (max-height: 520px), (min-width: 900px) and (min-height: 521px) {
   .cabecera {
     display: grid;
@@ -1177,7 +1228,7 @@ a.proximo:focus-visible {
   }
 }
 
-/* Landscape phone: the arch on the left and, on the right, a column with PokéUsera, Pang, Fly and Trazo, then the burst across */
+/* Landscape phone: the arch on the left and, on the right, a column with PokéUsera, Pang, Fly and Voy colgao, then the burst across */
 @media (min-width: 700px) and (max-height: 520px) {
   .pegatinas {
     grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.5fr);
@@ -1522,6 +1573,10 @@ a.proximo:focus-visible {
 
   .chica .dibujo {
     height: 86px;
+  }
+
+  .voycolgao .dibujo {
+    font-size: 13.8px;
   }
 
   .chica .texto {
