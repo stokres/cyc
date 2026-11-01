@@ -3,7 +3,7 @@
 //   /            the cover (dist/portada.html)           /pokeusera   PokéUsera (dist/pokeusera.html)       /aventura   PokéUsera, straight into AVENTURA
 //   /capitulo1   the chapter (dist/index.html)           /pang        the whole Pang (index.html opens it, see src/core/direccion.ts)
 //   /capitulo2 /sol /kart /unamas   hidden games, the same way (they work, the cover does not announce them)
-//   /fly         Fly (dist/fly/index.html, built with base /fly/)     /trazo   Trazo (dist/trazo/index.html)
+//   /fly         Fly (dist/fly/index.html, built with base /fly/)     /voycolgao /trazo   Voy colgao (dist/trazo/index.html)
 // A route with a final slash (/pang/) redirects (301) to the one without: the relative paths of the build (./assets/...) would break under it (Fly uses absolute /fly/... paths).
 // The door (scripts/pase.mjs): with CYC_CLAVE set, without the cookie the HTML pages answer 401 with the entry page (dist/entrar.html), /api and /sala answer 401, and
 // /assets, robots.txt, icons and manifests stay free. Every response carries X-Robots-Tag (no indexing).

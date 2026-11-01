@@ -14,7 +14,7 @@ La luz con relieve (WebGL2) está aplazada: para verla, añade `?relieve` a la d
 
 ## Publicación en Railway (dominio propio)
 
-Todos los juegos salen de **un único servicio de Railway** (Node), con URLs limpias: `/` (portada), `/capitulo1`, `/pokeusera`, `/pang`, `/fly` y `/trazo`. Siguen funcionando, sin anunciarse, `/aventura`, `/capitulo2`, `/sol`, `/kart` y `/unamas`; una ruta con barra final (`/pang/`) redirige a la que no la lleva. La sala online (`/sala`) y las estadísticas (`/api`) van en el mismo servicio. El servidor es `scripts/servir-pokeusera.mjs` y la lista de rutas, `scripts/rutas.mjs`. `/fly` y `/trazo` son dos juegos que viven en `juegos/` (ver `juegos/README.md`). `npm run build` los construye después del de cyc con `scripts/construir-juegos.mjs`: Fly (que conserva su propio `package.json` y su Vite) se instala con `npm ci` si hace falta y se construye con base absoluta `/fly/` en `dist/fly/` (por eso sus `.glb`, `.json` y audio cargan bien bajo la ruta); Trazo se copia tal cual a `dist/trazo/`. Los archivos con hash de `/fly/assets/` llevan la misma caché larga que `/assets/`. Para probarlos en local hace falta `npm run build && npm start` (`npm run dev` no sirve esas dos rutas). GitHub Pages ya no publica nada: la dirección es https://camionesycaravanas.es. En el móvil, abre un juego y usa **Añadir a pantalla de inicio** para que se abra a pantalla completa.
+Todos los juegos salen de **un único servicio de Railway** (Node), con URLs limpias: `/` (portada), `/capitulo1`, `/pokeusera`, `/pang`, `/fly` y `/voycolgao` (que también responde en `/trazo`, su antiguo nombre). Siguen funcionando, sin anunciarse, `/aventura`, `/capitulo2`, `/sol`, `/kart` y `/unamas`; una ruta con barra final (`/pang/`) redirige a la que no la lleva. La sala online (`/sala`) y las estadísticas (`/api`) van en el mismo servicio. El servidor es `scripts/servir-pokeusera.mjs` y la lista de rutas, `scripts/rutas.mjs`. `/fly` y `/voycolgao` son dos juegos que viven en `juegos/` (ver `juegos/README.md`). `npm run build` los construye después del de cyc con `scripts/construir-juegos.mjs`: Fly (que conserva su propio `package.json` y su Vite) se instala con `npm ci` si hace falta y se construye con base absoluta `/fly/` en `dist/fly/` (por eso sus `.glb`, `.json` y audio cargan bien bajo la ruta); Voy colgao (carpeta `juegos/trazo/`) se copia tal cual a `dist/trazo/`. Los archivos con hash de `/fly/assets/` llevan la misma caché larga que `/assets/`. Para probarlos en local hace falta `npm run build && npm start` (`npm run dev` no sirve esas dos rutas). GitHub Pages ya no publica nada: la dirección es https://camionesycaravanas.es. En el móvil, abre un juego y usa **Añadir a pantalla de inicio** para que se abra a pantalla completa.
 
 Pasos manuales, una sola vez:
 
@@ -90,7 +90,7 @@ node tools/icono.mjs                                                      # icon
 | `docs/PERSONAJES.md` | Cómo son y cómo hablan los cuatro y Aceituna |
 | `docs/ESCENA-1.md` | Encargo del capítulo 1: piso, calle, cámara y puzle inicial |
 | `src/textos/` | Todos los textos del juego, editables |
-| `portada.html`, `src/portada/` | Portada del dominio: cartel psicodélico de los 70 con la banda del próximo evento arriba y las fichas Camiones y Caravanas (Capítulo 1 y 2), PokéUsera, Pang, Próximamente más y, en un desplegable «Otros juegos», Fly y Trazo; solo DOM y CSS |
+| `portada.html`, `src/portada/` | Portada del dominio: cartel psicodélico de los 70 con la banda del próximo evento arriba y las fichas Camiones y Caravanas (Capítulo 1 y 2), PokéUsera, Pang, Próximamente más y, en un desplegable «Otros juegos», Fly y Voy colgao; solo DOM y CSS |
 | `scripts/servir-pokeusera.mjs`, `scripts/rutas.mjs` | Servidor de Railway y sus URLs limpias; `src/core/direccion.ts` es la mitad que lee el juego |
 | `src/capitulos/` | Lógica de cada capítulo: zonas, puzles, objetivos y pistas (las historias de Pablo y Guille, en `pablo.ts` y `guille.ts`) |
 | `src/juego/` | Aventura (guion, entrada táctil, cambio de personaje), reparto, textos y partida guardada |
@@ -98,6 +98,6 @@ node tools/icono.mjs                                                      # icon
 | `src/arte/` | Personajes (con vestuario), escenas y objetos, generados como SVG |
 | `src/ui/` | Interfaz: selector, bolsa, diálogos, móvil y minijuegos (la rana, palabras, el robot y los cerdos), con su versión sin fin para el menú de minijuegos |
 | `src/core/` | Gestos, sonido y utilidades |
-| `juegos/` | Juegos con su propio código, servidos en `/fly` y `/trazo`; `juegos/README.md` dice de dónde vino cada uno y `scripts/construir-juegos.mjs` los construye |
+| `juegos/` | Juegos con su propio código, servidos en `/fly` y `/voycolgao`; `juegos/README.md` dice de dónde vino cada uno y `scripts/construir-juegos.mjs` los construye |
 | `tools/` | Láminas de personajes, exportación de capas e iconos |
 | `public/` | Manifiesto e iconos para instalarlo en el móvil |

@@ -1,6 +1,6 @@
 // Builds the games that live in juegos/ into dist/ (the second half of `npm run build`: it runs after cyc's own `vite build`, which empties dist/).
 //   juegos/fly/    own package.json and lockfile (Vite 8, TypeScript 7, Three.js) → built with base /fly/ into dist/fly/
-//   juegos/trazo/  a single index.html with no build step → copied to dist/trazo/
+//   juegos/trazo/  Voy colgao (it was Trazo): a single index.html with no build step → copied to dist/trazo/ (served at /voycolgao and /trazo)
 // Fly's dependencies are installed with `npm ci` only when they are missing or its lockfile is newer than what is installed, so a rebuild with Fly already
 // installed only pays for Fly's own typecheck and vite build. Railway runs just `npm ci` at the root and `npm run build`: this script does the rest.
 import { spawnSync } from 'node:child_process';
@@ -38,7 +38,7 @@ if (flyNecesitaInstalar()) {
 }
 ejecutar(['--prefix', FLY, 'run', 'build', '--', '--base', '/fly/', '--outDir', join(DIST, 'fly'), '--emptyOutDir']);
 
-// Trazo: a single page; only what the page loads (the README and the rest stay out of dist/).
+// Voy colgao (folder trazo): a single page; only what the page loads (the README and the rest stay out of dist/).
 mkdirSync(join(DIST, 'trazo'), { recursive: true });
 for (const f of ['index.html', 'og.jpg']) cpSync(join(TRAZO, f), join(DIST, 'trazo', f));
 console.log('construir-juegos: dist/fly y dist/trazo listos');

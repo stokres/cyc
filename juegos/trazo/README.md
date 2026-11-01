@@ -1,32 +1,34 @@
-# Trazo
+# Voy colgao
 
-![Trazo: an ink drop rolls along a hand-drawn line while an ink blot chases it](og.jpg)
+![Voy colgao: un coche de choque cuelga de un cable de neón en una feria nocturna](og.jpg)
 
-An endless ink-on-paper browser game. You draw the ground for a little ink drop, and it rolls along whatever you draw while a hungry ink blot chases it.
+Juego de feria nocturna para el móvil en horizontal. Eres un coche de choque que cuelga de un cable eléctrico: el gancho de tu palo va encima del cable y el cable lo dibujas tú con el dedo. Detrás viene una marea de coches de choque que te quiere pillar.
 
-**Play:** https://mariomka.github.io/trazo/
+**Jugar:** `/voycolgao` en camionesycaravanas.es (también responde en `/trazo`).
 
-## How to play
+## Cómo se juega
 
-- **Draw** with your mouse or finger inside the dotted circle around the drop. The drop slides along your lines: downhill it picks up speed, uphill it slows down.
-- **Ink is limited.** Collect floating drops to refill it.
-- **Every stroke feeds the blot.** The more you draw, the faster it catches up.
-- **You lose** if the blot catches you or if you fall off the bottom of the page.
-- Your 10 best runs are saved in your browser.
+- **Dibuja el cable** con el dedo (o el ratón) cerca del gancho. El coche rueda por encima: cuesta abajo gana velocidad, cuesta arriba la pierde.
+- **El cable se gasta.** Coge fichas para tener más.
+- **Mientras el gancho toca el cable hay corriente.** Si te quedas en el aire, se va la luz y la música se apaga; al volver a engancharte, vuelve la fiesta.
+- **Pierdes** si te pilla la marea de coches («¡TOPETAZO!») o si caes al suelo («¡SIN CORRIENTE!»).
+- Tus 10 mejores partidas se guardan en el navegador.
+- Un feriante comenta la partida en un rótulo con bombillas.
 
-| Key | Action |
+| Tecla | Acción |
 |---|---|
-| `P` / `Esc` | Pause / resume |
-| `R` | Restart |
-| `M` | Mute |
-| `F` | Fullscreen |
+| `P` / `Esc` | Pausa / seguir |
+| `R` | Reiniciar |
+| `M` | Silencio |
+| `F` | Pantalla completa |
+| `D` | Panel de rendimiento (oculto) |
 
-On iPhone, which has no fullscreen mode for web pages, use Share → Add to Home Screen to play without the browser bars.
+En iPhone, que no tiene pantalla completa para páginas web, usa Compartir → Añadir a pantalla de inicio.
 
-The game is available in English, 中文, Español, العربية, Português, Bahasa Indonesia, Français, 日本語, Русский and Deutsch. It picks your browser's language automatically, and you can force one by adding it to the URL, e.g. `#ja`.
+## Desarrollo
 
-## Development
+Todo el juego es un solo `index.html`: un canvas, JavaScript sin dependencias ni paso de construcción, y sonido sintetizado con WebAudio (la música techno es un motor propio dentro del mismo fichero; no hay audios). Para probarlo basta servir esta carpeta con cualquier servidor estático. El texto está todo en el objeto `L` del principio del script (solo español). `og.jpg` sale del boceto aprobado de la pantalla de título.
 
-The whole game is a single `index.html` file: a canvas, plain JavaScript, synthesized WebAudio sound, and no dependencies or build step. Open it in a browser to play locally.
+## Origen
 
-Every push to `main` deploys it to GitHub Pages through `.github/workflows/pages.yml`.
+Es un fork de [mariomka/trazo](https://github.com/mariomka/trazo) («Trazo», un juego de tinta y papel), convertido en «Voy colgao». Basado en Trazo, de mariomka. Los cambios respecto al original están en `juegos/README.md`.

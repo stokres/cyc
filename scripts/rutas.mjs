@@ -8,6 +8,8 @@ export const RUTAS = {
   '/pang': 'index.html',
   // Games of juegos/ (docs in juegos/README.md): each one is built into its own folder of dist/ (scripts/construir-juegos.mjs).
   '/fly': 'fly/index.html',
+  // Voy colgao (the game that used to be Trazo, same folder and page): its own route and the old /trazo.
+  '/voycolgao': 'trazo/index.html',
   '/trazo': 'trazo/index.html',
   // Hidden: they work but the cover does not announce them.
   '/capitulo2': 'index.html',
