@@ -14,7 +14,10 @@ titulo = Camiones y Caravanas
 titulo.1 = CAMIONES
 titulo.y = Y
 titulo.2 = CARAVANAS
-cinta = Solo la peña · Jueves · 21:00 · Bar del Brío
+
+// ---- la banda de arriba (la fecha, la hora y el lugar se cambian en proximo.md)
+proximo.texto = Próximo Camiones y Caravanas: {dia}
+proximo.hoy = ¡Hoy hay Camiones y Caravanas!
 
 capitulo1.logo = Camiones y Caravanas: un camión y una caravana
 capitulo1.nombre = Camiones y Caravanas
@@ -46,14 +49,12 @@ trazo.nombre = Trazo
 trazo.desc = Dibuja el suelo y salva la gota del borrón.
 trazo.jugar = ¡A trazar!
 
+otros.nombre = Otros juegos
+
 mas.nombre = Próximamente más…
 mas.desc = Cuando Fran diga «una más y nos vamos».
 
 pie.en = En directo, un jueves que se lía
-pie.fran = Fran
-pie.pablo = Pablo
-pie.chuchi = Chuchi
-pie.guille = Guille
 pie.perra = Con Aceituna, la perra, que se ha colado.
 pie.url = camionesycaravanas.es
 

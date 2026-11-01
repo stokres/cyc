@@ -45,6 +45,7 @@ Todo lo que se dice en el juego está en `src/textos/`:
 - `capitulo1.md`: diálogos, objetivos, pistas y nombres de las cosas.
 - `interfaz.md`: menús y botones.
 - `portada.md`: la portada del dominio (`portada.html`).
+- `proximo.md`: la banda de arriba de la portada con la fecha, hora, lugar y enlace del próximo Camiones y Caravanas (se edita a mano; sin fecha o con fecha pasada no sale).
 
 El formato se explica al principio de `capitulo1.md`. Basta con editar el texto y recargar; no hace falta tocar código. Si una clave falta o una línea no se entiende, sale un error en la consola y la partida automática falla.
 
@@ -89,7 +90,7 @@ node tools/icono.mjs                                                      # icon
 | `docs/PERSONAJES.md` | Cómo son y cómo hablan los cuatro y Aceituna |
 | `docs/ESCENA-1.md` | Encargo del capítulo 1: piso, calle, cámara y puzle inicial |
 | `src/textos/` | Todos los textos del juego, editables |
-| `portada.html`, `src/portada/` | Portada del dominio: cartel psicodélico de los 70 con cuatro fichas (Camiones y Caravanas con Capítulo 1 y 2, PokéUsera, Pang, Próximamente más), solo DOM y CSS |
+| `portada.html`, `src/portada/` | Portada del dominio: cartel psicodélico de los 70 con la banda del próximo evento arriba y las fichas Camiones y Caravanas (Capítulo 1 y 2), PokéUsera, Pang, Próximamente más y, en un desplegable «Otros juegos», Fly y Trazo; solo DOM y CSS |
 | `scripts/servir-pokeusera.mjs`, `scripts/rutas.mjs` | Servidor de Railway y sus URLs limpias; `src/core/direccion.ts` es la mitad que lee el juego |
 | `src/capitulos/` | Lógica de cada capítulo: zonas, puzles, objetivos y pistas (las historias de Pablo y Guille, en `pablo.ts` y `guille.ts`) |
 | `src/juego/` | Aventura (guion, entrada táctil, cambio de personaje), reparto, textos y partida guardada |
