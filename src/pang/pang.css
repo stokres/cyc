@@ -759,6 +759,161 @@
   text-wrap: balance;
 }
 
+/* The list of rooms: the rooms on the left; on the right «Crear sala», the code and «Volver» (two columns, so it fits a low phone). */
+.pg-online-lista {
+  overflow-y: auto;
+}
+
+.pg-lista-dos {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: clamp(12px, 3vw, 28px);
+  align-items: start;
+}
+
+.pg-lista-dos > .pg-col {
+  align-content: start;
+}
+
+.pg-salas {
+  display: grid;
+  gap: 6px;
+}
+
+.pg-sala-fila {
+  box-sizing: border-box;
+  min-height: var(--pg-tap);
+  padding: 4px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--gold-soft);
+  background: rgba(243, 234, 214, 0.07);
+  color: var(--cream);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  font: 700 clamp(14px, 4vh, 17px) var(--body);
+}
+
+.pg-sala-fila.llena {
+  opacity: 0.5;
+}
+
+.pg-sala-quien {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pg-sala-codigo {
+  font: 400 13px var(--pixel);
+  color: var(--gold);
+  letter-spacing: 0.08em;
+}
+
+.pg-sala-cupo {
+  min-width: 3.4em;
+  text-align: right;
+  color: var(--muted);
+}
+
+.pg-codigo-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.pg-campo-codigo {
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  min-width: 0;
+}
+
+.pg-online .pg-aviso:empty {
+  display: none;
+}
+
+/* The room: header, who is in, the four characters, buttons. */
+.pg-online-sala .pg-cabecera {
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.pg-online-sala .pg-cabecera .pg-h2 {
+  flex: 1;
+  text-align: left;
+}
+
+.pg-gente {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(6px, 1.4vw, 12px);
+}
+
+.pg-chip {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(243, 234, 214, 0.07);
+  border: 1px solid rgba(243, 234, 214, 0.18);
+}
+
+.pg-chip.yo {
+  border-color: var(--color, var(--gold));
+}
+
+.pg-chip.libre {
+  opacity: 0.45;
+}
+
+.pg-chip .pg-mini {
+  width: 30px;
+  height: 30px;
+}
+
+.pg-chip-t {
+  min-width: 0;
+  display: grid;
+  line-height: 1.1;
+}
+
+.pg-chip-t b,
+.pg-chip-t small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pg-chip-t small {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.pg-menu-par {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: inherit;
+}
+
+.pg-menu-par .pg-btn {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+/* Records of groups: a wider column for the stage and «con N». */
+.pg-records.todos.grupo .pg-record {
+  grid-template-columns: 2em 6.2em minmax(0, 1fr) 12.5em 5.5em;
+}
+
+.pg-con {
+  font-size: 13px;
+  color: var(--gold);
+}
+
 /* ------------------------------------------------------------ continue */
 
 .pg-continuar {
@@ -801,6 +956,9 @@
   }
   .pg-records.todos .pg-record {
     grid-template-columns: 1.6em 6.4em minmax(0, 1fr) 7.6em;
+  }
+  .pg-records.todos.grupo .pg-record {
+    grid-template-columns: 1.6em 5.6em minmax(0, 1fr) 11.5em;
   }
   .pg-pestana {
     padding: 4px 10px;

@@ -14,7 +14,7 @@ export const SALA_NUEVA = 'nueva';
  * The games whose page can open a room from a link, with their route: `?sala=K7MZ` joins that room, `?sala=nueva` creates one (docs/SALAS.md).
  * A game is added here only when its page keeps that promise. The cover page shows the rooms of every game, but only links to these.
  */
-export const SALAS_EN_WEB = { pokeusera: '/pokeusera' };
+export const SALAS_EN_WEB = { pokeusera: '/pokeusera', pang: '/pang' };
 /** Without 0/O/1/I/L, which are mixed up when copying. */
 export const ALFABETO_SALA = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 export const CODIGO_SALA_LARGO = 4;

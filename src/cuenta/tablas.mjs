@@ -1,14 +1,18 @@
 // Récords de todos (docs/POKEUSERA.md, «Cuentas»): la lista cerrada de tablas y lo que vale en cada una. La comparten el servidor (scripts/records.mjs)
 // y el cliente (src/cuenta/records.ts): JavaScript con tipos en tablas.d.mts porque el servidor no compila TypeScript.
-// Una tabla por juego con puntos: el Pang y los minijuegos sin fin del capítulo 1 (los mismos ids que `MINIJUEGOS` de src/main.ts).
+// Una tabla por juego con puntos: el Pang (solo, y aparte `pangGrupo`: las partidas online de 2 a 4) y los minijuegos sin fin del capítulo 1 (los mismos ids que `MINIJUEGOS` de src/main.ts).
 
 /** Los personajes del Pang (los mismos que `PJS` de src/pang/tipos.ts). */
 export const PJS_PANG = ['fran', 'pablo', 'chuchi', 'guille'];
 export const FASES_PANG = 12;
+/** Jugadores de una partida de grupo (`pangGrupo`): de 2 a 4. */
+export const GRUPO_MIN = 2;
+export const GRUPO_MAX = 4;
 
 /** tabla → tope de puntos (una marca por encima se rechaza: ninguna partida de verdad llega ahí) y qué `extra` lleva. */
 export const TABLAS = {
   pang: { max: 9_999_999, extra: 'pang' },
+  pangGrupo: { max: 9_999_999, extra: 'pangGrupo' },
   rana: { max: 99_999, extra: null },
   palabras: { max: 99_999, extra: null },
   robot: { max: 99_999, extra: null },
@@ -34,15 +38,19 @@ export function limpiarPuntos(tabla, x) {
 }
 
 /**
- * El `extra` listo para guardar: null si la tabla no lleva (o no vino), `{ pj, fase }` en el Pang, o undefined si no vale
- * (una clave de más, un personaje que no existe, una fase fuera de 1 a 12).
+ * El `extra` listo para guardar: null si la tabla no lleva (o no vino), `{ pj, fase }` en el Pang, `{ pj, fase, n }` en el de grupo (`n`, los jugadores
+ * de la partida, entero de 2 a 4), o undefined si no vale (una clave de más o de menos, un personaje que no existe, una fase fuera de 1 a 12).
  */
 export function limpiarExtra(tabla, x) {
   if (!esTabla(tabla) || x === undefined || x === null) return null;
-  if (TABLAS[tabla].extra !== 'pang') return undefined;
-  if (typeof x !== 'object' || Array.isArray(x) || Object.keys(x).some((k) => k !== 'pj' && k !== 'fase')) return undefined;
+  const tipo = TABLAS[tabla].extra;
+  if (tipo !== 'pang' && tipo !== 'pangGrupo') return undefined;
+  const claves = tipo === 'pang' ? ['pj', 'fase'] : ['pj', 'fase', 'n'];
+  if (typeof x !== 'object' || Array.isArray(x) || Object.keys(x).some((k) => !claves.includes(k))) return undefined;
   if (!PJS_PANG.includes(x.pj) || !Number.isInteger(x.fase) || x.fase < 1 || x.fase > FASES_PANG) return undefined;
-  return { pj: x.pj, fase: x.fase };
+  if (tipo === 'pang') return { pj: x.pj, fase: x.fase };
+  if (!Number.isInteger(x.n) || x.n < GRUPO_MIN || x.n > GRUPO_MAX) return undefined;
+  return { pj: x.pj, fase: x.fase, n: x.n };
 }
 
 /** El instante de la partida (milisegundos; llega como número o como texto ISO): el de ahora si no vale o va muy al futuro (reloj adelantado). */

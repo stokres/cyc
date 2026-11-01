@@ -174,6 +174,13 @@ export interface JugadorVivo {
   anda: boolean;
 }
 
+/** A bubble that has not entered yet (several players: docs/PANG-ONLINE.md, «Más burbujas con más jugadores»). */
+export interface Refuerzo {
+  talla: Talla;
+  variante: Variante;
+  color: ColorBola;
+}
+
 export interface Mundo {
   fase: Fase;
   sfx: Efectos;
@@ -196,6 +203,9 @@ export interface Mundo {
   finJefe: number;
   /** One to four players, in the order of the room (index = `dueno` of their shots). */
   jugadores: JugadorVivo[];
+  /** Several players, no boss: the extra bubbles still to drop from the ceiling (first in line first), and the seconds until the next one. */
+  refuerzos: Refuerzo[];
+  refuerzoT: number;
   /** Bubbles and boss stand still (clock item, Fran's special): for everybody. */
   congelado: number;
   aviso: Aviso | null;

@@ -86,7 +86,7 @@ export class Marcador {
     const llena = m.jugadores.some((j) => j.barra >= BARRA_LLENA);
     const parpadeoBarra = llena && Math.floor(performance.now() / 250) % 2 === 0;
     const claveTiempo = `${seg}|${parpadeoTiempo ? 1 : 0}`;
-    const clave = `${m.jugadores.map((j) => `${Math.floor(j.puntos)},${j.vidas},${Math.floor(j.barra)},${j.fuera ? 1 : 0}`).join('|')}|${this.varios ? '' : claveTiempo}|${parpadeoBarra ? 1 : 0}`;
+    const clave = `${m.jugadores.map((j) => `${Math.floor(j.puntos)},${j.vidas},${Math.floor(j.barra)},${j.fuera ? 1 : 0},${j.arma}`).join('|')}|${this.varios ? '' : claveTiempo}|${parpadeoBarra ? 1 : 0}`;
     if (this.varios && (claveTiempo !== this.claveTiempo || m.hudSucio)) {
       this.claveTiempo = claveTiempo;
       this.pintarTiempo(seg, parpadeoTiempo);
@@ -175,6 +175,8 @@ export class Marcador {
       x.drawImage(cara(j.pj), x0 + 5, 2);
       x.fillStyle = ORO;
       x.fillText(digitos(j.puntos, 6), x0 + 19, 3);
+      // The weapon in hand, at the right end of the panel (12 px: with four players the panel is 96 wide and the score ends at 67).
+      if (!j.fuera && !this.m.armaFija) x.drawImage(iconoArma(j.arma), x0 + ancho - 14, 1);
       if (j.fuera) {
         x.fillStyle = CLARO;
         x.fillText(pixel(texto('hud.fuera')), x0 + 5, 14);

@@ -8,21 +8,43 @@ import { esVertical } from '../ui/orientacion';
 import { fondo } from './arte/fondos';
 import { bloque, escalera, escudo, jugador, JUGADOR } from './arte/sprites';
 import { actualizarArmas, dibujarArmas, disparar } from './armas';
-import { crearBurbuja, primeraVidaExtra, sumar, velocidadBurbujas } from './base';
+import { crearBurbuja, efectoPop, primeraVidaExtra, sumar, velocidadBurbujas } from './base';
 import { Bot } from './bot';
 import { crearEntrada, mandosNuevos, type Entrada, type Mandos } from './entrada';
-import { dibujarAbajo, dibujarArriba, actualizarEspecial, proximaAceituna, usarPoder } from './especiales';
+import { dibujarAbajo, dibujarArriba, actualizarEspecial, moverRayas, proximaAceituna, usarPoder } from './especiales';
 import { circuloRect, moverCuerpo } from './fisica';
 import { centrado, Marcador, ORO, pintarTexto, rotulo } from './hud';
 import { actualizarJefe, crearJefe, marcoJefe } from './jefes';
 import { BARRA_LLENA, CAJA, GRAVEDAD, PASO, VIENTO_BURBUJAS, VIENTO_JUGADOR, type JugadorVivo, type Mundo } from './mundo';
 import { actualizarObjetos, objetoVisible } from './objetos';
+import { Espejo, sacarFoto, type Flujo, type Foto } from './red/foto';
 import { herir, recoger } from './reglas';
 import { Efectos } from './sonido';
-import { AREA, ESTILO, H, W, type Arma, type Fase, type PjId, type ResultadoFase } from './tipos';
+import { AREA, ESTILO, H, RADIO, W, type Arma, type Fase, type PjId, type ResultadoFase } from './tipos';
 
 /** Where the flow of a stage is. */
 export type Estado = 'titulo' | 'listo' | 'ya' | 'jugando' | 'herido' | 'victoria' | 'bonus';
+
+let flecha: HTMLCanvasElement | null = null;
+
+/** The little arrow over the player of this screen (several players): pixel art, painted once. */
+function flechaYo(): HTMLCanvasElement {
+  if (flecha) return flecha;
+  // Shaft 3 wide, then a head 9, 7, 5, 3 and 1 wide; one pixel of outline all round.
+  const filas = [3, 3, 3, 9, 7, 5, 3, 1];
+  const c = document.createElement('canvas');
+  c.width = 9 + 2;
+  c.height = filas.length + 2;
+  const x = c.getContext('2d')!;
+  const pintar = (dx: number, dy: number, color: string) => {
+    x.fillStyle = color;
+    filas.forEach((w, i) => x.fillRect(1 + dx + (9 - w) / 2, 1 + dy + i, w, 1));
+  };
+  for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, 1], [-1, 1], [1, -1]]) pintar(dx, dy, '#000');
+  pintar(0, 0, ORO);
+  flecha = c;
+  return c;
+}
 
 /** A player at the start of the stage. */
 export interface JugadorInicial {
@@ -33,8 +55,11 @@ export interface JugadorInicial {
   arma?: Arma;
 }
 
-/** Who moves a player: 'local' reads this screen's touch buttons and keyboard, 'bot' is the computer (tests and the performance check). */
-export type Control = 'local' | 'bot';
+/**
+ * Who moves a player: 'local' reads this screen's touch buttons and keyboard, 'bot' is the computer (tests and the performance check),
+ * 'red' is another person online: his `Mandos` are the ones Partida creates in `mandos[i]`, which the network layer (red/online.ts) writes into.
+ */
+export type Control = 'local' | 'bot' | 'red';
 
 export interface OpcionesFase {
   /** Where the game puts its canvas and its touch buttons (removed when it ends). */
@@ -49,9 +74,10 @@ export interface OpcionesFase {
   sonido: SonidoMinijuego;
   /**
    * The full game's pause menu (pantallas.ts): opens when the player presses the pause button, Esc or P, and resolves with what
-   * he chose. Absent (the chapter's short Pang): no pause button, no pause.
+   * he chose. Absent (the chapter's short Pang): no pause button, no pause. Online the game goes on behind it, and the menu is
+   * closed (resolving 'seguir') through the signal if the stage ends meanwhile.
    */
-  pausa?: () => Promise<'seguir' | 'salir'>;
+  pausa?: (senal?: AbortSignal) => Promise<'seguir' | 'salir'>;
   /** Title-screen attract mode: bots play, no input, no sound, never ends on its own. */
   demo?: boolean;
   /** Aborting it ends the stage at once (cleans up, resolves 'salir'): the title screen stops its demo. */
@@ -67,6 +93,13 @@ export interface OpcionesFase {
    * drops. Absent (the full game): everybody starts with the normal harpoon and finds the others.
    */
   armaFija?: Arma;
+  /**
+   * Online (absent = offline, nothing changes). 'anfitrion': simulates as always, with the other people as 'red' players, and
+   * calls `alFoto` about 30 times a second. 'invitado': does not simulate; it paints the fotos the host sends (`recibirFoto`) and
+   * its buttons are read by the network layer. Either way the pause menu opens over the game while it keeps running.
+   */
+  rol?: 'anfitrion' | 'invitado';
+  alFoto?: (foto: Foto) => void;
 }
 
 /**
@@ -89,6 +122,15 @@ const PUNTOS_SEGUNDO = 20;
 const TICK_BONUS = 0.016;
 const POP_FRAME = 0.06;
 const MAX_PASOS = 12;
+/** Online host: ms between two fotos (a little under 1/30 s, so a 60 Hz screen gets one every second frame). */
+const INTERVALO_FOTO = 30;
+/** Online guest: this long without a foto shows «esperando al anfitrión». */
+const SIN_FOTOS_MS = 2000;
+/** Several players, no boss: seconds after «¡YA!» until the first extra bubble drops from the ceiling, and between two of them (docs/PANG-ONLINE.md). */
+const REFUERZO_PRIMERA = 3;
+const REFUERZO_CADA = 4;
+/** Extra bubbles per player beyond the first: this fraction of the stage's own, at least one. */
+const REFUERZO_FRACCION = 0.4;
 /** The title screen's demo: the lives a bot gets again when it runs out. */
 const VIDAS_DEMO = 3;
 /** Several players: seconds a hurt player lies down, and the blinking invulnerability after it. */
@@ -131,8 +173,14 @@ export class Partida {
   private acum = 0;
   private fotogramas = 0;
   private enPausa = false;
-  /** When the pause menu last closed (ms): the key that closes it must not open it again. */
+  /** The pause menu is open over the running game (online); when it last closed (the key that closes it must not reopen it). */
+  private menuAbierto = false;
   private menuCerrado = 0;
+  private corteMenu: AbortController | null = null;
+  private ultimaFoto = -Infinity;
+  /** Online guest: the host's fotos. */
+  private readonly copia: Espejo | null = null;
+  private musicaParada = false;
   private fin = false;
   private readonly alAjustar = () => this.ajustar();
   private readonly alAbortar = () => this.terminar('salir');
@@ -155,6 +203,8 @@ export class Partida {
     window.addEventListener('resize', this.alAjustar);
 
     this.m = this.crearMundo();
+    if (o.rol === 'anfitrion') this.m.sfx.grabadora = [];
+    else if (o.rol === 'invitado') this.copia = new Espejo(this.m);
     this.marcador = new Marcador(this.m);
     // The local buttons drive the player of this screen (`yo`); bots get a Bot each.
     this.local = o.demo ? -1 : o.controles[o.yo] === 'local' ? o.yo : o.controles.indexOf('local');
@@ -165,7 +215,7 @@ export class Partida {
     }
     this.cargarFase();
     // Test hook (the chapter's, capitulo.ts, adds its own on top of this).
-    (window as unknown as { __pangFase?: () => unknown }).__pangFase = () => ({ fotogramas: this.fotogramas, estado: this.estado, mundo: this.m, mandos: this.mandos });
+    (window as unknown as { __pangFase?: () => unknown }).__pangFase = () => ({ fotogramas: this.fotogramas, estado: this.estado, mundo: this.m, mandos: this.mandos, fotos: this.copia?.recibidas ?? 0 });
   }
 
   /** For the network layer: the stage state and the flow state. */
@@ -178,6 +228,32 @@ export class Partida {
   /** The fixed-step simulation, for the tests and the performance check. */
   get fotogramasDibujados(): number {
     return this.fotogramas;
+  }
+  /** For the snapshots: the flow of the stage. */
+  get flujo(): Flujo {
+    return { estado: this.estado, tEstado: this.tEstado, causa: this.causa, bonusGanado: this.bonusGanado };
+  }
+
+  /** Online guest: a foto from the host. */
+  recibirFoto(f: Foto) {
+    this.copia?.meter(f, performance.now());
+  }
+
+  /** Online guest: the host says the stage is over (or the connection is gone: 'salir'). */
+  terminarRed(r: ResultadoFase | 'salir') {
+    this.terminar(r);
+  }
+
+  /** Online host: player `i` left the room. His character disappears and the stage goes on for the rest. */
+  sacarJugador(i: number) {
+    const j = this.m.jugadores[i];
+    if (!j || j.fuera || this.fin) return;
+    j.fuera = true;
+    j.caido = 0;
+    j.escalera = -1;
+    this.m.hudSucio = true;
+    if (this.mandos[i] && i !== this.local) Object.assign(this.mandos[i], mandosNuevos());
+    if (this.todosFuera()) this.terminar(this.resultado(false));
   }
 
   async arrancar() {
@@ -255,6 +331,8 @@ export class Partida {
       congelado: 0,
       aviso: null,
       hijos: [],
+      refuerzos: [],
+      refuerzoT: REFUERZO_PRIMERA,
       viento: 0,
       aceituna: { prox: proximaAceituna(), activa: false, x: 0, dir: 1, soltarX: 0, soltada: false, t: 0 },
       oscuro: { t: 0 },
@@ -292,6 +370,7 @@ export class Partida {
     m.popups = [];
     m.jefe = f.jefe ? crearJefe(f.jefe, m.jugadores.length, f.jefeVida) : null;
     m.finJefe = -1;
+    this.prepararRefuerzos();
     const xs = this.inicios();
     m.jugadores.forEach((j, i) => Object.assign(j, { x: xs[i], y: AREA.suelo, vy: 0, dir: 1, escalera: -1, escalado: 0, disparoT: 0, inv: 0, escudo: 0, abrazo: false, animT: 0, anda: false, kinki: 0, enfriamiento: 0, caido: 0 }));
     m.congelado = 0;
@@ -301,6 +380,43 @@ export class Partida {
     m.oscuro = { t: 0 };
     m.cierzo = { t: 0, dir: Math.random() < 0.5 ? -1 : 1, soplando: false, rafaga: 0 };
     m.hudSucio = true;
+  }
+
+  /**
+   * Several players, no boss: extra bubbles that drop from the ceiling during the stage (docs/PANG-ONLINE.md). There are
+   * max(n − 1, round(B × 0.4 × (n − 1))) of them, B being the stage's own bubbles; each copies one of those, the biggest first, round and round.
+   */
+  private prepararRefuerzos() {
+    const m = this.m;
+    const f = this.fase;
+    m.refuerzos = [];
+    m.refuerzoT = REFUERZO_PRIMERA;
+    const n = m.jugadores.length;
+    if (n < 2 || f.jefe || !f.burbujas.length) return;
+    const extras = Math.max(n - 1, Math.round(f.burbujas.length * REFUERZO_FRACCION * (n - 1)));
+    const orden = [...f.burbujas].sort((a, b) => a.talla - b.talla);
+    for (let i = 0; i < extras; i++) {
+      const b = orden[i % orden.length];
+      m.refuerzos.push({ talla: b.talla, variante: b.variante ?? 'cerveza', color: b.color ?? 'roja' });
+    }
+  }
+
+  /** The next extra bubble enters from the ceiling: a random x clear of the blocks (any x if none is), a random direction and a little pop. */
+  private soltarRefuerzo() {
+    const m = this.m;
+    const r = m.refuerzos.shift();
+    if (!r) return;
+    m.refuerzoT = REFUERZO_CADA;
+    const rad = RADIO[r.talla];
+    const y = AREA.techo + rad + 1;
+    const lo = AREA.izq + rad + 2;
+    const hi = AREA.der - rad - 2;
+    const libre = (x: number) => !m.bloques.some((b) => circuloRect(x, y, rad, b.x, b.y, b.w, b.h));
+    let x = lo + Math.random() * (hi - lo);
+    for (let k = 0; k < 24 && !libre(x); k++) x = lo + Math.random() * (hi - lo);
+    const v = velocidadBurbujas(m);
+    m.burbujas.push(crearBurbuja(m, x, y, r.talla, r.variante, r.color, (Math.random() < 0.5 ? -1 : 1) * v, r.variante === 'posavasos' ? v : 0));
+    efectoPop(m, x, y, r.variante, r.talla);
   }
 
   // --- loop ------------------------------------------------------------------------------
@@ -315,21 +431,31 @@ export class Partida {
     const mandos = this.entrada?.mandos;
     if (mandos?.pausa) {
       mandos.pausa = false;
-      if (this.o.pausa && t - this.menuCerrado > 300) {
+      if (this.o.pausa && this.o.rol) {
+        // Online the others keep playing: the menu opens over the game, which does not stop.
+        if (!this.menuAbierto && t - this.menuCerrado > 300) void this.pausarOnline();
+      } else if (this.o.pausa && t - this.menuCerrado > 300) {
         void this.pausar();
         return;
       }
     }
     if (dt > 0.1) dt = 0.1;
-    this.acum += dt;
-    let pasos = 0;
-    while (this.acum >= PASO && pasos < MAX_PASOS) {
-      this.simular(PASO);
-      this.acum -= PASO;
-      pasos++;
-      if (this.fin) return;
+    if (this.copia) this.verFoto(t, dt);
+    else {
+      this.acum += dt;
+      let pasos = 0;
+      while (this.acum >= PASO && pasos < MAX_PASOS) {
+        this.simular(PASO);
+        this.acum -= PASO;
+        pasos++;
+        if (this.fin) return;
+      }
+      if (pasos >= MAX_PASOS) this.acum = 0;
+      if (this.o.alFoto && t - this.ultimaFoto >= INTERVALO_FOTO) {
+        this.ultimaFoto = t;
+        this.o.alFoto(sacarFoto(this));
+      }
     }
-    if (pasos >= MAX_PASOS) this.acum = 0;
     // 120 Hz screens: draw every other frame (60 fps at most).
     if (t - this.ultimoDibujo >= 15) {
       this.ultimoDibujo = t;
@@ -338,6 +464,23 @@ export class Partida {
       this.o.alDibujar?.();
     }
   };
+
+  /** Online guest: the state of the host's stage for this frame goes into the Mundo and the flow fields. */
+  private verFoto(t: number, dt: number) {
+    const fl = this.copia!.aplicar(t);
+    if (!fl) return;
+    // The host stops the music when the stage is cleared (`superar`).
+    if ((fl.estado === 'victoria' || fl.estado === 'bonus') && !this.musicaParada) {
+      this.musicaParada = true;
+      if (!this.o.demo) this.o.sonido.pararMusica();
+    }
+    this.estado = fl.estado;
+    this.tEstado = fl.tEstado;
+    this.causa = fl.causa;
+    this.bonusGanado = fl.bonusGanado;
+    if (this.fase.especial === 'cierzo') moverRayas(this.m.viento, dt);
+    this.luzEspecial();
+  }
 
   /** The special button lights up while this screen's player has a full bar. */
   private luzEspecial() {
@@ -367,9 +510,25 @@ export class Partida {
     this.raf = requestAnimationFrame(this.cuadro);
   }
 
+  /** Online pause: the menu over the game, which keeps running (the others are playing). «Salir» leaves. */
+  private async pausarOnline() {
+    this.menuAbierto = true;
+    this.entrada?.soltarTodo();
+    this.entrada?.mostrar(false);
+    const corte = (this.corteMenu = new AbortController());
+    const r = await this.o.pausa!(corte.signal);
+    this.corteMenu = null;
+    if (this.fin) return;
+    if (r === 'salir') return this.terminar('salir');
+    this.entrada?.mostrar(true);
+    this.menuAbierto = false;
+    this.menuCerrado = performance.now();
+  }
+
   private terminar(r: ResultadoFase | 'salir') {
     if (this.fin) return;
     this.fin = true;
+    this.corteMenu?.abort();
     cancelAnimationFrame(this.raf);
     window.removeEventListener('resize', this.alAjustar);
     this.o.senal?.removeEventListener('abort', this.alAbortar);
@@ -604,6 +763,11 @@ export class Partida {
       const viento = m.viento * VIENTO_BURBUJAS;
       for (let i = 0; i < m.burbujas.length; i++) moverCuerpo(m.burbujas[i], dt, m.bloques, viento);
       actualizarJefe(m, dt);
+      // The extra bubbles of a game with several people enter one by one (they wait while everything is frozen).
+      if (m.refuerzos.length) {
+        m.refuerzoT -= dt;
+        if (m.refuerzoT <= 0) this.soltarRefuerzo();
+      }
     }
     actualizarArmas(m, dt);
     actualizarObjetos(m, dt);
@@ -616,7 +780,7 @@ export class Partida {
 
     this.luzEspecial();
     if (m.finJefe >= 0) m.finJefe += dt;
-    if (!m.jefe && m.burbujas.length === 0 && (m.finJefe < 0 || m.finJefe >= 0.9)) this.superar();
+    if (!m.jefe && m.burbujas.length === 0 && m.refuerzos.length === 0 && (m.finJefe < 0 || m.finJefe >= 0.9)) this.superar();
   }
 
   /** On a ladder, or at the foot of one: there ↑ climbs instead of firing the special. */
@@ -792,6 +956,8 @@ export class Partida {
     this.dibujarRotulos(g);
     this.marcador.actualizar(this.estado === 'jugando');
     this.marcador.dibujar(g);
+    // Online guest: nothing from the host for a while.
+    if (this.copia && performance.now() - this.copia.llegada > SIN_FOTOS_MS) centrado(g, rotulo(texto('hud.esperando'), ORO), W / 2, 100);
     this.dctx.drawImage(this.logico, 0, 0, this.pantalla.width, this.pantalla.height);
   }
 
@@ -800,6 +966,13 @@ export class Partida {
     const js = this.m.jugadores;
     for (let i = 0; i < js.length; i++) if (i !== this.o.yo) this.dibujarJugador(g, js[i], this.cuerpos[i]);
     if (js[this.o.yo]) this.dibujarJugador(g, js[this.o.yo], this.cuerpos[this.o.yo]);
+    // Several players: a little arrow over this screen's one while «¡LISTOS!» and «¡YA!» show.
+    const yo = js[this.o.yo];
+    if (js.length > 1 && yo && !yo.fuera && (this.estado === 'listo' || this.estado === 'ya')) {
+      const f = flechaYo();
+      const salto = Math.round(Math.abs(Math.sin(this.tEstado * 9)) * 3);
+      g.drawImage(f, Math.round(yo.x - f.width / 2), Math.round(yo.y - JUGADOR.h - f.height - 2 - salto));
+    }
   }
 
   private dibujarJugador(g: CanvasRenderingContext2D, j: JugadorVivo, cuerpo: ReturnType<typeof jugador>) {

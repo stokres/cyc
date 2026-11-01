@@ -123,7 +123,8 @@ async function arrancar() {
     return;
   }
   // The whole «Pang» (src/pang/completo.ts), opened by itself: the address ending in ?pangcompleto. For testing it also takes
-  // &fase=N (plays that stage and the ones after it, no menus), &pj=fran|pablo|chuchi|guille and &bot (the computer plays).
+  // &fase=N (plays that stage and the ones after it, no menus), &pj=fran|pablo|chuchi|guille and &bot (the computer plays). `&sala=K7MZ` (the link
+  // /pang?sala=K7MZ) joins that online room straight away; `&sala=nueva` opens «crear sala» (docs/PANG-ONLINE.md).
   if (parametros().has('pangcompleto')) {
     const q = parametros();
     const [{ jugarPangCompleto }, { Sound }] = await Promise.all([cargarModulo('pang'), import('./core/audio')]);
@@ -137,6 +138,7 @@ async function arrancar() {
       fase: q.has('fase') ? Number(q.get('fase')) || 1 : undefined,
       pj: pj && pj in REPARTO ? pj : undefined,
       control: q.has('bot') ? 'bot' : 'local',
+      sala: q.get('sala') || undefined,
       desdeWeb: true,
     });
     volverALaWeb();
