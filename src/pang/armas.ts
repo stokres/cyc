@@ -1,5 +1,5 @@
-// The four weapons: harpoon wires (single, double, wide, sticky) and Chuchi's bullets,
-// including the triple piercing burst of his special.
+// The weapons: harpoon wires (single, double, triple, sticky), the machine-gun bullets and
+// the triple piercing burst of Chuchi's special. Chuchi's «atajo» makes his shots 25 % faster.
 import { efectoPop, sumar } from './base';
 import { circuloRect } from './fisica';
 import { golpearJefe } from './jefes';
@@ -9,6 +9,9 @@ import { AREA } from './tipos';
 
 const VEL_CABLE = 200;
 const VEL_BALA = 300;
+const ANCHO_CABLE = 3;
+/** Chuchi's shots travel this much faster. */
+const ATAJO = 1.25;
 const TOPE_FIJO = 2.5;
 const ENFRIA_BALA = 0.14;
 const ENFRIA_KINKI = 0.08;
@@ -31,24 +34,31 @@ function cuenta(m: Mundo, dueno: number) {
   return { vuelan, cables, balas };
 }
 
+/** How fast a player's shots go: Chuchi's are quicker. */
+const rapidez = (j: JugadorVivo) => (j.estilo.cualidad === 'atajo' ? ATAJO : 1);
+
+/** Harpoons in the air at once, per weapon. */
+const TOPE_CABLES = { normal: 1, doble: 2, triple: 3, fijo: 1, rafaga: 1 } as const;
+
 /** Player `j` fires if his weapon allows it now. Returns true if a shot left. */
 export function disparar(m: Mundo, j: JugadorVivo): boolean {
   if (j.escalera >= 0) return false;
   const dueno = m.jugadores.indexOf(j);
-  const arma = j.estilo.arma;
+  const arma = j.arma;
+  const vel = rapidez(j);
   const n = cuenta(m, dueno);
   if (j.kinki > 0) {
     if (j.enfriamiento > 0 || n.balas > MAX_BALAS_KINKI - 3) return false;
-    for (const a of ANGULOS_KINKI) m.balas.push({ x: j.x, y: j.y - 10, vx: Math.sin(a) * VEL_BALA, vy: -Math.cos(a) * VEL_BALA, atraviesa: true, golpeadas: [], dueno });
+    for (const a of ANGULOS_KINKI) m.balas.push({ x: j.x, y: j.y - 10, vx: Math.sin(a) * VEL_BALA * vel, vy: -Math.cos(a) * VEL_BALA * vel, atraviesa: true, golpeadas: [], dueno });
     j.enfriamiento = ENFRIA_KINKI;
   } else if (arma === 'rafaga') {
     if (j.enfriamiento > 0 || n.balas >= MAX_BALAS) return false;
-    m.balas.push({ x: j.x, y: j.y - 10, vx: 0, vy: -VEL_BALA, atraviesa: false, golpeadas: [], dueno });
+    m.balas.push({ x: j.x, y: j.y - 10, vx: 0, vy: -VEL_BALA * vel, atraviesa: false, golpeadas: [], dueno });
     j.enfriamiento = ENFRIA_BALA;
   } else {
-    const tope = arma === 'doble' ? 2 : 1;
+    const tope = TOPE_CABLES[arma];
     if (n.vuelan >= tope || n.cables >= tope + 2) return false;
-    m.cables.push({ x: Math.round(j.x), base: j.y, punta: j.y - 2, ancho: arma === 'ancho' ? 7 : 3, fijo: false, t: 0, dueno });
+    m.cables.push({ x: Math.round(j.x), base: j.y, punta: j.y - 2, ancho: ANCHO_CABLE, pega: arma === 'fijo', fijo: false, t: 0, dueno });
   }
   j.disparoT = 0.15;
   m.sfx.disparo();
@@ -86,14 +96,14 @@ export function actualizarArmas(m: Mundo, dt: number) {
   for (let i = m.cables.length - 1; i >= 0; i--) {
     const c = m.cables[i];
     const j = m.jugadores[c.dueno];
-    const pegajoso = j.estilo.arma === 'fijo';
+    const pegajoso = c.pega;
     const th = c.ancho / 2;
     let fuera = false;
     if (c.fijo) {
       c.t += dt;
       if (c.t >= TOPE_FIJO) fuera = true;
     } else {
-      c.punta -= VEL_CABLE * dt;
+      c.punta -= VEL_CABLE * rapidez(j) * dt;
       for (let k = 0; k < m.bloques.length; k++) {
         const b = m.bloques[k];
         const fondo = b.y + b.h;
@@ -166,41 +176,34 @@ const lienzo = (w: number, h: number) => {
   return c;
 };
 
-let cuerdas: Record<number, HTMLCanvasElement> | null = null;
-let puntas: Record<number, HTMLCanvasElement> | null = null;
+let cuerda: HTMLCanvasElement | null = null;
+let punta: HTMLCanvasElement | null = null;
 
-/** The rope (a zigzag, painted once, as long as the whole play area) and the arrow tip, per wire width. */
+/** The rope (a zigzag, painted once, as long as the whole play area) and the arrow tip. */
 function preparar() {
-  cuerdas = {};
-  puntas = {};
-  for (const ancho of [3, 7]) {
-    const grosor = ancho === 3 ? 1 : 3;
-    const c = lienzo(grosor + 1, LARGO_MAX);
-    const x = c.getContext('2d')!;
-    x.fillStyle = '#c9c2b4';
-    for (let y = LARGO_MAX; y > 0; y -= 2) x.fillRect((y >> 1) % 2, y - 2, grosor, 2);
-    cuerdas[ancho] = c;
-    const tw = ancho + 2;
-    const p = lienzo(tw, 5);
-    const px = p.getContext('2d')!;
-    px.fillStyle = '#e8e4d8';
-    px.fillRect(0, 3, tw, 2);
-    px.fillRect(1, 1, tw - 2, 2);
-    px.fillRect(Math.floor(tw / 2), 0, 1, 1);
-    puntas[ancho] = p;
-  }
+  cuerda = lienzo(2, LARGO_MAX);
+  const x = cuerda.getContext('2d')!;
+  x.fillStyle = '#c9c2b4';
+  for (let y = LARGO_MAX; y > 0; y -= 2) x.fillRect((y >> 1) % 2, y - 2, 1, 2);
+  const tw = ANCHO_CABLE + 2;
+  punta = lienzo(tw, 5);
+  const px = punta.getContext('2d')!;
+  px.fillStyle = '#e8e4d8';
+  px.fillRect(0, 3, tw, 2);
+  px.fillRect(1, 1, tw - 2, 2);
+  px.fillRect(Math.floor(tw / 2), 0, 1, 1);
 }
 
 export function dibujarArmas(g: CanvasRenderingContext2D, m: Mundo) {
-  if (!cuerdas || !puntas) preparar();
+  if (!cuerda || !punta) preparar();
+  const cu = cuerda!;
+  const pu = punta!;
   for (const c of m.cables) {
     if (c.fijo && c.t > 2 && Math.floor(c.t * 10) % 2 === 0) continue;
-    const cuerda = cuerdas![c.ancho];
     const largo = Math.min(LARGO_MAX, Math.round(c.base - c.punta));
     const x = Math.round(c.x);
-    g.drawImage(cuerda, 0, LARGO_MAX - largo, cuerda.width, largo, x - Math.floor(cuerda.width / 2), Math.round(c.base) - largo, cuerda.width, largo);
-    const punta = puntas![c.ancho];
-    g.drawImage(punta, x - Math.floor(punta.width / 2), Math.round(c.base) - largo - 3);
+    g.drawImage(cu, 0, LARGO_MAX - largo, cu.width, largo, x - Math.floor(cu.width / 2), Math.round(c.base) - largo, cu.width, largo);
+    g.drawImage(pu, x - Math.floor(pu.width / 2), Math.round(c.base) - largo - 3);
   }
   for (const b of m.balas) {
     g.fillStyle = b.atraviesa ? '#ff9ad0' : '#fff6c8';

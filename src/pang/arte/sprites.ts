@@ -3,8 +3,8 @@
 // them, never resized with smoothing (docs/ESTILO.md, T5). Shapes are plotted pixel by
 // pixel (char maps or scanline runs), so every edge is crisp. Outlines are always a dark
 // tone of the material's own colour, never black (docs/ESTILO.md, F3 and P2).
-import type { Anim, Bloque, ColorBola, Jefe, Objeto, PjId, Talla, Variante } from '../tipos';
-import { RADIO } from '../tipos';
+import type { Anim, Arma, Bloque, ColorBola, Jefe, Objeto, PjId, Talla, Variante } from '../tipos';
+import { ARMA_DE_OBJETO, RADIO } from '../tipos';
 
 const lienzo = (w: number, h: number) => {
   const c = document.createElement('canvas');
@@ -761,7 +761,47 @@ function pintarMascara(x: CanvasRenderingContext2D, m: Mascara | ((i: number, j:
   }
 }
 
+/** The weapon items' capsule (a rounded badge, in one colour per weapon) and what is drawn on it, 12 × 12. */
+const CAPSULA: Mascara = [[2, 8], [1, 9], [0, 10], [0, 10], [0, 10], [0, 10], [0, 10], [0, 10], [0, 10], [1, 9], [2, 8]];
+const COLOR_ARMA: Record<Arma, { lin: string; base: string; luz: string; sombra: string }> = {
+  normal: { lin: '#3a3a44', base: '#80808e', luz: '#aeaebc', sombra: '#5e5e6c' },
+  doble: { lin: '#122a66', base: '#3f74d6', luz: '#7ba6f0', sombra: '#2a54a8' },
+  triple: { lin: '#124a24', base: '#3fa65a', luz: '#7cd890', sombra: '#2a7a40' },
+  fijo: { lin: '#3a1a66', base: '#8a52c8', luz: '#b88af0', sombra: '#643a98' },
+  rafaga: { lin: '#6a2208', base: '#e0662a', luz: '#f59a62', sombra: '#b04a18' },
+};
+// Each drawing is symmetric about column 5, the capsule's centre (11 wide: the 12th column stays empty).
+const DIBUJO_ARMA: Record<Arma, string[]> = {
+  // one arrow
+  normal: ['...........', '...........', '.....W.....', '....WWW....', '...WWWWW...', '.....s.....', '.....s.....', '.....s.....', '....fsf....', '...f.s.f...'],
+  // two arrows
+  doble: ['...........', '...........', '...W...W...', '..WWW.WWW..', '...s...s...', '...s...s...', '...s...s...', '...s...s...', '..fsf.fsf..', '...........'],
+  // three arrows, a fan
+  triple: ['...........', '...........', '.....W.....', '..W.WWW.W..', '..W..s..W..', '..s..s..s..', '...s.s.s...', '...s.s.s...', '....sss....', '....fsf....'],
+  // an arrow stuck under the ceiling
+  fijo: ['...........', '...........', '.ccccccccc.', '.....W.....', '....WWW....', '...WWWWW...', '.....s.....', '.....s.....', '....fsf....', '...f.s.f...'],
+  // bullets
+  rafaga: ['...........', '...........', '.....w.....', '....yyy....', '....yyy....', '..w.YYY.w..', '.yyy...yyy.', '.yyy...yyy.', '.YYY...YYY.', '...........'],
+};
+const PALETA_ARMA = { W: '#ffffff', s: '#e2ded0', f: '#ffd36a', c: '#e8e4d8', w: '#fff6c8', y: '#ffc83a', Y: '#c88a1a' };
+
+/** The icon of a weapon (the item a bubble drops; 'normal' only appears in the score strip). */
+function pintarArma(arma: Arma): HTMLCanvasElement {
+  const c = lienzo(12, 12);
+  const x = ctx(c);
+  pintarMascara(x, CAPSULA, COLOR_ARMA[arma]);
+  pintar(x, DIBUJO_ARMA[arma], PALETA_ARMA);
+  return c;
+}
+
+/** The icon of a weapon: 12 × 12, painted once. */
+export function iconoArma(a: Arma): HTMLCanvasElement {
+  return una(`ia|${a}`, () => pintarArma(a));
+}
+
 function pintarObjeto(o: Objeto): HTMLCanvasElement {
+  const arma = ARMA_DE_OBJETO[o];
+  if (arma) return pintarArma(arma);
   const c = lienzo(12, 12);
   const x = ctx(c);
   if (o === 'reloj') {

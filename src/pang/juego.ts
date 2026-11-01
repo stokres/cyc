@@ -19,7 +19,7 @@ import { BARRA_LLENA, CAJA, GRAVEDAD, PASO, VIENTO_BURBUJAS, VIENTO_JUGADOR, typ
 import { actualizarObjetos, objetoVisible } from './objetos';
 import { herir, recoger } from './reglas';
 import { Efectos } from './sonido';
-import { AREA, ESTILO, H, W, type Fase, type PjId, type ResultadoFase } from './tipos';
+import { AREA, ESTILO, H, W, type Arma, type Fase, type PjId, type ResultadoFase } from './tipos';
 
 /** Where the flow of a stage is. */
 export type Estado = 'titulo' | 'listo' | 'ya' | 'jugando' | 'herido' | 'victoria' | 'bonus';
@@ -29,6 +29,8 @@ export interface JugadorInicial {
   pj: PjId;
   vidas: number;
   puntos: number;
+  /** The weapon he arrives with (carried from the stage before); 'normal' if not given. */
+  arma?: Arma;
 }
 
 /** Who moves a player: 'local' reads this screen's touch buttons and keyboard, 'bot' is the computer (tests and the performance check). */
@@ -60,6 +62,11 @@ export interface OpcionesFase {
   alDibujar?: () => void;
   /** Called with the running Partida as soon as it exists. */
   alCrear?: (p: Partida) => void;
+  /**
+   * The chapter's short Pang: every player holds this weapon the whole stage (also after losing a life) and no weapon item
+   * drops. Absent (the full game): everybody starts with the normal harpoon and finds the others.
+   */
+  armaFija?: Arma;
 }
 
 /**
@@ -209,6 +216,7 @@ export class Partida {
       t: 0,
       tiempo: fase.tiempo,
       canaDada: false,
+      armaFija: this.o.armaFija ?? null,
       sigId: 1,
       burbujas: [],
       bloques: [],
@@ -222,6 +230,7 @@ export class Partida {
       jugadores: this.o.jugadores.map((p) => ({
         pj: p.pj,
         estilo: ESTILO[p.pj],
+        arma: this.o.armaFija ?? p.arma ?? 'normal',
         puntos: p.puntos,
         vidas: p.vidas,
         barra: 0,
@@ -239,6 +248,7 @@ export class Partida {
         disparoT: 0,
         inv: 0,
         escudo: 0,
+        abrazo: false,
         animT: 0,
         anda: false,
       })),
@@ -283,7 +293,7 @@ export class Partida {
     m.jefe = f.jefe ? crearJefe(f.jefe, m.jugadores.length, f.jefeVida) : null;
     m.finJefe = -1;
     const xs = this.inicios();
-    m.jugadores.forEach((j, i) => Object.assign(j, { x: xs[i], y: AREA.suelo, vy: 0, dir: 1, escalera: -1, escalado: 0, disparoT: 0, inv: 0, escudo: 0, animT: 0, anda: false, kinki: 0, enfriamiento: 0, caido: 0 }));
+    m.jugadores.forEach((j, i) => Object.assign(j, { x: xs[i], y: AREA.suelo, vy: 0, dir: 1, escalera: -1, escalado: 0, disparoT: 0, inv: 0, escudo: 0, abrazo: false, animT: 0, anda: false, kinki: 0, enfriamiento: 0, caido: 0 }));
     m.congelado = 0;
     m.aviso = null;
     m.viento = 0;
@@ -418,7 +428,7 @@ export class Partida {
 
   /** The result handed back: score and lives of each player (0 lives for one who is out). */
   private resultado(superada: boolean): ResultadoFase {
-    return { superada, jugadores: this.m.jugadores.map((j) => ({ puntos: Math.floor(j.puntos), vidas: j.fuera ? 0 : Math.max(0, j.vidas) })) };
+    return { superada, jugadores: this.m.jugadores.map((j) => ({ puntos: Math.floor(j.puntos), vidas: j.fuera ? 0 : Math.max(0, j.vidas), arma: j.arma })) };
   }
 
   /** Nobody is left standing: every player is out of lives. */
@@ -436,7 +446,10 @@ export class Partida {
     for (const j of m.jugadores) {
       if (j.fuera) continue;
       // A player already lying down has paid for his hit.
-      if (j.caido <= 0) j.vidas--;
+      if (j.caido <= 0) {
+        j.vidas--;
+        this.perderArma(j);
+      }
       j.caido = 0;
       j.animT = 0;
       j.escalera = -1;
@@ -444,6 +457,14 @@ export class Partida {
     m.hudSucio = true;
     m.sfx.herido();
     this.ir('herido');
+  }
+
+  /** Losing a life loses the weapon (back to the normal harpoon), unless it is the chapter's fixed one or he is Pablo, who keeps it. */
+  private perderArma(j: JugadorVivo) {
+    const fija = this.m.armaFija;
+    if (fija) j.arma = fija;
+    else if (j.estilo.cualidad !== 'aprovecha') j.arma = 'normal';
+    this.m.hudSucio = true;
   }
 
   private despuesDeHerido() {
@@ -461,6 +482,7 @@ export class Partida {
   /** Several players: `j` was hit. He lies down where he stands, then comes back blinking (or is out). */
   private golpeado(j: JugadorVivo) {
     j.vidas--;
+    this.perderArma(j);
     j.caido = DURA_CAIDO;
     j.animT = 0;
     j.escalera = -1;
@@ -565,7 +587,7 @@ export class Partida {
         mand.especial = false;
         usarPoder(m, j);
       }
-      const auto = j.estilo.arma === 'rafaga' || j.kinki > 0;
+      const auto = j.arma === 'rafaga' || j.kinki > 0;
       if (mand.disparo || (auto && mand.fuego)) disparar(m, j);
       mand.disparo = false;
 
@@ -641,7 +663,7 @@ export class Partida {
       j.x += dir * j.estilo.paso * dt;
       j.anda = true;
     }
-    j.x += m.viento * VIENTO_JUGADOR * dt;
+    if (j.estilo.cualidad !== 'mano') j.x += m.viento * VIENTO_JUGADOR * dt;
     j.x = Math.max(AREA.izq + CAJA.semi, Math.min(AREA.der - CAJA.semi, j.x));
     // Standing on the floor or a platform; walking off an edge falls.
     const suelo = this.apoyo(j.x, j.y);

@@ -43,32 +43,32 @@ elegir.titulo = ¿Quién entra en la máquina?
 elegir.cambiar = Cambiar de personaje
 elegir.jugar = ¡A jugar!
 elegir.paso = Paso
-elegir.arma = Disparo
+elegir.cualidad = Lo suyo
 elegir.poder = Especial
 
 pj.fran.paso = Lento pero seguro
-pj.fran.arma = Arpón doble
-pj.fran.arma.texto = Lanza dos arpones a la vez.
+pj.fran.cualidad = Poder de convocatoria
+pj.fran.cualidad.texto = Lo que cae cerca acaba yendo a sus pies, como la gente a sus jueves.
 pj.fran.poder = ¡Una más!
 pj.fran.poder.texto = Aquí no se va nadie: las burbujas se quedan quietas unos segundos.
 
 pj.pablo.paso = Normal
-pj.pablo.arma = Arpón de impro
-pj.pablo.arma.texto = Se clava en el techo y se queda un rato. Nunca dice que no.
+pj.pablo.cualidad = Nunca dice que no
+pj.pablo.cualidad.texto = Si pierde una vida, se queda con el arma que llevaba. En impro todo se aprovecha.
 pj.pablo.poder = ¡Sí, y…!
 pj.pablo.poder.texto = Todo se va de las manos: cada burbuja de la pantalla se parte a la vez.
 
 pj.chuchi.paso = El más rápido
-pj.chuchi.arma = Ráfaga
-pj.chuchi.arma.texto = Disparos cortos y rápidos, como en su Space Invaders.
+pj.chuchi.cualidad = Atajo de teclado
+pj.chuchi.cualidad.texto = Sus arpones y balas suben más rápido. El informático va a todo.
 pj.chuchi.poder = Modo kinki
 pj.chuchi.poder.texto = Unos segundos de ráfaga triple que atraviesa las burbujas.
 
 pj.guille.paso = Normal
-pj.guille.arma = Arpón ancho
-pj.guille.arma.texto = El más alto del grupo lleva el arpón más gordo.
+pj.guille.cualidad = Maño
+pj.guille.cualidad.texto = Los escudos le aguantan dos golpes y el cierzo no le mueve: es de Zaragoza.
 pj.guille.poder = Abrazo de oso
-pj.guille.poder.texto = Un escudo de cariño que aguanta un golpe y, al romperse, revienta lo que tiene cerca.
+pj.guille.poder.texto = Revienta lo que tiene cerca y deja un escudo de cariño que, al romperse, vuelve a reventar.
 
 // ---------------------------------------------------------------- dentro de la recreativa (letra de píxeles)
 
@@ -95,6 +95,10 @@ hud.poder.abrazo = ¡ABRAZO DE OSO!
 hud.reloj = ¡QUIETAS!
 hud.chupito = ¡CHUPITO!
 hud.escudo = ESCUDO
+hud.arma.doble = ¡ARPÓN DOBLE!
+hud.arma.triple = ¡ARPÓN TRIPLE!
+hud.arma.fijo = ¡ARPÓN FIJO!
+hud.arma.rafaga = ¡RÁFAGA!
 hud.record = ¡RÉCORD!
 
 boton.disparo = Disparo
