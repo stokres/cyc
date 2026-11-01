@@ -4,12 +4,8 @@
 import type { SonidoMinijuego } from '../core/audio';
 import { MUSICA, type Pista } from '../sonido/musica';
 
-/**
- * PENDING (music agent): connect `pista: 'unaMasPista'` (zone 3, La Pista de Baile), `dj: 'unaMasDJ'` (EL DJ, 124 bpm) and `grifo: 'unaMasGrifo'` once they are
- * registered in src/sonido/musica.ts. Until then the Pista plays the exploration theme and the DJ the mini-boss one.
- *
- * The zone themes, the mini-boss, the final boss and the rescue theme (the music agent registers them in src/sonido/musica.ts): register them in musica.ts under these names (tools/musica makes the files). */
-const PISTAS = { recibidor: 'unaMasExplora', pista: 'unaMasExplora', grifo: 'unaMasJardin', jardin: 'unaMasJardin', teatro: 'unaMasTeatro', miniboss: 'unaMasMiniboss', dj: 'unaMasMiniboss', jefe: 'unaMasJefe', rescate: 'unaMasRescate' } as const;
+/** The zone themes, the mini-boss, the final boss and the rescue theme (the music agent registers them in src/sonido/musica.ts): register them in musica.ts under these names (tools/musica makes the files). */
+const PISTAS = { recibidor: 'unaMasExplora', pista: 'unaMasPista', grifo: 'unaMasGrifo', jardin: 'unaMasJardin', teatro: 'unaMasTeatro', miniboss: 'unaMasMiniboss', dj: 'unaMasDJ', jefe: 'unaMasJefe', rescate: 'unaMasRescate' } as const;
 export type PistaUnaMas = keyof typeof PISTAS;
 
 const hay = (id: string) => id in MUSICA;

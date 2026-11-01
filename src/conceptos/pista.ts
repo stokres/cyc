@@ -438,7 +438,6 @@ export function dj(m: Mundo, e: Enem, d: number) {
         for (const dx of [0, -200, 200]) lanzarVinilo(m, e, j.x + dx, vuelo);
         m.fx.sacudir(8);
         m.fx.destello(0.35, '#ff7ae0');
-        m.snd.musica('dj');
         e.estado = 'lanza';
         e.t = 0.2;
         e.cola = [];
@@ -476,7 +475,6 @@ function siguiente(m: Mundo, e: Enem) {
     e.estado = 'drop';
     e.t = 1.5;
     m.pista && (m.pista.silencio = 1.5);
-    m.snd.parar(0.12);
     m.fx.destello(0.2, '#0a0420');
     m.decirEnem(e, 'dj.drop');
   } else if (a === 'par') {
