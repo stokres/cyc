@@ -4,7 +4,7 @@
 //
 // Los enemigos son rigs de piezas sueltas con el mismo formato que las figuras de los amigos (conceptos-rig.mjs): cada pieza con su punto de giro
 // (`piv`) y su padre (`padre`); las poses las dibuja src/conceptos/rig.ts moviendo esas piezas.
-import { aro, bloque, bola, cana, circ, curva, elipse, lienzo, mancha, ojoPunto, ovoide, poli, redondo, relleno, tono, trazo, tubo } from './conceptos-estilo.mjs';
+import { aro, bloque, bola, cana, circ, curva, elipse, lienzo, mancha, nuevoId, ojoPunto, ovoide, poli, redondo, relleno, tono, trazo, tubo } from './conceptos-estilo.mjs';
 import { parte } from './conceptos-rig.mjs';
 
 const OSC = '#2a1250';
@@ -176,7 +176,7 @@ export function jarraVida(llena) {
   return lienzo(-26, -80, 76, 86, asa + vaso + espuma);
 }
 
-// ================================================================ zona 3: la Bandeja de Entrada (los sobres de EL TRABAJO)
+// ================================================================ los sobres de EL TRABAJO, el NO gigante y el guion (props de varias zonas)
 
 const CREMA = '#f6ead0';
 const ROJO = '#e8453c';
@@ -207,51 +207,138 @@ export function noGrande() {
   return lienzo(-96, -58, 196, 116, mancha(0, 50, 100, 10, '#10052e', 0.35) + n + o);
 }
 
-/** El buzón de LA BANDEJA LLENA: un buzón de Correos amarillo con ojos, boca de ranura repleta de cartas y una bandera. Origen en los pies. Mismas piezas que el despertador. */
-export function buzon() {
-  const AM = '#f2c63a';
-  const partes = [];
-  const pie = (x) => bloque(redondo([[x - 22, -22], [x + 22, -22], [x + 27, 3], [x - 27, 3]], 8), '#2a3a78', [[poli([[x + 4, -22], [x + 22, -22], [x + 27, 3], [x + 7, 3]]), 'osc', 0.32]], { luz: 0.3, sombra: -0.3 });
-  partes.push(parte('pie.a', [-70, -32, -4, 8], pie(-36), { piv: [-36, -24] }));
-  partes.push(parte('pie.b', [4, -32, 70, 8], pie(36), { piv: [36, -24] }));
-  const sobreOreja = (cx, ang) => `<g transform="translate(${cx} -176) rotate(${ang})">${bloque(redondo([[-26, -4], [26, -4], [26, -40], [-26, -40]], 4), CREMA, [[poli([[8, -40], [26, -40], [26, -4], [2, -4]]), 'osc', 0.24]], { luz: 0.4, sombra: -0.3 })}${trazo('M-26 -40L0 -22L26 -40', tono(CREMA, -0.35), 3.5)}${bola(0, -23, 5, ROJO)}</g>`;
-  partes.push(parte('campana.a', [-80, -230, -2, -170], sobreOreja(-34, -16), { piv: [-34, -176], padre: 'cuerpo' }));
-  partes.push(parte('campana.b', [2, -230, 80, -170], sobreOreja(34, 16), { piv: [34, -176], padre: 'cuerpo' }));
-  const bandera = bloque(redondo([[66, -150], [66, -112], [102, -118], [102, -146]], 3), ROJO, [[poli([[84, -150], [102, -146], [102, -118], [84, -122]]), 'osc', 0.25]], { luz: 0.4, sombra: -0.3 });
-  partes.push(parte('martillo', [58, -170, 112, -80], trazo('M66 -92L66 -156', '#5a3a2a', 6) + bandera, { piv: [66, -92], padre: 'cuerpo' }));
-  const cuerpoD = 'M-66 -26L-66 -118A66 66 0 0 1 66 -118L66 -26Z';
-  const carta = (x, y, a) => `<g transform="translate(${x} ${y}) rotate(${a})">${relleno(poli([[-20, -9], [20, -9], [20, 9], [-20, 9]]), CREMA)}${trazo('M-20 -9L0 3L20 -9', tono(CREMA, -0.4), 2)}</g>`;
-  const cuerpo = mancha(0, 0, 90, 12, '#10052e', 0.45)
-    + bloque(cuerpoD, AM, [[poli([[26, -190], [66, -118], [66, -26], [20, -26]]), 'osc', 0.28], [poli([[-66, -118], [-50, -168], [-34, -184], [-48, -90], [-66, -40]]), 'luz', 0.32]], { luz: 0.5, sombra: -0.4 })
-    + bloque(redondo([[-66, -60], [66, -60], [66, -38], [-66, -38]], 3), '#2a3a78', [], { luz: 0.2, sombra: -0.2 })
-    + relleno('M-44 -108H44A8 8 0 0 1 52 -100V-82A8 8 0 0 1 44 -74H-44A8 8 0 0 1 -52 -82V-100A8 8 0 0 1 -44 -108Z', '#2a0a2a')
-    + carta(-26, -110, -18) + carta(8, -112, 8) + carta(30, -108, 24) + carta(-6, -82, 4)
-    + relleno(poli([[-44, -108], [-34, -96], [-24, -108]]), '#fff6e6') + relleno(poli([[-14, -108], [-4, -96], [6, -108]]), '#fff6e6') + relleno(poli([[16, -108], [26, -96], [36, -108]]), '#fff6e6')
-    + relleno(poli([[-34, -74], [-24, -86], [-14, -74]]), '#fff6e6') + relleno(poli([[6, -74], [16, -86], [26, -74]]), '#fff6e6')
-    + circ(-28, -146, 17, '#fff6e6') + circ(28, -146, 17, '#fff6e6') + ojoPunto(-25, -144, 8, '#2a1230') + ojoPunto(25, -144, 8, '#2a1230')
-    + trazo('M-48 -170L-12 -152M48 -170L12 -152', OSC, 7)
-    + trazo('M-50 -26H50', tono(AM, -0.45), 4) + bloque(redondo([[-18, -32], [18, -32], [18, -10], [-18, -10]], 3), '#8a8aa8', [], {}) + circ(0, -21, 4, '#2a1250');
-  partes.push(parte('cuerpo', [-90, -200, 90, 6], cuerpo, { piv: [0, -4] }));
-  return { id: 'buzon', alto: 235, ancho: 190, color: AM, mira: 1, partes };
+// ================================================================ zona 3: la Pista de Baile
+
+const ROSA = '#ff4fa8';
+const TURQ = '#46e0d0';
+const AMAR = '#ffd23a';
+const VIO = '#9a7cff';
+
+/** Una bola de discoteca colgada: esfera de espejitos con la cara de mala uva. `alerta`: ojos rojos y ceño (va a barrer el haz). Centrada en la bola. 80 × 84. */
+export function bolaDisco(alerta = false) {
+  const R = 30;
+  const id = nuevoId('bd');
+  const rejilla = [-21, -10.5, 0, 10.5, 21].map((x) => trazo(`M${x} -32V32`, '#5a64a0', 1.4, { opacity: 0.6 })).join('')
+    + [-22, -11, 0, 11, 22].map((y) => trazo(`M-32 ${y}H32`, '#5a64a0', 1.4, { opacity: 0.6 })).join('');
+  const brillos = [[-16, -16], [5, -21], [17, 1], [-6, 12], [-22, 7], [11, 19], [-2, -5]]
+    .map(([x, y], i) => `<rect x="${x - 5}" y="${y - 5}" width="10" height="10" fill="${[LUZ_B, TURQ, '#ffb8f0', AMAR][i % 4]}" fill-opacity="0.8"/>`).join('');
+  const cuerpo = bola(0, 0, R, '#aab4e0', { luz: 0.6, sombra: -0.5 })
+    + `<clipPath id="${id}"><circle r="${R}"/></clipPath><g clip-path="url(#${id})">${rejilla}${brillos}</g>`;
+  const ojo = (x) => circ(x, 3, 8, '#fff6e6') + (alerta ? circ(x, 4, 4.6, '#d02a3a') + circ(x - 1.4, 2.6, 1.4, '#ffffff', 0.9) : ojoPunto(x, 4, 4.2, '#2a1230'));
+  const cara = ojo(-11) + ojo(11)
+    + trazo(alerta ? 'M-22 -8L-6 -1M22 -8L6 -1' : 'M-20 -6L-5 -3M20 -6L5 -3', OSC, alerta ? 5.5 : 4.5)
+    + (alerta ? relleno(poli([[-12, 17], [12, 17], [8, 24], [-8, 24]]), '#3a0a28') : trazo('M-9 19Q0 14 9 19', OSC, 3.5));
+  const tapa = bloque(redondo([[-7, -42], [7, -42], [9, -28], [-9, -28]], 2), '#7a7a9e', [], { luz: 0.3, sombra: -0.3 }) + trazo('M0 -42V-48', '#7a7a9e', 3);
+  return lienzo(-40, -50, 80, 84, tapa + cuerpo + cara);
 }
 
-/** Los montones de sobres que entierran a Chuchi: lo de atrás (alto), lo de delante hasta el pecho, y el montón desparramado una vez libre. */
-function montoncito(items) {
-  return items.map(([x, y, a, k, c]) => `<g transform="translate(${x} ${y}) rotate(${a}) scale(${k})">${bloque(redondo([[-30, -20], [30, -20], [30, 20], [-30, 20]], 3), c, [[poli([[8, -20], [30, -20], [30, 20], [0, 20]]), 'osc', 0.22]], { luz: 0.3, sombra: -0.25 })}${trazo('M-30 -20L0 4L30 -20', tono(c, -0.4), 3)}${trazo('M-26 16H-8M2 16H22', ROJO, 3, { opacity: 0.8 })}</g>`).join('');
+/** Un chupito con patas: vaso de cristal con licor verde, cara gamberra, rodaja de lima y zapatillas. Origen en los pies. 72 × 70. */
+export function chupito() {
+  const pierna = (x) => trazo(`M${x} -18V-6`, '#3a2a5a', 6) + bloque(redondo([[x - 9, -7], [x + 9, -7], [x + 12, 3], [x - 12, 3]], 3), '#d9604a', [[poli([[x + 3, -7], [x + 9, -7], [x + 12, 3], [x + 4, 3]]), 'osc', 0.3]], { luz: 0.3, sombra: -0.3 });
+  const vaso = bloque(redondo([[-25, -64], [25, -64], [19, -17], [-19, -17]], 4), '#cfeff6', [[poli([[-25, -64], [-10, -64], [-6, -17], [-19, -17]]), 'luz', 0.45], [poli([[12, -64], [25, -64], [19, -17], [8, -17]]), 'osc', 0.18]], { luz: 0.4, sombra: -0.25 });
+  const licor = bloque(redondo([[-22, -46], [22, -46], [17, -19], [-17, -19]], 3), '#9be04a', [[poli([[8, -46], [22, -46], [17, -19], [4, -19]]), 'osc', 0.25]], { luz: 0.35, sombra: -0.35 });
+  const cara = ojoPunto(-8, -34, 5.4, '#2a1230') + ojoPunto(8, -34, 5.4, '#2a1230') + trazo('M-15 -43L-3 -39M15 -43L3 -39', OSC, 3.6) + trazo('M-8 -25Q2 -20 11 -27', OSC, 3.2);
+  const lima = `<g transform="translate(22 -64) rotate(20)">${bola(0, 0, 11, '#9bd13c')}${circ(0, 0, 8, '#d7f27a')}${[0, 1, 2, 3, 4, 5].map((i) => trazo(`M0 0L${(Math.cos((i / 6) * Math.PI * 2) * 7).toFixed(1)} ${(Math.sin((i / 6) * Math.PI * 2) * 7).toFixed(1)}`, '#9bd13c', 1.2)).join('')}</g>`;
+  return lienzo(-36, -78, 72, 82, mancha(0, 1, 30, 6, '#10052e', 0.4) + pierna(-10) + pierna(10) + vaso + licor + cara + trazo('M-25 -64H25', '#ffffff', 2.4, { opacity: 0.7 }) + lima);
 }
-const COLORES_SOBRE = [CREMA, '#ece0c0', '#f9f0dc', '#e4d4b0', '#d8e4f4'];
-function mezcla(n, x0, x1, y0, y1, sem) {
-  const r = (i) => { const s = Math.sin(i * 127.1 + sem * 311.7) * 43758.5453; return s - Math.floor(s); };
-  return Array.from({ length: n }, (_, i) => [x0 + r(i * 3 + 1) * (x1 - x0), y0 + r(i * 3 + 2) * (y1 - y0), (r(i * 3 + 3) - 0.5) * 70, 0.85 + r(i * 5) * 0.4, COLORES_SOBRE[i % COLORES_SOBRE.length]]);
+
+/** Un altavoz con cara: dos tweeters de ojos y el woofer de boca abierta; remates rosas. Origen en los pies. 88 × 118. */
+export function altavoz() {
+  const caja = bloque(redondo([[-32, -108], [32, -108], [34, -8], [-34, -8]], 8), '#3a2a6a', [[poli([[10, -108], [32, -108], [34, -8], [14, -8]]), 'osc', 0.3], [poli([[-32, -108], [-20, -108], [-22, -8], [-34, -8]]), 'luz', 0.22]], { luz: 0.3, sombra: -0.4 });
+  const ribete = trazo('M-30 -104H30M-32 -12H32', ROSA, 3.4, { opacity: 0.9 });
+  const pie = (x) => bloque(redondo([[x - 9, -8], [x + 9, -8], [x + 11, 2], [x - 11, 2]], 3), '#1c1238', [], { luz: 0.2, sombra: -0.2 });
+  const ojo = (x) => circ(x, -84, 13, '#8a8ac8') + circ(x, -84, 11, '#fff6e6') + ojoPunto(x + 1, -83, 6, '#2a1230');
+  const woofer = circ(0, -42, 25, '#120a28') + circ(0, -42, 21, '#2a1c52') + bola(0, -42, 13, '#4a3a8a', { luz: 0.6, sombra: -0.4 }) + circ(0, -42, 5, '#120a28');
+  const boca = trazo('M-20 -62Q0 -52 20 -62', ROSA, 3.2, { opacity: 0.8 });
+  return lienzo(-44, -116, 88, 122, mancha(0, 1, 40, 6, '#10052e', 0.4) + pie(-20) + pie(20) + caja + ribete + ojo(-14) + ojo(14) + trazo('M-26 -102L-6 -94M26 -102L6 -94', OSC, 4) + woofer + boca);
 }
-export function montonFondo() {
-  return lienzo(-210, -230, 420, 240, mancha(0, -6, 190, 16, '#10052e', 0.4) + montoncito(mezcla(16, -150, 150, -170, -100, 1)) + montoncito(mezcla(14, -170, 170, -110, -40, 2)));
+
+/** Un vinilo que vuela: disco negro con surcos y etiqueta rosa (o dorada si lo devuelve Fran). Centrado. 52 × 52. */
+export function viniloDisco(devuelto = false) {
+  const R = 24;
+  const surcos = [20, 16, 12].map((r) => trazo(elipse(0, 0, r, r), '#3a2a5a', 1.1, { opacity: 0.8 })).join('');
+  const etiqueta = devuelto ? AMAR : ROSA;
+  return lienzo(-26, -26, 52, 52,
+    (devuelto ? circ(0, 0, R + 2, '#ffe28a', 0.5) : '')
+    + bola(0, 0, R, '#1c1238', { luz: 0.25, sombra: -0.2 }) + surcos
+    + trazo('M-17 -9Q-2 -22 14 -15', '#ffffff', 2.4, { opacity: 0.45 })
+    + bola(0, 0, 9, etiqueta, { luz: 0.5, sombra: -0.35 }) + circ(0, 0, 2.2, '#10052e'));
 }
-export function montonCerrada() {
-  return lienzo(-210, -160, 420, 170, montoncito(mezcla(16, -160, 160, -110, -30, 3)) + montoncito(mezcla(10, -170, 170, -50, -12, 4)));
+
+const LUZ_B = '#ffffff';
+const PIEL_DJ = '#c98a68';
+
+/**
+ * EL DJ, de cintura para arriba tras su mesa de mezclas: chaqueta con neón, gafas de sol, cascos dorados y gorra, una cadena enorme y un disco en la mano
+ * izquierda. Origen: el centro del borde de la mesa. Piezas: cuerpo (torso y mesa), cabeza, brazo.a (el del disco), brazo.b y disco.
+ */
+export function dj() {
+  const partes = [];
+  const SH = 46; // shoulders
+  const brazo = (sg) => tubo(`M${sg * SH} -118Q${sg * (SH + 40)} -88 ${sg * (SH + 22)} -36`, '#3a3a82', 20) + bola(sg * (SH + 22), -32, 12, PIEL_DJ, { luz: 0.3, sombra: -0.3 });
+  const discoMano = `<g transform="translate(${-(SH + 22)} -36)">${bola(0, 0, 20, '#1c1238', { luz: 0.25, sombra: -0.2 })}${bola(0, 0, 7, ROSA)}${circ(0, 0, 2, '#10052e')}</g>`;
+  partes.push(parte('brazo.a', [-110, -140, -20, 0], brazo(-1), { piv: [-SH, -118], padre: 'cuerpo' }));
+  partes.push(parte('disco', [-110, -80, -20, 20], discoMano, { piv: [-SH, -118], padre: 'brazo.a' }));
+  partes.push(parte('brazo.b', [20, -140, 110, 0], brazo(1), { piv: [SH, -118], padre: 'cuerpo' }));
+  // La cabeza: casco dorado, gorra, gafas de sol, perilla.
+  const cabeza = ovoide(0, -156, 30, 33, PIEL_DJ, { luz: 0.4, sombra: -0.4 })
+    + relleno(poli([[-26, -168], [26, -168], [30, -154], [-30, -154]]), '#1c1238')
+    + bloque(redondo([[-24, -188], [24, -188], [30, -168], [-30, -168]], 8), '#2a2a6a', [[poli([[6, -188], [24, -188], [30, -168], [10, -168]]), 'osc', 0.3]], { luz: 0.3, sombra: -0.3 })
+    + trazo('M-30 -166H30', ROSA, 3.4)
+    + bloque(redondo([[-26, -162], [-3, -162], [-4, -150], [-24, -148]], 4), '#10072a', [], {}) + bloque(redondo([[3, -162], [26, -162], [24, -148], [4, -150]], 4), '#10072a', [], {})
+    + trazo('M-22 -160L-12 -158M6 -160L16 -158', '#9a7cff', 2.2, { opacity: 0.8 })
+    + trazo('M-8 -156H8', '#10072a', 3)
+    + trazo('M-12 -132Q0 -126 12 -132', '#2a1230', 3.6) + relleno(poli([[-5, -128], [5, -128], [0, -118]]), '#2a1230')
+    + trazo('M-34 -158Q-40 -176 -30 -184M34 -158Q40 -176 30 -184', AMAR, 7) + circ(-36, -152, 10, AMAR) + circ(36, -152, 10, AMAR) + circ(-36, -152, 5, tono(AMAR, -0.35)) + circ(36, -152, 5, tono(AMAR, -0.35))
+    + trazo('M-32 -184Q0 -204 32 -184', AMAR, 6);
+  partes.push(parte('cabeza', [-50, -214, 50, -110], cabeza, { piv: [0, -128], padre: 'cuerpo' }));
+  // El cuerpo: torso, cadena y la mesa con dos platos.
+  const torso = bloque(redondo([[-SH - 6, -118], [SH + 6, -118], [SH + 20, -20], [-SH - 20, -20]], 14), '#3a3a82', [[poli([[14, -118], [SH + 6, -118], [SH + 20, -20], [20, -20]]), 'osc', 0.3], [poli([[-SH - 6, -118], [-30, -118], [-34, -20], [-SH - 20, -20]]), 'luz', 0.2]], { luz: 0.35, sombra: -0.4 })
+    + trazo('M-30 -112L-34 -24M30 -112L34 -24', TURQ, 3.2) + trazo('M-22 -118Q0 -92 22 -118', AMAR, 5) + circ(0, -90, 8, AMAR) + circ(0, -90, 4, tono(AMAR, -0.3));
+  const mesa = bloque(redondo([[-96, -42], [96, -42], [104, 6], [-104, 6]], 8), '#1c1238', [[poli([[40, -42], [96, -42], [104, 6], [30, 6]]), 'osc', 0.3]], { luz: 0.25, sombra: -0.3 })
+    + trazo('M-96 -40H96', ROSA, 3.4) + trazo('M-88 4H88', TURQ, 2.4, { opacity: 0.7 })
+    + [-1, 1].map((sg) => circ(sg * 62, -20, 24, '#2a2a5a') + circ(sg * 62, -20, 20, '#0e0620') + bola(sg * 62, -20, 8, sg < 0 ? ROSA : TURQ, { luz: 0.4, sombra: -0.3 })).join('')
+    + [-14, 0, 14].map((x) => trazo(`M${x} -34V-10`, '#8a8ac8', 3) + circ(x, -22 + (x % 3), 4, AMAR)).join('');
+  partes.push(parte('cuerpo', [-110, -150, 110, 12], mancha(0, 4, 110, 10, '#10052e', 0.4) + torso + mesa, { piv: [0, 0] }));
+  // De atrás adelante: el cuerpo y la mesa, el brazo libre, la cabeza, y delante el brazo del disco.
+  const orden = ['cuerpo', 'brazo.b', 'cabeza', 'brazo.a', 'disco'];
+  partes.sort((p, q) => orden.indexOf(p.id) - orden.indexOf(q.id));
+  return { id: 'dj', alto: 215, ancho: 220, color: ROSA, mira: 1, partes };
 }
-export function montonAbierta() {
-  return lienzo(-250, -74, 500, 82, mancha(0, -4, 220, 12, '#10052e', 0.3) + montoncito(mezcla(14, -210, 210, -40, -12, 5)));
+
+// La jaula de go-go en la que baila Chuchi, bajo la bola gigante. Origen en el suelo, centro; Chuchi se ve entre lo de atrás y lo de delante.
+
+const CROMO = '#cfd6ee';
+const barras = (xs, y0, y1) => xs.map((x) => tubo(`M${x} ${y0}V${y1}`, CROMO, 7, { luz: 0.4, sombra: -0.35 })).join('');
+
+/** Lo de atrás: la bola gigante colgada de su cadena, el fondo de barras, el aro de arriba y la tarima con luces. 260 × 440. */
+export function jaulaFondo() {
+  const R = 54;
+  const id = nuevoId('jb');
+  const rej = [-36, -18, 0, 18, 36].map((x) => trazo(`M${x} ${-R}V${R}`, '#5a64a0', 1.6, { opacity: 0.6 })).join('') + [-36, -18, 0, 18, 36].map((y) => trazo(`M${-R} ${y}H${R}`, '#5a64a0', 1.6, { opacity: 0.6 })).join('');
+  const brillos = [[-26, -26, ROSA], [10, -36, TURQ], [30, 2, AMAR], [-10, 22, '#ffffff'], [-38, 10, VIO], [20, 34, ROSA], [-4, -8, '#ffffff'], [36, -22, TURQ]]
+    .map(([x, y, c]) => `<rect x="${x - 8}" y="${y - 8}" width="16" height="16" fill="${c}" fill-opacity="0.75"/>`).join('');
+  const bolaG = `<g transform="translate(0 -318)">${trazo(`M0 ${-R} V-120`, '#7a7a9e', 5)}${bola(0, 0, R, '#aab4e0', { luz: 0.6, sombra: -0.5 })}<clipPath id="${id}"><circle r="${R}"/></clipPath><g clip-path="url(#${id})">${rej}${brillos}</g></g>`;
+  const aro = trazo(elipse(0, -236, 92, 16), CROMO, 7) + trazo(elipse(0, -236, 92, 16), '#ffffff', 2.4, { opacity: 0.6 });
+  const tarima = bloque(redondo([[-104, -16], [104, -16], [112, 0], [-112, 0]], 6), '#3a2a6a', [[poli([[40, -16], [104, -16], [112, 0], [30, 0]]), 'osc', 0.3]], { luz: 0.3, sombra: -0.35 })
+    + trazo('M-100 -12H100', ROSA, 4) + [-72, -36, 0, 36, 72].map((x, i) => circ(x, -6, 5, [ROSA, TURQ, AMAR, VIO, ROSA][i])).join('');
+  return lienzo(-130, -440, 260, 446, mancha(0, -2, 120, 12, '#10052e', 0.4) + bolaG + barras([-72, -36, 0, 36, 72], -16, -236) + aro + tarima);
+}
+
+/** Las barras de delante, de la tarima al aro, con el cierre. 232 × 250. */
+export function jaulaCerrada() {
+  const frente = barras([-90, -60, -30, 0, 30, 60, 90], -12, -240);
+  const aro = trazo('M-92 -236Q0 -212 92 -236', CROMO, 7) + trazo('M-92 -120Q0 -98 92 -120', CROMO, 5, { opacity: 0.9 });
+  const candado = bloque(redondo([[-16, -142], [16, -142], [16, -118], [-16, -118]], 4), AMAR, [], { luz: 0.5, sombra: -0.3 }) + trazo('M-9 -142V-154A9 9 0 0 1 9 -154V-142', tono(AMAR, -0.3), 4);
+  return lienzo(-116, -250, 232, 250, frente + aro + candado);
+}
+
+/** Lo que queda al abrirse: la puerta caída hacia un lado y barras torcidas, con confeti. 300 × 80. */
+export function jaulaAbierta() {
+  const puerta = `<g transform="translate(-112 -6) rotate(-74)">${barras([-12, 0, 12], 0, -116)}${trazo('M-18 -8H18M-18 -108H18', CROMO, 5)}</g>`;
+  const torcida = tubo('M104 -4Q126 -36 108 -62', CROMO, 7) + tubo('M126 -4Q146 -22 140 -44', CROMO, 6);
+  const confeti = [[-70, -10, ROSA], [-30, -4, TURQ], [10, -12, AMAR], [52, -6, VIO], [88, -14, ROSA], [-96, -4, AMAR]].map(([x, y, c]) => relleno(poli([[x - 5, y], [x + 5, y - 2], [x + 4, y + 3]]), c)).join('');
+  return lienzo(-170, -70, 340, 80, mancha(0, -2, 140, 8, '#10052e', 0.3) + puerta + torcida + confeti);
 }
 
 // ================================================================ zona 4: el Teatro de los Conceptos

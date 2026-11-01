@@ -16,8 +16,9 @@ import { h } from '../ui/hud';
 import { esVertical } from '../ui/orientacion';
 import { cargarArte, soltarArte, type Arte } from './arte';
 import { HABILIDADES, PRIMERA_SALA, SALAS, TILE, type Habilidad, type Sala } from './datos';
+import { esJefe } from './enemigos';
 import { crearEntrada } from './entrada';
-import { aplicarPintados, hornearFondo, soltarFondo } from './fondos';
+import { aplicarPintados, fijarFondoPista, hornearFondo, soltarFondo } from './fondos';
 import { dibujarMapa } from './mapa';
 import { marcarFondoUltima, soltarJefe } from './jefe-ultima';
 import { Mundo } from './mundo';
@@ -238,7 +239,7 @@ export function jugarUnaMas(root: HTMLElement, o: OpcionesUnaMas = {}): Promise<
     },
     limpiar() {
       if (!mundo) return;
-      mundo.enems = mundo.enems.filter((e) => e.tipo === 'gran');
+      mundo.enems = mundo.enems.filter((e) => esJefe(e));
     },
     mirar: (dx) => mundo?.mirar(dx) ?? { suelo: false, muro: false },
     tecla(k, pulsada) {
@@ -262,7 +263,11 @@ export function jugarUnaMas(root: HTMLElement, o: OpcionesUnaMas = {}): Promise<
       if (m.fondo) soltarFondo(m.fondo);
       m.fondo = hornearFondo(s.zona);
     }
-    void aplicarPintados(m.fondo, s.id).then(() => m.fondo && marcarFondoUltima(m.fondo, !!s.ultima));
+    void aplicarPintados(m.fondo, s.id).then(() => {
+      if (!m.fondo) return;
+      marcarFondoUltima(m.fondo, !!s.ultima);
+      fijarFondoPista(m.fondo, !!s.camaraFija);
+    });
     if (zonaNueva || m.zonaActual !== s.zona) {
       m.zonaActual = s.zona;
       m.banner = { titulo: texto(`zona.${s.zona}`), sub: texto(`zona.${s.zona}.sub`), t: 0 };

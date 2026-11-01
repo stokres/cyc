@@ -20,7 +20,7 @@ export interface Sprite {
 }
 
 /** Logical pixels per figure unit of each character. */
-export const ESCALA = { buzon: 0.72, apuntador: 0.66, fran: 0.155, guille: 0.15, chuchi: 0.16, pablo: 0.15, despertador: 0.36, gran: 0.92, reloj: 0.5 } as const;
+export const ESCALA = { dj: 0.58, apuntador: 0.66, fran: 0.155, guille: 0.15, chuchi: 0.16, pablo: 0.15, despertador: 0.36, gran: 0.92, reloj: 0.5 } as const;
 
 export type AnimFran = 'idle' | 'correr' | 'sube' | 'baja' | 'aterriza' | 'ataque' | 'carga' | 'dano' | 'mutis' | 'celebra' | 'retrato';
 export type AnimGuille = 'idle' | 'celebra' | 'atrapado' | 'retrato';
@@ -30,6 +30,8 @@ export type AnimAmigo = AnimGuille;
 export const MIRA: Record<Amigo, 1 | -1> = { guille: -1, chuchi: 1, pablo: 1 };
 export type AnimDespertador = 'andar' | 'alerta' | 'carga' | 'mareo' | 'dano' | 'agacha' | 'salta';
 export type AnimReloj = 'repta' | 'gotea' | 'dano';
+/** EL DJ: bobbing to the beat, the wind-up with the vinyl, the throw, both arms up for the drop, and a hit. */
+export type AnimDJ = 'idle' | 'lanza' | 'tira' | 'drop' | 'dano';
 
 export interface Arte {
   fran: Record<AnimFran, Cuadro[]>;
@@ -38,8 +40,8 @@ export interface Arte {
   pablo: Record<AnimAmigo, Cuadro[]>;
   despertador: Record<AnimDespertador, Cuadro[]>;
   gran: Record<AnimDespertador, Cuadro[]>;
-  /** LA BANDEJA LLENA (zone 3's mini-boss) and EL APUNTADOR (zone 4's): same poses as the alarm clock. */
-  buzon: Record<AnimDespertador, Cuadro[]>;
+  /** EL DJ (zone 3's mini-boss) and EL APUNTADOR (zone 4's, with the alarm clock's poses). */
+  dj: Record<AnimDJ, Cuadro[]>;
   apuntador: Record<AnimDespertador, Cuadro[]>;
   reloj: Record<AnimReloj, Cuadro[]>;
   /** The same frames flashed white (a hit), by character and animation. */
@@ -58,6 +60,13 @@ export interface Arte {
     iconoPared: Sprite;
     jarraLlena: Sprite;
     jarraVacia: Sprite;
+    /** The Pista's: the mirror ball (calm and about to sweep), the shot glass (from its feet), the speaker (from its feet), the vinyl (flying, and sent back). */
+    bola: Sprite;
+    bolaAlerta: Sprite;
+    chupito: Sprite;
+    altavoz: Sprite;
+    vinilo: Sprite;
+    viniloDevuelto: Sprite;
     /** EL TRABAJO's envelope (closed, and open with fangs), the bouncing giant NO and a flying script: drawn about their centre. */
     sobre: Sprite;
     sobreAbierto: Sprite;
@@ -152,7 +161,7 @@ function posesGuille(def: FiguraDef) {
 }
 
 /** The poses of a rescued friend (Chuchi, Pablo): same set as Guille's, with their own bits of hair and head. */
-function posesAmigo(def: FiguraDef, pelo: string[], cabeza: string[]) {
+function posesAmigo(def: FiguraDef, pelo: string[], cabeza: string[], baila = false) {
   const idle: Pose[] = Array.from({ length: 6 }, (_, i) => {
     const f = fase(i, 6);
     const mods: Pose['mods'] = {
@@ -166,8 +175,10 @@ function posesAmigo(def: FiguraDef, pelo: string[], cabeza: string[]) {
     return { onda: f, mods };
   });
   const celebra: Pose[] = [0, 1].map((i) => ({ onda: i * 2.5, mods: { 'brazo.a': { rot: 3.0 + 0.25 * i }, 'brazo.b': { rot: 2.8 - 0.25 * i }, cabeza: { dy: -6 - 3 * i, rot: i ? 0.06 : -0.06 }, vaso: { rot: 0.3 } } }));
-  const atrapado: Pose[] = Array.from({ length: 4 }, (_, i) => {
+  const atrapado: Pose[] = Array.from({ length: 4 }, (_, i): Pose => {
     const f = fase(i, 4);
+    // `baila`: he is dancing in his cage (disco arms, bouncing on the beat); otherwise he bangs on the bars.
+    if (baila) return { onda: f, cuerpo: { rot: 0.06 * sen(f) }, mods: { 'brazo.a': { rot: 2.9 + 0.5 * sen(f) }, 'brazo.b': { rot: 2.7 - 0.5 * sen(f) }, torso: { sy: 1 + 0.03 * sen(f * 2) }, cabeza: { dy: -4 * Math.abs(sen(f)), rot: 0.12 * sen(f) }, vaso: { rot: 0.4 * sen(f) } } };
     return { onda: f, mods: { 'brazo.a': { rot: 2.4 + 0.4 * sen(f) }, 'brazo.b': { rot: 2.5 - 0.4 * sen(f) }, cabeza: { dy: 3 * sen(f), rot: 0.06 * sen(f) } } };
   });
   const retrato: Pose = { ocultar: soloCabeza(def, cabeza) };
@@ -202,6 +213,21 @@ function posesReloj() {
   const gotea: Pose[] = [0, 1].map((i) => ({ mods: { cuerpo: { sy: 0.93 - 0.03 * i, sx: 1.05 }, 'gota.a': { dy: 10 + 10 * i, sy: 1.3 + 0.3 * i }, 'gota.b': { dy: 6 + 14 * i, sy: 1.2 + 0.4 * i } } }));
   const dano: Pose = { mods: { cuerpo: { sx: 1.22, sy: 0.72 }, 'gota.a': { dy: 8 }, 'gota.b': { dy: 8 } } };
   return { repta, gotea, dano: [dano] } satisfies Record<AnimReloj, Pose[]>;
+}
+
+/** EL DJ's poses: the arms are `brazo.a` (the one with the vinyl, `disco`) and `brazo.b`, the head bobs on its neck. */
+function posesDJ() {
+  const SIN = { ocultar: ['disco'] };
+  const idle: Pose[] = Array.from({ length: 4 }, (_, i) => {
+    const f = fase(i, 4);
+    return { ...SIN, cuerpo: { sy: 1 - 0.015 * Math.abs(sen(f)) }, mods: { cabeza: { dy: 3 * Math.abs(sen(f)), rot: 0.12 * sen(f) }, 'brazo.a': { rot: 0.1 * sen(f) }, 'brazo.b': { rot: -0.1 * sen(f) } } };
+  });
+  // The wind-up: the left arm up and back with the disc, the head leaning to the other side.
+  const lanza: Pose[] = [0, 1].map((i) => ({ mods: { 'brazo.a': { rot: 2.5 + 0.12 * i }, 'brazo.b': { rot: -0.25 }, cabeza: { rot: 0.1 - 0.05 * i, dy: i } } }));
+  const tira: Pose = { ...SIN, mods: { 'brazo.a': { rot: 0.7 }, 'brazo.b': { rot: -0.2 }, cabeza: { rot: -0.08 } } };
+  const drop: Pose[] = [0, 1].map((i) => ({ ...SIN, mods: { 'brazo.a': { rot: 2.8 + 0.25 * i }, 'brazo.b': { rot: -2.8 + 0.25 * i }, cabeza: { rot: -0.14, dy: -5 - 3 * i } }, cuerpo: { sy: 1.02 } }));
+  const dano: Pose = { ...SIN, cuerpo: { rot: -0.06, sx: 0.96, sy: 1.04 }, mods: { cabeza: { rot: -0.3, dy: -5 }, 'brazo.a': { rot: 1.2 }, 'brazo.b': { rot: -1.4 } } };
+  return { idle, lanza, tira: [tira], drop, dano: [dano] } satisfies Record<AnimDJ, Pose[]>;
 }
 
 // ---------------------------------------------------------------- baking
@@ -271,20 +297,20 @@ export function cargarArte(avance?: (f: number) => void): Promise<Arte> {
     const E = ESCALA;
     const chuchiDef = A.figura('chuchi') as unknown as FiguraDef;
     const pabloDef = A.figura('pablo') as unknown as FiguraDef;
-    const buz = U.buzon() as unknown as FiguraDef;
+    const djDef = U.dj() as unknown as FiguraDef;
     const apu = U.apuntador() as unknown as FiguraDef;
-    const [f, g, d, gr, r, ch, pa, bu, ap] = [
+    const [f, g, d, gr, r, ch, pa, dj, ap] = [
       await paso(rig(fran, posesFran(fran), E.fran)),
       await paso(rig(guille, posesGuille(guille), E.guille)),
       await paso(rig(des, posesDespertador(), E.despertador)),
       await paso(rig(gran, posesDespertador(), E.gran, 1.2)),
       await paso(rig(rel, posesReloj(), E.reloj)),
-      await paso(rig(chuchiDef, posesAmigo(chuchiDef, [], ['cabeza', 'cara', 'barba']), E.chuchi)),
+      await paso(rig(chuchiDef, posesAmigo(chuchiDef, [], ['cabeza', 'cara', 'barba'], true), E.chuchi)),
       await paso(rig(pabloDef, posesAmigo(pabloDef, ['pelo.a', 'pelo.b'], ['cabeza', 'cara', 'barba', 'pelo.a', 'pelo.b', 'aro']), E.pablo)),
-      await paso(rig(buz, posesDespertador(), E.buzon, 1.2)),
+      await paso(rig(djDef, posesDJ(), E.dj, 1.2)),
       await paso(rig(apu, posesDespertador(), E.apuntador, 1.2)),
     ];
-    const [barra, sorbo, florFondo, florCerrada, florAbierta, portal, charco, gota, iC, iT, iM, jl, jv, sob, sobA, noG, gui, mF, mC, mA, fF, fC, fA] = await Promise.all([
+    const [barra, sorbo, florFondo, florCerrada, florAbierta, portal, charco, gota, iC, iT, iM, jl, jv, sob, sobA, noG, gui, mF, mC, mA, fF, fC, fA, bolaD, bolaA, chup, alta, vin, vinD] = await Promise.all([
       sprite(U.barra(), 0.62),
       sprite(U.sorbo(), 0.8),
       sprite(U.florFondo(), 0.62),
@@ -302,17 +328,23 @@ export function cargarArte(avance?: (f: number) => void): Promise<Arte> {
       sprite(U.sobre(true), 0.62),
       sprite(U.noGrande(), 0.5),
       sprite(U.guion(), 0.7),
-      sprite(U.montonFondo(), 0.6),
-      sprite(U.montonCerrada(), 0.6),
-      sprite(U.montonAbierta(), 0.6),
+      sprite(U.jaulaFondo(), 0.6),
+      sprite(U.jaulaCerrada(), 0.6),
+      sprite(U.jaulaAbierta(), 0.6),
       sprite(U.focoFondo(), 0.6),
       sprite(U.focoCerrada(), 0.6),
       sprite(U.focoAbierta(), 0.6),
+      sprite(U.bolaDisco(false), 0.9),
+      sprite(U.bolaDisco(true), 0.9),
+      sprite(U.chupito(), 0.8),
+      sprite(U.altavoz(), 0.85),
+      sprite(U.viniloDisco(false), 0.9),
+      sprite(U.viniloDisco(true), 0.9),
     ]);
     avance?.(1);
     // White copies of the enemies' frames, ready for the flash of a hit.
     const blanco = new Map<Cuadro, Cuadro>();
-    for (const anim of [d, gr, r, bu, ap] as Record<string, Cuadro[]>[]) for (const lista of Object.values(anim)) for (const c of lista) blanco.set(c, tenir(c, '#fff4e0'));
+    for (const anim of [d, gr, r, dj, ap] as Record<string, Cuadro[]>[]) for (const lista of Object.values(anim)) for (const c of lista) blanco.set(c, tenir(c, '#fff4e0'));
     const asoma: Arte['asoma'] = { guille: cabecita(g.retrato[0], E.guille), chuchi: cabecita(ch.retrato[0], E.chuchi), pablo: cabecita(pa.retrato[0], E.pablo) };
     return {
       fran: f,
@@ -321,11 +353,11 @@ export function cargarArte(avance?: (f: number) => void): Promise<Arte> {
       pablo: pa,
       despertador: d,
       gran: gr,
-      buzon: bu,
+      dj,
       apuntador: ap,
       reloj: r,
       blanco,
-      props: { barra, sorbo, florFondo, florCerrada, florAbierta, portal, charco, gota, iconoCierzo: iC, iconoTeclazo: iT, iconoPared: iM, jarraLlena: jl, jarraVacia: jv, sobre: sob, sobreAbierto: sobA, noGrande: noG, guion: gui, cautivo: { guille: { fondo: florFondo, cerrada: florCerrada, abierta: florAbierta }, chuchi: { fondo: mF, cerrada: mC, abierta: mA }, pablo: { fondo: fF, cerrada: fC, abierta: fA } } },
+      props: { barra, sorbo, florFondo, florCerrada, florAbierta, portal, charco, gota, iconoCierzo: iC, iconoTeclazo: iT, iconoPared: iM, jarraLlena: jl, jarraVacia: jv, bola: bolaD, bolaAlerta: bolaA, chupito: chup, altavoz: alta, vinilo: vin, viniloDevuelto: vinD, sobre: sob, sobreAbierto: sobA, noGrande: noG, guion: gui, cautivo: { guille: { fondo: florFondo, cerrada: florCerrada, abierta: florAbierta }, chuchi: { fondo: mF, cerrada: mC, abierta: mA }, pablo: { fondo: fF, cerrada: fC, abierta: fA } } },
       brillos: {
         oro: resplandor('#ffd95a', 64, 0.95),
         blanco: resplandor('#ffffff', 64, 0.95),
