@@ -3,6 +3,7 @@
 // calls plus the particles: no SVG, no gradients built per frame, no filters. The camera is rounded to whole device pixels so nothing shimmers.
 import { texto } from '../juego/textos';
 import { ESCALA, MIRA, type Arte, type Sprite } from './arte';
+import { HAZ_LARGO, PULSO } from './pista';
 import { TILE } from './datos';
 import { esJefe, type Enem } from './enemigos';
 import { sueloEn } from './fisica';
@@ -148,14 +149,12 @@ export class Pintor {
       if (e.estado === 'gotea') return r.gotea[Math.floor(e.animT * 7) % 2];
       return r.repta[Math.floor(e.animT * 5) % 4];
     }
-    const a = e.tipo === 'gran' ? A.gran : e.tipo === 'bandeja' ? A.buzon : e.tipo === 'apuntador' ? A.apuntador : A.despertador;
+    const a = e.tipo === 'gran' ? A.gran : e.tipo === 'apuntador' ? A.apuntador : A.despertador;
     if (e.kx > 0 || (e.muerto && esJefe(e))) return a.dano[0];
     switch (e.estado) {
       case 'alerta':
       case 'ring':
-      case 'oleada':
         return a.alerta[Math.floor(e.animT * 20) % 2];
-      case 'lluvia':
       case 'guion':
       case 'foco':
         return a.alerta[Math.floor(e.animT * 8) % 2];
@@ -263,6 +262,11 @@ export class Pintor {
 
     dibujarCapas(ctx, fondo, camX, camY, this.vwM, this.vhM, m.H, true);
     ctx.restore();
+    // The drop: the music stops and the room goes dark for a moment.
+    if (m.pista && m.pista.silencio > 0) {
+      ctx.fillStyle = `rgba(6,0,20,${0.55 * Math.min(1, m.pista.silencio * 5)})`;
+      ctx.fillRect(0, 0, vw, vh);
+    }
     this.dibujarVineta(this.vineta);
 
     if (fx.dano > 0.02) {
@@ -368,6 +372,9 @@ export class Pintor {
     // ---- slabs that move or fall
     for (const p of m.plats) if (p.alfa > 0.01 && visible(p.x + p.w / 2, p.w / 2 + 60)) this.plat(p, t);
 
+    // ---- the DJ's lit floor
+    if (m.pista) this.baldosas(t);
+
     // ---- bars
     for (const b of m.barras) {
       if (!visible(b.x, 200)) continue;
@@ -455,17 +462,22 @@ export class Pintor {
     const f = m.flor;
     const q = f.quien;
     const C = arte.props.cautivo[q];
+    // Chuchi's big mirror ball hangs from the ceiling by a long chain.
+    if (q === 'chuchi') {
+      ctx.fillStyle = '#8a8ab0';
+      ctx.fillRect(f.x - 1.5, TILE, 3, f.y + C.fondo.y - TILE + 2);
+    }
     this.sprite(C.fondo, f.x, f.y);
     ctx.globalCompositeOperation = 'lighter';
     ctx.globalAlpha = 0.4 + 0.15 * Math.sin(t * 2);
-    ctx.drawImage(q === 'guille' ? arte.brillos.magenta : q === 'chuchi' ? arte.brillos.rojo : arte.brillos.oro, f.x - 150, f.y - 260, 300, 300);
+    ctx.drawImage(q === 'guille' ? arte.brillos.magenta : q === 'chuchi' ? arte.brillos.violeta : arte.brillos.oro, f.x - 150, f.y - 260, 300, 300);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
     // The friend: shut in until the front opens, then he hops out beside it, and then he shrinks and dives into Fran's jar (rescued: in the jar for good).
     const G = arte[q];
     const esc = ESCALA[q];
     const volteo = (haciaDerecha: boolean) => (haciaDerecha ? MIRA[q] === -1 : MIRA[q] === 1);
-    const dy = q === 'guille' ? 72 : q === 'chuchi' ? 14 : 4;
+    const dy = q === 'guille' ? 72 : q === 'chuchi' ? 12 : 4;
     if (f.guille === 'atrapado') {
       const fr = G.atrapado[Math.floor(t * 8) % 4];
       this.cuadro(fr, esc, f.x, f.y - dy, false);
@@ -534,7 +546,7 @@ export class Pintor {
     });
     const be = m.burbujaEnem;
     if (be && m.estado === 'jugando' && !be.enem.muerto) {
-      const img = this.burbuja('apuntador', be.texto);
+      const img = this.burbuja(be.enem.tipo === 'dj' ? 'dj' : 'apuntador', be.texto);
       const k = 0.5;
       ctx.globalAlpha = Math.max(0, Math.min(1, be.t * 5, (be.dur - be.t) * 4));
       const w = img.width * k;
@@ -594,7 +606,7 @@ export class Pintor {
     x.fillRect(w / 2 - 7 * k, hh - 5, 14 * k, 5);
     x.textAlign = 'left';
     x.font = `800 ${12 * k}px 'Graduate', 'Alegreya Sans', serif`;
-    x.fillStyle = quien === 'guille' ? '#b8780a' : quien === 'chuchi' ? '#c0304a' : quien === 'fran' ? '#1a8a7a' : quien === 'apuntador' ? '#6a3ad8' : '#2a56c8';
+    x.fillStyle = quien === 'guille' ? '#b8780a' : quien === 'chuchi' ? '#c0304a' : quien === 'fran' ? '#1a8a7a' : quien === 'apuntador' ? '#6a3ad8' : quien === 'dj' ? '#d02a8a' : '#2a56c8';
     x.fillText(nombre, 13 * k, 18 * k);
     x.font = `700 ${15 * k}px 'Alegreya Sans', sans-serif`;
     x.fillStyle = '#2a1840';
@@ -629,6 +641,9 @@ export class Pintor {
       }
       return;
     }
+    if (e.tipo === 'bola') return this.dibujarBola(e, t);
+    if (e.tipo === 'chupito') return this.dibujarChupito(e);
+    if (e.tipo === 'altavoz') return this.dibujarAltavoz(e, t);
     const s = P.noGrande;
     // Squash and stretch with the bounce.
     const k = Math.max(-1, Math.min(1, e.vy / 840));
@@ -651,12 +666,13 @@ export class Pintor {
 
   private enemigo(e: Enem, t: number) {
     const { ctx, arte } = this;
-    if (e.tipo === 'sobre' || e.tipo === 'no') return this.enemigoSprite(e, t);
+    if (e.tipo === 'dj') return this.dibujarDJ(e, t);
+    if (e.tipo === 'sobre' || e.tipo === 'no' || e.tipo === 'bola' || e.tipo === 'chupito' || e.tipo === 'altavoz') return this.enemigoSprite(e, t);
     const f = this.frameEnemigo(e);
     const flash = e.hurtT > 0 ? arte.blanco.get(f) ?? f : f;
-    const esc = e.tipo === 'gran' ? ESCALA.gran : e.tipo === 'bandeja' ? ESCALA.buzon : e.tipo === 'apuntador' ? ESCALA.apuntador : e.tipo === 'reloj' ? ESCALA.reloj : ESCALA.despertador;
+    const esc = e.tipo === 'gran' ? ESCALA.gran : e.tipo === 'apuntador' ? ESCALA.apuntador : e.tipo === 'reloj' ? ESCALA.reloj : ESCALA.despertador;
     // The telegraphs: a red glow while it winds up.
-    const aviso = e.estado === 'alerta' || e.estado === 'agacha' || e.estado === 'ring' || e.estado === 'lluvia' || e.estado === 'oleada' || e.estado === 'foco';
+    const aviso = e.estado === 'alerta' || e.estado === 'agacha' || e.estado === 'ring' || e.estado === 'foco';
     if (e.suelo && !e.muerto && e.alfa > 0.5) this.sombra(e.x, e.y, e.hw * 1.05);
     if (aviso || (esJefe(e) && e.fase === 2 && !e.muerto)) {
       ctx.globalCompositeOperation = 'lighter';
@@ -687,13 +703,32 @@ export class Pintor {
 
   private proyectil(p: Mundo['proy'][number], t: number) {
     const { ctx, arte } = this;
-    if (p.tipo === 'sobre' || p.tipo === 'guion') {
-      // A letter or a script flying, spinning.
-      const s = p.tipo === 'sobre' ? arte.props.sobreAbierto : arte.props.guion;
+    if (p.tipo === 'vinilo') return this.dibujarVinilo(p, t);
+    if (p.tipo === 'pulso') {
+      // A ring of bass that grows and fades.
+      const k = Math.max(0, 1 - p.t / p.vida);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = '#ff7ae0';
+      ctx.lineWidth = 7 * k + 2;
+      ctx.globalAlpha = 0.85 * k;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, 6.3);
+      ctx.stroke();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r - 4, 0, 6.3);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+      return;
+    }
+    if (p.tipo === 'guion') {
+      // A script flying, spinning.
+      const s = arte.props.guion;
       ctx.save();
       ctx.translate(p.x, p.y);
-      ctx.rotate(p.tipo === 'sobre' ? Math.sin(p.t * 14) * 0.25 : p.t * 9);
-      if (p.vx < 0 && p.tipo === 'sobre') ctx.scale(-1, 1);
+      ctx.rotate(p.t * 9);
       ctx.drawImage(s.c, s.x * 0.8, s.y * 0.8, s.w * 0.8, s.h * 0.8);
       ctx.restore();
       return;
@@ -756,6 +791,255 @@ export class Pintor {
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'source-over';
     }
+  }
+
+  /** The mirror ball: its chain, the glow, the thin warning line and then the beam. */
+  private dibujarBola(e: Enem, t: number) {
+    const { ctx, arte } = this;
+    const P = arte.props;
+    const cx = e.x;
+    const cy = e.y - e.h / 2;
+    ctx.fillStyle = '#7a7a9e';
+    ctx.fillRect(cx - 1.2, TILE, 2.4, cy - TILE - 30);
+    const alerta = e.estado === 'alerta' || e.estado === 'barre';
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = (alerta ? 0.5 : 0.28) + 0.12 * Math.sin(t * 5 + e.x);
+    ctx.drawImage(arte.brillos.blanco, cx - 56, cy - 56, 112, 112);
+    // The beam (and, before it, the warning line where it will start).
+    if (e.estado === 'alerta') {
+      const a = e.c;
+      const L = HAZ_LARGO;
+      const ex = cx + Math.sin(a) * L;
+      const ey = cy + Math.cos(a) * L;
+      const nx = Math.cos(a);
+      const ny = -Math.sin(a);
+      ctx.globalAlpha = 0.35 + 0.35 * (Math.sin(t * 32) > 0 ? 1 : 0.2);
+      ctx.fillStyle = '#ff5a7a';
+      ctx.beginPath();
+      ctx.moveTo(cx - nx * 2, cy - ny * 2);
+      ctx.lineTo(cx + nx * 2, cy + ny * 2);
+      ctx.lineTo(ex + nx * 5, ey + ny * 5);
+      ctx.lineTo(ex - nx * 5, ey - ny * 5);
+      ctx.closePath();
+      ctx.fill();
+    } else if (e.estado === 'barre' && e.l > 0) {
+      const a = e.a;
+      const L = e.l;
+      const ex = cx + Math.sin(a) * L;
+      const ey = cy + Math.cos(a) * L;
+      const nx = Math.cos(a);
+      const ny = -Math.sin(a);
+      ctx.globalAlpha = 0.5;
+      ctx.fillStyle = '#fff3b0';
+      ctx.beginPath();
+      ctx.moveTo(cx - nx * 5, cy - ny * 5);
+      ctx.lineTo(cx + nx * 5, cy + ny * 5);
+      ctx.lineTo(ex + nx * 26, ey + ny * 26);
+      ctx.lineTo(ex - nx * 26, ey - ny * 26);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 0.75;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.moveTo(cx - nx * 2, cy - ny * 2);
+      ctx.lineTo(cx + nx * 2, cy + ny * 2);
+      ctx.lineTo(ex + nx * 9, ey + ny * 9);
+      ctx.lineTo(ex - nx * 9, ey - ny * 9);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 0.7;
+      ctx.drawImage(arte.brillos.blanco, ex - 36, ey - 36, 72, 72);
+    }
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    const s = alerta ? P.bolaAlerta : P.bola;
+    const ox = e.estado === 'alerta' ? (Math.random() - 0.5) * 2.6 : 0;
+    ctx.save();
+    ctx.translate(cx + ox, cy);
+    ctx.rotate(Math.sin(t * 1.3 + e.x) * 0.06 + (e.estado === 'barre' ? Math.sin(e.a) * 0.12 : 0));
+    ctx.drawImage(s.c, s.x, s.y, s.w, s.h);
+    ctx.restore();
+    if (e.hurtT > 0) {
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.6;
+      ctx.drawImage(arte.brillos.blanco, cx - 44, cy - 44, 88, 88);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+    }
+  }
+
+  /** The shot glass: squashed before a hop, stretched in the air. */
+  private dibujarChupito(e: Enem) {
+    const { ctx, arte } = this;
+    const s = arte.props.chupito;
+    let sx = 1;
+    let sy = 1;
+    if (e.estado === 'agacha') {
+      sy = 0.74;
+      sx = 1.18;
+    } else if (e.estado === 'salta') {
+      const k = Math.max(-1, Math.min(1, -e.vy / 700));
+      sy = 1 + 0.14 * k;
+      sx = 1 - 0.1 * k;
+    }
+    this.sombra(e.x, e.suelo ? e.y : this.sueloBajo(e.x, e.y) ?? e.y, e.hw);
+    ctx.save();
+    ctx.translate(e.x, e.y);
+    ctx.scale(sx * (e.dir < 0 ? -1 : 1), sy);
+    ctx.drawImage(s.c, s.x, s.y + 3, s.w, s.h);
+    ctx.restore();
+    if (e.hurtT > 0) {
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.6;
+      ctx.drawImage(arte.brillos.blanco, e.x - 40, e.y - 60, 80, 80);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+    }
+  }
+
+  /** The speaker: its cone shakes and a ring grows before each pulse; hit, it tilts and goes quiet. */
+  private dibujarAltavoz(e: Enem, t: number) {
+    const { ctx, arte } = this;
+    const s = arte.props.altavoz;
+    this.sombra(e.x, e.y, e.hw);
+    const cy = e.y - e.h * 0.42;
+    if (e.estado === 'alerta') {
+      const k = 1 - Math.max(0, e.t) / 0.55;
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = '#ff7ae0';
+      ctx.lineWidth = 3;
+      ctx.globalAlpha = 0.4 + 0.5 * k;
+      ctx.beginPath();
+      ctx.arc(e.x, cy, 60 - 38 * k, 0, 6.3);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    const vibra = e.estado === 'alerta' ? (Math.random() - 0.5) * 3 : 0;
+    const k = e.estado === 'pulso' ? 1.1 : e.estado === 'alerta' ? 1 + 0.04 * Math.sin(t * 50) : 1;
+    ctx.save();
+    ctx.translate(e.x + vibra, e.y);
+    if (e.estado === 'mareo') ctx.rotate(Math.sin(t * 8) * 0.07);
+    ctx.scale(k, k);
+    ctx.drawImage(s.c, s.x, s.y + 3, s.w, s.h);
+    ctx.restore();
+    if (e.estado === 'mareo' && Math.random() < 0.06) this.m.fx.estrellas(e.x + (Math.random() - 0.5) * 30, e.y - e.h - 6, 1, '#ffe9a8');
+    if (e.hurtT > 0) {
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.6;
+      ctx.drawImage(arte.brillos.blanco, e.x - 50, e.y - 100, 100, 100);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+    }
+  }
+
+  /** EL DJ in his booth: bobbing to the beat, the wind-up (a glow in the hand), the throw, the drop. */
+  private dibujarDJ(e: Enem, t: number) {
+    const { ctx, arte } = this;
+    const a = arte.dj;
+    let f: Cuadro;
+    if (e.hurtT > 0 || e.muerto) f = a.dano[0];
+    else if (e.estado === 'drop') f = a.drop[Math.floor(t * 9) % 2];
+    else if (e.b > 0) f = a.tira[0];
+    else if (e.estado === 'lanza') f = a.lanza[Math.floor(e.animT * 10) % 2];
+    else f = a.idle[Math.floor((e.animT / PULSO) * 4) % 4];
+    const flash = e.hurtT > 0 ? arte.blanco.get(f) ?? f : f;
+    const beat = 0.5 + 0.5 * Math.sin((e.animT / PULSO) * Math.PI * 2);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = (e.estado === 'drop' ? 0.65 : 0.3) + 0.2 * beat;
+    ctx.drawImage(arte.brillos.magenta, e.x - 150, e.y - 230, 300, 300);
+    if (e.estado === 'lanza' && e.cola.length) {
+      ctx.globalAlpha = 0.5 + 0.4 * Math.sin(t * 30);
+      ctx.drawImage(arte.brillos.blanco, e.x - 46 - 40, e.y - 116 - 40, 80, 80);
+    }
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    const alfa = e.muerto ? Math.max(0, 1 - this.m.tEstado / 1.6) * (0.55 + 0.45 * Math.sin(t * 50)) : 1;
+    this.cuadro(flash, ESCALA.dj, e.x, e.y, false, alfa);
+  }
+
+  /** A vinyl: a ring on the floor where it will land while it flies, then the spinning disc (gold glow when sent back). */
+  private dibujarVinilo(p: Mundo['proy'][number], t: number) {
+    const { ctx, arte, m } = this;
+    const P = arte.props;
+    const suelo = m.H - 2 * TILE;
+    if (p.r === 0 && p.tx !== undefined) {
+      const k = 0.5 + 0.5 * Math.sin(t * 16);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = '#ff7ae0';
+      ctx.lineWidth = 3;
+      ctx.globalAlpha = 0.45 + 0.4 * k;
+      ctx.beginPath();
+      ctx.ellipse(p.tx, suelo - 2, 40 + 6 * k, 9 + 2 * k, 0, 0, 6.3);
+      ctx.stroke();
+      ctx.globalAlpha = 0.3;
+      ctx.drawImage(arte.brillos.magenta, p.tx - 36, suelo - 24, 72, 36);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    const s = p.r === 2 ? P.viniloDevuelto : P.vinilo;
+    if (p.r === 2) {
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.7;
+      ctx.drawImage(arte.brillos.oro, p.x - 48, p.y - 48, 96, 96);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.t * (p.r === 2 ? 22 : 13));
+    ctx.drawImage(s.c, s.x, s.y, s.w, s.h);
+    ctx.restore();
+  }
+
+  /** The eight lit tiles of the DJ's floor: colour on the beat, red blinking as a warning, then flames. */
+  private baldosas(t: number) {
+    const { ctx, arte, m } = this;
+    const b = m.pista!;
+    const COL = ['magenta', 'turquesa', 'ambar', 'violeta'] as const;
+    const HEX = ['#ff4fa8', '#46e0d0', '#ffb347', '#9a7cff'];
+    const compas = Math.floor(t / PULSO);
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < b.n; i++) {
+      const e = b.estado[i];
+      if (e === 0) continue;
+      const x = b.x0 + i * b.ancho;
+      const k = (i + compas) % 4;
+      if (e === 1) {
+        ctx.globalAlpha = 0.55;
+        ctx.fillStyle = HEX[k];
+        ctx.fillRect(x + 3, b.suelo - 2, b.ancho - 6, 10);
+        ctx.globalAlpha = 0.35;
+        ctx.drawImage(arte.brillos[COL[k]], x - 6, b.suelo - 34, b.ancho + 12, 52);
+      } else if (e === 2) {
+        const on = Math.sin(t * (b.tf < PULSO ? 36 : 22)) > 0;
+        ctx.globalAlpha = on ? 0.85 : 0.3;
+        ctx.fillStyle = '#ff3a2a';
+        ctx.fillRect(x + 3, b.suelo - 2, b.ancho - 6, 10);
+        ctx.globalAlpha = on ? 0.55 : 0.15;
+        ctx.drawImage(arte.brillos.rojo, x - 6, b.suelo - 40, b.ancho + 12, 60);
+      } else {
+        ctx.globalAlpha = 0.95;
+        ctx.fillStyle = '#ff5a2a';
+        ctx.fillRect(x + 3, b.suelo - 2, b.ancho - 6, 10);
+        // Flames: three tongues per tile, flickering.
+        ctx.fillStyle = '#ffb347';
+        for (let f = 0; f < 3; f++) {
+          const fx = x + b.ancho * (0.2 + 0.3 * f);
+          const h = 46 + 22 * Math.sin(t * 24 + f * 2 + i);
+          ctx.beginPath();
+          ctx.moveTo(fx - 13, b.suelo);
+          ctx.quadraticCurveTo(fx - 4, b.suelo - h * 0.6, fx + (f - 1) * 4, b.suelo - h);
+          ctx.quadraticCurveTo(fx + 6, b.suelo - h * 0.5, fx + 13, b.suelo);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.globalAlpha = 0.6;
+        ctx.drawImage(arte.brillos.ambar, x - 10, b.suelo - 90, b.ancho + 20, 100);
+      }
+    }
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
   }
 
   private fran(t: number) {

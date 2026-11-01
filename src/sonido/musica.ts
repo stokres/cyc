@@ -65,6 +65,9 @@ import unaMasTeatro from './una-mas-teatro.mp3?url';
 import unaMasMiniboss from './una-mas-miniboss.mp3?url';
 import unaMasJefe from './una-mas-jefe.mp3?url';
 import unaMasRescate from './una-mas-rescate.mp3?url';
+import unaMasPista from './una-mas-pista.mp3?url';
+import unaMasDJ from './una-mas-dj.mp3?url';
+import unaMasGrifo from './una-mas-grifo.mp3?url';
 
 export const MUSICA = {
   /** The farm polka on banjo, from Guille's radio (banjo.py radio). */
@@ -192,6 +195,16 @@ export const MUSICA = {
   unaMasJefe: { url: unaMasJefe, entrada: 0, inicio: 4, fin: 188 },
   /** Played once with Sound.efecto (`inicio` and `fin` are not used): the fanfare for rescuing a friend and winning a skill, the chant in D major (7.2 s, its tail fades out). */
   unaMasRescate: { url: unaMasRescate, inicio: 0, fin: 7.2 },
+  /** Zone 3, La Pista de Baile (a surreal disco): B minor, 120 bpm, 88 bars (176 s loop): four on the floor, rolling bass, disco strings, brass, harpsichord and the chant as a drop. */
+  unaMasPista: { url: unaMasPista, entrada: 0, inicio: 4, fin: 180 },
+  /**
+   * El DJ (boss): F minor, 124 bpm, 80 bars (154.839 s loop). Landmarks in seconds from the loop start (add `inicio` = 3.870975 for the
+   * file time of the first pass): build-up 1 from 30.968 (its cut, all silent, 45.484-46.452), DROP 1 at 46.452, the chant at 61.935, the break
+   * at 77.419, build-up 2 from 92.903 (cut 106.935-108.387), DROP 2 at 108.387, the chant at full at 123.871, the way back at 139.355.
+   */
+  unaMasDJ: { url: unaMasDJ, entrada: 0, inicio: 3.870975, fin: 158.709683 },
+  /** Zone 5, El Grifo (the tap-room before the last boss): C minor, 100 bpm, 72 bars (172.8 s loop): drips, bubbles, organ pipes, the heroic tune in tutti. */
+  unaMasGrifo: { url: unaMasGrifo, entrada: 0, inicio: 4.8, fin: 177.6 },
 } as const;
 
 export type Pista = keyof typeof MUSICA;

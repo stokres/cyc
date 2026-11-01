@@ -5,7 +5,7 @@ import type { SonidoMinijuego } from '../core/audio';
 import { MUSICA, type Pista } from '../sonido/musica';
 
 /** The zone themes, the mini-boss, the final boss and the rescue theme (the music agent registers them in src/sonido/musica.ts): register them in musica.ts under these names (tools/musica makes the files). */
-const PISTAS = { recibidor: 'unaMasExplora', bandeja: 'unaMasExplora', grifo: 'unaMasJardin', jardin: 'unaMasJardin', teatro: 'unaMasTeatro', miniboss: 'unaMasMiniboss', jefe: 'unaMasJefe', rescate: 'unaMasRescate' } as const;
+const PISTAS = { recibidor: 'unaMasExplora', pista: 'unaMasPista', grifo: 'unaMasGrifo', jardin: 'unaMasJardin', teatro: 'unaMasTeatro', miniboss: 'unaMasMiniboss', dj: 'unaMasDJ', jefe: 'unaMasJefe', rescate: 'unaMasRescate' } as const;
 export type PistaUnaMas = keyof typeof PISTAS;
 
 const hay = (id: string) => id in MUSICA;
@@ -211,6 +211,56 @@ export class SonidoUnaMas {
     this.t(55, 0.5, 'sine', 0.2, 0, 0.4);
     this.r(0.4, 0.14, 700);
     this.t(130, 0.3, 'square', 0.05, 0, 0.4);
+  }
+
+  /** The mirror ball starts its sweep: a rising electric whine. */
+  haz() {
+    this.con(1.6, () => {
+      this.t(900, 0.9, 'sawtooth', 0.02, 0, 0.45);
+      this.t(1800, 0.9, 'sine', 0.018, 0.02, 0.45);
+      this.r(0.3, 0.03, 6000);
+    });
+  }
+
+  /** A shot glass hops: a short plop. */
+  chupa() {
+    this.t(380, 0.1, 'sine', 0.04, 0, 1.8);
+    this.t(760, 0.06, 'triangle', 0.02, 0.02, 1.4);
+  }
+
+  /** A speaker's pulse: a bass thump. */
+  pulso() {
+    this.con(2.2, () => {
+      this.t(70, 0.35, 'sine', 0.2, 0, 0.5);
+      this.t(140, 0.2, 'square', 0.04, 0, 0.5);
+      this.r(0.15, 0.06, 500);
+    });
+  }
+
+  /** The DJ throws a vinyl: a scratch and a whoosh. */
+  vinilo() {
+    this.con(2.0, () => {
+      this.r(0.28, 0.06, 2600);
+      this.t(1400, 0.22, 'sawtooth', 0.03, 0, 0.35);
+      this.t(500, 0.2, 'triangle', 0.03, 0.04, 2.2);
+    });
+  }
+
+  /** A vinyl sent back: a bright ring. */
+  parry() {
+    this.con(2.4, () => {
+      [988, 1319, 1760].forEach((f, i) => this.t(f, 0.3, 'triangle', 0.06, i * 0.04));
+      this.t(2637, 0.4, 'sine', 0.03, 0.1);
+      this.r(0.08, 0.05, 5000);
+    });
+  }
+
+  /** The floor burns: a hiss and a low roar. */
+  llama() {
+    this.con(2.0, () => {
+      this.r(0.5, 0.09, 1400);
+      this.t(90, 0.5, 'sawtooth', 0.05, 0, 0.6);
+    });
   }
 
   jefeEntra() {

@@ -5,7 +5,8 @@
 import { dialogo, texto, type Linea } from '../juego/textos';
 import { type Arte } from './arte';
 import { DON, HABILIDADES, PRIMERA_SALA, SALAS, TILE, ZONAS, type Amigo, type Habilidad, type PlataformaDef, type Sala, type Zona } from './datos';
-import { crearEnemigo, actualizarEnemigos, actualizarProyectiles, esJefe, type Charco, type Enem, type Proyectil } from './enemigos';
+import { colgante, crearEnemigo, actualizarEnemigos, actualizarProyectiles, esJefe, type Charco, type Enem, type Proyectil } from './enemigos';
+import { Baldosas, devolverVinilos } from './pista';
 import type { Mandos } from './entrada';
 import { chocaRect, crearRejilla, haySuelo, moverX, moverY, sueloEn, tocaPinchos, type Caja, type Rejilla } from './fisica';
 import { Efectos } from './fx';
@@ -196,6 +197,10 @@ export class Mundo {
   puertas: PuertaViva[] = [];
   carteles: CartelVivo[] = [];
   jefe: Enem | null = null;
+  /** EL DJ's lit floor (only in his arena while the fight lasts). */
+  pista: Baldosas | null = null;
+  /** A shove from a speaker's pulse: speed (units/s, it fades) and seconds left. */
+  empuje = { v: 0, t: 0 };
   /** LA ÚLTIMA, the final boss (jefe-ultima.ts), only in the room `grifo-jefe`. */
   ultima: Ultima | null = null;
   /** The fight: 0 not started, 1 on, 2 won. */
@@ -301,6 +306,8 @@ export class Mundo {
     this.charcos = [];
     this.proy = [];
     this.jefe = null;
+    this.pista = null;
+    this.empuje = { v: 0, t: 0 };
     // LA ÚLTIMA: the arena of the final boss.
     this.ultima = s.ultima && !this.prog.hechos.has('ultima') ? new Ultima(this) : null;
     this.pelea = this.prog.hechos.has(`${s.id}.gran.0`) ? 2 : 0;
@@ -328,6 +335,7 @@ export class Mundo {
       b.estado = 'dormido';
       this.enems.push(b);
       this.jefe = b;
+      if (b.tipo === 'dj') this.pista = new Baldosas(this);
       // Until it is beaten, the way on is shut.
       this.cerrarPuerta(s.jefe.puertas[1], true);
     }
@@ -384,6 +392,8 @@ export class Mundo {
   private objetivoCamara(): [number, number] {
     // LA ÚLTIMA: the arena has a fixed camera.
     if (this.sala.ultima) return Ultima.camara(this);
+    // EL DJ's arena: centred, with the bottom of the room on the bottom of the view.
+    if (this.sala.camaraFija) return [this.W / 2 - this.vw / 2, this.H - this.vh];
     const j = this.j;
     let cx = j.x + this.cam.mira - this.vw / 2;
     let cy = j.y - this.vh * 0.62 + (j.vy > 700 ? 70 : 0);
@@ -639,6 +649,12 @@ export class Mundo {
 
     // ---- move through the tiles
     const paso = { bajar: j.bajarT > 0, falsos: true, telones: true };
+    // A speaker's pulse shoves Fran back whatever he is doing (he can walk against it).
+    if (this.empuje.t > 0) {
+      this.empuje.t -= d;
+      this.empuje.v *= Math.max(0, 1 - d * 3.2);
+      moverX(this.rej, j, this.empuje.v * d, paso);
+    }
     if (moverX(this.rej, j, j.vx * d, paso)) j.vx = 0;
     const antesVy = j.vy;
     const yAntes = j.y;
@@ -691,6 +707,10 @@ export class Mundo {
 
     // ---- the world
     actualizarEnemigos(this, d);
+    if (this.pista) {
+      const e = this.jefe;
+      this.pista.actualizar(this, d, e?.fase ?? 1, this.pelea === 1 && !!e && !e.muerto && e.estado !== 'alerta' && e.estado !== 'dormido');
+    }
     actualizarProyectiles(this, d);
     this.ultima?.actualizar(d);
     for (const c of this.charcos) c.vida -= d;
@@ -797,6 +817,8 @@ export class Mundo {
       }
       if (j.atq >= 0.06 && j.atq <= 0.2) {
         this.golpear(j.x - j.cara * 8, j.x + j.cara * 104, j.y - ALTO - 12, j.y + 6, 1, false);
+        // The vinyls of the DJ: a swing that meets one sends it back.
+        if (this.pista) devolverVinilos(this, Math.min(j.x - j.cara * 24, j.x + j.cara * 118), Math.max(j.x - j.cara * 24, j.x + j.cara * 118), j.y - ALTO - 20, j.y + 14);
         this.ultima?.golpe(j.x - j.cara * 8, j.x + j.cara * 104, j.y - ALTO - 12, j.y + 6);
         // Chuchi's skill: the ordinary swing breaks the «NO» blocks it reaches.
         if (this.tiene('teclazo')) this.romperBloques(Math.min(j.x - j.cara * 8, j.x + j.cara * 104), Math.max(j.x - j.cara * 8, j.x + j.cara * 104), j.y - ALTO - 12, j.y - 4);
@@ -812,6 +834,8 @@ export class Mundo {
     const xb = Math.max(x0, x1);
     for (const e of this.enems) {
       if (e.muerto || e.estado === 'dormido' || j.golpeados.has(e)) continue;
+      // The DJ is up in his booth: the jarrazo does not reach him (only a vinyl sent back does).
+      if (e.tipo === 'dj') continue;
       if (xb < e.x - e.hw || xa > e.x + e.hw || y1 < e.y - e.h || y0 > e.y) continue;
       j.golpeados.add(e);
       this.herirEnemigo(e, dano, fuerte);
@@ -824,10 +848,15 @@ export class Mundo {
     e.hurtT = 0.12;
     const pesado = esJefe(e) ? 0.18 : 1;
     e.vx = j.cara * (fuerte ? 520 : 330) * pesado;
-    e.kx = esJefe(e) ? 0 : e.tipo === 'sobre' ? 0 : 0.22;
-    e.vy = esJefe(e) || e.tipo === 'sobre' ? e.vy : -140;
+    e.kx = esJefe(e) || colgante(e) ? 0 : 0.22;
+    e.vy = esJefe(e) || colgante(e) ? e.vy : -140;
     const px = Math.max(e.x - e.hw, Math.min(e.x + e.hw, j.x + j.cara * 60));
     const py = e.y - e.h * 0.55;
+    if (e.tipo === 'altavoz' && e.hp > 0) {
+      // Hit, a speaker goes quiet for a while.
+      e.estado = 'mareo';
+      e.t = 2.2;
+    }
     this.fx.golpe(px, py, j.cara, fuerte);
     this.snd.golpe(fuerte);
     if (!fuerte && j.suelo) j.vx -= j.cara * 70;
@@ -840,7 +869,7 @@ export class Mundo {
 
   matar(e: Enem) {
     e.muerto = true;
-    const col = e.tipo === 'despertador' ? '#ff8a46' : e.tipo === 'reloj' ? '#8a7aff' : e.tipo === 'sobre' ? '#f6ead0' : e.tipo === 'no' ? '#e8453c' : e.tipo === 'bandeja' ? '#f2c63a' : e.tipo === 'apuntador' ? '#b08aff' : '#ff5a7a';
+    const col = e.tipo === 'despertador' ? '#ff8a46' : e.tipo === 'reloj' ? '#8a7aff' : e.tipo === 'sobre' ? '#f6ead0' : e.tipo === 'no' ? '#e8453c' : e.tipo === 'dj' ? '#ff4fa8' : e.tipo === 'bola' ? '#d8e4ff' : e.tipo === 'chupito' ? '#9be04a' : e.tipo === 'altavoz' ? '#8a7aff' : e.tipo === 'apuntador' ? '#b08aff' : '#ff5a7a';
     const grande = esJefe(e);
     this.fx.muerteEnemigo(e.x, e.y - e.h * 0.5, col, grande);
     this.snd.muerteEnemigo(grande);
@@ -859,6 +888,7 @@ export class Mundo {
       this.fx.camaraLenta(0.28, 1.6);
       this.fx.destello(0.7, '#fff6d8');
       this.proy = [];
+      this.pista = null;
       this.snd.parar(1.2);
     }
   }
@@ -1142,7 +1172,7 @@ export class Mundo {
     for (const e of this.enems) {
       if (e.muerto || this.estado !== 'jugando') continue;
       if (Math.abs(e.x - j.x) < 380 && Math.abs(e.y - j.y) < 160) {
-        const clave = e.tipo === 'despertador' || e.tipo === 'reloj' || e.tipo === 'sobre' || e.tipo === 'no' ? e.tipo : '';
+        const clave = e.tipo === 'despertador' || e.tipo === 'reloj' || e.tipo === 'sobre' || e.tipo === 'no' || e.tipo === 'bola' || e.tipo === 'chupito' || e.tipo === 'altavoz' ? e.tipo : '';
         if (clave && !this.vistos.has(clave)) {
           this.vistos.add(clave);
           this.hablar(clave);
@@ -1165,7 +1195,7 @@ export class Mundo {
         this.bannerJefe = { titulo: texto(`jefe.${tj}`), sub: texto(`jefe.${tj}.sub`), t: 0 };
         this.snd.jefeEntra();
         this.fx.sacudir(6);
-        this.snd.musica('miniboss');
+        this.snd.musica(tj === 'dj' ? 'dj' : 'miniboss');
         if (this.jefe) {
           this.jefe.estado = 'alerta';
           this.jefe.t = 0;
@@ -1312,6 +1342,12 @@ export class Mundo {
   }
 
   // ---------------------------------------------------------------- test helpers
+
+  /** A speaker's pulse: Fran is shoved away from it (`dir` is the way he goes). */
+  empujar(dir: 1 | -1) {
+    this.empuje = { v: dir * 400, t: 0.5 };
+    this.fx.polvo(this.j.x, this.j.y, 4, 10);
+  }
 
   /** Where the first free tile is, for the tests: look ahead of Fran at `dx` units. */
   mirar(dx: number) {

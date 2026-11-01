@@ -1,7 +1,7 @@
 // The enemies of «Una más» and their simple brains. Each one is a little state machine (`estado`, `t` = seconds left in it):
 //  - sobre de EL TRABAJO: flies in formation (a swarm sharing one sway), and dives at Fran one after another.
 //  - NO gigante: bounces along the floor and turns at the walls.
-//  - La Bandeja Llena (zone 3's mini-boss): the Gran Despertador's moves plus a rain of letters and a swarm of envelopes.
+//  - bola de discoteca, chupito y altavoz (zone 3, La Pista de Baile) and EL DJ (its mini-boss): pista.ts.
 //  - El Apuntador (zone 4's): teleports between posts, throws scripts and calls spotlights that drop giant NOs.
 
 //  - despertador de MAÑANA: patrols; when Fran comes close it rings (a telegraph), charges, and gets dizzy against the wall.
@@ -11,6 +11,7 @@ import type { TipoEnemigo } from './datos';
 import { TILE } from './datos';
 import { chocaRect, moverX, moverY, sueloEn, type Caja } from './fisica';
 import type { Mundo } from './mundo';
+import { altavoz, bola, chupito, dj, pulso, vinilo } from './pista';
 
 export interface Enem extends Caja {
   tipo: TipoEnemigo;
@@ -43,6 +44,11 @@ export interface Enem extends Caja {
   y0: number;
   /** Opacity (El Apuntador fades while he teleports). */
   alfa: number;
+  /** Mirror ball: the angle of its beam now (from straight down, to the right), where the sweep ends and where it starts, and the beam's length. El DJ: `b` is the time since his throw. */
+  a: number;
+  b: number;
+  c: number;
+  l: number;
 }
 
 export interface Charco {
@@ -54,7 +60,7 @@ export interface Charco {
 }
 
 export interface Proyectil {
-  tipo: 'onda' | 'aro' | 'sobre' | 'guion' | 'foco';
+  tipo: 'onda' | 'aro' | 'guion' | 'foco' | 'vinilo' | 'pulso';
   x: number;
   y: number;
   vx: number;
@@ -62,6 +68,8 @@ export interface Proyectil {
   r: number;
   vida: number;
   t: number;
+  /** A vinyl: where it will land. */
+  tx?: number;
 }
 
 const DEF: Record<TipoEnemigo, { hw: number; h: number; hp: number }> = {
@@ -70,25 +78,31 @@ const DEF: Record<TipoEnemigo, { hw: number; h: number; hp: number }> = {
   gran: { hw: 52, h: 112, hp: 14 },
   sobre: { hw: 24, h: 34, hp: 1 },
   no: { hw: 36, h: 54, hp: 3 },
-  bandeja: { hw: 52, h: 142, hp: 16 },
+  bola: { hw: 28, h: 56, hp: 2 },
+  chupito: { hw: 20, h: 44, hp: 2 },
+  altavoz: { hw: 30, h: 96, hp: 3 },
+  dj: { hw: 64, h: 120, hp: 14 },
   apuntador: { hw: 30, h: 132, hp: 14 },
 };
 
 /** The mini-bosses. */
-export const esJefe = (e: { tipo: TipoEnemigo }) => e.tipo === 'gran' || e.tipo === 'bandeja' || e.tipo === 'apuntador';
+export const esJefe = (e: { tipo: TipoEnemigo }) => e.tipo === 'gran' || e.tipo === 'dj' || e.tipo === 'apuntador';
+
+/** Enemies that hang or fly: a hit does not knock them about or make them fall. */
+export const colgante = (e: { tipo: TipoEnemigo }) => e.tipo === 'sobre' || e.tipo === 'bola' || e.tipo === 'dj';
 
 export function crearEnemigo(tipo: TipoEnemigo, id: string, x: number, y: number): Enem {
   const d = DEF[tipo];
   return {
     tipo, id, x, y, hw: d.hw, h: d.h, vx: 0, vy: 0, hp: d.hp, hpMax: d.hp, dir: Math.random() < 0.5 ? 1 : -1, estado: tipo === 'reloj' ? 'repta' : tipo === 'no' ? 'bota' : 'patrulla',
-    t: 0.4 + Math.random(), animT: Math.random() * 3, hurtT: 0, kx: 0, muerto: false, suelo: false, cd: 0, goteo: 1 + Math.random() * 1.2, turno: 0, fase: 1, cola: [], x0: x, y0: y, alfa: 1,
+    t: 0.4 + Math.random(), animT: Math.random() * 3, hurtT: 0, kx: 0, muerto: false, suelo: false, cd: 0, goteo: 1 + Math.random() * 1.2, turno: 0, fase: 1, cola: [], x0: x, y0: y, alfa: 1, a: 0, b: 0, c: 0, l: 0,
   };
 }
 
 const G = 2600;
 
 /** Gravity and the tiles for an enemy. Returns true if it hit a wall moving sideways. */
-function fisica(m: Mundo, e: Enem, d: number): boolean {
+export function fisica(m: Mundo, e: Enem, d: number): boolean {
   e.vy = Math.min(1100, e.vy + G * d);
   const muro = moverX(m.rej, e, e.vx * d);
   const r = moverY(m.rej, e, e.vy * d);
@@ -123,6 +137,10 @@ export function actualizarEnemigos(m: Mundo, d: number) {
     else if (e.tipo === 'sobre') sobre(m, e, d);
     else if (e.tipo === 'no') no(m, e, d);
     else if (e.tipo === 'apuntador') apuntador(m, e, d);
+    else if (e.tipo === 'bola') bola(m, e, d);
+    else if (e.tipo === 'chupito') chupito(m, e, d);
+    else if (e.tipo === 'altavoz') altavoz(m, e, d);
+    else if (e.tipo === 'dj') dj(m, e, d);
     else gran(m, e, d);
     // Contact damage.
     if (danaAlContacto(e) && j.inv <= 0 && m.estado === 'jugando') {
@@ -136,10 +154,10 @@ export function actualizarEnemigos(m: Mundo, d: number) {
 }
 
 function danaAlContacto(e: Enem): boolean {
-  if (e.tipo === 'reloj' || e.tipo === 'sobre' || e.tipo === 'no') return true;
-  if (e.tipo === 'apuntador') return false;
+  if (e.tipo === 'reloj' || e.tipo === 'sobre' || e.tipo === 'no' || e.tipo === 'chupito') return true;
+  if (e.tipo === 'apuntador' || e.tipo === 'bola' || e.tipo === 'altavoz' || e.tipo === 'dj') return false;
   if (e.tipo === 'despertador') return e.estado !== 'mareo';
-  return e.estado === 'carga' || e.estado === 'espera' || e.estado === 'salta' || e.estado === 'agacha' || e.estado === 'alerta' || e.estado === 'ring' || e.estado === 'aterriza' || e.estado === 'lluvia' || e.estado === 'oleada';
+  return e.estado === 'carga' || e.estado === 'espera' || e.estado === 'salta' || e.estado === 'agacha' || e.estado === 'alerta' || e.estado === 'ring' || e.estado === 'aterriza';
 }
 
 // ---------------------------------------------------------------- the alarm clock
@@ -449,12 +467,10 @@ function siguienteApuntador(m: Mundo, e: Enem) {
   }
 }
 
-// ---------------------------------------------------------------- the Gran Despertador (and La Bandeja Llena, who moves the same)
+// ---------------------------------------------------------------- the Gran Despertador
 
 const ATAQUES_1 = ['carga', 'salto', 'carga', 'salto', 'salto'];
 const ATAQUES_2 = ['carga', 'ring', 'salto', 'ring', 'carga', 'salto'];
-const ATAQUES_B1 = ['carga', 'lluvia', 'salto', 'oleada', 'lluvia', 'carga'];
-const ATAQUES_B2 = ['lluvia', 'carga', 'oleada', 'salto', 'lluvia', 'lluvia', 'oleada'];
 
 function gran(m: Mundo, e: Enem, d: number) {
   const j = m.j;
@@ -556,52 +572,6 @@ function gran(m: Mundo, e: Enem, d: number) {
         e.t = f2 ? 0.4 : 0.65;
       }
       break;
-    case 'lluvia': {
-      // La Bandeja Llena spits letters, low and high.
-      e.vx = 0;
-      fisica(m, e, d);
-      e.dir = j.x >= e.x ? 1 : -1;
-      for (const r of e.cola) r.t -= d;
-      while (e.cola.length && e.cola[0].t <= 0) {
-        const r = e.cola.shift()!;
-        m.proy.push({ tipo: 'sobre', x: e.x + e.dir * 60, y: e.y - r.h, vx: e.dir * (f2 ? 360 : 310), vy: 0, r: 0, vida: 4, t: 0 });
-        m.snd.embiste();
-        m.fx.onda(e.x + e.dir * 60, e.y - r.h, 7, '#fff3d0', 12, 0.3);
-        m.fx.sacudir(2);
-      }
-      if (e.t <= 0 && !e.cola.length) {
-        e.estado = 'espera';
-        e.t = 0.6;
-      }
-      break;
-    }
-    case 'oleada': {
-      // The flap goes up and a swarm of envelopes comes out.
-      e.vx = 0;
-      fisica(m, e, d);
-      e.dir = j.x >= e.x ? 1 : -1;
-      if (e.goteo === 0 && e.t < 0.8) {
-        e.goteo = 1;
-        const vivos = m.enems.filter((x) => x.tipo === 'sobre' && !x.muerto).length;
-        const n = Math.max(0, Math.min(f2 ? 4 : 3, 6 - vivos));
-        const cx = m.W * (0.35 + Math.random() * 0.3);
-        for (let i = 0; i < n; i++) {
-          const s = crearEnemigo('sobre', `${e.id}.s${e.turno}.${i}`, cx + (i - (n - 1) / 2) * 62, e.y - 108 - Math.abs(i - (n - 1) / 2) * 20);
-          s.turno = i;
-          s.cd = 1.2 + i * 0.45;
-          m.enems.push(s);
-          m.fx.onda(s.x, s.y - 14, 8, '#fff3d0', 10, 0.35);
-        }
-        m.snd.riiing();
-        m.fx.sacudir(4);
-      }
-      if (Math.random() < d * 20) m.fx.chispas(e.x, e.y - e.h, 1, 0, 200, '#fff3d0', Math.PI * 2);
-      if (e.t <= 0) {
-        e.estado = 'espera';
-        e.t = f2 ? 0.8 : 1.1;
-      }
-      break;
-    }
     case 'ring': {
       e.vx = 0;
       fisica(m, e, d);
@@ -626,21 +596,9 @@ function gran(m: Mundo, e: Enem, d: number) {
 }
 
 function siguienteAtaque(m: Mundo, e: Enem) {
-  const bandeja = e.tipo === 'bandeja';
-  const lista = bandeja ? (e.fase === 2 ? ATAQUES_B2 : ATAQUES_B1) : e.fase === 2 ? ATAQUES_2 : ATAQUES_1;
+  const lista = e.fase === 2 ? ATAQUES_2 : ATAQUES_1;
   const a = lista[e.turno++ % lista.length];
-  if (a === 'lluvia') {
-    e.estado = 'lluvia';
-    const alturas = e.fase === 2 ? [38, 128, 83, 38, 128, 38] : [38, 128, 83, 38, 128];
-    e.cola = alturas.map((h, i) => ({ t: 0.6 + i * (e.fase === 2 ? 0.5 : 0.6), h }));
-    e.t = e.cola[e.cola.length - 1].t + 0.3;
-    m.snd.riiing(true);
-  } else if (a === 'oleada') {
-    e.estado = 'oleada';
-    e.t = 1.5;
-    e.goteo = 0;
-    m.snd.riiing();
-  } else if (a === 'carga') {
+  if (a === 'carga') {
     e.estado = 'alerta';
     e.t = e.fase === 2 ? 0.6 : 0.8;
     m.snd.riiing();
@@ -664,6 +622,11 @@ export function actualizarProyectiles(m: Mundo, d: number) {
   for (let i = m.proy.length - 1; i >= 0; i--) {
     const p = m.proy[i];
     p.t += d;
+    // The Pista's: a bass pulse that shoves, a vinyl that flies, rolls and can be sent back.
+    if (p.tipo === 'pulso' || p.tipo === 'vinilo') {
+      if ((p.tipo === 'pulso' ? pulso(m, p, d) : vinilo(m, p, d))) m.proy.splice(i, 1);
+      continue;
+    }
     if (p.tipo === 'guion') p.vy += 1300 * d;
     p.x += p.vx * d;
     p.y += p.vy * d;
@@ -681,18 +644,6 @@ export function actualizarProyectiles(m: Mundo, d: number) {
       continue;
     }
     if (p.tipo === 'foco') continue;
-    if (p.tipo === 'sobre') {
-      // A letter flying straight, spinning.
-      const lado = Math.sign(p.vx);
-      if (chocaRect(m.rej, p.x + lado * 18, p.y - 8, p.x + lado * 22, p.y + 8)) {
-        m.fx.polvo(p.x, p.y, 4, 8, 'rgba(255,240,210,0.7)');
-        m.proy.splice(i, 1);
-        continue;
-      }
-      if (Math.random() < 0.5) m.fx.polvo(p.x - lado * 14, p.y, 1, 4, 'rgba(255,240,210,0.5)');
-      if (Math.abs(j.x - p.x) < 24 + j.hw && j.y > p.y - 18 && j.y - j.h < p.y + 18 && m.estado === 'jugando') m.herir(p.x);
-      continue;
-    }
     if (p.tipo === 'guion') {
       // A script that arcs and bounces once on the floor.
       const lado = Math.sign(p.vx) || 1;

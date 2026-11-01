@@ -16,7 +16,7 @@ function azar(semilla: number) {
 
 const hash = (s: string) => [...s].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
 
-type Estilo = 'moqueta' | 'hierba' | 'papel' | 'tablas' | 'espuma';
+type Estilo = 'moqueta' | 'hierba' | 'pista' | 'tablas' | 'espuma';
 
 interface Mat {
   estilo: Estilo;
@@ -35,7 +35,7 @@ interface Mat {
 const MATERIAL: Record<Zona, Mat> = {
   recibidor: { estilo: 'moqueta', fondo: '#10051f', luz: '#4a2a6a', borde: '#ffe0a0', top: ['#b8404e', '#e0706a', '#f2a65a'], veta: ['#ffd9b0', '#07020f'], repisa: '#7a4a56', pinchos: '#e0336f' },
   jardin: { estilo: 'hierba', fondo: '#0c0420', luz: '#40286a', borde: '#c8ffd0', top: ['#2f8a5a', '#4cc27a', '#9aeaa0'], veta: ['#d8b8ff', '#06021a'], repisa: '#5a3e86', pinchos: '#ff4fa8' },
-  bandeja: { estilo: 'papel', fondo: '#0d0b26', luz: '#3a3a72', borde: '#fff4e0', top: ['#d8d0f0', '#f2ecff', '#c6bde6'], veta: ['#e0d8ff', '#05041a'], repisa: '#5a5a98', pinchos: '#ff5a7a' },
+  pista: { estilo: 'pista', fondo: '#0e0620', luz: '#4a2a7a', borde: '#ffd0f4', top: ['#5a2a8a', '#9a4ac0', '#d27ae8'], veta: ['#e0b8ff', '#05021a'], repisa: '#5a3a8a', pinchos: '#ff5a7a' },
   teatro: { estilo: 'tablas', fondo: '#14040f', luz: '#5a2038', borde: '#ffd890', top: ['#8a4a2a', '#b8703a', '#6a3420'], veta: ['#ffc8a0', '#0a0208'], repisa: '#7a3a3a', pinchos: '#ff6a4a' },
   grifo: { estilo: 'espuma', fondo: '#10051c', luz: '#4a2650', borde: '#fff6d8', top: ['#ffe9b0', '#fff6dc', '#ffd070'], veta: ['#ffd9a0', '#08020f'], repisa: '#7a4a5a', pinchos: '#ff5a4a' },
 };
@@ -358,7 +358,7 @@ export function hornearPlataforma(zona: Zona, w: number, tipo: 'mueve' | 'sube' 
 // ---------------------------------------------------------------- the top edge, by zone
 
 function borde(x: CanvasRenderingContext2D, mat: Mat, r: () => number, x0: number, x1: number, y: number, ancho: number) {
-  const paso = mat.estilo === 'hierba' ? 7 : mat.estilo === 'espuma' ? 11 : mat.estilo === 'papel' ? 16 : 20;
+  const paso = mat.estilo === 'hierba' ? 7 : mat.estilo === 'espuma' ? 11 : mat.estilo === 'pista' ? 16 : 20;
   // The line of the surface wanders a few units and the grown layer hangs from it with a ragged lower edge.
   const arriba: [number, number][] = [];
   const abajo: [number, number][] = [];
@@ -468,33 +468,27 @@ function borde(x: CanvasRenderingContext2D, mat: Mat, r: () => number, x0: numbe
       x.globalAlpha = 1;
       break;
     }
-    case 'papel': {
-      // A stack of sheets: thin strips with small offsets, and the odd red stamp.
-      for (let i = 0; i < 3; i++) {
-        x.fillStyle = i % 2 ? 'rgba(255,255,255,0.35)' : 'rgba(120,110,170,0.4)';
-        x.fillRect(x0 + (i % 2) * 3, y + 5 + i * 4.5, largo - (i % 2) * 5, 1.8);
+    case 'pista': {
+      // Dance-floor tiles: a row of lit squares in four colours, each with a bright top edge, and a thin dark joint between them.
+      const COL = ['#ff4fa8', '#46e0d0', '#ffd23a', '#9a7cff'];
+      const lado = 16;
+      const n0 = Math.floor(x0 / lado);
+      for (let px = n0 * lado; px < x1; px += lado) {
+        const a = Math.max(px, x0);
+        const b = Math.min(px + lado, x1);
+        if (b - a < 2) continue;
+        const k = Math.floor(px / lado);
+        x.fillStyle = COL[(k * 7 + ((k * 13) % 3)) % 4];
+        x.globalAlpha = k % 2 ? 0.95 : 0.68;
+        x.fillRect(a, y + 1, b - a - 1, 10);
+        x.globalAlpha = 0.5;
+        x.fillStyle = '#ffffff';
+        x.fillRect(a, y + 1, b - a - 1, 2);
+        x.globalAlpha = 0.3;
+        x.fillStyle = '#10052e';
+        x.fillRect(a, y + 8, b - a - 1, 3);
       }
-      for (let i = 0; i < largo / 55; i++) {
-        const px = x0 + 10 + r() * (largo - 20);
-        x.fillStyle = 'rgba(210,60,90,0.8)';
-        x.beginPath();
-        x.arc(px, y + 8, 3, 0, 6.3);
-        x.fill();
-      }
-      // Envelope flaps peeking over the edge.
-      for (let i = 0; i < largo / 90; i++) {
-        const px = x0 + 14 + r() * (largo - 40);
-        x.fillStyle = mat.top[1];
-        x.beginPath();
-        x.moveTo(px, y + 2);
-        x.lineTo(px + 11, y - 9 - r() * 4);
-        x.lineTo(px + 22, y + 2);
-        x.closePath();
-        x.fill();
-        x.strokeStyle = 'rgba(80,70,130,0.5)';
-        x.lineWidth = 1;
-        x.stroke();
-      }
+      x.globalAlpha = 1;
       break;
     }
     case 'tablas': {
@@ -623,9 +617,12 @@ function repisa(x: CanvasRenderingContext2D, mat: Mat, r: () => number, x0: numb
   } else if (mat.estilo === 'tablas') {
     x.fillStyle = 'rgba(150,20,40,0.9)';
     x.fillRect(x0 + 6, y + 6, w - 12, 3);
-  } else if (mat.estilo === 'papel') {
-    x.fillStyle = 'rgba(255,255,255,0.5)';
-    x.fillRect(x0 + 8, y + 4, w - 16, 1.8);
+  } else if (mat.estilo === 'pista') {
+    const COL = ['#ff4fa8', '#46e0d0', '#ffd23a', '#9a7cff'];
+    for (let px = x0 + 8, k = 0; px < x0 + w - 12; px += 14, k++) {
+      x.fillStyle = COL[k % 4];
+      x.fillRect(px, y + 2, 12, 5);
+    }
   } else {
     for (let px = x0 + 10; px < x0 + w - 8; px += 14 + r() * 10) {
       x.beginPath();

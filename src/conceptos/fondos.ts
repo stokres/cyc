@@ -18,14 +18,17 @@ export const FONDOS_PINTADOS: Partial<Record<Zona, (string | undefined)[]>> = {}
 import urlRecibidor from './fondos/recibidor.webp?url';
 import urlRecibidorBoca from './fondos/recibidor-boca.webp?url';
 import urlJardin from './fondos/jardin.webp?url';
-import urlBandeja from './fondos/bandeja.webp?url';
+import urlPista from './fondos/pista.webp?url';
+import urlPistaJefe from './fondos/pista-jefe.webp?url';
 import urlTeatro from './fondos/teatro.webp?url';
 import urlGrifo from './fondos/grifo.webp?url';
 
 /** Painted backdrop of each zone (`grifo`, the boss arena with its own bar counter, is for a fixed camera and is used when that room exists). */
-export const CIELOS_PINTADOS = { recibidor: urlRecibidor, jardin: urlJardin, bandeja: urlBandeja, teatro: urlTeatro, grifo: urlGrifo } as const;
+export const CIELOS_PINTADOS = { recibidor: urlRecibidor, jardin: urlJardin, pista: urlPista, teatro: urlTeatro, grifo: urlGrifo } as const;
 /** The first room of the Recibidor, inside Vero's mouth (arch of teeth). */
 const CIELO_BOCA = urlRecibidorBoca;
+/** The DJ's arena (pista-5): the dance floor with his booth, fixed behind the fight. */
+const CIELO_DJ = urlPistaJefe;
 
 export interface Capa {
   img: CanvasImageSource;
@@ -54,7 +57,7 @@ export interface Fondo {
   /** Colour of the motes of light that float. */
   motas: string[];
   /** The painted backdrops already decoded (the zone's, and the mouth variant of the first room). */
-  pint?: { normal?: HTMLImageElement; boca?: HTMLImageElement };
+  pint?: { normal?: HTMLImageElement; boca?: HTMLImageElement; dj?: HTMLImageElement };
 }
 
 export const LW = 1280;
@@ -100,13 +103,13 @@ const PALETA: Record<Zona, Pal> = {
     niebla: '#a868a8',
     rayos: '#ffe2b0',
   },
-  bandeja: {
-    cielo: ['#14123a', '#2e2e6e', '#5a5a9a', '#9a96c0', '#d8cde4'],
-    sol: '#fff0d8',
-    cuerpo: ['#6a68a0', '#4a4882', '#303060', '#16153a'],
-    borde: ['#e8e0ff', '#ffd9c0', '#ffe0a8', '#ffe8b0'],
-    niebla: '#9a94c8',
-    rayos: '#ffe8c0',
+  pista: {
+    cielo: ['#12052b', '#3a1068', '#7a2a9a', '#c24ab0', '#ff8ad0'],
+    sol: '#ffd6f4',
+    cuerpo: ['#5a2a8a', '#3e1a6c', '#2a1050', '#150630'],
+    borde: ['#ff9ec0', '#46e0d0', '#ffcf6a', '#ffcf6a'],
+    niebla: '#a050c0',
+    rayos: '#ffd9f0',
   },
   teatro: {
     cielo: ['#2a0a1e', '#5a1a38', '#8a2a4a', '#b8505a', '#e89a6a'],
@@ -500,18 +503,14 @@ function frente(z: Zona, pal: Pal): HTMLCanvasElement {
     x.lineTo(LW, 0);
     x.closePath();
     x.fill();
-  } else if (z === 'bandeja') {
-    // Stacks of letters leaning in from the sides and cables hanging from the top.
+  } else if (z === 'pista') {
+    // Stage rigging: cables, spotlight cans hanging from the top and the dark tops of speaker stacks leaning in from the sides.
     for (const lado of [0, 1]) {
-      for (let i = 0; i < 7; i++) {
-        const w = 70 + r() * 60;
-        const h = 26 + r() * 34 + i * 5;
-        const x0 = lado ? LW - w - i * 22 : i * 22;
-        x.save();
-        x.translate(x0 + w / 2, LH);
-        x.rotate((lado ? -1 : 1) * (0.02 + r() * 0.05));
-        x.fillRect(-w / 2, -h, w, h);
-        x.restore();
+      for (let i = 0; i < 4; i++) {
+        const w = 46 + r() * 30;
+        const h = 40 + r() * 50 + i * 16;
+        const x0 = lado ? LW - w - i * 26 : i * 26;
+        x.fillRect(x0, 0, w * 0.7, h * 0.5);
       }
     }
     x.strokeStyle = oscuro;
@@ -522,6 +521,13 @@ function frente(z: Zona, pal: Pal): HTMLCanvasElement {
       x.moveTo(cx, 0);
       x.quadraticCurveTo(cx + 40, 70 + r() * 50, cx + 90, 12);
       x.stroke();
+    }
+    for (let i = 0; i < 5; i++) {
+      const cx = 160 + i * 250 + r() * 80;
+      x.fillRect(cx - 2, 0, 4, 34 + r() * 26);
+      x.beginPath();
+      x.roundRect(cx - 16, 56 + r() * 20, 32, 22, 6);
+      x.fill();
     }
   } else if (z === 'teatro') {
     // Heavy velvet curtains on both sides, swagged at the top.
@@ -653,10 +659,11 @@ export function hornearFondo(z: Zona): Fondo {
 export async function aplicarPintados(f: Fondo, sala = ''): Promise<void> {
   if (new URLSearchParams(location.search).get('fondos') === '0') return;
   const boca = f.zona === 'recibidor' && sala === 'recibidor-1';
+  const dj = f.zona === 'pista' && sala === 'pista-5';
   const pint = (f.pint ??= {});
-  const url = boca ? CIELO_BOCA : CIELOS_PINTADOS[f.zona as keyof typeof CIELOS_PINTADOS];
+  const url = boca ? CIELO_BOCA : dj ? CIELO_DJ : CIELOS_PINTADOS[f.zona as keyof typeof CIELOS_PINTADOS];
   if (!url) return;
-  const clave = boca ? 'boca' : 'normal';
+  const clave = boca ? 'boca' : dj ? 'dj' : 'normal';
   if (!pint[clave]) {
     const im = await cargarImagen(url);
     if (!im) {
@@ -672,6 +679,18 @@ export async function aplicarPintados(f: Fondo, sala = ''): Promise<void> {
   const im = pint[clave]!;
   const h = Math.round(VISTA_ALTO * 1.25);
   Object.assign(f.capas[0], { img: im, w: Math.round(h * (im.naturalWidth / im.naturalHeight)), h });
+}
+
+/**
+ * The DJ's arena: the painting sits still behind the fight (centred, its bottom on the bottom of the view; the camera of that room is fixed the same way),
+ * wide enough that the painted booth lands where the DJ stands, and the foreground layer is off. Any other room puts the painting back to normal.
+ */
+export function fijarFondoPista(f: Fondo, activa: boolean) {
+  const c0 = f.capas[0];
+  if (!activa || !c0 || !(c0.img instanceof HTMLImageElement)) return;
+  const w = 1150;
+  Object.assign(c0, { w, h: (w * c0.img.naturalHeight) / c0.img.naturalWidth, f: 0, fija: true });
+  for (const c of f.capas) if (c.frente) c.alfa = 0;
 }
 
 /** Releases the bitmaps of a zone's layers. */

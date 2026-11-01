@@ -12,7 +12,7 @@ const CUERPO = "'Alegreya Sans', sans-serif";
 const TINTA = '#3a2616';
 
 /** Paint colour of each zone on the map. */
-export const COLOR_ZONA: Record<Zona, string> = { recibidor: '#e8935a', jardin: '#5cb86f', bandeja: '#6fa0d8', teatro: '#c25a8a', grifo: '#e8b83a' };
+export const COLOR_ZONA: Record<Zona, string> = { recibidor: '#e8935a', jardin: '#5cb86f', pista: '#c050d8', teatro: '#c25a8a', grifo: '#e8b83a' };
 
 /** A small deterministic noise (0..1) so that the same room is always wobbly in the same way. */
 function ruido(sem: string, i: number): number {

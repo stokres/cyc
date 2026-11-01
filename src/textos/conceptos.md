@@ -21,8 +21,8 @@ zona.recibidor = El Recibidor
 zona.recibidor.sub = Donde cae Fran
 zona.jardin = El Jardín del Cierzo
 zona.jardin.sub = Flores, triángulos y relojes de las tantas
-zona.bandeja = La Bandeja de Entrada
-zona.bandeja.sub = Doce mil correos sin leer
+zona.pista = La Pista de Baile
+zona.pista.sub = Aquí nadie se va a casa
 zona.teatro = El Teatro de los Conceptos
 zona.teatro.sub = Telón arriba, miedo abajo
 zona.grifo = El Grifo
@@ -43,8 +43,10 @@ cartel.cierzo.pc = Cierzo: pulsa Espacio otra vez en el aire
 cartel.cierzo.tactil = Cierzo: pulsa Saltar otra vez en el aire
 cartel.alto.pc = Esa repisa queda muy alta. Ya volverás
 cartel.alto.tactil = Esa repisa queda muy alta. Ya volverás
-cartel.sobres.pc = Los sobres de EL TRABAJO vuelan en bandada y pican uno tras otro. Jarrazo al primero
-cartel.sobres.tactil = Los sobres de EL TRABAJO vuelan en bandada y pican uno tras otro. Jarrazo al primero
+cartel.bola.pc = La bola de discoteca se para, avisa con una raya roja y barre con su haz. Salta o aléjate
+cartel.bola.tactil = La bola de discoteca se para, avisa con una raya roja y barre con su haz. Salta o aléjate
+cartel.altavoz.pc = Los altavoces te empujan hacia atrás con cada pulso. Un jarrazo los calla un rato
+cartel.altavoz.tactil = Los altavoces te empujan hacia atrás con cada pulso. Un jarrazo los calla un rato
 cartel.no.pc = Un bloque de NO. De momento, aquí no se pasa
 cartel.no.tactil = Un bloque de NO. De momento, aquí no se pasa
 cartel.telon.pc = Los telones se atraviesan. Los NO que rebotan, no
@@ -65,6 +67,7 @@ nombre.guille = Guille
 nombre.chuchi = Chuchi
 nombre.pablo = Pablo
 nombre.apuntador = El Apuntador
+nombre.dj = El DJ
 
 // ---------------------------------------------------------------- controles (los rótulos de los botones y de la ayuda de PC)
 
@@ -84,8 +87,8 @@ aviso.secreto = ¡Un muro falso! Había un hueco detrás
 muerte.texto = Una más…
 jefe.gran = El Gran Despertador
 jefe.gran.sub = A las tantas, ni se te ocurra
-jefe.bandeja = LA BANDEJA LLENA
-jefe.bandeja.sub = Responder a todos
+jefe.dj = EL DJ
+jefe.dj.sub = Esta canción es solo para él
 jefe.apuntador = EL APUNTADOR
 jefe.apuntador.sub = Te sopla un texto que no es el tuyo
 
@@ -114,7 +117,7 @@ mapa.leyenda.sorbo = Sorbo
 mapa.leyenda.amigo = Amigo
 mapa.leyenda.jefe = Jefe
 fin.titulo = Y por ahora, hasta aquí
-fin.texto = Fran tiene a Guille en la jarra y el Cierzo. Faltan Chuchi y Pablo: la Bandeja de Entrada y el Teatro de los Conceptos llegan en la próxima entrega.
+fin.texto = Fran tiene a Guille en la jarra y el Cierzo. Faltan Chuchi y Pablo: la Pista de Baile y el Teatro de los Conceptos llegan en la próxima entrega.
 fin.boton = Terminar
 cargando = Despertando en el mundo de los conceptos…
 
@@ -148,6 +151,15 @@ FRAN (contento): ¡Eso por sonar a deshoras!
 
 ## sobre
 FRAN (nervioso): Sobres con colmillos. «EL TRABAJO» viene a por mí y ni siquiera es lunes.
+
+## bola
+FRAN: Una bola de discoteca con mala cara. Si me apunta con esa luz, me quedo en blanco.
+
+## chupito
+FRAN (contento): Un chupito con patas. Ese es de los míos... pero este me quiere pegar.
+
+## altavoz
+FRAN (nervioso): Un altavoz que me empuja con cada golpe de bajo. Hasta la música tiene malas pulgas.
 
 ## no
 FRAN: Un NO gigante que rebota. Cuanto más lo evitas, más grande se pone.
@@ -200,11 +212,11 @@ GUILLE: Cuidado con la fauna: ese reloj tiene cara de mamífero.
 ## comenta.chuchi
 CHUCHI: Llego tarde, pero llego. Dentro de una jarra, pero llego.
 ---
-CHUCHI: Tengo dos hijas y ninguna hace tanto ruido como tú saltando.
+CHUCHI: Dos hijas y ninguna pega botes como tú. Eso sí, yo bailando, mejor.
 ---
-CHUCHI: Esto se arregla reiniciando. ¿Dónde está el botón?
+CHUCHI: Esto se arregla reiniciando. A mí, a la jarra y a la fiesta.
 ---
-CHUCHI: Yo también estoy hasta arriba de correos. Pero aquí son de verdad.
+CHUCHI: En casa dije que iba a por pan. Ya son las tantas y no hay pan.
 ---
 CHUCHI: Mis gafas ya no se empañan. Se emborrachan.
 ---
@@ -212,13 +224,15 @@ CHUCHI: Un día libre. Y me lo paso dentro de una jarra. Increíble.
 ---
 CHUCHI: Esto no tiene copia de seguridad, ¿verdad? No me gusta.
 ---
-CHUCHI: Dame otra caña y te arreglo el router del mundo entero.
+CHUCHI: Dame otra caña y te arreglo el router del mundo entero. Y te bailo algo.
 ---
 CHUCHI: Si mis hijas me ven así, me quitan la paga.
 ---
-CHUCHI: Estaba en una reunión. Ahora estoy en una jarra. Prefiero la jarra.
+CHUCHI: Informático de día, bailarín de noche. Dos currículums y ninguno de fiar.
 ---
-CHUCHI: Ya sé por qué siempre llego tarde: nunca me avisáis de que hay espuma.
+CHUCHI: Si me ves quitarme la camisa, no mires. Es mi forma de celebrar.
+---
+CHUCHI: Estaba en una reunión. Ahora estoy en una jarra. Prefiero la jarra.
 
 ## comenta.pablo
 PABLO: Esto da para una obra en tres actos. Y ya tengo el título.
@@ -320,23 +334,40 @@ PABLO: Pues yo pido el asa, que es de galán.
 FRAN: A la próxima, cada uno en su caña.
 
 ## chuchi.antes
-CHUCHI (nervioso): ¡Fran! Aquí abajo, entre el correo. Llevo… ¿qué día es? Da igual: llevo mil doscientos correos sin leer.
-FRAN: ¿Estás bien?
-CHUCHI: Estoy sepultado en la bandeja de entrada de un jueves. O sea, como siempre, pero con más papel.
-FRAN (contento): Pues aguanta, que te saco.
+CHUCHI (contento): ¡Fran! Aquí arriba, en la jaula. Llevo seis horas bailando para no perder el ritmo.
+FRAN: ¿Y cómo te han metido ahí?
+CHUCHI: Dije «una y me voy». Mis hijas me esperan en pijama y yo, aquí, sin camisa. Larga historia.
+FRAN (contento): Pues sigue bailando, que ahora te saco.
 
 ## chuchi.despues
-CHUCHI (contento): ¡Libre! Y llegando tarde, como siempre. Pero esta vez es culpa de los sobres.
-CHUCHI: Ahora mis NO se rompen de un jarrazo. Ojalá mis jefes también.
+CHUCHI (contento): ¡Libre! Y llegando tarde, como siempre. Pero esta vez es culpa del DJ.
+CHUCHI: Ahora mis NO se rompen de un jarrazo. Ojalá mis excusas en casa también.
 
-## jefe.bandeja.antes
-FRAN (nervioso): Un buzón enorme con la boca llena de cartas.
-CHUCHI (nervioso): Es mi bandeja de entrada. Lleva meses sin vaciarse. Por lo que más quieras, no le des a «responder a todos».
+## jefe.dj.antes
+FRAN (nervioso): Un tipo con gafas de sol dentro de una cueva. Con eso no se baila: se huye.
+CHUCHI (nervioso): Es el DJ. Lleva toda la noche sin poner mi canción. Cuidado: lo que se pone rojo, quema.
+CHUCHI: Él está muy alto. Pero sus vinilos vuelven si les das con la jarra a tiempo.
 
-## jefe.bandeja.despues
-FRAN (contento): ¡Bandeja vacía! Eso no se veía desde el siglo pasado.
-CHUCHI (contento): Cero correos. Lo apunto como el mejor día de mi vida laboral.
+## jefe.dj.despues
+FRAN (contento): ¡Se acabó el bis! Y todo al compás.
+CHUCHI (contento): Silencio. La primera vez en mi vida que lo agradezco en una fiesta.
 > La jarra de Fran crece un sorbo.
+
+## dj.tira
+> ¡Esta va dedicada a ti!
+---
+> ¡Pídele la que quieras a la jarra!
+---
+> ¡A la una, a las dos…!
+
+## dj.fase2
+> ¡Subid ese volumen!
+
+## dj.fase3
+> ¡Preparaos, que llega el drop!
+
+## dj.drop
+> Silencio… ¡y ahora, el drop!
 
 ## pablo.antes
 PABLO (sorprendido): ¡Fran! Estoy atado a un foco. Es el peor camerino que he tenido, y eso que ensayé en un trastero.

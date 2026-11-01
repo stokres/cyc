@@ -11,13 +11,13 @@
 
 export const TILE = 48;
 
-export type TipoEnemigo = 'despertador' | 'reloj' | 'gran' | 'sobre' | 'no' | 'bandeja' | 'apuntador';
+export type TipoEnemigo = 'despertador' | 'reloj' | 'gran' | 'sobre' | 'no' | 'bola' | 'chupito' | 'altavoz' | 'dj' | 'apuntador';
 /** The mini-bosses (they shut the arena, have a life bar and give a sip when beaten). */
-export type TipoJefe = 'gran' | 'bandeja' | 'apuntador';
+export type TipoJefe = 'gran' | 'dj' | 'apuntador';
 /** The skills are automatic. Guille: Cierzo (double jump). Chuchi: Teclazo (the jarrazo breaks «NO» blocks). Pablo: wall jump (`pared`). */
 export type Habilidad = 'cierzo' | 'teclazo' | 'pared';
 export type Amigo = 'guille' | 'chuchi' | 'pablo';
-export type Material = 'recibidor' | 'jardin' | 'bandeja' | 'teatro' | 'grifo';
+export type Material = 'recibidor' | 'jardin' | 'pista' | 'teatro' | 'grifo';
 
 export interface Salida {
   lado: 'izq' | 'der';
@@ -81,6 +81,8 @@ export interface Sala {
   inicio: { col: number; fila: number };
   /** The final boss's arena (jefe-ultima.ts): fixed camera, painted background, no tiles drawn. */
   ultima?: boolean;
+  /** The DJ's arena: fixed camera (centred, bottom on the bottom of the view) and the painted backdrop fixed behind it, so the painted booth is where the DJ stands. */
+  camaraFija?: boolean;
 }
 
 /**
@@ -97,12 +99,12 @@ export interface PlataformaDef {
   per: number;
 }
 
-export type Zona = 'recibidor' | 'jardin' | 'bandeja' | 'teatro' | 'grifo';
+export type Zona = 'recibidor' | 'jardin' | 'pista' | 'teatro' | 'grifo';
 
 export const ZONAS: Record<Zona, { numero: number; material: Material }> = {
   recibidor: { numero: 1, material: 'recibidor' },
   jardin: { numero: 2, material: 'jardin' },
-  bandeja: { numero: 3, material: 'bandeja' },
+  pista: { numero: 3, material: 'pista' },
   teatro: { numero: 4, material: 'teatro' },
   grifo: { numero: 5, material: 'grifo' },
 };
@@ -128,6 +130,7 @@ class Plano {
   plataformas: PlataformaDef[] = [];
   mapaXY = { x: 0, y: 0 };
   inicio = { col: 3, fila: 9 };
+  camaraFija = false;
 
   constructor(
     readonly id: string,
@@ -236,6 +239,7 @@ class Plano {
       plataformas: this.plataformas,
       mapa: this.mapaXY,
       inicio: this.inicio,
+      camaraFija: this.camaraFija,
     };
   }
 }
@@ -436,25 +440,26 @@ function jardin5() {
   p.salida('izq', 3, 5, 'jardin-4', 27, 5);
   p.barra(22, 5);
   p.enemigo('reloj', 32, 4);
-  p.puerta({ col: 48, fila: 5, sala: 'bandeja-1', col2: 4, fila2: 9, zona: 'bandeja' });
+  p.puerta({ col: 48, fila: 5, sala: 'pista-1', col2: 4, fila2: 9, zona: 'pista' });
   return p.hecho();
 }
 
 
-// ---------------------------------------------------------------- zone 3: La Bandeja de Entrada (the envelopes of EL TRABAJO, Chuchi, La Bandeja Llena)
+// ---------------------------------------------------------------- zone 3: La Pista de Baile (Chuchi de fiesta, the mirror ball, the speaker, El DJ)
 //
-//   jardin-5 ──(door)── bandeja-1 ── bandeja-2 ── bandeja-3 (Chuchi) ── bandeja-4 ── bandeja-5 (La Bandeja Llena) ── teatro-1
-// Swarms of envelopes fly in formation (`enjambre`). From Chuchi on, the «NO» walls that shut the way break with the plain jarrazo; the first one
-// (bandeja-1) hides a sip in a hillside and is the backtracking of this zone.
+//   jardin-5 ──(door)── pista-1 ── pista-2 ── pista-3 (Chuchi) ── pista-4 ── pista-5 (El DJ) ── teatro-1
+// Few enemies, each one readable: a mirror ball that sweeps a beam (`bola`), a shot glass that hops to the beat (`chupito`) and a speaker that shoves
+// Fran back with each pulse (`altavoz`). From Chuchi on, the «NO» walls that shut the way break with the plain jarrazo; the first one (pista-1) hides a
+// sip in a hillside and is the backtracking of this zone.
 
-/** The way in: a door from the garden, the first swarm, a pit, and a hillside with a «NO» in its flank (a sip inside). */
-function bandeja1() {
-  const p = new Plano('bandeja-1', 'bandeja', 44, 12, 10);
+/** The way in: a door from the garden, the first mirror ball, a pit, and a hillside with a «NO» in its flank (a sip inside). */
+function pista1() {
+  const p = new Plano('pista-1', 'pista', 44, 12, 10);
   p.mapa(7, 2);
   p.inicio = { col: 4, fila: 9 };
   p.puerta({ col: 2, fila: 9, sala: 'jardin-5', col2: 46, fila2: 5 });
-  p.cartel(7, 9, 'cartel.sobres');
-  p.enjambre(15, 6, 3);
+  p.cartel(7, 9, 'cartel.bola');
+  p.enemigo('bola', 14, 4);
   p.foso(20, 23);
   // The hillside: a step to climb it, a «NO» in its flank and a little chamber behind it.
   p.cartel(26, 9, 'cartel.no');
@@ -463,85 +468,84 @@ function bandeja1() {
   p.rect(31, 8, 3, 2, '.');
   p.rect(30, 8, 1, 2, 'N');
   p.sorbo(32, 9);
-  p.enjambre(34, 4, 2);
-  p.barra(40, 9);
-  p.salida('der', 7, 9, 'bandeja-2', 2, 12);
+  p.enemigo('chupito', 38, 9);
+  p.barra(42, 9);
+  p.salida('der', 7, 9, 'pista-2', 2, 12);
   return p.hecho();
 }
 
-/** A tower of paper: sheets that fall, a slab that slides, a swarm over the rest stop, and the way up to the right. */
-function bandeja2() {
-  const p = new Plano('bandeja-2', 'bandeja', 44, 15, 13);
+/** A tower of lit tiles: slabs that fall, a slab that slides, a speaker over the rest stop, and the way up to the right. */
+function pista2() {
+  const p = new Plano('pista-2', 'pista', 44, 15, 13);
   p.mapa(8, 2);
   p.inicio = { col: 3, fila: 12 };
-  p.salida('izq', 10, 12, 'bandeja-1', 41, 9);
+  p.salida('izq', 10, 12, 'pista-1', 41, 9);
   p.foso(8, 12);
   p.plat('cae', 8, 12, 2).plat('cae', 11, 12, 2);
   p.barra(16, 12);
-  p.enjambre(17, 8, 3);
-  p.enemigo('despertador', 19, 12);
+  p.cartel(14, 12, 'cartel.altavoz');
+  p.enemigo('altavoz', 21, 12);
   p.foso(23, 29);
   p.plat('mueve', 23, 12, 3, 4, 4.5);
   p.lista(31, 34, 11);
   p.lista(37, 40, 9);
   p.plat('cae', 33, 7, 3);
-  p.enjambre(36, 5, 2);
   p.plat('sube', 38, 5, 3, 2, 4);
   p.lista(40, 42, 3);
-  p.salida('der', 1, 3, 'bandeja-3', 2, 9);
+  p.salida('der', 1, 3, 'pista-3', 2, 9);
   return p.hecho();
 }
 
-/** Chuchi, buried in the envelopes; the way on is shut by a wall of «NO». */
-function bandeja3() {
-  const p = new Plano('bandeja-3', 'bandeja', 40, 12, 10);
+/** Chuchi, shut in a go-go cage under the big ball; the way on is shut by a wall of «NO». */
+function pista3() {
+  const p = new Plano('pista-3', 'pista', 40, 12, 10);
   p.mapa(9, 2);
-  p.salida('izq', 7, 9, 'bandeja-2', 41, 2);
-  p.enjambre(10, 6, 3);
-  p.enemigo('despertador', 14, 9);
+  p.salida('izq', 7, 9, 'pista-2', 41, 2);
+  p.enemigo('chupito', 11, 9);
   p.flor = { col: 20, fila: 9, quien: 'chuchi' };
   p.cartel(26, 9, 'cartel.chuchi');
   // A wall of «NO» from floor to ceiling: only the Teclazo opens it.
   p.rect(29, 1, 1, 9, 'N');
   p.barra(34, 9);
-  p.salida('der', 7, 9, 'bandeja-4', 2, 10);
+  p.salida('der', 7, 9, 'pista-4', 2, 10);
   return p.hecho();
 }
 
-/** A corridor with two walls of «NO», a pit, a swarm and the old enemies mixed in. */
-function bandeja4() {
-  const p = new Plano('bandeja-4', 'bandeja', 50, 13, 11);
+/** A corridor with two walls of «NO», a pit, a speaker, a ball and a shot glass. */
+function pista4() {
+  const p = new Plano('pista-4', 'pista', 50, 13, 11);
   p.mapa(10, 2);
-  p.salida('izq', 8, 10, 'bandeja-3', 37, 9);
-  p.enjambre(9, 7, 3);
+  p.salida('izq', 8, 10, 'pista-3', 37, 9);
   p.rect(14, 1, 1, 10, 'N');
-  p.enemigo('despertador', 18, 10);
+  p.enemigo('altavoz', 18, 10);
   p.foso(21, 24);
   p.lista(25, 28, 8);
-  p.enjambre(30, 6, 3);
-  p.enemigo('reloj', 28, 10);
+  p.enemigo('bola', 29, 5);
   p.rect(34, 1, 1, 10, 'N');
-  p.enemigo('despertador', 38, 10);
-  p.enjambre(40, 7, 2);
+  p.enemigo('chupito', 38, 10);
   p.barra(44, 10);
-  p.salida('der', 8, 10, 'bandeja-5', 2, 9);
+  p.salida('der', 8, 10, 'pista-5', 2, 7);
   return p.hecho();
 }
 
-/** LA BANDEJA LLENA's arena. */
-function bandeja5() {
-  const p = new Plano('bandeja-5', 'bandeja', 30, 12, 10);
+/**
+ * EL DJ's arena: 16 x 10 tiles, fixed camera (the painted booth of fondos/pista-b.webp is where he stands: see `fijarFondoPista`). The floor is
+ * eight lit tiles (baldosas, pista.ts) between x 48 and 720; the way in and the way out are three rows tall (5..7) and shut during the fight.
+ */
+function pista5() {
+  const p = new Plano('pista-5', 'pista', 16, 10, 8);
   p.mapa(11, 2);
-  p.salida('izq', 7, 9, 'bandeja-4', 47, 10);
-  p.lista(4, 7, 7).lista(22, 25, 7);
-  p.salida('der', 7, 9, 'teatro-1', 2, 9);
-  p.jefe = { tipo: 'bandeja', col: 24, fila: 9, disparo: 6, puertas: [0, 29] };
+  p.camaraFija = true;
+  p.inicio = { col: 2, fila: 7 };
+  p.salida('izq', 5, 7, 'pista-4', 47, 10);
+  p.salida('der', 5, 7, 'teatro-1', 2, 9);
+  p.jefe = { tipo: 'dj', col: 12, fila: 4, disparo: 3, puertas: [0, 15], filas: [5, 7] };
   return p.hecho();
 }
 
 // ---------------------------------------------------------------- zone 4: El Teatro de los Conceptos (giant NOs, curtains, Pablo, El Apuntador)
 //
-//   bandeja-5 ── teatro-1 ── teatro-2 (Pablo) ── teatro-3 (the wall-jump shaft) ── teatro-4 (El Apuntador) ── grifo-1
+//   pista-5 ── teatro-1 ── teatro-2 (Pablo) ── teatro-3 (the wall-jump shaft) ── teatro-4 (El Apuntador) ── grifo-1
 // Curtains «T» are walked through by Fran but not by the enemies: they fence in the pockets where the giant NOs bounce. Pablo's skill (the wall
 // jump) opens the shaft of teatro-3 and a tower with a sip in teatro-2.
 
@@ -549,7 +553,7 @@ function bandeja5() {
 function teatro1() {
   const p = new Plano('teatro-1', 'teatro', 46, 12, 10);
   p.mapa(12, 2);
-  p.salida('izq', 7, 9, 'bandeja-5', 27, 9);
+  p.salida('izq', 7, 9, 'pista-5', 13, 7);
   p.cartel(5, 9, 'cartel.telon');
   p.rect(9, 1, 1, 9, 'T');
   p.enemigo('no', 13, 9).enemigo('no', 18, 9);
@@ -749,7 +753,7 @@ function grifoJefe() {
 }
 
 export const SALAS: Record<string, Sala> = {};
-for (const s of [recibidor1(), recibidor2(), recibidor3(), recibidor4(), jardin1(), jardin1b(), jardin2(), jardin3(), jardin4(), jardin5(), bandeja1(), bandeja2(), bandeja3(), bandeja4(), bandeja5(), teatro1(), teatro2(), teatro3(), teatro4(), grifo1(), grifo2(), grifo3(), grifoJefe()]) {
+for (const s of [recibidor1(), recibidor2(), recibidor3(), recibidor4(), jardin1(), jardin1b(), jardin2(), jardin3(), jardin4(), jardin5(), pista1(), pista2(), pista3(), pista4(), pista5(), teatro1(), teatro2(), teatro3(), teatro4(), grifo1(), grifo2(), grifo3(), grifoJefe()]) {
   for (const f of s.filas) if (f.length !== s.cols) console.error(`[una más] ${s.id}: una fila mide ${f.length} y no ${s.cols}`);
   SALAS[s.id] = s;
 }
@@ -757,4 +761,4 @@ for (const s of [recibidor1(), recibidor2(), recibidor3(), recibidor4(), jardin1
 for (const e of erroresDeSalidas()) console.error(`[una más] salidas: ${e}`);
 
 /** The first room of each zone (`?unamas&zona=N`). */
-export const PRIMERA_SALA: Record<number, string> = { 1: 'recibidor-1', 2: 'jardin-1', 3: 'bandeja-1', 4: 'teatro-1', 5: 'grifo-1' };
+export const PRIMERA_SALA: Record<number, string> = { 1: 'recibidor-1', 2: 'jardin-1', 3: 'pista-1', 4: 'teatro-1', 5: 'grifo-1' };
