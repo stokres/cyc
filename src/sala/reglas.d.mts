@@ -1,7 +1,11 @@
 export const MAX_SALAS: number;
 export const MAX_JUGADORES: number;
 export const JUEGOS_ONLINE: string[];
+export const JUEGO_TODOS: '*';
+export const SALA_NUEVA: 'nueva';
+export const SALAS_EN_WEB: Readonly<Record<string, string>>;
 export const ALFABETO_SALA: string;
 export const CODIGO_SALA_LARGO: number;
 export function limpiarCodigoSala(x: unknown): string | null;
 export function limpiarPj(x: unknown): string | null;
+export function enlaceSala(juego: string, codigo: string): string | null;

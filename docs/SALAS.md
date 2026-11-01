@@ -23,7 +23,7 @@ Una sola infraestructura de salas para **todos los juegos** de la web. Cada jueg
 
 | Mensaje | Qué hace |
 |---|---|
-| `lista { juego }` | El socket pasa a mirar la lista de ese juego. Responde `salas` y lo repite cada vez que cambie cualquier sala (crear, entrar, salir, empezar, volver, cerrar). Solo a los sockets del vestíbulo. |
+| `lista { juego }` | El socket pasa a mirar la lista de ese juego, o de **todos** si `juego` es `'*'` (`JUEGO_TODOS`; lo usa la portada). Responde `salas` y lo repite cada vez que cambie cualquier sala (crear, entrar, salir, empezar, volver, cerrar). Solo a los sockets del vestíbulo. |
 | `crear { juego, max, token? }` | Crea una sala (`max` entero 1 a 4) y mete al socket como anfitrión. `rechazo`: `muchas`, `invalido`. |
 | `unirse { codigo, juego, token? }` | Entra en una sala. `rechazo`: `noexiste`, `otrojuego`, `enpartida`, `llena`. |
 | `elegir { pj }` | Elige personaje (`null` lo suelta). Si está cogido, solo el que lo pidió recibe `sala` con el estado real. No durante la partida. |
@@ -36,7 +36,7 @@ Una sola infraestructura de salas para **todos los juegos** de la web. Cada jueg
 
 | Mensaje | Contenido |
 |---|---|
-| `salas` | `{ salas: [{ codigo, juego, anfitrion: nombre\|null, jugadores, max, enPartida }], abiertas, max }`. La lista es solo del juego mirado; `abiertas` cuenta las de toda la web y `max` es `MAX_SALAS`. |
+| `salas` | `{ salas: [{ codigo, juego, anfitrion: nombre\|null, jugadores, max, enPartida }], abiertas, max }`. La lista es solo del juego mirado (de todos con `'*'`); `abiertas` cuenta las de toda la web y `max` es `MAX_SALAS`. |
 | `bienvenida` | `{ id, anfitrion, codigo, juego, max }`: ya estás dentro. |
 | `rechazo` | `{ motivo }`: `muchas`, `noexiste`, `otrojuego`, `enpartida`, `llena`, `invalido`. **No cierra el socket** (sigues en el vestíbulo y puedes probar otra cosa). |
 | `sala` | `{ codigo, juego, max, jugadores: [{ id, pj, anfitrion, nombre }], enPartida }` a todos los de la sala, cada vez que algo cambia. |
@@ -57,9 +57,21 @@ Una sola infraestructura de salas para **todos los juegos** de la web. Cada jueg
 
 1. Añade el juego a `JUEGOS_ONLINE` en `src/sala/reglas.mjs`.
 2. En el cliente, usa `ConexionSala` (o una clase tuya que la extienda, como `Conexion` de PokéUsera):
-   `abrir()` → `mirarLista(juego)` (llegan eventos `salas`; `con.salas` y `con.abiertas` guardan lo último) → `crear(juego, max)` o `unirse(codigo, juego)` (`Promise<{ ok: true } | { ok: false, motivo }>`, con `'red'` si no hay conexión) → `elegir`, `empezar`, `volver`, `juego(a, datos)` → `salir()` (vuelve a la lista) o `cerrar()` (cierra el socket). Eventos con `on(tipo, f)`; el evento local `perdida` avisa de un socket cerrado sin pedirlo; tras `cerrada` el socket sigue abierto y `con.cierre` dice por qué.
-3. La partida es tuya: el anfitrión la lleva y manda por `juego`; el servidor no la ve. Las pantallas de lista y sala también son tuyas (la lista de PokéUsera es `pantallaSalas` en `src/pokeusera/red/sala.ts`; el enlace `?sala=K7MZ` lo abre el flujo del juego).
+   `abrir()` → `mirarLista(juego)` o `mirarTodas()` (llegan eventos `salas`; `con.salas` y `con.abiertas` guardan lo último) → `crear(juego, max)` o `unirse(codigo, juego)` (`Promise<{ ok: true } | { ok: false, motivo }>`, con `'red'` si no hay conexión) → `elegir`, `empezar`, `volver`, `juego(a, datos)` → `salir()` (vuelve a la lista) o `cerrar()` (cierra el socket). Eventos con `on(tipo, f)`; el evento local `perdida` avisa de un socket cerrado sin pedirlo; tras `cerrada` el socket sigue abierto y `con.cierre` dice por qué.
+3. La partida es tuya: el anfitrión la lleva y manda por `juego`; el servidor no la ve. Las pantallas de lista y sala también son tuyas (la lista de PokéUsera es `pantallaSalas` en `src/pokeusera/red/sala.ts`; el enlace `?sala=K7MZ` lo abre el flujo del juego; ver «Enlaces a una sala y la portada»).
 4. Textos de la interfaz en `src/textos/`, nunca en el código.
+
+## Enlaces a una sala y la portada
+
+`src/sala/reglas.mjs` guarda `SALAS_EN_WEB`: los juegos cuya página sabe abrir una sala desde un enlace, con su ruta (hoy solo `{ pokeusera: '/pokeusera' }`). `enlaceSala(juego, codigo | 'nueva')` da el enlace (`'/pokeusera?sala=K7MZ'` o `'/pokeusera?sala=nueva'`), o `null` si el juego no está ahí.
+
+**Contrato de los enlaces** (lo debe cumplir cualquier juego que se añada a `SALAS_EN_WEB`; el Pang lo hará al tener online). La página del juego lee `sala` con `parametros()` (`src/core/direccion.ts`, no `location.search`):
+
+- `?sala=CODIGO` entra en esa sala (si no se puede —no existe, llena, en partida, sin red—, avisa con el texto de ese caso y enseña la lista de salas del juego).
+- `?sala=nueva` **crea** una sala de 4 (`SALA_NUEVA`, como el botón de crear de su lista). Si no se puede (ya hay 4 salas, sin red) avisa igual y enseña la lista.
+- Ambos pasan antes por lo que el juego pida siempre al abrir (título, nombre de la cuenta) y solo valen la primera vez (después, flujo normal).
+
+**La pegatina «Salas online» de la portada** (`src/portada/salas.ts`, estilos `.salas` en `portada.css`, textos `salas.*` en `portada.md`, hueco `#salas` en `portada.html`, justo después de PokéUsera). Abre un `ConexionSala` propio, manda `lista '*'` y rehace el DOM solo cuando llega `salas` y la lista ha cambiado (nada por fotograma). Título «Salas online · n/4» (las abiertas en toda la web); una fila por sala (anfitrión o código, juego, `jugadores/max`) con un enlace ENTRAR a `enlaceSala` o, si juega o está llena, un sello «Jugando» / «Llena» sin enlace; las salas de juegos fuera de `SALAS_EN_WEB` salen sin botón. Un botón «Crear sala de {juego}» por cada juego de `SALAS_EN_WEB` (enlace a `?sala=nueva`; con 4 salas abiertas, apagado y con la línea «Ya hay 4 salas abiertas…»). Sin salas, una invitación y el botón de crear. **Sin conexión con `/sala`** (sin red, 401 sin el pase, fallo, conexión perdida) la pegatina está `hidden` y no dice nada; reintenta cada 15 s mientras la página se vea. Con la página oculta (`visibilitychange`) cierra el socket y al volver a verse lo reabre. La portada no manda token, así que nunca ocupa un sitio ni expulsa a nadie. Al añadir un juego a `SALAS_EN_WEB`, su nombre va en `portada.md` (`salas.juego.<id>`).
 
 ## Pang
 

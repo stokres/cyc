@@ -314,7 +314,8 @@ a.proximo:focus-visible {
 }
 
 /* In the cover the buttons are a bit smaller than in the panel of the account and in entrar.html */
-.pegatinas .dale > a {
+.pegatinas .dale > a,
+.pegatinas .dale > button {
   min-height: 46px;
   padding: 0 34px 0 16px;
   font-size: 17px;
@@ -552,6 +553,151 @@ a.proximo:focus-visible {
   height: 16px;
   border: 3px solid currentColor;
   border-radius: 3px;
+}
+
+/* 2b · Salas online: an entrance ticket stuck under PokéUsera (cream paper, a brown strip with the title, a dashed line between the rooms).
+   It is only painted when the list of rooms arrives (src/portada/salas.ts): nothing moves. Without a connection it is `hidden`. */
+.salas {
+  --giro: -0.8deg;
+  margin-right: 8px;
+}
+
+.salas[hidden] {
+  display: none;
+}
+
+.salas .ticket {
+  position: relative;
+  overflow: hidden;
+  border: 5px solid var(--papel);
+  border-radius: 12px 32px 12px 32px;
+  background: var(--papel);
+  box-shadow: 6px 8px 0 var(--sombra);
+}
+
+.salas h2 {
+  position: relative;
+  padding: 8px 14px 12px;
+  background: var(--marron);
+  color: var(--mostaza);
+  font-size: 1.4rem;
+  text-shadow: 0.05em 0.05em 0 var(--rosa2);
+}
+
+.salas h2::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  background: repeating-linear-gradient(90deg, var(--mostaza) 0 14px, var(--marron) 14px 28px);
+}
+
+.salas .filas {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.salas .sala {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 4px 10px;
+  min-height: 62px;
+  padding: 8px 10px 8px 12px;
+}
+
+.salas .sala + .sala {
+  border-top: 3px dashed var(--gris);
+}
+
+.salas .quien {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.salas .nombre {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 18px;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.salas .juego-etq {
+  padding: 1px 8px;
+  border-radius: 4px 10px 4px 10px;
+  background: var(--oliva2);
+  color: var(--papel);
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transform: rotate(-1.5deg);
+}
+
+.salas .cupo {
+  color: var(--rosa2);
+  font-family: var(--tit);
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.salas .sala .sellito {
+  justify-self: end;
+  min-width: 96px;
+  text-align: center;
+}
+
+.salas .sala .dale {
+  justify-self: end;
+}
+
+.salas .crear {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  padding: 10px 12px 12px;
+}
+
+.salas .filas + .crear {
+  border-top: 3px dashed var(--gris);
+}
+
+.salas .vacio,
+.salas .llenas {
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.salas .llenas {
+  color: #7d745f;
+}
+
+.salas .botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+/* «Crear sala» when there are already four: a grey ribbon, nothing to press */
+.salas .dale.apagado {
+  filter: none;
+}
+
+.salas .dale.apagado > button {
+  background: var(--gris);
+  color: #6f6652;
+  cursor: not-allowed;
+}
+
+.salas .dale.apagado > button:hover {
+  background: var(--gris);
 }
 
 /* 3 · Bubble: Pang (a pill of olive glass with the «12 fases» burst at the right; the computer gets the round bubble back, below) */
@@ -1047,9 +1193,15 @@ a.proximo:focus-visible {
   }
 
   .huevo-w,
+  .salas,
   .burbuja {
     grid-column: 2;
     margin: 0;
+  }
+
+  /* With the Salas sticker (column 2: PokéUsera, Salas, Pang) the arch is as tall as the three */
+  .pegatinas:has(.salas:not([hidden])) > .arco {
+    grid-row: 1 / 4;
   }
 
   .chicas {
@@ -1175,6 +1327,40 @@ a.proximo:focus-visible {
     grid-row: 3;
   }
 
+  /* Salas online: under PokéUsera and Pang, across their two columns; the burst and «Otros juegos» go one row down while it shows */
+  .salas {
+    grid-column: 2 / 4;
+    grid-row: 2;
+    align-self: start;
+    justify-self: center;
+    width: min(100%, 540px);
+    margin: 0;
+  }
+
+  .pegatinas:has(.salas:not([hidden])) > .arco {
+    grid-row: 1 / 4;
+  }
+
+  .pegatinas:has(.salas:not([hidden])) > .peg.mas {
+    grid-row: 3;
+  }
+
+  .pegatinas:has(.salas:not([hidden])) > .otros-juegos {
+    grid-row: 4;
+  }
+
+  .salas h2 {
+    font-size: 1.8rem;
+  }
+
+  .salas .sala {
+    min-height: 70px;
+  }
+
+  .salas .nombre {
+    font-size: 20px;
+  }
+
   .peg p {
     font-size: 18px;
   }
@@ -1208,7 +1394,8 @@ a.proximo:focus-visible {
     font-size: 18px;
   }
 
-  .pegatinas .dale > a {
+  .pegatinas .dale > a,
+  .pegatinas .dale > button {
     min-height: 48px;
     padding: 0 40px 0 20px;
     font-size: 19px;

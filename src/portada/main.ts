@@ -8,6 +8,7 @@ import { cargarTextos, texto } from '../juego/textos';
 import { iniciarRecords, leerPrimeros } from '../cuenta/records';
 import { iniciarCuenta } from './cuenta';
 import { iniciarProximo } from './proximo';
+import { iniciarSalas } from './salas';
 
 cargarTextos(raw, rawProximo);
 document.querySelectorAll<HTMLElement>('[data-t]').forEach((el) => {
@@ -34,6 +35,7 @@ iniciarProximo();
 document.getElementById('portada')!.classList.add('lista');
 iniciarCuenta();
 iniciarRecords();
+iniciarSalas();
 
 // The first of everybody in the Pang's sticker: asked once, after painting. Without network, or without a mark yet, the line does not appear.
 const miles = (n: number): string => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');

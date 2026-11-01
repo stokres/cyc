@@ -35,7 +35,7 @@ import { jugarAventura } from './caza/flujo';
 
 /** Entry points other parts of the game replace. */
 export const enlaces = {
-  /** «JUGAR ONLINE» in the menu: list of rooms, room, game (src/pokeusera/red/); it returns when the player is back at the menu. `codigo`: the room of a link (`?sala=K7MZ`) to join first. */
+  /** «JUGAR ONLINE» in the menu: list of rooms, room, game (src/pokeusera/red/); it returns when the player is back at the menu. `codigo`: the room of a link (`?sala=K7MZ`) to join first, or `nueva` (`?sala=nueva`) to create one. */
   jugarOnline,
 };
 
@@ -56,7 +56,7 @@ export interface OpcionesFlujo {
   azar?: boolean;
   /** `?aventura`: no title or menu, straight into AVENTURA (the one-player hunting mode); `demo`: a test adventure in memory that is never saved ('si': a starter and seven caught; 'nueva': from the beginning), with `pj` as the trainer. */
   aventura?: { demo?: 'si' | 'nueva'; pj?: EntrenadorId };
-  /** `?sala=K7MZ` (the link of COMPARTIR in a room): after the title and the name screen the first time, goes straight to that room (if it cannot be joined, the list); afterwards, the normal menu. */
+  /** `?sala=K7MZ` (the link of COMPARTIR in a room), or `?sala=nueva` (create one): after the title and the name screen the first time, goes straight to that room (if it cannot be joined, the list); afterwards, the normal menu. */
   sala?: string;
 }
 
