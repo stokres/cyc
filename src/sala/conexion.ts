@@ -1,8 +1,9 @@
 // The online rooms of the whole web, the phone's side (docs/SALAS.md): one WebSocket to /sala, the list of open rooms of a game, creating or joining one by code,
 // and the messages inside a room. It knows no game (a game puts its own on top: PokéUsera's is src/pokeusera/red/conexion.ts) and only reads the account from src/cuenta/.
 import { tokenLocal } from '../cuenta/cuenta';
+import { JUEGO_TODOS } from './reglas.mjs';
 
-export { CODIGO_SALA_LARGO, JUEGOS_ONLINE, MAX_JUGADORES, MAX_SALAS, limpiarCodigoSala } from './reglas.mjs';
+export { CODIGO_SALA_LARGO, JUEGOS_ONLINE, JUEGO_TODOS, MAX_JUGADORES, MAX_SALAS, SALA_NUEVA, SALAS_EN_WEB, enlaceSala, limpiarCodigoSala } from './reglas.mjs';
 
 // ---------------------------------------------------------------- messages
 
@@ -42,7 +43,7 @@ export type MensajeCliente<Pj extends string = string> =
 
 export interface MsgSalas {
   tipo: 'salas';
-  /** The rooms of the game being watched. */
+  /** The rooms of the game being watched (of every game when watching all). */
   salas: InfoSala[];
   /** The rooms open in the whole web (all games). */
   abiertas: number;
@@ -190,6 +191,11 @@ export class ConexionSala<Pj extends string = string> {
   /** Asks for the list of open rooms of a game: it comes as a `salas` message now and again whenever any room changes (while out of a room). */
   mirarLista(juego: string) {
     this.enviar({ tipo: 'lista', juego });
+  }
+
+  /** Like `mirarLista`, but the list holds the rooms of ALL the games (the cover page's sticker). */
+  mirarTodas() {
+    this.mirarLista(JUEGO_TODOS);
   }
 
   /** Opens a room of `max` players (1 to 4) and enters it as the host. */
