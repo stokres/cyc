@@ -16,7 +16,7 @@
 // stat-explanation bubble). A frame is a few drawImage calls. When idle, `paso` bakes the next row / the neighbours
 // of the open ficha, one per frame, so scrolling and ◀ ▶ never hitch. No text is wrapped or measured per frame.
 import { TIPOS_FISICOS, type Tipo } from '../tipos';
-import { ESPECIES, MOVS, TIPOS, eficacia, esSonido } from '../datos';
+import { EFECTOS, ESPECIES, MOVS, TIPOS, eficacia, esSonido } from '../datos';
 import { anchoTexto2 } from '../arte2/fuente2';
 import { ORO_UI_OSC, PAPEL_MEDIO, TINTA2, TINTA_SUAVE } from '../arte2/paleta2';
 import { spriteEspalda2, spriteFrente2 } from '../arte2/sprites2';
@@ -238,13 +238,13 @@ function maquetar(cx: CanvasRenderingContext2D | null, i: number): Omit<Ficha, '
         texto2(cx, valor, x + w2 + 4, y + 23, TINTA2, null);
         x += ancho;
       };
-      par(t('useritopedia.pot'), m.id === 'premio' ? t('useritopedia.pot.azar') : m.id === 'remate' ? t('useritopedia.pot.remate') : m.pot === null ? t('useritopedia.sin') : String(m.pot), 56);
+      par(t('useritopedia.pot'), EFECTOS[m.id]?.especial === 'premio' ? t('useritopedia.pot.azar') : m.id === 'remate' ? t('useritopedia.pot.remate') : m.pot === null ? t('useritopedia.sin') : String(m.pot), 56);
       par(t('useritopedia.prec'), m.prec === null ? t('useritopedia.sin') : String(m.prec), 68);
       par(t('useritopedia.pp'), String(m.pp), 40);
       const obj = t(`useritopedia.obj.${m.objetivo}`);
       texto2(cx, obj, X0 + AN - 10 - anchoTexto2(obj), y + 23, TINTA2, null);
       // Category and priority.
-      const cat = m.pot === null && m.id !== 'premio' ? 'estado' : TIPOS_FISICOS.includes(m.tipo) ? 'fisico' : 'especial';
+      const cat = m.pot === null && EFECTOS[m.id]?.especial !== 'premio' ? 'estado' : TIPOS_FISICOS.includes(m.tipo) ? 'fisico' : 'especial';
       const wc = texto2(cx, t(`useritopedia.cat.${cat}`), X0 + 10, y + 37, TINTA_SUAVE, null);
       const clase = clasePrioridad(m.prioridad);
       if (clase) {

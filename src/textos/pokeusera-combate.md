@@ -124,6 +124,13 @@ combate.premio0 = ¡Tres limones! Sin premio.
 combate.premio40 = ¡Salen unas monedas!
 combate.premio80 = ¡Premio! ¡Lluvia de monedas!
 combate.premio150 = ¡¡¡PREMIO GORDO!!! ¡Jackpot!
+combate.horoscopo0 = ¡Año de la rata! Hoy no es tu día.
+combate.horoscopo40 = ¡Año del buey! Algo de suerte.
+combate.horoscopo80 = ¡Año del tigre! ¡Buena racha!
+combate.horoscopo150 = ¡¡¡AÑO DEL DRAGÓN!!! ¡Suerte total!
+combate.consentimiento = ¡{quien} pregunta «¿Puedo?» y esconde la mano en la manga!
+combate.cancun_vuelve = ¡{quien} se pira a Cancún unos días!
+combate.gentrificacion = ¡A {quien} le suben el alquiler y se tiene que mudar!
 combate.tope_sube = ¡{quien} no puede subir más!
 combate.tope_baja = ¡{quien} no puede bajar más!
 combate.cierre = Vero empieza a recoger. ¡Hora de cerrar!
@@ -199,6 +206,11 @@ userito.fotomaton.desc = El fotomatón de la calle, con su cortinilla. Te mete d
 userito.cloudtrio.desc = Tres nubes blanditas, carísimas y muy polémicas. Nadie sabe por qué se compraron.
 userito.cigarr.desc = Un cigarro de liar. Se enciende rápido, se lía solo y deja humo por todas partes.
 userito.ollalocah.desc = La olla loca de la feria. Da vueltas hasta que se te revuelve todo lo que has comido.
+userito.culotouchi.desc = Una mano larga y traviesa que asoma de una manga. Dice que ha sido sin querer.
+userito.baticao.desc = La taza de batido de cacao que se toma Ari medio dormida. Dulce, calentita y siempre con ganas de siesta.
+userito.josex.desc = José, el dueño y camarero del bar de José. Bajito, sonriente y con camisa de manga corta. De toda la vida.
+userito.arcochin.desc = El arco chino de la plaza del Hidrógeno, en Usera, con sus dos dragones y un oso encima. Te echa el horóscopo y te sube el alquiler.
+userito.navicesta.desc = Una cesta de Navidad de mimbre, hasta arriba de productos. Trae un tequila de fresa que no estaba en la lista.
 
 // ---- movimientos: efecto corto para el menú
 mov.barrigazo.desc = Golpe fuerte. Puede paralizar.
@@ -300,6 +312,17 @@ mov.nubarron.desc = Una nube les tapa el sol y les pega a todos.
 mov.carisimo.desc = Les cobra una barbaridad. Puede bajar 1 el Especial.
 mov.calada.desc = Una calada y un soplo de humo. Puede quemar.
 mov.vueltas.desc = Gira que gira hasta marear. Puede hacerle perder el turno (si aún no ha actuado).
+mov.azote.desc = Un azote con muy mala idea. Puede hacerle perder el turno (si aún no ha actuado).
+mov.tentaculo.desc = La mano se estira y llega lejísimos. Puede paralizar.
+mov.consentimiento.desc = Va el primero. Pregunta «¿Puedo?» y esconde la mano: nadie te toca este turno.
+mov.lactosa.desc = Un golpe de leche cortada. Puede empachar.
+mov.grumitos.desc = Una lluvia de grumos de cacao. Pega de 2 a 5 veces.
+mov.tortipapa.desc = Un tortillazo de patata. Pega y recupera la mitad.
+mov.cancun.desc = Pega y se va a Cancún de vacaciones: vuelve al banquillo y eliges quién entra.
+mov.horoscopo.desc = El zodiaco chino manda: pega 0, 40, 80 o 150. ¡Suerte!
+mov.gentrificacion.desc = Pega y sube tanto el alquiler que el rival se muda: cambia a otro userito al azar.
+mov.tekifresi.desc = Tequila de fresa para todos. Pega a todos. Puede achispar.
+mov.fiebre.desc = Un atracón de turrón. Pega fuerte. Puede empachar.
 
 // ---- habilidades (motor/combate.ts, evento «habilidad»). Por cada una: .nombre = el rótulo sobre el userito y la ficha ·
 //      .desc = lo que hace · .activa = la frase al activarse (si la tiene; {quien} = el que la tiene, {otro} = el otro userito)
@@ -435,6 +458,26 @@ hab.humo.activa = ¡{quien} echa humo y {otro} no ve nada!
 hab.feria.nombre = Vueltas de feria
 hab.feria.desc = Al salir al combate, todos los rivales bajan 1 su Velocidad.
 hab.feria.activa = ¡{quien} da vueltas y a los rivales se les revuelve todo!
+
+hab.mano_larga.nombre = Mano larga
+hab.mano_larga.desc = Sus ataques físicos a uno solo tienen un 20 % de bajar 1 la Defensa del golpeado.
+hab.mano_larga.activa = ¡{quien} se pasa de la raya y a {otro} se le baja la guardia!
+
+hab.leche_calentita.nombre = Leche calentita
+hab.leche_calentita.desc = Su Siesta lo duerme 1 turno en vez de 2.
+hab.leche_calentita.activa = ¡{quien} se toma su leche calentita y se duerme de un tirón!
+
+hab.toda_la_vida.nombre = De toda la vida
+hab.toda_la_vida.desc = La primera vez que baja de la mitad de sus PS, recupera 1/4 de sus PS máximos (una vez por combate).
+hab.toda_la_vida.activa = ¡{quien} se toma un cafelito de toda la vida y se recompone!
+
+hab.fu.nombre = Fu
+hab.fu.desc = Una vez por combate, si tenía más de la mitad de sus PS, un golpe que lo tumbaría lo deja a 1 PS.
+hab.fu.activa = ¡{quien} tiene buen fu y el golpe se queda corto!
+
+hab.espiritu_navideno.nombre = Espíritu navideño
+hab.espiritu_navideno.desc = Al salir al combate, sube 1 su Defensa.
+hab.espiritu_navideno.activa = ¡{quien} se llena de espíritu navideño y se hace fuerte!
 
 // ---- ventajas de entrenador (motor/combate.ts: Chuchi «Llega tarde», Guille «Mañico», Ari «De su cosecha», Fer «Cancelación de ruido»)
 combate.perk.chuchi = {quien} llegaba tarde: el golpe le pilla a medias.

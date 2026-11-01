@@ -103,6 +103,12 @@ export const ESPECIES: Especie[] = [
   e('cloudtrio', 'Cloudtrio', ['ventolera', 'chanza'], 75, 110, 60, 85, 90, ['nubarron', 'carisimo', 'planeo', 'zasca'], 'blandito'),
   e('cigarr', 'Cigarr', ['petardo', 'fantasma'], 90, 45, 75, 100, 110, ['calada', 'fogonazo', 'susto', 'esconderse'], 'humo'),
   e('ollalocah', 'OllaLocah', ['juerga', 'ventolera'], 95, 90, 90, 70, 75, ['vueltas', 'conga', 'rebufo', 'remolino'], 'feria'),
+  // Tanda 13 (1-nov, Nº 38-42): Culotouchi, Baticao, Josex, Arcochin and Navicesta (the friends' names and types), again at the end.
+  e('culotouchi', 'Culotouchi', ['mindundi', 'bronca'], 110, 100, 105, 45, 60, ['azote', 'consentimiento', 'tentaculo', 'taconeo'], 'mano_larga'),
+  e('baticao', 'Baticao', ['chanza', 'droga'], 70, 65, 62, 108, 115, ['lactosa', 'grumitos', 'siesta', 'quepague'], 'leche_calentita'),
+  e('josex', 'Josex', ['grasa', 'chanza'], 66, 76, 60, 108, 110, ['tortipapa', 'cancun', 'pringue', 'ronda'], 'toda_la_vida'),
+  e('arcochin', 'Arcochin', ['chanza'], 75, 65, 85, 95, 100, ['horoscopo', 'gentrificacion', 'traca', 'selfie'], 'fu'),
+  e('navicesta', 'Navicesta', ['juerga', 'grasa'], 95, 70, 80, 70, 105, ['tekifresi', 'fiebre', 'conga', 'aguantar'], 'espiritu_navideno'),
 ];
 
 export const ESPECIE: Record<string, Especie> = Object.fromEntries(ESPECIES.map((s) => [s.id, s]));
@@ -223,6 +229,19 @@ const LISTA_MOVS: Movimiento[] = [
   m('carisimo', 'Está carísimo', 'chanza', 70, 100, 8, 'uno'),
   m('calada', 'Calada', 'petardo', 60, 100, 10, 'uno'),
   m('vueltas', 'Dar vueltas', 'ventolera', 60, 100, 10, 'uno'),
+  // Tanda 13 (1-nov, Culotouchi, Baticao, Josex, Arcochin and Navicesta): ten moves, all with one owner.
+  m('azote', 'Azote', 'bronca', 90, 100, 8, 'uno'),
+  m('tentaculo', 'Golpe tentáculo', 'mindundi', 85, 100, 8, 'uno'),
+  m('consentimiento', 'Consentimiento', 'mindundi', null, null, 5, 'yo', 2),
+  m('lactosa', 'Golpe lactosa', 'droga', 80, 100, 8, 'uno'),
+  m('grumitos', 'Grumitos', 'chanza', 25, 90, 10, 'uno'),
+  m('tortipapa', 'Tortipapa', 'grasa', 75, 100, 8, 'uno'),
+  m('cancun', 'Viaje a Cancún', 'chanza', 80, 100, 5, 'uno'),
+  // Like Premio gordo, the power is rolled (0, 40, 80 or 150): `pot` null.
+  m('horoscopo', 'Horóscopo chino', 'chanza', null, 100, 5, 'uno'),
+  m('gentrificacion', 'Gentrificación', 'chanza', 70, 100, 5, 'uno'),
+  m('tekifresi', 'Tekifresi', 'alcohol', 60, 100, 5, 'todos'),
+  m('fiebre', 'Fiebre navideña', 'grasa', 90, 100, 8, 'uno'),
   // Used when no move has PP left (Mindundi, 50, never misses, recoil 1/4).
   m('desesperada', 'A la desesperada', 'mindundi', 50, null, 1, 'uno'),
 ];
@@ -255,8 +274,12 @@ export interface Efecto {
   bloqueaCambio?: boolean;
   /** Critical-hit chance multiplier (Corte de papel: ×3). */
   critico?: number;
+  /** The phrase a move with its own logic says when it works, when it is not the default one of its `especial`: Consentimiento (the `esconderse` rule: «¿Puedo?»),
+   *  Viaje a Cancún (`tendedero`: where the userito goes), Horóscopo chino (`premio`: the key prefix, `<frase>0`, `<frase>40`, `<frase>80`, `<frase>150`) and
+   *  Gentrificación (`gentrificacion`: what the target does). */
+  frase?: string;
   /** Moves with their own logic. */
-  especial?: 'premio' | 'siy' | 'venganza' | 'cancion' | 'esconderse' | 'quepague' | 'aguantar' | 'devolver' | 'siesta' | 'remolino' | 'bostezo' | 'cizana' | 'tendedero' | 'remate' | 'improvisa' | 'ficha' | 'limon' | 'serenata' | 'morrina';
+  especial?: 'gentrificacion' | 'premio' | 'siy' | 'venganza' | 'cancion' | 'esconderse' | 'quepague' | 'aguantar' | 'devolver' | 'siesta' | 'remolino' | 'bostezo' | 'cizana' | 'tendedero' | 'remate' | 'improvisa' | 'ficha' | 'limon' | 'serenata' | 'morrina';
 }
 
 export const EFECTOS: Record<string, Efecto> = {
@@ -379,6 +402,19 @@ export const EFECTOS: Record<string, Efecto> = {
     ],
     especial: 'morrina',
   },
+  // Tanda 13. Consentimiento is a protection like Esconderse (same rule of the 50 %) with a phrase of its own; Viaje a Cancún goes back to the bench like Al tendedero;
+  // Horóscopo chino rolls its power like Premio gordo; Gentrificación hits and then makes the target move out, like Remolino after the damage.
+  azote: { retrocede: 20 },
+  tentaculo: { estado: { estado: 'paralizado', prob: 30 } },
+  consentimiento: { especial: 'esconderse', frase: 'combate.consentimiento' },
+  lactosa: { estado: { estado: 'empachado', prob: 30 } },
+  grumitos: { golpes: 'multi' },
+  tortipapa: { drena: true },
+  cancun: { especial: 'tendedero', frase: 'combate.cancun_vuelve' },
+  horoscopo: { especial: 'premio', frase: 'combate.horoscopo' },
+  gentrificacion: { especial: 'gentrificacion', frase: 'combate.gentrificacion' },
+  tekifresi: { estado: { estado: 'achispado', prob: 30 } },
+  fiebre: { estado: { estado: 'empachado', prob: 20 } },
 };
 
 /** The moves ¡Improvisa! can pick: every move that has not exactly one owner among the useritos (so not the ones made for one userito, like Al tendedero

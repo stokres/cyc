@@ -93,6 +93,11 @@ function valorMovimiento(e: EstadoCombate, j: number, idx: number, rivales: numb
     if (ef.rebote) valor *= 0.9;
     if (ef.drena) valor *= 1 + (1 - hp) * 0.3;
     if (ef.nivel?.some((n) => n.a === 'yo' && n.cambio > 0)) valor *= 1.08;
+    // Gentrificación: the target has to leave the field after the blow, so it also throws away the boosts it had worked for.
+    if (ef.especial === 'gentrificacion' && mejor.objetivo !== undefined && vivos(e.jugadores[mejor.objetivo]).length > 1) {
+      const subidas = (Object.values(activo(e, mejor.objetivo).niveles) as number[]).reduce((n, x) => n + Math.max(0, x), 0);
+      valor *= 1.04 + 0.04 * Math.min(subidas, 4);
+    }
     if (ef.especial === 'tendedero') {
       // Hit and run: it goes back to the bench if the blow lands, so it is worth most when it is threatened or hurt and has somebody to send in
       // (and not when it would throw away stat boosts or leave the only one standing).
@@ -136,7 +141,8 @@ function valorMovimiento(e: EstadoCombate, j: number, idx: number, rivales: numb
       valor = pres.golpeado >= 1 && hp > 0.35 ? 0.28 + 0.14 * Math.min(3, pres.golpeado) : 0.05;
       break;
     case 'siesta':
-      valor = hp < 0.45 ? 0.5 + (0.45 - hp) : 0;
+      // Leche calentita (Baticao): it sleeps one turn only, so it dares to rest sooner.
+      valor = hp < (habilidadDe(u) === 'leche_calentita' ? 0.55 : 0.45) ? 0.5 + (0.45 - hp) : 0;
       break;
     case 'siy':
       valor = e.ultimoMov ? 0.3 : 0;
