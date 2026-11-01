@@ -6,6 +6,7 @@
 //                           de cada juego (scripts/cuentas.mjs; docs/POKEUSERA.md, «Cuentas»).
 //   POST /api/records       una marca de la cuenta (`{ tabla, puntos, extra?, fecha? }`, solo con cuenta) y GET /api/records[?tabla=x]: los récords de todos (scripts/records.mjs).
 //                           Cada jugador de un resumen llega con su token en `cu`; aquí se cambia por el id público de su cuenta (o null): el token no se guarda ni se devuelve nunca.
+// `cuentaDeToken(token)` (en el objeto que devuelve): `{ id, nombre }` de la cuenta de un token, para las salas online (scripts/salas.mjs).
 // Los resúmenes viven en `${POKEUSERA_DATOS}/batallas.jsonl` (por defecto ./datos-pokeusera). En Railway hace falta un Volume montado ahí, o el disco se borra en cada despliegue.
 // La suma es `src/pokeusera/estadisticas/agregado.mjs`, la misma que usa el móvil para sus datos locales.
 // Lo usan scripts/servir-pokeusera.mjs (producción) y vite.config.ts (npm run dev).
@@ -51,7 +52,7 @@ export const ip = (req) => {
 };
 
 /**
- * Starts the statistics: reads the JSONL once and returns `{ manejar(req, res) }`; `manejar` answers the two endpoints and returns true,
+ * Starts the statistics: reads the JSONL once and returns `{ manejar(req, res), cuentaDeToken(token) }`; `manejar` answers the two endpoints and returns true,
  * or returns false for any other path (the caller serves its own things).
  * @param {{ carpeta?: string, catalogo: ReturnType<typeof prepararCatalogo>, aviso?: (m: string) => void }} o
  */
@@ -321,6 +322,11 @@ export async function crearApiEstadisticas({ carpeta, catalogo, aviso = (m) => c
   };
 
   return {
+    /** `{ id, nombre }` of the account that owns a token, or null: the online rooms (scripts/salas.mjs) show the account name of each player. */
+    cuentaDeToken(token) {
+      const c = cuentas.deToken(token);
+      return c ? { id: c.id, nombre: c.nombre } : null;
+    },
     /** Answers /api/batallas, /api/estadisticas, /api/cuentas* and /api/records (true), or does nothing (false). */
     manejar(req, res) {
       const ruta = new URL(req.url ?? '/', 'http://localhost').pathname;

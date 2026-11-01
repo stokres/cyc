@@ -129,20 +129,39 @@ acum.rec.sucesos.d = {v} sucesos en {bar}
 acum.rec.pie.con = {quien} - {fecha}
 acum.rec.pie.sin = {fecha}
 
-// ---- online (contraseña y sala)
+// ---- online (lista de salas y sala)
 online.titulo = JUGAR ONLINE
-online.clave = CONTRASEÑA
+online.abiertas = SALAS ABIERTAS {n}/{max}
+online.sala.de = SALA DE {nombre}
+online.sala.cupo = {n}/{max}
+online.sala.jugando = JUGANDO
+online.vacio = No hay salas. Crea una y avisa a la peña.
+online.crear = CREAR SALA
+online.codigo = TENGO UN CÓDIGO
+online.codigo.pide = CÓDIGO DE LA SALA
+online.codigo.ayuda = Las 4 letras de la sala.
 online.entrar = ENTRAR
 online.volver = VOLVER
 online.conectando = Conectando...
-online.error.clave = Contraseña incorrecta.
-online.error.llena = La sala está llena.
+online.error.muchas = Ya hay 4 salas abiertas. Espera a que se cierre una.
+online.error.noexiste = Esa sala no existe.
+online.error.codigo = El código tiene 4 letras.
+online.error.otrojuego = Esa sala es de otro juego.
 online.error.enpartida = Ya hay una partida en marcha.
+online.error.llena = La sala está llena.
+online.error.invalido = No se ha podido abrir la sala.
 online.error.red = No hay conexión con la sala.
 online.cerrada = Se ha cerrado la sala.
+online.cerrada.inactiva = Se ha cerrado la sala por inactividad.
+online.perdida = Se ha perdido la conexión con la sala.
+online.compartir = ¡Ven a jugar a PokéUsera! Sala {codigo}.
+online.compartir.boton = COMPARTIR
+online.copiado = Enlace copiado.
+online.error.copiar = No se ha podido copiar. El código es {codigo}.
 online.salio = {nombre} se ha ido. Sigue la máquina.
 
-sala.titulo = SALA
+sala.codigo = SALA {codigo}
+sala.cerrado = SIN SITIO
 sala.anfitrion = ANFITRIÓN
 sala.tu = TÚ
 sala.libre = LIBRE

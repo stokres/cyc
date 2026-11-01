@@ -4,6 +4,7 @@ Juego web (Vite + TypeScript + Canvas 2D) para móvil en horizontal.
 
 - Antes de cualquier trabajo visual, lee `docs/ESTILO.md`; para controles o minijuegos, `docs/JUGABILIDAD.md`.
 - Publicación: un único servicio de Railway (`npm run build`, `npm start`; pasos en `README.md`). URLs limpias en `scripts/rutas.mjs`; para elegir juego o modo el cliente lee `parametros()` de `src/core/direccion.ts` (la query más el alias de la ruta, p. ej. `/pang` = `?pangcompleto`), no `location.search`. La web está cerrada con una clave del grupo (`CYC_CLAVE`, `scripts/pase.mjs`; página de entrada `entrar.html`; sin la variable no hay puerta, y en `npm run dev` nunca). La cuenta (nombre + código) es de toda la web y guarda la partida de cada juego (`src/cuenta/`, «Cuentas» en `docs/POKEUSERA.md`). La portada (`portada.html`) es solo DOM y CSS y no importa ningún juego (solo `src/cuenta/`).
+- Online: servicio común de salas (`scripts/salas.mjs`, `src/sala/`, `docs/SALAS.md`); cada juego solo programa su partida.
 - Las fotos de los amigos son solo referencia: no las subas al repositorio.
 - Todo el texto está en `src/textos/*.md` (formato al principio de `capitulo1.md`). Nunca pongas frases en el código: añade una clave al archivo de textos. El texto del capítulo 1 es provisional hasta que llegue el guion real.
 - Para escribir a los personajes, lee `docs/PERSONAJES.md`.
