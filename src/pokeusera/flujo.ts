@@ -35,7 +35,7 @@ import { jugarAventura } from './caza/flujo';
 
 /** Entry points other parts of the game replace. */
 export const enlaces = {
-  /** «JUGAR ONLINE» in the menu: password, room, game (src/pokeusera/red/); it returns when the player is back at the menu. */
+  /** «JUGAR ONLINE» in the menu: list of rooms, room, game (src/pokeusera/red/); it returns when the player is back at the menu. `codigo`: the room of a link (`?sala=K7MZ`) to join first. */
   jugarOnline,
 };
 
@@ -56,6 +56,8 @@ export interface OpcionesFlujo {
   azar?: boolean;
   /** `?aventura`: no title or menu, straight into AVENTURA (the one-player hunting mode); `demo`: a test adventure in memory that is never saved ('si': a starter and seven caught; 'nueva': from the beginning), with `pj` as the trainer. */
   aventura?: { demo?: 'si' | 'nueva'; pj?: EntrenadorId };
+  /** `?sala=K7MZ` (the link of COMPARTIR in a room): after the title and the name screen the first time, goes straight to that room (if it cannot be joined, the list); afterwards, the normal menu. */
+  sala?: string;
 }
 
 /** Plays one solo game (you + three machines) and shows the podium. */
@@ -155,10 +157,18 @@ export async function ejecutar(o: OpcionesFlujo): Promise<void> {
   }
   /** «MÁS TARDE» in the name screen: not asked again until the game is opened anew. */
   let nombreAplazado = false;
+  /** The room of the link: used once, the first time after the title (not on every return to it). */
+  let salaEnlace = o.sala;
   for (;;) {
     await pantallaTitulo();
     // First time (no account on this phone): «¿Cómo te llamas?» after the title, before the menu (docs/POKEUSERA.md, «Cuentas»).
     if (!cuentaLocal() && !nombreAplazado && (await pantallaNombre()) === 'luego') nombreAplazado = true;
+    if (salaEnlace) {
+      const codigo = salaEnlace;
+      salaEnlace = undefined;
+      if (hayConexion()) await enlaces.jugarOnline(codigo);
+      else await mensaje(pantalla().escena, envolver(t('pwa.sinconexion'), 190));
+    }
     let ultima: OpcionMenu = 'solo';
     for (;;) {
       const m = await pantallaMenu(ultima);

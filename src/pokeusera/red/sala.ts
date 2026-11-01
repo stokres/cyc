@@ -1,7 +1,6 @@
-// PokéUsera · online lobby, in the Game Boy style of the rest of the game: first the password
-// screen (the canvas cannot type, so a real <input> is laid over it, styled like a text field),
-// then the room (who is in, pick your trainer, the host starts). Both resolve with what the flow
-// needs; the connection stays open for the game (see online.ts).
+// PokéUsera · online lobby, in the Game Boy style of the rest of the game: first the list of open rooms (create one, tap one, or type a code: the canvas cannot type,
+// so a real <input> is laid over it, styled like a text field), then the room (who is in, pick your trainer, the host starts). Both resolve with what the flow needs;
+// the connection stays open for the game (see online.ts). The rooms themselves are the web's common service (docs/SALAS.md).
 import { ENTRENADORES, type EntrenadorId } from '../tipos';
 import { icono2, retrato2 } from '../arte2/entrenadores2';
 import { anchoTexto2 } from '../arte2/fuente2';
@@ -15,84 +14,147 @@ import { Campo } from '../pantallas/campo';
 import { dibujarFondoBar } from '../pantallas/fondos';
 import { mensaje, sobre } from '../pantallas/modal';
 import { VELOCIDADES, barraArriba, boton, cfg, centrado, colorEnt, envolver, fondoPapel, nombreEnt, oscurecer, rect, t, texto2, velo } from '../pantallas/ui';
-import { Conexion } from './conexion';
+import { JUEGO, MAX_JUGADORES, MAX_SALAS, limpiarCodigoSala, type Conexion, type ResultadoSala } from './conexion';
 
-const CLAVE_GUARDADA = 'pokeusera.clave';
+// ---------------------------------------------------------------- the list of rooms
 
-const leerClave = (): string => {
+/** The password of the old single room, kept in this phone's storage: gone now (the door of the web protects the rooms). */
+const CLAVE_VIEJA = 'pokeusera.clave';
+let claveViejaBorrada = false;
+const borrarClaveVieja = () => {
+  if (claveViejaBorrada) return;
+  claveViejaBorrada = true;
   try {
-    return localStorage.getItem(CLAVE_GUARDADA) ?? '';
-  } catch {
-    return '';
-  }
-};
-const guardarClave = (v: string) => {
-  try {
-    localStorage.setItem(CLAVE_GUARDADA, v);
+    localStorage.removeItem(CLAVE_VIEJA);
   } catch {
     /* no storage */
   }
 };
 
-// ---------------------------------------------------------------- password screen
+export type SalidaSalas = 'sala' | 'volver';
 
-/** The password screen. Resolves with an open connection, or null if the player goes back. */
-export function pantallaClave(): Promise<Conexion | null> {
+interface Zona {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  fn: () => void;
+}
+
+/**
+ * The list of open rooms of PokéUsera: tap one to join, CREAR SALA, or TENGO UN CÓDIGO (four letters). Opens the connection if it is not open yet.
+ * `codigo`: from a link (`?sala=K7MZ`): joins that room first, and shows the list only if that fails.
+ * Resolves `'sala'` once the player is in a room (`con.id >= 0`), or `'volver'` when they go back (the caller closes the connection) or there is no connection.
+ */
+export function pantallaSalas(con: Conexion, codigo?: string): Promise<SalidaSalas> {
   return new Promise((res) => {
     const p = pantalla();
     sonido.musica('titulo');
-    const campo = new Campo(leerClave(), 'online.clave');
-    let ocupado = false;
+    borrarClaveVieja();
+    /** The field for the code (only while typing one). */
+    let campo: Campo | null = null;
+    /** Connecting, or waiting for the answer to «create» / «join». */
+    let ocupado = true;
     let hecho = false;
-    const cerrar = (c: Conexion | null) => {
-      if (hecho) return;
-      hecho = true;
-      campo.quitar();
-      removeEventListener('resize', recolocar);
-      res(c);
-    };
+    let teclado = false;
+    let selId = 'crear';
+    let zonas: Zona[] = [];
+    const offs: Array<() => void> = [];
     const recolocar = () => p.redibujar();
     addEventListener('resize', recolocar);
-
-    const volver = () => {
-      sonido.efecto('atras');
-      cerrar(null);
+    const fin = (r: SalidaSalas) => {
+      if (hecho) return;
+      hecho = true;
+      campo?.quitar();
+      campo = null;
+      removeEventListener('resize', recolocar);
+      for (const f of offs) f();
+      res(r);
     };
-    const entrar = async () => {
+
+    const error = async (motivo: string) => {
+      sonido.efecto('atras');
+      const clave = `online.error.${motivo}`;
+      campo?.mostrar(false);
+      await mensaje(p.escena, envolver(t(clave).startsWith('[') ? t('online.error.red') : t(clave), 190));
+      if (!hecho) campo?.mostrar(true);
+      p.redibujar();
+    };
+    /** Asks the server for something that ends in a room (create / join): 'sala' on success, the error otherwise. */
+    const entrarEn = async (accion: () => Promise<ResultadoSala>) => {
       if (ocupado || hecho) return;
       ocupado = true;
-      sonido.efecto('aceptar');
-      campo.el.blur();
+      campo?.el.blur();
       p.redibujar();
-      const con = new Conexion();
-      const clave = campo.el.value.trim();
-      const r = await con.entrar(clave);
-      if (hecho) {
-        con.cerrar();
-        return;
-      }
-      if (!r.ok) {
-        ocupado = false;
-        sonido.efecto('atras');
-        campo.mostrar(false);
-        await mensaje(p.escena, envolver(t(`online.error.${r.motivo === 'en-partida' ? 'enpartida' : r.motivo}`), 190));
-        if (!hecho) campo.mostrar(true);
-        return;
-      }
-      guardarClave(clave);
-      cerrar(con);
+      const r = await accion();
+      if (hecho) return;
+      ocupado = false;
+      if (r.ok) return fin('sala');
+      await error(r.motivo);
+    };
+    const volver = () => {
+      sonido.efecto('atras');
+      fin('volver');
+    };
+    const crear = () => {
+      sonido.efecto('aceptar');
+      void entrarEn(() => con.crear(JUEGO, MAX_JUGADORES));
+    };
+    const unirse = (codigoSala: string) => {
+      sonido.efecto('aceptar');
+      void entrarEn(() => con.unirse(codigoSala, JUEGO));
     };
 
-    // The keys typed in the field are the password's: the game behind must not hear them.
-    campo.el.addEventListener('keydown', (e) => {
-      e.stopPropagation();
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        void entrar();
-      } else if (e.key === 'Escape') volver();
-    });
+    // ---- typing a code
+    const abrirCodigo = () => {
+      if (ocupado || campo) return;
+      sonido.efecto('aceptar');
+      const c = new Campo('', { etiqueta: 'online.codigo.pide', max: 4, mayusculas: true });
+      campo = c;
+      // The keys typed in the field are the code's: the game behind must not hear them.
+      c.el.addEventListener('keydown', (ev) => {
+        ev.stopPropagation();
+        if (ev.key === 'Enter') {
+          ev.preventDefault();
+          enviarCodigo();
+        } else if (ev.key === 'Escape') cerrarCodigo();
+      });
+      selId = 'entrar';
+      // On a phone the keyboard would cover half the screen: only focus where there is a real keyboard.
+      if (matchMedia('(pointer: fine)').matches) c.el.focus();
+      p.redibujar();
+    };
+    const cerrarCodigo = () => {
+      if (!campo) return;
+      sonido.efecto('atras');
+      campo.quitar();
+      campo = null;
+      selId = 'codigo';
+      p.redibujar();
+    };
+    const enviarCodigo = () => {
+      if (ocupado || !campo) return;
+      const c = limpiarCodigoSala(campo.el.value);
+      if (!c) {
+        void error('codigo');
+        return;
+      }
+      unirse(c);
+    };
+
+    offs.push(con.on('salas', () => p.redibujar()));
+    offs.push(
+      con.on('perdida', () => {
+        if (hecho) return;
+        void error('red').then(() => fin('volver'));
+      }),
+    );
 
     const e: Escena = {
+      get estatica() {
+        return !ocupado && !teclado;
+      },
       dibujar(ctx, ahora) {
         const H = p.alto;
         dibujarFondoBar(ctx, H, 0.35);
@@ -100,35 +162,123 @@ export function pantallaClave(): Promise<Conexion | null> {
         const tw = anchoTexto2(tit) + 40;
         panelCacheado(ctx, Math.floor((ANCHO - tw) / 2), 22, tw, 26);
         centrado(ctx, tit, 32);
-        const y0 = 64 + Math.round((H - 384) * 0.1);
-        panelCacheado(ctx, 8, y0, ANCHO - 16, 176);
-        texto2(ctx, t('online.clave'), 22, y0 + 15, TINTA2);
-        campo.colocar(20, y0 + 30, ANCHO - 40, 30);
-        if (ocupado) {
+        zonas = [];
+        const bw = ANCHO - 40;
+        const conectando = () => {
           const s = t('online.conectando');
-          if (Math.floor(ahora / 400) % 3 !== 2) texto2(ctx, s, Math.floor((ANCHO - anchoTexto2(s)) / 2), y0 + 70, TINTA_SUAVE);
+          if (Math.floor(ahora / 400) % 3 !== 2) texto2(ctx, s, Math.floor((ANCHO - anchoTexto2(s)) / 2), y1, TINTA_SUAVE);
+        };
+        let y1 = 0;
+
+        if (campo) {
+          // Typing a code.
+          const y0 = 64 + Math.round((H - 384) * 0.1);
+          y1 = y0 + 68;
+          panelCacheado(ctx, 8, y0, ANCHO - 16, 166);
+          texto2(ctx, t('online.codigo.pide'), 22, y0 + 15, TINTA2);
+          campo.colocar(20, y0 + 30, bw, 30);
+          if (ocupado) conectando();
+          else centrado(ctx, t('online.codigo.ayuda'), y1, TINTA_SUAVE, { sombra: null });
+          zonas.push({ id: 'entrar', x: 20, y: y0 + 88, w: bw, h: 30, fn: enviarCodigo });
+          zonas.push({ id: 'atras', x: 20, y: y0 + 128, w: bw, h: 30, fn: cerrarCodigo });
+          boton(ctx, 20, y0 + 88, bw, 30, t('online.entrar'), false, !ocupado, 'principal');
+          boton(ctx, 20, y0 + 128, bw, 30, t('online.volver'), false);
+        } else {
+          // The list of rooms (room for four, so nothing below it moves when the list does), the two ways of getting in, and the way back.
+          const d = Math.round((H - 384) * 0.2);
+          panelCacheado(ctx, 8, 56 + d, ANCHO - 16, 286);
+          const max = con.maxSalas || MAX_SALAS;
+          centrado(ctx, t('online.abiertas', { n: con.abiertas, max }), 66 + d, TINTA2);
+          const llenas = con.abiertas >= max;
+          y1 = 98 + d;
+          if (!con.salas.length) {
+            if (ocupado && !con.abierta) conectando();
+            else envolver(t('online.vacio'), 190).forEach((l, i) => centrado(ctx, l, y1 + i * 12, TINTA_SUAVE, { sombra: null }));
+          }
+          con.salas.slice(0, 4).forEach((s, i) => {
+            const y = 82 + d + i * 28;
+            const libre = !s.enPartida && s.jugadores < s.max;
+            panelCacheado(ctx, 14, y, ANCHO - 28, 26);
+            const der = s.enPartida ? t('online.sala.jugando') : t('online.sala.cupo', { n: s.jugadores, max: s.max });
+            const dw = anchoTexto2(der);
+            texto2(ctx, der, ANCHO - 22 - dw, y + 10, libre ? TINTA_SUAVE : '#a898a8', null);
+            const nom = s.anfitrion ? t('online.sala.de', { nombre: s.anfitrion }) : t('sala.codigo', { codigo: s.codigo });
+            texto2(ctx, recortar(nom, ANCHO - 44 - dw - 8), 22, y + 10, libre ? TINTA2 : '#a898a8', libre ? undefined : null);
+            if (!libre) velo(ctx, 16, y + 2, ANCHO - 32, 22, '#f0e2c0', 0.62);
+            else zonas.push({ id: `sala-${s.codigo}`, x: 14, y, w: ANCHO - 28, h: 26, fn: () => unirse(s.codigo) });
+          });
+          const yCrear = 230 + d;
+          if (llenas) {
+            envolver(t('online.error.muchas'), 200).forEach((l, i, a) => centrado(ctx, l, yCrear - 4 - (a.length - i) * 12, TINTA_SUAVE, { sombra: null }));
+          }
+          boton(ctx, 20, yCrear, bw, 30, t('online.crear'), false, !llenas && !ocupado, 'principal');
+          if (!llenas) zonas.push({ id: 'crear', x: 20, y: yCrear, w: bw, h: 30, fn: crear });
+          boton(ctx, 20, yCrear + 36, bw, 30, t('online.codigo'), false);
+          zonas.push({ id: 'codigo', x: 20, y: yCrear + 36, w: bw, h: 30, fn: abrirCodigo });
+          boton(ctx, 20, yCrear + 72, bw, 30, t('online.volver'), false);
+          zonas.push({ id: 'atras', x: 20, y: yCrear + 72, w: bw, h: 30, fn: volver });
         }
-        boton(ctx, 20, y0 + 88, ANCHO - 40, 30, t('online.entrar'), false, !ocupado, 'principal');
-        entrada.zona(20, y0 + 88, ANCHO - 40, 30, () => void entrar());
-        boton(ctx, 20, y0 + 128, ANCHO - 40, 30, t('online.volver'), false);
-        entrada.zona(20, y0 + 128, ANCHO - 40, 30, volver);
+
+        for (const z of zonas) entrada.zona(z.x, z.y, z.w, z.h, () => !ocupado && z.fn());
+        // VOLVER is always allowed (even while connecting).
+        const v = zonas.find((z) => z.id === 'atras');
+        if (v) entrada.zona(v.x, v.y, v.w, v.h, v.fn);
+        const z = zonas.find((q) => q.id === selId) ?? zonas[0];
+        if (teclado && z) {
+          const col = Math.floor(ahora / 400) % 2 === 0 ? TINTA2 : '#e0a83a';
+          rect(ctx, col, z.x - 2, z.y - 2, z.w + 4, 2);
+          rect(ctx, col, z.x - 2, z.y + z.h, z.w + 4, 2);
+          rect(ctx, col, z.x - 2, z.y, 2, z.h);
+          rect(ctx, col, z.x + z.w, z.y, 2, z.h);
+        }
       },
-      paso: () => ocupado,
       accion(a: Accion) {
-        if (a === 'aceptar') void entrar();
-        else if (a === 'atras') volver();
+        teclado = true;
+        if (a === 'atras') {
+          if (campo) cerrarCodigo();
+          else volver();
+          return true;
+        }
+        if (!zonas.length) return true;
+        let k = zonas.findIndex((z) => z.id === selId);
+        if (k < 0) k = 0;
+        if (a === 'aceptar') {
+          if (!ocupado) zonas[k].fn();
+        } else if (a === 'der' || a === 'abajo' || a === 'izq' || a === 'arriba') {
+          const paso = a === 'der' || a === 'abajo' ? 1 : -1;
+          selId = zonas[(k + paso + zonas.length) % zonas.length].id;
+          sonido.efecto('cursor');
+        }
+        p.redibujar();
         return true;
       },
     };
     p.poner(e);
-    // On a phone the keyboard would cover half the screen: only focus where there is a real keyboard.
-    if (matchMedia('(pointer: fine)').matches) campo.el.focus();
+
+    void (async () => {
+      if (!con.abierta) {
+        const ok = await con.abrir();
+        if (hecho) return;
+        if (!ok) {
+          await error('red');
+          return fin('volver');
+        }
+      }
+      ocupado = false;
+      con.mirarLista(JUEGO);
+      p.redibujar();
+      if (!codigo) return;
+      // From a link: that room first; if it cannot be joined, the list.
+      const c = limpiarCodigoSala(codigo);
+      if (!c) return error('noexiste');
+      await entrarEn(() => con.unirse(c, JUEGO));
+    })();
   });
 }
 
 // ---------------------------------------------------------------- the room
 
-export type SalidaSala = { r: 'empezar'; relleno: boolean } | { r: 'salir' } | { r: 'cerrada' };
+export type SalidaSala = { r: 'empezar'; relleno: boolean } | { r: 'salir' } | { r: 'cerrada' } | { r: 'perdida' };
 
 /** «RELLENAR CON MÁQUINA» survives going back to the room after a game. */
 let ultimoRelleno = true;
@@ -155,13 +305,15 @@ function pastilla(ctx: CanvasRenderingContext2D, s: string, xFin: number, y: num
 
 /**
  * The room: the list of who is in, the trainers to pick from, and (host) EMPEZAR. Resolves when
- * the host starts (everybody gets `empezar` from the server), when the player leaves, or when the
- * room is closed or the connection is lost.
+ * the host starts (everybody gets `empezar` from the server), when the player leaves (back to the list), when the
+ * room is closed (also back to the list) or when the connection is lost.
  */
 export function pantallaSala(con: Conexion): Promise<SalidaSala> {
   return new Promise((res) => {
     const p = pantalla();
     sonido.musica('titulo');
+    /** The code is kept here: when the room closes the connection forgets it, and the notice that follows is drawn over this screen. */
+    const codigoSala = con.codigo;
     let relleno_ = ultimoRelleno;
     let sel = 0;
     let teclado = false;
@@ -210,7 +362,7 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
       }),
     );
     offs.push(con.on('cerrada', () => fin({ r: 'cerrada' })));
-    offs.push(con.on('perdida', () => fin({ r: 'cerrada' })));
+    offs.push(con.on('perdida', () => fin({ r: 'perdida' })));
 
     const miPj = (): EntrenadorId | null => con.jugadores.find((j) => j.id === con.id)?.pj ?? null;
     const conPj = () => con.jugadores.filter((j) => j.pj !== null).length;
@@ -219,8 +371,28 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
 
     const salir = () => {
       sonido.efecto('atras');
-      con.cerrar();
+      con.salir();
       fin({ r: 'salir' });
+    };
+    /** COMPARTIR: the phone's share sheet with the link to this room; without one, the link is copied. */
+    const compartir = async () => {
+      const url = `${location.origin}/pokeusera?sala=${codigoSala}`;
+      sonido.efecto('aceptar');
+      if (typeof navigator.share === 'function') {
+        try {
+          await navigator.share({ text: t('online.compartir', { codigo: codigoSala }), url });
+          return;
+        } catch (err) {
+          if ((err as { name?: string } | null)?.name === 'AbortError') return;
+        }
+      }
+      let copiado = true;
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch {
+        copiado = false;
+      }
+      if (!hecho) await mensaje(e, copiado ? [t('online.copiado')] : envolver(t('online.error.copiar', { codigo: codigoSala }), 190));
     };
     /** The «are you sure?» box of the host (leaving closes the room for everybody); QUEDARME is the default. Resolves true to leave. */
     let confirmando = false;
@@ -313,9 +485,13 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
         ctl = [];
         // Header.
         barraArriba(ctx);
-        const tit = t('sala.titulo');
+        const tit = t('sala.codigo', { codigo: codigoSala });
         texto2(ctx, tit, 8, 6);
-        texto2(ctx, `${con.jugadores.length}/4`, 8 + anchoTexto2(tit) + 8, 6, TINTA_SUAVE);
+        // COMPARTIR: small, right of the code (it has the room the «2/4» counter had: the rows below already say who is in and how many seats there are).
+        const tc = t('online.compartir.boton');
+        const cw = anchoTexto2(tc) + 10;
+        const cx = 8 + anchoTexto2(tit) + 6;
+        boton(ctx, cx, 2, cw, 14, tc, false, true, 'secundario');
         // SALIR DE LA SALA: small in the corner, with a tap zone as tall as the bar plus 10 px (≥ 28 logical px, ≥ 44 CSS px on a phone).
         const ts = t('sala.salir');
         const sw = anchoTexto2(ts) + 14;
@@ -325,6 +501,7 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
         // Who is in.
         const hf = 26 + Math.min(4, Math.floor(extra / 30));
         const lista = [...con.jugadores].sort((a, b) => a.id - b.id);
+        const cupo = con.max || 4;
         for (let i = 0; i < 4; i++) {
           const y = 23 + i * (hf + 2);
           const j = lista[i];
@@ -332,7 +509,8 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
           relleno(ctx, j ? PAPEL_ALTO : '#c9bb98', 5, y + 1, ANCHO - 10, hf - 2);
           const ty = y + Math.floor((hf - 7) / 2) + 1;
           if (!j) {
-            texto2(ctx, t('sala.libre'), 30, ty, '#a898a8', null);
+            // The seats past the room's size (a room of two has two) are not free: nobody can sit there.
+            texto2(ctx, t(i < cupo ? 'sala.libre' : 'sala.cerrado'), 30, ty, '#a898a8', null);
             continue;
           }
           const col = j.pj ? colorEnt(j.pj) : '#a898a8';
@@ -389,20 +567,26 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
         // The mode (docs/POKEUSERA.md, «Modo AL AZAR») and the battle speed: the host's, the same for everybody.
         // The host taps them (two rows); a guest cannot, so for him they are plain text, not a button-looking panel.
         if (con.anfitrion) {
-          panelCacheado(ctx, 4, y, ANCHO - 8, 24);
+          // On a short phone the three rows of the host (mode, speed, fill) would run into EMPEZAR: mode and speed share one row, in two halves.
+          const juntas = y + 3 * 27 > H - 34;
+          const wm = juntas ? Math.floor((ANCHO - 12) / 2) : ANCHO - 8;
+          panelCacheado(ctx, 4, y, wm, 24);
           texto2(ctx, t('sala.modo'), 14, y + 9);
           const vm = t(`modo.${con.modo}`);
-          texto2(ctx, vm, ANCHO - 14 - anchoTexto2(vm), y + 9, con.modo === 'azar' ? colorEnt('vinas') : TINTA_SUAVE);
+          texto2(ctx, vm, 4 + wm - 10 - anchoTexto2(vm), y + 9, con.modo === 'azar' ? colorEnt('vinas') : TINTA_SUAVE);
           const km = ctl.length;
-          ctl.push({ x: 4, y, w: ANCHO - 8, h: 24, fn: () => ((sel = km), alternarModo()) });
-          y += 27;
+          const ym = y;
+          ctl.push({ x: 4, y: ym, w: wm, h: 24, fn: () => ((sel = km), alternarModo()) });
+          const xv = juntas ? 8 + wm : 4;
+          if (!juntas) y += 27;
 
-          panelCacheado(ctx, 4, y, ANCHO - 8, 24);
-          texto2(ctx, t('sala.velocidad'), 14, y + 9);
+          panelCacheado(ctx, xv, y, wm, 24);
+          texto2(ctx, t('sala.velocidad'), xv + 10, y + 9);
           const vv = t(`velocidad.${con.velocidad}`);
-          texto2(ctx, vv, ANCHO - 14 - anchoTexto2(vv), y + 9, TINTA_SUAVE);
+          texto2(ctx, vv, xv + wm - 10 - anchoTexto2(vv), y + 9, TINTA_SUAVE);
           const kv = ctl.length;
-          ctl.push({ x: 4, y, w: ANCHO - 8, h: 24, fn: () => ((sel = kv), alternarVelocidad()) });
+          const yv = y;
+          ctl.push({ x: xv, y: yv, w: wm, h: 24, fn: () => ((sel = kv), alternarVelocidad()) });
           y += 27;
         } else {
           y += 2;
@@ -434,6 +618,7 @@ export function pantallaSala(con: Conexion): Promise<SalidaSala> {
           const k = ctl.length;
           ctl.push({ x: 20, y: yb, w: ANCHO - 40, h: 28, fn: () => ((sel = k), empezar()) });
         }
+        ctl.push({ x: cx - 3, y: 0, w: cw + 6, h: 28, fn: () => void compartir(), ver: { x: cx, y: 2, w: cw, h: 14 } });
         ctl.push({ x: sx - 6, y: 0, w: sw + 10, h: 28, fn: () => void pedirSalida(), ver: { x: sx, y: 2, w: sw, h: 14 } });
         for (const c of ctl) entrada.zona(c.x, c.y, c.w, c.h, () => !empezando && c.fn());
         if (teclado && ctl[sel]) {

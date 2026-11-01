@@ -18,6 +18,7 @@
 //   node scripts/rendimiento-pokeusera.mjs 5174 combate-juega     (a bare number is the port)
 //   screens: titulo, menu, ajustes, entrenador, modo, azar, draft, draft-flujo, barra, salida, combate-elige, combate-juega, combate-ritmo (+ the four bars: combate-elige-<bar> and combate-juega-<bar>,
 //            with <bar> = rural, terraza, juan, feria; the default combate-* ones are the Bar del Brío), podio, estadisticas, useritopedia, useritopedia-ficha, acumuladas, acumuladas-records, guia, guia-objetos, salida,
+//            online-lista, online-sala (JUGAR ONLINE: la lista de salas y la sala propia; hace falta el servidor de salas, ver más abajo),
 //            nombre (la pantalla «¿Cómo te llamas?», sin cuenta), cuenta (AJUSTES → MI CUENTA), acumuladas-yo (ESTADÍSTICAS, página YO, con una copia guardada de 80 batallas),
 //            aventura-inicial, aventura-mapa, aventura-zona, aventura-equipo, aventura-salvaje (AVENTURA, src/pokeusera/caza/: ?aventura&demo=nueva&pj=fran and ?aventura&demo)
 // Environment: SEG=4 (seconds measured per screen), CPU=4 (throttling rate; 1 = none, budgets then do not apply),
@@ -75,6 +76,9 @@ const PRESUPUESTOS = {
   // Las pantallas de la cuenta (pantallas/cuenta.ts): estáticas, con un campo de texto real encima del lienzo. Mismo presupuesto que la Useritopedia.
   nombre: { redibujos: 2, ms: 3, pico: 10, cb: 3, di: 45, lienzos: 0, largas: 0, primer: 1500 },
   cuenta: { redibujos: 2, ms: 3, pico: 10, cb: 3, di: 45, lienzos: 0, largas: 0, primer: 1500 },
+  // JUGAR ONLINE: the list of rooms is static (it redraws when the server sends the list or something is tapped); the room has only the quarter-second tick.
+  'online-lista': { redibujos: 8, ms: 3, pico: 20, cb: 3, di: 45, lienzos: 0, largas: 0, primer: 1500 },
+  'online-sala': { redibujos: 8, ms: 3, pico: 20, cb: 3, di: 80, lienzos: 0, largas: 0, primer: 1500 },
   guia: { redibujos: 8, ms: 3, pico: 20, cb: 4, di: 70, lienzos: 0, largas: 0, primer: 1000 },
   'guia-objetos': { redibujos: 8, ms: 3.5, pico: 20, cb: 4, di: 95, lienzos: 0, largas: 0, primer: 1000 },
   ajustes: { redibujos: 2, ms: 1, pico: 10, cb: 2, di: 15, lienzos: 0, largas: 0, primer: 1000 },
@@ -139,6 +143,10 @@ const PANTALLAS = {
   guia: { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 4; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
   // The guide on its OBJETOS tab (the last one: ▶ five times).
   'guia-objetos': { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 4; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); for (let i = 0; i < 5; i++) await tecla(p, 'ArrowRight', false); }, esperar: 1000 },
+  // JUGAR ONLINE (menu → second entry): the list of rooms (src/pokeusera/red/sala.ts, pantallaSalas), and then the room of one's own (CREAR SALA is selected). They need the room server: run `npm start`
+  // (PORT=8080, after `npm run build`) or point the dev server at one with POKEUSERA_SALA=ws://localhost:PORT.
+  'online-lista': { url: '', ir: async (p) => { await tecla(p, 'Enter'); await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); await dormir(1000); }, esperar: 1500 },
+  'online-sala': { url: '', ir: async (p) => { await tecla(p, 'Enter'); await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); await dormir(1000); await tecla(p, 'Enter'); await dormir(1000); }, esperar: 1500 },
   // The settings: menu → AJUSTES (sixth entry), with the ESCENARIO row.
   ajustes: { url: '', ir: async (p) => { await tecla(p, 'Enter'); for (let i = 0; i < 5; i++) await tecla(p, 'ArrowDown', false); await tecla(p, 'Enter'); } },
   // AVENTURA. The shortcuts skip the title and the menu (`?aventura`); `&demo` is a test adventure in memory (a starter and seven caught, bar 2 open, never saved).
