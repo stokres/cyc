@@ -29,7 +29,7 @@ export function pantallaTitulo(ui: HTMLElement): Promise<void> {
 
 // ---------------------------------------------------------------- main menu
 
-export type AccionMenu = 'nueva' | 'seguir' | 'fases' | 'records' | 'ajustes' | 'salir';
+export type AccionMenu = 'nueva' | 'seguir' | 'online' | 'fases' | 'records' | 'ajustes' | 'salir';
 
 /** `conSalir`: the Pang opened from the minigames menu gets a last button to go back there («Volver a los minijuegos»); opened by itself (`/pang`), «web»,
  *  the last button says «Volver a la web» (the caller then goes to the cover). */
@@ -38,11 +38,19 @@ export function pantallaMenu(ui: HTMLElement, conSalir: boolean | 'web' = false)
   return mostrar<AccionMenu>(ui, el, (fin) => {
     const botones: Array<[AccionMenu, string]> = [];
     if (datos.faseMax > 1) botones.push(['seguir', texto('menu.seguir', { n: datos.faseMax })]);
-    botones.push(['nueva', texto('menu.nueva')], ['fases', texto('menu.fases')], ['records', texto('menu.records')], ['ajustes', texto('menu.ajustes')]);
-    if (conSalir) botones.push(['salir', texto(conSalir === 'web' ? 'menu.web' : 'menu.minijuegos')]);
+    botones.push(['nueva', texto('menu.nueva')], ['online', texto('menu.online')], ['fases', texto('menu.fases')]);
+    // Récords and Ajustes share a row, so the seven buttons still fit on a low phone.
+    const aparte: Array<[AccionMenu, string]> = [['records', texto('menu.records')], ['ajustes', texto('menu.ajustes')]];
+    const pintar = ([a, t]: [AccionMenu, string]) => boton(t, () => fin(a), a === botones[0][0] ? 'primario' : a === 'salir' ? 'fantasma' : '');
     el.append(
       h('div', { class: 'pg-marca' }, h('div', { class: 'pg-nombre-juego' }, texto('titulo')), h('div', { class: 'pg-pang' }, texto('titulo.pang'))),
-      h('div', { class: 'pg-panel pg-menu-botones' }, ...botones.map(([a, t], i) => boton(t, () => fin(a), i === 0 ? 'primario' : a === 'salir' ? 'fantasma' : ''))),
+      h(
+        'div',
+        { class: 'pg-panel pg-menu-botones' },
+        ...botones.map(pintar),
+        h('div', { class: 'pg-menu-par' }, ...aparte.map(pintar)),
+        conSalir ? pintar(['salir', texto(conSalir === 'web' ? 'menu.web' : 'menu.minijuegos')]) : null,
+      ),
     );
     // Escape goes back to the minigames, but never out to the web (a key pressed by mistake must not close the game).
     if (conSalir === true) return alTeclear((e) => {
@@ -166,9 +174,9 @@ function tablaLocal(nuevo: Marca | null): HTMLElement {
   return tabla;
 }
 
-/** The table of everybody (the ten best, with the name of the account): yours in gold, and `nuevo` (the run just played) with its label. */
-function tablaTodos(filas: Fila[], nuevo: Marca | null): HTMLElement {
-  const tabla = h('div', { class: 'pg-records todos', role: 'table' });
+/** The table of everybody (the ten best, with the name of the account): yours in gold, and `nuevo` (the run just played) with its label. In the table of groups each row also says how many played («con 3»). */
+function tablaTodos(filas: Fila[], nuevo: Marca | null, grupo = false): HTMLElement {
+  const tabla = h('div', { class: `pg-records todos${grupo ? ' grupo' : ''}`, role: 'table' });
   if (!filas.length) tabla.append(h('p', { class: 'pg-vacio' }, texto('records.vaciotodos')));
   filas.forEach((r, i) => {
     const es = !!nuevo && r.mia === true && r.puntos === nuevo.puntos && r.fecha === nuevo.fecha;
@@ -181,7 +189,13 @@ function tablaTodos(filas: Fila[], nuevo: Marca | null): HTMLElement {
         h('span', { class: 'pg-pos' }, String(i + 1)),
         h('span', { class: 'pg-pts' }, miles(r.puntos)),
         h('span', { class: 'pg-quien-r pg-cuenta' }, r.nombre),
-        h('span', { class: 'pg-fase-r pg-con-cara', title: f?.nombre ?? '' }, f ? caraPj(pj) : '', r.extra ? texto('records.fase', { n: r.extra.fase }) : ''),
+        h(
+          'span',
+          { class: 'pg-fase-r pg-con-cara', title: f?.nombre ?? '' },
+          f ? caraPj(pj) : '',
+          r.extra ? texto('records.fase', { n: r.extra.fase }) : '',
+          grupo && r.extra?.n ? h('small', { class: 'pg-con' }, texto('records.con', { n: r.extra.n })) : null,
+        ),
         h('span', { class: 'pg-fecha' }, es ? texto('records.nuevo') : fechaCorta(r.fecha)),
       ),
     );
@@ -190,27 +204,41 @@ function tablaTodos(filas: Fila[], nuevo: Marca | null): HTMLElement {
 }
 
 /**
- * The records: two tables behind two tabs, «De todos» first (the ten best of every account, from the server, or the last seen without network)
- * and «En este móvil» (this phone's five). `nuevo` is the run just played, highlighted. Without an account the table of everybody says how to get a name;
- * a run that made the phone's top five and has no account to go to everybody's opens on the phone's tab, where it is.
+ * The records: three tables behind three tabs, «De todos» first (the ten best solo runs of every account, from the server, or the last seen without network),
+ * «En grupo» (the same for the online games of two to four, with «con N» on each row) and «En este móvil» (this phone's five, solo only). `nuevo` is the run
+ * just played, highlighted. Without an account the tables of everybody say how to get a name; a run that made the phone's top five and has no account to go
+ * to everybody's opens on the phone's tab, where it is.
  */
 export function pantallaRecords(ui: HTMLElement, nuevo: Marca | null = null): Promise<void> {
   const el = h('div', { class: 'pg-pantalla pg-hoja' });
   return mostrar<void>(ui, el, (fin) => {
+    type Vista = 'todos' | 'grupo' | 'local';
+    const ORDEN: Vista[] = ['todos', 'grupo', 'local'];
     const hayCuenta = cuentaLocal() !== null;
     let cerrada = false;
-    let vista: 'todos' | 'local' = nuevo && !hayCuenta ? 'local' : 'todos';
+    let vista: Vista = nuevo && !hayCuenta ? 'local' : 'todos';
     const cuerpo = h('div', { class: 'pg-records-cuerpo' });
     const nota = h('p', { class: 'pg-nota' });
-    const botones = {
+    const botones: Record<Vista, HTMLButtonElement> = {
       todos: h('button', { type: 'button', class: 'pg-pestana', role: 'tab' }, texto('records.todos')),
+      grupo: h('button', { type: 'button', class: 'pg-pestana', role: 'tab' }, texto('records.grupo')),
       local: h('button', { type: 'button', class: 'pg-pestana', role: 'tab' }, texto('records.local')),
     };
-    /** What the last answer of the server was: undefined while it comes, null if there is nothing to show. */
-    let lectura: { filas: Fila[]; enVivo: boolean } | null | undefined;
+    /** What the last answer of the server was, per table: undefined while it comes (or before it is asked), null if there is nothing to show. */
+    const lecturas: Partial<Record<'todos' | 'grupo', { filas: Fila[]; enVivo: boolean } | null>> = {};
+    const pedidas = new Set<string>();
+    const pedir = (v: 'todos' | 'grupo') => {
+      if (pedidas.has(v)) return;
+      pedidas.add(v);
+      void leerRecords(v === 'todos' ? 'pang' : 'pangGrupo').then((r) => {
+        if (cerrada) return;
+        lecturas[v] = r;
+        if (vista === v) pintar();
+      });
+    };
 
     const pintar = () => {
-      for (const k of ['todos', 'local'] as const) {
+      for (const k of ORDEN) {
         botones[k].classList.toggle('activa', k === vista);
         botones[k].setAttribute('aria-selected', String(k === vista));
       }
@@ -220,29 +248,25 @@ export function pantallaRecords(ui: HTMLElement, nuevo: Marca | null = null): Pr
         nota.textContent = '';
         return;
       }
+      pedir(vista);
+      const lectura = lecturas[vista];
       if (lectura === undefined) cuerpo.replaceChildren(h('p', { class: 'pg-vacio' }, texto('records.cargando')));
       else if (lectura === null) cuerpo.replaceChildren(h('p', { class: 'pg-vacio' }, texto('records.sinred')));
-      else cuerpo.replaceChildren(tablaTodos(lectura.filas, nuevo));
+      else cuerpo.replaceChildren(tablaTodos(lectura.filas, vista === 'todos' ? nuevo : null, vista === 'grupo'));
       nota.textContent = [hayCuenta ? '' : texto('records.sincuenta'), lectura && !lectura.enVivo ? texto('records.viejo') : ''].filter(Boolean).join(' ');
     };
-    const elegir = (v: 'todos' | 'local') => {
+    const elegir = (v: Vista) => {
       vista = v;
       pintar();
     };
-    botones.todos.addEventListener('click', () => elegir('todos'));
-    botones.local.addEventListener('click', () => elegir('local'));
+    for (const k of ORDEN) botones[k].addEventListener('click', () => elegir(k));
     pintar();
-    void leerRecords('pang').then((r) => {
-      if (cerrada) return;
-      lectura = r;
-      if (vista === 'todos') pintar();
-    });
 
     el.append(
       h(
         'div',
         { class: 'pg-panel pg-ancho pg-hoja-records', role: 'dialog', 'aria-label': texto('records.titulo') },
-        h('div', { class: 'pg-cabecera' }, h('div', { class: 'pg-pestanas', role: 'tablist' }, botones.todos, botones.local), boton(texto('menu.volver'), () => fin(), 'fantasma')),
+        h('div', { class: 'pg-cabecera' }, h('div', { class: 'pg-pestanas', role: 'tablist' }, botones.todos, botones.grupo, botones.local), boton(texto('menu.volver'), () => fin(), 'fantasma')),
         cuerpo,
         nota,
       ),
@@ -250,7 +274,8 @@ export function pantallaRecords(ui: HTMLElement, nuevo: Marca | null = null): Pr
     const parar = alTeclear((e) => {
       if (e.key === 'Escape') fin();
       else if (e.key === 'Enter' && e.target === document.body) fin();
-      else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') elegir(vista === 'todos' ? 'local' : 'todos');
+      else if (e.key === 'ArrowLeft') elegir(ORDEN[(ORDEN.indexOf(vista) + ORDEN.length - 1) % ORDEN.length]);
+      else if (e.key === 'ArrowRight') elegir(ORDEN[(ORDEN.indexOf(vista) + 1) % ORDEN.length]);
     });
     return () => {
       cerrada = true;
@@ -265,19 +290,20 @@ export function pantallaRecords(ui: HTMLElement, nuevo: Marca | null = null): Pr
  * The pause panel over the running game. «Salir» needs a second tap. Online the game goes on behind
  * it, so `senal` can close the panel from outside (the stage ended): it resolves 'seguir'.
  */
-export function pantallaPausa(ui: HTMLElement, sonido: Sound, senal?: AbortSignal): Promise<'seguir' | 'salir'> {
+export function pantallaPausa(ui: HTMLElement, sonido: Sound, senal?: AbortSignal, online = false): Promise<'seguir' | 'salir'> {
   const el = h('div', { class: 'pg-pantalla pg-pausa' });
   return mostrar<'seguir' | 'salir'>(ui, el, (fin) => {
     let seguro = 0;
+    const etiqueta = texto(online ? 'online.salir.partida' : 'menu.salir');
     const salir = boton(
-      texto('menu.salir'),
+      etiqueta,
       () => {
         if (salir.classList.contains('peligro')) return fin('salir');
         salir.classList.add('peligro');
         salir.textContent = texto('menu.seguro');
         seguro = window.setTimeout(() => {
           salir.classList.remove('peligro');
-          salir.textContent = texto('menu.salir');
+          salir.textContent = etiqueta;
         }, 4000);
       },
       'fantasma',

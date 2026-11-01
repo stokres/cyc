@@ -1,7 +1,7 @@
 // The whole Pang (docs/PANG.md), the arcade game of the friends: title with an attract demo behind, menu,
 // character select (the four), the twelve stages one after another, «¿Continuar?», end screen, records and
-// its own save (guardado.ts). It is the game of the branch claude/pang-cyc-56o0iv without the online room
-// (there is no server on GitHub Pages): no `red/`, no «Jugar online».
+// its own save (guardado.ts), and «Jugar online» (red/, docs/PANG-ONLINE.md): one to four players in a room of the web's common service
+// (docs/SALAS.md), the host's browser playing the game and the guests painting it.
 //
 // It opens from the minigames menu (src/main.ts) once the chapter 2 Pang is beaten, and by itself with the
 // address ending in ?pangcompleto. `jugarPangCompleto` resolves when the player picks «Volver a los
@@ -17,6 +17,7 @@ import { FASES } from './fases';
 import { enviarRecord } from '../cuenta/records';
 import { alcanzarFase, anotarRecord, datos } from './guardado';
 import { jugarFase, type Control, type JugadorInicial, type OpcionesFase } from './juego';
+import { jugarOnline } from './red/online';
 import { elegirPersonaje, pantallaAjustes, pantallaContinuar, pantallaFases, pantallaFinal, pantallaMenu, pantallaPausa, pantallaRecords, pantallaTitulo } from './pantallas';
 import { PJS, type Arma, type PjId, type ResultadoFase } from './tipos';
 import { h } from './ui/dom';
@@ -36,6 +37,11 @@ export interface OpcionesPangCompleto {
   control?: Control;
   /** With 'bot': seconds between its decisions (bot.ts). */
   reaccion?: number;
+  /**
+   * Opened by a link to a room (`/pang?sala=K7MZ` joins that room, `/pang?sala=nueva` opens «crear sala»): goes straight to the online rooms,
+   * without the title; when that ends the menu follows.
+   */
+  sala?: string;
   /** Opened by itself (`/pang`, not from the minigames menu): the menu's last button says «Volver a la web» instead of «Volver a los minijuegos». */
   desdeWeb?: boolean;
   /** Aborting it closes the Pang wherever it is (tests and the performance check). */
@@ -71,6 +77,8 @@ export async function jugarPangCompleto(root: HTMLElement, o: OpcionesPangComple
 
   // ---------------------------------------------------------- one stage
   const pausa = () => pantallaPausa(ui, sonido);
+  /** Online the game goes on behind the pause menu, which closes by itself if the stage ends; «Salir» leaves the game. */
+  const pausaOnline = (senal?: AbortSignal) => pantallaPausa(ui, sonido, senal, true);
   const jugar = (p: Pick<OpcionesFase, 'fase' | 'jugadores' | 'controles' | 'yo' | 'demo' | 'senal' | 'reaccion'>): Promise<ResultadoFase | 'salir'> =>
     jugarFase({ padre: capaJuego, sonido, pausa, ...p, senal: p.senal && o.senal ? AbortSignal.any([p.senal, o.senal]) : (p.senal ?? o.senal) });
   /** The next stage's players: a player who ended out of lives comes back with one. */
@@ -199,13 +207,25 @@ export async function jugarPangCompleto(root: HTMLElement, o: OpcionesPangComple
       }
       return;
     }
+    /** The online rooms (the demo stays off meanwhile; the music goes on). */
+    const online = async (entrada: { codigo?: string; nueva?: boolean } = {}) => {
+      await demo.parar();
+      sonido.musica('pangUsera');
+      await jugarOnline({ ui, capaJuego, sonido, pausa: pausaOnline }, entrada);
+    };
+    if (o.sala) {
+      // A link to a room: straight there, no title.
+      const sala = o.sala.trim();
+      await online(sala.toLowerCase() === 'nueva' ? { nueva: true } : { codigo: sala });
+    }
     demo.iniciar();
-    await pantallaTitulo(ui);
+    if (!o.sala) await pantallaTitulo(ui);
     for (;;) {
       const accion = await pantallaMenu(ui, o.desdeWeb ? 'web' : true);
       if (accion === 'salir') break;
       if (accion === 'nueva') await partida(1);
       else if (accion === 'seguir') await partida(datos.faseMax);
+      else if (accion === 'online') await online();
       else if (accion === 'fases') {
         const n = await pantallaFases(ui);
         if (n) await partida(n);

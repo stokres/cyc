@@ -10,7 +10,7 @@ import { TABLAS, esTabla, type ExtraPang, type TablaId } from './tablas.mjs';
 import { cuentaLocal, guardar, leer, pedir } from './base';
 
 export type { ExtraPang, TablaId };
-/** Los ids de las tablas: el Pang y los minijuegos sin fin del capítulo 1. */
+/** Los ids de las tablas: el Pang (solo y en grupo) y los minijuegos sin fin del capítulo 1. */
 export const TABLAS_IDS = Object.keys(TABLAS) as TablaId[];
 
 /** Una marca de la tabla de todos tal como llega del servidor. */
@@ -138,7 +138,8 @@ export function marcasDelAparato(): Array<{ tabla: TablaId; puntos: number; extr
   }
   const partida = parse(JUEGOS.capitulo1) as { progreso?: { minijuegos?: Record<string, { ranking?: unknown }> } } | null;
   for (const t of TABLAS_IDS) {
-    if (t === 'pang') continue;
+    // (El Pang de verdad, solo o en grupo, no está en la partida del capítulo 1.)
+    if (t === 'pang' || t === 'pangGrupo') continue;
     for (const m of lista(partida?.progreso?.minijuegos?.[t]?.ranking)) {
       if (typeof m.puntos === 'number') salida.push({ tabla: t, puntos: m.puntos, extra: null, fecha: String(m.fecha ?? '') });
     }
@@ -157,12 +158,13 @@ export async function subirMarcas(marcas: ReturnType<typeof marcasDelAparato>): 
 // ------------------------------------------------------------------ reading the tables
 
 const esExtra = (x: unknown): x is ExtraPang => !!x && typeof x === 'object' && typeof (x as ExtraPang).pj === 'string' && typeof (x as ExtraPang).fase === 'number';
+const extraDe = (x: ExtraPang): ExtraPang => (typeof x.n === 'number' ? { pj: x.pj, fase: x.fase, n: x.n } : { pj: x.pj, fase: x.fase });
 
 function fila(x: unknown): Fila | null {
   if (!x || typeof x !== 'object') return null;
   const o = x as Record<string, unknown>;
   if (typeof o.nombre !== 'string' || typeof o.puntos !== 'number' || typeof o.fecha !== 'string') return null;
-  return { nombre: o.nombre, puntos: o.puntos, fecha: o.fecha, extra: esExtra(o.extra) ? { pj: o.extra.pj, fase: o.extra.fase } : null, ...(o.mia === true ? { mia: true } : {}) };
+  return { nombre: o.nombre, puntos: o.puntos, fecha: o.fecha, extra: esExtra(o.extra) ? extraDe(o.extra) : null, ...(o.mia === true ? { mia: true } : {}) };
 }
 
 type Cache = Partial<Record<TablaId, { cu: string | null; filas: Fila[] }>>;
