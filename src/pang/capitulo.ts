@@ -206,6 +206,8 @@ export function jugarPangCapitulo(root: HTMLElement, o: OpcionesPangCapitulo = {
           padre: juego,
           fase: FASES_CAPITULO[faseActual],
           jugadores: [{ pj: 'fran', vidas: VIDAS, puntos }],
+          // Fran plays the whole chapter with the double harpoon and finds no weapons (the difficulty was tuned that way).
+          armaFija: 'doble',
           controles: [control],
           reaccion: o.reaccion,
           yo: 0,

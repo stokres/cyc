@@ -16,9 +16,9 @@ import textosPang from '../textos/pang.md?raw';
 import { FASES } from './fases';
 import { enviarRecord } from '../cuenta/records';
 import { alcanzarFase, anotarRecord, datos } from './guardado';
-import { jugarFase, type Control, type OpcionesFase } from './juego';
+import { jugarFase, type Control, type JugadorInicial, type OpcionesFase } from './juego';
 import { elegirPersonaje, pantallaAjustes, pantallaContinuar, pantallaFases, pantallaFinal, pantallaMenu, pantallaPausa, pantallaRecords, pantallaTitulo } from './pantallas';
-import { PJS, type PjId, type ResultadoFase } from './tipos';
+import { PJS, type Arma, type PjId, type ResultadoFase } from './tipos';
 import { h } from './ui/dom';
 
 export interface OpcionesPangCompleto {
@@ -74,7 +74,7 @@ export async function jugarPangCompleto(root: HTMLElement, o: OpcionesPangComple
   const jugar = (p: Pick<OpcionesFase, 'fase' | 'jugadores' | 'controles' | 'yo' | 'demo' | 'senal' | 'reaccion'>): Promise<ResultadoFase | 'salir'> =>
     jugarFase({ padre: capaJuego, sonido, pausa, ...p, senal: p.senal && o.senal ? AbortSignal.any([p.senal, o.senal]) : (p.senal ?? o.senal) });
   /** The next stage's players: a player who ended out of lives comes back with one. */
-  const siguientes = (pjs: PjId[], r: ResultadoFase) => pjs.map((pj, i) => ({ pj, puntos: r.jugadores[i].puntos, vidas: Math.max(1, r.jugadores[i].vidas) }));
+  const siguientes = (pjs: PjId[], r: ResultadoFase) => pjs.map((pj, i) => ({ pj, puntos: r.jugadores[i].puntos, vidas: Math.max(1, r.jugadores[i].vidas), arma: r.jugadores[i].arma }));
 
   const salir = () => {
     sonido.retener(false);
@@ -147,9 +147,11 @@ export async function jugarPangCompleto(root: HTMLElement, o: OpcionesPangComple
     let n = inicio;
     let puntos = 0;
     let vidas = VIDAS;
+    // The weapon travels from stage to stage; it is lost with a life (Pablo keeps it) and «¿Continuar?» starts again with the normal one.
+    let arma: Arma = 'normal';
     while (n <= FASES.length) {
       alcanzarFase(n);
-      const r = await jugar({ fase: FASES[n - 1], jugadores: [{ pj, vidas, puntos }], controles: ['local'], yo: 0 });
+      const r = await jugar({ fase: FASES[n - 1], jugadores: [{ pj, vidas, puntos, arma }], controles: ['local'], yo: 0 });
       if (r === 'salir') {
         // (The game does not say how many points the stage in progress had: those before it count.)
         await cerrarPartida(puntos, pj, n, false);
@@ -157,6 +159,7 @@ export async function jugarPangCompleto(root: HTMLElement, o: OpcionesPangComple
       }
       puntos = r.jugadores[0].puntos;
       vidas = r.jugadores[0].vidas;
+      arma = r.jugadores[0].arma;
       if (r.superada) {
         n++;
         continue;
@@ -175,6 +178,7 @@ export async function jugarPangCompleto(root: HTMLElement, o: OpcionesPangComple
       if (decision === 'no') return;
       puntos = 0;
       vidas = VIDAS;
+      arma = 'normal';
     }
     await pantallaFinal(ui, puntos);
     await cerrarPartida(puntos, pj, FASES.length, true);
@@ -187,7 +191,7 @@ export async function jugarPangCompleto(root: HTMLElement, o: OpcionesPangComple
       const n = Math.min(FASES.length, Math.max(1, Math.floor(o.fase)));
       const pj = o.pj ?? 'fran';
       const control = o.control ?? 'local';
-      let jugadores = [{ pj, vidas: VIDAS, puntos: 0 }];
+      let jugadores: JugadorInicial[] = [{ pj, vidas: VIDAS, puntos: 0 }];
       for (let i = n - 1; i < FASES.length; i++) {
         const r = await jugar({ fase: FASES[i], jugadores, controles: [control], yo: 0, reaccion: o.reaccion });
         if (r === 'salir' || !r.superada) break;

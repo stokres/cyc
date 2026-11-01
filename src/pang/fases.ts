@@ -1,5 +1,5 @@
 // The twelve stages: a world tour from Usera to Las Vegas (docs/PANG.md). Each one adds
-// something, as in the original. The three themes take turns; the bosses get «Última ronda». Play area: x 8–376, ceiling 8, floor 184 (tipos.ts).
+// something, as in the original. The four themes take turns; the bosses get «Última ronda». Play area: x 8–376, ceiling 8, floor 184 (tipos.ts).
 // Floating blocks keep their underside at y ≤ 148, so the player walks under them;
 // platforms the player stands on are reached by ladders (the player never jumps).
 import type { Fase } from './tipos';
@@ -34,7 +34,7 @@ const BASE: Fase[] = [
   {
     n: 3,
     fondo: 'piso',
-    musica: 'pangUsera',
+    musica: 'pangDeep',
     tiempo: 110,
     inicio: 192,
     especial: 'aceituna',
@@ -92,7 +92,7 @@ const BASE: Fase[] = [
   {
     n: 7,
     fondo: 'madridrio',
-    musica: 'pangUsera',
+    musica: 'pangDeep',
     tiempo: 120,
     inicio: 192,
     burbujas: [
@@ -161,7 +161,7 @@ const BASE: Fase[] = [
   {
     n: 11,
     fondo: 'nevada',
-    musica: 'pangCalle',
+    musica: 'pangDeep',
     tiempo: 90,
     inicio: 192,
     prisa: 1.15,

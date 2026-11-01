@@ -33,14 +33,14 @@ export interface Entrada {
 }
 
 const CSS = `
-.pg-capa{--b:clamp(46px,14vh,68px);--f:clamp(64px,24vh,100px);--e:clamp(46px,14vh,60px);--m:max(14px,env(safe-area-inset-left,0px));display:contents}
+.pg-capa{--b:clamp(64px,22vh,96px);--f:clamp(64px,24vh,100px);--e:clamp(46px,14vh,60px);--m:max(14px,env(safe-area-inset-left,0px));display:contents}
 .pg-ctl{position:absolute;box-sizing:border-box;border:1.5px solid #c9a24a;background:rgba(10,14,30,.45);color:#fff;font:700 clamp(18px,6vh,28px)/1 'Alegreya Sans',sans-serif;display:flex;align-items:center;justify-content:center;touch-action:none;-webkit-tap-highlight-color:transparent;border-radius:14px;pointer-events:auto;text-align:center}
 .pg-ctl.pg-on{background:rgba(201,162,74,.5)}
-.pg-pad{left:var(--m);bottom:max(14px,env(safe-area-inset-bottom,0px));display:flex;gap:10px;background:none;border:0;padding:0}
-.pg-pad>div{width:var(--b);height:var(--b);box-sizing:border-box;border:1.5px solid #c9a24a;background:rgba(10,14,30,.45);border-radius:14px;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.pg-pad{left:0;bottom:0;display:flex;gap:6px;background:none;border:0;border-radius:0;padding:32px 32px max(14px,env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px))}
+.pg-pad>div{width:calc(var(--b)*1.15);height:var(--b);box-sizing:border-box;border:1.5px solid #c9a24a;background:rgba(10,14,30,.28);color:rgba(255,255,255,.85);font-size:clamp(22px,8vh,36px);border-radius:14px;display:flex;align-items:center;justify-content:center;pointer-events:none}
 .pg-pad>div.pg-on{background:rgba(201,162,74,.5)}
-.pg-vert{position:absolute;left:var(--m);bottom:calc(max(14px,env(safe-area-inset-bottom,0px)) + var(--b) + 10px);display:flex;flex-direction:column;gap:8px;background:none;border:0;padding:0;margin-left:calc((var(--b) * 2 + 10px - var(--b)) / 2)}
-.pg-vert>.pg-ctl{position:static;width:var(--b);height:calc(var(--b) * .8)}
+.pg-vert{position:absolute;left:var(--m);bottom:calc(max(14px,env(safe-area-inset-bottom,0px)) + 32px + var(--b) + 6px);width:calc(var(--b)*2.3 + 6px);display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;padding:0;pointer-events:none}
+.pg-vert>.pg-ctl{position:static;width:calc(var(--b)*1.15);height:calc(var(--b)*.7);font-size:clamp(22px,8vh,36px)}
 .pg-fuego{right:max(14px,env(safe-area-inset-right,0px));bottom:max(14px,env(safe-area-inset-bottom,0px));width:var(--f);height:var(--f);border-radius:50%;font-size:clamp(13px,4.2vh,18px);letter-spacing:.02em;text-transform:uppercase}
 .pg-esp{right:calc(max(14px,env(safe-area-inset-right,0px)) + var(--f) + 12px);bottom:calc(max(14px,env(safe-area-inset-bottom,0px)) + var(--f) * .55);width:var(--e);height:var(--e);border-radius:50%;font-size:clamp(10px,3.2vh,14px);line-height:1.1;padding:2px;opacity:.4}
 .pg-esp.pg-listo{opacity:1;background:rgba(201,162,74,.55);animation:pg-late .7s ease-in-out infinite alternate}
@@ -108,7 +108,7 @@ export function crearEntrada(raiz: HTMLElement, opc: { escaleras: boolean; pausa
   };
   const sueltas: Array<() => void> = [];
 
-  // ◀ ▶: one pad; the finger can slide from one side to the other.
+  // ◀ ▶: one pad (its padding is an invisible extra touch area: the whole bottom-left corner); the finger can slide from one side to the other.
   const pad = caja('pg-ctl pg-pad', '<div>◀</div><div>▶</div>');
   const lados = [...pad.children] as HTMLElement[];
   const dedos = new Map<number, number>();
@@ -120,10 +120,8 @@ export function crearEntrada(raiz: HTMLElement, opc: { escaleras: boolean; pausa
     lados[1].classList.toggle('pg-on', tactil.der);
     sumar();
   };
-  const dirDe = (e: PointerEvent) => {
-    const r = pad.getBoundingClientRect();
-    return e.clientX < r.left + r.width / 2 ? -1 : 1;
-  };
+  // Left or right of the middle between the two visible buttons (the pad's own centre is off: its padding is not even).
+  const dirDe = (e: PointerEvent) => (e.clientX < (lados[0].getBoundingClientRect().right + lados[1].getBoundingClientRect().left) / 2 ? -1 : 1);
   pad.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     try {

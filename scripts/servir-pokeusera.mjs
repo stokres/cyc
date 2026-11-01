@@ -1,5 +1,5 @@
-// Server of all the games, for Railway (`npm start`, after `npm run build`): serves ./dist with clean URLs (scripts/rutas.mjs), plus the online room of
-// PokéUsera at /sala (scripts/sala-pokeusera.mjs) and its statistics API at /api (scripts/api-estadisticas.mjs, docs/POKEUSERA.md).
+// Server of all the games, for Railway (`npm start`, after `npm run build`): serves ./dist with clean URLs (scripts/rutas.mjs), plus the online rooms of
+// all the games at /sala (scripts/salas.mjs, docs/SALAS.md) and the statistics and accounts API at /api (scripts/api-estadisticas.mjs, docs/POKEUSERA.md).
 //   /            the cover (dist/portada.html)           /pokeusera   PokéUsera (dist/pokeusera.html)       /aventura   PokéUsera, straight into AVENTURA
 //   /capitulo1   the chapter (dist/index.html)           /pang        the whole Pang (index.html opens it, see src/core/direccion.ts)
 //   /capitulo2 /sol /kart /unamas   hidden games, the same way (they work, the cover does not announce them)
@@ -13,7 +13,7 @@ import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { adjuntarSala } from './sala-pokeusera.mjs';
+import { adjuntarSalas } from './salas.mjs';
 import { RUTAS } from './rutas.mjs';
 import { crearApiEstadisticas, leerCatalogo } from './api-estadisticas.mjs';
 import { crearPase } from './pase.mjs';
@@ -142,5 +142,5 @@ const servidor = createServer(async (req, res) => {
   createReadStream(archivo).on('error', () => res.destroy()).pipe(res);
 });
 
-adjuntarSala(servidor, { autorizar: pase.autorizada, puerta: pase.activa });
+adjuntarSalas(servidor, { autorizar: pase.autorizada, puerta: pase.activa, cuentaDeToken: estadisticas?.cuentaDeToken ?? (() => null) });
 servidor.listen(PUERTO, '0.0.0.0', () => console.log(`PokéUsera en el puerto ${PUERTO} (sirviendo ${RAIZ})`));

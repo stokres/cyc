@@ -2,7 +2,7 @@
 // painted once into a small canvas («rotulo») and only copied; the strip is repainted
 // only when one of its numbers changes.
 import { texto } from '../juego/textos';
-import { cara } from './arte/sprites';
+import { cara, iconoArma } from './arte/sprites';
 import { BARRA_LLENA, type Mundo } from './mundo';
 import { AREA, FRANJA, W } from './tipos';
 
@@ -116,10 +116,15 @@ export class Marcador {
     x.fillText(digitos(j.puntos, 6), 8 + 8 * 7, 3);
     const caras = Math.min(j.vidas, 5);
     for (let i = 0; i < caras; i++) x.drawImage(cara(j.pj), 8 + i * 12, 13);
+    let fin = 8 + caras * 12;
     if (j.vidas > caras) {
+      const mas = `+${j.vidas - caras}`;
       x.fillStyle = CLARO;
-      x.fillText(`+${j.vidas - caras}`, 8 + caras * 12, 14);
+      x.fillText(mas, fin, 14);
+      fin += mas.length * 8 + 2;
     }
+    // The weapon in hand, after the lives (not in the chapter's short Pang, where it never changes). Repainted only with the rest of the strip.
+    if (!m.armaFija) x.drawImage(iconoArma(j.arma), fin + 3, 12);
     // Centre: stage.
     x.textAlign = 'center';
     x.fillStyle = CLARO;
