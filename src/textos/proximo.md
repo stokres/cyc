@@ -12,6 +12,6 @@ Cambia solo lo que va detrás del «=». No borres las líneas: si no quieres al
 -->
 
 fecha = 2026-11-19
-hora = 21:00
+hora = 20:00
 lugar =
 enlace =
