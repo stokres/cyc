@@ -3,11 +3,17 @@
 //   - Sin CYC_CLAVE (o vacía): no hay puerta, todo abierto como antes, y se avisa por consola una vez.
 //   - Con CYC_CLAVE: la cookie `cyc_pase` vale HMAC-SHA256(CYC_CLAVE, 'cyc-pase-1') en hex, así que cambiar la clave en Railway echa a todos.
 //   - POST /api/entrar {clave}: compara (sin espacios sobrantes ni mayúsculas), pone la cookie y responde {ok:true}; 403 si no es; 429 tras demasiados fallos de una IP.
-//   - Sin cookie, el servidor responde 401 a las páginas HTML (con la página de entrada), a /api y a la sala; todo lo demás (/assets, robots.txt, iconos, manifiestos) queda libre.
+//   - Sin cookie, el servidor responde 401 a las páginas HTML (con la página de entrada); todo lo demás (/assets, robots.txt, iconos, manifiestos) queda libre.
+//   - PokéUsera no pide la clave (decidido por Jesús el 2-nov-2026): sus páginas (PAGINAS_LIBRES), /api (cuentas, estadísticas y récords, que usa)
+//     y la sala están abiertas; sin cookie, en la sala solo se pueden ver, crear y unirse a salas de los JUEGOS_LIBRES.
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { ip } from './api-estadisticas.mjs';
 
 export const COOKIE = 'cyc_pase';
+/** Páginas que se sirven sin la clave: PokéUsera por su ruta limpia, su modo Aventura y su archivo (apps instaladas y enlaces viejos). */
+export const PAGINAS_LIBRES = ['/pokeusera', '/aventura', '/pokeusera.html'];
+/** Juegos cuyas salas online se pueden usar sin la clave. */
+export const JUEGOS_LIBRES = ['pokeusera'];
 const DIAS = 400;
 /** Fallos por IP en cada ventana antes del 429 (la clave es corta de teclear, no una contraseña fuerte: esto frena probar a lo bruto). */
 const LIMITE = { max: 10, ms: 10 * 60_000 };
