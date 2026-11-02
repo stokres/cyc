@@ -18,10 +18,11 @@ const REVISION_MS = 60_000;
 
 /**
  * Attaches the rooms to an existing HTTP server.
- * `autorizar(req)`: whether the upgrade may go on (the cookie of the site's door, scripts/pase.mjs); `puerta`: the door is on (the rooms have no password of their own any more).
+ * `autorizar(req)`: whether the socket brings the cookie of the site's door (scripts/pase.mjs); `puerta`: the door is on (the rooms have no password of their own any more).
+ * `libres`: the games whose rooms can be used without the cookie (PokéUsera asks for no key): a socket without it can only list, create and join rooms of those.
  * `cuentaDeToken(token)`: `{ id, nombre }` of the account that owns the token, or null (scripts/api-estadisticas.mjs).
  */
-export function adjuntarSalas(servidor, { autorizar = () => true, puerta = false, cuentaDeToken = () => null } = {}) {
+export function adjuntarSalas(servidor, { autorizar = () => true, puerta = false, libres = [], cuentaDeToken = () => null } = {}) {
   if (!puerta) console.warn('[salas] CYC_CLAVE no está definida: cualquiera puede abrir y entrar en salas.');
 
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_MENSAJE });
@@ -210,6 +211,11 @@ export function adjuntarSalas(servidor, { autorizar = () => true, puerta = false
     clearTimeout(ws.temporizador);
     const sala = ws.sala;
     if (sala) sala.actividad = Date.now();
+    // Without the door's cookie: only the rooms of the free games (PokéUsera). The old `entrar` is PokéUsera's too.
+    if (!ws.conPase && (msg.tipo === 'lista' || msg.tipo === 'crear' || msg.tipo === 'unirse') && !libres.includes(msg.juego)) {
+      if (msg.tipo !== 'lista') rechazar(ws, 'invalido');
+      return;
+    }
     switch (msg.tipo) {
       case 'lista':
         if (sala || (msg.juego !== JUEGO_TODOS && !JUEGOS_ONLINE.includes(msg.juego))) return;
@@ -264,7 +270,8 @@ export function adjuntarSalas(servidor, { autorizar = () => true, puerta = false
     }
   };
 
-  wss.on('connection', (ws) => {
+  wss.on('connection', (ws, req) => {
+    ws.conPase = autorizar(req);
     ws.vivo = true;
     ws.sala = null;
     ws.mira = null;
@@ -283,10 +290,7 @@ export function adjuntarSalas(servidor, { autorizar = () => true, puerta = false
   servidor.on('upgrade', (req, socket, head) => {
     const ruta = new URL(req.url ?? '/', 'http://localhost').pathname;
     if (ruta !== RUTA) return socket.destroy();
-    if (!autorizar(req)) {
-      socket.end('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\nContent-Length: 0\r\n\r\n');
-      return;
-    }
+    // No 401 any more: without the cookie the socket gets in, but only for the free games (see `ws.conPase` in alMensaje).
     wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws, req));
   });
 
