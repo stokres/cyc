@@ -12,7 +12,7 @@ Una sola infraestructura de salas para **todos los juegos** de la web. Cada jueg
 - **Como mucho 4 salas abiertas en toda la web** (`MAX_SALAS`), de cualquier juego. La quinta recibe `rechazo { motivo: 'muchas' }`.
 - Cada sala es de un juego de `JUEGOS_ONLINE` (`'pokeusera'`, `'pang'`; para añadir uno, se añade ahí) y de **1 a 4 jugadores** (`max`, lo elige quien crea la sala).
 - **Código de 4 letras** (`K7MZ`) del alfabeto `ALFABETO_SALA` (sin 0, O, 1, I, L). `limpiarCodigoSala(x)` acepta minúsculas y espacios y devuelve el código en mayúsculas o `null`.
-- Sin contraseña de sala. Quien pasó la puerta de la web (`CYC_CLAVE`, cookie; `scripts/pase.mjs`) usa todas las salas; sin la cookie el socket entra igual, pero `lista`, `crear` y `unirse` solo valen para los juegos de `JUEGOS_LIBRES` (hoy solo `pokeusera`, que no pide la clave): con otro juego, `lista` no contesta y `crear`/`unirse` reciben `rechazo { motivo: 'invalido' }`.
+- Sin contraseña de sala: a `/sala` solo llega quien pasó la puerta de la web (`CYC_CLAVE`, cookie; `scripts/pase.mjs`).
 - **Nombres:** salen de la cuenta de la web. El cliente manda su token (`tokenLocal()`) al crear o unirse y el servidor lo cambia por el nombre (`cuentaDeToken`, de `scripts/api-estadisticas.mjs`); sin cuenta, `nombre: null`. El token no se reenvía a nadie.
 - Una sala tiene un anfitrión (id 0 al crearla; el id de cada jugador es el más bajo libre). Un socket está en el **vestíbulo** o dentro de **una** sala.
 - Los personajes (`pj`) los define cada juego; el servidor solo exige que sean únicos en la sala y de la forma `limpiarPj` (`/^[a-z0-9_-]{1,20}$/`).

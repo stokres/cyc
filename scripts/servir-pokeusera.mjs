@@ -5,8 +5,8 @@
 //   /capitulo2 /sol /kart /unamas   hidden games, the same way (they work, the cover does not announce them)
 //   /fly         Fly (dist/fly/index.html, built with base /fly/)     /voycolgao /trazo   Voy colgao (dist/trazo/index.html)
 // A route with a final slash (/pang/) redirects (301) to the one without: the relative paths of the build (./assets/...) would break under it (Fly uses absolute /fly/... paths).
-// The door (scripts/pase.mjs): with CYC_CLAVE set, without the cookie the HTML pages answer 401 with the entry page (dist/entrar.html); /assets, robots.txt,
-// icons and manifests stay free. PokéUsera asks for no key: its pages (PAGINAS_LIBRES), /api and the rooms of JUEGOS_LIBRES are open to anyone. Every response carries X-Robots-Tag (no indexing).
+// The door (scripts/pase.mjs): with CYC_CLAVE set, without the cookie the HTML pages answer 401 with the entry page (dist/entrar.html), /api and /sala answer 401, and
+// /assets, robots.txt, icons and manifests stay free. Every response carries X-Robots-Tag (no indexing).
 // The files of dist/ keep their own paths (/assets/..., /pokeusera-sw.js, /index.html, /pokeusera.html?aventura...): old links and installed apps still work.
 import { createServer } from 'node:http';
 import { createReadStream } from 'node:fs';
@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { adjuntarSalas } from './salas.mjs';
 import { RUTAS } from './rutas.mjs';
 import { crearApiEstadisticas, leerCatalogo } from './api-estadisticas.mjs';
-import { JUEGOS_LIBRES, PAGINAS_LIBRES, crearPase } from './pase.mjs';
+import { crearPase } from './pase.mjs';
 
 // POKEUSERA_DIST: another build folder (to try a build without touching ./dist).
 const RAIZ = resolve(process.env.POKEUSERA_DIST ?? fileURLToPath(new URL('../dist', import.meta.url)));
@@ -87,7 +87,10 @@ const pase = crearPase();
 const servidor = createServer(async (req, res) => {
   res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
   if (pase.manejar(req, res)) return;
-  // /api is open without the key: PokéUsera (which asks for none) uses the accounts, the statistics and the records.
+  if (new URL(req.url ?? '/', 'http://localhost').pathname.startsWith('/api/') && !pase.autorizada(req)) {
+    res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    return res.end('{"error":"pase"}');
+  }
   if (estadisticas?.manejar(req, res)) return;
   if (req.method !== 'GET' && req.method !== 'HEAD') return responder(res, 405, 'Method Not Allowed');
   const url = new URL(req.url ?? '/', 'http://localhost');
@@ -105,7 +108,7 @@ const servidor = createServer(async (req, res) => {
   let archivo = hallado.archivo;
   let info = hallado.info;
   let codigo = 200;
-  if (ext === '.html' && !PAGINAS_LIBRES.includes(ruta) && !pase.autorizada(req)) {
+  if (ext === '.html' && !pase.autorizada(req)) {
     const entrada = await buscar('/entrar.html');
     if (!entrada) return responder(res, 401, 'Hace falta la clave');
     ({ archivo, info } = entrada);
@@ -139,5 +142,5 @@ const servidor = createServer(async (req, res) => {
   createReadStream(archivo).on('error', () => res.destroy()).pipe(res);
 });
 
-adjuntarSalas(servidor, { autorizar: pase.autorizada, puerta: pase.activa, libres: JUEGOS_LIBRES, cuentaDeToken: estadisticas?.cuentaDeToken ?? (() => null) });
+adjuntarSalas(servidor, { autorizar: pase.autorizada, puerta: pase.activa, cuentaDeToken: estadisticas?.cuentaDeToken ?? (() => null) });
 servidor.listen(PUERTO, '0.0.0.0', () => console.log(`PokéUsera en el puerto ${PUERTO} (sirviendo ${RAIZ})`));
